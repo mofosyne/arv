@@ -1,0 +1,10 @@
+# Disc images and dvdisaster output
+*.iso
+*.udf
+*.img
+*.ecc
+
+# Python
+__pycache__/
+*.pyc
+.venv/
