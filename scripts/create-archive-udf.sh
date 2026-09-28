@@ -2,7 +2,16 @@
 #
 # Blu‑ray Archival Script
 #
-# Warning: Not working... got 'wrong fs type, bad option, bad superblock on /dev/loop1, missing codepage or helper program, or other error.' mount error
+# Status: EXPERIMENTAL. Earlier versions failed to mount with 'wrong fs type,
+# bad option, bad superblock'. Cause (see docs/research-notes.md):
+#   * `--media-type=bdr` makes mkudffs lay out an empty *write-once* (VAT)
+#     filesystem meant to be burned straight to a BD-R. A loop-mounted file
+#     has no VAT yet, so the kernel can't mount it. mkudffs also silently caps
+#     bdr at UDF 2.50 and refuses >2.01 for every other media type.
+#   * The Linux kernel UDF driver can *read* up to 2.60 but only *writes* up
+#     to 2.01, so a 2.50/2.60 image could never be filled via mount + cp.
+# This version therefore builds a plain UDF 2.01 image with 2048-byte blocks,
+# which the kernel can mount read-write.
 #
 # This script creates a blank UDF image sized for Blu‑ray media,
 # formats it using mkudffs, and optionally mounts it for copying files.
@@ -11,7 +20,7 @@
 # Usage: ./create_bluray_udf.sh <source_folder> [<image_name>]
 
 # Check for required dependencies
-for cmd in mkudffs dvdisaster sudo dd truncate; do
+for cmd in mkudffs dvdisaster sudo truncate bc; do
     if ! command -v "$cmd" &> /dev/null; then
         echo "Error: $cmd is not installed. Please install it."
         exit 1
@@ -44,8 +53,8 @@ echo "DEST_TITLE          = $DEST_TITLE"
 echo "DEST_IMAGE          = $DEST_IMAGE"
 
 # mkudffs settings for Blu‑ray
-MEDIA_TYPE=bdr    # bdr – BD-R (Blu-ray Disc Recordable)
-UDF_REV=2.60      # Use highest supported UDF version (Blu-ray requires UDF 2.50+)
+MEDIA_TYPE=hd     # plain random-access layout; 'bdr' is only for burning directly to a disc
+UDF_REV=2.01      # highest revision the Linux kernel can write (it reads up to 2.60)
 echo "MEDIA_TYPE          = $MEDIA_TYPE"
 echo "UDF_REV             = $UDF_REV"
 
@@ -68,7 +77,7 @@ fi
 
 # Format the blank image as a UDF filesystem using mkudffs
 echo "Formatting image as UDF..."
-mkudffs --media-type=$MEDIA_TYPE --udfrev=$UDF_REV --label="$DEST_TITLE" "$DEST_IMAGE"
+mkudffs --media-type=$MEDIA_TYPE --udfrev=$UDF_REV --blocksize=2048 --label="$DEST_TITLE" "$DEST_IMAGE"
 if [ $? -ne 0 ]; then
     echo "Error: Failed to format the image with mkudffs."
     exit 1
@@ -105,7 +114,7 @@ echo "UDF image created at $DEST_IMAGE"
 
 # Optional: Enhance the image with error correction using dvdisaster
 echo "Enhancing image with error correction using dvdisaster..."
-dvdisaster -i "$DEST_IMAGE" -mRS02 -n 15% -o image
+dvdisaster -i "$DEST_IMAGE" -mRS03 -o image -c
 if [ $? -ne 0 ]; then
     echo "Warning: Failed to add error correction."
 else
