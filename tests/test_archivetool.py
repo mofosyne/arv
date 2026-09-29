@@ -136,6 +136,28 @@ class DiscIdTest(unittest.TestCase):
         self.assertEqual(discid.suggest(typo, [disc_id, discid.compose("TAXES", 4, "2020")]), [disc_id])
 
 
+class SetsTest(unittest.TestCase):
+    def test_vocabulary_and_guessing(self):
+        from archivetool import sets
+        with tempfile.TemporaryDirectory() as d:
+            vocab = sets.load(catalog.Home(d))
+            self.assertTrue(os.path.exists(os.path.join(d, "sets.rec")))  # copied for editing
+            trip = sets.lookup(vocab, "trip")
+            self.assertEqual((trip.cls, sets.path_name(vocab, trip)), (111, "Memories > Photos > Trips and holidays"))
+            for word, code in {"Photos": "PHOTO", "Taxes_2019": "TAXES", "scans": "SCAN", "Holiday": "TRIP",
+                               "Emails": "EMAIL", "zzz": None}.items():
+                self.assertEqual(sets.guess(vocab, word), code, word)
+            for s in vocab:
+                if s.code:
+                    self.assertTrue(discid.SET_RE.match(s.code), s.code)  # every code fits in an id
+
+    def test_date_ranges_to_the_day(self):
+        self.assertTrue(discid.covers("2019-07-14/2019-07-20", "2019-07-15"))
+        self.assertFalse(discid.covers("2019-07-14/2019-07-20", "2019-08"))
+        self.assertTrue(discid.covers("2019/..", "2030"))
+        self.assertEqual(discid.compose("TRIP", 1, "2019-12-24/2020-01-02")[:22], "TRIP-01_201912-202001_")
+
+
 class MediaTest(unittest.TestCase):
     def test_budget_is_the_exact_redundancy_boundary(self):
         for name in media.MEDIA:
@@ -315,6 +337,16 @@ class MakeTest(unittest.TestCase):
         photos_id, _ = self.make(self.photos, "--set", "PHOTOS")
         self.assertEqual(photos_id, PHOTOS_01)  # sequences are per set
         self.assertEqual(catalog.Home(self.home).load().next_number("PROJECTS"), 2)
+        # a set from the vocabulary records its class; 'archive sets' counts discs per set
+        trip_id, _ = self.make(self.photos, "--set", "trip", "--coverage", "2023-06-01/2023-06-14")
+        trip = catalog.Home(self.home).load().disc(trip_id)
+        self.assertEqual((trip.get("Set"), trip.get("SetClass")), ("TRIP", "111"))
+        self.assertTrue(trip_id.startswith("TRIP-01_202306_"))
+        out = run_cli("--home", self.home, "sets")[1]
+        self.assertRegex(out, r"111\s+TRIP\s+Trips and holidays\s+1 disc")
+        self.assertIn("PROJECTS", out)  # used but not in the vocabulary: listed separately
+        self.assertIn(trip_id, run_cli("--home", self.home, "list", "--covers", "2023-06-10")[1])
+        self.assertNotIn(trip_id, run_cli("--home", self.home, "list", "--covers", "2023-07")[1])
 
     def test_tools_snapshot_without_history_by_default(self):
         _, disc = self.make(self.photos, "--set", "PHOTOS")

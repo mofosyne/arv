@@ -1,0 +1,175 @@
+# Default set vocabulary (a Dewey-like classification for personal archives).
+#
+# Copied to <home>/sets.rec on first use; edit that copy. Each disc belongs to
+# one set. The Code (2-8 capital letters or digits) appears in disc ids
+# (PHOTO-07_2015-2024_Q); the Class number gives shelf order and hierarchy:
+# hundreds are divisions, tens are sets, units are sub-sets (e.g. 111 TRIP is
+# under 110 PHOTO, which is under 100 Memories). Records without a Code are
+# division headings. Class numbers, like Dewey's, are never reused for a
+# different meaning: add new ones instead.
+
+%rec: Set
+%key: Class
+%mandatory: Class Name
+%type: Class int
+
+Class: 0
+Name: General
+Description: mixed or unsorted material
+
+Class: 10
+Code: MISC
+Name: Miscellaneous
+Description: material that fits nowhere else yet
+
+Class: 100
+Name: Memories
+Description: personal photos, video and audio
+
+Class: 110
+Code: PHOTO
+Name: Photos
+Description: photographs from cameras and phones
+
+Class: 111
+Code: TRIP
+Name: Trips and holidays
+Description: photos and video from travel
+
+Class: 112
+Code: FAMILY
+Name: Family
+Description: family life, children, relatives
+
+Class: 113
+Code: EVENT
+Name: Events
+Description: weddings, birthdays, celebrations, gatherings
+
+Class: 120
+Code: VIDEO
+Name: Home video
+Description: video recordings and home movies
+
+Class: 130
+Code: AUDIO
+Name: Audio recordings
+Description: voice memos, recordings, own music
+
+Class: 200
+Name: Records
+Description: documents and paperwork
+
+Class: 210
+Code: SCAN
+Name: Scans
+Description: scanned paper documents and photos
+
+Class: 211
+Code: LETTERS
+Name: Letters and correspondence
+Description: letters, cards, email printouts
+
+Class: 220
+Code: LEGAL
+Name: Legal and identity
+Description: contracts, certificates, passports, wills, deeds
+
+Class: 230
+Code: TAXES
+Name: Taxes
+Description: tax returns and supporting documents
+
+Class: 231
+Code: FINANCE
+Name: Finance
+Description: bank statements, invoices, insurance, payslips
+
+Class: 240
+Code: HEALTH
+Name: Health
+Description: medical records, prescriptions, test results
+
+Class: 250
+Code: HOME
+Name: Home and property
+Description: house, renovations, manuals, warranties
+
+Class: 300
+Name: Work and study
+
+Class: 310
+Code: WORK
+Name: Work
+Description: job and career material
+
+Class: 320
+Code: SCHOOL
+Name: School and study
+Description: courses, notes, theses
+
+Class: 400
+Name: Projects
+Description: things you made
+
+Class: 410
+Code: CODE
+Name: Software
+Description: source code and programming projects
+
+Class: 420
+Code: ELEC
+Name: Electronics
+Description: circuits, PCBs, firmware, hardware projects
+
+Class: 430
+Code: DESIGN
+Name: Design and art
+Description: drawings, CAD, 3D printing, graphics
+
+Class: 440
+Code: WRITING
+Name: Writing
+Description: articles, stories, blogs, books
+
+Class: 500
+Name: Collections
+Description: things you gathered rather than made
+
+Class: 510
+Code: BOOKS
+Name: Books and papers
+Description: e-books, articles, reference material
+
+Class: 520
+Code: MEDIA
+Name: Media library
+Description: films, music albums, podcasts
+
+Class: 530
+Code: GAMES
+Name: Games
+Description: games, saves, mods
+
+Class: 600
+Name: Backups and exports
+
+Class: 610
+Code: BACKUP
+Name: System backups
+Description: computer backups and disk images
+
+Class: 620
+Code: PHONE
+Name: Phone backups
+Description: phone backups and exports
+
+Class: 630
+Code: EMAIL
+Name: Email and messages
+Description: mailbox exports, chat exports
+
+Class: 640
+Code: WEB
+Name: Web archives
+Description: saved websites (WARC), social media exports
