@@ -112,8 +112,9 @@ class Maker:
     def prior_discs(self):
         if self.args.snapshot == "full":
             return list(self.cat.discs)
-        if self.args.snapshot == "set":
-            return [d for d in self.cat.discs if d.get("Set") == self.meta["set"]]
+        if self.args.snapshot == "set":  # for other people: public discs only
+            return [d for d in self.cat.discs
+                    if d.get("Set") == self.meta["set"] and catalog.access(d) == "public"]
         return []
 
     def assign(self, bins):
@@ -190,6 +191,7 @@ class Maker:
             r.add("Note", n)
         if m.get("location"):
             r.add("Location", m["location"])
+        r.add("Access", m.get("access") or catalog.DEFAULT_ACCESS)
         if a.rights:
             r.add("Rights", a.rights)
         if a.no_ecc:
@@ -275,10 +277,14 @@ class Maker:
         else:
             batch_plans = self.plans
         prior = self.prior_discs()
-        snapshot = self.cat.subset({d.get("Id") for d in prior})
+        # other discs' records as this disc may carry them (sealed ones cut down to their identity)
+        snapshot = self.cat.subset({d.get("Id") for d in prior}).shared_view()
         snapshot.discs += [p.record for p in batch_plans]
         snapshot.events += [e for p in batch_plans for e in p.events]
-        files = {d.get("Id"): self.home.disc_files(d.get("Id")) for d in prior}
+        snapshot.locations = (list(self.cat.locations) if a.snapshot == "full"
+                              else self.cat.locations_for(snapshot.discs))
+        files = {d.get("Id"): self.home.disc_files(d.get("Id")) for d in prior
+                 if catalog.access(d) != "sealed"}
         files.update({p.disc_id: batch[p.disc_id] for p in batch_plans})
         catalog_dir = os.path.join(stage, "catalog")
         catalog.write_snapshot(catalog_dir, snapshot, files, a.snapshot)
@@ -287,7 +293,8 @@ class Maker:
         folder_tags = {n[:-5]: catalog.read_tag_info(os.path.join(tags_dir, n))
                        for n in (os.listdir(tags_dir) if os.path.isdir(tags_dir) else [])}
         web.write_web_data(os.path.join(catalog_dir, "web"), plan.disc_id, snapshot.discs,
-                           {n[:-4]: os.path.join(listings, n) for n in os.listdir(listings)}, folder_tags)
+                           {n[:-4]: os.path.join(listings, n) for n in os.listdir(listings)}, folder_tags,
+                           {l.get("Code"): snapshot.location_path(l.get("Code")) for l in snapshot.locations})
 
         self.stage_tools(os.path.join(stage, "tools"), self.is_git, a.extra_tools, a.tools_history)
         self.write_readme(os.path.join(stage, "README.txt"), plan.record, a.snapshot, a.tools_history)
@@ -300,6 +307,7 @@ class Maker:
         # then this disc's own Disc and Event records. Written last so it can point to every file.
         own = catalog.Catalog()
         own.discs, own.events = [plan.record], list(plan.events)
+        own.locations = self.cat.locations_for(own.discs)
         recfile.write(os.path.join(stage, "catalog.rec"),
                       catalog.archive_records(plan.record, stage) + own.records())
         bag.write_tagmanifests(stage)

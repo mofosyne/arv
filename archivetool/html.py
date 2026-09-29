@@ -103,7 +103,7 @@ def render_index(disc, entries, snapshot_catalog):
     out.append('<p><a href="search.html">Search this disc and the rest of the archive</a></p>')
     out.append("<h2>About this disc</h2><table>")
     out.append(_field_rows(disc, ["Id", "Part", "Set", "Category", "Path", "Sequence", "Coverage", "Date", "Creator", "Subject",
-                                  "Location", "Rights", "Media", "Filesystem", "Ecc", "Software"]))
+                                  "Location", "Access", "Rights", "Media", "Filesystem", "Ecc", "Software"]))
     out.append("<tr><th>Contents</th><td>%s files, %s</td></tr>"
                % (_e(disc.get("Files")), human_size(int(disc.get("Bytes", "0")))))
     out.append("</table>")
@@ -127,7 +127,8 @@ def render_index(disc, entries, snapshot_catalog):
                    "<th>Location</th><th>Files</th></tr>")
         for d in others:
             out.append("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"
-                       % tuple(_e(d.get(k, "")) for k in ("Id", "Title", "Coverage", "Location", "Files")))
+                       % (_e(d.get("Id", "")), _e(d.get("Title", "")), _e(d.get("Coverage", "")),
+                          _e(snapshot_catalog.where(d)), _e(d.get("Files", ""))))
         out.append("</table></div>")
 
     out.append("<h2>Verify and recover</h2>")

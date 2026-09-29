@@ -38,6 +38,18 @@ DESCRIPTORS = [
             ("%type", "Date date"),
             ("%type", "Files int"),
             ("%type", "Bytes int"),
+            ("%type", "Access enum public private sealed"),
+        ],
+    ),
+    recfile.Record(
+        "Location",
+        [
+            ("%rec", "Location"),
+            ("%doc", "Places where discs are kept: site, room, shelf, box. Parent makes a tree,\n"
+                     "so moving a box moves every disc in it. A Disc's Location field (one per\n"
+                     "place its copies are kept) names a Code here, or is free text."),
+            ("%key", "Code"),
+            ("%mandatory", "Code Name"),
         ],
     ),
     recfile.Record(
@@ -61,6 +73,30 @@ DISC_FILE_KINDS = {
 }
 
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
+LOCATION_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{0,23}$")
+
+# Access: who may see a disc's description and file list on *other* discs' catalogue snapshots.
+#   public   anywhere, including discs given to other people (--snapshot set)
+#   private  your own full snapshots only (the default)
+#   sealed   other discs carry only its identity and location, never its titles, notes or files
+ACCESS_LEVELS = ("public", "private", "sealed")
+DEFAULT_ACCESS = "private"
+SEALED_FIELDS = ("Id", "Uuid", "IdScheme", "Set", "Category", "Path", "Sequence", "Coverage", "Date", "Part",
+                 "Location", "Copies", "MediaId", "Access")
+WITHHELD = "title, description, notes, subjects and file lists (Access: sealed)"
+
+
+def access(disc):
+    value = (disc.get("Access") or DEFAULT_ACCESS).strip().lower()
+    return value if value in ACCESS_LEVELS else DEFAULT_ACCESS
+
+
+def sealed_view(disc):
+    """What other discs may carry about a sealed disc."""
+    r = recfile.Record("Disc", [(k, v) for k, v in disc.fields if k in SEALED_FIELDS])
+    r.fields.insert(1, ("Title", "(sealed disc)"))
+    r.add("Withheld", WITHHELD)
+    return r
 
 
 def default_home():
@@ -87,19 +123,66 @@ def coverage_years(entries):
 class Catalog:
     def __init__(self, records=None):
         self.discs = []
+        self.locations = []
         self.events = []
         for r in records or []:
             if r.is_descriptor:
                 continue
             if r.type == "Disc":
                 self.discs.append(r)
+            elif r.type == "Location":
+                self.locations.append(r)
             elif r.type == "Event":
                 self.events.append(r)
 
     def records(self):
         """Records in file order: each type's descriptor is followed by its records."""
-        disc_desc, event_desc = DESCRIPTORS
-        return [disc_desc] + self.discs + [event_desc] + self.events
+        disc_desc, location_desc, event_desc = DESCRIPTORS
+        out = [disc_desc] + self.discs
+        if self.locations:
+            out += [location_desc] + self.locations
+        return out + [event_desc] + self.events
+
+    # ------------------------------------------------------------ locations
+
+    def location(self, code):
+        code = (code or "").strip().upper()
+        return next((l for l in self.locations if l.get("Code") == code), None)
+
+    def location_chain(self, code):
+        """[Location, its parent, ...] from ``code`` up to the top (cycles are cut)."""
+        chain, seen = [], set()
+        loc = self.location(code)
+        while loc is not None and loc.get("Code") not in seen:
+            seen.add(loc.get("Code"))
+            chain.append(loc)
+            loc = self.location(loc.get("Parent"))
+        return chain
+
+    def location_path(self, code):
+        """'Home / Study / Box 3' for a Location code; free text is returned as it is."""
+        chain = self.location_chain(code)
+        if not chain:
+            return code
+        return " / ".join(l.get("Name") or l.get("Code") for l in reversed(chain))
+
+    def where(self, disc):
+        """Every place a disc's copies are kept, as readable paths ('' when not recorded)."""
+        return "; ".join(self.location_path(l) for l in disc.get_all("Location"))
+
+    def locations_under(self, code):
+        """Codes of ``code`` and every location inside it."""
+        code = code.strip().upper()
+        return {l.get("Code") for l in self.locations
+                if code in [c.get("Code") for c in self.location_chain(l.get("Code"))]} | {code}
+
+    def locations_for(self, discs):
+        """The Location records that ``discs`` refer to, with the places containing them."""
+        codes = set()
+        for d in discs:
+            for value in d.get_all("Location"):
+                codes.update(l.get("Code") for l in self.location_chain(value))
+        return [l for l in self.locations if l.get("Code") in codes]
 
     def disc(self, disc_id):
         for d in self.discs:
@@ -128,6 +211,16 @@ class Catalog:
         c = Catalog()
         c.discs = [d for d in self.discs if d.get("Id") in disc_ids]
         c.events = [e for e in self.events if e.get("Disc") in disc_ids]
+        c.locations = self.locations_for(c.discs)
+        return c
+
+    def shared_view(self):
+        """This catalogue as other discs may carry it: sealed discs cut down to their identity."""
+        c = Catalog()
+        sealed = {d.get("Id") for d in self.discs if access(d) == "sealed"}
+        c.discs = [sealed_view(d) if d.get("Id") in sealed else d for d in self.discs]
+        c.events = [e for e in self.events if e.get("Disc") not in sealed]
+        c.locations = list(self.locations)
         return c
 
 
@@ -258,16 +351,25 @@ def _event_key(e):
 
 
 def merge(home_catalog, other, prefer_other=False):
-    """Merge ``other`` into ``home_catalog``. Returns (added disc ids, updated disc ids, added events)."""
+    """Merge ``other`` into ``home_catalog``. Returns (added disc ids, updated disc ids, added events).
+
+    A sealed disc's cut-down record (it has Withheld) never replaces a full one.
+    """
     added, updated, events = [], [], 0
     for d in other.discs:
         existing = home_catalog.disc(d.get("Id"))
         if existing is None:
             home_catalog.discs.append(d)
             added.append(d.get("Id"))
-        elif prefer_other and existing.fields != d.fields:
+        elif prefer_other and existing.fields != d.fields and not (d.get("Withheld") and not existing.get("Withheld")):
             existing.fields = list(d.fields)
             updated.append(d.get("Id"))
+    for loc in other.locations:
+        existing = home_catalog.location(loc.get("Code"))
+        if existing is None:
+            home_catalog.locations.append(loc)
+        elif prefer_other:
+            existing.fields = list(loc.fields)
     known = {_event_key(e) for e in home_catalog.events}
     for e in other.events:
         if _event_key(e) not in known:
@@ -295,12 +397,38 @@ def _matcher(pattern):
     return lambda text: pat in text.lower()
 
 
-DISC_SEARCH_FIELDS = ("Id", "Title", "Description", "Subject", "Note", "Coverage")
+DISC_SEARCH_FIELDS = ("Id", "Title", "Description", "Subject", "Note", "Coverage", "Category", "Path", "Location")
 
 
 def find_discs(catalog, pattern):
     match = _matcher(pattern)
     return [d for d in catalog.discs if any(match(v) for k, v in d.fields if k in DISC_SEARCH_FIELDS)]
+
+
+TAG_NAMESPACES = ("person", "place", "event", "source", "project")  # suggested; any word works
+
+
+def normalise_tag(tag):
+    """'Place : Kyoto ' -> 'place:kyoto'. A tag is a plain word or phrase, or namespace:value."""
+    tag = " ".join((tag or "").replace(",", " ").split()).lower()
+    ns, sep, value = tag.partition(":")
+    if sep and ns.strip() and " " not in ns.strip():
+        return "%s:%s" % (ns.strip(), value.strip())
+    return tag
+
+
+def split_tag(tag):
+    """('place', 'kyoto') for 'place:kyoto'; ('', 'travel') for a plain tag."""
+    ns, sep, value = tag.partition(":")
+    if sep and ns and " " not in ns:
+        return ns, value
+    return "", tag
+
+
+def hierarchical(tag):
+    """XMP lr:hierarchicalSubject form (as Lightroom and digiKam write it): 'place|kyoto'."""
+    ns, value = split_tag(tag)
+    return "%s|%s" % (ns, value) if ns else value
 
 
 def write_tags(path, folder_tags, captions=None):

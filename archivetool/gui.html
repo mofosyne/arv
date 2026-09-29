@@ -195,7 +195,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         var c = lastCheck(d);
         var tr = el("tr", { class: "pick" + (d.Id === selected ? " sel" : "") }, [
           el("td", { class: "mono", text: d.Id }), el("td", { text: d.Title || "" }), el("td", { text: d.Date || "" }),
-          el("td", { text: d.Files || "" }), el("td", { text: d.Copies || "0" }), el("td", { text: d.Location || "" }),
+          el("td", { text: d.Files || "" }), el("td", { text: d.Copies || "0" }), el("td", { text: d.Where || "" }),
           el("td", { class: c ? (c.Outcome === "success" ? "ok" : "bad") : "muted", text: c ? c.Date + " " + c.Outcome : "never" })]);
         tr.onclick = function () { selected = d.Id; loadDiscs(); };
         body.appendChild(tr);
@@ -223,7 +223,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     addNote.onclick = function () { if (note.value.trim()) run({ command: "note", disc_id: d.Id, text: note.value.trim() }, true); };
     box.appendChild(note); box.appendChild(addNote);
 
-    var loc = el("input", { type: "text", value: d.Location || "", "aria-label": "Location" });
+    var loc = el("input", { type: "text", value: [].concat(d.Location || []).join("; "),
+                            "aria-label": "Locations (location codes or text, separated by ;)" });
     var saveLoc = el("button", { class: "plain", text: "Save location" });
     saveLoc.onclick = function () { run({ command: "locate", disc_id: d.Id, location: loc.value }, true); };
     var copies = el("input", { type: "number", value: "1", min: "1", "aria-label": "Copies burned" });
@@ -257,7 +258,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       out.textContent = "";
       if (res.discs.length) {
         out.appendChild(el("h2", { text: "Discs" }));
-        res.discs.forEach(function (d) { out.appendChild(el("div", { class: "note", text: d.Id + " — " + (d.Title || "") + (d.Location ? " — " + d.Location : "") })); });
+        res.discs.forEach(function (d) { out.appendChild(el("div", { class: "note", text: d.Id + " — " + (d.Title || "") + (d.Location ? " — " + [].concat(d.Location).join("; ") : "") })); });
       }
       out.appendChild(el("h2", { text: "Files (" + res.total + (res.total > res.files.length ? ", showing " + res.files.length : "") + ")" }));
       var t = el("table");

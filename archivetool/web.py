@@ -27,12 +27,13 @@ def disc_summary(disc):
     for name in DISC_FIELDS:
         values = disc.get_all(name)
         if values:
-            out[name] = values if name in ("Subject", "Note") else values[0]
+            out[name] = values if name in ("Subject", "Note", "Category", "Path", "Location") else values[0]
     return out
 
 
-def write_web_data(web_dir, this_id, discs, listing_paths, folder_tags=None):
-    """discs: Disc records; listing_paths: {disc_id: listing .tsv}; folder_tags: {disc_id: {folder: (tags, caption)}}."""
+def write_web_data(web_dir, this_id, discs, listing_paths, folder_tags=None, places=None):
+    """discs: Disc records; listing_paths: {disc_id: listing .tsv}; folder_tags: {disc_id: {folder: (tags, caption)}};
+    places: {location code: readable path}."""
     os.makedirs(os.path.join(web_dir, "files"), exist_ok=True)
     summaries = []
     for d in discs:
@@ -45,7 +46,8 @@ def write_web_data(web_dir, this_id, discs, listing_paths, folder_tags=None):
                 summary["FolderCaptions"] = captions
         summaries.append(summary)
     with open(os.path.join(web_dir, "discs.js"), "w", encoding="utf-8") as f:
-        f.write("var ARCHIVE_THIS = %s;\nvar ARCHIVE_DISCS = %s;\n" % (_js(this_id), _js(summaries)))
+        f.write("var ARCHIVE_THIS = %s;\nvar ARCHIVE_DISCS = %s;\nvar ARCHIVE_PLACES = %s;\n"
+                % (_js(this_id), _js(summaries), _js(places or {})))
     for disc_id, path in listing_paths.items():
         rows = []
         for size, _mtime, rel in read_listing(path):
@@ -176,8 +178,13 @@ button { font:inherit; padding:8px 16px; border-radius:6px; border:1px solid var
     return "data/" + path.split("/").map(encodeURIComponent).join("/");
   }
 
+  var places = window.ARCHIVE_PLACES || {};
+  function where(d) {
+    return [].concat(d.Location || []).map(function (l) { return places[l] || l; }).join("; ");
+  }
+
   function describe(d) {
-    return d.Id + " \\u2014 " + (d.Title || "") + " \\u2014 " + (d.Location ? "stored at " + d.Location : "location not recorded");
+    return d.Id + " \\u2014 " + (d.Title || "") + " \\u2014 " + (where(d) ? "stored at " + where(d) : "location not recorded");
   }
 
   function search(query, ids) {
@@ -187,7 +194,7 @@ button { font:inherit; padding:8px 16px; border-radius:6px; border:1px solid var
 
     var discHits = ids.filter(function (id) {
       var d = discs[id];
-      return ["Id", "Title", "Description", "Coverage", "Subject", "Note"].some(function (k) {
+      return ["Id", "Title", "Description", "Coverage", "Subject", "Note", "Category", "Path", "Location"].some(function (k) {
         return [].concat(d[k] || []).some(match);
       });
     });

@@ -75,13 +75,13 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 
 | Path | Shape | Contents |
 |---|---|---|
-| `catalog.rec` | recfile | `Archive` entry record, then this disc's `Disc` record and its `Event` records |
+| `catalog.rec` | recfile | `Archive` entry record, then this disc's `Disc` record, the `Location` records it refers to, and its `Event` records |
 | `bagit.txt`, `bag-info.txt` | BagIt | Bag declaration; `External-Identifier` = disc Id, `Bag-Group-Identifier` / `Bag-Count` for multi-disc sets |
 | `manifest-sha256.txt`, `manifest-sha512.txt` | BagIt manifest | `<hash>  data/<path>`, one per payload file (`sha256sum -c` compatible) |
 | `catalog/listings/<id>.tsv` | TSV | Size, modification time and path of every payload file |
 | `catalog/tags/<id>.tags` | TSV | Folder tags and optional image captions |
 | `catalog/formats/<id>.csv` | CSV | PRONOM format identification per file (optional) |
-| `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc` and `Event` records |
+| `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Location` and `Event` records (limited by [Access](#access)) |
 | `catalog/{manifests,listings,tags,formats}/<other-id>.*` | as above | The same per-file data for the other discs in the snapshot |
 | `index.html`, `search.html` | HTML | Offline viewer and search (for people; readers can ignore) |
 | `data/` | files | The payload, untouched |
@@ -99,7 +99,9 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 | `Title`, `Description`, `Creator`, `Subject`*, `Coverage`, `Rights` | Dublin Core description | `Subject` repeats; `Coverage` is [EDTF](#coverage-edtf) |
 | `Date` | Date the image was made | `YYYY-MM-DD` |
 | `Set`, `Part` | Set name and `n of N` for multi-disc sets | |
-| `Location` | Where the disc is kept | Free text; may be updated later at home |
+| `Location`* | Where the disc's copies are kept, one per place | A [`Location`](#location-records) code, or free text; updated later at home |
+| `Access` | `public`, `private` (default) or `sealed` | What *other* discs' snapshots may show of this one, see [Access](#access) |
+| `Withheld` | What was left out of this record | Only on the cut-down copy of a sealed disc in another disc's snapshot |
 | `Note`* | Free-text notes; Q&A from the owner | Multi-line values continue with `+ ` |
 | `Media`, `Filesystem`, `Ecc` | Physical and technical description | e.g. `M-DISC BD-R 25GB`, RS03 details |
 | `Files`, `Bytes` | Payload totals | integers |
@@ -169,7 +171,17 @@ BACKUPS  Backups and exports
 ```
 
 (abridged; the default is `archivetool/default_sets.rec`, a recfile with
-`Code`, `Name`, `Description`, repeatable `Parent`, optional `Order`.)
+`Code`, `Name`, `Description`, repeatable `Parent`, optional `Order`, and the
+optional fields below.)
+
+| Field | Like | Purpose |
+|---|---|---|
+| `Alias`* | SKOS `altLabel`, Hydrus tag siblings, Lightroom synonyms | Other words for the entry (`holidays`, `vacation` for `TRIP`). Typed or guessed words resolve to the code, so the vocabulary doesn't drift into near-duplicates. A typed code beats an alias; for folder names an alias wins, so a folder called "Projects" means `PROJ`, not the `PROJECTS` group. Two entries may not share an alias. |
+| `ScopeNote` | SKOS `scopeNote` | What belongs here and what goes elsewhere |
+| `Match`* | Paperless-ngx matching rules | File or folder name glob (`*.kicad_pcb`, `*.git`); a pattern with `/` is matched against the whole path, case ignored. Codes whose rules claim at least 10% of a folder's files are suggested as set and categories, with no model involved. |
+
+These fields only steer the software that makes discs; readers need nothing
+from the vocabulary file, because discs record their `Path`s.
 
 A disc is classified by:
 
@@ -188,6 +200,44 @@ are allowed (they simply have no `Path`).
 Suggested mapping for catalogue software: vocabulary entries become nested
 groups (in Katalog: virtual devices), and a disc appears under its set and each
 category.
+
+### Location records
+
+Where discs are kept is its own record type in `archive.rec` and in each disc's
+`catalog.rec`/snapshot (as in Katalog's storage table or ArchivesSpace's
+locations): places form a tree, so moving a box is one edit, not one per disc.
+
+```
+%rec: Location
+%key: Code
+
+Code: HOME
+Name: Home
+
+Code: BOX3
+Name: Box 3, blue lid
+Parent: STUDY
+```
+
+A disc's `Location` fields (one per place its copies are kept, e.g. `BOX3` and
+`OFFSITE`) name these codes; any other value is free text. Show a location as
+its path of names: `Home / Study / Box 3, blue lid`. A disc carries the
+`Location` records it refers to (and the places containing them), so it stays
+self-describing; a full snapshot carries all of them.
+
+### Access
+
+`Access` decides what other discs' catalogue snapshots may carry of a disc (the
+disc itself always carries its own full record):
+
+| Value | Full snapshot (your own discs) | Set snapshot (discs for other people) |
+|---|---|---|
+| `public` | full record and file lists | full record and file lists |
+| `private` (default; also when absent) | full record and file lists | left out |
+| `sealed` | identity only: `Id`, `Uuid`, `Set`, `Category`, `Path`, `Sequence`, `Coverage`, `Date`, `Part`, `Location`, `Copies`, `Access`; `Title` is `(sealed disc)`, plus a `Withheld` field; no events or file lists | left out |
+
+A reader merging snapshots must never replace a full record with one that has
+`Withheld`.
 
 ### Coverage (EDTF)
 
@@ -241,6 +291,15 @@ photos/2019 trip	travel, japan	People at a temple gate in autumn.
 Folder paths use `/`, relative to `data/`; `.` is the payload root. Tags are
 comma-separated and lower case. The caption column is optional.
 
+A tag is either a plain word or phrase (`travel`) or `namespace:value`
+(`person:alice`, `place:kyoto`, `event:wedding-2019`, `source:pixel-7`,
+`project:weather-station`), as in Hydrus. Namespaces keep facets apart: who,
+where, which occasion, which device. Suggested namespaces are `person`,
+`place`, `event`, `source` and `project`; any single word works. The
+hierarchical keyword form used by XMP `lr:hierarchicalSubject` (Lightroom,
+digiKam) replaces the colon with `|`: `place|kyoto`; set paths become
+`MEMORIES|PHOTO|TRIP`.
+
 ## Reading a disc: suggested algorithm
 
 1. Find `catalog.rec`; read its `Archive` record. Stop if `Format` is not `smart-archive`.
@@ -267,12 +326,13 @@ Based on Katalog's source (collection files `device.csv`, `storage.csv`,
 | `Disc.Title` (or `Id`) | `device.csv` `Name` |
 | `Disc.Set`, `Category`, `Path` | nested `Virtual` devices following the vocabulary paths |
 | `Disc.Id` (volume label) | `storage.csv` `Label` |
-| `Disc.Location` | `storage.csv` `Location` |
+| `Disc.Location` + `Location` records | `storage.csv` `Location` (the readable path, e.g. `Home / Study / Box 3`) |
+| `Disc.Access` = `sealed` | import the identity only (or skip the disc) |
 | `Disc.Filesystem`, `Media` | `storage.csv` `FileSystem`, `Type` / `Comment` |
 | `Disc.Description`, `Note` | `storage.csv` `Comment` (or a new notes table) |
 | Listing TSV row | `.idx` row: `<mount>/data/<path>`, size, date converted from UTC to `yyyy/MM/dd hh:mm:ss` |
 | Manifest SHA-256 | Katalog's checksum column (catalogue with checksums enabled) |
-| Tags TSV row | `tags.csv`: one tag per (tag, folder path) with type folder |
+| Tags TSV row | `tags.csv`: one tag per (tag, folder path) with type folder; `namespace:value` kept as the tag name |
 | `catalog/archive.rec` other discs | additional devices marked as not connected |
 
 Things Katalog would have no place for today (candidates for its developer):
