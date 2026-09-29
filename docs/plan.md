@@ -124,6 +124,18 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - Manifest paths are written unencoded (bagit-python and `sha256sum -c`
   compatible). Names with CR/LF or a literal `%0A`/`%0D`/`%25` are rejected.
 
+## Optional: local LLM metadata help (done)
+
+- `archive describe` (folder or disc), `archive make --llm` / `--draft`, GUI "Suggest" panels.
+- OpenAI-compatible HTTP API, standard library only; loopback only unless `--llm-allow-remote`.
+- The model gets an inventory (names, counts, sizes, dates, types, short README text), returns
+  title / description / subjects / folder tags / questions as JSON. The owner reviews every
+  field; Q&A answers become notes; accepted changes are PREMIS `metadata modification` events
+  with agent `llm:<model> + owner review`.
+- Folder tags: `catalog/tags/<disc-id>.tags`, searched by `find`, the GUI and `search.html`.
+- Possible later: a vision model for image-content tags (sampled thumbnails), which would
+  need file contents to leave the inventory-only design and so should stay opt-in.
+
 ## Separate track: standalone RS03 library
 
 Neither dvdisaster nor the speed47 fork has a library or API; it is one GPLv3 C

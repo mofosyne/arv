@@ -17,7 +17,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import catalog, index, web
+from . import catalog, describe, index, llm, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARCHIVE = os.path.join(os.path.dirname(HERE), "archive")
@@ -47,8 +47,9 @@ class Job:
 
 
 class App:
-    def __init__(self, home):
+    def __init__(self, home, llm_options=None):
         self.home = catalog.Home(home)
+        self.llm_options = llm_options or {}
         self.token = secrets.token_urlsafe(24)
         self.jobs = {}
         self.lock = threading.Lock()
@@ -105,8 +106,61 @@ class App:
         return {"jobs": [{"id": j.id, "argv": j.argv[2:], "done": j.done, "returncode": j.returncode}
                          for j in self.jobs.values()]}
 
+    # ------------------------------------------------------------ local LLM (optional)
+
+    def llm_client(self):
+        o = self.llm_options
+        return llm.Client(o.get("url"), o.get("model"), o.get("allow_remote", False))
+
+    def llm_status(self, _params):
+        try:
+            client = self.llm_client()
+            return {"available": True, "url": client.url, "model": client.resolve_model()}
+        except llm.LLMError as err:
+            return {"available": False, "error": str(err)}
+
+    def post_llm_suggest(self, body):
+        """One suggestion round for a folder (source) or a disc (disc_id); may take a minute."""
+        try:
+            client = self.llm_client()
+        except llm.LLMError as err:
+            return {"error": str(err)}
+        if body.get("disc_id"):
+            cat = self.home.load()
+            disc = cat.disc(body["disc_id"])
+            if not disc:
+                raise LookupError("no such disc")
+            entries = describe.disc_entries(self.home, disc.get("Id"))
+            inv = llm.inventory(entries, disc.get("Id"), describe.existing_metadata(disc))
+        else:
+            src = os.path.abspath(os.path.expanduser(body["source"]))
+            if not os.path.isdir(src):
+                raise ValueError("not a folder: %s" % src)
+            entries = describe.folder_entries(src)
+            inv = llm.inventory(entries, os.path.basename(src), text_root=src)
+        answers = [(q, a) for q, a in body.get("answers") or [] if str(a).strip()]
+        try:
+            result = llm.suggest(client, inv, answers=answers or None, previous=body.get("previous"),
+                                 folders=llm.folders_of(entries))
+        except llm.LLMError as err:
+            return {"error": str(err)}
+        result["agent"] = client.agent
+        return result
+
+    def write_draft(self, draft):
+        folder = os.path.join(self.home.path, "drafts")
+        os.makedirs(folder, exist_ok=True)
+        path = os.path.join(folder, "draft-%s.json" % secrets.token_hex(4))
+        describe.save_draft(path, {
+            "title": draft.get("title"), "description": draft.get("description"),
+            "subjects": draft.get("subjects") or [], "notes": draft.get("notes") or [],
+            "folder_tags": draft.get("folder_tags") or {}}, draft.get("agent") or "llm")
+        return path
+
     def post_make(self, body):
         argv = ["make", "-y", body["source"]]
+        if body.get("draft"):
+            argv += ["--draft", self.write_draft(body["draft"])]
         for key in ("set", "title", "description", "creator", "location", "rights", "medium",
                     "min_redundancy", "snapshot", "output_dir"):
             value = str(body.get(key) or "").strip()
@@ -143,6 +197,8 @@ class App:
             argv = ["rebuild", body["path"]]
         elif command == "index":
             argv = ["index"]
+        elif command == "apply_draft":
+            argv = ["describe", body["disc_id"], "--apply", self.write_draft(body["draft"])]
         else:
             raise LookupError("unknown command %r" % command)
         return self.start_job(argv).as_dict()
@@ -150,8 +206,9 @@ class App:
 
 def make_handler(app, port_holder):
     get_routes = {"/api/discs": app.discs, "/api/find": app.find, "/api/browse": app.browse,
-                  "/api/job": app.job, "/api/jobs": app.jobs_list}
-    post_routes = {"/api/make": app.post_make, "/api/check": app.post_check, "/api/command": app.post_simple}
+                  "/api/job": app.job, "/api/jobs": app.jobs_list, "/api/llm/status": app.llm_status}
+    post_routes = {"/api/make": app.post_make, "/api/check": app.post_check, "/api/command": app.post_simple,
+                   "/api/llm/suggest": app.post_llm_suggest}
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -211,9 +268,9 @@ def make_handler(app, port_holder):
     return Handler
 
 
-def serve(home=None, port=0, open_browser=True):
+def serve(home=None, port=0, open_browser=True, llm_options=None):
     """Start the server. Returns (server, url); call server.serve_forever() to run it."""
-    app = App(home)
+    app = App(home, llm_options)
     port_holder = [port]
     server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(app, port_holder))
     port_holder[0] = server.server_address[1]
@@ -225,7 +282,8 @@ def serve(home=None, port=0, open_browser=True):
 
 
 def main(args):
-    server, url = serve(args.home, args.port, not args.no_browser)
+    llm_options = {"url": args.llm_url, "model": args.llm_model, "allow_remote": args.llm_allow_remote}
+    server, url = serve(args.home, args.port, not args.no_browser, llm_options)
     print("Archive GUI running at %s  (Ctrl+C to stop)" % url, flush=True)
     try:
         server.serve_forever()

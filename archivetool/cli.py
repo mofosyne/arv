@@ -10,6 +10,7 @@ Commands:
   check  verify a disc or image with dvdisaster and log a fixity-check event
   rebuild merge the catalogue carried on a disc into the home catalogue
   index  build the SQLite search index
+  describe  improve titles, descriptions and tags with a local LLM (optional)
   gui    graphical interface in your web browser
 """
 
@@ -22,7 +23,7 @@ import subprocess
 import sys
 import tarfile
 
-from . import bag, catalog, image, index, make, media, recfile
+from . import bag, catalog, describe, image, index, llm, make, media, recfile
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO_NAME = "bluray-archival-workflow"
@@ -173,6 +174,18 @@ def cmd_make(args):
     log("Scanning and hashing %s ..." % src)
     entries = bag.scan_payload(src)
 
+    draft = {}
+    if args.draft:
+        draft = describe.load_draft(args.draft)
+    elif args.llm:
+        draft = describe.make_draft(args, src, entries, interactive)
+    if draft:
+        # the draft fills the fields the command line leaves empty; no prompts for those
+        args.title = args.title or draft["title"]
+        args.description = args.description or draft["description"]
+        args.subject = args.subject or draft["subjects"] or None
+        args.note = (args.note or []) + draft["notes"] or None
+
     default_title, default_set = folder_defaults(src)
     meta = {
         "set": make.sanitize_set(args.set or ask("Set name", default_set, interactive)),
@@ -183,6 +196,8 @@ def cmd_make(args):
         "location": args.location or ask("Physical location (optional)", None, interactive),
         "subjects": args.subject or [s.strip() for s in (ask("Subjects, comma separated (optional)", None, interactive) or "").split(",") if s.strip()],
         "notes": args.note or [n for n in [ask("Note (optional)", None, interactive)] if n],
+        "folder_tags": draft.get("folder_tags") or {},
+        "draft_agent": draft.get("agent"),
     }
     version, is_git = software_version()
     maker = make.Maker(args, meta, entries, src, home, cat, version, is_git, stage_tools, write_readme)
@@ -200,11 +215,14 @@ def cmd_find(args):
         disc_hits, file_hits = catalog.find(home, cat, args.pattern)
     for d in disc_hits:
         print("DISC  %s  %s  [%s]" % (d.get("Id"), d.get("Title"), d.get("Location", "location unknown")))
+    tag_hits = catalog.find_tags(home, cat, args.pattern)
+    for d, folder, tags in tag_hits:
+        print("TAG   %s  [%s]  data/%s/  (%s)" % (d.get("Id"), d.get("Location", "?"), folder, ", ".join(tags)))
     for d, path in file_hits[: args.limit] if args.limit else file_hits:
         print("%s  [%s]  %s" % (d.get("Id"), d.get("Location", "?"), path))
     if args.limit and len(file_hits) > args.limit:
         print("... %d more file matches (use --limit 0 for all)" % (len(file_hits) - args.limit))
-    return 0 if disc_hits or file_hits else 1
+    return 0 if disc_hits or file_hits or tag_hits else 1
 
 
 def cmd_list(args):
@@ -344,6 +362,18 @@ def cmd_index(args):
     return 0
 
 
+def add_llm_options(parser):
+    parser.add_argument("--llm-url", help="OpenAI-compatible server (default: $ARCHIVE_LLM_URL or %s, Ollama)"
+                        % llm.DEFAULT_URL)
+    parser.add_argument("--llm-model", help="model name (default: $ARCHIVE_LLM_MODEL or the server's first model)")
+    parser.add_argument("--llm-allow-remote", action="store_true",
+                        help="allow a non-local LLM server (the inventory describes your private files)")
+
+
+def cmd_describe(args):
+    return describe.run(args)
+
+
 def cmd_gui(args):
     from . import gui
     return gui.main(args)
@@ -384,6 +414,12 @@ def build_parser():
     m.add_argument("--formats", choices=["auto", "yes", "no"], default="auto",
                    help="identify file formats (PRONOM) with Siegfried: auto = when sf is installed")
     m.add_argument("--sf-home", help="Siegfried signature directory (sf -home)")
+    m.add_argument("--llm", action="store_true",
+                   help="ask a local LLM to suggest title, description, subjects and folder tags, "
+                        "and to ask you questions about the folder (optional)")
+    m.add_argument("--llm-rounds", type=int, default=2, help="question rounds with --llm (default: 2)")
+    m.add_argument("--draft", help="metadata draft JSON from 'archive describe --save'")
+    add_llm_options(m)
     m.add_argument("--ro-crate", action="store_true",
                    help="add RO-Crate 1.2 metadata (data/ro-crate-metadata.json + preview) for research-data tools")
     m.add_argument("--snapshot", choices=["full", "set", "disc"], default="full",
@@ -438,9 +474,21 @@ def build_parser():
     i = sub.add_parser("index", help="(re)build the SQLite search index used by find")
     i.set_defaults(func=cmd_index)
 
+    ds = sub.add_parser("describe", help="improve metadata with a local LLM (a folder, or a disc in the catalogue)")
+    ds.add_argument("target", help="folder to be archived, or a disc id")
+    ds.add_argument("--rounds", type=int, default=2, help="question rounds (default: 2)")
+    ds.add_argument("--questions", type=int, default=5, help="questions per round (default: 5)")
+    ds.add_argument("--save", help="write the reviewed result as a draft JSON for 'archive make --draft'")
+    ds.add_argument("--disc-root", help="mounted disc, so README-style files on it can be read")
+    ds.add_argument("--show-inventory", action="store_true", help="print exactly what would be sent, and stop")
+    ds.add_argument("--apply", metavar="DRAFT", help="apply a saved draft to the disc (no LLM needed)")
+    add_llm_options(ds)
+    ds.set_defaults(func=cmd_describe)
+
     g = sub.add_parser("gui", help="open the graphical interface in your web browser")
     g.add_argument("--port", type=int, default=0, help="port on 127.0.0.1 (default: any free port)")
     g.add_argument("--no-browser", action="store_true", help="print the URL instead of opening a browser")
+    add_llm_options(g)
     g.set_defaults(func=cmd_gui)
     return p
 
