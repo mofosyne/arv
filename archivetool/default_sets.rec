@@ -1,175 +1,187 @@
-# Default set vocabulary (a Dewey-like classification for personal archives).
+# Default set vocabulary: words, not numbers.
 #
-# Copied to <home>/sets.rec on first use; edit that copy. Each disc belongs to
-# one set. The Code (2-8 capital letters or digits) appears in disc ids
-# (PHOTO-07_2015-2024_Q); the Class number gives shelf order and hierarchy:
-# hundreds are divisions, tens are sets, units are sub-sets (e.g. 111 TRIP is
-# under 110 PHOTO, which is under 100 Memories). Records without a Code are
-# division headings. Class numbers, like Dewey's, are never reused for a
-# different meaning: add new ones instead.
+# Copied to <home>/sets.rec on first use; edit that copy and add codes as you
+# need them. Each entry has a Code (2-8 capital letters or digits, used in disc
+# ids such as TRIP-01_201907_Q) and any number of Parent codes, so the
+# vocabulary is a directed acyclic graph (a polyhierarchy, like SKOS
+# "broader"): SCAN sits under both RECORDS and PHOTO. Entries without a Parent
+# are top-level groups. Order (optional) sorts siblings for display.
+#
+# A disc has one Set (its id prefix and numbering) and any number of extra
+# Category codes; it records every vocabulary path of both (Path fields), so
+# the disc stays understandable without this file. Never reuse a code for a
+# different meaning: add a new one instead.
 
 %rec: Set
-%key: Class
-%mandatory: Class Name
-%type: Class int
+%key: Code
+%mandatory: Code Name
+%type: Order int
 
-Class: 0
-Name: General
-Description: mixed or unsorted material
-
-Class: 10
-Code: MISC
-Name: Miscellaneous
-Description: material that fits nowhere else yet
-
-Class: 100
+Code: MEMORIES
 Name: Memories
 Description: personal photos, video and audio
+Order: 1
 
-Class: 110
 Code: PHOTO
 Name: Photos
 Description: photographs from cameras and phones
+Parent: MEMORIES
 
-Class: 111
 Code: TRIP
 Name: Trips and holidays
 Description: photos and video from travel
+Parent: PHOTO
 
-Class: 112
 Code: FAMILY
 Name: Family
 Description: family life, children, relatives
+Parent: PHOTO
 
-Class: 113
 Code: EVENT
 Name: Events
 Description: weddings, birthdays, celebrations, gatherings
+Parent: PHOTO
 
-Class: 120
 Code: VIDEO
 Name: Home video
 Description: video recordings and home movies
+Parent: MEMORIES
 
-Class: 130
 Code: AUDIO
 Name: Audio recordings
 Description: voice memos, recordings, own music
+Parent: MEMORIES
 
-Class: 200
+Code: RECORDS
 Name: Records
 Description: documents and paperwork
+Order: 2
 
-Class: 210
 Code: SCAN
 Name: Scans
-Description: scanned paper documents and photos
+Description: scanned paper documents and photo prints
+Parent: RECORDS
+Parent: PHOTO
 
-Class: 211
 Code: LETTERS
 Name: Letters and correspondence
 Description: letters, cards, email printouts
+Parent: RECORDS
 
-Class: 220
 Code: LEGAL
 Name: Legal and identity
 Description: contracts, certificates, passports, wills, deeds
+Parent: RECORDS
 
-Class: 230
 Code: TAXES
 Name: Taxes
 Description: tax returns and supporting documents
+Parent: FINANCE
 
-Class: 231
 Code: FINANCE
 Name: Finance
 Description: bank statements, invoices, insurance, payslips
+Parent: RECORDS
 
-Class: 240
 Code: HEALTH
 Name: Health
 Description: medical records, prescriptions, test results
+Parent: RECORDS
 
-Class: 250
 Code: HOME
 Name: Home and property
 Description: house, renovations, manuals, warranties
+Parent: RECORDS
 
-Class: 300
+Code: CAREER
 Name: Work and study
+Order: 3
 
-Class: 310
 Code: WORK
 Name: Work
 Description: job and career material
+Parent: CAREER
 
-Class: 320
 Code: SCHOOL
 Name: School and study
 Description: courses, notes, theses
+Parent: CAREER
 
-Class: 400
+Code: PROJECTS
 Name: Projects
 Description: things you made
+Order: 4
 
-Class: 410
+Code: PROJ
+Name: Personal projects
+Description: a project's files of every kind together (code, designs, notes, photos)
+Parent: PROJECTS
+
 Code: CODE
 Name: Software
 Description: source code and programming projects
+Parent: PROJECTS
 
-Class: 420
 Code: ELEC
 Name: Electronics
 Description: circuits, PCBs, firmware, hardware projects
+Parent: PROJECTS
 
-Class: 430
 Code: DESIGN
 Name: Design and art
 Description: drawings, CAD, 3D printing, graphics
+Parent: PROJECTS
 
-Class: 440
 Code: WRITING
 Name: Writing
 Description: articles, stories, blogs, books
+Parent: PROJECTS
 
-Class: 500
+Code: COLLECT
 Name: Collections
 Description: things you gathered rather than made
+Order: 5
 
-Class: 510
 Code: BOOKS
 Name: Books and papers
 Description: e-books, articles, reference material
+Parent: COLLECT
 
-Class: 520
 Code: MEDIA
 Name: Media library
 Description: films, music albums, podcasts
+Parent: COLLECT
 
-Class: 530
 Code: GAMES
 Name: Games
 Description: games, saves, mods
+Parent: COLLECT
 
-Class: 600
+Code: BACKUPS
 Name: Backups and exports
+Order: 6
 
-Class: 610
-Code: BACKUP
+Code: SYSTEM
 Name: System backups
 Description: computer backups and disk images
+Parent: BACKUPS
 
-Class: 620
 Code: PHONE
 Name: Phone backups
 Description: phone backups and exports
+Parent: BACKUPS
 
-Class: 630
 Code: EMAIL
 Name: Email and messages
 Description: mailbox exports, chat exports
+Parent: BACKUPS
 
-Class: 640
 Code: WEB
 Name: Web archives
 Description: saved websites (WARC), social media exports
+Parent: BACKUPS
+
+Code: MISC
+Name: Miscellaneous
+Description: material that fits nowhere else yet
+Order: 9

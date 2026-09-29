@@ -175,8 +175,9 @@ class Maker:
         if not a.id:
             r.add("IdScheme", discid.SCHEME)
         r.fields += [("Title", m["title"]), ("Set", m["set"])]
-        if m.get("set_class") is not None:
-            r.add("SetClass", "%03d" % m["set_class"])  # place in the set vocabulary at burn time
+        r.fields += [("Category", c) for c in m.get("categories") or []]
+        # every vocabulary path of the set and categories, recorded at burn time (self-describing)
+        r.fields += [("Path", p) for p in m.get("paths") or []]
         r.fields += [("Sequence", str(plan.sequence)), ("Coverage", m["coverage"]), ("Date", catalog.today())]
         if plan.parts > 1:
             r.add("Part", "%d of %d" % (plan.part, plan.parts))

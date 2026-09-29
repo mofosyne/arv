@@ -67,7 +67,8 @@ and `dvdisaster` (use the [speed47 fork](https://github.com/speed47/dvdisaster) 
 ./archive make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03
 ./archive find IMG_2019            # which disc holds it, and where the disc is
 ./archive list --covers 2019-07-15    # discs whose date range includes that day (or 2019, 2019-07)
-./archive sets                        # the set vocabulary (Dewey-like classes) and discs per set
+./archive sets                        # the vocabulary tree with disc counts
+./archive list --in MEMORIES          # discs anywhere under a vocabulary entry
 ./archive id PHOTOS-07_2015-2024_Q   # explain / check an id (catches typos)
 ./archive note 2020-2025_PROJECTS_01 "Only copy of the 2019 PCB gerbers"
 ./archive locate 2020-2025_PROJECTS_01 "Offsite: parents' house"
@@ -105,9 +106,11 @@ searches this disc and every disc in its catalogue snapshot (all offline, from
   that catches typos. They are derived from the record's `Set`, `Sequence` and `Coverage`
   (EDTF: `2019`, `2015/2024`, `199X`, `1995~`) and used as the volume label. `archive id <ID>`
   explains and checks one; `archive list --covers 2019-07-15` finds discs by date. Older ids stay valid.
-- Sets come from a Dewey-like vocabulary in `<home>/sets.rec` (PHOTO 110, TRIP 111, SCAN 210,
-  TAXES 230, CODE 410, ...): short codes for ids, class numbers for shelf order and hierarchy.
-  The folder name suggests one (`Holiday` -> TRIP); the disc records `Set` and `SetClass`.
+- Discs are classified with a word vocabulary in `<home>/sets.rec` (PHOTO, TRIP, SCAN, TAXES,
+  PROJ, CODE, ...), a hierarchy where an entry can have several parents (SCAN is under PHOTO
+  and RECORDS). One `--set` gives the id prefix; `--category` (repeatable) adds more codes,
+  e.g. `--set PROJ --category CODE --category ELEC`. The folder name suggests a set
+  (`Holiday` -> TRIP), and the disc records every vocabulary path (`MEMORIES/PHOTO/TRIP`).
 - The home catalogue lives in `$BLURAY_ARCHIVE_HOME` (default
   `~/.local/share/bluray-archive`): `archive.rec` plus `manifests/<disc-id>.sha256`.
 - Each disc carries a snapshot of the committed `HEAD` of this repo (not its history;

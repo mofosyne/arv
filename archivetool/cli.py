@@ -199,20 +199,31 @@ def cmd_make(args):
         coverage = discid.to_edtf(args.coverage) if args.coverage else catalog.coverage_years(entries)
     except discid.IdError as err:
         raise SystemExit("Error: --coverage: %s (examples: 2019, 2015/2024, 2019-07/2019-08, 199X, 1995~)" % err)
-    vocab = sets.load(home)
-    default_set = sets.guess(vocab, default_set) or default_set
+    try:
+        vocab = sets.load(home)
+    except sets.VocabError as err:
+        raise SystemExit("Error: %s" % err)
+    default_set = vocab.guess(default_set) or default_set
     set_code = make.sanitize_set(args.set or ask("Set code (see 'archive sets')", default_set, interactive))
-    set_info = sets.lookup(vocab, set_code)
-    if set_info:
-        log("Set: %s  (%s)" % (set_info.label, sets.path_name(vocab, set_info)))
-    else:
-        hint = sets.near(vocab, set_code)
-        log("Warning: set %s is not in %s%s. The disc is made anyway, without a class; add the set "
-            "there to classify it." % (set_code, sets.vocab_path(home),
-                                       " (did you mean %s?)" % ", ".join(hint) if hint else ""))
+    categories = args.category or [c for c in (ask("Extra categories, comma separated (optional)", None,
+                                                   interactive) or "").split(",") if c.strip()]
+    categories = [make.sanitize_set(c) for c in categories]
+    categories = [c for i, c in enumerate(categories) if c != set_code and c not in categories[:i]]
+    paths = []
+    for code in [set_code] + categories:
+        found = vocab.paths(code)
+        if found:
+            paths += found
+        else:
+            hint = vocab.near(code)
+            log("Warning: %s is not in %s%s. It is used anyway, without a place in the vocabulary."
+                % (code, vocab.path, " (did you mean %s?)" % ", ".join(hint) if hint else ""))
+    if paths:
+        log("Classified as: %s" % ", ".join(paths))
     meta = {
         "set": set_code,
-        "set_class": set_info.cls if set_info else None,
+        "categories": categories,
+        "paths": paths,
         "coverage": coverage,
         "title": args.title or ask("Title", default_title, interactive),
         "description": args.description or ask("Description (optional)", None, interactive),
@@ -253,6 +264,8 @@ def cmd_find(args):
 def cmd_list(args):
     cat = catalog.Home(args.home).load()
     for d in cat.discs:
+        if args.within and args.within.upper() not in sets.disc_codes(d):
+            continue
         if args.covers:
             try:
                 if not discid.covers(d.get("Coverage"), args.covers):
@@ -265,18 +278,36 @@ def cmd_list(args):
 
 
 def cmd_sets(args):
-    """The set vocabulary as a tree, with how many discs each set has."""
+    """The vocabulary as a tree (entries with several parents appear under each), with disc counts."""
     home = catalog.Home(args.home)
-    vocab = sets.load(home)
-    counts = {}
-    for d in home.load().discs:
-        counts[d.get("Set")] = counts.get(d.get("Set"), 0) + 1
-    for s in vocab:
-        indent = "" if s.cls % 100 == 0 else ("  " if s.cls % 10 == 0 else "    ")
-        n = counts.pop(s.code, 0) if s.code else 0
-        print("%03d  %s%-8s %-28s %s" % (s.cls, indent, s.code or "", s.name, ("%d disc%s" % (n, "" if n == 1 else "s")) if n else ""))
-    for code, n in sorted(counts.items()):
-        print("---  %-10s (not in %s) %d disc%s" % (code, sets.vocab_path(home), n, "" if n == 1 else "s"))
+    try:
+        vocab = sets.load(home)
+    except sets.VocabError as err:
+        raise SystemExit("Error: %s" % err)
+    discs = home.load().discs
+    member = [sets.disc_codes(d) for d in discs]
+    direct = {}
+    for d in discs:
+        for code in {d.get("Set")} | set(d.get_all("Category")):
+            direct[code] = direct.get(code, 0) + 1
+
+    def show(e, depth):
+        within = sum(1 for m in member if e.code in m)
+        count = ""
+        if within:
+            count = "%d disc%s" % (direct.get(e.code, 0), "" if direct.get(e.code, 0) == 1 else "s")
+            if within != direct.get(e.code, 0):
+                count += " (%d including below)" % within
+        print("%s%-8s %-28s %s%s" % ("  " * depth, e.code, e.name, count,
+                                      "   [also under %s]" % ", ".join(e.parents) if len(e.parents) > 1 else ""))
+        for child in vocab.children(e.code):
+            show(child, depth + 1)
+
+    for root in vocab.roots():
+        show(root, 0)
+    unknown = sorted({c for c in direct if c and not vocab.get(c)})
+    for code in unknown:
+        print("%-8s (not in %s) %d disc%s" % (code, vocab.path, direct[code], "" if direct[code] == 1 else "s"))
     return 0
 
 
@@ -479,6 +510,8 @@ def build_parser():
     m.add_argument("--output-dir", help="directory for the images (default: current directory)")
     m.add_argument("--id", help="disc id for a single disc (default: <coverage>_<SET>_<nn>)")
     m.add_argument("--set", help="set code, 2-8 letters or digits, e.g. PHOTOS")
+    m.add_argument("--category", action="append",
+                   help="extra category code from the vocabulary (repeatable), e.g. --set PROJ --category CODE")
     m.add_argument("--coverage",
                    help="dates the contents span, in EDTF: 2019, 2015/2024, 2019-07/2019-08, 199X, 1995~ "
                         "(default: from file modification times)")
@@ -532,9 +565,11 @@ def build_parser():
     ls = sub.add_parser("list", help="list discs")
     ls.add_argument("--covers", metavar="DATE",
                     help="only discs whose coverage overlaps this date or range: 2019, 2019-07, 2019-07-15, 2018/2019")
+    ls.add_argument("--in", dest="within", metavar="CODE",
+                    help="only discs whose set or categories are CODE or anywhere below it (e.g. --in MEMORIES)")
     ls.set_defaults(func=cmd_list)
 
-    st = sub.add_parser("sets", help="show the set vocabulary (Dewey-like classes) and discs per set")
+    st = sub.add_parser("sets", help="show the set vocabulary (a word hierarchy) and discs per set")
     st.set_defaults(func=cmd_sets)
 
     di = sub.add_parser("id", help="explain and check a disc id (catches typos)")
