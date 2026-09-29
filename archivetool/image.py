@@ -2,6 +2,7 @@
 
 import shutil
 import subprocess
+import sys
 
 MAX_VOLID_LEN = 32
 
@@ -35,7 +36,14 @@ def build_iso(stage, payload, out, volume_id):
         "/=" + _graft_escape(stage),
         "data/=" + _graft_escape(payload),
     ]
-    subprocess.run(cmd, check=True)
+    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    # genisoimage always warns that level 3 + long names "does not conform to ISO-9660"
+    noise = "Warning: creating filesystem that does not conform to ISO-9660."
+    output = "\n".join(l for l in proc.stdout.splitlines() if l.strip() != noise)
+    if proc.returncode != 0:
+        raise SystemExit("Error: genisoimage failed:\n" + output)
+    if output:
+        print(output, file=sys.stderr)
 
 
 def add_ecc(image):
@@ -55,3 +63,31 @@ def verify_ecc(image):
     out = proc.stdout
     ok = proc.returncode == 0 and "all sectors present" in out and "fail" not in out.lower()
     return ok, out
+
+
+def read_volume_id(path):
+    """Volume id from the ISO9660 primary volume descriptor of an image file or device."""
+    with open(path, "rb") as f:
+        f.seek(16 * 2048)
+        pvd = f.read(2048)
+    if pvd[1:6] != b"CD001":
+        return None
+    return pvd[40:72].decode("ascii", "replace").strip() or None
+
+
+def scan_device(device):
+    """Run ``dvdisaster -s`` on a drive: reads every sector and checks it against the RS03 data.
+
+    Returns (ok, output).
+    """
+    proc = subprocess.run(
+        ["dvdisaster", "-d", device, "-s", "--no-progress"],
+        stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+    )
+    return proc.returncode == 0, proc.stdout
+
+
+def summary(output, lines=6):
+    """The last few meaningful lines of dvdisaster output, for an Event note."""
+    keep = [l.strip() for l in output.splitlines() if l.strip() and not l.startswith(("Copyright", "This software", "is free", "under the", "See the file", "dvdisaster "))]
+    return "\n".join(keep[-lines:])

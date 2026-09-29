@@ -100,6 +100,7 @@ def render_index(disc, entries, snapshot_catalog):
     for desc in disc.get_all("Description"):
         out.append('<p>%s</p>' % _e(desc))
 
+    out.append('<p><a href="search.html">Search this disc and the rest of the archive</a></p>')
     out.append("<h2>About this disc</h2><table>")
     out.append(_field_rows(disc, ["Id", "Set", "Coverage", "Date", "Creator", "Subject",
                                   "Location", "Rights", "Media", "Filesystem", "Ecc", "Software"]))

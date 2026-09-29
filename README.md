@@ -13,9 +13,12 @@ using only open, well-documented formats.
 ├── manifest-sha256.txt      per-file checksums (`sha256sum -c` compatible)
 ├── manifest-sha512.txt
 ├── tagmanifest-sha256.txt   checksums of the files above + catalog.rec
-├── catalog.rec              GNU recutils catalogue for this disc   (planned)
-├── catalog/                 snapshot of the whole archive catalogue at burn time (planned)
-├── README.txt               plain-text recovery instructions      (planned)
+├── catalog.rec              GNU recutils catalogue for this disc
+├── catalog/                 snapshot of the whole archive catalogue at burn time
+│                            (archive.rec, manifests/, listings/, web/)
+├── index.html  search.html  offline viewer and cross-disc search
+├── README.txt               plain-text recovery instructions
+├── tools/                   this tool (tree + git bundle), bagit.py
 └── data/                    the payload
 [ dvdisaster RS03 ECC data appended after the filesystem ]
 ```
@@ -46,7 +49,7 @@ software, and proposes this project's metadata profile.
 produce on Linux and adds little over RS03, why dvdisaster is not a library,
 and how BagIt and recfiles split the work.
 
-## The `archive` tool (Phase 1)
+## The `archive` tool
 
 Python 3.8+, standard library only (bagit.py is vendored). Needs `genisoimage`
 and `dvdisaster` (use the [speed47 fork](https://github.com/speed47/dvdisaster) for BD-sized images).
@@ -60,7 +63,16 @@ and `dvdisaster` (use the [speed47 fork](https://github.com/speed47/dvdisaster) 
 ./archive list
 ./archive note 2020-2025_PROJECTS_01 "Only copy of the 2019 PCB gerbers"
 ./archive locate 2020-2025_PROJECTS_01 "Offsite: parents' house"
+./archive burned 2020-2025_PROJECTS_01 --copies 2      # after burning the ISO yourself
+./archive check --device /dev/sr0                        # scan a disc, log a fixity-check event
+./archive check --image 2020-2025_PROJECTS_01.iso
+./archive rebuild /media/disc                            # recreate/merge the home catalogue from a disc
+./archive index                                          # SQLite index: fast find at millions of files
 ```
+
+On the disc, `index.html` browses the disc without JavaScript, and `search.html`
+searches this disc and every disc in its catalogue snapshot (all offline, from
+`file://`; ~1M files: about 1 s for the first search, then about 0.3 s).
 
 - The source folder is never modified: tag files are staged separately and the
   folder is grafted into the image as `data/`.
