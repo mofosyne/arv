@@ -137,19 +137,30 @@ class DiscIdTest(unittest.TestCase):
 
 
 class SetsTest(unittest.TestCase):
-    def test_vocabulary_and_guessing(self):
+    def test_vocabulary_is_a_dag_of_words(self):
         from archivetool import sets
         with tempfile.TemporaryDirectory() as d:
             vocab = sets.load(catalog.Home(d))
             self.assertTrue(os.path.exists(os.path.join(d, "sets.rec")))  # copied for editing
-            trip = sets.lookup(vocab, "trip")
-            self.assertEqual((trip.cls, sets.path_name(vocab, trip)), (111, "Memories > Photos > Trips and holidays"))
+            self.assertEqual(vocab.paths("TRIP"), ["MEMORIES/PHOTO/TRIP"])
+            self.assertEqual(vocab.paths("SCAN"), ["MEMORIES/PHOTO/SCAN", "RECORDS/SCAN"])  # two parents
+            self.assertEqual(vocab.ancestors("SCAN"), {"MEMORIES", "PHOTO", "RECORDS"})
             for word, code in {"Photos": "PHOTO", "Taxes_2019": "TAXES", "scans": "SCAN", "Holiday": "TRIP",
                                "Emails": "EMAIL", "zzz": None}.items():
-                self.assertEqual(sets.guess(vocab, word), code, word)
-            for s in vocab:
-                if s.code:
-                    self.assertTrue(discid.SET_RE.match(s.code), s.code)  # every code fits in an id
+                self.assertEqual(vocab.guess(word), code, word)
+            for code in vocab.entries:
+                self.assertTrue(discid.SET_RE.match(code), code)  # every code fits in an id
+
+    def test_cycles_and_unknown_parents_are_rejected(self):
+        from archivetool import sets
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "v.rec")
+            for body, message in (("Code: AA\nName: a\nParent: BB\n\nCode: BB\nName: b\nParent: AA\n", "cycle"),
+                                  ("Code: AA\nName: a\nParent: ZZ\n", "unknown parent")):
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write("%rec: Set\n\n" + body)
+                with self.assertRaisesRegex(sets.VocabError, message):
+                    sets.load(None, path)
 
     def test_date_ranges_to_the_day(self):
         self.assertTrue(discid.covers("2019-07-14/2019-07-20", "2019-07-15"))
@@ -337,14 +348,20 @@ class MakeTest(unittest.TestCase):
         photos_id, _ = self.make(self.photos, "--set", "PHOTOS")
         self.assertEqual(photos_id, PHOTOS_01)  # sequences are per set
         self.assertEqual(catalog.Home(self.home).load().next_number("PROJECTS"), 2)
-        # a set from the vocabulary records its class; 'archive sets' counts discs per set
-        trip_id, _ = self.make(self.photos, "--set", "trip", "--coverage", "2023-06-01/2023-06-14")
-        trip = catalog.Home(self.home).load().disc(trip_id)
-        self.assertEqual((trip.get("Set"), trip.get("SetClass")), ("TRIP", "111"))
+        # one Set plus extra categories; every vocabulary path is recorded on the disc
+        trip_id, disc = self.make(self.photos, "--set", "trip", "--category", "scan",
+                                  "--coverage", "2023-06-01/2023-06-14")
+        trip = catalog.Catalog(recfile.read(os.path.join(disc, "catalog.rec"))).disc(trip_id)
+        self.assertEqual((trip.get("Set"), trip.get_all("Category")), ("TRIP", ["SCAN"]))
+        self.assertEqual(trip.get_all("Path"), ["MEMORIES/PHOTO/TRIP", "MEMORIES/PHOTO/SCAN", "RECORDS/SCAN"])
         self.assertTrue(trip_id.startswith("TRIP-01_202306_"))
         out = run_cli("--home", self.home, "sets")[1]
-        self.assertRegex(out, r"111\s+TRIP\s+Trips and holidays\s+1 disc")
-        self.assertIn("PROJECTS", out)  # used but not in the vocabulary: listed separately
+        self.assertRegex(out, r"TRIP\s+Trips and holidays\s+1 disc")
+        self.assertRegex(out, r"MEMORIES\s+Memories\s+0 discs \(1 including below\)")
+        self.assertIn("also under RECORDS, PHOTO", out)
+        self.assertIn("PROJECTS", out)
+        self.assertIn(trip_id, run_cli("--home", self.home, "list", "--in", "records")[1])  # via its category
+        self.assertNotIn(disc_id, run_cli("--home", self.home, "list", "--in", "memories")[1])
         self.assertIn(trip_id, run_cli("--home", self.home, "list", "--covers", "2023-06-10")[1])
         self.assertNotIn(trip_id, run_cli("--home", self.home, "list", "--covers", "2023-07")[1])
 

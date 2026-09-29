@@ -13,7 +13,7 @@ import os
 
 from .html import CSS
 
-DISC_FIELDS = ("Id", "Part", "Title", "Set", "Coverage", "Date", "Location", "Description", "Subject", "Note", "Files", "Copies")
+DISC_FIELDS = ("Id", "Part", "Title", "Set", "Category", "Path", "Coverage", "Date", "Location", "Description", "Subject", "Note", "Files", "Copies")
 
 
 def _js(value):

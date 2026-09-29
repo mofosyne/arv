@@ -94,7 +94,8 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 | `IdScheme` | Which rule built `Id` | `set-seq-coverage/1`; absent for older discs |
 | `Uuid` | Machine identity (UUID v4) of this image | Copies burned from one image share it |
 | `Set`, `Sequence` | Set code and number within the set | `Sequence` is never reused within a set |
-| `SetClass` | Class number of the set in the [set vocabulary](#set-vocabulary-dewey-like-classes) | e.g. `111`; absent for sets outside the vocabulary |
+| `Category`* | Extra vocabulary codes | see [Set vocabulary](#set-vocabulary-a-word-hierarchy) |
+| `Path`* | Vocabulary paths of the set and categories | e.g. `MEMORIES/PHOTO/TRIP`; recorded at burn time |
 | `Title`, `Description`, `Creator`, `Subject`*, `Coverage`, `Rights` | Dublin Core description | `Subject` repeats; `Coverage` is [EDTF](#coverage-edtf) |
 | `Date` | Date the image was made | `YYYY-MM-DD` |
 | `Set`, `Part` | Set name and `n of N` for multi-disc sets | |
@@ -138,43 +139,55 @@ Examples: `PHOTOS-07_2015-2024_Q`, `TAXES-01_2019_M`, `SCANS-02_199X_K`,
 - **Older ids** (`2020-2025_PROJECTS_01`, scheme `coverage-set-seq/0`, no
   `IdScheme` field) stay valid; ids written on physical discs never change.
 
-### Set vocabulary (Dewey-like classes)
+### Set vocabulary (a word hierarchy)
 
-Every disc belongs to one **set**, taken from a controlled vocabulary so sets
-stay consistent across years of discs. Each set has a short readable `Code`
-(used in ids) and a numeric `Class` in a Dewey-like hierarchy: hundreds are
-divisions, tens are sets, units are sub-sets.
+Discs are classified with a controlled, extendable vocabulary of **words**, not
+numbers: a code such as `TRIP` is readable on its own, on the disc and in the
+id, while a number needs the vocabulary to mean anything. New codes are simply
+added; a code is never reused for a different meaning.
+
+The vocabulary is a **directed acyclic graph** (a polyhierarchy, like SKOS
+`broader` in library thesauri): an entry may have several parents, and cycles
+are rejected.
 
 ```
-100 Memories
-  110 PHOTO   Photos
-    111 TRIP    Trips and holidays
-    112 FAMILY  Family
-  120 VIDEO   Home video
-200 Records
-  210 SCAN    Scans
-  230 TAXES   Taxes
-    231 FINANCE Finance
-400 Projects
-  410 CODE    Software
-  420 ELEC    Electronics
-600 Backups and exports
-  630 EMAIL   Email and messages
-  640 WEB     Web archives
+MEMORIES Memories
+  PHOTO    Photos
+    TRIP     Trips and holidays
+    SCAN     Scans                [also under RECORDS]
+  VIDEO    Home video
+RECORDS  Records
+  SCAN     Scans                  [also under PHOTO]
+  FINANCE  Finance
+    TAXES    Taxes
+PROJECTS Projects
+  PROJ     Personal projects
+  CODE     Software
+  ELEC     Electronics
+BACKUPS  Backups and exports
+  EMAIL    Email and messages
 ```
 
-(abridged; the full default is `archivetool/default_sets.rec`, a recfile with
-`Class`, `Code`, `Name`, `Description`; records without a `Code` are
-division headings.)
+(abridged; the default is `archivetool/default_sets.rec`, a recfile with
+`Code`, `Name`, `Description`, repeatable `Parent`, optional `Order`.)
 
-- The disc records `Set` (code) and `SetClass` (e.g. `111`) at burn time, so its
-  classification survives later edits to the vocabulary.
-- Class numbers give shelf order and grouping (`111` sorts under `110` under
-  `100`), and a reader can show the path "Memories > Photos > Trips and holidays".
-- Like Dewey, a class number is never reused for a different meaning; new
-  sets get new numbers. Codes not in the vocabulary are allowed (no `SetClass`).
-- Suggested mapping for catalogue software: divisions and sets become a
-  hierarchy of groups (in Katalog: nested virtual devices).
+A disc is classified by:
+
+| Field | How many | Purpose |
+|---|---|---|
+| `Set` | exactly one | the id prefix, numbering and shelf place: `PROJ-03_2020-2025_K` |
+| `Category` | any number | further codes the contents belong to, e.g. `CODE`, `ELEC` |
+| `Path` | one per vocabulary path | every path from a top-level entry to the set and each category, recorded at burn time: `PROJECTS/PROJ`, `MEMORIES/PHOTO/SCAN`, `RECORDS/SCAN` |
+
+The `Path` fields make the disc self-describing: a reader knows that a disc
+belongs to `MEMORIES` without the vocabulary file, and later vocabulary edits
+don't reclassify old discs. A disc belongs to a code if the code is its set, one
+of its categories, or appears in any of its paths. Codes not in the vocabulary
+are allowed (they simply have no `Path`).
+
+Suggested mapping for catalogue software: vocabulary entries become nested
+groups (in Katalog: virtual devices), and a disc appears under its set and each
+category.
 
 ### Coverage (EDTF)
 
@@ -252,7 +265,7 @@ Based on Katalog's source (collection files `device.csv`, `storage.csv`,
 |---|---|
 | `Archive.Uuid` / `Disc.Uuid` | `device.csv` `ExternalID` |
 | `Disc.Title` (or `Id`) | `device.csv` `Name` |
-| `Disc.Set` | a parent `Virtual` device grouping the set's discs |
+| `Disc.Set`, `Category`, `Path` | nested `Virtual` devices following the vocabulary paths |
 | `Disc.Id` (volume label) | `storage.csv` `Label` |
 | `Disc.Location` | `storage.csv` `Location` |
 | `Disc.Filesystem`, `Media` | `storage.csv` `FileSystem`, `Type` / `Comment` |
