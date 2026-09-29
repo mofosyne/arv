@@ -93,8 +93,10 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - [x] Siegfried/PRONOM `catalog/formats/<id>.csv` (+ `format identification` event), RO-Crate 1.2 export (`--ro-crate`, crate inside `data/` per the RO-Crate BagIt notes)
 
 ### Phase 4: extras
-- [ ] GUI over the CLI
-- [ ] Optional UDF 2.50 metadata mirror through NetBSD `makefs -t udf`
+- [x] GUI over the CLI (`archive gui`)
+- [ ] Optional UDF 2.50 metadata mirror. Blocked: Debian's `makefs` is built without UDF
+      (cd9660/ffs only), so this needs NetBSD's `usr.sbin/makefs` + `sys/fs/udf` ported to Linux.
+- [ ] Standalone RS03 library (see below). Needs the licence decision first.
 
 ## Decisions (2026-09-29)
 
@@ -116,6 +118,9 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
   speed47 dvdisaster fork to fill the disc; the stock build is detected and warned about.
 - RO-Crate is opt-in (`--ro-crate`) because it adds two files to `data/`, so the payload is no
   longer byte-identical to the source folder.
+- GUI: **local web UI** (`archive gui`), not Tk. tkinter is a separate distro package
+  (`python3-tk`) and was missing even here; a browser is always present and matches the
+  on-disc HTML. Bound to 127.0.0.1, token-protected, and it only runs `archive` commands.
 - Manifest paths are written unencoded (bagit-python and `sha256sum -c`
   compatible). Names with CR/LF or a literal `%0A`/`%0D`/`%25` are rejected.
 
@@ -131,4 +136,3 @@ of anything linking to it (this repo's licence is still undecided).
 ## Open decisions
 
 - Licence for this repo (GPLv3 fits if the RS03 library happens)
-- GUI toolkit (Tk from the stdlib vs. a local web UI)

@@ -10,6 +10,7 @@ Commands:
   check  verify a disc or image with dvdisaster and log a fixity-check event
   rebuild merge the catalogue carried on a disc into the home catalogue
   index  build the SQLite search index
+  gui    graphical interface in your web browser
 """
 
 import argparse
@@ -343,6 +344,11 @@ def cmd_index(args):
     return 0
 
 
+def cmd_gui(args):
+    from . import gui
+    return gui.main(args)
+
+
 def build_parser():
     p = argparse.ArgumentParser(prog="archive", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -431,6 +437,11 @@ def build_parser():
 
     i = sub.add_parser("index", help="(re)build the SQLite search index used by find")
     i.set_defaults(func=cmd_index)
+
+    g = sub.add_parser("gui", help="open the graphical interface in your web browser")
+    g.add_argument("--port", type=int, default=0, help="port on 127.0.0.1 (default: any free port)")
+    g.add_argument("--no-browser", action="store_true", help="print the URL instead of opening a browser")
+    g.set_defaults(func=cmd_gui)
     return p
 
 

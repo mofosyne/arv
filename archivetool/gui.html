@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disc Archive</title>
+<style>
+:root { --bg:#fdfdfc; --fg:#1d1d1b; --muted:#6b6b66; --line:#e2e1dc; --accent:#1f5fa8; --panel:#f4f3ef;
+        --ok:#2f7d32; --bad:#b3261e; --warn:#9a6700; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#161615; --fg:#e8e7e3; --muted:#9a9993; --line:#2e2d2a; --accent:#7fb0ea; --panel:#1f1f1d;
+          --ok:#7cc47f; --bad:#f2b8b5; --warn:#e3b341; }
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { border-bottom:1px solid var(--line); padding:12px 16px; display:flex; flex-wrap:wrap; gap:4px 16px; align-items:baseline; }
+header h1 { font-size:1.2rem; margin:0; }
+header .home { color:var(--muted); font-size:13px; font-family:ui-monospace, monospace; overflow-wrap:anywhere; }
+nav { display:flex; gap:4px; padding:8px 16px 0; border-bottom:1px solid var(--line); overflow-x:auto; }
+nav button { font:inherit; background:none; border:none; border-bottom:2px solid transparent; color:var(--muted);
+             padding:8px 12px; cursor:pointer; white-space:nowrap; }
+nav button[aria-selected=true] { color:var(--fg); border-bottom-color:var(--accent); }
+main { max-width:1100px; margin:0 auto; padding:16px 16px 64px; }
+section[hidden] { display:none; }
+h2 { font-size:1.05rem; margin:24px 0 8px; }
+table { border-collapse:collapse; width:100%; }
+th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { color:var(--muted); font-weight:600; font-size:13px; }
+tr.pick { cursor:pointer; }
+tr.pick:hover, tr.pick.sel { background:var(--panel); }
+.mono { font-family:ui-monospace, monospace; font-size:13px; overflow-wrap:anywhere; }
+#disc-table td.mono { white-space:nowrap; overflow-wrap:normal; }
+.muted { color:var(--muted); }
+.scroll { overflow-x:auto; }
+label { display:block; margin:10px 0 4px; font-size:13px; color:var(--muted); }
+input[type=text], input[type=number], select, textarea { font:inherit; width:100%; padding:7px 9px; border:1px solid var(--line);
+  border-radius:6px; background:var(--panel); color:var(--fg); }
+textarea { min-height:60px; }
+.row { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:0 16px; }
+.checks label { display:flex; gap:8px; align-items:center; color:var(--fg); font-size:15px; }
+button.primary, button.plain { font:inherit; padding:8px 16px; border-radius:6px; cursor:pointer; margin-top:12px; }
+button.primary { background:var(--accent); color:var(--bg); border:1px solid var(--accent); }
+button.plain { background:var(--panel); color:var(--fg); border:1px solid var(--line); }
+.inline { display:flex; gap:8px; align-items:end; flex-wrap:wrap; }
+.inline > * { flex:1 1 200px; }
+.inline > button { flex:0 0 auto; }
+.card { border:1px solid var(--line); border-radius:8px; padding:12px 16px; margin-top:12px; }
+.note { background:var(--panel); padding:6px 10px; border-radius:6px; margin:4px 0; white-space:pre-wrap; }
+pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-height:420px; overflow:auto;
+          font-size:12px; white-space:pre-wrap; overflow-wrap:anywhere; }
+.ok { color:var(--ok); } .bad { color:var(--bad); } .warn { color:var(--warn); }
+.browser { border:1px solid var(--line); border-radius:6px; max-height:220px; overflow:auto; margin-top:6px; }
+.browser div { padding:4px 10px; cursor:pointer; font-family:ui-monospace, monospace; font-size:13px; }
+.browser div:hover { background:var(--panel); }
+</style></head><body>
+<header><h1>Disc Archive</h1><span class="home" id="home"></span></header>
+<nav role="tablist">
+  <button role="tab" data-tab="discs" aria-selected="true">Discs</button>
+  <button role="tab" data-tab="search">Search</button>
+  <button role="tab" data-tab="make">Make disc</button>
+  <button role="tab" data-tab="tools">Check &amp; tools</button>
+  <button role="tab" data-tab="jobs">Jobs</button>
+</nav>
+<main>
+
+<section id="tab-discs">
+  <div class="scroll"><table id="disc-table"><thead><tr>
+    <th>Id</th><th>Title</th><th>Date</th><th>Files</th><th>Copies</th><th>Location</th><th>Last check</th>
+  </tr></thead><tbody></tbody></table></div>
+  <p class="muted" id="disc-empty" hidden>No discs yet. Use <b>Make disc</b> to create one.</p>
+  <div class="card" id="disc-detail" hidden></div>
+</section>
+
+<section id="tab-search" hidden>
+  <form id="search-form" class="inline">
+    <div><label for="q">File name, words in a path, or a glob like *.jpg</label><input type="text" id="q"></div>
+    <button class="primary" type="submit">Search</button>
+  </form>
+  <div id="search-results"></div>
+</section>
+
+<section id="tab-make" hidden>
+  <form id="make-form">
+    <label for="m-source">Folder to archive (left unmodified)</label>
+    <div class="inline"><input type="text" id="m-source" required><button class="plain" type="button" id="m-browse">Browse…</button></div>
+    <div class="browser" id="m-browser" hidden></div>
+    <div class="row">
+      <div><label for="m-set">Set name</label><input type="text" id="m-set" placeholder="e.g. PHOTOS"></div>
+      <div><label for="m-title">Title</label><input type="text" id="m-title" placeholder="default: from folder name"></div>
+      <div><label for="m-creator">Creator</label><input type="text" id="m-creator"></div>
+      <div><label for="m-location">Physical location</label><input type="text" id="m-location" placeholder="Shelf A / Box 3"></div>
+    </div>
+    <label for="m-description">Description</label><textarea id="m-description"></textarea>
+    <div class="row">
+      <div><label for="m-subject">Subjects (comma separated)</label><input type="text" id="m-subject"></div>
+      <div><label for="m-rights">Rights / licence</label><input type="text" id="m-rights"></div>
+    </div>
+    <label for="m-note">Note</label><textarea id="m-note"></textarea>
+    <div class="row">
+      <div><label for="m-medium">Target disc</label><select id="m-medium">
+        <option value="bd25">BD-R 25 GB</option><option value="bd50">BD-R DL 50 GB</option>
+        <option value="bd100">BD-R XL 100 GB</option><option value="bd128">BD-R XL 128 GB</option>
+        <option value="auto">auto (smallest standard size)</option></select></div>
+      <div><label for="m-redundancy">Minimum error correction (%)</label><input type="number" id="m-redundancy" value="20" min="5" max="200"></div>
+      <div><label for="m-snapshot">Catalogue on the disc</label><select id="m-snapshot">
+        <option value="full">Whole archive</option><option value="set">This set only (for other people)</option>
+        <option value="disc">This disc only</option></select></div>
+      <div><label for="m-outdir">Save images in</label><input type="text" id="m-outdir" placeholder="default: GUI start folder"></div>
+    </div>
+    <div class="checks row">
+      <label><input type="checkbox" id="m-split"> Split across several discs if needed</label>
+      <label><input type="checkbox" id="m-rocrate"> Add RO-Crate metadata</label>
+      <label><input type="checkbox" id="m-nodm"> Discs burned without defect management</label>
+    </div>
+    <button class="primary" type="submit">Make disc image</button>
+  </form>
+</section>
+
+<section id="tab-tools" hidden>
+  <h2>Check a disc or image</h2>
+  <form id="check-form" class="inline">
+    <div><label for="c-device">Drive (e.g. /dev/sr0)</label><input type="text" id="c-device"></div>
+    <div><label for="c-image">…or image file</label><input type="text" id="c-image"></div>
+    <button class="primary" type="submit">Check</button>
+  </form>
+  <h2>Rebuild the catalogue from a disc</h2>
+  <form id="rebuild-form" class="inline">
+    <div><label for="r-path">Mounted disc folder</label><input type="text" id="r-path" placeholder="/media/disc"></div>
+    <button class="primary" type="submit">Rebuild</button>
+  </form>
+  <h2>Search index</h2>
+  <button class="plain" id="index-btn">Rebuild SQLite index</button>
+</section>
+
+<section id="tab-jobs" hidden>
+  <div id="jobs"></div>
+</section>
+
+</main>
+<script>
+(function () {
+  "use strict";
+  var TOKEN = "__TOKEN__";
+  var discs = [], selected = null;
+
+  function api(path, body) {
+    var opts = { headers: { "X-Archive-Token": TOKEN } };
+    if (body !== undefined) {
+      opts.method = "POST"; opts.body = JSON.stringify(body);
+      opts.headers["Content-Type"] = "application/json";
+    }
+    return fetch(path, opts).then(function (r) {
+      return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; });
+    });
+  }
+  function el(tag, attrs, children) {
+    var e = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      if (k === "text") e.textContent = attrs[k]; else if (k === "class") e.className = attrs[k]; else e.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) { if (c) e.appendChild(c); });
+    return e;
+  }
+  function $(id) { return document.getElementById(id); }
+  function human(n) {
+    n = Number(n || 0); var u = ["B", "KiB", "MiB", "GiB", "TiB"], i = 0;
+    while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+    return i ? n.toFixed(1) + " " + u[i] : n + " B";
+  }
+
+  // ---------------------------------------------------------------- tabs
+  function showTab(name) {
+    document.querySelectorAll("nav button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.tab === name); });
+    document.querySelectorAll("main > section").forEach(function (s) { s.hidden = s.id !== "tab-" + name; });
+    if (name === "discs") loadDiscs();
+    if (name === "jobs") loadJobs();
+  }
+  document.querySelectorAll("nav button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
+
+  // ---------------------------------------------------------------- discs
+  function lastCheck(d) {
+    var checks = (d.Events || []).filter(function (e) { return e.Type === "fixity check"; });
+    return checks.length ? checks[checks.length - 1] : null;
+  }
+  function loadDiscs() {
+    return api("/api/discs").then(function (res) {
+      $("home").textContent = "Catalogue: " + res.home;
+      discs = res.discs;
+      var body = $("disc-table").querySelector("tbody"); body.textContent = "";
+      $("disc-empty").hidden = discs.length > 0;
+      discs.forEach(function (d) {
+        var c = lastCheck(d);
+        var tr = el("tr", { class: "pick" + (d.Id === selected ? " sel" : "") }, [
+          el("td", { class: "mono", text: d.Id }), el("td", { text: d.Title || "" }), el("td", { text: d.Date || "" }),
+          el("td", { text: d.Files || "" }), el("td", { text: d.Copies || "0" }), el("td", { text: d.Location || "" }),
+          el("td", { class: c ? (c.Outcome === "success" ? "ok" : "bad") : "muted", text: c ? c.Date + " " + c.Outcome : "never" })]);
+        tr.onclick = function () { selected = d.Id; loadDiscs(); };
+        body.appendChild(tr);
+      });
+      renderDetail();
+    });
+  }
+  function renderDetail() {
+    var box = $("disc-detail"), d = discs.filter(function (x) { return x.Id === selected; })[0];
+    box.hidden = !d; box.textContent = "";
+    if (!d) return;
+    box.appendChild(el("h2", { text: d.Title || d.Id }));
+    var rows = [["Id", d.Id], ["Part", d.Part], ["Set", d.Set], ["Coverage", d.Coverage], ["Created", d.Date],
+                ["Creator", d.Creator], ["Subjects", [].concat(d.Subject || []).join(", ")], ["Media", d.Media],
+                ["Contents", (d.Files || 0) + " files, " + human(d.Bytes)], ["Error correction", d.Ecc], ["Rights", d.Rights]];
+    var t = el("table");
+    rows.forEach(function (r) { if (r[1]) t.appendChild(el("tr", {}, [el("th", { text: r[0] }), el("td", { text: r[1] })])); });
+    box.appendChild(t);
+    if (d.Description) box.appendChild(el("p", { text: d.Description }));
+    box.appendChild(el("h2", { text: "Notes" }));
+    [].concat(d.Note || []).forEach(function (n) { box.appendChild(el("div", { class: "note", text: n })); });
+
+    var note = el("textarea", { "aria-label": "New note" });
+    var addNote = el("button", { class: "plain", text: "Add note" });
+    addNote.onclick = function () { if (note.value.trim()) run({ command: "note", disc_id: d.Id, text: note.value.trim() }, true); };
+    box.appendChild(note); box.appendChild(addNote);
+
+    var loc = el("input", { type: "text", value: d.Location || "", "aria-label": "Location" });
+    var saveLoc = el("button", { class: "plain", text: "Save location" });
+    saveLoc.onclick = function () { run({ command: "locate", disc_id: d.Id, location: loc.value }, true); };
+    var copies = el("input", { type: "number", value: "1", min: "1", "aria-label": "Copies burned" });
+    var burned = el("button", { class: "plain", text: "Record burned copies" });
+    burned.onclick = function () { run({ command: "burned", disc_id: d.Id, copies: copies.value }, true); };
+    box.appendChild(el("h2", { text: "Location and copies" }));
+    box.appendChild(el("div", { class: "inline" }, [loc, saveLoc]));
+    box.appendChild(el("div", { class: "inline" }, [copies, burned]));
+
+    box.appendChild(el("h2", { text: "History" }));
+    var ev = el("table");
+    ev.appendChild(el("tr", {}, ["Date", "Event", "Outcome", "Agent", "Note"].map(function (h) { return el("th", { text: h }); })));
+    (d.Events || []).forEach(function (e) {
+      ev.appendChild(el("tr", {}, [el("td", { text: e.Date }), el("td", { text: e.Type }),
+        el("td", { class: e.Outcome === "success" ? "ok" : e.Outcome === "warning" ? "warn" : "bad", text: e.Outcome }),
+        el("td", { text: e.Agent || "" }), el("td", { class: "muted", text: e.Note || "" })]));
+    });
+    box.appendChild(el("div", { class: "scroll" }, [ev]));
+  }
+
+  // ---------------------------------------------------------------- search
+  $("search-form").onsubmit = function (ev) {
+    ev.preventDefault();
+    var out = $("search-results"); out.textContent = "Searching…";
+    api("/api/find?q=" + encodeURIComponent($("q").value)).then(function (res) {
+      out.textContent = "";
+      if (res.discs.length) {
+        out.appendChild(el("h2", { text: "Discs" }));
+        res.discs.forEach(function (d) { out.appendChild(el("div", { class: "note", text: d.Id + " — " + (d.Title || "") + (d.Location ? " — " + d.Location : "") })); });
+      }
+      out.appendChild(el("h2", { text: "Files (" + res.total + (res.total > res.files.length ? ", showing " + res.files.length : "") + ")" }));
+      var t = el("table");
+      t.appendChild(el("tr", {}, ["Disc", "Location", "Path"].map(function (h) { return el("th", { text: h }); })));
+      res.files.forEach(function (f) {
+        t.appendChild(el("tr", {}, [el("td", { class: "mono", text: f.disc }), el("td", { text: f.location || "" }), el("td", { class: "mono", text: f.path })]));
+      });
+      out.appendChild(el("div", { class: "scroll" }, [t]));
+    }).catch(function (e) { out.textContent = "Error: " + e.message; });
+  };
+
+  // ---------------------------------------------------------------- make
+  function browse(path) {
+    api("/api/browse?path=" + encodeURIComponent(path || "")).then(function (res) {
+      var box = $("m-browser"); box.hidden = false; box.textContent = "";
+      $("m-source").value = res.path;
+      var up = el("div", { text: "⬑ " + res.parent }); up.onclick = function () { browse(res.parent); }; box.appendChild(up);
+      res.dirs.forEach(function (name) {
+        var row = el("div", { text: "📁 " + name });
+        row.onclick = function () { browse(res.path.replace(/\/$/, "") + "/" + name); };
+        box.appendChild(row);
+      });
+    });
+  }
+  $("m-browse").onclick = function () { browse($("m-source").value); };
+  $("make-form").onsubmit = function (ev) {
+    ev.preventDefault();
+    var split = function (v) { return v.split(",").map(function (s) { return s.trim(); }).filter(Boolean); };
+    run({
+      source: $("m-source").value, set: $("m-set").value, title: $("m-title").value, creator: $("m-creator").value,
+      location: $("m-location").value, description: $("m-description").value, rights: $("m-rights").value,
+      subject: split($("m-subject").value), note: $("m-note").value ? [$("m-note").value] : [],
+      medium: $("m-medium").value, min_redundancy: $("m-redundancy").value, snapshot: $("m-snapshot").value,
+      output_dir: $("m-outdir").value, split: $("m-split").checked, ro_crate: $("m-rocrate").checked,
+      no_defect_management: $("m-nodm").checked
+    }, false, "/api/make");
+  };
+
+  // ---------------------------------------------------------------- tools
+  $("check-form").onsubmit = function (ev) {
+    ev.preventDefault();
+    run({ device: $("c-device").value, image: $("c-image").value }, false, "/api/check");
+  };
+  $("rebuild-form").onsubmit = function (ev) { ev.preventDefault(); run({ command: "rebuild", path: $("r-path").value }); };
+  $("index-btn").onclick = function () { run({ command: "index" }); };
+
+  // ---------------------------------------------------------------- jobs
+  function run(body, quiet, path) {
+    return api(path || "/api/command", body).then(function (job) {
+      if (quiet) {
+        poll(job.id, 0, null, function (j) {
+          if (j.returncode !== 0) alert(j.lines.join("\n"));
+          loadDiscs();
+        });
+      } else { showTab("jobs"); }
+    }).catch(function (e) { alert("Error: " + e.message); });
+  }
+  function poll(id, since, pre, then) {
+    api("/api/job?id=" + id + "&since=" + since).then(function (j) {
+      if (pre && j.lines.length) { pre.textContent += j.lines.join("\n") + "\n"; pre.scrollTop = pre.scrollHeight; }
+      if (!j.done) return setTimeout(function () { poll(id, j.next, pre, then); }, 500);
+      if (pre) {
+        var status = pre.previousSibling;
+        status.textContent = j.returncode === 0 ? "finished" : "failed (exit " + j.returncode + ")";
+        status.className = j.returncode === 0 ? "ok" : "bad";
+      }
+      if (then) then(j);
+    });
+  }
+  function loadJobs() {
+    api("/api/jobs").then(function (res) {
+      var box = $("jobs"); box.textContent = "";
+      if (!res.jobs.length) box.appendChild(el("p", { class: "muted", text: "No jobs yet." }));
+      res.jobs.slice().reverse().forEach(function (j) {
+        var status = el("span", { class: j.done ? (j.returncode === 0 ? "ok" : "bad") : "warn",
+          text: j.done ? (j.returncode === 0 ? "finished" : "failed (exit " + j.returncode + ")") : "running…" });
+        var pre = el("pre", { class: "log" });
+        box.appendChild(el("div", { class: "card" }, [el("div", { class: "mono", text: "archive " + j.argv.join(" ") }), status, pre]));
+        poll(j.id, 0, pre, null);
+      });
+    });
+  }
+
+  loadDiscs();
+})();
+</script>
+</body></html>

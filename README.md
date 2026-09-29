@@ -71,7 +71,13 @@ and `dvdisaster` (use the [speed47 fork](https://github.com/speed47/dvdisaster) 
 ./archive check --image 2020-2025_PROJECTS_01.iso
 ./archive rebuild /media/disc                            # recreate/merge the home catalogue from a disc
 ./archive index                                          # SQLite index: fast find at millions of files
+./archive gui                                            # the same, in your web browser
 ```
+
+`archive gui` opens a local page (127.0.0.1 only, per-session token) with tabs for
+the disc list and history, notes, location and burned copies, search, making a
+disc (with a folder picker), checking discs and rebuilding the catalogue. Every
+action runs the same `archive` command as the terminal and shows its output.
 
 On the disc, `index.html` browses the disc without JavaScript, and `search.html`
 searches this disc and every disc in its catalogue snapshot (all offline, from
@@ -133,5 +139,5 @@ For BD-sized images, use the multithreaded
 - [ ] `README.txt` + dvdisaster sources/binaries on each disc for self-contained recovery
 - [x] Target medium size, minimum redundancy, defect-management sizes for RS03
 - [ ] Optional UDF 2.50 (metadata mirror) through NetBSD `makefs -t udf`
-- [ ] GUI front end over the CLI
+- [x] GUI front end over the CLI (`archive gui`, local web UI, standard library only)
 - [ ] Standalone RS03 library extracted from dvdisaster (GPLv3)
