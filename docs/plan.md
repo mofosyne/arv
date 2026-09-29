@@ -53,6 +53,14 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
   is loaded with `<script src>` (not `fetch`, which `file://` blocks). It
   searches across the snapshot, loading `catalog/web/<disc-id>.js` per disc on
   demand.
+- One search box with scope **This disc / All discs**, plus disc-level search
+  over titles, descriptions, notes and subjects. Results show disc ID, title,
+  physical location and path:
+  - hits on **this disc** link straight to the file;
+  - hits on **past discs** say which disc to fetch and where it is (e.g.
+    "PRJ25-01, Projects 2020-2025, Shelf A / Box 3"), and copy the path.
+- Only discs burned **before or with** this one are searchable, since the
+  snapshot is frozen at burn time.
 - Doubles as the RO-Crate preview if the RO-Crate export is enabled.
 - Limits to test: browser memory with ~1M entries across discs, and very
   large single-disc listings in the no-JS page (it may need splitting per
