@@ -16,7 +16,7 @@ import unittest
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO)
 
-from archivetool import bag, catalog, cli, recfile  # noqa: E402
+from archivetool import bag, catalog, cli, image, make, media, recfile  # noqa: E402
 
 HAVE_IMAGE_TOOLS = all(shutil.which(t) for t in ("genisoimage", "7z"))
 
@@ -81,6 +81,80 @@ class BagTest(unittest.TestCase):
             write(os.path.join(d, "a"), "x", 2019)
             write(os.path.join(d, "b"), "x", 2021)
             self.assertEqual(catalog.coverage_years(bag.scan_payload(d, progress=False)), "2019-2021")
+
+
+class MediaTest(unittest.TestCase):
+    def test_budget_is_the_exact_redundancy_boundary(self):
+        for name in media.MEDIA:
+            for dm in (True, False):
+                cap = media.capacity(name, dm)
+                for pct in (10, 20, 33.3, 50):
+                    budget = media.data_budget(cap, pct)
+                    self.assertGreaterEqual(media.rs03_layout(budget, cap)[1], pct)
+                    self.assertLess(media.rs03_layout(budget + cap // 255, cap)[1], pct)
+
+    def test_bd25_budget(self):
+        # 20% minimum redundancy leaves ~20 GB of data on a 25 GB BD-R
+        self.assertAlmostEqual(media.data_budget(media.capacity("bd25"), 20) * 2048 / 1e9, 20.04, places=2)
+
+
+@unittest.skipUnless(HAVE_IMAGE_TOOLS, "genisoimage and 7z required")
+class SplitTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.home = os.path.join(self.tmp, "home")
+        self.src = os.path.join(self.tmp, "Big")
+        for d in "abc":
+            for i in range(8):
+                path = os.path.join(self.src, d, "f%d.bin" % i)
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                with open(path, "wb") as f:
+                    f.write(os.urandom(700_000))
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def make(self, *extra):
+        return run_cli("--home", self.home, "make", "-y", "--no-ecc", "--set", "BIG", "--medium-sectors", "5000",
+                       "--output-dir", os.path.join(self.tmp, "out"), self.src, *extra)
+
+    def check_split(self, out):
+        lines = [l.split("\t") for l in out.strip().splitlines()]
+        self.assertGreater(len(lines), 1)
+        budget = media.data_budget(5000, 20)
+        seen = []
+        for n, (disc_id, iso, _) in enumerate(lines, 1):
+            self.assertLessEqual(os.path.getsize(iso) // 2048, budget)
+            dest = os.path.join(self.tmp, "x", disc_id)
+            subprocess.run(["7z", "x", "-o" + dest, iso], check=True, stdout=subprocess.DEVNULL)
+            proc = subprocess.run([sys.executable, "-I", os.path.join(dest, "tools", "bagit.py"), "--validate", dest],
+                                  capture_output=True, text=True)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            with open(os.path.join(dest, "bag-info.txt"), encoding="utf-8") as f:
+                self.assertIn("Bag-Count: %d of %d" % (n, len(lines)), f.read())
+            self.assertEqual(len(os.listdir(os.path.join(dest, "catalog", "manifests"))), len(lines))
+            for root, _, names in os.walk(os.path.join(dest, "data")):
+                seen += [os.path.relpath(os.path.join(root, x), os.path.join(dest, "data")) for x in names]
+        self.assertEqual(sorted(seen), sorted(e.path for e in bag.scan_payload(self.src, progress=False)))
+
+    def test_too_big_without_split(self):
+        code, out = self.make()
+        self.assertIn("Use --split", str(code))
+
+    def test_split(self):
+        code, out = self.make("--split")
+        self.assertEqual(code, 0, out)
+        self.check_split(out)
+
+    def test_rebalances_when_estimate_is_low(self):
+        original = make.estimate_sectors
+        make.estimate_sectors = lambda e: 1  # pack everything onto one disc, then let fit() correct it
+        try:
+            code, out = self.make("--split")
+        finally:
+            make.estimate_sectors = original
+        self.assertEqual(code, 0, out)
+        self.check_split(out)
 
 
 @unittest.skipUnless(HAVE_IMAGE_TOOLS, "genisoimage and 7z required")
@@ -216,11 +290,13 @@ class MakeTest(unittest.TestCase):
 
     @unittest.skipUnless(os.environ.get("ARCHIVE_TEST_ECC") and shutil.which("dvdisaster"), "set ARCHIVE_TEST_ECC=1")
     def test_ecc(self):
-        code, out = run_cli("--home", self.home, "make", "-y", "-o", os.path.join(self.tmp, "ecc.iso"), self.photos)
+        iso = os.path.join(self.tmp, "ecc.iso")
+        code, out = run_cli("--home", self.home, "make", "-y", "--medium-sectors", "20000", "-o", iso, self.photos)
         self.assertEqual(code, 0, out)
+        if image.dvdisaster_sets_medium_size():  # speed47: RS03 fills exactly the requested medium
+            self.assertEqual(os.path.getsize(iso), 20000 // 255 * 255 * 2048)
         events = catalog.Home(self.home).load().events
         self.assertIn(("fixity check", "success"), [(e.get("Type"), e.get("Outcome")) for e in events])
-        iso = os.path.join(self.tmp, "ecc.iso")
         code, out = run_cli("--home", self.home, "check", "--image", iso)  # disc id read from the volume label
         self.assertEqual(code, 0, out)
         self.assertEqual(len([e for e in catalog.Home(self.home).load().events if e.get("Type") == "fixity check"]), 2)

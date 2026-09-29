@@ -20,15 +20,11 @@ import shutil
 import subprocess
 import sys
 import tarfile
-import tempfile
 
-from . import bag, catalog, html, image, index, recfile, web
+from . import bag, catalog, image, index, make, media, recfile
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO_NAME = "bluray-archival-workflow"
-DEFAULT_MEDIA = "M-DISC BD-R"
-FILESYSTEM = "ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge"
-ECC = "dvdisaster RS03 augmented image"
 
 
 # ---------------------------------------------------------------- helpers
@@ -102,7 +98,7 @@ README_TEMPLATE = """\
 {title}
 {underline}
 
-Disc id:  {id}
+Disc id:  {id}{part}
 Set:      {set}
 Burned:   {date}
 Contents: {files} files, {bytes} bytes (in data/)
@@ -150,6 +146,7 @@ def write_readme(path, disc, snapshot_scope):
     title = disc.get("Title")
     text = README_TEMPLATE.format(
         title=title, underline="=" * len(title), id=disc.get("Id"), set=disc.get("Set"),
+        part=("  (part %s)" % disc.get("Part")) if disc.get("Part") else "",
         date=disc.get("Date"), files=disc.get("Files"), bytes=disc.get("Bytes"),
         software=disc.get("Software"), other_discs=(" lists" + other) if other else " its notes",
         catalog_lines=cat_lines, repo=REPO_NAME,
@@ -166,133 +163,29 @@ def cmd_make(args):
     if not os.path.isdir(src):
         raise SystemExit("Error: %s is not a directory" % src)
     image.require("genisoimage", *(["dvdisaster"] if not args.no_ecc else []))
+    if args.output and args.output_dir:
+        raise SystemExit("Error: use either --output or --output-dir")
     interactive = sys.stdin.isatty() and not args.yes
     home = catalog.Home(args.home)
     cat = home.load()
 
     log("Scanning and hashing %s ..." % src)
     entries = bag.scan_payload(src)
-    total_bytes = sum(e.size for e in entries)
 
     default_title, default_set = folder_defaults(src)
-    set_name = args.set or ask("Set name", default_set, interactive)
-    set_name = re.sub(r"[^A-Za-z0-9-]", "", set_name).upper() or "ARCHIVE"
-    coverage = args.coverage or catalog.coverage_years(entries)
-    disc_id = args.id or catalog.make_disc_id(coverage, set_name, cat.next_number(set_name))
-    if not catalog.ID_RE.match(disc_id):
-        raise SystemExit("Error: invalid disc id %r" % disc_id)
-    if cat.disc(disc_id):
-        raise SystemExit("Error: disc id %s already exists in %s" % (disc_id, home.rec_path))
-
-    title = args.title or ask("Title", default_title, interactive)
-    description = args.description or ask("Description (optional)", None, interactive)
-    creator = args.creator or ask("Creator", os.environ.get("USER"), interactive)
-    location = args.location or ask("Physical location (optional)", None, interactive)
-    subjects = args.subject or [s.strip() for s in (ask("Subjects, comma separated (optional)", None, interactive) or "").split(",") if s.strip()]
-    notes = args.note or ([n] if (n := ask("Note (optional)", None, interactive)) else [])
+    meta = {
+        "set": make.sanitize_set(args.set or ask("Set name", default_set, interactive)),
+        "coverage": args.coverage or catalog.coverage_years(entries),
+        "title": args.title or ask("Title", default_title, interactive),
+        "description": args.description or ask("Description (optional)", None, interactive),
+        "creator": args.creator or ask("Creator", os.environ.get("USER"), interactive),
+        "location": args.location or ask("Physical location (optional)", None, interactive),
+        "subjects": args.subject or [s.strip() for s in (ask("Subjects, comma separated (optional)", None, interactive) or "").split(",") if s.strip()],
+        "notes": args.note or [n for n in [ask("Note (optional)", None, interactive)] if n],
+    }
     version, is_git = software_version()
-
-    disc = recfile.Record("Disc", [("Id", disc_id), ("Title", title), ("Set", set_name),
-                                   ("Coverage", coverage), ("Date", catalog.today())])
-    if creator:
-        disc.add("Creator", creator)
-    if description:
-        disc.add("Description", description)
-    for s in subjects:
-        disc.add("Subject", s)
-    for n in notes:
-        disc.add("Note", n)
-    if location:
-        disc.add("Location", location)
-    if args.rights:
-        disc.add("Rights", args.rights)
-    for k, v in [("Media", args.media), ("Files", len(entries)), ("Bytes", total_bytes),
-                 ("Filesystem", FILESYSTEM), ("Ecc", "none" if args.no_ecc else ECC), ("Software", version)]:
-        disc.add(k, str(v))
-
-    out = os.path.abspath(args.output or disc_id + ".iso")
-    if os.path.exists(out):
-        raise SystemExit("Error: %s already exists" % out)
-    stage = tempfile.mkdtemp(prefix=".stage-%s-" % disc_id, dir=os.path.dirname(out))
-    log("Disc id: %s\nStaging tag files in %s" % (disc_id, stage))
-    try:
-        bag.write_bag_tags(stage, entries, [
-            ("Bagging-Date", catalog.today()),
-            ("External-Identifier", disc_id),
-            ("External-Description", title + (" - " + description if description else "")),
-            ("Bag-Group-Identifier", set_name),
-            ("Payload-Oxum", bag.payload_oxum(entries)),
-            ("Bag-Software-Agent", version),
-        ])
-
-        digest_event = catalog.new_event(disc_id, "message digest calculation", "success", version,
-                                         "sha256 and sha512 manifests of %d files" % len(entries))
-        on_disc = catalog.Catalog()
-        on_disc.discs, on_disc.events = [disc], [digest_event]
-        recfile.write(os.path.join(stage, "catalog.rec"), on_disc.records())
-
-        # Catalogue snapshot: other discs (per --snapshot) + this one, with file listings
-        # and the data search.html loads. Scope "disc" keeps only this disc.
-        listing = os.path.join(stage, ".listing.tsv")
-        web.write_listing(listing, entries)
-        if args.snapshot == "full":
-            prior = list(cat.discs)
-        elif args.snapshot == "set":
-            prior = [d for d in cat.discs if d.get("Set") == set_name]
-        else:
-            prior = []
-        ids = [d.get("Id") for d in prior]
-        snapshot = cat.subset(set(ids))
-        snapshot.discs.append(disc)
-        snapshot.events.append(digest_event)
-        files = {i: (home.manifest_path(i), home.listing_path(i)) for i in ids}
-        files[disc_id] = (os.path.join(stage, "manifest-sha256.txt"), listing)
-        catalog_dir = os.path.join(stage, "catalog")
-        catalog.write_snapshot(catalog_dir, snapshot, files, args.snapshot)
-        os.remove(listing)
-        listing = os.path.join(catalog_dir, "listings", disc_id + ".tsv")
-        web.write_web_data(os.path.join(catalog_dir, "web"), disc_id, snapshot.discs,
-                           {i: os.path.join(catalog_dir, "listings", i + ".tsv") for i in ids + [disc_id]
-                            if os.path.exists(os.path.join(catalog_dir, "listings", i + ".tsv"))})
-
-        stage_tools(os.path.join(stage, "tools"), is_git, args.extra_tools)
-        write_readme(os.path.join(stage, "README.txt"), disc, args.snapshot)
-        with open(os.path.join(stage, "index.html"), "w", encoding="utf-8") as f:
-            f.write(html.render_index(disc, entries, snapshot))
-        with open(os.path.join(stage, "search.html"), "w", encoding="utf-8") as f:
-            f.write(web.render_search())
-        bag.write_tagmanifests(stage)
-
-        log("Building image %s ..." % out)
-        image.build_iso(stage, src, out, disc_id)
-
-        events = [digest_event, catalog.new_event(disc_id, "creation", "success", version, "image " + os.path.basename(out))]
-        if not args.no_ecc:
-            log("Adding dvdisaster RS03 error correction ...")
-            image.add_ecc(out)
-            if not args.no_verify:
-                log("Verifying with dvdisaster -t ...")
-                ok, output = image.verify_ecc(out)
-                events.append(catalog.new_event(disc_id, "fixity check", "success" if ok else "failure",
-                                                "dvdisaster", "image test after creation"))
-                if not ok:
-                    log(output)
-                    log("Error: dvdisaster verification failed")
-
-        cat.discs.append(disc)
-        cat.events.extend(events)
-        home.store_disc_files(disc_id, os.path.join(stage, "manifest-sha256.txt"), listing)
-        home.save(cat)
-        if os.path.exists(home.sqlite_path):
-            index.build(home, cat)
-    finally:
-        if args.keep_stage:
-            log("Kept staging directory %s" % stage)
-        else:
-            shutil.rmtree(stage, ignore_errors=True)
-
-    print("%s\t%s\t%s" % (disc_id, out, title))
-    return 0 if all(e.get("Outcome") == "success" for e in events) else 1
+    maker = make.Maker(args, meta, entries, src, home, cat, version, is_git, stage_tools, write_readme)
+    return maker.run()
 
 
 def cmd_find(args):
@@ -459,8 +352,9 @@ def build_parser():
 
     m = sub.add_parser("make", help="build a disc image from a folder")
     m.add_argument("source", help="folder to archive (left unmodified)")
-    m.add_argument("-o", "--output", help="image path (default: <disc-id>.iso)")
-    m.add_argument("--id", help="disc id (default: <coverage>_<SET>_<nn>)")
+    m.add_argument("-o", "--output", help="image path for a single disc (default: <disc-id>.iso)")
+    m.add_argument("--output-dir", help="directory for the images (default: current directory)")
+    m.add_argument("--id", help="disc id for a single disc (default: <coverage>_<SET>_<nn>)")
     m.add_argument("--set", help="set name, e.g. PHOTOS")
     m.add_argument("--coverage", help="year range (default: from file modification times)")
     m.add_argument("--title")
@@ -470,7 +364,18 @@ def build_parser():
     m.add_argument("--note", action="append", help="repeatable")
     m.add_argument("--location", help="where the disc will be stored")
     m.add_argument("--rights")
-    m.add_argument("--media", default=DEFAULT_MEDIA)
+    m.add_argument("--medium", choices=["auto"] + list(media.MEDIA), default="bd25",
+                   help="target disc: RS03 fills it with error correction (default: bd25). "
+                        "auto lets dvdisaster pick the smallest standard size")
+    m.add_argument("--medium-sectors", type=int,
+                   help="custom medium capacity in 2048-byte sectors (overrides --medium; mainly for testing)")
+    m.add_argument("--no-defect-management", action="store_true",
+                   help="discs are burned without BD-R defect management (slightly more space)")
+    m.add_argument("--min-redundancy", type=float, default=20,
+                   help="minimum RS03 redundancy in %% that each disc must keep (default: 20)")
+    m.add_argument("--split", action="store_true",
+                   help="spread the folder over as many discs as needed")
+    m.add_argument("--media", help="media description (default: M-DISC <medium>)")
     m.add_argument("--snapshot", choices=["full", "set", "disc"], default="full",
                    help="catalogue to include: full (every disc, default), set (this set only, for "
                         "discs given to other people), disc (this disc only)")
