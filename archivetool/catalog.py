@@ -4,6 +4,8 @@ Home layout (the authoritative copy, default ~/.local/share/bluray-archive):
 
     archive.rec                 Disc / Event records for every disc
     manifests/<disc-id>.sha256  that disc's manifest-sha256.txt
+    listings/<disc-id>.tsv      size, modification time and path of each file
+    archive.sqlite              search index built by `archive index` (disposable)
 
 Each disc carries a snapshot of this under catalog/.
 """
@@ -118,6 +120,8 @@ class Home:
         self.path = path or default_home()
         self.rec_path = os.path.join(self.path, "archive.rec")
         self.manifest_dir = os.path.join(self.path, "manifests")
+        self.listing_dir = os.path.join(self.path, "listings")
+        self.sqlite_path = os.path.join(self.path, "archive.sqlite")
 
     def load(self):
         if os.path.exists(self.rec_path):
@@ -133,9 +137,15 @@ class Home:
     def manifest_path(self, disc_id):
         return os.path.join(self.manifest_dir, disc_id + ".sha256")
 
-    def store_manifest(self, disc_id, manifest_file):
-        os.makedirs(self.manifest_dir, exist_ok=True)
-        shutil.copyfile(manifest_file, self.manifest_path(disc_id))
+    def listing_path(self, disc_id):
+        return os.path.join(self.listing_dir, disc_id + ".tsv")
+
+    def store_disc_files(self, disc_id, manifest_file, listing_file):
+        for src, dest in ((manifest_file, self.manifest_path(disc_id)),
+                          (listing_file, self.listing_path(disc_id))):
+            if src and os.path.exists(src):
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                shutil.copyfile(src, dest)
 
 
 def new_event(disc_id, type_, outcome, agent, note=None, date=None):
@@ -151,22 +161,55 @@ def new_event(disc_id, type_, outcome, agent, note=None, date=None):
     return r
 
 
-def write_snapshot(dest, catalog, manifest_sources, scope):
-    """Write catalog/archive.rec and catalog/manifests/ into ``dest``."""
-    os.makedirs(os.path.join(dest, "manifests"), exist_ok=True)
-    header = recfile.Record("Snapshot", [
-        ("%rec", "Snapshot"),
-        ("%doc", "When this catalogue snapshot was taken and what it covers. The home\n"
-                 "archive.rec stays authoritative for anything recorded after this date."),
-    ])
+SNAPSHOT_DESCRIPTOR = recfile.Record("Snapshot", [
+    ("%rec", "Snapshot"),
+    ("%doc", "When this catalogue snapshot was taken and what it covers. The home\n"
+             "archive.rec stays authoritative for anything recorded after this date."),
+])
+
+
+def write_snapshot(dest, catalog, disc_files, scope):
+    """Write catalog/archive.rec, catalog/manifests/ and catalog/listings/ into ``dest``.
+
+    disc_files: {disc_id: (manifest path or None, listing path or None)}
+    """
+    for sub in ("manifests", "listings"):
+        os.makedirs(os.path.join(dest, sub), exist_ok=True)
     info = recfile.Record("Snapshot", [
         ("Date", today()),
         ("Scope", scope),
         ("Discs", str(len(catalog.discs))),
     ])
-    recfile.write(os.path.join(dest, "archive.rec"), [header, info] + catalog.records())
-    for disc_id, src in manifest_sources.items():
-        shutil.copyfile(src, os.path.join(dest, "manifests", disc_id + ".sha256"))
+    recfile.write(os.path.join(dest, "archive.rec"), [SNAPSHOT_DESCRIPTOR, info] + catalog.records())
+    for disc_id, (manifest, listing) in disc_files.items():
+        if manifest and os.path.exists(manifest):
+            shutil.copyfile(manifest, os.path.join(dest, "manifests", disc_id + ".sha256"))
+        if listing and os.path.exists(listing):
+            shutil.copyfile(listing, os.path.join(dest, "listings", disc_id + ".tsv"))
+
+
+def _event_key(e):
+    return tuple(e.fields)
+
+
+def merge(home_catalog, other, prefer_other=False):
+    """Merge ``other`` into ``home_catalog``. Returns (added disc ids, updated disc ids, added events)."""
+    added, updated, events = [], [], 0
+    for d in other.discs:
+        existing = home_catalog.disc(d.get("Id"))
+        if existing is None:
+            home_catalog.discs.append(d)
+            added.append(d.get("Id"))
+        elif prefer_other and existing.fields != d.fields:
+            existing.fields = list(d.fields)
+            updated.append(d.get("Id"))
+    known = {_event_key(e) for e in home_catalog.events}
+    for e in other.events:
+        if _event_key(e) not in known:
+            home_catalog.events.append(e)
+            known.add(_event_key(e))
+            events += 1
+    return added, updated, events
 
 
 def iter_manifest(path):
@@ -187,13 +230,17 @@ def _matcher(pattern):
     return lambda text: pat in text.lower()
 
 
-def find(home, catalog, pattern):
-    """Return (disc_hits, file_hits). disc_hits: [Disc]; file_hits: [(Disc, path)]."""
+DISC_SEARCH_FIELDS = ("Id", "Title", "Description", "Subject", "Note", "Coverage")
+
+
+def find_discs(catalog, pattern):
     match = _matcher(pattern)
-    disc_hits = [
-        d for d in catalog.discs
-        if any(match(v) for k, v in d.fields if k in ("Id", "Title", "Description", "Subject", "Note", "Coverage"))
-    ]
+    return [d for d in catalog.discs if any(match(v) for k, v in d.fields if k in DISC_SEARCH_FIELDS)]
+
+
+def find(home, catalog, pattern):
+    """Scan every manifest. Returns (disc_hits, file_hits); file_hits: [(Disc, path)]."""
+    match = _matcher(pattern)
     file_hits = []
     for d in catalog.discs:
         path = home.manifest_path(d.get("Id"))
@@ -202,4 +249,4 @@ def find(home, catalog, pattern):
         for _, rel in iter_manifest(path):
             if match(rel):
                 file_hits.append((d, rel))
-    return disc_hits, file_hits
+    return find_discs(catalog, pattern), file_hits

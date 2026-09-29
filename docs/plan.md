@@ -77,12 +77,13 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - [x] Tests (`tests/test_archivetool.py`)
 
 ### Phase 2: whole-archive retrieval
-- [x] `catalog/` snapshot with `--snapshot full|set|none`
+- [x] `catalog/` snapshot with `--snapshot full|set|disc` (+ `listings/` with sizes and dates)
 - [ ] Snapshot hash chain (`Previous-Snapshot-Sha256`)
-- [ ] `search.html` across the snapshot
-- [ ] Generated `archive.sqlite`; `archive find` uses it when present
-- [ ] `archive check <disc-id>`: `dvdisaster -t` on an inserted disc → `fixity check` Event
-- [ ] `archive rebuild <disc>`: recreate the home catalogue from the newest disc
+- [x] `search.html` across the snapshot (tested: 1M files, ~1 s first search)
+- [x] Generated `archive.sqlite` (`archive index`); `find` uses it when fresh
+- [x] `archive check --device|--image`: dvdisaster scan/test → `fixity check` Event
+- [x] `archive rebuild <disc>`: merge a disc's catalogue into home (idempotent)
+- [x] `archive burned <id> --copies N`: record manual burns (`replication` Event)
 - [ ] Import from VVV exports
 
 ### Phase 3: scale and standards
@@ -102,6 +103,9 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
   (`--snapshot set`, only this set). Own off-site copies can take `full`.
 - Encryption: optional later, not implemented now.
 - Media: **M-DISC BD-R** as standard.
+- Copies: not managed. The tool makes the ISO; you burn it and record the count with `archive burned`.
+- Physical disc identity: our disc id (volume label + bag-info + written on the disc). Drive-reported
+  Media IDs identify the product line, not the disc; stored only as optional info.
 - Redundancy: **RS03 inside every image + whole extra copies** rather than
   off-disc parity files. Burn copies from the **same ISO** so they are
   sector-identical: dvdisaster can then fill an image's unreadable sectors by
@@ -122,5 +126,4 @@ of anything linking to it (this repo's licence is still undecided).
 ## Open decisions
 
 - Licence for this repo (GPLv3 fits if the RS03 library happens)
-- Number of copies per disc by default, and a `Copy` record type to track them
 - GUI toolkit (Tk from the stdlib vs. a local web UI)

@@ -160,12 +160,70 @@ class MakeTest(unittest.TestCase):
         self.make(self.photos)
         self.assertEqual(sorted(os.listdir(self.photos)), before)
 
+    def test_search_page_data(self):
+        self.make(self.projects)
+        disc_id, disc = self.make(self.photos, "--set", "PHOTOS")
+        for name in ("search.html", "catalog/web/discs.js", "catalog/web/files/%s.js" % disc_id,
+                     "catalog/web/files/2020-2025_PROJECTS_01.js", "catalog/listings/%s.tsv" % disc_id):
+            self.assertTrue(os.path.exists(os.path.join(disc, name)), name)
+        with open(os.path.join(disc, "catalog/web/files/2020-2025_PROJECTS_01.js"), encoding="utf-8") as f:
+            self.assertIn("100% ünïcode.txt", f.read())
+        with open(os.path.join(disc, "search.html"), encoding="utf-8") as f:
+            self.assertIn('<script src="catalog/web/discs.js">', f.read())
+
+    def test_disc_scope_has_only_this_disc(self):
+        self.make(self.projects)
+        disc_id, disc = self.make(self.photos, "--set", "PHOTOS", "--snapshot", "disc")
+        self.assertEqual(os.listdir(os.path.join(disc, "catalog", "manifests")), [disc_id + ".sha256"])
+        self.validate(disc)
+
+    def test_index_matches_scan(self):
+        self.make(self.projects)
+        self.make(self.photos, "--set", "PHOTOS")
+        results = {}
+        for pattern in ("ünï", "*.jpg", "readme", "photos"):
+            results[pattern] = run_cli("--home", self.home, "find", pattern)
+        self.assertEqual(run_cli("--home", self.home, "index")[0], 0)
+        for pattern, expected in results.items():
+            self.assertEqual(run_cli("--home", self.home, "find", pattern), expected, pattern)
+        # index is refreshed automatically by make once it exists
+        self.make(self.photos, "--set", "PHOTOS")
+        self.assertEqual(run_cli("--home", self.home, "find", "*.jpg")[1].count("IMG_0001.JPG"), 2)
+
+    def test_burned(self):
+        disc_id, _ = self.make(self.photos, "--set", "PHOTOS")
+        run_cli("--home", self.home, "burned", disc_id, "--copies", "2")
+        run_cli("--home", self.home, "burned", disc_id, "--media-id", "VERBAT-IMk")
+        cat = catalog.Home(self.home).load()
+        self.assertEqual(cat.disc(disc_id).get("Copies"), "3")
+        self.assertEqual(cat.disc(disc_id).get("MediaId"), "VERBAT-IMk")
+        self.assertEqual([e.get("Type") for e in cat.events_for(disc_id)].count("replication"), 2)
+
+    def test_rebuild_from_newest_disc(self):
+        self.make(self.projects, "--location", "Shelf A")
+        _, newest = self.make(self.photos, "--set", "PHOTOS")
+        original = catalog.Home(self.home).load()
+        fresh = os.path.join(self.tmp, "fresh-home")
+        code, out = run_cli("--home", fresh, "rebuild", newest)
+        self.assertEqual(code, 0, out)
+        rebuilt = catalog.Home(fresh).load()
+        self.assertEqual([d.get("Id") for d in rebuilt.discs], [d.get("Id") for d in original.discs])
+        self.assertEqual(rebuilt.disc("2020-2025_PROJECTS_01").get("Location"), "Shelf A")
+        self.assertEqual(run_cli("--home", fresh, "find", "ünï"), run_cli("--home", self.home, "find", "ünï"))
+        # merging the same disc again changes nothing
+        self.assertIn("Added 0 disc(s), updated 0, 0 new event(s), 0 file list(s)",
+                      run_cli("--home", fresh, "rebuild", newest)[1])
+
     @unittest.skipUnless(os.environ.get("ARCHIVE_TEST_ECC") and shutil.which("dvdisaster"), "set ARCHIVE_TEST_ECC=1")
     def test_ecc(self):
         code, out = run_cli("--home", self.home, "make", "-y", "-o", os.path.join(self.tmp, "ecc.iso"), self.photos)
         self.assertEqual(code, 0, out)
         events = catalog.Home(self.home).load().events
         self.assertIn(("fixity check", "success"), [(e.get("Type"), e.get("Outcome")) for e in events])
+        iso = os.path.join(self.tmp, "ecc.iso")
+        code, out = run_cli("--home", self.home, "check", "--image", iso)  # disc id read from the volume label
+        self.assertEqual(code, 0, out)
+        self.assertEqual(len([e for e in catalog.Home(self.home).load().events if e.get("Type") == "fixity check"]), 2)
 
 
 if __name__ == "__main__":

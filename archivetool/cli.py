@@ -6,6 +6,10 @@ Commands:
   list   list discs in the home catalogue
   note   add a note to a disc
   locate set where a disc is physically stored
+  burned record that copies were burned
+  check  verify a disc or image with dvdisaster and log a fixity-check event
+  rebuild merge the catalogue carried on a disc into the home catalogue
+  index  build the SQLite search index
 """
 
 import argparse
@@ -18,7 +22,7 @@ import sys
 import tarfile
 import tempfile
 
-from . import bag, catalog, html, image, recfile
+from . import bag, catalog, html, image, index, recfile, web
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO_NAME = "bluray-archival-workflow"
@@ -109,7 +113,7 @@ data stored after the filesystem.
 
 BROWSE
   Open index.html in any web browser. It lists every file on this disc
-  and{other_discs}.
+  and{other_discs}. search.html searches file names on this disc{search_scope}.
 
 VERIFY (detect damage)
   From the root of the mounted disc, either of:
@@ -135,18 +139,21 @@ TOOLS
 
 
 def write_readme(path, disc, snapshot_scope):
-    if snapshot_scope == "none":
-        other, cat_lines = "", ""
+    if snapshot_scope == "disc":
+        other = ""
+        cat_lines = "  catalog/listings/       file list of this disc with sizes and dates\n"
     else:
         other = " the discs made before it (%s catalogue)" % snapshot_scope
         cat_lines = ("  catalog/archive.rec     all discs in the archive as of the burn date\n"
-                     "  catalog/manifests/      file lists (sha256) of those discs\n")
+                     "  catalog/manifests/      sha256 file lists of those discs\n"
+                     "  catalog/listings/       file lists with sizes and dates\n")
     title = disc.get("Title")
     text = README_TEMPLATE.format(
         title=title, underline="=" * len(title), id=disc.get("Id"), set=disc.get("Set"),
         date=disc.get("Date"), files=disc.get("Files"), bytes=disc.get("Bytes"),
         software=disc.get("Software"), other_discs=(" lists" + other) if other else " its notes",
         catalog_lines=cat_lines, repo=REPO_NAME,
+        search_scope="" if snapshot_scope == "disc" else " and on every disc in the catalogue",
     )
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
@@ -224,21 +231,36 @@ def cmd_make(args):
         on_disc.discs, on_disc.events = [disc], [digest_event]
         recfile.write(os.path.join(stage, "catalog.rec"), on_disc.records())
 
-        snapshot = None
-        if args.snapshot != "none":
-            prior = cat.discs if args.snapshot == "full" else [d for d in cat.discs if d.get("Set") == set_name]
-            ids = {d.get("Id") for d in prior}
-            snapshot = cat.subset(ids)
-            snapshot.discs.append(disc)
-            snapshot.events.append(digest_event)
-            sources = {i: home.manifest_path(i) for i in ids if os.path.exists(home.manifest_path(i))}
-            sources[disc_id] = os.path.join(stage, "manifest-sha256.txt")
-            catalog.write_snapshot(os.path.join(stage, "catalog"), snapshot, sources, args.snapshot)
+        # Catalogue snapshot: other discs (per --snapshot) + this one, with file listings
+        # and the data search.html loads. Scope "disc" keeps only this disc.
+        listing = os.path.join(stage, ".listing.tsv")
+        web.write_listing(listing, entries)
+        if args.snapshot == "full":
+            prior = list(cat.discs)
+        elif args.snapshot == "set":
+            prior = [d for d in cat.discs if d.get("Set") == set_name]
+        else:
+            prior = []
+        ids = [d.get("Id") for d in prior]
+        snapshot = cat.subset(set(ids))
+        snapshot.discs.append(disc)
+        snapshot.events.append(digest_event)
+        files = {i: (home.manifest_path(i), home.listing_path(i)) for i in ids}
+        files[disc_id] = (os.path.join(stage, "manifest-sha256.txt"), listing)
+        catalog_dir = os.path.join(stage, "catalog")
+        catalog.write_snapshot(catalog_dir, snapshot, files, args.snapshot)
+        os.remove(listing)
+        listing = os.path.join(catalog_dir, "listings", disc_id + ".tsv")
+        web.write_web_data(os.path.join(catalog_dir, "web"), disc_id, snapshot.discs,
+                           {i: os.path.join(catalog_dir, "listings", i + ".tsv") for i in ids + [disc_id]
+                            if os.path.exists(os.path.join(catalog_dir, "listings", i + ".tsv"))})
 
         stage_tools(os.path.join(stage, "tools"), is_git, args.extra_tools)
         write_readme(os.path.join(stage, "README.txt"), disc, args.snapshot)
         with open(os.path.join(stage, "index.html"), "w", encoding="utf-8") as f:
             f.write(html.render_index(disc, entries, snapshot))
+        with open(os.path.join(stage, "search.html"), "w", encoding="utf-8") as f:
+            f.write(web.render_search())
         bag.write_tagmanifests(stage)
 
         log("Building image %s ..." % out)
@@ -259,8 +281,10 @@ def cmd_make(args):
 
         cat.discs.append(disc)
         cat.events.extend(events)
-        home.store_manifest(disc_id, os.path.join(stage, "manifest-sha256.txt"))
+        home.store_disc_files(disc_id, os.path.join(stage, "manifest-sha256.txt"), listing)
         home.save(cat)
+        if os.path.exists(home.sqlite_path):
+            index.build(home, cat)
     finally:
         if args.keep_stage:
             log("Kept staging directory %s" % stage)
@@ -274,7 +298,12 @@ def cmd_make(args):
 def cmd_find(args):
     home = catalog.Home(args.home)
     cat = home.load()
-    disc_hits, file_hits = catalog.find(home, cat, args.pattern)
+    if index.is_fresh(home):
+        disc_hits, file_hits = index.find(home, cat, args.pattern)
+    else:
+        if os.path.exists(home.sqlite_path):
+            log("Note: archive.sqlite is out of date; scanning manifests (run 'archive index' to refresh)")
+        disc_hits, file_hits = catalog.find(home, cat, args.pattern)
     for d in disc_hits:
         print("DISC  %s  %s  [%s]" % (d.get("Id"), d.get("Title"), d.get("Location", "location unknown")))
     for d, path in file_hits[: args.limit] if args.limit else file_hits:
@@ -311,6 +340,117 @@ def cmd_locate(args):
     return _edit_disc(args, lambda d: d.set("Location", args.location))
 
 
+def _resolve_disc(cat, disc_id, source):
+    if not disc_id:
+        disc_id = image.read_volume_id(source)
+        if not disc_id:
+            raise SystemExit("Error: no ISO9660 volume id on %s; pass the disc id explicitly" % source)
+    disc = cat.disc(disc_id)
+    if not disc:
+        raise SystemExit("Error: disc %s is not in the catalogue" % disc_id)
+    return disc_id, disc
+
+
+def cmd_check(args):
+    """Fixity check of a burned disc (drive) or an image, logged as a PREMIS 'fixity check' event."""
+    image.require("dvdisaster")
+    home = catalog.Home(args.home)
+    cat = home.load()
+    source = args.device or args.image
+    disc_id, _ = _resolve_disc(cat, args.disc_id, source)
+    log("Checking %s (%s) ..." % (disc_id, source))
+    if args.device:
+        ok, output = image.scan_device(args.device)
+        what = "disc scan with dvdisaster -s on " + args.device
+    else:
+        ok, output = image.verify_ecc(args.image)
+        what = "image test with dvdisaster -t"
+    note = what + "\n" + image.summary(output)
+    if args.note:
+        note += "\n" + args.note
+    cat.events.append(catalog.new_event(disc_id, "fixity check", "success" if ok else "failure", "dvdisaster", note))
+    home.save(cat)
+    print(output if not ok or args.verbose else image.summary(output))
+    print("%s: %s" % (disc_id, "OK" if ok else "FAILED - see output above"))
+    return 0 if ok else 1
+
+
+def cmd_burned(args):
+    """Record that copies of a disc image were burned."""
+    home = catalog.Home(args.home)
+    cat = home.load()
+    disc = cat.disc(args.disc_id)
+    if not disc:
+        raise SystemExit("Error: no disc %s in %s" % (args.disc_id, home.rec_path))
+    disc.set("Copies", str(int(disc.get("Copies", "0")) + args.copies))
+    if args.media_id:
+        disc.add("MediaId", args.media_id)
+    note = "burned %d cop%s" % (args.copies, "y" if args.copies == 1 else "ies")
+    if args.note:
+        note += "; " + args.note
+    cat.events.append(catalog.new_event(args.disc_id, "replication", "success", "manual", note))
+    home.save(cat)
+    print("%s: %s copies recorded" % (args.disc_id, disc.get("Copies")))
+    return 0
+
+
+def cmd_rebuild(args):
+    """Merge the catalogue carried by a disc (mounted or extracted) into the home catalogue."""
+    home = catalog.Home(args.home)
+    cat = home.load()
+    root = args.disc_root
+    snap_dir = os.path.join(root, "catalog")
+    sources = [os.path.join(snap_dir, "archive.rec"), os.path.join(root, "catalog.rec")]
+    found = [p for p in sources if os.path.exists(p)]
+    if not found:
+        raise SystemExit("Error: %s has neither catalog/archive.rec nor catalog.rec" % root)
+    added, updated, events = [], [], 0
+    for path in found:
+        a, u, e = catalog.merge(cat, catalog.Catalog(recfile.read(path)), prefer_other=args.prefer_disc)
+        added += a
+        updated += u
+        events += e
+    copied = 0
+    for d in cat.discs:
+        disc_id = d.get("Id")
+        manifest = os.path.join(snap_dir, "manifests", disc_id + ".sha256")
+        listing = os.path.join(snap_dir, "listings", disc_id + ".tsv")
+        if not os.path.exists(manifest) and disc_id == disc_root_id(root):  # disc without catalog/manifests
+            manifest = os.path.join(root, "manifest-sha256.txt")
+        need = [(src, dst) for src, dst in ((manifest, home.manifest_path(disc_id)), (listing, home.listing_path(disc_id)))
+                if os.path.exists(src) and not os.path.exists(dst)]
+        for src, dst in need:
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copyfile(src, dst)
+            copied += 1
+    home.save(cat)
+    if os.path.exists(home.sqlite_path):
+        index.build(home, cat)
+    print("Added %d disc(s)%s, updated %d, %d new event(s), %d file list(s) copied into %s"
+          % (len(added), (" (" + ", ".join(added) + ")") if added else "", len(updated), events, copied, home.path))
+    return 0
+
+
+def disc_root_id(root):
+    """Disc id of a mounted or extracted disc, from its bag-info.txt."""
+    try:
+        with open(os.path.join(root, "bag-info.txt"), encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("External-Identifier:"):
+                    return line.split(":", 1)[1].strip()
+    except OSError:
+        pass
+    return None
+
+
+def cmd_index(args):
+    home = catalog.Home(args.home)
+    cat = home.load()
+    index.build(home, cat)
+    print("Built %s" % home.sqlite_path)
+    return 0
+
+
 def build_parser():
     p = argparse.ArgumentParser(prog="archive", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -331,9 +471,9 @@ def build_parser():
     m.add_argument("--location", help="where the disc will be stored")
     m.add_argument("--rights")
     m.add_argument("--media", default=DEFAULT_MEDIA)
-    m.add_argument("--snapshot", choices=["full", "set", "none"], default="full",
-                   help="catalogue of other discs to include: full (default), set (this set only, "
-                        "for discs given to other people), none")
+    m.add_argument("--snapshot", choices=["full", "set", "disc"], default="full",
+                   help="catalogue to include: full (every disc, default), set (this set only, for "
+                        "discs given to other people), disc (this disc only)")
     m.add_argument("--extra-tools", help="folder copied to tools/extra/ (e.g. dvdisaster binaries)")
     m.add_argument("--no-ecc", action="store_true", help="skip dvdisaster (testing only)")
     m.add_argument("--no-verify", action="store_true", help="skip dvdisaster -t after adding ECC")
@@ -358,6 +498,30 @@ def build_parser():
     loc.add_argument("disc_id")
     loc.add_argument("location")
     loc.set_defaults(func=cmd_locate)
+    c = sub.add_parser("check", help="verify a burned disc or image with dvdisaster and log the result")
+    src = c.add_mutually_exclusive_group(required=True)
+    src.add_argument("--device", help="optical drive, e.g. /dev/sr0 (scans the whole disc)")
+    src.add_argument("--image", help="image file")
+    c.add_argument("disc_id", nargs="?", help="default: read from the volume label")
+    c.add_argument("--note")
+    c.add_argument("-v", "--verbose", action="store_true")
+    c.set_defaults(func=cmd_check)
+
+    b = sub.add_parser("burned", help="record that copies of a disc were burned")
+    b.add_argument("disc_id")
+    b.add_argument("--copies", type=int, default=1)
+    b.add_argument("--media-id", help="media id reported by the drive, e.g. from dvd+rw-mediainfo")
+    b.add_argument("--note")
+    b.set_defaults(func=cmd_burned)
+
+    r = sub.add_parser("rebuild", help="merge the catalogue on a mounted disc into the home catalogue")
+    r.add_argument("disc_root", help="mount point (or extracted copy) of a disc")
+    r.add_argument("--prefer-disc", action="store_true",
+                   help="overwrite existing home Disc records with the disc's versions")
+    r.set_defaults(func=cmd_rebuild)
+
+    i = sub.add_parser("index", help="(re)build the SQLite search index used by find")
+    i.set_defaults(func=cmd_index)
     return p
 
 
