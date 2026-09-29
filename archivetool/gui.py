@@ -67,7 +67,8 @@ class App:
         out = []
         for d in cat.discs:
             summary = web.disc_summary(d)
-            summary.update({k: d.get(k) for k in ("Media", "Bytes", "Ecc", "Rights", "Creator") if d.get(k)})
+            summary.update({k: d.get(k) for k in ("Media", "Bytes", "Ecc", "Rights", "Creator", "Access") if d.get(k)})
+            summary["Where"] = cat.where(d)
             summary["Events"] = [dict(e.fields) for e in cat.events_for(d.get("Id"))]
             out.append(summary)
         return {"home": self.home.path, "discs": out}
@@ -82,7 +83,7 @@ class App:
         else:
             disc_hits, file_hits = catalog.find(self.home, cat, pattern)
         return {"discs": [web.disc_summary(d) for d in disc_hits],
-                "files": [{"disc": d.get("Id"), "title": d.get("Title"), "location": d.get("Location"), "path": p}
+                "files": [{"disc": d.get("Id"), "title": d.get("Title"), "location": cat.where(d), "path": p}
                           for d, p in file_hits[:500]],
                 "total": len(file_hits)}
 
@@ -198,7 +199,7 @@ class App:
         if command == "note":
             argv = ["note", body["disc_id"], body["text"]]
         elif command == "locate":
-            argv = ["locate", body["disc_id"], body["location"]]
+            argv = ["locate", body["disc_id"]] + [l.strip() for l in body["location"].split(";") if l.strip()]
         elif command == "burned":
             argv = ["burned", body["disc_id"], "--copies", str(int(body.get("copies") or 1))]
             if body.get("media_id"):

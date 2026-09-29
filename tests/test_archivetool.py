@@ -23,9 +23,9 @@ HAVE_IMAGE_TOOLS = all(shutil.which(t) for t in ("genisoimage", "7z"))
 
 from archivetool import discid  # noqa: E402
 
-PROJECTS_01 = discid.compose("PROJECTS", 1, "2020/2025")
-PHOTOS_01 = discid.compose("PHOTOS", 1, "2023")
-PHOTOS_02 = discid.compose("PHOTOS", 2, "2023")
+PROJ_01 = discid.compose("PROJ", 1, "2020/2025")  # folder "Projects" resolves to PROJ via its alias
+PHOTO_01 = discid.compose("PHOTO", 1, "2023")  # --set PHOTOS resolves to PHOTO
+PHOTO_02 = discid.compose("PHOTO", 2, "2023")
 
 
 def run_cli(*argv):
@@ -38,9 +38,14 @@ def run_cli(*argv):
     return code, out.getvalue()
 
 
+TINY_JPEG = __import__("base64").b64decode(  # a valid 1x1 JPEG, so exiftool can write to it
+    "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP////////////////////////////////////////////////////////////"
+    "//////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=")
+
+
 def write(path, text, year=None):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
+    with open(path, "wb" if isinstance(text, bytes) else "w", **({} if isinstance(text, bytes) else {"encoding": "utf-8"})) as f:
         f.write(text)
     if year:
         ts = __import__("datetime").datetime(year, 6, 1).timestamp()
@@ -162,6 +167,27 @@ class SetsTest(unittest.TestCase):
                 with self.assertRaisesRegex(sets.VocabError, message):
                     sets.load(None, path)
 
+    def test_aliases_scope_notes_and_match_rules(self):
+        from archivetool import sets
+        vocab = sets.load(None, sets.DEFAULT_SETS)
+        self.assertEqual(vocab.resolve("holidays"), "TRIP")        # alias
+        self.assertEqual(vocab.resolve("trips"), "TRIP")           # plural of a code
+        self.assertEqual(vocab.resolve("PROJECTS"), "PROJECTS")    # a code beats an alias when typed
+        self.assertEqual(vocab.guess("Projects"), "PROJ")          # but a folder name means one project set
+        self.assertEqual(vocab.guess("2019_Vacation"), "TRIP")
+        self.assertIsNone(vocab.resolve("zzz"))
+        self.assertTrue(vocab.get("VIDEO").scope_note)
+        got = vocab.match(["board/main.kicad_pcb", "board/fw/main.c", "tool/.git/HEAD", "tool/x.py", "a.txt"])
+        self.assertEqual(got, {"ELEC": 1, "CODE": 3})
+        self.assertTrue(sets.path_matches("*/Taxes/*", "2019/taxes/return.pdf"))
+        self.assertFalse(sets.path_matches("*/Taxes/*", "2019/tax/return.pdf"))
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "v.rec")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("%rec: Set\n\nCode: AA\nName: a\nAlias: same\n\nCode: BB\nName: b\nAlias: Same\n")
+            with self.assertRaisesRegex(sets.VocabError, "alias 'Same' of BB is already AA"):
+                sets.load(None, path)
+
     def test_date_ranges_to_the_day(self):
         self.assertTrue(discid.covers("2019-07-14/2019-07-20", "2019-07-15"))
         self.assertFalse(discid.covers("2019-07-14/2019-07-20", "2019-08"))
@@ -274,7 +300,7 @@ class MakeTest(unittest.TestCase):
 
     def test_full_disc(self):
         disc_id, disc = self.make(self.projects, "--location", "Shelf A", "--note", "first")
-        self.assertEqual(disc_id, PROJECTS_01)
+        self.assertEqual(disc_id, PROJ_01)
         self.validate(disc)
         subprocess.run(["sha256sum", "-c", "--quiet", "manifest-sha256.txt"], cwd=disc, check=True)
         for name in ("index.html", "README.txt", "catalog.rec", "catalog/archive.rec",
@@ -303,16 +329,16 @@ class MakeTest(unittest.TestCase):
         self.make(self.projects)
         _, photos_set = self.make(self.photos, "--set", "PHOTOS", "--snapshot", "set")
         _, photos_full = self.make(self.photos, "--set", "PHOTOS")
-        self.assertEqual(os.listdir(os.path.join(photos_set, "catalog", "manifests")), [PHOTOS_01 + ".sha256"])
+        self.assertEqual(os.listdir(os.path.join(photos_set, "catalog", "manifests")), [PHOTO_01 + ".sha256"])
         self.assertEqual(sorted(os.listdir(os.path.join(photos_full, "catalog", "manifests"))),
-                         sorted([PROJECTS_01 + ".sha256", PHOTOS_01 + ".sha256", PHOTOS_02 + ".sha256"]))
+                         sorted([PROJ_01 + ".sha256", PHOTO_01 + ".sha256", PHOTO_02 + ".sha256"]))
         self.validate(photos_full)
         with open(os.path.join(photos_full, "index.html"), encoding="utf-8") as f:
-            self.assertIn(PROJECTS_01, f.read())
+            self.assertIn(PROJ_01, f.read())
 
         code, out = run_cli("--home", self.home, "find", "ünï")
         self.assertEqual(code, 0)
-        self.assertIn(PROJECTS_01, out)
+        self.assertIn(PROJ_01, out)
         code, out = run_cli("--home", self.home, "find", "*.jpg")
         self.assertEqual(out.count("IMG_0001.JPG"), 2)
         self.assertEqual(run_cli("--home", self.home, "find", "nothing-matches")[0], 1)
@@ -334,7 +360,7 @@ class MakeTest(unittest.TestCase):
         disc_id, _ = self.make(self.projects, "--coverage", "2015-2024")  # legacy range input is accepted
         disc = catalog.Home(self.home).load().disc(disc_id)
         self.assertEqual((disc.get("IdScheme"), disc.get("Set"), disc.get("Sequence"), disc.get("Coverage")),
-                         (discid.SCHEME, "PROJECTS", "1", "2015/2024"))
+                         (discid.SCHEME, "PROJ", "1", "2015/2024"))
         self.assertEqual(discid.regenerate(disc), disc_id)
         code, out = run_cli("--home", self.home, "id", disc_id)
         self.assertEqual(code, 0)
@@ -346,8 +372,8 @@ class MakeTest(unittest.TestCase):
         self.assertIn(disc_id, run_cli("--home", self.home, "list", "--covers", "2019")[1])
         self.assertNotIn(disc_id, run_cli("--home", self.home, "list", "--covers", "2030")[1])
         photos_id, _ = self.make(self.photos, "--set", "PHOTOS")
-        self.assertEqual(photos_id, PHOTOS_01)  # sequences are per set
-        self.assertEqual(catalog.Home(self.home).load().next_number("PROJECTS"), 2)
+        self.assertEqual(photos_id, PHOTO_01)  # sequences are per set
+        self.assertEqual(catalog.Home(self.home).load().next_number("PROJ"), 2)
         # one Set plus extra categories; every vocabulary path is recorded on the disc
         trip_id, disc = self.make(self.photos, "--set", "trip", "--category", "scan",
                                   "--coverage", "2023-06-01/2023-06-14")
@@ -357,7 +383,7 @@ class MakeTest(unittest.TestCase):
         self.assertTrue(trip_id.startswith("TRIP-01_202306_"))
         out = run_cli("--home", self.home, "sets")[1]
         self.assertRegex(out, r"TRIP\s+Trips and holidays\s+1 disc")
-        self.assertRegex(out, r"MEMORIES\s+Memories\s+0 discs \(1 including below\)")
+        self.assertRegex(out, r"MEMORIES\s+Memories\s+0 discs \(2 including below\)")
         self.assertIn("also under RECORDS, PHOTO", out)
         self.assertIn("PROJECTS", out)
         self.assertIn(trip_id, run_cli("--home", self.home, "list", "--in", "records")[1])  # via its category
@@ -380,9 +406,9 @@ class MakeTest(unittest.TestCase):
         self.make(self.projects)
         disc_id, disc = self.make(self.photos, "--set", "PHOTOS")
         for name in ("search.html", "catalog/web/discs.js", "catalog/web/files/%s.js" % disc_id,
-                     "catalog/web/files/%s.js" % PROJECTS_01, "catalog/listings/%s.tsv" % disc_id):
+                     "catalog/web/files/%s.js" % PROJ_01, "catalog/listings/%s.tsv" % disc_id):
             self.assertTrue(os.path.exists(os.path.join(disc, name)), name)
-        with open(os.path.join(disc, "catalog/web/files/%s.js" % PROJECTS_01), encoding="utf-8") as f:
+        with open(os.path.join(disc, "catalog/web/files/%s.js" % PROJ_01), encoding="utf-8") as f:
             self.assertIn("100% ünïcode.txt", f.read())
         with open(os.path.join(disc, "search.html"), encoding="utf-8") as f:
             self.assertIn('<script src="catalog/web/discs.js">', f.read())
@@ -415,6 +441,116 @@ class MakeTest(unittest.TestCase):
         self.assertEqual(cat.disc(disc_id).get("MediaId"), "VERBAT-IMk")
         self.assertEqual([e.get("Type") for e in cat.events_for(disc_id)].count("replication"), 2)
 
+    def test_match_rules_and_aliases_classify(self):
+        src = os.path.join(self.tmp, "Weather station")
+        write(os.path.join(src, "pcb", "station.kicad_pcb"), "x", 2021)
+        write(os.path.join(src, "firmware", "main.c"), "x", 2021)
+        write(os.path.join(src, "firmware", "main.h"), "x", 2021)
+        disc_id, disc = self.make(src, "--set", "project")  # alias -> PROJ; rules add the categories
+        rec = catalog.Catalog(recfile.read(os.path.join(disc, "catalog.rec"))).disc(disc_id)
+        self.assertEqual((rec.get("Set"), rec.get_all("Category")), ("PROJ", ["CODE", "ELEC"]))
+        disc_id, _ = self.make(src, "--set", "PROJ", "--no-rules")
+        self.assertEqual(catalog.Home(self.home).load().disc(disc_id).get_all("Category"), [])
+        disc_id, _ = self.make(src, "--set", "PROJ", "--category", "hardware")  # alias of ELEC
+        self.assertEqual(catalog.Home(self.home).load().disc(disc_id).get_all("Category"), ["ELEC"])
+        self.assertIn("aliases: projects", run_cli("--home", self.home, "sets", "-v")[1])
+
+    def test_access_levels_in_snapshots(self):
+        public_id, _ = self.make(self.photos, "--set", "PHOTO", "--access", "public", "--title", "Beach day")
+        private_id, _ = self.make(self.photos, "--set", "PHOTO", "--title", "Private album")
+        sealed_id, _ = self.make(self.photos, "--set", "PHOTO", "--access", "sealed", "--title", "Secret",
+                                 "--note", "do not share", "--location", "Safe")
+        _, shared = self.make(self.photos, "--set", "PHOTO", "--snapshot", "set")
+        shared_cat = catalog.Catalog(recfile.read(os.path.join(shared, "catalog", "archive.rec")))
+        self.assertIn(public_id, [d.get("Id") for d in shared_cat.discs])
+        self.assertNotIn(private_id, [d.get("Id") for d in shared_cat.discs])  # private: own discs only
+        self.assertNotIn(sealed_id, [d.get("Id") for d in shared_cat.discs])
+        _, full = self.make(self.photos, "--set", "PHOTO")
+        full_cat = catalog.Catalog(recfile.read(os.path.join(full, "catalog", "archive.rec")))
+        sealed = full_cat.disc(sealed_id)
+        self.assertEqual((sealed.get("Title"), sealed.get("Location"), sealed.get("Note")),
+                         ("(sealed disc)", "Safe", None))
+        self.assertTrue(sealed.get("Withheld"))
+        self.assertFalse(os.path.exists(os.path.join(full, "catalog", "manifests", sealed_id + ".sha256")))
+        self.assertFalse(os.path.exists(os.path.join(full, "catalog", "web", "files", sealed_id + ".js")))
+        for name in ("index.html", "catalog/web/discs.js"):
+            with open(os.path.join(full, name), encoding="utf-8") as f:
+                self.assertNotIn("Secret", f.read())
+        self.assertEqual(full_cat.disc(private_id).get("Title"), "Private album")
+        # the cut-down record never overwrites the full one when a disc is merged back
+        run_cli("--home", self.home, "rebuild", "--prefer-disc", full)
+        self.assertEqual(catalog.Home(self.home).load().disc(sealed_id).get("Title"), "Secret")
+        run_cli("--home", self.home, "access", private_id, "public")
+        self.assertIn(private_id, run_cli("--home", self.home, "list", "--access", "public")[1])
+
+    def test_location_tree(self):
+        home = ("--home", self.home)
+        self.assertEqual(run_cli(*home, "location", "add", "HOME", "Home")[0], 0)
+        run_cli(*home, "location", "add", "study", "Study", "--in", "HOME")
+        run_cli(*home, "location", "add", "BOX3", "Box 3, blue lid", "--in", "STUDY")
+        run_cli(*home, "location", "add", "OFFSITE", "Parents' house")
+        self.assertNotEqual(run_cli(*home, "location", "add", "X", "x", "--in", "NOPE")[0], 0)
+        disc_id, disc = self.make(self.photos, "--set", "PHOTO", "--location", "box3")
+        cat = catalog.Home(self.home).load()
+        self.assertEqual(cat.disc(disc_id).get("Location"), "BOX3")  # stored as the code
+        self.assertEqual(cat.where(cat.disc(disc_id)), "Home / Study / Box 3, blue lid")
+        own = catalog.Catalog(recfile.read(os.path.join(disc, "catalog.rec")))
+        self.assertEqual([l.get("Code") for l in own.locations], ["HOME", "STUDY", "BOX3"])  # self-describing
+        run_cli(*home, "burned", disc_id, "--copies", "1", "--location", "offsite")
+        cat = catalog.Home(self.home).load()
+        self.assertEqual(cat.disc(disc_id).get_all("Location"), ["BOX3", "OFFSITE"])
+        self.assertIn(disc_id, run_cli(*home, "list", "--at", "HOME")[1])     # anywhere inside HOME
+        self.assertIn(disc_id, run_cli(*home, "list", "--at", "OFFSITE")[1])
+        # moving the box moves its discs
+        run_cli(*home, "location", "move", "BOX3", "--in", "OFFSITE")
+        self.assertNotIn(disc_id, run_cli(*home, "list", "--at", "STUDY")[1])
+        self.assertNotEqual(run_cli(*home, "location", "move", "OFFSITE", "--in", "BOX3")[0], 0)  # loop
+        out = run_cli(*home, "location", "list")[1]
+        self.assertRegex(out, r"OFFSITE\s+Parents' house\s+1 disc \(1 including inside\)|OFFSITE.*1 disc")
+        run_cli(*home, "locate", disc_id, "BOX3")
+        self.assertEqual(catalog.Home(self.home).load().disc(disc_id).get_all("Location"), ["BOX3"])
+        _, later = self.make(self.photos, "--set", "PHOTO")
+        with open(os.path.join(later, "catalog", "web", "discs.js"), encoding="utf-8") as f:
+            self.assertIn("Parents' house / Box 3, blue lid", f.read())
+
+    def test_namespaced_tags_and_keywords(self):
+        draft = os.path.join(self.tmp, "draft.json")
+        with open(draft, "w", encoding="utf-8") as f:
+            json.dump({"title": "Kyoto", "folder_tags": {".": ["Holidays", "Place : Kyoto"],
+                                                         "day 2": ["person:Alice", "travel"]}}, f)
+        trip = os.path.join(self.tmp, "Kyoto")
+        write(os.path.join(trip, "IMG_0001.JPG"), TINY_JPEG, 2023)
+        write(os.path.join(trip, "day 2", "IMG_0002.JPG"), TINY_JPEG, 2023)
+        disc_id, disc = self.make(trip, "--set", "TRIP", "--draft", draft)
+        info = catalog.read_tag_info(catalog.Home(self.home).disc_file("tags", disc_id))
+        self.assertEqual(info["."][0], ["travel", "place:kyoto"])   # alias replaced, namespace normalised
+        out = run_cli("--home", self.home, "tags")[1]
+        self.assertIn("place:\n  kyoto", out)
+        self.assertIn("person:\n  alice", out)
+        self.assertRegex(out, r"travel\s+2 folders on 1 disc")
+        self.assertIn("TAG", run_cli("--home", self.home, "find", "place:kyoto")[1])
+        out = run_cli("--home", self.home, "keywords", disc_id)[1]
+        self.assertIn(".\tMEMORIES|PHOTO|TRIP, travel, place|kyoto", out)
+        self.assertIn("day 2\tperson|alice, travel", out)
+        args = run_cli("--home", self.home, "keywords", disc_id, "--format", "exiftool")[1]
+        self.assertIn("-XMP-lr:HierarchicalSubject+=place|kyoto\n", args)
+        self.assertIn("\ndata/day 2\n-execute", args)
+        if shutil.which("exiftool"):
+            copy = os.path.join(self.tmp, "restored")
+            shutil.copytree(disc, copy)
+            argfile = os.path.join(self.tmp, "kw.args")
+            with open(argfile, "w", encoding="utf-8") as f:
+                f.write(args)
+            for _ in range(2):  # running twice adds nothing twice
+                subprocess.run(["exiftool", "-q", "-@", argfile], cwd=copy, check=True)
+            def keywords(name):
+                out = subprocess.run(["exiftool", "-s3", "-XMP-lr:HierarchicalSubject", name],
+                                     cwd=copy, capture_output=True, text=True).stdout.strip()
+                return sorted(out.split(", "))  # a list: duplicates would show
+            self.assertEqual(keywords("data/IMG_0001.JPG"), ["MEMORIES|PHOTO|TRIP", "place|kyoto", "travel"])
+            self.assertEqual(keywords("data/day 2/IMG_0002.JPG"),
+                             ["MEMORIES|PHOTO|TRIP", "person|alice", "place|kyoto", "travel"])
+
     def test_rebuild_from_newest_disc(self):
         self.make(self.projects, "--location", "Shelf A")
         _, newest = self.make(self.photos, "--set", "PHOTOS")
@@ -424,7 +560,7 @@ class MakeTest(unittest.TestCase):
         self.assertEqual(code, 0, out)
         rebuilt = catalog.Home(fresh).load()
         self.assertEqual([d.get("Id") for d in rebuilt.discs], [d.get("Id") for d in original.discs])
-        self.assertEqual(rebuilt.disc(PROJECTS_01).get("Location"), "Shelf A")
+        self.assertEqual(rebuilt.disc(PROJ_01).get("Location"), "Shelf A")
         self.assertEqual(run_cli("--home", fresh, "find", "ünï"), run_cli("--home", self.home, "find", "ünï"))
         # merging the same disc again changes nothing
         self.assertIn("Added 0 disc(s), updated 0, 0 new event(s), 0 file list(s)",
@@ -817,6 +953,23 @@ class TagTest(unittest.TestCase):
         self.assertEqual(code, 0)
         events = catalog.Home(self.home).load().events_for(disc_id)
         self.assertIn("embeddings:test-model (unreviewed)", [e.get("Agent") for e in events])
+
+    def test_rules_only_and_aliases_in_review(self):
+        from archivetool import catalog as cat_mod, tagger
+        with open(self.vocab, "a", encoding="utf-8") as f:
+            f.write("Alias: holiday\n\nName: electronics\nDescription: circuits\nMatch: *.kicad_pcb\n")
+        write(os.path.join(self.src, "board", "x.kicad_pcb"), "x", 2020)
+        vocab = tagger.load_tag_vocab(None, self.vocab)
+        self.assertEqual(vocab.canonical(" Holiday "), "travel")
+        answers = iter(["holiday, Place: Kyoto"])
+        got = tagger.review({"beach trip": [("pets", 0.5)]}, True, ask=lambda _: next(answers), vocab=vocab)
+        self.assertEqual(got, {"beach trip": ["travel", "place:kyoto"]})
+        self.assertEqual(cat_mod.hierarchical("place:kyoto"), "place|kyoto")
+        code, out = run_cli("--home", self.home, "tag", self.src, "--rules-only", "--vocab", self.vocab)
+        self.assertEqual(code, 0)
+        result = json.loads(out)
+        self.assertEqual(result["folder_tags"], {"board": ["electronics"]})
+        self.assertEqual(result["agent"], "match rules (unreviewed)")
 
     def test_embeddings_api_engine(self):
         from archivetool import catalog, tagger

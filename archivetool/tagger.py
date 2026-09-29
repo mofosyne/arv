@@ -35,18 +35,72 @@ def vocab_path(home):
     return os.path.join(home.path, "tags.rec")
 
 
-def load_vocab(home, path=None):
-    """[(name, description)]; creates <home>/tags.rec from the default on first use."""
+class TagVocab:
+    """The tag vocabulary: names (optionally namespaced, "place:japan"), descriptions for the
+    model, Alias words that mean the same tag (Hydrus "siblings"), and Match globs that tag a
+    folder without any model (see sets.path_matches)."""
+
+    def __init__(self, records, path=None):
+        self.path = path
+        self.pairs, self.aliases, self.rules = [], {}, []
+        for r in records:
+            if r.is_descriptor or not r.get("Name"):
+                continue
+            name = catalog.normalise_tag(r.get("Name"))
+            self.pairs.append((name, r.get("Description") or name))
+            for a in r.get_all("Alias"):
+                self.aliases[catalog.normalise_tag(a)] = name
+            self.rules += [(name, m.strip()) for m in r.get_all("Match") if m.strip()]
+        if not self.pairs:
+            raise TagError("no tags in %s" % path)
+
+    def canonical(self, tag):
+        """The vocabulary's name for a tag or one of its aliases ("holiday" -> "travel")."""
+        tag = catalog.normalise_tag(tag)
+        return self.aliases.get(tag, tag)
+
+    def canonical_list(self, tags):
+        out = []
+        for t in tags:
+            t = self.canonical(t)
+            if t and t not in out:
+                out.append(t)
+        return out
+
+    def rule_tags(self, entries, share=0.1):
+        """{folder: [tags]} from Match rules: a tag applies to a folder (grouped as in summaries())
+        when its patterns claim at least ``share`` of the folder's files."""
+        from .sets import path_matches
+        if not self.rules:
+            return {}
+        groups = collections.OrderedDict()
+        for e in sorted(entries, key=lambda e: e.path):
+            groups.setdefault(folder_key(e.path), []).append(e.path)
+        out = {}
+        for folder, paths in groups.items():
+            counts = collections.Counter()
+            for p in paths:
+                counts.update({name for name, m in self.rules if path_matches(m, p)})
+            tags = [name for name in dict.fromkeys(n for n, _ in self.rules)
+                    if counts[name] >= max(1, share * len(paths))]
+            if tags:
+                out[folder] = tags
+        return out
+
+
+def load_tag_vocab(home, path=None):
+    """TagVocab; creates <home>/tags.rec from the default on first use."""
     if not path:
         path = vocab_path(home)
         if not os.path.exists(path):
             os.makedirs(home.path, exist_ok=True)
             shutil.copyfile(DEFAULT_VOCAB, path)
-    vocab = [(r.get("Name").strip().lower(), r.get("Description") or r.get("Name"))
-             for r in recfile.read(path) if not r.is_descriptor and r.get("Name")]
-    if not vocab:
-        raise TagError("no tags in %s" % path)
-    return vocab
+    return TagVocab(recfile.read(path), path)
+
+
+def load_vocab(home, path=None):
+    """[(name, description)]"""
+    return load_tag_vocab(home, path).pairs
 
 
 def folder_key(path):
@@ -124,7 +178,8 @@ class Tagger:
     def __init__(self, home, binary=None, model_name=models.DEFAULT_EMBEDDING, vocab_file=None,
                  embed_url=None, embed_model=None, query_prefix=None, allow_remote=False):
         self.home = home
-        self.vocab = load_vocab(home, vocab_file)
+        self.tag_vocab = load_tag_vocab(home, vocab_file)
+        self.vocab = self.tag_vocab.pairs
         self.examples_path = os.path.join(home.path, "tag-examples.jsonl")
         self.client = None
         if embed_url:
@@ -235,11 +290,16 @@ def _log(msg=""):
     print(msg, file=sys.stderr)
 
 
-def review(suggestions, interactive, ask=input):
-    """Show suggestions; in a terminal let the owner accept or edit each folder. Returns {folder: [tags]}."""
+def review(suggestions, interactive, ask=input, vocab=None):
+    """Show suggestions; in a terminal let the owner accept or edit each folder. Returns {folder: [tags]}.
+
+    Typed tags are normalised ("Place : Kyoto" -> "place:kyoto") and aliases replaced by their
+    vocabulary name, so the same thing is not tagged three ways over the years.
+    """
+    fix = vocab.canonical_list if vocab else (lambda tags: [catalog.normalise_tag(t) for t in tags if t.strip()])
     accepted = {}
     if not interactive:
-        return {f: [t for t, _ in s] for f, s in suggestions.items()}
+        return {f: fix([t for t, _ in s]) for f, s in suggestions.items()}
     _log("Suggested tags. [Enter] accept, type tags (comma separated) to replace, '-' for none, 'a' to accept all the rest.")
     accept_rest = False
     for folder, ranked in suggestions.items():
@@ -249,7 +309,7 @@ def review(suggestions, interactive, ask=input):
             continue
         _log("")
         _log("  %s/" % folder)
-        _log("    " + ", ".join("%s (%.2f)" % (t, s) for t, s in ranked))
+        _log("    " + ", ".join("%s (rule)" % t if s is None else "%s (%.2f)" % (t, s) for t, s in ranked))
         try:
             answer = ask("  > ").strip()
         except EOFError:
@@ -260,10 +320,10 @@ def review(suggestions, interactive, ask=input):
         elif answer == "-":
             accepted[folder] = []
         elif answer:
-            accepted[folder] = [t.strip().lower() for t in answer.split(",") if t.strip()]
+            accepted[folder] = fix(answer.split(","))
         else:
             accepted[folder] = tags
-    return accepted
+    return {f: fix(t) for f, t in accepted.items()}
 
 
 def run(args):
@@ -287,25 +347,37 @@ def run(args):
         raise SystemExit("Error: %s is neither a disc id in the catalogue nor a folder" % args.target)
 
     try:
-        if args.model not in models.MODELS:
-            raise TagError("unknown model %r (known: %s)" % (args.model, ", ".join(models.MODELS)))
-        tagger = Tagger(home, args.llama_embedding, args.model, vocab_file=args.vocab, embed_url=args.embed_url,
-                        embed_model=args.embed_model, allow_remote=args.llm_allow_remote)
+        vocab = load_tag_vocab(home, args.vocab)
         texts = summaries(entries, text_root, captions)
         if args.show_summaries:
             for folder, text in texts.items():
                 print("%s\n    %s" % (folder, text))
             return 0
-        suggestions = tagger.suggest(texts, top=args.top)
+        # Match rules first: deterministic, and need no model
+        suggestions = collections.OrderedDict((f, [(t, None) for t in tags])
+                                              for f, tags in vocab.rule_tags(entries).items())
+        tagger = None
+        if not args.rules_only:
+            if args.model not in models.MODELS:
+                raise TagError("unknown model %r (known: %s)" % (args.model, ", ".join(models.MODELS)))
+            tagger = Tagger(home, args.llama_embedding, args.model, vocab_file=args.vocab, embed_url=args.embed_url,
+                            embed_model=args.embed_model, allow_remote=args.llm_allow_remote)
+            for folder, ranked in tagger.suggest(texts, top=args.top).items():
+                have = suggestions.setdefault(folder, [])
+                have += [(t, s) for t, s in ranked if t not in [x for x, _ in have]]
     except (TagError, models.ModelError) as err:
         raise SystemExit("Error: %s" % err)
+    suggestions = collections.OrderedDict((f, suggestions[f]) for f in texts if f in suggestions)
 
     interactive = sys.stdin.isatty()
-    accepted = review(suggestions, interactive)
+    accepted = review(suggestions, interactive, vocab=vocab)
     reviewed = interactive
-    if interactive:
+    if interactive and tagger:
         tagger.remember(texts, accepted)
-    agent = "%s%s" % (tagger.agent, " + owner review" if reviewed else " (unreviewed)")
+    engine = tagger.agent if tagger else "match rules"
+    if tagger and vocab.rules:
+        engine = "match rules + " + engine
+    agent = "%s%s" % (engine, " + owner review" if reviewed else " (unreviewed)")
 
     if args.save:
         draft = {"folder_tags": {f: t for f, t in accepted.items() if t}, "agent": agent}

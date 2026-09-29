@@ -5,13 +5,19 @@ Commands:
   find   search every disc's catalogue and file list (no discs needed)
   list   list discs in the home catalogue
   note   add a note to a disc
-  locate set where a disc is physically stored
+  locate set where a disc's copies are kept
+  location  places (site, room, shelf, box) as a tree
+  access set what other discs' catalogues may show of a disc
   burned record that copies were burned
   check  verify a disc or image with dvdisaster and log a fixity-check event
   rebuild merge the catalogue carried on a disc into the home catalogue
   index  build the SQLite search index
   describe  improve titles, descriptions and tags with a local LLM (optional)
-  tag    suggest folder tags from your tag vocabulary (small built-in model)
+  tag    suggest folder tags from your tag vocabulary (match rules, small built-in model)
+  tags   every folder tag in use, grouped by namespace
+  keywords  a disc's set paths and tags as hierarchical (XMP) keywords
+  sets   the set vocabulary tree
+  id     explain and check a disc id
   models fetch / check the built-in model
   gui    graphical interface in your web browser
 """
@@ -168,6 +174,31 @@ def write_readme(path, disc, snapshot_scope, history=False):
 
 # ---------------------------------------------------------------- commands
 
+def place(cat, text):
+    """A Location code when ``text`` names one (any case), else the text as given."""
+    if not text:
+        return text
+    loc = cat.location(text)
+    return loc.get("Code") if loc else text.strip()
+
+
+def pick_code(vocab, text):
+    """A vocabulary code for a typed code or alias ("holidays" -> TRIP); otherwise the text as a code."""
+    code = vocab.resolve(text)
+    if code and sets.word(text) != code:
+        log("%s -> %s" % (text.strip(), code))
+    return code or make.sanitize_set(text)
+
+
+def rule_suggestions(vocab, entries, share=0.1):
+    """Codes whose Match rules claim at least ``share`` of the files, most files first."""
+    counts = vocab.match([e.path for e in entries])
+    least = max(1, share * len(entries))
+    ranked = sorted((c for c, n in counts.items() if n >= least), key=lambda c: (-counts[c], c))
+    # keep the most specific: drop a code when one of its descendants is also suggested
+    return [c for c in ranked if not any(c in vocab.ancestors(o) for o in ranked)]
+
+
 def cmd_make(args):
     src = os.path.abspath(args.source)
     if not os.path.isdir(src):
@@ -194,6 +225,12 @@ def cmd_make(args):
         args.subject = args.subject or draft["subjects"] or None
         args.note = (args.note or []) + draft["notes"] or None
 
+    if draft.get("folder_tags"):  # aliases in LLM or saved drafts become the vocabulary's tag names
+        try:
+            tag_vocab = tagger.load_tag_vocab(home)
+            draft["folder_tags"] = {f: tag_vocab.canonical_list(t) for f, t in draft["folder_tags"].items()}
+        except tagger.TagError:
+            pass
     default_title, default_set = folder_defaults(src)
     try:
         coverage = discid.to_edtf(args.coverage) if args.coverage else catalog.coverage_years(entries)
@@ -203,11 +240,19 @@ def cmd_make(args):
         vocab = sets.load(home)
     except sets.VocabError as err:
         raise SystemExit("Error: %s" % err)
-    default_set = vocab.guess(default_set) or default_set
-    set_code = make.sanitize_set(args.set or ask("Set code (see 'archive sets')", default_set, interactive))
-    categories = args.category or [c for c in (ask("Extra categories, comma separated (optional)", None,
-                                                   interactive) or "").split(",") if c.strip()]
-    categories = [make.sanitize_set(c) for c in categories]
+    rule_codes = [] if args.no_rules else rule_suggestions(vocab, entries)
+    default_set = vocab.guess(default_set) or (rule_codes[0] if rule_codes else default_set)
+    set_code = pick_code(vocab, args.set or ask("Set code (see 'archive sets')", default_set, interactive))
+    rule_categories = [c for c in rule_codes if c != set_code and c not in vocab.ancestors(set_code)][:3]
+    if args.category:
+        categories = args.category
+    else:
+        answer = ask("Extra categories, comma separated (optional)", ", ".join(rule_categories) or None, interactive)
+        categories = [c for c in (answer or "").split(",") if c.strip()]
+        if categories and not interactive:
+            log("Categories from Match rules in %s: %s (--category to choose, --no-rules to skip)"
+                % (vocab.path, ", ".join(categories)))
+    categories = [pick_code(vocab, c) for c in categories]
     categories = [c for i, c in enumerate(categories) if c != set_code and c not in categories[:i]]
     paths = []
     for code in [set_code] + categories:
@@ -228,7 +273,9 @@ def cmd_make(args):
         "title": args.title or ask("Title", default_title, interactive),
         "description": args.description or ask("Description (optional)", None, interactive),
         "creator": args.creator or ask("Creator", os.environ.get("USER"), interactive),
-        "location": args.location or ask("Physical location (optional)", None, interactive),
+        "location": place(cat, args.location or ask("Physical location (optional; see 'archive location list')",
+                                                    None, interactive)),
+        "access": args.access,
         "subjects": args.subject or [s.strip() for s in (ask("Subjects, comma separated (optional)", None, interactive) or "").split(",") if s.strip()],
         "notes": args.note or [n for n in [ask("Note (optional)", None, interactive)] if n],
         "folder_tags": draft.get("folder_tags") or {},
@@ -250,12 +297,12 @@ def cmd_find(args):
             log("Note: archive.sqlite is out of date; scanning manifests (run 'archive index' to refresh)")
         disc_hits, file_hits = catalog.find(home, cat, args.pattern)
     for d in disc_hits:
-        print("DISC  %s  %s  [%s]" % (d.get("Id"), d.get("Title"), d.get("Location", "location unknown")))
+        print("DISC  %s  %s  [%s]" % (d.get("Id"), d.get("Title"), cat.where(d) or "location unknown"))
     tag_hits = catalog.find_tags(home, cat, args.pattern)
     for d, folder, tags in tag_hits:
-        print("TAG   %s  [%s]  data/%s/  (%s)" % (d.get("Id"), d.get("Location", "?"), folder, ", ".join(tags)))
+        print("TAG   %s  [%s]  data/%s/  (%s)" % (d.get("Id"), cat.where(d) or "?", folder, ", ".join(tags)))
     for d, path in file_hits[: args.limit] if args.limit else file_hits:
-        print("%s  [%s]  %s" % (d.get("Id"), d.get("Location", "?"), path))
+        print("%s  [%s]  %s" % (d.get("Id"), cat.where(d) or "?", path))
     if args.limit and len(file_hits) > args.limit:
         print("... %d more file matches (use --limit 0 for all)" % (len(file_hits) - args.limit))
     return 0 if disc_hits or file_hits or tag_hits else 1
@@ -263,8 +310,13 @@ def cmd_find(args):
 
 def cmd_list(args):
     cat = catalog.Home(args.home).load()
+    places = cat.locations_under(args.at) if args.at else None
     for d in cat.discs:
         if args.within and args.within.upper() not in sets.disc_codes(d):
+            continue
+        if places is not None and not any(l.strip().upper() in places for l in d.get_all("Location")):
+            continue
+        if args.access and catalog.access(d) != args.access:
             continue
         if args.covers:
             try:
@@ -272,8 +324,8 @@ def cmd_list(args):
                     continue
             except discid.IdError as err:
                 raise SystemExit("Error: --covers: %s" % err)
-        print("%s\t%s\t%s\t%s files\t%s" % (d.get("Id"), d.get("Date"), d.get("Title"),
-                                           d.get("Files"), d.get("Location", "")))
+        print("%s\t%s\t%s\t%s files\t%s\t%s" % (d.get("Id"), d.get("Date"), d.get("Title"),
+                                               d.get("Files"), catalog.access(d), cat.where(d)))
     return 0
 
 
@@ -300,6 +352,12 @@ def cmd_sets(args):
                 count += " (%d including below)" % within
         print("%s%-8s %-28s %s%s" % ("  " * depth, e.code, e.name, count,
                                       "   [also under %s]" % ", ".join(e.parents) if len(e.parents) > 1 else ""))
+        if args.verbose:
+            pad = "  " * depth + " " * 9
+            for label, values in (("scope", [e.scope_note]), ("aliases", [", ".join(e.aliases)]),
+                                  ("matches", [" ".join(e.matches)])):
+                if values[0]:
+                    print("%s%s: %s" % (pad, label, values[0]))
         for child in vocab.children(e.code):
             show(child, depth + 1)
 
@@ -326,7 +384,7 @@ def cmd_id(args):
         print("check:     %s (%s)" % (parsed["check"], "correct" if parsed["valid"] else "WRONG: probably a typo"))
     disc = cat.disc(args.disc_id.strip().upper()) or cat.disc(args.disc_id.strip())
     if disc:
-        print("disc:      %s [%s]" % (disc.get("Title"), disc.get("Location", "location not recorded")))
+        print("disc:      %s [%s]" % (disc.get("Title"), cat.where(disc) or "location not recorded"))
         again = discid.regenerate(disc)
         if again is not None:
             print("fields:    %s" % ("regenerate this id" if again == disc.get("Id") else
@@ -353,7 +411,90 @@ def cmd_note(args):
 
 
 def cmd_locate(args):
-    return _edit_disc(args, lambda d: d.set("Location", args.location))
+    """Set (or with --add, extend) the places where a disc's copies are kept."""
+    home = catalog.Home(args.home)
+    cat = home.load()
+    disc = cat.disc(args.disc_id)
+    if not disc:
+        raise SystemExit("Error: no disc %s in %s" % (args.disc_id, home.rec_path))
+    new = [place(cat, l) for l in args.location]
+    for l in new:
+        if not cat.location(l):
+            log("Note: %s is not a location code ('archive location add' to define it); stored as text" % l)
+    old = [] if not args.add else disc.get_all("Location")
+    keep = [l for l in old + new if l]
+    # replace in place: the new Location fields go where the first old one was (or at the end)
+    first = next((i for i, (k, _) in enumerate(disc.fields) if k == "Location"), len(disc.fields))
+    before = [f for f in disc.fields[:first] if f[0] != "Location"]
+    after = [f for f in disc.fields[first:] if f[0] != "Location"]
+    disc.fields = before + [("Location", l) for i, l in enumerate(keep) if l not in keep[:i]] + after
+    home.save(cat)
+    print("%s: %s" % (disc.get("Id"), cat.where(disc)))
+    return 0
+
+
+def cmd_access(args):
+    return _edit_disc(args, lambda d: d.set("Access", args.level))
+
+
+def cmd_location(args):
+    """Location records: places (site, room, shelf, box) arranged in a tree."""
+    home = catalog.Home(args.home)
+    cat = home.load()
+    if args.action == "list":
+        def show(loc, depth):
+            code = loc.get("Code")
+            discs = [d for d in cat.discs if code in [l.strip().upper() for l in d.get_all("Location")]]
+            inside = [d for d in cat.discs
+                      if any(l.strip().upper() in cat.locations_under(code) for l in d.get_all("Location"))]
+            count = "%d disc%s" % (len(discs), "" if len(discs) == 1 else "s")
+            if len(inside) != len(discs):
+                count += " (%d including inside)" % len(inside)
+            print("%s%-10s %-30s %s" % ("  " * depth, code, loc.get("Name"), count))
+            if args.verbose:
+                for d in discs:
+                    print("%s  %s  %s" % ("  " * depth + " " * 11, d.get("Id"), d.get("Title")))
+            for child in [l for l in cat.locations if (l.get("Parent") or "").upper() == code]:
+                show(child, depth + 1)
+
+        for top in [l for l in cat.locations if not cat.location(l.get("Parent"))]:
+            show(top, 0)
+        loose = sorted({l for d in cat.discs for l in d.get_all("Location") if not cat.location(l)})
+        for text in loose:
+            print("%-10s (free text, not a location code)" % text)
+        return 0
+    if not args.code:
+        raise SystemExit("Error: archive location %s needs a location code" % args.action)
+    code = args.code.strip().upper()
+    if not catalog.LOCATION_RE.match(code):
+        raise SystemExit("Error: location code %r: use 1-24 capital letters, digits, - or _" % args.code)
+    parent = args.within.strip().upper() if args.within else None
+    if parent and not cat.location(parent):
+        raise SystemExit("Error: no location %s (add it first)" % parent)
+    loc = cat.location(code)
+    if args.action == "add":
+        if loc:
+            raise SystemExit("Error: location %s already exists (use 'archive location move' or edit %s)"
+                             % (code, home.rec_path))
+        loc = recfile.Record("Location", [("Code", code), ("Name", args.name or code)])
+        if parent:
+            loc.add("Parent", parent)
+        if args.description:
+            loc.add("Description", args.description)
+        cat.locations.append(loc)
+    elif args.action == "move":
+        if not loc:
+            raise SystemExit("Error: no location %s" % code)
+        if parent and code in [l.get("Code") for l in cat.location_chain(parent)]:
+            raise SystemExit("Error: %s is inside %s; that would make a loop" % (parent, code))
+        loc.fields = [(k, v) for k, v in loc.fields if k != "Parent"]
+        if parent:
+            loc.fields.insert(2, ("Parent", parent))
+        if args.name:
+            loc.set("Name", args.name)
+    home.save(cat)
+    print("%s: %s" % (code, cat.location_path(code)))
+    return 0
 
 
 def _resolve_disc(cat, disc_id, source):
@@ -401,7 +542,13 @@ def cmd_burned(args):
     disc.set("Copies", str(int(disc.get("Copies", "0")) + args.copies))
     if args.media_id:
         disc.add("MediaId", args.media_id)
+    if args.location:
+        where = place(cat, args.location)
+        if where not in disc.get_all("Location"):
+            disc.add("Location", where)
     note = "burned %d cop%s" % (args.copies, "y" if args.copies == 1 else "ies")
+    if args.location:
+        note += ", kept at " + cat.location_path(place(cat, args.location))
     if args.note:
         note += "; " + args.note
     cat.events.append(catalog.new_event(args.disc_id, "replication", "success", "manual", note))
@@ -481,6 +628,82 @@ def add_llm_options(parser):
     parser.add_argument("--vision-max", type=int, default=40, help="images sampled in total (default: 40)")
 
 
+def cmd_tags(args):
+    """Every folder tag in the catalogue, grouped by namespace, with how often each is used."""
+    home = catalog.Home(args.home)
+    cat = home.load()
+    try:
+        vocab = tagger.load_tag_vocab(home, args.vocab)
+    except tagger.TagError:
+        vocab = None
+    known = {n for n, _ in vocab.pairs} if vocab else set()
+    usage = {}
+    for d in cat.discs:
+        path = home.disc_file("tags", d.get("Id"))
+        if os.path.exists(path):
+            for folder, tags in catalog.read_tags(path).items():
+                for t in tags:
+                    folders, discs = usage.setdefault(t, (set(), set()))
+                    folders.add((d.get("Id"), folder))
+                    discs.add(d.get("Id"))
+    groups = {}
+    for t in usage:
+        groups.setdefault(catalog.split_tag(t)[0], []).append(t)
+    if args.namespace is not None:
+        groups = {args.namespace: groups.get(args.namespace, [])}
+    for ns in sorted(groups):
+        print(ns + ":" if ns else "(no namespace)")
+        for t in sorted(groups[ns]):
+            folders, discs = usage[t]
+            flag = ""
+            if vocab and not ns and t not in known:
+                alias = vocab.canonical(t)
+                flag = "   (alias of %s)" % alias if alias != t else "   (not in %s)" % vocab.path
+            print("  %-28s %d folder%s on %d disc%s%s" % (catalog.split_tag(t)[1] if ns else t,
+                  len(folders), "" if len(folders) == 1 else "s", len(discs), "" if len(discs) == 1 else "s", flag))
+    return 0
+
+
+def disc_keywords(home, disc):
+    """{folder (relative to data/, '.' for the whole disc): [hierarchical keywords]}."""
+    out = {".": [p.replace("/", "|") for p in disc.get_all("Path")] or [disc.get("Set")]}
+    path = home.disc_file("tags", disc.get("Id"))
+    if os.path.exists(path):
+        for folder, tags in catalog.read_tags(path).items():
+            out.setdefault(folder, []).extend(catalog.hierarchical(t) for t in tags)
+    return out
+
+
+def cmd_keywords(args):
+    """Folder tags and set paths as hierarchical keywords (XMP lr:hierarchicalSubject, as used by
+    Lightroom and digiKam), in a TSV or as an exiftool argument file for a restored copy."""
+    home = catalog.Home(args.home)
+    disc = home.load().disc(args.disc_id)
+    if not disc:
+        raise SystemExit("Error: no disc %s in %s" % (args.disc_id, home.rec_path))
+    keywords = disc_keywords(home, disc)
+    if args.format == "tsv":
+        print("# folder (relative to data/)\thierarchical keywords (| between levels)")
+        for folder, words in keywords.items():
+            print("%s\t%s" % (folder, ", ".join(words)))
+        return 0
+    print("# exiftool argument file for disc %s: from the root of a restored copy, run" % disc.get("Id"))
+    print("#   exiftool -@ this-file")
+    print("# Each section adds the keywords to every file under one folder (-r). Removing each value")
+    print("# before adding it keeps a second run from adding it twice.")
+    for folder, words in keywords.items():
+        print("-r")
+        print("-overwrite_original")
+        for w in words:
+            leaf = w.rsplit("|", 1)[-1]
+            for tag, value in (("XMP-lr:HierarchicalSubject", w), ("XMP-dc:Subject", leaf)):
+                print("-%s-=%s" % (tag, value))
+                print("-%s+=%s" % (tag, value))
+        print("data" if folder == "." else "data/" + folder)
+        print("-execute")
+    return 0
+
+
 def cmd_tag(args):
     return tagger.run(args)
 
@@ -512,6 +735,8 @@ def build_parser():
     m.add_argument("--set", help="set code, 2-8 letters or digits, e.g. PHOTOS")
     m.add_argument("--category", action="append",
                    help="extra category code from the vocabulary (repeatable), e.g. --set PROJ --category CODE")
+    m.add_argument("--no-rules", action="store_true",
+                   help="don't suggest a set and categories from the vocabulary's Match rules")
     m.add_argument("--coverage",
                    help="dates the contents span, in EDTF: 2019, 2015/2024, 2019-07/2019-08, 199X, 1995~ "
                         "(default: from file modification times)")
@@ -520,7 +745,10 @@ def build_parser():
     m.add_argument("--creator")
     m.add_argument("--subject", action="append", help="repeatable")
     m.add_argument("--note", action="append", help="repeatable")
-    m.add_argument("--location", help="where the disc will be stored")
+    m.add_argument("--location", help="where the disc will be stored: a code from 'archive location list', or text")
+    m.add_argument("--access", choices=catalog.ACCESS_LEVELS, default=catalog.DEFAULT_ACCESS,
+                   help="what other discs' catalogues may show of this one: public (also discs given to "
+                        "others), private (your own discs; default), sealed (only its id and location)")
     m.add_argument("--rights")
     m.add_argument("--medium", choices=["auto"] + list(media.MEDIA), default="bd25",
                    help="target disc: RS03 fills it with error correction (default: bd25). "
@@ -567,9 +795,12 @@ def build_parser():
                     help="only discs whose coverage overlaps this date or range: 2019, 2019-07, 2019-07-15, 2018/2019")
     ls.add_argument("--in", dest="within", metavar="CODE",
                     help="only discs whose set or categories are CODE or anywhere below it (e.g. --in MEMORIES)")
+    ls.add_argument("--at", metavar="LOCATION", help="only discs kept at this location or anywhere inside it")
+    ls.add_argument("--access", choices=catalog.ACCESS_LEVELS, help="only discs with this access level")
     ls.set_defaults(func=cmd_list)
 
     st = sub.add_parser("sets", help="show the set vocabulary (a word hierarchy) and discs per set")
+    st.add_argument("-v", "--verbose", action="store_true", help="also show scope notes, aliases and match rules")
     st.set_defaults(func=cmd_sets)
 
     di = sub.add_parser("id", help="explain and check a disc id (catches typos)")
@@ -581,10 +812,25 @@ def build_parser():
     n.add_argument("text")
     n.set_defaults(func=cmd_note)
 
-    loc = sub.add_parser("locate", help="set a disc's physical location")
+    loc = sub.add_parser("locate", help="set where a disc's copies are kept (one location per place)")
     loc.add_argument("disc_id")
-    loc.add_argument("location")
+    loc.add_argument("location", nargs="+", help="location codes (see 'archive location') or text")
+    loc.add_argument("--add", action="store_true", help="add to the disc's locations instead of replacing them")
     loc.set_defaults(func=cmd_locate)
+
+    lo = sub.add_parser("location", help="places where discs are kept (site, room, shelf, box), as a tree")
+    lo.add_argument("action", choices=["list", "add", "move"])
+    lo.add_argument("code", nargs="?", help="location code, e.g. BOX3")
+    lo.add_argument("name", nargs="?", help="readable name (add), e.g. 'Box 3, blue lid'")
+    lo.add_argument("--in", dest="within", metavar="PARENT", help="the location it is inside (add, move)")
+    lo.add_argument("--description")
+    lo.add_argument("-v", "--verbose", action="store_true", help="list: show the discs at each place")
+    lo.set_defaults(func=cmd_location)
+
+    ac = sub.add_parser("access", help="set what other discs' catalogues may show of a disc")
+    ac.add_argument("disc_id")
+    ac.add_argument("level", choices=catalog.ACCESS_LEVELS)
+    ac.set_defaults(func=cmd_access)
     c = sub.add_parser("check", help="verify a burned disc or image with dvdisaster and log the result")
     src = c.add_mutually_exclusive_group(required=True)
     src.add_argument("--device", help="optical drive, e.g. /dev/sr0 (scans the whole disc)")
@@ -598,6 +844,7 @@ def build_parser():
     b.add_argument("disc_id")
     b.add_argument("--copies", type=int, default=1)
     b.add_argument("--media-id", help="media id reported by the drive, e.g. from dvd+rw-mediainfo")
+    b.add_argument("--location", help="where these copies are kept (added to the disc's locations)")
     b.add_argument("--note")
     b.set_defaults(func=cmd_burned)
 
@@ -629,12 +876,25 @@ def build_parser():
     tg.add_argument("--apply", action="store_true", help="for a disc: write the tags without prompting")
     tg.add_argument("--disc-root", help="mounted disc, so README files on it can be read")
     tg.add_argument("--show-summaries", action="store_true", help="print what the model compares, and stop")
+    tg.add_argument("--rules-only", action="store_true",
+                    help="only the vocabulary's Match rules (no model needed)")
     tg.add_argument("--llama-embedding", help="path to llama.cpp's llama-embedding")
     tg.add_argument("--model", default=models.DEFAULT_EMBEDDING, help="built-in model (default: %(default)s)")
     tg.add_argument("--embed-url", help="use an OpenAI-compatible /v1/embeddings server instead of the built-in model")
     tg.add_argument("--embed-model", help="embedding model name on that server (default: its first model)")
     tg.add_argument("--llm-allow-remote", action="store_true", help="allow a non-local embeddings server")
     tg.set_defaults(func=cmd_tag)
+
+    tl = sub.add_parser("tags", help="every folder tag in use, grouped by namespace (person:, place:, ...)")
+    tl.add_argument("--namespace", help="only this namespace ('' for tags without one)")
+    tl.add_argument("--vocab", help="tag vocabulary recfile (default: <home>/tags.rec)")
+    tl.set_defaults(func=cmd_tags)
+
+    kw = sub.add_parser("keywords", help="a disc's set paths and folder tags as hierarchical keywords (XMP)")
+    kw.add_argument("disc_id")
+    kw.add_argument("--format", choices=["tsv", "exiftool"], default="tsv",
+                    help="tsv (default) or an exiftool -@ argument file that writes them into a restored copy")
+    kw.set_defaults(func=cmd_keywords)
 
     mo = sub.add_parser("models", help="built-in model for 'archive tag': fetch, status, build-runtime")
     mo.add_argument("action", choices=["fetch", "status", "build-runtime"])

@@ -49,6 +49,10 @@ cataloguing programs (e.g. Katalog) can read a disc and prefill their database w
 PREMIS, METS, E-ARK, RO-Crate, OCFL, NDSA Levels...) and existing disc-cataloguing
 software, and proposes this project's metadata profile.
 
+`docs/organising.md` collects what Katalog, Hydrus, Lightroom/digiKam, Paperless-ngx,
+Johnny.Decimal and archival software teach about categories and structure, and what
+was adopted (aliases, match rules, access levels, namespaced tags, location records).
+
 `docs/research-notes.md` explains the choices: why UDF 2.50/2.60 is hard to
 produce on Linux and adds little over RS03, why dvdisaster is not a library,
 and how BagIt and recfiles split the work.
@@ -59,20 +63,29 @@ Python 3.8+, standard library only (bagit.py is vendored). Needs `genisoimage`
 and `dvdisaster` (use the [speed47 fork](https://github.com/speed47/dvdisaster) for BD-sized images).
 
 ```sh
-./archive make ./2025-01-13_Projects_2020_-_2025 --location "Shelf A / Box 3"
-#  -> prompts for set, title, description, subjects, note
-#  -> 2020-2025_PROJECTS_01.iso  (bag + catalogue + index.html + tools/ + RS03 ECC, verified)
+./archive location add HOME Home
+./archive location add BOX3 "Box 3, blue lid" --in HOME
+./archive make ./2025-01-13_Projects_2020_-_2025 --location BOX3
+#  -> prompts for set (PROJ, from the folder name), categories (CODE, ELEC: from the files), title, ...
+#  -> PROJ-01_2020-2025_K.iso  (bag + catalogue + index.html + tools/ + RS03 ECC, verified)
+./archive make ./Diaries --access sealed      # other discs' catalogues show only its id and location
 ./archive make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: only this set's catalogue
 ./archive make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
 ./archive make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03
 ./archive find IMG_2019            # which disc holds it, and where the disc is
 ./archive list --covers 2019-07-15    # discs whose date range includes that day (or 2019, 2019-07)
-./archive sets                        # the vocabulary tree with disc counts
+./archive sets -v                     # the vocabulary tree with disc counts, aliases and match rules
 ./archive list --in MEMORIES          # discs anywhere under a vocabulary entry
 ./archive id PHOTOS-07_2015-2024_Q   # explain / check an id (catches typos)
 ./archive note 2020-2025_PROJECTS_01 "Only copy of the 2019 PCB gerbers"
-./archive locate 2020-2025_PROJECTS_01 "Offsite: parents' house"
-./archive burned 2020-2025_PROJECTS_01 --copies 2      # after burning the ISO yourself
+./archive locate 2020-2025_PROJECTS_01 BOX3 OFFSITE   # one location per place a copy is kept
+./archive burned 2020-2025_PROJECTS_01 --copies 1 --location OFFSITE  # after burning the ISO yourself
+./archive location move BOX3 --in OFFSITE             # moving a box moves its discs
+./archive location list -v                            # places as a tree, with the discs in each
+./archive list --at HOME                              # discs anywhere inside a place
+./archive access 2020-2025_PROJECTS_01 public          # public / private (default) / sealed
+./archive tags                                         # every folder tag in use, by namespace
+./archive keywords PROJ-01_2020-2025_K --format exiftool > kw.args  # tags as XMP keywords
 ./archive check --device /dev/sr0                        # scan a disc, log a fixity-check event
 ./archive check --image 2020-2025_PROJECTS_01.iso
 ./archive rebuild /media/disc                            # recreate/merge the home catalogue from a disc
@@ -111,6 +124,14 @@ searches this disc and every disc in its catalogue snapshot (all offline, from
   and RECORDS). One `--set` gives the id prefix; `--category` (repeatable) adds more codes,
   e.g. `--set PROJ --category CODE --category ELEC`. The folder name suggests a set
   (`Holiday` -> TRIP), and the disc records every vocabulary path (`MEMORIES/PHOTO/TRIP`).
+  Entries have `Alias` words (`--set holidays` means TRIP), a `ScopeNote`, and `Match`
+  globs (`*.kicad_pcb` -> ELEC) that suggest the set and categories from the files
+  themselves without any model (`--no-rules` to skip).
+- Where discs are kept is a tree of `Location` records (site, room, shelf, box), and a
+  disc lists one location per place its copies are kept. `--access` controls what
+  *other* discs' catalogues show of a disc: `public` (also on discs given to other
+  people with `--snapshot set`), `private` (default: your own discs only), `sealed`
+  (only its id, set, dates and location; no title, notes or file list).
 - The home catalogue lives in `$BLURAY_ARCHIVE_HOME` (default
   `~/.local/share/bluray-archive`): `archive.rec` plus `manifests/<disc-id>.sha256`.
 - Each disc carries a snapshot of the committed `HEAD` of this repo (not its history;
@@ -134,6 +155,13 @@ subprocess: no server, no API, no Python packages.
 
 - The vocabulary is `<home>/tags.rec` (created from `archivetool/default_tags.rec`); edit
   the descriptions freely. Describe *content*, not the medium ("cats, dogs", not "photos of").
+- Tags may have `Alias` words (typing `holiday` in review stores `travel`) and `Match` globs
+  that tag folders without the model: `archive tag FOLDER --rules-only` needs no download.
+- Namespaced tags keep facets apart: `person:alice`, `place:kyoto`, `event:wedding-2019`,
+  `source:pixel-7`. `archive tags` lists all in use (and flags words that are aliases or not
+  in the vocabulary); `archive keywords DISC` exports set paths and tags as hierarchical
+  keywords (`MEMORIES|PHOTO|TRIP`, `place|kyoto`) for Lightroom and digiKam, or as an
+  exiftool argument file that writes them into a restored copy.
 - Tags you accept are remembered, and similar folders later get the same tags, even
   tags that are not in the vocabulary. No training involved.
 - Runtime: `llama-embedding` from PATH (llama.cpp is packaged by Homebrew and many
