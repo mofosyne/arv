@@ -1,0 +1,342 @@
+"""`archive make`: plan, stage, build and protect one or more disc images.
+
+A folder that does not fit on one disc (at the requested minimum RS03
+redundancy) can be split with --split: files are assigned in path order, each
+disc becomes its own complete bag, and every disc of the batch carries the
+catalogue of the whole batch. Sizes are checked exactly with
+`genisoimage -print-size` before any image is written.
+"""
+
+import os
+import re
+import shutil
+import sys
+import tempfile
+from dataclasses import dataclass, field
+
+from . import bag, catalog, html, image, index, media, recfile, web
+
+FILESYSTEM = "ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge"
+
+
+def log(msg):
+    print(msg, file=sys.stderr)
+
+
+@dataclass
+class Plan:
+    entries: list
+    disc_id: str = ""
+    record: recfile.Record = None
+    part: int = 1
+    parts: int = 1
+    out: str = ""
+    stage: str = ""
+    sectors: int = 0
+    events: list = field(default_factory=list)
+
+
+def estimate_sectors(entry):
+    """Rough image cost of one file: its data, a UDF file entry, and directory records."""
+    return -(-entry.size // media.SECTOR) + 1 + (3 * (len(entry.path) + 64)) // media.SECTOR + 1
+
+
+def greedy_split(entries, limit):
+    bins, current, used = [], [], 0
+    for e in entries:
+        cost = estimate_sectors(e)
+        if cost > limit:
+            raise SystemExit("Error: %s (%d bytes) is larger than one disc can hold" % (e.path, e.size))
+        if current and used + cost > limit:
+            bins.append(current)
+            current, used = [], 0
+        current.append(e)
+        used += cost
+    if current or not bins:
+        bins.append(current)
+    return bins
+
+
+def dir_sectors(path):
+    total = 0
+    for root, _, names in os.walk(path):
+        for n in names:
+            total += -(-os.path.getsize(os.path.join(root, n)) // media.SECTOR) + 1
+    return total
+
+
+class Maker:
+    def __init__(self, args, meta, entries, src, home, cat, version, is_git, stage_tools, write_readme):
+        self.args, self.meta, self.entries, self.src = args, meta, entries, src
+        self.home, self.cat, self.version, self.is_git = home, cat, version, is_git
+        self.stage_tools, self.write_readme = stage_tools, write_readme
+        if args.medium_sectors:
+            self.capacity = args.medium_sectors
+        elif args.medium == "auto":
+            self.capacity = None
+        else:
+            self.capacity = media.capacity(args.medium, not args.no_defect_management)
+        self.budget = None if self.capacity is None else media.data_budget(self.capacity, args.min_redundancy)
+        self.workdir = None
+        self.plans = []
+
+    # ------------------------------------------------------------ planning
+
+    def initial_bins(self):
+        if not self.args.split or self.budget is None:
+            if self.args.split:
+                raise SystemExit("Error: --split needs a target --medium (not auto)")
+            return [self.entries]
+        tools = os.path.join(self.workdir, "tools-probe")
+        self.stage_tools(tools, self.is_git, self.args.extra_tools)
+        reserve = dir_sectors(tools) + self.snapshot_estimate() + self.budget // 200 + 1024
+        shutil.rmtree(tools)
+        return greedy_split(self.entries, self.budget - reserve)
+
+    def snapshot_estimate(self):
+        """Sectors for catalog/ (prior discs' files + this batch's lists, twice: listings + web)."""
+        total = 0
+        for d in self.prior_discs():
+            for p in (self.home.manifest_path(d.get("Id")), self.home.listing_path(d.get("Id"))):
+                if os.path.exists(p):
+                    total += 2 * os.path.getsize(p)
+        total += sum(3 * (len(e.path) + 160) for e in self.entries)
+        return total // media.SECTOR + 256
+
+    def prior_discs(self):
+        if self.args.snapshot == "full":
+            return list(self.cat.discs)
+        if self.args.snapshot == "set":
+            return [d for d in self.cat.discs if d.get("Set") == self.meta["set"]]
+        return []
+
+    def assign(self, bins):
+        meta, n = self.meta, len(bins)
+        if self.args.id and n > 1:
+            raise SystemExit("Error: --id cannot be used when the folder is split across %d discs" % n)
+        first = self.cat.next_number(meta["set"])
+        self.plans = []
+        for i, entries in enumerate(bins):
+            disc_id = self.args.id or catalog.make_disc_id(meta["coverage"], meta["set"], first + i)
+            if not catalog.ID_RE.match(disc_id) or len(disc_id) > image.MAX_VOLID_LEN:
+                raise SystemExit("Error: invalid disc id %r (letters, digits, _ . -; at most %d characters)"
+                                 % (disc_id, image.MAX_VOLID_LEN))
+            if self.cat.disc(disc_id):
+                raise SystemExit("Error: disc id %s already exists in %s" % (disc_id, self.home.rec_path))
+            if self.args.output and n == 1:
+                out = os.path.abspath(self.args.output)
+            else:
+                out = os.path.join(os.path.abspath(self.args.output_dir or "."), disc_id + ".iso")
+            if os.path.exists(out):
+                raise SystemExit("Error: %s already exists" % out)
+            plan = Plan(entries=entries, disc_id=disc_id, part=i + 1, parts=n, out=out)
+            plan.record = self.disc_record(plan)
+            plan.events = [catalog.new_event(disc_id, "message digest calculation", "success", self.version,
+                                             "sha256 and sha512 manifests of %d files" % len(entries))]
+            self.plans.append(plan)
+
+    @property
+    def medium_label(self):
+        if self.args.medium_sectors:
+            return "custom medium"
+        return media.label(self.args.medium) if self.args.medium != "auto" else "auto"
+
+    @property
+    def group_id(self):
+        if len(self.plans) < 2:
+            return None
+        return "%s-%02d" % (self.plans[0].disc_id, int(self.plans[-1].disc_id.rsplit("_", 1)[1]))
+
+    def disc_record(self, plan):
+        m, a = self.meta, self.args
+        r = recfile.Record("Disc", [("Id", plan.disc_id), ("Title", m["title"]), ("Set", m["set"]),
+                                    ("Coverage", m["coverage"]), ("Date", catalog.today())])
+        if plan.parts > 1:
+            r.add("Part", "%d of %d" % (plan.part, plan.parts))
+        for key in ("creator", "description"):
+            if m.get(key):
+                r.add(key.capitalize(), m[key])
+        for s in m["subjects"]:
+            r.add("Subject", s)
+        for n in m["notes"]:
+            r.add("Note", n)
+        if m.get("location"):
+            r.add("Location", m["location"])
+        if a.rights:
+            r.add("Rights", a.rights)
+        if a.no_ecc:
+            ecc = "none"
+        elif self.capacity:
+            ecc = "dvdisaster RS03 augmented image, %s (%d sectors), minimum %s%% redundancy" % (
+                self.medium_label, self.capacity, a.min_redundancy)
+        else:
+            ecc = "dvdisaster RS03 augmented image"
+        for k, v in [("Media", a.media or ("M-DISC " + (self.medium_label if self.capacity else "BD-R"))),
+                     ("Files", len(plan.entries)), ("Bytes", sum(e.size for e in plan.entries)),
+                     ("Filesystem", FILESYSTEM), ("Ecc", ecc), ("Software", self.version)]:
+            r.add(k, str(v))
+        return r
+
+    # ------------------------------------------------------------ staging
+
+    def batch_files(self):
+        """Write every batch disc's manifest and listing once; the stages copy from here."""
+        batch = os.path.join(self.workdir, "batch")
+        os.makedirs(batch, exist_ok=True)
+        out = {}
+        for p in self.plans:
+            manifest = os.path.join(batch, p.disc_id + ".sha256")
+            bag.write_manifest(manifest, [(e.hashes["sha256"], "data/" + e.path) for e in p.entries])
+            listing = os.path.join(batch, p.disc_id + ".tsv")
+            web.write_listing(listing, p.entries)
+            out[p.disc_id] = (manifest, listing)
+        return out
+
+    def stage(self, plan, batch):
+        a = self.args
+        stage = tempfile.mkdtemp(prefix="stage-%s-" % plan.disc_id, dir=self.workdir)
+        plan.stage = stage
+        info = [("Bagging-Date", catalog.today()),
+                ("External-Identifier", plan.disc_id),
+                ("External-Description", self.meta["title"] + (" - " + self.meta["description"] if self.meta.get("description") else "")),
+                ("Bag-Group-Identifier", self.group_id or self.meta["set"])]
+        if plan.parts > 1:
+            info.append(("Bag-Count", "%d of %d" % (plan.part, plan.parts)))
+        info += [("Payload-Oxum", bag.payload_oxum(plan.entries)), ("Bag-Software-Agent", self.version)]
+        bag.write_bag_tags(stage, plan.entries, info)
+
+        own = catalog.Catalog()
+        own.discs, own.events = [plan.record], list(plan.events)
+        recfile.write(os.path.join(stage, "catalog.rec"), own.records())
+
+        if a.snapshot == "disc":
+            batch_plans = [plan]
+        else:
+            batch_plans = self.plans
+        prior = self.prior_discs()
+        snapshot = self.cat.subset({d.get("Id") for d in prior})
+        snapshot.discs += [p.record for p in batch_plans]
+        snapshot.events += [e for p in batch_plans for e in p.events]
+        files = {d.get("Id"): (self.home.manifest_path(d.get("Id")), self.home.listing_path(d.get("Id"))) for d in prior}
+        files.update({p.disc_id: batch[p.disc_id] for p in batch_plans})
+        catalog_dir = os.path.join(stage, "catalog")
+        catalog.write_snapshot(catalog_dir, snapshot, files, a.snapshot)
+        listings = os.path.join(catalog_dir, "listings")
+        web.write_web_data(os.path.join(catalog_dir, "web"), plan.disc_id, snapshot.discs,
+                           {n[:-4]: os.path.join(listings, n) for n in os.listdir(listings)})
+
+        self.stage_tools(os.path.join(stage, "tools"), self.is_git, a.extra_tools)
+        self.write_readme(os.path.join(stage, "README.txt"), plan.record, a.snapshot)
+        with open(os.path.join(stage, "index.html"), "w", encoding="utf-8") as f:
+            f.write(html.render_index(plan.record, plan.entries, snapshot))
+        with open(os.path.join(stage, "search.html"), "w", encoding="utf-8") as f:
+            f.write(web.render_search())
+        bag.write_tagmanifests(stage)
+
+    def payload(self, plan):
+        if plan.parts == 1 and len(plan.entries) == len(self.entries):
+            return {"payload_dir": self.src}
+        return {"payload_files": [(e.path, os.path.join(self.src, e.path)) for e in plan.entries]}
+
+    def fit(self):
+        """Stage every disc and measure it; move files forward until every disc fits."""
+        bins = self.initial_bins()
+        attempts = len(self.entries) + 10
+        for _ in range(attempts):
+            self.assign(bins)
+            batch = self.batch_files()
+            over = None
+            for i, plan in enumerate(self.plans):
+                self.stage(plan, batch)
+                plan.sectors = image.print_size(plan.stage, plan.disc_id, **self.payload(plan))
+                if self.budget is not None and plan.sectors > self.budget and over is None:
+                    over = i
+            if over is None:
+                return
+            plan = self.plans[over]
+            if len(plan.entries) == 1:
+                raise SystemExit("Error: %s does not fit on one disc together with the catalogue and tools"
+                                 % plan.entries[0].path)
+            if not self.args.split:
+                need = -(-plan.sectors // self.budget)
+                raise SystemExit(
+                    "Error: this folder needs %s but a %s holds %s at %s%% minimum redundancy.\n"
+                    "Use --split (about %d discs), a larger --medium, or a lower --min-redundancy."
+                    % (html.human_size(plan.sectors * media.SECTOR), self.medium_label,
+                       html.human_size(self.budget * media.SECTOR), self.args.min_redundancy, need))
+            excess = plan.sectors - self.budget + 64
+            moved, cost = [], 0
+            while len(plan.entries) > 1 and cost < excess:
+                e = plan.entries.pop()
+                moved.insert(0, e)
+                cost += -(-e.size // media.SECTOR) + 1  # real size, not the estimate that was wrong
+            bins = [p.entries for p in self.plans]
+            if over + 1 < len(bins):
+                bins[over + 1] = moved + bins[over + 1]
+            else:
+                bins.append(moved)
+            bins = [b for b in bins if b]
+            for p in self.plans:
+                shutil.rmtree(p.stage, ignore_errors=True)
+            shutil.rmtree(os.path.join(self.workdir, "batch"), ignore_errors=True)
+            log("Rebalancing: disc %d was %d sectors over budget" % (over + 1, plan.sectors - self.budget))
+        raise SystemExit("Error: could not fit the files onto discs after %d attempts" % attempts)
+
+    # ------------------------------------------------------------ building
+
+    def build(self, plan):
+        a = self.args
+        log("Building %s (%d of %d, %s) ..." % (plan.out, plan.part, plan.parts, html.human_size(plan.sectors * media.SECTOR)))
+        image.build_iso(plan.stage, plan.out, plan.disc_id, **self.payload(plan))
+        note = "image %s, %d sectors" % (os.path.basename(plan.out), plan.sectors)
+        plan.events.append(catalog.new_event(plan.disc_id, "creation", "success", self.version, note))
+        if a.no_ecc:
+            return
+        log("Adding dvdisaster RS03 error correction ...")
+        output = image.add_ecc(plan.out, medium_sectors=self.capacity)
+        for line in output.splitlines():
+            if "redundancy" in line:
+                plan.events[-1].set("Note", note + "; RS03: " + line.strip())
+        if not a.no_verify:
+            log("Verifying with dvdisaster -t ...")
+            ok, output = image.verify_ecc(plan.out)
+            plan.events.append(catalog.new_event(plan.disc_id, "fixity check", "success" if ok else "failure",
+                                                 "dvdisaster", "image test after creation"))
+            if not ok:
+                log(output)
+                log("Error: dvdisaster verification failed for %s" % plan.disc_id)
+
+    def run(self):
+        a = self.args
+        out_dir = os.path.dirname(os.path.abspath(a.output)) if a.output else os.path.abspath(a.output_dir or ".")
+        os.makedirs(out_dir, exist_ok=True)
+        self.workdir = tempfile.mkdtemp(prefix=".archive-make-", dir=out_dir)
+        try:
+            self.fit()
+            if self.capacity and not a.no_ecc and not image.dvdisaster_sets_medium_size():
+                log("Warning: this dvdisaster build ignores the target medium size for RS03 and picks the "
+                    "smallest standard medium that fits, so small images get less error correction than "
+                    "the disc could hold. Use the speed47 fork (https://github.com/speed47/dvdisaster).")
+            for plan in self.plans:
+                self.build(plan)
+            for plan in self.plans:
+                self.cat.discs.append(plan.record)
+                self.cat.events.extend(plan.events)
+                self.home.store_disc_files(plan.disc_id, os.path.join(plan.stage, "manifest-sha256.txt"),
+                                           os.path.join(plan.stage, "catalog", "listings", plan.disc_id + ".tsv"))
+            self.home.save(self.cat)
+            if os.path.exists(self.home.sqlite_path):
+                index.build(self.home, self.cat)
+        finally:
+            if a.keep_stage:
+                log("Kept staging directory %s" % self.workdir)
+            else:
+                shutil.rmtree(self.workdir, ignore_errors=True)
+        for plan in self.plans:
+            print("%s\t%s\t%s" % (plan.disc_id, plan.out, self.meta["title"]))
+        ok = all(e.get("Outcome") == "success" for p in self.plans for e in p.events)
+        return 0 if ok else 1
+
+
+def sanitize_set(name):
+    return re.sub(r"[^A-Za-z0-9-]", "", name or "").upper() or "ARCHIVE"
