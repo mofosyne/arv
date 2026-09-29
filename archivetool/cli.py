@@ -71,8 +71,12 @@ def software_version():
     return "%s@unknown" % REPO_NAME, False
 
 
-def stage_tools(tools_dir, is_git, extra_tools):
-    """Copy this tool (plain tree + git bundle), bagit.py and any extra tools onto the disc."""
+def stage_tools(tools_dir, is_git, extra_tools, history=False):
+    """Copy this tool (a snapshot of the last commit), bagit.py and any extra tools onto the disc.
+
+    The repository's history is only added when ``history`` is set (as a git bundle), so
+    files removed from the repository never keep riding along on new discs.
+    """
     os.makedirs(tools_dir, exist_ok=True)
     tree = os.path.join(tools_dir, REPO_NAME)
     if is_git:
@@ -83,6 +87,7 @@ def stage_tools(tools_dir, is_git, extra_tools):
                 tar.extractall(tree, filter="data")
             else:
                 tar.extractall(tree)
+    if is_git and history:
         bundle = os.path.join(tools_dir, REPO_NAME + ".bundle")
         proc = subprocess.run(["git", "-C", REPO_ROOT, "bundle", "create", bundle, "--all"],
                               capture_output=True, text=True)
@@ -90,7 +95,7 @@ def stage_tools(tools_dir, is_git, extra_tools):
             log("Warning: git bundle failed, disc gets the plain tree only:\n" + proc.stderr.strip())
             if os.path.exists(bundle):
                 os.remove(bundle)
-    else:
+    if not is_git:
         shutil.copytree(REPO_ROOT, tree, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".git", "*.iso"))
     shutil.copyfile(os.path.join(REPO_ROOT, "archivetool", "vendor", "bagit.py"),
                     os.path.join(tools_dir, "bagit.py"))
@@ -133,12 +138,11 @@ CATALOGUE
 {catalog_lines}
 TOOLS
   tools/{repo}/           the program that made this disc
-  tools/{repo}.bundle     the same with full history: git clone <bundle>
-  tools/bagit.py          BagIt validator (public domain)
+{bundle_line}  tools/bagit.py          BagIt validator (public domain)
 """
 
 
-def write_readme(path, disc, snapshot_scope):
+def write_readme(path, disc, snapshot_scope, history=False):
     if snapshot_scope == "disc":
         other = ""
         cat_lines = "  catalog/listings/       file list of this disc with sizes and dates\n"
@@ -154,6 +158,8 @@ def write_readme(path, disc, snapshot_scope):
         date=disc.get("Date"), files=disc.get("Files"), bytes=disc.get("Bytes"),
         software=disc.get("Software"), other_discs=(" lists" + other) if other else " its notes",
         catalog_lines=cat_lines, repo=REPO_NAME,
+        bundle_line=("  tools/%s.bundle     the same with full history: git clone <bundle>\n" % REPO_NAME)
+        if history else "",
         search_scope="" if snapshot_scope == "disc" else " and on every disc in the catalogue",
     )
     with open(path, "w", encoding="utf-8", newline="\n") as f:
@@ -444,6 +450,8 @@ def build_parser():
                    help="catalogue to include: full (every disc, default), set (this set only, for "
                         "discs given to other people), disc (this disc only)")
     m.add_argument("--extra-tools", help="folder copied to tools/extra/ (e.g. dvdisaster binaries)")
+    m.add_argument("--tools-history", action="store_true",
+                   help="also put this tool's full git history on the disc (git bundle); default: snapshot only")
     m.add_argument("--no-ecc", action="store_true", help="skip dvdisaster (testing only)")
     m.add_argument("--no-verify", action="store_true", help="skip dvdisaster -t after adding ECC")
     m.add_argument("--keep-stage", action="store_true")

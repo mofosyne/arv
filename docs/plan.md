@@ -27,8 +27,8 @@ catalog/                                       snapshot of the whole archive at 
   web/<disc-id>.js                             lazy-loaded data for search.html
   archive.sqlite                               optional convenience copy
 tools/
-  bluray-archival-workflow/                    uncompressed copy of this repo
-  bluray-archival-workflow.bundle              git bundle (full history)
+  bluray-archival-workflow/                    uncompressed snapshot of this repo (HEAD)
+  bluray-archival-workflow.bundle              git bundle, only with --tools-history
   dvdisaster/                                  source tarball + static Linux/Windows binaries
   bagit.py
 data/                                          payload (embedded EXIF/XMP untouched)
@@ -39,8 +39,10 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 
 ## On-disc copy of this repo
 
-- Uncompressed tree (browsable with no tools) + `git bundle` (history,
-  `git bundle verify`). No tar.gz: a stream is fragile after the first bad byte.
+- Uncompressed snapshot of the last commit (browsable with no tools). The full history
+  (`git bundle`) is opt-in with `--tools-history`: by default discs don't carry it, so
+  large files removed from the repo (e.g. old model weights) never ride along.
+  No tar.gz: a stream is fragile after the first bad byte.
 - The commit hash is recorded in `catalog.rec` as the agent of the creation event.
 - Keep the CLI **Python standard library only** (vendor `bagit.py`) so the
   on-disc copy runs without `pip`.
