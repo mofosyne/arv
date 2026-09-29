@@ -125,7 +125,9 @@ class MakeTest(unittest.TestCase):
         self.assertIn("100% ünïcode.txt", page)
         self.assertIn('href="data/sub%20dir/100%25%20%C3%BCn%C3%AFcode.txt"', page)
         self.assertNotIn("<script", page)
-        self.assertEqual(recfile.read(os.path.join(disc, "catalog.rec"))[2].get("Location"), "Shelf A")
+        on_disc = catalog.Catalog(recfile.read(os.path.join(disc, "catalog.rec")))
+        self.assertEqual(on_disc.disc(disc_id).get("Location"), "Shelf A")
+        self.assertEqual([e.get("Type") for e in on_disc.events], ["message digest calculation"])
 
     def test_snapshot_scopes_and_find(self):
         self.make(self.projects)
