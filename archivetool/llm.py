@@ -52,7 +52,8 @@ organised, naming the main contents, useful to someone who has never seen it.
 - Folder tags: for the folders listed in the inventory (use the exact folder \
 path shown, without the trailing slash), 1-5 short lowercase tags each that \
 describe what the folder holds, based only on names, types, dates and text \
-shown. Skip folders you cannot say anything useful about.
+shown, including any "What sampled images show" lines. Skip folders you \
+cannot say anything useful about.
 - Questions: up to %(max_questions)d questions that only the owner can answer \
 and that would most improve the description. Never ask something the \
 inventory already answers (counts, dates, file names, README text). Ask about \
@@ -125,9 +126,10 @@ class Client:
             self.model = models[0]["id"]
         return self.model
 
-    def chat(self, messages, temperature=0.2):
-        body = {"model": self.resolve_model(), "messages": messages, "temperature": temperature,
-                "response_format": {"type": "json_object"}, "stream": False}
+    def chat(self, messages, temperature=0.2, json_mode=True):
+        body = {"model": self.resolve_model(), "messages": messages, "temperature": temperature, "stream": False}
+        if json_mode:
+            body["response_format"] = {"type": "json_object"}
         try:
             reply = self._request("/chat/completions", body)
         except LLMError as err:

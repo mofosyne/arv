@@ -209,10 +209,10 @@ class Maker:
                      "listings": os.path.join(batch, p.disc_id + ".tsv")}
             bag.write_manifest(files["manifests"], [(e.hashes["sha256"], "data/" + e.path) for e in p.payload_entries])
             web.write_listing(files["listings"], p.payload_entries)
-            tags = self.plan_tags(p)
-            if tags:
+            tags, captions = self.plan_tags(p)
+            if tags or captions:
                 files["tags"] = os.path.join(batch, p.disc_id + ".tags")
-                catalog.write_tags(files["tags"], tags)
+                catalog.write_tags(files["tags"], tags, captions)
             if self.formats:
                 files["formats"] = os.path.join(batch, p.disc_id + ".csv")
                 formats.write(files["formats"], self.formats[0], self.formats[1], p.entries)
@@ -220,16 +220,17 @@ class Maker:
         return out
 
     def plan_tags(self, plan):
-        """Folder tags for the folders that are on this disc."""
+        """Folder tags and image captions for the folders that are on this disc."""
         tags = self.meta.get("folder_tags") or {}
-        if not tags:
-            return {}
-        folders = set()
+        captions = self.meta.get("folder_captions") or {}
+        if not tags and not captions:
+            return {}, {}
+        folders = {"."}
         for e in plan.entries:
             parts = e.path.split("/")[:-1]
             folders.update("/".join(parts[:i]) for i in range(1, len(parts) + 1))
-        folders.add(".")
-        return {f: t for f, t in tags.items() if f in folders}
+        return ({f: t for f, t in tags.items() if f in folders},
+                {f: c for f, c in captions.items() if f in folders})
 
     def rocrate_files(self, plan, batch):
         folder = os.path.join(batch, plan.disc_id + "-rocrate")
@@ -275,7 +276,7 @@ class Maker:
         catalog.write_snapshot(catalog_dir, snapshot, files, a.snapshot)
         listings = os.path.join(catalog_dir, "listings")
         tags_dir = os.path.join(catalog_dir, "tags")
-        folder_tags = {n[:-5]: catalog.read_tags(os.path.join(tags_dir, n))
+        folder_tags = {n[:-5]: catalog.read_tag_info(os.path.join(tags_dir, n))
                        for n in (os.listdir(tags_dir) if os.path.isdir(tags_dir) else [])}
         web.write_web_data(os.path.join(catalog_dir, "web"), plan.disc_id, snapshot.discs,
                            {n[:-4]: os.path.join(listings, n) for n in os.listdir(listings)}, folder_tags)

@@ -262,34 +262,45 @@ def find_discs(catalog, pattern):
     return [d for d in catalog.discs if any(match(v) for k, v in d.fields if k in DISC_SEARCH_FIELDS)]
 
 
-def write_tags(path, folder_tags):
+def write_tags(path, folder_tags, captions=None):
+    """folder <TAB> comma-separated tags [<TAB> caption from sampled images]"""
+    captions = captions or {}
     with open(path, "w", encoding="utf-8", newline="\n") as f:
-        f.write("# folder (relative to data/)\ttags\n")
-        for folder in sorted(folder_tags):
-            f.write("%s\t%s\n" % (folder, ", ".join(folder_tags[folder])))
+        f.write("# folder (relative to data/)\ttags\tcaption (what sampled images show, if analysed)\n")
+        for folder in sorted(set(folder_tags) | set(captions)):
+            line = "%s\t%s" % (folder, ", ".join(folder_tags.get(folder, [])))
+            if captions.get(folder):
+                line += "\t" + captions[folder].replace("\t", " ").replace("\n", " ")
+            f.write(line + "\n")
 
 
-def read_tags(path):
+def read_tag_info(path):
+    """{folder: (tags, caption)}"""
     out = {}
     with open(path, encoding="utf-8") as f:
         for line in f:
             line = line.rstrip("\n")
             if line and not line.startswith("#") and "\t" in line:
-                folder, tags = line.split("\t", 1)
-                out[folder] = [t.strip() for t in tags.split(",") if t.strip()]
+                folder, rest = line.split("\t", 1)
+                tags, _, caption = rest.partition("\t")
+                out[folder] = ([t.strip() for t in tags.split(",") if t.strip()], caption.strip())
     return out
 
 
+def read_tags(path):
+    return {folder: tags for folder, (tags, _) in read_tag_info(path).items()}
+
+
 def find_tags(home, catalog, pattern):
-    """[(Disc, folder, tags)] where a folder tag matches ``pattern``."""
+    """[(Disc, folder, tags)] where a folder tag or image caption matches ``pattern``."""
     match = _matcher(pattern)
     hits = []
     for d in catalog.discs:
         path = home.disc_file("tags", d.get("Id"))
         if os.path.exists(path):
-            for folder, tags in read_tags(path).items():
-                if any(match(t) for t in tags):
-                    hits.append((d, folder, tags))
+            for folder, (tags, caption) in read_tag_info(path).items():
+                if any(match(t) for t in tags) or (caption and match(caption)):
+                    hits.append((d, folder, tags + ([caption] if caption and match(caption) else [])))
     return hits
 
 
