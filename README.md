@@ -35,6 +35,10 @@ Each layer does its own job:
 | `scripts/create-archive-udf.sh` | Experimental. UDF 2.01 image via `mkudffs` + loop mount (needs sudo), then RS03 augment |
 | `tests/smoke-test.sh` | End-to-end check: bag → image → ECC → damage → repair → validate bag |
 
+`docs/metadata-standards.md` surveys archival metadata standards (Dublin Core,
+PREMIS, METS, E-ARK, RO-Crate, OCFL, NDSA Levels...) and existing disc-cataloguing
+software, and proposes this project's metadata profile.
+
 `docs/research-notes.md` explains the choices: why UDF 2.50/2.60 is hard to
 produce on Linux and adds little over RS03, why dvdisaster is not a library,
 and how BagIt and recfiles split the work.
@@ -66,7 +70,9 @@ For BD-sized images, use the multithreaded
 ## Roadmap
 
 - [ ] Single `archive` CLI (probably Python): bag → catalog.rec → image → ECC → verify
-- [ ] Generate `catalog.rec` per disc, and merge into a master `archive.rec`
+- [ ] Generate `catalog.rec` per disc (Dublin Core-named `Disc` fields, PREMIS-typed `Event` records), and merge into a master `archive.rec`
+- [ ] Generate `archive.sqlite` search index from the manifests + recfiles (recutils is too slow for per-file records)
+- [ ] Optional: PRONOM format IDs via Siegfried (`formats.yaml`) and a generated RO-Crate (`ro-crate-metadata.json`)
 - [ ] Multi-disc splitting for sets larger than one disc (`Bag-Count: n of N`)
 - [ ] `README.txt` + dvdisaster sources/binaries on each disc for self-contained recovery
 - [ ] Target medium size / `--no-bdr-defect-management` options for RS03
