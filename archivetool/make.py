@@ -174,8 +174,10 @@ class Maker:
         r = recfile.Record("Disc", [("Id", plan.disc_id), ("Uuid", str(uuid.uuid4()))])
         if not a.id:
             r.add("IdScheme", discid.SCHEME)
-        r.fields += [("Title", m["title"]), ("Set", m["set"]), ("Sequence", str(plan.sequence)),
-                     ("Coverage", m["coverage"]), ("Date", catalog.today())]
+        r.fields += [("Title", m["title"]), ("Set", m["set"])]
+        if m.get("set_class") is not None:
+            r.add("SetClass", "%03d" % m["set_class"])  # place in the set vocabulary at burn time
+        r.fields += [("Sequence", str(plan.sequence)), ("Coverage", m["coverage"]), ("Date", catalog.today())]
         if plan.parts > 1:
             r.add("Part", "%d of %d" % (plan.part, plan.parts))
         for key in ("creator", "description"):

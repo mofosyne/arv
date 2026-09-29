@@ -94,6 +94,7 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 | `IdScheme` | Which rule built `Id` | `set-seq-coverage/1`; absent for older discs |
 | `Uuid` | Machine identity (UUID v4) of this image | Copies burned from one image share it |
 | `Set`, `Sequence` | Set code and number within the set | `Sequence` is never reused within a set |
+| `SetClass` | Class number of the set in the [set vocabulary](#set-vocabulary-dewey-like-classes) | e.g. `111`; absent for sets outside the vocabulary |
 | `Title`, `Description`, `Creator`, `Subject`*, `Coverage`, `Rights` | Dublin Core description | `Subject` repeats; `Coverage` is [EDTF](#coverage-edtf) |
 | `Date` | Date the image was made | `YYYY-MM-DD` |
 | `Set`, `Part` | Set name and `n of N` for multi-disc sets | |
@@ -137,6 +138,44 @@ Examples: `PHOTOS-07_2015-2024_Q`, `TAXES-01_2019_M`, `SCANS-02_199X_K`,
 - **Older ids** (`2020-2025_PROJECTS_01`, scheme `coverage-set-seq/0`, no
   `IdScheme` field) stay valid; ids written on physical discs never change.
 
+### Set vocabulary (Dewey-like classes)
+
+Every disc belongs to one **set**, taken from a controlled vocabulary so sets
+stay consistent across years of discs. Each set has a short readable `Code`
+(used in ids) and a numeric `Class` in a Dewey-like hierarchy: hundreds are
+divisions, tens are sets, units are sub-sets.
+
+```
+100 Memories
+  110 PHOTO   Photos
+    111 TRIP    Trips and holidays
+    112 FAMILY  Family
+  120 VIDEO   Home video
+200 Records
+  210 SCAN    Scans
+  230 TAXES   Taxes
+    231 FINANCE Finance
+400 Projects
+  410 CODE    Software
+  420 ELEC    Electronics
+600 Backups and exports
+  630 EMAIL   Email and messages
+  640 WEB     Web archives
+```
+
+(abridged; the full default is `archivetool/default_sets.rec`, a recfile with
+`Class`, `Code`, `Name`, `Description`; records without a `Code` are
+division headings.)
+
+- The disc records `Set` (code) and `SetClass` (e.g. `111`) at burn time, so its
+  classification survives later edits to the vocabulary.
+- Class numbers give shelf order and grouping (`111` sorts under `110` under
+  `100`), and a reader can show the path "Memories > Photos > Trips and holidays".
+- Like Dewey, a class number is never reused for a different meaning; new
+  sets get new numbers. Codes not in the vocabulary are allowed (no `SetClass`).
+- Suggested mapping for catalogue software: divisions and sets become a
+  hierarchy of groups (in Katalog: nested virtual devices).
+
 ### Coverage (EDTF)
 
 `Coverage` uses the Library of Congress
@@ -148,12 +187,16 @@ which can express the uncertainty common in personal archives:
 | `2019` | the year 2019 |
 | `2015/2024` | 2015 to 2024 |
 | `2019-07/2019-08` | July to August 2019 |
+| `2019-07-14/2019-07-20` | 14 to 20 July 2019 (a trip) |
+| `2019/..` | from 2019, end open |
 | `199X` | some time in the 1990s |
 | `1995~` | about 1995 |
 | `[1998,1999]` | 1998 or 1999 |
 
-Readers can turn this into a year range and answer "which discs cover 2019?"
-without reading any listings.
+Readers turn this into a date span (uncertain digits widen it: `199X` is
+1990-01-01 to 1999-12-31) and can answer "which discs cover 15 July 2019?"
+without reading any listings. The id carries at most year and month; the
+record keeps full precision.
 
 ### `Event` records (recfile)
 

@@ -26,6 +26,8 @@ without qualifiers.
 Older ids ("2020-2025_PROJECTS_01", scheme "coverage-set-seq/0") remain valid.
 """
 
+import calendar
+import datetime
 import re
 
 SCHEME = "set-seq-coverage/1"
@@ -65,33 +67,60 @@ def _strip(value):
     return value.strip().strip("~?%").replace("~", "").replace("?", "").replace("%", "")
 
 
-def _date_range(value):
-    """(first year, last year) of one EDTF date such as 2019, 2019-07, 199X, 19XX."""
+def _date_span(value):
+    """(first day, last day) of one EDTF date: 2019, 2019-07, 2019-07-14, 199X, 2019-07-XX."""
     m = EDTF_DATE.match(_strip(value))
     if not m:
         raise IdError("not an EDTF date: %r" % value)
-    y = m.group("year")
-    return int(y.replace("X", "0")), int(y.replace("X", "9"))
+    y, month, day = m.group("year"), m.group("month"), m.group("day")
+    y0, y1 = int(y.replace("X", "0")), int(y.replace("X", "9"))
+    m0 = int(month) if month and month != "XX" else 1
+    m1 = int(month) if month and month != "XX" else 12
+    if not 1 <= m0 <= 12:
+        raise IdError("month out of range in %r" % value)
+    d0 = int(day) if day and day != "XX" else 1
+    d1 = int(day) if day and day != "XX" else calendar.monthrange(y1, m1)[1]
+    try:
+        return datetime.date(y0, m0, d0), datetime.date(y1, m1, d1)
+    except ValueError:
+        raise IdError("not a real date: %r" % value)
 
 
-def coverage_range(coverage):
-    """(first year, last year) covered, or None if unknown. Accepts EDTF and legacy 'YYYY-YYYY'."""
+def coverage_dates(coverage):
+    """(first day, last day) covered, or None if unknown. Accepts EDTF and legacy 'YYYY-YYYY'.
+
+    Uncertain parts widen the span (199X -> 1990-01-01..1999-12-31); qualifiers such as
+    ~ (circa) are not widened, they only mark the value as approximate.
+    """
     if not coverage:
         return None
     c = coverage.strip()
     if re.fullmatch(r"\d{4}-\d{4}", c) and int(c[5:]) > 12:  # legacy year range
-        return int(c[:4]), int(c[5:])
+        return _date_span(c[:4])[0], _date_span(c[5:])[1]
     if c.startswith("[") or c.startswith("{"):
-        years = [_date_range(v) for v in c.strip("[]{}").split(",") if v.strip() and ".." not in v]
-        return (min(a for a, _ in years), max(b for _, b in years)) if years else None
+        spans = [_date_span(v) for v in c.strip("[]{}").split(",") if v.strip() and ".." not in v]
+        return (min(a for a, _ in spans), max(b for _, b in spans)) if spans else None
     if "/" in c:
         start, end = c.split("/", 1)
-        lo = _date_range(start)[0] if start not in ("", "..") else None
-        hi = _date_range(end)[1] if end not in ("", "..") else None
+        lo = _date_span(start)[0] if start not in ("", "..") else None
+        hi = _date_span(end)[1] if end not in ("", "..") else None
         if lo is None and hi is None:
             return None
-        return (lo if lo is not None else hi, hi if hi is not None else lo)
-    return _date_range(c)
+        return (lo or datetime.date.min, hi or datetime.date.max)
+    return _date_span(c)
+
+
+def coverage_range(coverage):
+    """(first year, last year) covered, or None if unknown."""
+    span = coverage_dates(coverage)
+    return (span[0].year, span[1].year) if span else None
+
+
+def covers(coverage, query):
+    """True if a coverage value overlaps a query date (2019, 2019-07, 2019-07-15) or EDTF range."""
+    a, b = coverage_dates(coverage) or (None, None)
+    q = coverage_dates(to_edtf(query))
+    return a is not None and q is not None and a <= q[1] and q[0] <= b
 
 
 def to_edtf(coverage):

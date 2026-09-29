@@ -25,7 +25,7 @@ import subprocess
 import sys
 import tarfile
 
-from . import bag, catalog, describe, discid, image, index, llm, make, media, models, recfile, tagger
+from . import bag, catalog, describe, discid, image, index, llm, make, media, models, recfile, sets, tagger
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO_NAME = "bluray-archival-workflow"
@@ -199,8 +199,20 @@ def cmd_make(args):
         coverage = discid.to_edtf(args.coverage) if args.coverage else catalog.coverage_years(entries)
     except discid.IdError as err:
         raise SystemExit("Error: --coverage: %s (examples: 2019, 2015/2024, 2019-07/2019-08, 199X, 1995~)" % err)
+    vocab = sets.load(home)
+    default_set = sets.guess(vocab, default_set) or default_set
+    set_code = make.sanitize_set(args.set or ask("Set code (see 'archive sets')", default_set, interactive))
+    set_info = sets.lookup(vocab, set_code)
+    if set_info:
+        log("Set: %s  (%s)" % (set_info.label, sets.path_name(vocab, set_info)))
+    else:
+        hint = sets.near(vocab, set_code)
+        log("Warning: set %s is not in %s%s. The disc is made anyway, without a class; add the set "
+            "there to classify it." % (set_code, sets.vocab_path(home),
+                                       " (did you mean %s?)" % ", ".join(hint) if hint else ""))
     meta = {
-        "set": make.sanitize_set(args.set or ask("Set name", default_set, interactive)),
+        "set": set_code,
+        "set_class": set_info.cls if set_info else None,
         "coverage": coverage,
         "title": args.title or ask("Title", default_title, interactive),
         "description": args.description or ask("Description (optional)", None, interactive),
@@ -241,12 +253,30 @@ def cmd_find(args):
 def cmd_list(args):
     cat = catalog.Home(args.home).load()
     for d in cat.discs:
-        if args.covers is not None:
-            span = discid.coverage_range(d.get("Coverage"))
-            if not span or not span[0] <= args.covers <= span[1]:
-                continue
+        if args.covers:
+            try:
+                if not discid.covers(d.get("Coverage"), args.covers):
+                    continue
+            except discid.IdError as err:
+                raise SystemExit("Error: --covers: %s" % err)
         print("%s\t%s\t%s\t%s files\t%s" % (d.get("Id"), d.get("Date"), d.get("Title"),
                                            d.get("Files"), d.get("Location", "")))
+    return 0
+
+
+def cmd_sets(args):
+    """The set vocabulary as a tree, with how many discs each set has."""
+    home = catalog.Home(args.home)
+    vocab = sets.load(home)
+    counts = {}
+    for d in home.load().discs:
+        counts[d.get("Set")] = counts.get(d.get("Set"), 0) + 1
+    for s in vocab:
+        indent = "" if s.cls % 100 == 0 else ("  " if s.cls % 10 == 0 else "    ")
+        n = counts.pop(s.code, 0) if s.code else 0
+        print("%03d  %s%-8s %-28s %s" % (s.cls, indent, s.code or "", s.name, ("%d disc%s" % (n, "" if n == 1 else "s")) if n else ""))
+    for code, n in sorted(counts.items()):
+        print("---  %-10s (not in %s) %d disc%s" % (code, sets.vocab_path(home), n, "" if n == 1 else "s"))
     return 0
 
 
@@ -500,8 +530,12 @@ def build_parser():
     f.set_defaults(func=cmd_find)
 
     ls = sub.add_parser("list", help="list discs")
-    ls.add_argument("--covers", type=int, metavar="YEAR", help="only discs whose coverage includes this year")
+    ls.add_argument("--covers", metavar="DATE",
+                    help="only discs whose coverage overlaps this date or range: 2019, 2019-07, 2019-07-15, 2018/2019")
     ls.set_defaults(func=cmd_list)
+
+    st = sub.add_parser("sets", help="show the set vocabulary (Dewey-like classes) and discs per set")
+    st.set_defaults(func=cmd_sets)
 
     di = sub.add_parser("id", help="explain and check a disc id (catches typos)")
     di.add_argument("disc_id")
@@ -584,4 +618,8 @@ def build_parser():
 
 def main(argv=None):
     args = build_parser().parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except BrokenPipeError:  # output piped into e.g. `head`, which stopped reading
+        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        return 0
