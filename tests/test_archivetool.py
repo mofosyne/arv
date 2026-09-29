@@ -360,6 +360,9 @@ class FakeLLM:
             def do_POST(self):
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
                 fake.requests.append(body)
+                if self.path.endswith("/embeddings"):
+                    return self._json({"data": [{"index": i, "embedding": fake.embed(t)}
+                                                for i, t in enumerate(body["input"])]})
                 reply = fake.reply(body) if callable(fake.reply) else fake.reply
                 content = reply if isinstance(reply, str) else json.dumps(reply)
                 self._json({"choices": [{"message": {"role": "assistant", "content": content}}]})
@@ -367,6 +370,11 @@ class FakeLLM:
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         self.url = "http://127.0.0.1:%d/v1" % self.server.server_address[1]
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    @staticmethod
+    def embed(text):
+        text = text.lower()
+        return [3.0 if "cat" in text else 0.0, 3.0 if "code" in text or "python" in text else 0.0, 0.3]
 
     def close(self):
         self.server.shutdown()
@@ -562,6 +570,125 @@ class VisionTest(unittest.TestCase):
         info = catalog.read_tag_info(catalog.Home(home).disc_file("tags", disc_id))
         self.assertEqual(info["photos/beach day"][0], ["beach", "sea"])
         self.assertIn("sand", run_cli("--home", home, "find", "sandy")[1])  # caption search
+
+
+FAKE_EMBEDDER = r"""#!/usr/bin/env python3
+# Stand-in for llama.cpp's llama-embedding: bag-of-words vectors, same CLI and output format.
+import hashlib, json, math, re, sys
+args = sys.argv[1:]
+text = open(args[args.index("-f") + 1], encoding="utf-8").read()
+sep = args[args.index("--embd-separator") + 1]
+out = []
+for chunk in text.split(sep):
+    v = [0.0] * 64
+    for w in re.findall(r"[a-z]+", chunk.lower().replace("represent this sentence for searching relevant passages", "")):
+        v[int(hashlib.md5(w.encode()).hexdigest(), 16) % 64] += 1.0
+    n = math.sqrt(sum(x * x for x in v)) or 1.0
+    out.append([x / n for x in v])
+print("log noise before the vectors")
+print(json.dumps(out))
+"""
+
+
+class TagTest(unittest.TestCase):
+    def setUp(self):
+        from archivetool import models
+        self.tmp = tempfile.mkdtemp()
+        self.home = os.path.join(self.tmp, "home")
+        self.binary = os.path.join(self.tmp, "llama-embedding")
+        with open(self.binary, "w") as f:
+            f.write(FAKE_EMBEDDER.replace("#!/usr/bin/env python3", "#!" + sys.executable))
+        os.chmod(self.binary, 0o755)
+        # a stand-in model file registered under a test name, so no download is needed
+        self.model_file = os.path.join(self.tmp, "fake.gguf")
+        with open(self.model_file, "wb") as f:
+            f.write(b"fake model")
+        models.MODELS["test-model"] = dict(models.MODELS[models.DEFAULT_EMBEDDING], file="fake.gguf",
+                                           sha256=models.sha256_of(self.model_file), size=10)
+        self.vocab = os.path.join(self.tmp, "tags.rec")
+        with open(self.vocab, "w", encoding="utf-8") as f:
+            f.write("%rec: Tag\n\nName: pets\nDescription: cats dogs kittens puppies\n\n"
+                    "Name: code\nDescription: source code python programming scripts\n\n"
+                    "Name: travel\nDescription: trip holiday sightseeing beach\n")
+        self.src = os.path.join(self.tmp, "Stuff")
+        write(os.path.join(self.src, "cats and kittens", "IMG_0001.jpg"), "x", 2020)
+        write(os.path.join(self.src, "scripts", "python code.py"), "x", 2020)
+        write(os.path.join(self.src, "beach trip", "DSC_0001.JPG"), "x", 2020)
+
+    def tearDown(self):
+        from archivetool import models
+        models.MODELS.pop("test-model", None)
+        shutil.rmtree(self.tmp)
+
+    def tagger(self):
+        from archivetool import catalog, models, tagger
+        home = catalog.Home(self.home)
+        models.install_model_file(home, "test-model", self.model_file)
+        return tagger.Tagger(home, self.binary, model_name="test-model", vocab_file=self.vocab)
+
+    def test_suggest_and_camera_names_ignored(self):
+        from archivetool import describe, tagger
+        texts = tagger.summaries(describe.folder_entries(self.src), self.src)
+        self.assertNotIn("DSC", texts["beach trip"])
+        got = self.tagger().suggest(texts, top=1)
+        self.assertEqual({f: t[0][0] for f, t in got.items()},
+                         {"cats and kittens": "pets", "scripts": "code", "beach trip": "travel"})
+
+    def test_learns_from_reviews(self):
+        from archivetool import bag, tagger
+        t = self.tagger()
+        seen = tagger.summaries([bag.Entry("kyoto temples garden/a.jpg", 1, 0)])
+        t.remember(seen, {"kyoto temples garden": ["japan"]})
+        again = tagger.summaries([bag.Entry("kyoto temples garden/b.jpg", 1, 0),
+                                  bag.Entry("scripts/x.py", 1, 0)])
+        got = t.suggest(again, top=2)
+        self.assertIn("japan", [x for x, _ in got["kyoto temples garden"]])
+        self.assertNotIn("japan", [x for x, _ in got["scripts"]])
+
+    def test_model_checksum_is_enforced(self):
+        from archivetool import catalog, models
+        bad = os.path.join(self.tmp, "bad.gguf")
+        with open(bad, "wb") as f:
+            f.write(b"something else")
+        with self.assertRaises(models.ModelError):
+            models.install_model_file(catalog.Home(self.home), "test-model", bad)
+
+    def test_cli_save_draft_and_apply_to_disc(self):
+        from archivetool import catalog, models
+        models.install_model_file(catalog.Home(self.home), "test-model", self.model_file)
+        opts = ["--llama-embedding", self.binary, "--model", "test-model", "--vocab", self.vocab]
+        draft = os.path.join(self.tmp, "d.json")
+        code, _ = run_cli("--home", self.home, "tag", self.src, "--save", draft, *opts)
+        self.assertEqual(code, 0)
+        with open(draft, encoding="utf-8") as f:
+            d = json.load(f)
+        self.assertEqual(d["folder_tags"]["scripts"][0], "code")
+        self.assertIn("(unreviewed)", d["agent"])
+        if not HAVE_IMAGE_TOOLS:
+            return
+        code, out = run_cli("--home", self.home, "make", "-y", "--no-ecc", "--draft", draft,
+                            "-o", os.path.join(self.tmp, "t.iso"), self.src)
+        self.assertEqual(code, 0, out)
+        disc_id = out.split("\t")[0]
+        self.assertIn("TAG", run_cli("--home", self.home, "find", "pets")[1])
+        # re-tag the existing disc from its catalogue listing and apply
+        code, _ = run_cli("--home", self.home, "tag", disc_id, "--apply", *opts)
+        self.assertEqual(code, 0)
+        events = catalog.Home(self.home).load().events_for(disc_id)
+        self.assertIn("embeddings:test-model (unreviewed)", [e.get("Agent") for e in events])
+
+    def test_embeddings_api_engine(self):
+        from archivetool import catalog, tagger
+        import math
+        fake = FakeLLM({})
+        try:
+            t = tagger.Tagger(catalog.Home(self.home), vocab_file=self.vocab, embed_url=fake.url)
+            self.assertEqual(t.agent, "embeddings:fake-model")  # examples are kept per model
+            got = t.suggest({"a": "cats kittens", "b": "python code"}, top=1)
+            self.assertEqual((got["a"][0][0], got["b"][0][0]), ("pets", "code"))
+            self.assertAlmostEqual(math.sqrt(sum(x * x for x in t.embed(["cat"])[0])), 1.0)  # normalised
+        finally:
+            fake.close()
 
 
 class GuiTest(unittest.TestCase):

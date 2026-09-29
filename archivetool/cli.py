@@ -11,6 +11,8 @@ Commands:
   rebuild merge the catalogue carried on a disc into the home catalogue
   index  build the SQLite search index
   describe  improve titles, descriptions and tags with a local LLM (optional)
+  tag    suggest folder tags from your tag vocabulary (small built-in model)
+  models fetch / check the built-in model
   gui    graphical interface in your web browser
 """
 
@@ -23,7 +25,7 @@ import subprocess
 import sys
 import tarfile
 
-from . import bag, catalog, describe, image, index, llm, make, media, recfile
+from . import bag, catalog, describe, image, index, llm, make, media, models, recfile, tagger
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO_NAME = "bluray-archival-workflow"
@@ -378,6 +380,14 @@ def add_llm_options(parser):
     parser.add_argument("--vision-max", type=int, default=40, help="images sampled in total (default: 40)")
 
 
+def cmd_tag(args):
+    return tagger.run(args)
+
+
+def cmd_models(args):
+    return tagger.models_command(args)
+
+
 def cmd_describe(args):
     return describe.run(args)
 
@@ -492,6 +502,28 @@ def build_parser():
     ds.add_argument("--apply", metavar="DRAFT", help="apply a saved draft to the disc (no LLM needed)")
     add_llm_options(ds)
     ds.set_defaults(func=cmd_describe)
+
+    tg = sub.add_parser("tag", help="suggest folder tags from your tag vocabulary (small built-in model)")
+    tg.add_argument("target", help="folder to be archived, or a disc id")
+    tg.add_argument("--top", type=int, default=3, help="at most this many tags per folder (default: 3)")
+    tg.add_argument("--vocab", help="tag vocabulary recfile (default: <home>/tags.rec)")
+    tg.add_argument("--save", help="write (or merge into) a draft JSON for 'archive make --draft'")
+    tg.add_argument("--apply", action="store_true", help="for a disc: write the tags without prompting")
+    tg.add_argument("--disc-root", help="mounted disc, so README files on it can be read")
+    tg.add_argument("--show-summaries", action="store_true", help="print what the model compares, and stop")
+    tg.add_argument("--llama-embedding", help="path to llama.cpp's llama-embedding")
+    tg.add_argument("--model", default=models.DEFAULT_EMBEDDING, help="built-in model (default: %(default)s)")
+    tg.add_argument("--embed-url", help="use an OpenAI-compatible /v1/embeddings server instead of the built-in model")
+    tg.add_argument("--embed-model", help="embedding model name on that server (default: its first model)")
+    tg.add_argument("--llm-allow-remote", action="store_true", help="allow a non-local embeddings server")
+    tg.set_defaults(func=cmd_tag)
+
+    mo = sub.add_parser("models", help="built-in model for 'archive tag': fetch, status, build-runtime")
+    mo.add_argument("action", choices=["fetch", "status", "build-runtime"])
+    mo.add_argument("--model", default=models.DEFAULT_EMBEDDING, choices=list(models.MODELS))
+    mo.add_argument("--from", dest="from_file", help="install from a local file (checksum-verified) instead of downloading")
+    mo.add_argument("--llama-embedding", help="path to llama.cpp's llama-embedding")
+    mo.set_defaults(func=cmd_models)
 
     g = sub.add_parser("gui", help="open the graphical interface in your web browser")
     g.add_argument("--port", type=int, default=0, help="port on 127.0.0.1 (default: any free port)")

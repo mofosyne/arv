@@ -103,6 +103,33 @@ searches this disc and every disc in its catalogue snapshot (all offline, from
   before burning (uncommitted changes are flagged in the `Software` field).
 - Tests: `python3 -m unittest discover -s tests` (set `ARCHIVE_TEST_ECC=1` to include dvdisaster).
 
+## Optional: built-in tagging (`archive tag`)
+
+Consistent folder tags from your own tag vocabulary, using a 37 MB embedding
+model (bge-small-en-v1.5, MIT) run by llama.cpp's `llama-embedding` program as a
+subprocess: no server, no API, no Python packages.
+
+```sh
+./archive models fetch            # pinned download, SHA-256 checked, into <home>/models/
+./archive models status           # model + runtime found?
+./archive tag ./2025-01-13_Personal --save draft.json   # suggest, review, save
+./archive make ./2025-01-13_Personal --draft draft.json
+./archive tag 2018-2022_PERSONAL_01                     # re-tag a disc already in the catalogue
+```
+
+- The vocabulary is `<home>/tags.rec` (created from `archivetool/default_tags.rec`); edit
+  the descriptions freely. Describe *content*, not the medium ("cats, dogs", not "photos of").
+- Tags you accept are remembered, and similar folders later get the same tags, even
+  tags that are not in the vocabulary. No training involved.
+- Runtime: `llama-embedding` from PATH (llama.cpp is packaged by Homebrew and many
+  distributions), `--llama-embedding PATH`, or `archive models build-runtime`.
+- Fallback engine: `--embed-url` for any OpenAI-compatible `/v1/embeddings` server.
+  Remembered examples are kept per model, because vectors from different models
+  cannot be compared.
+- Measured on sample folders: code, scans, video, celebrations and captioned images
+  tagged correctly; folders with only camera file names get weak guesses, which you
+  clear in review. Pair with `--vision` captions for opaque folders.
+
 ## Optional: local LLM help with descriptions and tags
 
 A local model can draft the title, description, subjects and **folder tags**, and

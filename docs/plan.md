@@ -149,8 +149,8 @@ See research-notes.md section 5 for the measurements behind this.
    owner's past tag reviews. Runtime managed by the tool (a local process on a random loopback
    port). Model and runtime are a pinned, SHA-256-checked download to
    `~/.local/share/bluray-archive/models/`, never committed (every disc carries the repo history).
-   Runtime choice pending: managed llama.cpp `llama-server` (recommended) vs. numpy in-process
-   vs. BYO-only.
+   Done: `archive tag` runs llama.cpp's `llama-embedding` CLI as a subprocess (no server/API),
+   with `--embed-url` (OpenAI-compatible /v1/embeddings) as a fallback engine.
 2. **Bring your own AI (optional, OpenAI-compatible):** >= 1.5B model for SemIf-style decisions
    (logprob readout over lettered options: private/shareable, content type, rule-based yes/no);
    >= 3B for descriptions and questions (existing); local vision model for captions (existing).
