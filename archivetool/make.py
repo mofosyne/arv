@@ -14,7 +14,7 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 
-from . import bag, catalog, html, image, index, media, recfile, web
+from . import bag, catalog, formats, html, image, index, media, recfile, rocrate, web
 
 FILESYSTEM = "ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge"
 
@@ -34,6 +34,11 @@ class Plan:
     stage: str = ""
     sectors: int = 0
     events: list = field(default_factory=list)
+    extras: list = field(default_factory=list)  # [(Entry, source path)] added to data/, e.g. RO-Crate files
+
+    @property
+    def payload_entries(self):
+        return self.entries + [e for e, _ in self.extras]
 
 
 def estimate_sectors(entry):
@@ -79,6 +84,7 @@ class Maker:
         self.budget = None if self.capacity is None else media.data_budget(self.capacity, args.min_redundancy)
         self.workdir = None
         self.plans = []
+        self.formats = None  # (header, {path: row}) from Siegfried
 
     # ------------------------------------------------------------ planning
 
@@ -97,10 +103,9 @@ class Maker:
         """Sectors for catalog/ (prior discs' files + this batch's lists, twice: listings + web)."""
         total = 0
         for d in self.prior_discs():
-            for p in (self.home.manifest_path(d.get("Id")), self.home.listing_path(d.get("Id"))):
-                if os.path.exists(p):
-                    total += 2 * os.path.getsize(p)
-        total += sum(3 * (len(e.path) + 160) for e in self.entries)
+            for p in self.home.disc_files(d.get("Id")).values():
+                total += 2 * os.path.getsize(p)
+        total += sum(4 * (len(e.path) + 200) for e in self.entries)  # manifests, listings, web, formats
         return total // media.SECTOR + 256
 
     def prior_discs(self):
@@ -133,6 +138,13 @@ class Maker:
             plan.record = self.disc_record(plan)
             plan.events = [catalog.new_event(disc_id, "message digest calculation", "success", self.version,
                                              "sha256 and sha512 manifests of %d files" % len(entries))]
+            if self.formats:
+                header, rows = self.formats
+                unknown = sum(1 for e in entries if (rows.get(e.path) or {}).get("puid", "UNKNOWN") == "UNKNOWN")
+                plan.events.append(catalog.new_event(
+                    disc_id, "format identification", "success" if not unknown else "warning",
+                    header.splitlines()[0].lstrip("# ") if header else "siegfried",
+                    "PRONOM ids for %d files, %d unidentified" % (len(entries), unknown)))
             self.plans.append(plan)
 
     @property
@@ -180,17 +192,37 @@ class Maker:
     # ------------------------------------------------------------ staging
 
     def batch_files(self):
-        """Write every batch disc's manifest and listing once; the stages copy from here."""
+        """Write every batch disc's manifest, listing and formats once; the stages copy from here.
+
+        Returns {disc_id: {kind: path}}. Also creates each disc's RO-Crate files (--ro-crate).
+        """
         batch = os.path.join(self.workdir, "batch")
         os.makedirs(batch, exist_ok=True)
         out = {}
         for p in self.plans:
-            manifest = os.path.join(batch, p.disc_id + ".sha256")
-            bag.write_manifest(manifest, [(e.hashes["sha256"], "data/" + e.path) for e in p.entries])
-            listing = os.path.join(batch, p.disc_id + ".tsv")
-            web.write_listing(listing, p.entries)
-            out[p.disc_id] = (manifest, listing)
+            p.extras = self.rocrate_files(p, batch) if self.args.ro_crate else []
+            files = {"manifests": os.path.join(batch, p.disc_id + ".sha256"),
+                     "listings": os.path.join(batch, p.disc_id + ".tsv")}
+            bag.write_manifest(files["manifests"], [(e.hashes["sha256"], "data/" + e.path) for e in p.payload_entries])
+            web.write_listing(files["listings"], p.payload_entries)
+            if self.formats:
+                files["formats"] = os.path.join(batch, p.disc_id + ".csv")
+                formats.write(files["formats"], self.formats[0], self.formats[1], p.entries)
+            out[p.disc_id] = files
         return out
+
+    def rocrate_files(self, plan, batch):
+        folder = os.path.join(batch, plan.disc_id + "-rocrate")
+        os.makedirs(folder, exist_ok=True)
+        doc = rocrate.build(plan.record, plan.entries, self.formats[1] if self.formats else None)
+        extras = []
+        for name, text in ((rocrate.METADATA, rocrate.dumps(doc)), (rocrate.PREVIEW, rocrate.preview(plan.record, plan.entries))):
+            path = os.path.join(folder, name)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(text)
+            st = os.stat(path)
+            extras.append((bag.Entry(name, st.st_size, st.st_mtime, bag.hash_file(path)), path))
+        return extras
 
     def stage(self, plan, batch):
         a = self.args
@@ -202,8 +234,8 @@ class Maker:
                 ("Bag-Group-Identifier", self.group_id or self.meta["set"])]
         if plan.parts > 1:
             info.append(("Bag-Count", "%d of %d" % (plan.part, plan.parts)))
-        info += [("Payload-Oxum", bag.payload_oxum(plan.entries)), ("Bag-Software-Agent", self.version)]
-        bag.write_bag_tags(stage, plan.entries, info)
+        info += [("Payload-Oxum", bag.payload_oxum(plan.payload_entries)), ("Bag-Software-Agent", self.version)]
+        bag.write_bag_tags(stage, plan.payload_entries, info)
 
         own = catalog.Catalog()
         own.discs, own.events = [plan.record], list(plan.events)
@@ -217,7 +249,7 @@ class Maker:
         snapshot = self.cat.subset({d.get("Id") for d in prior})
         snapshot.discs += [p.record for p in batch_plans]
         snapshot.events += [e for p in batch_plans for e in p.events]
-        files = {d.get("Id"): (self.home.manifest_path(d.get("Id")), self.home.listing_path(d.get("Id"))) for d in prior}
+        files = {d.get("Id"): self.home.disc_files(d.get("Id")) for d in prior}
         files.update({p.disc_id: batch[p.disc_id] for p in batch_plans})
         catalog_dir = os.path.join(stage, "catalog")
         catalog.write_snapshot(catalog_dir, snapshot, files, a.snapshot)
@@ -228,15 +260,16 @@ class Maker:
         self.stage_tools(os.path.join(stage, "tools"), self.is_git, a.extra_tools)
         self.write_readme(os.path.join(stage, "README.txt"), plan.record, a.snapshot)
         with open(os.path.join(stage, "index.html"), "w", encoding="utf-8") as f:
-            f.write(html.render_index(plan.record, plan.entries, snapshot))
+            f.write(html.render_index(plan.record, plan.payload_entries, snapshot))
         with open(os.path.join(stage, "search.html"), "w", encoding="utf-8") as f:
             f.write(web.render_search())
         bag.write_tagmanifests(stage)
 
     def payload(self, plan):
+        extras = [(e.path, src) for e, src in plan.extras]
         if plan.parts == 1 and len(plan.entries) == len(self.entries):
-            return {"payload_dir": self.src}
-        return {"payload_files": [(e.path, os.path.join(self.src, e.path)) for e in plan.entries]}
+            return {"payload_dir": self.src, "payload_files": extras or None}
+        return {"payload_files": [(e.path, os.path.join(self.src, e.path)) for e in plan.entries] + extras}
 
     def fit(self):
         """Stage every disc and measure it; move files forward until every disc fits."""
@@ -312,6 +345,20 @@ class Maker:
         os.makedirs(out_dir, exist_ok=True)
         self.workdir = tempfile.mkdtemp(prefix=".archive-make-", dir=out_dir)
         try:
+            if a.ro_crate:
+                clash = [e.path for e in self.entries if e.path in (rocrate.METADATA, rocrate.PREVIEW)]
+                if clash:
+                    raise SystemExit("Error: --ro-crate would overwrite %s in the source folder" % ", ".join(clash))
+            if a.formats == "yes" or (a.formats == "auto" and formats.available()):
+                if not formats.available():
+                    raise SystemExit("Error: --formats yes needs Siegfried (sf) on PATH")
+                log("Identifying file formats with Siegfried ...")
+                try:
+                    self.formats = formats.identify(self.src, a.sf_home)
+                except formats.FormatsError as err:
+                    if a.formats == "yes":
+                        raise SystemExit("Error: Siegfried failed: %s" % err)
+                    log("Warning: skipping format identification, Siegfried failed: %s" % err)
             self.fit()
             if self.capacity and not a.no_ecc and not image.dvdisaster_sets_medium_size():
                 log("Warning: this dvdisaster build ignores the target medium size for RS03 and picks the "
@@ -322,8 +369,9 @@ class Maker:
             for plan in self.plans:
                 self.cat.discs.append(plan.record)
                 self.cat.events.extend(plan.events)
-                self.home.store_disc_files(plan.disc_id, os.path.join(plan.stage, "manifest-sha256.txt"),
-                                           os.path.join(plan.stage, "catalog", "listings", plan.disc_id + ".tsv"))
+                self.home.store_disc_files(plan.disc_id, {
+                    kind: os.path.join(plan.stage, "catalog", kind, plan.disc_id + ext)
+                    for kind, ext in catalog.DISC_FILE_KINDS.items()})
             self.home.save(self.cat)
             if os.path.exists(self.home.sqlite_path):
                 index.build(self.home, self.cat)
@@ -334,7 +382,7 @@ class Maker:
                 shutil.rmtree(self.workdir, ignore_errors=True)
         for plan in self.plans:
             print("%s\t%s\t%s" % (plan.disc_id, plan.out, self.meta["title"]))
-        ok = all(e.get("Outcome") == "success" for p in self.plans for e in p.events)
+        ok = not any(e.get("Outcome") == "failure" for p in self.plans for e in p.events)
         return 0 if ok else 1
 
 

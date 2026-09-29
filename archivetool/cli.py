@@ -306,16 +306,15 @@ def cmd_rebuild(args):
     copied = 0
     for d in cat.discs:
         disc_id = d.get("Id")
-        manifest = os.path.join(snap_dir, "manifests", disc_id + ".sha256")
-        listing = os.path.join(snap_dir, "listings", disc_id + ".tsv")
-        if not os.path.exists(manifest) and disc_id == disc_root_id(root):  # disc without catalog/manifests
-            manifest = os.path.join(root, "manifest-sha256.txt")
-        need = [(src, dst) for src, dst in ((manifest, home.manifest_path(disc_id)), (listing, home.listing_path(disc_id)))
-                if os.path.exists(src) and not os.path.exists(dst)]
-        for src, dst in need:
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            shutil.copyfile(src, dst)
-            copied += 1
+        for kind, ext in catalog.DISC_FILE_KINDS.items():
+            src = os.path.join(snap_dir, kind, disc_id + ext)
+            if kind == "manifests" and not os.path.exists(src) and disc_id == disc_root_id(root):
+                src = os.path.join(root, "manifest-sha256.txt")  # disc without catalog/manifests
+            dest = home.disc_file(kind, disc_id)
+            if os.path.exists(src) and not os.path.exists(dest):
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                shutil.copyfile(src, dest)
+                copied += 1
     home.save(cat)
     if os.path.exists(home.sqlite_path):
         index.build(home, cat)
@@ -376,6 +375,11 @@ def build_parser():
     m.add_argument("--split", action="store_true",
                    help="spread the folder over as many discs as needed")
     m.add_argument("--media", help="media description (default: M-DISC <medium>)")
+    m.add_argument("--formats", choices=["auto", "yes", "no"], default="auto",
+                   help="identify file formats (PRONOM) with Siegfried: auto = when sf is installed")
+    m.add_argument("--sf-home", help="Siegfried signature directory (sf -home)")
+    m.add_argument("--ro-crate", action="store_true",
+                   help="add RO-Crate 1.2 metadata (data/ro-crate-metadata.json + preview) for research-data tools")
     m.add_argument("--snapshot", choices=["full", "set", "disc"], default="full",
                    help="catalogue to include: full (every disc, default), set (this set only, for "
                         "discs given to other people), disc (this disc only)")

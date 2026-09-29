@@ -15,9 +15,10 @@ using only open, well-documented formats.
 ├── tagmanifest-sha256.txt   checksums of the files above + catalog.rec
 ├── catalog.rec              GNU recutils catalogue for this disc
 ├── catalog/                 snapshot of the whole archive catalogue at burn time
-│                            (archive.rec, manifests/, listings/, web/)
+│                            (archive.rec, manifests/, listings/, formats/, web/)
 ├── index.html  search.html  offline viewer and cross-disc search
 ├── README.txt               plain-text recovery instructions
+│   data/ro-crate-metadata.json  optional RO-Crate description (--ro-crate)
 ├── tools/                   this tool (tree + git bundle), bagit.py
 └── data/                    the payload
 [ dvdisaster RS03 ECC data appended after the filesystem ]
@@ -59,6 +60,8 @@ and `dvdisaster` (use the [speed47 fork](https://github.com/speed47/dvdisaster) 
 #  -> prompts for set, title, description, subjects, note
 #  -> 2020-2025_PROJECTS_01.iso  (bag + catalogue + index.html + tools/ + RS03 ECC, verified)
 ./archive make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: only this set's catalogue
+./archive make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
+./archive make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03
 ./archive find IMG_2019            # which disc holds it, and where the disc is
 ./archive list
 ./archive note 2020-2025_PROJECTS_01 "Only copy of the 2019 PCB gerbers"
@@ -74,6 +77,17 @@ On the disc, `index.html` browses the disc without JavaScript, and `search.html`
 searches this disc and every disc in its catalogue snapshot (all offline, from
 `file://`; ~1M files: about 1 s for the first search, then about 0.3 s).
 
+- `--medium` (default `bd25`; also `bd50`, `bd100`, `bd128`, `auto`) sets the disc the image
+  targets. RS03 fills the rest of the disc, and each disc keeps at least `--min-redundancy`
+  (default 20%): about 20 GB of data per 25 GB disc. Sizes are measured exactly before
+  writing. A folder that is too big either reports how many discs it needs or, with
+  `--split`, becomes a set of complete bags (`Bag-Count: n of N`) that each know the whole set.
+- Filling the disc needs the [speed47 dvdisaster fork](https://github.com/speed47/dvdisaster);
+  the distro 0.79.10 build shrinks RS03 to the smallest standard size (a warning says so).
+  Both builds exit with status 1 after a *successful* `-f` repair; check with `-t`.
+- With [Siegfried](https://www.itforarchivists.com/siegfried) (`sf`) installed, each file's
+  PRONOM format is recorded in `catalog/formats/<disc-id>.csv`. `--ro-crate` adds
+  `data/ro-crate-metadata.json` (RO-Crate 1.2, passes the validator's required checks).
 - The source folder is never modified: tag files are staged separately and the
   folder is grafted into the image as `data/`.
 - Disc ids are `<year range of file mtimes>_<SET>_<nn>` and are used as the volume label.
@@ -112,12 +126,12 @@ For BD-sized images, use the multithreaded
 - [x] Single `archive` CLI (Python, stdlib only): bag → catalog.rec → image → ECC → verify
 - [ ] Generate `catalog.rec` per disc (Dublin Core-named `Disc` fields, PREMIS-typed `Event` records), and merge into a master `archive.rec`
 - [ ] Generate `archive.sqlite` search index from the manifests + recfiles (recutils is too slow for per-file records)
-- [ ] Optional: PRONOM format IDs via Siegfried (`formats.yaml`) and a generated RO-Crate (`ro-crate-metadata.json`)
+- [x] PRONOM format IDs via Siegfried (`catalog/formats/`) and optional RO-Crate (`--ro-crate`)
 - [ ] Cumulative catalogue snapshot (`catalog/`) on every disc so the newest disc indexes all earlier ones; opt-out for discs given away
 - [ ] Physical `Location` / `Copy` records and short disc IDs for retrieval
-- [ ] Multi-disc splitting for sets larger than one disc (`Bag-Count: n of N`)
+- [x] Multi-disc splitting for sets larger than one disc (`Bag-Count: n of N`)
 - [ ] `README.txt` + dvdisaster sources/binaries on each disc for self-contained recovery
-- [ ] Target medium size / `--no-bdr-defect-management` options for RS03
+- [x] Target medium size, minimum redundancy, defect-management sizes for RS03
 - [ ] Optional UDF 2.50 (metadata mirror) through NetBSD `makefs -t udf`
 - [ ] GUI front end over the CLI
 - [ ] Standalone RS03 library extracted from dvdisaster (GPLv3)
