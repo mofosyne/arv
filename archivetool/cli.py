@@ -197,6 +197,7 @@ def cmd_make(args):
         "subjects": args.subject or [s.strip() for s in (ask("Subjects, comma separated (optional)", None, interactive) or "").split(",") if s.strip()],
         "notes": args.note or [n for n in [ask("Note (optional)", None, interactive)] if n],
         "folder_tags": draft.get("folder_tags") or {},
+        "folder_captions": draft.get("folder_captions") or {},
         "draft_agent": draft.get("agent"),
     }
     version, is_git = software_version()
@@ -368,6 +369,13 @@ def add_llm_options(parser):
     parser.add_argument("--llm-model", help="model name (default: $ARCHIVE_LLM_MODEL or the server's first model)")
     parser.add_argument("--llm-allow-remote", action="store_true",
                         help="allow a non-local LLM server (the inventory describes your private files)")
+    parser.add_argument("--vision", action="store_true",
+                        help="also show sample images (and video frames, with ffmpeg) to a local vision model; "
+                             "local servers only")
+    parser.add_argument("--vision-model", help="vision-capable model (default: the --llm-model)")
+    parser.add_argument("--vision-url", help="server for the vision model (default: the --llm-url; must be local)")
+    parser.add_argument("--vision-per-folder", type=int, default=3, help="images sampled per folder (default: 3)")
+    parser.add_argument("--vision-max", type=int, default=40, help="images sampled in total (default: 40)")
 
 
 def cmd_describe(args):

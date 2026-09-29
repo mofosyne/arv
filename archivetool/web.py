@@ -32,14 +32,17 @@ def disc_summary(disc):
 
 
 def write_web_data(web_dir, this_id, discs, listing_paths, folder_tags=None):
-    """discs: Disc records; listing_paths: {disc_id: listing .tsv}; folder_tags: {disc_id: {folder: [tags]}}."""
+    """discs: Disc records; listing_paths: {disc_id: listing .tsv}; folder_tags: {disc_id: {folder: (tags, caption)}}."""
     os.makedirs(os.path.join(web_dir, "files"), exist_ok=True)
     summaries = []
     for d in discs:
         summary = disc_summary(d)
-        tags = (folder_tags or {}).get(d.get("Id"))
-        if tags:
-            summary["FolderTags"] = tags
+        info = (folder_tags or {}).get(d.get("Id"))  # {folder: (tags, caption)}
+        if info:
+            summary["FolderTags"] = {f: t for f, (t, _) in info.items() if t}
+            captions = {f: c for f, (_, c) in info.items() if c}
+            if captions:
+                summary["FolderCaptions"] = captions
         summaries.append(summary)
     with open(os.path.join(web_dir, "discs.js"), "w", encoding="utf-8") as f:
         f.write("var ARCHIVE_THIS = %s;\nvar ARCHIVE_DISCS = %s;\n" % (_js(this_id), _js(summaries)))
@@ -194,9 +197,10 @@ button { font:inherit; padding:8px 16px; border-radius:6px; border:1px solid var
 
     var tagHits = [];
     ids.forEach(function (id) {
-      var tags = discs[id].FolderTags || {};
-      Object.keys(tags).forEach(function (folder) {
-        if (tags[folder].some(match)) tagHits.push([id, folder, tags[folder]]);
+      var tags = discs[id].FolderTags || {}, captions = discs[id].FolderCaptions || {};
+      Object.keys(Object.assign({}, tags, captions)).forEach(function (folder) {
+        var t = tags[folder] || [], c = captions[folder];
+        if (t.some(match) || (c && match(c))) tagHits.push([id, folder, c ? t.concat([c]) : t]);
       });
     });
     if (tagHits.length) {

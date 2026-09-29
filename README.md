@@ -127,8 +127,19 @@ ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM S
 - **Privacy:** the model sees an inventory (folder and file names, counts, sizes,
   dates, types, and up to 6 short README-style text files), never file contents.
   Only loopback servers are allowed unless you pass `--llm-allow-remote`.
-- Folder tags go in `catalog/tags/<disc-id>.tags` and are searched by `archive find`,
-  the GUI and the disc's `search.html`.
+- Folder tags (and image captions) go in `catalog/tags/<disc-id>.tags` and are searched by
+  `archive find`, the GUI and the disc's `search.html`.
+- **Images (`--vision`, or the checkbox in the GUI):** a few images per folder (and a
+  frame per video when `ffmpeg` is installed) are shown to a local vision model. Its
+  captions ("a red VW Beetle on a cobblestone street") feed the description and folder
+  tags, and are stored with the tags, so `find beetle` works even when the folder is
+  called `folder_B`. Because this sends image contents, it only ever uses a server on
+  this computer; there is no remote override. Thumbnails use Pillow or ffmpeg when
+  installed, otherwise small JPEG/PNG/WebP/GIF files are sent as-is and others skipped.
+  Use `--vision-model` if your text model can't see images (e.g. `qwen2.5vl`, `gemma3`,
+  `llava`). Tested with SmolVLM-500M on llama.cpp: accurate one-line captions in ~5 s per
+  image on CPU, but it ignores the requested tag format, so tags come from the text
+  model reading the captions. Larger vision models return tags directly.
 - Model size matters. Tested on CPU: a 1.5B model gave generic text; a 3B model
   (qwen2.5-3b, about 1 minute per round) gave useful tags and good questions, and one
   answered question produced a specific title. Use a 7-8B model if your hardware allows.

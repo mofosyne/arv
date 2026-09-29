@@ -360,7 +360,8 @@ class FakeLLM:
             def do_POST(self):
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
                 fake.requests.append(body)
-                content = fake.reply if isinstance(fake.reply, str) else json.dumps(fake.reply)
+                reply = fake.reply(body) if callable(fake.reply) else fake.reply
+                content = reply if isinstance(reply, str) else json.dumps(reply)
                 self._json({"choices": [{"message": {"role": "assistant", "content": content}}]})
 
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
@@ -482,6 +483,85 @@ class LLMTest(unittest.TestCase):
         code, _ = run_cli("--home", os.path.join(self.tmp, "home"), "make", "-y", "--no-ecc", "--llm",
                           "--llm-url", self.fake.url, self.src)
         self.assertIn("interactive", str(code))
+
+
+# 1x1 PNG, padded past the 1 KiB "too small to be a photo" cut-off with a text chunk
+PNG = (b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde"
+       b"\x00\x00\x04\x00tEXt" + b"c" * 1024 + b"\x00\x00\x00\x00"
+       b"\x00\x00\x00\x0cIDATx\x9cc\xf8\xff\xff?\x00\x05\xfe\x02\xfe\xa7\x9a\x8a\x10"
+       b"\x00\x00\x00\x00IEND\xaeB`\x82")
+
+
+class VisionTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.src = os.path.join(self.tmp, "Trip")
+        for i in range(5):
+            path = os.path.join(self.src, "photos", "beach day", "IMG_%d.png" % i)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "wb") as f:
+                f.write(PNG)
+
+        def reply(body):
+            content = body["messages"][-1]["content"]
+            if isinstance(content, list):  # an image request
+                self.images.append(content[1]["image_url"]["url"][:22])
+                return "Caption: People on a sandy beach.\nTags: beach, sea, Beach"
+            self.texts.append(content)
+            return dict(REPLY, folder_tags={})
+        self.images, self.texts = [], []
+        self.fake = FakeLLM(reply)
+
+    def tearDown(self):
+        self.fake.close()
+        shutil.rmtree(self.tmp)
+
+    def test_sampling(self):
+        from archivetool import describe, vision
+        picked = vision.sample(describe.folder_entries(self.src), per_folder=3)
+        self.assertEqual([e.path.rsplit("/", 1)[1] for e in picked["photos/beach day"]],
+                         ["IMG_0.png", "IMG_1.png", "IMG_3.png"])  # evenly spaced
+
+    def test_vision_is_local_only(self):
+        from archivetool import llm, vision
+        with self.assertRaises(llm.LLMError):
+            vision.VisionClient("http://203.0.113.5:11434/v1")
+
+    def test_parse_image_replies(self):
+        from archivetool import vision
+        self.assertEqual(vision.parse_image_reply("Caption: A dog on grass.\nTags: Dog, grass, dog, park."),
+                         {"caption": "A dog on grass.", "tags": ["dog", "grass", "park"]})
+        self.assertEqual(vision.parse_image_reply('{"caption": "A cat.", "tags": "cat; pet"}'),
+                         {"caption": "A cat.", "tags": ["cat", "pet"]})
+        self.assertEqual(vision.parse_image_reply("A dog on grass."), {"caption": "A dog on grass.", "tags": []})
+        empty = {"caption": "", "tags": []}
+        self.assertEqual(vision.parse_image_reply("{}"), empty)
+        self.assertEqual(vision.parse_image_reply("Caption: one short sentence\nTags: 3 to 6 short lowercase tags"), empty)
+
+    def test_describe_with_vision(self):
+        draft = os.path.join(self.tmp, "d.json")
+        code, _ = run_cli("describe", self.src, "--llm-url", self.fake.url, "--vision", "--vision-per-folder", "2",
+                          "--save", draft)
+        self.assertEqual(code, 0)
+        self.assertEqual(self.images, ["data:image/png;base64,"] * 2)
+        self.assertIn("People on a sandy beach.", self.texts[-1])  # the text model saw the captions
+        with open(draft, encoding="utf-8") as f:
+            d = json.load(f)
+        self.assertEqual(d["folder_tags"]["photos/beach day"], ["beach", "sea"])
+        self.assertIn("sandy beach", d["folder_captions"]["photos/beach day"])
+
+    @unittest.skipUnless(HAVE_IMAGE_TOOLS, "genisoimage and 7z required")
+    def test_captions_on_disc_and_searchable(self):
+        home = os.path.join(self.tmp, "home")
+        draft = os.path.join(self.tmp, "d.json")
+        run_cli("describe", self.src, "--llm-url", self.fake.url, "--vision", "--save", draft)
+        code, out = run_cli("--home", home, "make", "-y", "--no-ecc", "--draft", draft, "-o",
+                            os.path.join(self.tmp, "t.iso"), self.src)
+        self.assertEqual(code, 0, out)
+        disc_id = out.split("\t")[0]
+        info = catalog.read_tag_info(catalog.Home(home).disc_file("tags", disc_id))
+        self.assertEqual(info["photos/beach day"][0], ["beach", "sea"])
+        self.assertIn("sand", run_cli("--home", home, "find", "sandy")[1])  # caption search
 
 
 class GuiTest(unittest.TestCase):

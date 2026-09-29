@@ -17,7 +17,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import catalog, describe, index, llm, web
+from . import catalog, describe, index, llm, vision, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARCHIVE = os.path.join(os.path.dirname(HERE), "archive")
@@ -139,11 +139,20 @@ class App:
             entries = describe.folder_entries(src)
             inv = llm.inventory(entries, os.path.basename(src), text_root=src)
         answers = [(q, a) for q, a in body.get("answers") or [] if str(a).strip()]
+        seen = body.get("seen") or {}
         try:
+            if body.get("vision") and not seen and not body.get("disc_id"):
+                o = self.llm_options
+                vclient = vision.VisionClient(o.get("vision_url") or client.url,
+                                              o.get("vision_model") or client.resolve_model())
+                seen = vision.analyse(vclient, src, entries)
+            inv += vision.inventory_section(seen)
             result = llm.suggest(client, inv, answers=answers or None, previous=body.get("previous"),
                                  folders=llm.folders_of(entries))
         except llm.LLMError as err:
             return {"error": str(err)}
+        result = describe.with_vision(result, seen)
+        result["seen"] = seen  # sent back on refine so images are only analysed once
         result["agent"] = client.agent
         return result
 
@@ -154,7 +163,8 @@ class App:
         describe.save_draft(path, {
             "title": draft.get("title"), "description": draft.get("description"),
             "subjects": draft.get("subjects") or [], "notes": draft.get("notes") or [],
-            "folder_tags": draft.get("folder_tags") or {}}, draft.get("agent") or "llm")
+            "folder_tags": draft.get("folder_tags") or {},
+            "folder_captions": draft.get("folder_captions") or {}}, draft.get("agent") or "llm")
         return path
 
     def post_make(self, body):
@@ -282,7 +292,8 @@ def serve(home=None, port=0, open_browser=True, llm_options=None):
 
 
 def main(args):
-    llm_options = {"url": args.llm_url, "model": args.llm_model, "allow_remote": args.llm_allow_remote}
+    llm_options = {"url": args.llm_url, "model": args.llm_model, "allow_remote": args.llm_allow_remote,
+                   "vision_url": args.vision_url, "vision_model": args.vision_model}
     server, url = serve(args.home, args.port, not args.no_browser, llm_options)
     print("Archive GUI running at %s  (Ctrl+C to stop)" % url, flush=True)
     try:

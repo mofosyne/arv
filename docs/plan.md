@@ -133,10 +133,12 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
   field; Q&A answers become notes; accepted changes are PREMIS `metadata modification` events
   with agent `llm:<model> + owner review`.
 - Folder tags: `catalog/tags/<disc-id>.tags`, searched by `find`, the GUI and `search.html`.
-- Possible later: a vision model for image-content tags (sampled thumbnails). This sends file
-  contents, not just names, so it should stay opt-in, but with a local-only model (the
-  loopback rule already enforced) the images never leave the machine, which makes it
-  reasonably safe. Keep `--llm-allow-remote` off for it by default.
+- Images (done, `--vision`): sampled images and video frames go to a local vision model only
+  (loopback enforced, no override, since file contents leave the inventory-only design).
+  Captions feed the text model and are stored in the tags file (third column); searchable.
+  Tiny models (SmolVLM-500M) caption well but ignore output formats, so the prompt asks for
+  plain "Caption:/Tags:" lines, never JSON mode, and echoed instructions are discarded.
+- Possible later: per-file captions for all images (not just samples) as an overnight job.
 
 ## Separate track: standalone RS03 library
 

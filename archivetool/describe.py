@@ -9,7 +9,7 @@ import json
 import os
 import sys
 
-from . import bag, catalog, llm, web
+from . import bag, catalog, llm, vision, web
 
 
 def log(msg=""):
@@ -32,6 +32,10 @@ def show(suggestion):
         log("  Folder tags:")
         for folder, tags in sorted(suggestion["folder_tags"].items()):
             log("    %-40s %s" % (folder + "/", ", ".join(tags)))
+    if suggestion.get("folder_captions"):
+        log("  What sampled images show:")
+        for folder, caption in sorted(suggestion["folder_captions"].items()):
+            log("    %-40s %s" % (folder + "/", caption))
     log("")
 
 
@@ -66,6 +70,34 @@ def conversation(client, inventory_text, folders, rounds=2, max_questions=5):
     return suggestion, answers
 
 
+def look_at_images(args, client, root, entries):
+    """--vision: sample images under ``root`` with a local vision model. Returns results or {}."""
+    if not getattr(args, "vision", False):
+        return {}
+    if not root or not os.path.isdir(root):
+        raise SystemExit("Error: --vision needs the files: pass a folder, or --disc-root for a mounted disc")
+    vclient = vision.VisionClient(args.vision_url or client.url, args.vision_model or client.resolve_model())
+    log("Looking at sample images with %s (local only) ..." % vclient.resolve_model())
+    try:
+        results = vision.analyse(vclient, root, entries, args.vision_per_folder, args.vision_max,
+                                 progress=lambda m: print("\r" + m[:100].ljust(100), end="", file=sys.stderr))
+    except llm.LLMError as err:
+        raise SystemExit("\nError: %s" % err)
+    log("")
+    if not results:
+        log("No images that could be shown (install Pillow or ffmpeg for TIFF/HEIC/RAW and video).")
+    return results
+
+
+def with_vision(suggestion, results):
+    """Merge what the images showed into the suggestion shown for review."""
+    if results:
+        suggestion = dict(suggestion)
+        suggestion["folder_tags"] = vision.merge_tags(suggestion.get("folder_tags"), results)
+        suggestion["folder_captions"] = {f: r["caption"] for f, r in results.items() if r["caption"]}
+    return suggestion
+
+
 def review(suggestion, answers, current=None):
     """Let the owner accept or edit each field. Returns the draft dict."""
     current = current or {}
@@ -82,9 +114,11 @@ def review(suggestion, answers, current=None):
     description = pick("Description", suggestion["description"], current.get("description"))
     subjects = pick("Subjects", ", ".join(suggestion["subjects"]), ", ".join(current.get("subjects") or []))
     tags = suggestion.get("folder_tags") or {}
-    if tags and ask("Keep the %d folder tags? [Y/n] " % len(tags)).lower().startswith("n"):
-        tags = {}
+    captions = suggestion.get("folder_captions") or {}
+    if tags and ask("Keep the %d folder tags%s? [Y/n] " % (len(tags), " and image captions" if captions else "")).lower().startswith("n"):
+        tags, captions = {}, {}
     return {
+        "folder_captions": captions,
         "title": title,
         "description": description,
         "subjects": [s.strip().lower() for s in (subjects or "").split(",") if s.strip()],
@@ -114,6 +148,7 @@ def load_draft(path):
         "subjects": list(data.get("subjects") or []),
         "notes": list(data.get("notes") or []),
         "folder_tags": {k: list(v) for k, v in (data.get("folder_tags") or {}).items()},
+        "folder_captions": dict(data.get("folder_captions") or {}),
         "agent": data.get("agent") or "draft",
     }
 
@@ -171,10 +206,10 @@ def apply_to_disc(home, cat, disc, draft, agent):
         disc.add("Note", note)
     if draft.get("notes"):
         changed.append("Note")
-    if draft.get("folder_tags"):
+    if draft.get("folder_tags") or draft.get("folder_captions"):
         path = home.disc_file("tags", disc.get("Id"))
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        catalog.write_tags(path, draft["folder_tags"])
+        catalog.write_tags(path, draft.get("folder_tags") or {}, draft.get("folder_captions"))
         changed.append("folder tags")
     if changed:
         cat.events.append(catalog.new_event(
@@ -202,15 +237,19 @@ def run(args):
         entries = disc_entries(home, disc.get("Id"))
         text_root = os.path.join(args.disc_root, "data") if args.disc_root else None
         inv = llm.inventory(entries, disc.get("Id"), existing_metadata(disc), text_root=text_root)
+        image_root = text_root
         current = {"title": disc.get("Title"), "description": disc.get("Description"), "subjects": disc.get_all("Subject")}
     elif os.path.isdir(args.target):
         src = os.path.abspath(args.target)
         entries = folder_entries(src)
         inv = llm.inventory(entries, os.path.basename(src), text_root=src)
+        image_root = src
         current = {}
     else:
         raise SystemExit("Error: %s is neither a disc id in the catalogue nor a folder" % args.target)
 
+    seen = look_at_images(args, client, image_root, entries)
+    inv += vision.inventory_section(seen)
     if args.show_inventory:
         print(inv)
         return 0
@@ -224,6 +263,7 @@ def run(args):
             answers = []
     except llm.LLMError as err:
         raise SystemExit("Error: %s" % err)
+    suggestion = with_vision(suggestion, seen)
 
     if interactive:
         draft = review(suggestion, answers, current)
@@ -250,12 +290,13 @@ def make_draft(args, src, entries, interactive):
         raise SystemExit("Error: --llm needs an interactive terminal (or prepare a draft with "
                          "'archive describe <folder> --save draft.json' and pass --draft draft.json)")
     client = llm.Client(args.llm_url, args.llm_model, args.llm_allow_remote)
-    inv = llm.inventory(entries, os.path.basename(src), text_root=src)
+    seen = look_at_images(args, client, src, entries)
+    inv = llm.inventory(entries, os.path.basename(src), text_root=src) + vision.inventory_section(seen)
     try:
         suggestion, answers = conversation(client, inv, llm.folders_of(entries), args.llm_rounds, 5)
     except llm.LLMError as err:
         raise SystemExit("Error: %s" % err)
-    draft = review(suggestion, answers)
+    draft = review(with_vision(suggestion, seen), answers)
     draft["agent"] = client.agent
     return draft
 

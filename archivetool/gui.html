@@ -294,7 +294,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       output_dir: $("m-outdir").value, split: $("m-split").checked, ro_crate: $("m-rocrate").checked,
       no_defect_management: $("m-nodm").checked,
       draft: (makeLLM.agent || $("m-tags").value.trim()) ? {
-        notes: qaNotes(makeLLM), folder_tags: textToTags($("m-tags").value), agent: makeLLM.agent || "owner" } : null
+        notes: qaNotes(makeLLM), folder_tags: textToTags($("m-tags").value), folder_captions: makeLLM.captions || {},
+        agent: makeLLM.agent || "owner" } : null
     }, false, "/api/make");
   };
 
@@ -315,8 +316,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   }
   // A panel that asks the model, shows its questions with answer boxes, and refines.
   // target(): {source} or {disc_id}; fill(result) puts suggestions into editable fields.
-  function llmPanel(box, target, fill) {
-    var state = { previous: null, answers: [], agent: null };
+  function llmPanel(box, target, fill, options) {
+    var state = { previous: null, answers: [], agent: null, seen: null, captions: {} };
     box.textContent = "";
     if (!llmStatus || !llmStatus.available) {
       box.appendChild(el("p", { class: "muted", text: "Local LLM help (optional): not available" +
@@ -327,20 +328,34 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var status = el("span", { class: "muted", text: "Local LLM: " + llmStatus.model + " (suggestions only; you review everything)" });
     var go = el("button", { class: "plain", type: "button", text: "Suggest title, description and tags" });
     var qbox = el("div");
+    var visionBox = el("input", { type: "checkbox" });
     box.appendChild(el("div", { class: "inline" }, [status, go]));
+    if (options && options.vision) {
+      box.appendChild(el("div", { class: "checks" }, [el("label", {}, [visionBox,
+        document.createTextNode(" Also look at sample images with a local vision model (slower; images stay on this computer)")])]));
+    }
     box.appendChild(qbox);
     function ask(answers) {
       go.disabled = true; status.textContent = "Asking " + llmStatus.model + "\u2026 (can take a minute)";
-      var body = Object.assign({ answers: answers || [], previous: state.previous }, target());
+      var body = Object.assign({ answers: answers || [], previous: state.previous,
+                                 vision: visionBox.checked, seen: state.seen }, target());
+      if (visionBox.checked && !state.seen) status.textContent = "Looking at sample images, then asking " + llmStatus.model + "\u2026 (can take several minutes)";
       api("/api/llm/suggest", body).then(function (res) {
         go.disabled = false;
         if (res.error) { status.textContent = "LLM error: " + res.error; return; }
         state.previous = { title: res.title, description: res.description, subjects: res.subjects,
                            folder_tags: res.folder_tags, questions: res.questions };
         state.agent = res.agent;
+        state.seen = res.seen && Object.keys(res.seen).length ? res.seen : state.seen;
+        state.captions = res.folder_captions || {};
         status.textContent = "Suggested by " + llmStatus.model + ". Edit anything below; answers are kept as notes.";
         fill(res);
         qbox.textContent = "";
+        var caps = Object.keys(state.captions);
+        if (caps.length) {
+          qbox.appendChild(el("h2", { text: "What sampled images show" }));
+          caps.sort().forEach(function (f) { qbox.appendChild(el("div", { class: "note", text: f + "/: " + state.captions[f] })); });
+        }
         if (state.answers.length) {
           qbox.appendChild(el("h2", { text: "Your answers (saved as notes)" }));
           state.answers.forEach(function (p) { qbox.appendChild(el("div", { class: "note", text: "Q: " + p[0] + "\nA: " + p[1] })); });
@@ -372,7 +387,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     makeLLM = llmPanel($("m-llm"), function () { return { source: $("m-source").value }; }, function (r) {
       $("m-title").value = r.title; $("m-description").value = r.description;
       $("m-subject").value = r.subjects.join(", "); $("m-tags").value = tagsToText(r.folder_tags);
-    });
+    }, { vision: true });
   }
 
   function discLLM(box, d) {
@@ -396,7 +411,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       run({ command: "apply_draft", disc_id: d.Id, draft: {
         title: title.value, description: desc.value, agent: state.agent,
         subjects: subj.value.split(",").map(function (x) { return x.trim().toLowerCase(); }).filter(Boolean),
-        notes: qaNotes(state), folder_tags: textToTags(tags.value) } }, true);
+        notes: qaNotes(state), folder_tags: textToTags(tags.value), folder_captions: state.captions } }, true);
     };
     fields.appendChild(apply);
     box.appendChild(fields);
