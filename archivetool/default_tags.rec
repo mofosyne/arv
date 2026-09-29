@@ -1,0 +1,77 @@
+# Default tag vocabulary for `archive tag`.
+#
+# Copied to <home>/tags.rec on first use; edit that copy freely. Each tag's
+# Description is what the embedding model compares folders against, so write
+# it as the kinds of things such a folder contains. Several phrasings help.
+# Describe content, not the medium: words like "photos" or "files" make every
+# photo folder look alike.
+
+%rec: Tag
+%key: Name
+%mandatory: Name Description
+
+Name: family
+Description: family life: relatives, children, babies, parents, grandparents, family gatherings at home
+
+Name: travel
+Description: travel and holidays: trips, sightseeing, landmarks, temples, beaches, mountains, foreign cities and countries
+
+Name: celebration
+Description: celebrations and events: christmas, birthdays, weddings, anniversaries, parties, graduations
+
+Name: pets
+Description: pets and animals: cats, dogs, puppies, kittens, birds, horses
+
+Name: nature
+Description: nature and outdoors: landscapes, gardens, flowers, hiking, wildlife, sunsets
+
+Name: food
+Description: food, cooking, recipes, restaurants, meals, baking
+
+Name: vehicles
+Description: cars, motorbikes, bicycles, trains, planes and other vehicles
+
+Name: home
+Description: house and home: renovation, furniture, rooms, moving house, garden projects
+
+Name: people
+Description: friends and people: portraits, groups, gatherings, reunions
+
+Name: work
+Description: work and career: jobs, office, meetings, presentations, business documents
+
+Name: school
+Description: school and study: university, courses, homework, lecture notes, theses
+
+Name: code
+Description: software source code and programming projects, scripts, repositories
+
+Name: electronics
+Description: electronics and hardware projects: circuits, schematics, PCBs, firmware, microcontrollers
+
+Name: design
+Description: design and art files: drawings, CAD models, 3D printing, graphics, illustrations
+
+Name: music
+Description: music and audio: songs, recordings, albums, podcasts, sound files
+
+Name: video
+Description: video recordings, films, movies, home movies
+
+Name: documents
+Description: scanned documents and paperwork: letters, forms, manuals, receipts
+
+Name: legal
+Description: legal and identity documents: contracts, certificates, passports, wills, deeds
+
+Name: finance
+Description: money and finance: bank statements, taxes, invoices, insurance, payslips
+
+Name: health
+Description: health and medical records, prescriptions, test results
+
+Name: backup
+Description: backups and exports: phone backups, email archives, account exports, ISO files, zip archives
+
+Name: games
+Description: games and gaming: save files, mods, screenshots, game projects
