@@ -25,7 +25,7 @@ import subprocess
 import sys
 import tarfile
 
-from . import bag, catalog, describe, image, index, llm, make, media, models, recfile, tagger
+from . import bag, catalog, describe, discid, image, index, llm, make, media, models, recfile, tagger
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO_NAME = "bluray-archival-workflow"
@@ -195,9 +195,13 @@ def cmd_make(args):
         args.note = (args.note or []) + draft["notes"] or None
 
     default_title, default_set = folder_defaults(src)
+    try:
+        coverage = discid.to_edtf(args.coverage) if args.coverage else catalog.coverage_years(entries)
+    except discid.IdError as err:
+        raise SystemExit("Error: --coverage: %s (examples: 2019, 2015/2024, 2019-07/2019-08, 199X, 1995~)" % err)
     meta = {
         "set": make.sanitize_set(args.set or ask("Set name", default_set, interactive)),
-        "coverage": args.coverage or catalog.coverage_years(entries),
+        "coverage": coverage,
         "title": args.title or ask("Title", default_title, interactive),
         "description": args.description or ask("Description (optional)", None, interactive),
         "creator": args.creator or ask("Creator", os.environ.get("USER"), interactive),
@@ -237,9 +241,39 @@ def cmd_find(args):
 def cmd_list(args):
     cat = catalog.Home(args.home).load()
     for d in cat.discs:
+        if args.covers is not None:
+            span = discid.coverage_range(d.get("Coverage"))
+            if not span or not span[0] <= args.covers <= span[1]:
+                continue
         print("%s\t%s\t%s\t%s files\t%s" % (d.get("Id"), d.get("Date"), d.get("Title"),
                                            d.get("Files"), d.get("Location", "")))
     return 0
+
+
+def cmd_id(args):
+    """Explain a disc id: its parts, whether the check character is right, and what it matches."""
+    cat = catalog.Home(args.home).load()
+    parsed = discid.parse(args.disc_id)
+    if not parsed:
+        print("%s: not a disc id of a known scheme" % args.disc_id)
+        return 1
+    print("scheme:    %s" % parsed["scheme"])
+    print("set:       %s" % parsed["set"])
+    print("sequence:  %d" % parsed["sequence"])
+    print("coverage:  %s" % parsed["coverage"])
+    if parsed["check"]:
+        print("check:     %s (%s)" % (parsed["check"], "correct" if parsed["valid"] else "WRONG: probably a typo"))
+    disc = cat.disc(args.disc_id.strip().upper()) or cat.disc(args.disc_id.strip())
+    if disc:
+        print("disc:      %s [%s]" % (disc.get("Title"), disc.get("Location", "location not recorded")))
+        again = discid.regenerate(disc)
+        if again is not None:
+            print("fields:    %s" % ("regenerate this id" if again == disc.get("Id") else
+                                     "regenerate %s (the record and the id disagree)" % again))
+    else:
+        close = discid.suggest(args.disc_id, [d.get("Id") for d in cat.discs])
+        print("disc:      not in the catalogue" + (" - did you mean %s?" % ", ".join(close) if close else ""))
+    return 0 if parsed["valid"] else 1
 
 
 def _edit_disc(args, fn):
@@ -414,8 +448,10 @@ def build_parser():
     m.add_argument("-o", "--output", help="image path for a single disc (default: <disc-id>.iso)")
     m.add_argument("--output-dir", help="directory for the images (default: current directory)")
     m.add_argument("--id", help="disc id for a single disc (default: <coverage>_<SET>_<nn>)")
-    m.add_argument("--set", help="set name, e.g. PHOTOS")
-    m.add_argument("--coverage", help="year range (default: from file modification times)")
+    m.add_argument("--set", help="set code, 2-8 letters or digits, e.g. PHOTOS")
+    m.add_argument("--coverage",
+                   help="dates the contents span, in EDTF: 2019, 2015/2024, 2019-07/2019-08, 199X, 1995~ "
+                        "(default: from file modification times)")
     m.add_argument("--title")
     m.add_argument("--description")
     m.add_argument("--creator")
@@ -464,7 +500,12 @@ def build_parser():
     f.set_defaults(func=cmd_find)
 
     ls = sub.add_parser("list", help="list discs")
+    ls.add_argument("--covers", type=int, metavar="YEAR", help="only discs whose coverage includes this year")
     ls.set_defaults(func=cmd_list)
+
+    di = sub.add_parser("id", help="explain and check a disc id (catches typos)")
+    di.add_argument("disc_id")
+    di.set_defaults(func=cmd_id)
 
     n = sub.add_parser("note", help="add a note to a disc")
     n.add_argument("disc_id")

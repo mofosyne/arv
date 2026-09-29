@@ -66,7 +66,8 @@ and `dvdisaster` (use the [speed47 fork](https://github.com/speed47/dvdisaster) 
 ./archive make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
 ./archive make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03
 ./archive find IMG_2019            # which disc holds it, and where the disc is
-./archive list
+./archive list --covers 2019          # discs whose contents include 2019
+./archive id PHOTOS-07_2015-2024_Q   # explain / check an id (catches typos)
 ./archive note 2020-2025_PROJECTS_01 "Only copy of the 2019 PCB gerbers"
 ./archive locate 2020-2025_PROJECTS_01 "Offsite: parents' house"
 ./archive burned 2020-2025_PROJECTS_01 --copies 2      # after burning the ISO yourself
@@ -99,7 +100,10 @@ searches this disc and every disc in its catalogue snapshot (all offline, from
   `data/ro-crate-metadata.json` (RO-Crate 1.2, passes the validator's required checks).
 - The source folder is never modified: tag files are staged separately and the
   folder is grafted into the image as `data/`.
-- Disc ids are `<year range of file mtimes>_<SET>_<nn>` and are used as the volume label.
+- Disc ids look like `PHOTOS-07_2015-2024_Q`: set, number, coverage and a check character
+  that catches typos. They are derived from the record's `Set`, `Sequence` and `Coverage`
+  (EDTF: `2019`, `2015/2024`, `199X`, `1995~`) and used as the volume label. `archive id <ID>`
+  explains and checks one; `archive list --covers 2019` finds discs by year. Older ids stay valid.
 - The home catalogue lives in `$BLURAY_ARCHIVE_HOME` (default
   `~/.local/share/bluray-archive`): `archive.rec` plus `manifests/<disc-id>.sha256`.
 - Each disc carries a snapshot of the committed `HEAD` of this repo (not its history;
