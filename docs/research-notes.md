@@ -146,3 +146,48 @@ Sha256: 9f86d0...
 - [Universal Disk Format, Wikipedia](https://en.wikipedia.org/wiki/Universal_Disk_Format)
 - [speed47/dvdisaster](https://github.com/speed47/dvdisaster), [CHANGELOG](https://github.com/speed47/dvdisaster/blob/master/CHANGELOG)
 - RFC 8493, The BagIt File Packaging Format (V1.0)
+
+## 5. Small models for tagging: embeddings vs. SemIf-style decisions (2026-09-29)
+
+Question: can a small (ideally sub-100 MB) local model tag folders reliably from
+a fixed tag list? Tested on 8 folders (names, file names, README text and, for
+three opaquely named folders, image captions) against 11 tags, on 4 CPU cores
+with llama.cpp `llama-server`.
+
+**SemIf** ([openjev.com](https://openjev.com/), formerly OpenJev,
+[TheoLeeCJ/SemIf-OpenJev](https://github.com/TheoLeeCJ/SemIf-OpenJev), MIT) is an
+open take on TypeSafe's hosted Jev: ask a question with lettered options, run
+one forward pass, and read the option letters' probabilities (softmax over
+their logits) instead of generating JSON. It cannot produce malformed output
+and is several times faster than generation. The reference results use
+Qwen3.5-4B (balanced accuracy 0.813). The browser demo runs Qwen3-0.6B /
+MiniCPM5-2B / Qwen3.5-4B through wllama (llama.cpp in WebAssembly), which needs
+an HTTP origin and so cannot run from a disc's `file://` pages.
+llama.cpp's OpenAI endpoint exposes the needed `logprobs` / `top_logprobs`, so
+the technique works with this project's existing standard-library client.
+
+| Model | Method | File size | Top tag correct | Time per folder |
+|---|---|---|---|---|
+| SmolLM2-135M-Instruct Q4_K_M | JSON generation | 105 MB | failed (invalid output) | ~2 min |
+| SmolLM2-135M-Instruct Q4_K_M | SemIf readout | 105 MB | ~chance (letter bias) | 0.3 s |
+| **bge-small-en-v1.5 Q8** | **embedding similarity** | **37 MB** | **7/8** (Christmas -> travel) | ~0.02 s |
+| Qwen3-0.6B Q4_K_M (thinking off) | SemIf readout | 397 MB | 5/8 | 0.8 s |
+| **Qwen2.5-1.5B-Instruct Q4_K_M** | **SemIf readout** | **1.1 GB** | **8/8** | 1.5 s |
+
+Findings:
+- Sub-100 MB *generative* models are not usable here, even with forced choice.
+- A 37 MB *embedding* model is the best small option: good enough to suggest
+  tags from a fixed vocabulary for review. Its scores are close together
+  (the top 3 are often within 0.1), so rank rather than threshold.
+- SemIf-style readout with a ~1.5B model was the most accurate, but its raw
+  probabilities are over-confident (mostly 1.00); SemIf itself applies
+  per-workload temperature scaling for calibration.
+- For multi-label tagging, SemIf's single choice gives a ranking; per-tag
+  yes/no decisions would give independent labels at N passes per folder.
+
+Implications: a fixed, editable tag vocabulary (consistent across discs) scored
+by embeddings by default, with optional SemIf-style readout when a >= 1.5B model
+is available; both over OpenAI-compatible HTTP (`/v1/embeddings`,
+`/v1/chat/completions` with `logprobs`). Model weights stay out of the repo (a
+pinned download or `--extra-tools` per disc), because every disc carries the
+repo's full git history.
