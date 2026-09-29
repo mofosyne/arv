@@ -8,14 +8,13 @@ catalogue of the whole batch. Sizes are checked exactly with
 """
 
 import os
-import re
 import shutil
 import sys
 import tempfile
 import uuid
 from dataclasses import dataclass, field
 
-from . import bag, catalog, formats, html, image, index, media, recfile, rocrate, web
+from . import bag, catalog, discid, formats, html, image, index, media, recfile, rocrate, web
 
 FILESYSTEM = "ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge"
 
@@ -31,6 +30,7 @@ class Plan:
     record: recfile.Record = None
     part: int = 1
     parts: int = 1
+    sequence: int = 1
     out: str = ""
     stage: str = ""
     sectors: int = 0
@@ -123,7 +123,10 @@ class Maker:
         first = self.cat.next_number(meta["set"])
         self.plans = []
         for i, entries in enumerate(bins):
-            disc_id = self.args.id or catalog.make_disc_id(meta["coverage"], meta["set"], first + i)
+            try:
+                disc_id = self.args.id or discid.compose(meta["set"], first + i, meta["coverage"])
+            except discid.IdError as err:
+                raise SystemExit("Error: %s" % err)
             if not catalog.ID_RE.match(disc_id) or len(disc_id) > image.MAX_VOLID_LEN:
                 raise SystemExit("Error: invalid disc id %r (letters, digits, _ . -; at most %d characters)"
                                  % (disc_id, image.MAX_VOLID_LEN))
@@ -135,7 +138,7 @@ class Maker:
                 out = os.path.join(os.path.abspath(self.args.output_dir or "."), disc_id + ".iso")
             if os.path.exists(out):
                 raise SystemExit("Error: %s already exists" % out)
-            plan = Plan(entries=entries, disc_id=disc_id, part=i + 1, parts=n, out=out)
+            plan = Plan(entries=entries, disc_id=disc_id, part=i + 1, parts=n, out=out, sequence=first + i)
             plan.record = self.disc_record(plan)
             plan.events = [catalog.new_event(disc_id, "message digest calculation", "success", self.version,
                                              "sha256 and sha512 manifests of %d files" % len(entries))]
@@ -162,14 +165,17 @@ class Maker:
     def group_id(self):
         if len(self.plans) < 2:
             return None
-        return "%s-%02d" % (self.plans[0].disc_id, int(self.plans[-1].disc_id.rsplit("_", 1)[1]))
+        return "%s-%02d-%02d" % (self.meta["set"], self.plans[0].sequence, self.plans[-1].sequence)
 
     def disc_record(self, plan):
         m, a = self.meta, self.args
         # Uuid: machine identity of this image (copies burned from it share it); Id is for humans
-        r = recfile.Record("Disc", [("Id", plan.disc_id), ("Uuid", str(uuid.uuid4())),
-                                    ("Title", m["title"]), ("Set", m["set"]),
-                                    ("Coverage", m["coverage"]), ("Date", catalog.today())])
+        # Id is derived from IdScheme + Set + Sequence + Coverage, so it can be regenerated and checked
+        r = recfile.Record("Disc", [("Id", plan.disc_id), ("Uuid", str(uuid.uuid4()))])
+        if not a.id:
+            r.add("IdScheme", discid.SCHEME)
+        r.fields += [("Title", m["title"]), ("Set", m["set"]), ("Sequence", str(plan.sequence)),
+                     ("Coverage", m["coverage"]), ("Date", catalog.today())]
         if plan.parts > 1:
             r.add("Part", "%d of %d" % (plan.part, plan.parts))
         for key in ("creator", "description"):
@@ -417,4 +423,8 @@ class Maker:
 
 
 def sanitize_set(name):
-    return re.sub(r"[^A-Za-z0-9-]", "", name or "").upper() or "ARCHIVE"
+    """Set code for ids: 2-8 capital letters or digits (longer names are shortened)."""
+    try:
+        return discid.normalise_set(name)
+    except discid.IdError:
+        return "ARCHIVE"

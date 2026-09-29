@@ -90,9 +90,11 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 
 | Field | Meaning | Notes |
 |---|---|---|
-| `Id` | Human disc id, e.g. `2020-2025_PROJECTS_01` | Also the volume label; written on the disc |
+| `Id` | Human disc id, e.g. `PHOTOS-07_2015-2024_Q` | Also the volume label; written on the disc. **Derived**, see [Disc ids](#disc-ids) |
+| `IdScheme` | Which rule built `Id` | `set-seq-coverage/1`; absent for older discs |
 | `Uuid` | Machine identity (UUID v4) of this image | Copies burned from one image share it |
-| `Title`, `Description`, `Creator`, `Subject`*, `Coverage`, `Rights` | Dublin Core description | `Subject` repeats; `Coverage` is a year or year range |
+| `Set`, `Sequence` | Set code and number within the set | `Sequence` is never reused within a set |
+| `Title`, `Description`, `Creator`, `Subject`*, `Coverage`, `Rights` | Dublin Core description | `Subject` repeats; `Coverage` is [EDTF](#coverage-edtf) |
 | `Date` | Date the image was made | `YYYY-MM-DD` |
 | `Set`, `Part` | Set name and `n of N` for multi-disc sets | |
 | `Location` | Where the disc is kept | Free text; may be updated later at home |
@@ -101,6 +103,57 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 | `Files`, `Bytes` | Payload totals | integers |
 | `Copies`, `MediaId` | Burned copies and drive-reported media ids | home catalogue only |
 | `Software` | Tool and commit that made the disc | |
+
+### Disc ids
+
+The id is a **readable label derived from record fields**, never the only copy
+of that information: software regenerates it from `IdScheme`, `Set`,
+`Sequence` and `Coverage` and can check it matches.
+
+Scheme `set-seq-coverage/1`:
+
+```
+ID       = SET "-" SEQ "_" COVERAGE "_" CHECK
+SET      = 2-8 capital letters or digits           PHOTOS
+SEQ      = 2-3 digits, per set, never reused        07
+COVERAGE = compact form of the EDTF Coverage        2015-2024 | 2019 | 201907-201908 | 199X
+CHECK    = Luhn mod 36 check character              Q
+```
+
+Examples: `PHOTOS-07_2015-2024_Q`, `TAXES-01_2019_M`, `SCANS-02_199X_K`,
+`TRIP-01_201907-201908_P`.
+
+- **Set and number first:** Joliet keeps only 16 characters of the volume label
+  (`PHOTOS-07_2015-2`), ISO 9660 and UDF keep 32, so the identifying part comes
+  first. Sorting by id also groups a set.
+- **Compact coverage:** EDTF intervals `a/b` become `a-b`, months drop their
+  dash (`2019-07` → `201907`), qualifiers (`~ ? %`) are dropped. Open intervals
+  cannot be used in an id.
+- **Check character:** Luhn mod N (N = 36, alphabet `0-9A-Z`) over the letters
+  and digits of `SET SEQ COVERAGE`, computed right to left with alternate
+  doubling. It catches every single wrong character and every swap of two
+  neighbouring characters, which are the usual mistakes when copying an id
+  hand-written on a disc. Readers should suggest the closest known id.
+- **Older ids** (`2020-2025_PROJECTS_01`, scheme `coverage-set-seq/0`, no
+  `IdScheme` field) stay valid; ids written on physical discs never change.
+
+### Coverage (EDTF)
+
+`Coverage` uses the Library of Congress
+[Extended Date/Time Format](https://www.loc.gov/standards/datetime/) (ISO 8601-2),
+which can express the uncertainty common in personal archives:
+
+| Value | Meaning |
+|---|---|
+| `2019` | the year 2019 |
+| `2015/2024` | 2015 to 2024 |
+| `2019-07/2019-08` | July to August 2019 |
+| `199X` | some time in the 1990s |
+| `1995~` | about 1995 |
+| `[1998,1999]` | 1998 or 1999 |
+
+Readers can turn this into a year range and answer "which discs cover 2019?"
+without reading any listings.
 
 ### `Event` records (recfile)
 

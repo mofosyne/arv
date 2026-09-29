@@ -21,6 +21,12 @@ from archivetool import bag, catalog, cli, image, make, media, recfile  # noqa: 
 
 HAVE_IMAGE_TOOLS = all(shutil.which(t) for t in ("genisoimage", "7z"))
 
+from archivetool import discid  # noqa: E402
+
+PROJECTS_01 = discid.compose("PROJECTS", 1, "2020/2025")
+PHOTOS_01 = discid.compose("PHOTOS", 1, "2023")
+PHOTOS_02 = discid.compose("PHOTOS", 2, "2023")
+
 
 def run_cli(*argv):
     out = io.StringIO()
@@ -81,7 +87,53 @@ class BagTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             write(os.path.join(d, "a"), "x", 2019)
             write(os.path.join(d, "b"), "x", 2021)
-            self.assertEqual(catalog.coverage_years(bag.scan_payload(d, progress=False)), "2019-2021")
+            self.assertEqual(catalog.coverage_years(bag.scan_payload(d, progress=False)), "2019/2021")
+
+
+class DiscIdTest(unittest.TestCase):
+    def test_compose_and_parse(self):
+        disc_id = discid.compose("photos", 7, "2015/2024")
+        self.assertTrue(disc_id.startswith("PHOTOS-07_2015-2024_"))
+        self.assertEqual(disc_id[:16], "PHOTOS-07_2015-2")  # the Joliet label still identifies the disc
+        p = discid.parse(disc_id)
+        self.assertEqual((p["set"], p["sequence"], p["coverage"], p["valid"]), ("PHOTOS", 7, "2015-2024", True))
+
+    def test_every_single_typo_and_neighbour_swap_is_caught(self):
+        disc_id = discid.compose("PHOTOS", 7, "2015/2024")
+        body = disc_id[:-2]
+        for i, ch in enumerate(body):
+            if ch in "-_":
+                continue
+            for r in discid.ALPHABET:
+                if r != ch:
+                    typo = disc_id[:i] + r + disc_id[i + 1:]
+                    self.assertFalse((discid.parse(typo) or {"valid": False})["valid"], typo)
+            if i + 1 < len(body) and body[i + 1] not in "-_" and body[i + 1] != ch:
+                swap = disc_id[:i] + body[i + 1] + ch + disc_id[i + 2:]
+                self.assertFalse((discid.parse(swap) or {"valid": False})["valid"], swap)
+
+    def test_edtf_coverage(self):
+        cases = {"2019": (2019, 2019), "2015/2024": (2015, 2024), "2019-07/2019-08": (2019, 2019),
+                 "199X": (1990, 1999), "1995~": (1995, 1995), "[1998,1999]": (1998, 1999),
+                 "2020-2025": (2020, 2025)}  # the last is a legacy year range
+        for text, span in cases.items():
+            self.assertEqual(discid.coverage_range(text), span, text)
+        self.assertEqual(discid.compact("2019-07/2019-08"), "201907-201908")
+        self.assertEqual(discid.to_edtf("2015-2024"), "2015/2024")
+        with self.assertRaises(discid.IdError):
+            discid.to_edtf("sometime")
+
+    def test_legacy_ids_still_parse(self):
+        p = discid.parse("2020-2025_PROJECTS_01")
+        self.assertEqual((p["scheme"], p["set"], p["sequence"]), (discid.LEGACY_SCHEME, "PROJECTS", 1))
+
+    def test_regenerate_from_fields_and_suggest(self):
+        disc_id = discid.compose("TAXES", 3, "2019")
+        record = recfile.Record("Disc", [("Id", disc_id), ("IdScheme", discid.SCHEME), ("Set", "TAXES"),
+                                         ("Sequence", "3"), ("Coverage", "2019")])
+        self.assertEqual(discid.regenerate(record), disc_id)
+        typo = disc_id[:-1] + ("0" if disc_id[-1] != "0" else "1")
+        self.assertEqual(discid.suggest(typo, [disc_id, discid.compose("TAXES", 4, "2020")]), [disc_id])
 
 
 class MediaTest(unittest.TestCase):
@@ -189,7 +241,7 @@ class MakeTest(unittest.TestCase):
 
     def test_full_disc(self):
         disc_id, disc = self.make(self.projects, "--location", "Shelf A", "--note", "first")
-        self.assertEqual(disc_id, "2020-2025_PROJECTS_01")
+        self.assertEqual(disc_id, PROJECTS_01)
         self.validate(disc)
         subprocess.run(["sha256sum", "-c", "--quiet", "manifest-sha256.txt"], cwd=disc, check=True)
         for name in ("index.html", "README.txt", "catalog.rec", "catalog/archive.rec",
@@ -218,16 +270,16 @@ class MakeTest(unittest.TestCase):
         self.make(self.projects)
         _, photos_set = self.make(self.photos, "--set", "PHOTOS", "--snapshot", "set")
         _, photos_full = self.make(self.photos, "--set", "PHOTOS")
-        self.assertEqual(os.listdir(os.path.join(photos_set, "catalog", "manifests")), ["2023_PHOTOS_01.sha256"])
+        self.assertEqual(os.listdir(os.path.join(photos_set, "catalog", "manifests")), [PHOTOS_01 + ".sha256"])
         self.assertEqual(sorted(os.listdir(os.path.join(photos_full, "catalog", "manifests"))),
-                         ["2020-2025_PROJECTS_01.sha256", "2023_PHOTOS_01.sha256", "2023_PHOTOS_02.sha256"])
+                         sorted([PROJECTS_01 + ".sha256", PHOTOS_01 + ".sha256", PHOTOS_02 + ".sha256"]))
         self.validate(photos_full)
         with open(os.path.join(photos_full, "index.html"), encoding="utf-8") as f:
-            self.assertIn("2020-2025_PROJECTS_01", f.read())
+            self.assertIn(PROJECTS_01, f.read())
 
         code, out = run_cli("--home", self.home, "find", "ünï")
         self.assertEqual(code, 0)
-        self.assertIn("2020-2025_PROJECTS_01", out)
+        self.assertIn(PROJECTS_01, out)
         code, out = run_cli("--home", self.home, "find", "*.jpg")
         self.assertEqual(out.count("IMG_0001.JPG"), 2)
         self.assertEqual(run_cli("--home", self.home, "find", "nothing-matches")[0], 1)
@@ -245,6 +297,25 @@ class MakeTest(unittest.TestCase):
         self.make(self.photos)
         self.assertEqual(sorted(os.listdir(self.photos)), before)
 
+    def test_id_fields_commands_and_covers(self):
+        disc_id, _ = self.make(self.projects, "--coverage", "2015-2024")  # legacy range input is accepted
+        disc = catalog.Home(self.home).load().disc(disc_id)
+        self.assertEqual((disc.get("IdScheme"), disc.get("Set"), disc.get("Sequence"), disc.get("Coverage")),
+                         (discid.SCHEME, "PROJECTS", "1", "2015/2024"))
+        self.assertEqual(discid.regenerate(disc), disc_id)
+        code, out = run_cli("--home", self.home, "id", disc_id)
+        self.assertEqual(code, 0)
+        self.assertIn("regenerate this id", out)
+        typo = disc_id[:-1] + ("0" if disc_id[-1] != "0" else "1")
+        code, out = run_cli("--home", self.home, "id", typo)
+        self.assertEqual(code, 1)
+        self.assertIn("did you mean %s" % disc_id, out)
+        self.assertIn(disc_id, run_cli("--home", self.home, "list", "--covers", "2019")[1])
+        self.assertNotIn(disc_id, run_cli("--home", self.home, "list", "--covers", "2030")[1])
+        photos_id, _ = self.make(self.photos, "--set", "PHOTOS")
+        self.assertEqual(photos_id, PHOTOS_01)  # sequences are per set
+        self.assertEqual(catalog.Home(self.home).load().next_number("PROJECTS"), 2)
+
     def test_tools_snapshot_without_history_by_default(self):
         _, disc = self.make(self.photos, "--set", "PHOTOS")
         tools = os.listdir(os.path.join(disc, "tools"))
@@ -260,9 +331,9 @@ class MakeTest(unittest.TestCase):
         self.make(self.projects)
         disc_id, disc = self.make(self.photos, "--set", "PHOTOS")
         for name in ("search.html", "catalog/web/discs.js", "catalog/web/files/%s.js" % disc_id,
-                     "catalog/web/files/2020-2025_PROJECTS_01.js", "catalog/listings/%s.tsv" % disc_id):
+                     "catalog/web/files/%s.js" % PROJECTS_01, "catalog/listings/%s.tsv" % disc_id):
             self.assertTrue(os.path.exists(os.path.join(disc, name)), name)
-        with open(os.path.join(disc, "catalog/web/files/2020-2025_PROJECTS_01.js"), encoding="utf-8") as f:
+        with open(os.path.join(disc, "catalog/web/files/%s.js" % PROJECTS_01), encoding="utf-8") as f:
             self.assertIn("100% ünïcode.txt", f.read())
         with open(os.path.join(disc, "search.html"), encoding="utf-8") as f:
             self.assertIn('<script src="catalog/web/discs.js">', f.read())
@@ -304,7 +375,7 @@ class MakeTest(unittest.TestCase):
         self.assertEqual(code, 0, out)
         rebuilt = catalog.Home(fresh).load()
         self.assertEqual([d.get("Id") for d in rebuilt.discs], [d.get("Id") for d in original.discs])
-        self.assertEqual(rebuilt.disc("2020-2025_PROJECTS_01").get("Location"), "Shelf A")
+        self.assertEqual(rebuilt.disc(PROJECTS_01).get("Location"), "Shelf A")
         self.assertEqual(run_cli("--home", fresh, "find", "ünï"), run_cli("--home", self.home, "find", "ünï"))
         # merging the same disc again changes nothing
         self.assertIn("Added 0 disc(s), updated 0, 0 new event(s), 0 file list(s)",

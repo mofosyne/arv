@@ -28,10 +28,13 @@ DESCRIPTORS = [
             ("%doc", "One record per physical disc image (an OAIS AIP). Field names follow\n"
                      "Dublin Core terms where one fits: Title, Creator, Date, Description,\n"
                      "Subject, Coverage, Rights. Uuid is the machine identity of the image\n"
-                     "(copies burned from one image share it); Id is for people."),
+                     "(copies burned from one image share it); Id is for people and is\n"
+                     "derived from Set, Sequence and Coverage (EDTF) under IdScheme, so it\n"
+                     "can always be regenerated and checked (see docs/smart-archive-format.md)."),
             ("%key", "Id"),
             ("%mandatory", "Id Title Date"),
             ("%type", "Uuid uuid"),
+            ("%type", "Sequence int"),
             ("%type", "Date date"),
             ("%type", "Files int"),
             ("%type", "Bytes int"),
@@ -73,16 +76,12 @@ def today():
 
 
 def coverage_years(entries):
-    """Year range of the payload's modification times, e.g. '2020-2025' or '2023'."""
+    """Year range of the payload's modification times as EDTF: '2020/2025' or '2023'."""
     if not entries:
         return str(datetime.date.today().year)
     years = [datetime.date.fromtimestamp(e.mtime).year for e in entries]
     lo, hi = min(years), max(years)
-    return str(lo) if lo == hi else "%d-%d" % (lo, hi)
-
-
-def make_disc_id(coverage, set_name, number):
-    return "%s_%s_%02d" % (coverage, set_name, number)
+    return str(lo) if lo == hi else "%d/%d" % (lo, hi)
 
 
 class Catalog:
@@ -112,12 +111,17 @@ class Catalog:
         return [e for e in self.events if e.get("Disc") == disc_id]
 
     def next_number(self, set_name):
+        """Next unused sequence number in a set (numbers are never reused)."""
+        from . import discid
         numbers = [0]
         for d in self.discs:
             if d.get("Set") == set_name:
-                m = re.search(r"_(\d+)$", d.get("Id", ""))
-                if m:
-                    numbers.append(int(m.group(1)))
+                if (d.get("Sequence") or "").isdigit():
+                    numbers.append(int(d.get("Sequence")))
+                else:
+                    parsed = discid.parse(d.get("Id", ""))
+                    if parsed:
+                        numbers.append(parsed["sequence"])
         return max(numbers) + 1
 
     def subset(self, disc_ids):
