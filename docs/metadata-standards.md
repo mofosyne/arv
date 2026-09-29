@@ -199,10 +199,35 @@ bagit.txt  bag-info.txt  manifest-*.txt  tagmanifest-*.txt   BagIt: fixity
 catalog.rec                                                   Dublin Core-style description + events at burn time
 formats.yaml                                                  Siegfried/PRONOM format IDs (optional)
 ro-crate-metadata.json  ro-crate-preview.html                 generated, machine-readable (optional)
+catalog/                                                      cumulative catalogue snapshot of all earlier discs
 README.txt                                                    plain-English recovery instructions
 data/                                                         payload (embedded EXIF/XMP untouched)
 [dvdisaster RS03 ECC after the filesystem]
 ```
+
+### Cumulative catalogue snapshot on every disc
+
+Each disc also carries a snapshot of the **whole** catalogue as it stood at
+burn time, so the newest disc indexes every earlier disc. Losing the home
+machine then only means inserting the latest disc, with no re-scanning. Tape
+backup systems do the same with their catalogues (e.g. Bacula, Amanda).
+
+```
+catalog/                         BagIt tag directory (covered by tagmanifest)
+  archive.rec                    all Disc / Copy / Event records at burn time
+  manifests/<disc-id>.sha256     per-file lists of every earlier disc
+  archive.sqlite                 optional convenience copy of the search index
+```
+
+- Header fields `Snapshot-Date`, `Includes-Up-To: <disc-id>` and
+  `Previous-Snapshot-Sha256` (a hash chain that detects a missing or altered disc).
+- Rebuild: take the newest disc's snapshot, add the own `catalog.rec` of any
+  discs burned after it, and let the newest date win for notes and events.
+- Size is negligible (~150 MB of text per million files).
+- The snapshot is frozen at burn time. The home `archive.rec` stays
+  authoritative for notes and checks added later.
+- Privacy: each disc reveals the listing of everything before it. Add a
+  per-disc option to omit or limit the snapshot for discs given to other people.
 
 Events that happen *after* burning (later fixity checks, re-burns) can only
 live in the master `archive.rec` at home, because the disc is write-once.

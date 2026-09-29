@@ -14,6 +14,7 @@ using only open, well-documented formats.
 ├── manifest-sha512.txt
 ├── tagmanifest-sha256.txt   checksums of the files above + catalog.rec
 ├── catalog.rec              GNU recutils catalogue for this disc   (planned)
+├── catalog/                 snapshot of the whole archive catalogue at burn time (planned)
 ├── README.txt               plain-text recovery instructions      (planned)
 └── data/                    the payload
 [ dvdisaster RS03 ECC data appended after the filesystem ]
@@ -73,6 +74,8 @@ For BD-sized images, use the multithreaded
 - [ ] Generate `catalog.rec` per disc (Dublin Core-named `Disc` fields, PREMIS-typed `Event` records), and merge into a master `archive.rec`
 - [ ] Generate `archive.sqlite` search index from the manifests + recfiles (recutils is too slow for per-file records)
 - [ ] Optional: PRONOM format IDs via Siegfried (`formats.yaml`) and a generated RO-Crate (`ro-crate-metadata.json`)
+- [ ] Cumulative catalogue snapshot (`catalog/`) on every disc so the newest disc indexes all earlier ones; opt-out for discs given away
+- [ ] Physical `Location` / `Copy` records and short disc IDs for retrieval
 - [ ] Multi-disc splitting for sets larger than one disc (`Bag-Count: n of N`)
 - [ ] `README.txt` + dvdisaster sources/binaries on each disc for self-contained recovery
 - [ ] Target medium size / `--no-bdr-defect-management` options for RS03
