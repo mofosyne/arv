@@ -36,6 +36,8 @@ Each layer does its own job:
 | `scripts/create-archive-udf.sh` | Experimental. UDF 2.01 image via `mkudffs` + loop mount (needs sudo), then RS03 augment |
 | `tests/smoke-test.sh` | End-to-end check: bag → image → ECC → damage → repair → validate bag |
 
+`docs/plan.md` has the disc layout, phased plan and open decisions.
+
 `docs/metadata-standards.md` surveys archival metadata standards (Dublin Core,
 PREMIS, METS, E-ARK, RO-Crate, OCFL, NDSA Levels...) and existing disc-cataloguing
 software, and proposes this project's metadata profile.
