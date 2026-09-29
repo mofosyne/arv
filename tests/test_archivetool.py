@@ -333,5 +333,77 @@ class MakeTest(unittest.TestCase):
         self.assertEqual(len([e for e in catalog.Home(self.home).load().events if e.get("Type") == "fixity check"]), 2)
 
 
+class GuiTest(unittest.TestCase):
+    def setUp(self):
+        import threading
+        from archivetool import gui
+        self.tmp = tempfile.mkdtemp()
+        self.home = os.path.join(self.tmp, "home")
+        self.server, self.url = gui.serve(self.home, 0, open_browser=False)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        self.base = self.url.split("?")[0].rstrip("/")
+        self.token = self.server.app.token
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        shutil.rmtree(self.tmp)
+
+    def request(self, path, body=None, token=True, host=None):
+        import urllib.error
+        import urllib.request
+        headers = {"X-Archive-Token": self.token} if token else {}
+        if host:
+            headers["Host"] = host
+        data = None
+        if body is not None:
+            data = json.dumps(body).encode()
+            headers["Content-Type"] = "application/json"
+        try:
+            with urllib.request.urlopen(urllib.request.Request(self.base + path, data=data, headers=headers)) as r:
+                return r.status, r.read().decode()
+        except urllib.error.HTTPError as e:
+            return e.code, e.read().decode()
+
+    def wait(self, job):
+        import time
+        for _ in range(600):
+            status, body = self.request("/api/job?id=%s" % job["id"])
+            j = json.loads(body)
+            if j["done"]:
+                return j
+            time.sleep(0.2)
+        self.fail("job did not finish")
+
+    def test_access_control(self):
+        self.assertEqual(self.request("/api/discs", token=False)[0], 403)
+        self.assertEqual(self.request("/?t=wrong", token=False)[0], 403)
+        self.assertEqual(self.request("/api/discs", host="evil.example:80")[0], 403)
+        status, page = self.request("/?t=" + self.token, token=False)
+        self.assertEqual(status, 200)
+        self.assertIn(self.token, page)
+
+    @unittest.skipUnless(HAVE_IMAGE_TOOLS, "genisoimage and 7z required")
+    def test_make_note_find(self):
+        src = os.path.join(self.tmp, "Photos")
+        write(os.path.join(src, "IMG_0001.JPG"), "jpeg", 2023)
+        status, body = self.request("/api/make", {"source": src, "set": "PHOTOS", "medium": "auto", "no_ecc": True,
+                                                  "output_dir": os.path.join(self.tmp, "out"), "note": ["hello"]})
+        self.assertEqual(status, 200, body)
+        result = self.wait(json.loads(body))
+        self.assertEqual(result["returncode"], 0, "\n".join(result["lines"]))
+        disc = json.loads(self.request("/api/discs")[1])["discs"][0]
+        self.assertEqual(disc["Note"], ["hello"])
+        job = json.loads(self.request("/api/command", {"command": "note", "disc_id": disc["Id"], "text": "second"})[1])
+        self.assertEqual(self.wait(job)["returncode"], 0)
+        found = json.loads(self.request("/api/find?q=img_0001")[1])
+        self.assertEqual(found["total"], 1)
+        self.assertEqual(json.loads(self.request("/api/discs")[1])["discs"][0]["Note"], ["hello", "second"])
+
+    def test_bad_requests(self):
+        self.assertEqual(self.request("/api/command", {"command": "rm -rf"})[0], 400)
+        self.assertEqual(self.request("/api/job?id=999")[0], 404)
+
+
 if __name__ == "__main__":
     unittest.main()
