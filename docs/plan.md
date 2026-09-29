@@ -133,8 +133,10 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
   field; Q&A answers become notes; accepted changes are PREMIS `metadata modification` events
   with agent `llm:<model> + owner review`.
 - Folder tags: `catalog/tags/<disc-id>.tags`, searched by `find`, the GUI and `search.html`.
-- Possible later: a vision model for image-content tags (sampled thumbnails), which would
-  need file contents to leave the inventory-only design and so should stay opt-in.
+- Possible later: a vision model for image-content tags (sampled thumbnails). This sends file
+  contents, not just names, so it should stay opt-in, but with a local-only model (the
+  loopback rule already enforced) the images never leave the machine, which makes it
+  reasonably safe. Keep `--llm-allow-remote` off for it by default.
 
 ## Separate track: standalone RS03 library
 
