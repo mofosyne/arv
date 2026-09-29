@@ -19,7 +19,7 @@ using only open, well-documented formats.
 ├── index.html  search.html  offline viewer and cross-disc search
 ├── README.txt               plain-text recovery instructions
 │   data/ro-crate-metadata.json  optional RO-Crate description (--ro-crate)
-├── tools/                   this tool (tree + git bundle), bagit.py
+├── tools/                   this tool (snapshot of the last commit), bagit.py
 └── data/                    the payload
 [ dvdisaster RS03 ECC data appended after the filesystem ]
 ```
@@ -99,8 +99,9 @@ searches this disc and every disc in its catalogue snapshot (all offline, from
 - Disc ids are `<year range of file mtimes>_<SET>_<nn>` and are used as the volume label.
 - The home catalogue lives in `$BLURAY_ARCHIVE_HOME` (default
   `~/.local/share/bluray-archive`): `archive.rec` plus `manifests/<disc-id>.sha256`.
-- Each disc carries a copy of the committed `HEAD` of this repo, so commit
-  before burning (uncommitted changes are flagged in the `Software` field).
+- Each disc carries a snapshot of the committed `HEAD` of this repo (not its history;
+  `--tools-history` adds a git bundle), so commit before burning (uncommitted changes
+  are flagged in the `Software` field).
 - Tests: `python3 -m unittest discover -s tests` (set `ARCHIVE_TEST_ECC=1` to include dvdisaster).
 
 ## Optional: built-in tagging (`archive tag`)

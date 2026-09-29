@@ -94,7 +94,7 @@ class Maker:
                 raise SystemExit("Error: --split needs a target --medium (not auto)")
             return [self.entries]
         tools = os.path.join(self.workdir, "tools-probe")
-        self.stage_tools(tools, self.is_git, self.args.extra_tools)
+        self.stage_tools(tools, self.is_git, self.args.extra_tools, self.args.tools_history)
         reserve = dir_sectors(tools) + self.snapshot_estimate() + self.budget // 200 + 1024
         shutil.rmtree(tools)
         return greedy_split(self.entries, self.budget - reserve)
@@ -281,8 +281,8 @@ class Maker:
         web.write_web_data(os.path.join(catalog_dir, "web"), plan.disc_id, snapshot.discs,
                            {n[:-4]: os.path.join(listings, n) for n in os.listdir(listings)}, folder_tags)
 
-        self.stage_tools(os.path.join(stage, "tools"), self.is_git, a.extra_tools)
-        self.write_readme(os.path.join(stage, "README.txt"), plan.record, a.snapshot)
+        self.stage_tools(os.path.join(stage, "tools"), self.is_git, a.extra_tools, a.tools_history)
+        self.write_readme(os.path.join(stage, "README.txt"), plan.record, a.snapshot, a.tools_history)
         with open(os.path.join(stage, "index.html"), "w", encoding="utf-8") as f:
             f.write(html.render_index(plan.record, plan.payload_entries, snapshot))
         with open(os.path.join(stage, "search.html"), "w", encoding="utf-8") as f:

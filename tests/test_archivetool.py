@@ -235,6 +235,17 @@ class MakeTest(unittest.TestCase):
         self.make(self.photos)
         self.assertEqual(sorted(os.listdir(self.photos)), before)
 
+    def test_tools_snapshot_without_history_by_default(self):
+        _, disc = self.make(self.photos, "--set", "PHOTOS")
+        tools = os.listdir(os.path.join(disc, "tools"))
+        self.assertIn("bluray-archival-workflow", tools)
+        self.assertNotIn("bluray-archival-workflow.bundle", tools)
+        with open(os.path.join(disc, "README.txt"), encoding="utf-8") as f:
+            self.assertNotIn(".bundle", f.read())
+        if os.path.isdir(os.path.join(REPO, ".git")):
+            _, disc = self.make(self.photos, "--set", "PHOTOS", "--tools-history")
+            self.assertIn("bluray-archival-workflow.bundle", os.listdir(os.path.join(disc, "tools")))
+
     def test_search_page_data(self):
         self.make(self.projects)
         disc_id, disc = self.make(self.photos, "--set", "PHOTOS")
