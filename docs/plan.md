@@ -140,6 +140,24 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
   plain "Caption:/Tags:" lines, never JSON mode, and echoed instructions are discarded.
 - Possible later: per-file captions for all images (not just samples) as an overnight job.
 
+## Next: hybrid AI tiers (agreed direction, 2026-09-29)
+
+See research-notes.md section 5 for the measurements behind this.
+
+1. **Built-in (no setup):** a ~37 MB embedding model (bge-small-en-v1.5) for topic tags from a
+   fixed, editable tag vocabulary, "more like this", and nearest-neighbour learning from the
+   owner's past tag reviews. Runtime managed by the tool (a local process on a random loopback
+   port). Model and runtime are a pinned, SHA-256-checked download to
+   `~/.local/share/bluray-archive/models/`, never committed (every disc carries the repo history).
+   Runtime choice pending: managed llama.cpp `llama-server` (recommended) vs. numpy in-process
+   vs. BYO-only.
+2. **Bring your own AI (optional, OpenAI-compatible):** >= 1.5B model for SemIf-style decisions
+   (logprob readout over lettered options: private/shareable, content type, rule-based yes/no);
+   >= 3B for descriptions and questions (existing); local vision model for captions (existing).
+   Capabilities detected; fall back to tier 1 when no server is present.
+
+All tiers remain optional, suggestion-only, and recorded as PREMIS events with the model as agent.
+
 ## Separate track: standalone RS03 library
 
 Neither dvdisaster nor the speed47 fork has a library or API; it is one GPLv3 C
