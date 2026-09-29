@@ -46,7 +46,32 @@ software, and proposes this project's metadata profile.
 produce on Linux and adds little over RS03, why dvdisaster is not a library,
 and how BagIt and recfiles split the work.
 
-## Quick start
+## The `archive` tool (Phase 1)
+
+Python 3.8+, standard library only (bagit.py is vendored). Needs `genisoimage`
+and `dvdisaster` (use the [speed47 fork](https://github.com/speed47/dvdisaster) for BD-sized images).
+
+```sh
+./archive make ./2025-01-13_Projects_2020_-_2025 --location "Shelf A / Box 3"
+#  -> prompts for set, title, description, subjects, note
+#  -> 2020-2025_PROJECTS_01.iso  (bag + catalogue + index.html + tools/ + RS03 ECC, verified)
+./archive make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: only this set's catalogue
+./archive find IMG_2019            # which disc holds it, and where the disc is
+./archive list
+./archive note 2020-2025_PROJECTS_01 "Only copy of the 2019 PCB gerbers"
+./archive locate 2020-2025_PROJECTS_01 "Offsite: parents' house"
+```
+
+- The source folder is never modified: tag files are staged separately and the
+  folder is grafted into the image as `data/`.
+- Disc ids are `<year range of file mtimes>_<SET>_<nn>` and are used as the volume label.
+- The home catalogue lives in `$BLURAY_ARCHIVE_HOME` (default
+  `~/.local/share/bluray-archive`): `archive.rec` plus `manifests/<disc-id>.sha256`.
+- Each disc carries a copy of the committed `HEAD` of this repo, so commit
+  before burning (uncommitted changes are flagged in the `Software` field).
+- Tests: `python3 -m unittest discover -s tests` (set `ARCHIVE_TEST_ECC=1` to include dvdisaster).
+
+## Quick start (original scripts)
 
 ```sh
 # dependencies (Debian/Ubuntu)
@@ -72,7 +97,7 @@ For BD-sized images, use the multithreaded
 
 ## Roadmap
 
-- [ ] Single `archive` CLI (probably Python): bag → catalog.rec → image → ECC → verify
+- [x] Single `archive` CLI (Python, stdlib only): bag → catalog.rec → image → ECC → verify
 - [ ] Generate `catalog.rec` per disc (Dublin Core-named `Disc` fields, PREMIS-typed `Event` records), and merge into a master `archive.rec`
 - [ ] Generate `archive.sqlite` search index from the manifests + recfiles (recutils is too slow for per-file records)
 - [ ] Optional: PRONOM format IDs via Siegfried (`formats.yaml`) and a generated RO-Crate (`ro-crate-metadata.json`)
@@ -83,3 +108,4 @@ For BD-sized images, use the multithreaded
 - [ ] Target medium size / `--no-bdr-defect-management` options for RS03
 - [ ] Optional UDF 2.50 (metadata mirror) through NetBSD `makefs -t udf`
 - [ ] GUI front end over the CLI
+- [ ] Standalone RS03 library extracted from dvdisaster (GPLv3)

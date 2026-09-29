@@ -69,15 +69,16 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 ## Phases
 
 ### Phase 1: single-disc MVP
-- [ ] `archive make <folder>`: bag → prompt for Title/Description/Notes/Subject →
+- [x] `archive make <folder>`: bag → prompt for Title/Description/Notes/Subject →
       `catalog.rec` → `tools/` → `index.html` → image → RS03 → `dvdisaster -t`
-- [ ] Home catalogue `archive.rec` (Disc/Copy/Event), short disc IDs, `Location`
-- [ ] `archive find <pattern>` (plain scan of manifests to start)
-- [ ] `archive note <disc-id> <text>`
-- [ ] Test on the smoke-test pipeline
+- [x] Home catalogue `archive.rec` (Disc/Copy/Event), short disc IDs, `Location`
+- [x] `archive find <pattern>` (plain scan of manifests to start)
+- [x] `archive note <disc-id> <text>` (+ `archive locate`)
+- [x] Tests (`tests/test_archivetool.py`)
 
 ### Phase 2: whole-archive retrieval
-- [ ] `catalog/` snapshot with `Includes-Up-To` + hash chain; opt-out per disc
+- [x] `catalog/` snapshot with `--snapshot full|set|none`
+- [ ] Snapshot hash chain (`Previous-Snapshot-Sha256`)
 - [ ] `search.html` across the snapshot
 - [ ] Generated `archive.sqlite`; `archive find` uses it when present
 - [ ] `archive check <disc-id>`: `dvdisaster -t` on an inserted disc → `fixity check` Event
@@ -93,11 +94,33 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - [ ] GUI over the CLI
 - [ ] Optional UDF 2.50 metadata mirror through NetBSD `makefs -t udf`
 
+## Decisions (2026-09-29)
+
+- CLI: **Python, standard library only**.
+- Disc ids: **year range of the files + set + number**, e.g. `2020-2025_PROJECTS_01`.
+- Discs for other people or external parties: **minimal catalogue**
+  (`--snapshot set`, only this set). Own off-site copies can take `full`.
+- Encryption: optional later, not implemented now.
+- Media: **M-DISC BD-R** as standard.
+- Redundancy: **RS03 inside every image + whole extra copies** rather than
+  off-disc parity files. Burn copies from the **same ISO** so they are
+  sector-identical: dvdisaster can then fill an image's unreadable sectors by
+  reading another copy into the same image file before applying RS03. Off-disc
+  RS01 `.ecc` files are only worth it for old discs burned without ECC.
+- Manifest paths are written unencoded (bagit-python and `sha256sum -c`
+  compatible). Names with CR/LF or a literal `%0A`/`%0D`/`%25` are rejected.
+
+## Separate track: standalone RS03 library
+
+Neither dvdisaster nor the speed47 fork has a library or API; it is one GPLv3 C
+program. The RS03 on-disc format is effectively frozen, so a library is
+practical: extract the RS03 encoder/decoder from speed47's `src/`, keep
+bit-for-bit compatibility (tested against the dvdisaster CLI), and expose
+create/verify/repair. The result stays GPLv3, which constrains the licence
+of anything linking to it (this repo's licence is still undecided).
+
 ## Open decisions
 
-- CLI language (proposed: Python stdlib only)
-- Disc ID scheme (e.g. `PRJ25-01` vs. date-based vs. sequential `D0042`)
-- Private discs: omit the catalogue snapshot, or include only this disc's set?
-- Encryption: none (best for longevity) vs. optional per set
-- Target media: BD-R vs. M-DISC; single or multiple copies per disc by default
+- Licence for this repo (GPLv3 fits if the RS03 library happens)
+- Number of copies per disc by default, and a `Copy` record type to track them
 - GUI toolkit (Tk from the stdlib vs. a local web UI)
