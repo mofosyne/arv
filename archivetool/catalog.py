@@ -5,6 +5,7 @@ Home layout (the authoritative copy, default ~/.local/share/bluray-archive):
     archive.rec                 Disc / Event records for every disc
     manifests/<disc-id>.sha256  that disc's manifest-sha256.txt
     listings/<disc-id>.tsv      size, modification time and path of each file
+    formats/<disc-id>.csv       PRONOM format of each file (when Siegfried is installed)
     archive.sqlite              search index built by `archive index` (disposable)
 
 Each disc carries a snapshot of this under catalog/.
@@ -44,6 +45,13 @@ DESCRIPTORS = [
         ],
     ),
 ]
+
+# Per-disc files kept at home and in each disc's catalog/ snapshot: folder -> extension
+DISC_FILE_KINDS = {
+    "manifests": ".sha256",  # that disc's manifest-sha256.txt
+    "listings": ".tsv",      # size, modified time, path
+    "formats": ".csv",       # PRONOM format identification (optional)
+}
 
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 
@@ -135,15 +143,28 @@ class Home:
         os.replace(tmp, self.rec_path)
 
     def manifest_path(self, disc_id):
-        return os.path.join(self.manifest_dir, disc_id + ".sha256")
+        return self.disc_file("manifests", disc_id)
 
     def listing_path(self, disc_id):
-        return os.path.join(self.listing_dir, disc_id + ".tsv")
+        return self.disc_file("listings", disc_id)
 
-    def store_disc_files(self, disc_id, manifest_file, listing_file):
-        for src, dest in ((manifest_file, self.manifest_path(disc_id)),
-                          (listing_file, self.listing_path(disc_id))):
+    def disc_file(self, kind, disc_id):
+        return os.path.join(self.path, kind, disc_id + DISC_FILE_KINDS[kind])
+
+    def disc_files(self, disc_id):
+        """{kind: path} of the per-disc files that exist at home."""
+        out = {}
+        for kind in DISC_FILE_KINDS:
+            path = self.disc_file(kind, disc_id)
+            if os.path.exists(path):
+                out[kind] = path
+        return out
+
+    def store_disc_files(self, disc_id, files):
+        """files: {kind: source path}"""
+        for kind, src in files.items():
             if src and os.path.exists(src):
+                dest = self.disc_file(kind, disc_id)
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
                 shutil.copyfile(src, dest)
 
@@ -169,23 +190,24 @@ SNAPSHOT_DESCRIPTOR = recfile.Record("Snapshot", [
 
 
 def write_snapshot(dest, catalog, disc_files, scope):
-    """Write catalog/archive.rec, catalog/manifests/ and catalog/listings/ into ``dest``.
+    """Write catalog/archive.rec plus manifests/, listings/ and formats/ into ``dest``.
 
-    disc_files: {disc_id: (manifest path or None, listing path or None)}
+    disc_files: {disc_id: {kind: path}}
     """
-    for sub in ("manifests", "listings"):
-        os.makedirs(os.path.join(dest, sub), exist_ok=True)
     info = recfile.Record("Snapshot", [
         ("Date", today()),
         ("Scope", scope),
         ("Discs", str(len(catalog.discs))),
     ])
+    os.makedirs(dest, exist_ok=True)
     recfile.write(os.path.join(dest, "archive.rec"), [SNAPSHOT_DESCRIPTOR, info] + catalog.records())
-    for disc_id, (manifest, listing) in disc_files.items():
-        if manifest and os.path.exists(manifest):
-            shutil.copyfile(manifest, os.path.join(dest, "manifests", disc_id + ".sha256"))
-        if listing and os.path.exists(listing):
-            shutil.copyfile(listing, os.path.join(dest, "listings", disc_id + ".tsv"))
+    for kind in ("manifests", "listings"):
+        os.makedirs(os.path.join(dest, kind), exist_ok=True)
+    for disc_id, files in disc_files.items():
+        for kind, src in files.items():
+            if src and os.path.exists(src):
+                os.makedirs(os.path.join(dest, kind), exist_ok=True)
+                shutil.copyfile(src, os.path.join(dest, kind, disc_id + DISC_FILE_KINDS[kind]))
 
 
 def _event_key(e):

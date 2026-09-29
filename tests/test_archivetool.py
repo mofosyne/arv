@@ -6,6 +6,7 @@ and only runs with ARCHIVE_TEST_ECC=1 (it takes several minutes).
 
 import contextlib
 import io
+import json
 import os
 import shutil
 import subprocess
@@ -287,6 +288,36 @@ class MakeTest(unittest.TestCase):
         # merging the same disc again changes nothing
         self.assertIn("Added 0 disc(s), updated 0, 0 new event(s), 0 file list(s)",
                       run_cli("--home", fresh, "rebuild", newest)[1])
+
+    def test_ro_crate(self):
+        disc_id, disc = self.make(self.photos, "--set", "PHOTOS", "--ro-crate", "--formats", "no",
+                                  "--rights", "https://creativecommons.org/licenses/by/4.0/")
+        self.validate(disc)
+        with open(os.path.join(disc, "data", "ro-crate-metadata.json"), encoding="utf-8") as f:
+            doc = json.load(f)
+        graph = {e["@id"]: e for e in doc["@graph"]}
+        self.assertEqual(graph["ro-crate-metadata.json"]["conformsTo"]["@id"], "https://w3id.org/ro/crate/1.2")
+        self.assertEqual(graph["./"]["hasPart"], [{"@id": "IMG_0001.JPG"}])
+        self.assertEqual(graph["./"]["temporalCoverage"], "2023")
+        self.assertEqual(graph["#disc-id"]["value"], disc_id)
+        self.assertEqual(os.listdir(self.photos), ["IMG_0001.JPG"])  # source untouched
+
+    def test_ro_crate_refuses_to_overwrite(self):
+        write(os.path.join(self.photos, "ro-crate-metadata.json"), "{}")
+        code, _ = run_cli("--home", self.home, "make", "-y", "--no-ecc", "--ro-crate", "-o",
+                          os.path.join(self.tmp, "x.iso"), self.photos)
+        self.assertIn("overwrite", str(code))
+
+    @unittest.skipUnless(shutil.which("sf"), "Siegfried (sf) not installed")
+    def test_formats(self):
+        write(os.path.join(self.photos, "doc.pdf"), "%PDF-1.4\n%%EOF\n")
+        extra = ["--sf-home", os.environ["SF_HOME"]] if os.environ.get("SF_HOME") else []
+        disc_id, disc = self.make(self.photos, "--set", "PHOTOS", "--formats", "yes", *extra)
+        from archivetool import formats
+        rows = formats.read(os.path.join(disc, "catalog", "formats", disc_id + ".csv"))
+        self.assertEqual(rows["doc.pdf"]["puid"], "fmt/18")
+        events = catalog.Home(self.home).load().events_for(disc_id)
+        self.assertIn("format identification", [e.get("Type") for e in events])
 
     @unittest.skipUnless(os.environ.get("ARCHIVE_TEST_ECC") and shutil.which("dvdisaster"), "set ARCHIVE_TEST_ECC=1")
     def test_ecc(self):

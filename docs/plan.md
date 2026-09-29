@@ -78,7 +78,8 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 
 ### Phase 2: whole-archive retrieval
 - [x] `catalog/` snapshot with `--snapshot full|set|disc` (+ `listings/` with sizes and dates)
-- [ ] Snapshot hash chain (`Previous-Snapshot-Sha256`)
+- [ ] ~~Snapshot hash chain~~ dropped: the tagmanifests already cover the snapshot
+- [ ] Per-copy tracking via the BD-R BCA serial (deferred, low priority)
 - [x] `search.html` across the snapshot (tested: 1M files, ~1 s first search)
 - [x] Generated `archive.sqlite` (`archive index`); `find` uses it when fresh
 - [x] `archive check --device|--image`: dvdisaster scan/test → `fixity check` Event
@@ -87,9 +88,9 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - [ ] Import from VVV exports
 
 ### Phase 3: scale and standards
-- [ ] Split a source folder across N discs (`Bag-Count: n of N`, `Bag-Group-Identifier`)
-- [ ] Medium sizing (BD 25/50/100), `--no-bdr-defect-management`
-- [ ] Siegfried/PRONOM `formats.yaml`, RO-Crate export
+- [x] Split a source folder across N discs (`Bag-Count: n of N`, `Bag-Group-Identifier`); exact sizing via `genisoimage -print-size`
+- [x] Medium sizing (BD 25/50/100/128), `--no-defect-management`, `--min-redundancy` (default 20%)
+- [x] Siegfried/PRONOM `catalog/formats/<id>.csv` (+ `format identification` event), RO-Crate 1.2 export (`--ro-crate`, crate inside `data/` per the RO-Crate BagIt notes)
 
 ### Phase 4: extras
 - [ ] GUI over the CLI
@@ -111,6 +112,10 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
   sector-identical: dvdisaster can then fill an image's unreadable sectors by
   reading another copy into the same image file before applying RS03. Off-disc
   RS01 `.ecc` files are only worth it for old discs burned without ECC.
+- Default target: **BD-R 25GB with >= 20% RS03 redundancy** (~20 GB data per disc). Requires the
+  speed47 dvdisaster fork to fill the disc; the stock build is detected and warned about.
+- RO-Crate is opt-in (`--ro-crate`) because it adds two files to `data/`, so the payload is no
+  longer byte-identical to the source folder.
 - Manifest paths are written unencoded (bagit-python and `sha256sum -c`
   compatible). Names with CR/LF or a literal `%0A`/`%0D`/`%25` are rejected.
 
