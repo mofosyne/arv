@@ -42,6 +42,9 @@ Each layer does its own job:
 
 `docs/plan.md` has the disc layout, phased plan and open decisions.
 
+`docs/smart-archive-format.md` specifies the on-disc catalogue format (draft 0.1) so other
+cataloguing programs (e.g. Katalog) can read a disc and prefill their database without scanning it.
+
 `docs/metadata-standards.md` surveys archival metadata standards (Dublin Core,
 PREMIS, METS, E-ARK, RO-Crate, OCFL, NDSA Levels...) and existing disc-cataloguing
 software, and proposes this project's metadata profile.

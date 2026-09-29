@@ -27,9 +27,11 @@ DESCRIPTORS = [
             ("%rec", "Disc"),
             ("%doc", "One record per physical disc image (an OAIS AIP). Field names follow\n"
                      "Dublin Core terms where one fits: Title, Creator, Date, Description,\n"
-                     "Subject, Coverage, Rights."),
+                     "Subject, Coverage, Rights. Uuid is the machine identity of the image\n"
+                     "(copies burned from one image share it); Id is for people."),
             ("%key", "Id"),
             ("%mandatory", "Id Title Date"),
+            ("%type", "Uuid uuid"),
             ("%type", "Date date"),
             ("%type", "Files int"),
             ("%type", "Bytes int"),
@@ -182,6 +184,41 @@ def new_event(disc_id, type_, outcome, agent, note=None, date=None):
     if note:
         r.add("Note", note)
     return r
+
+
+FORMAT_NAME = "smart-archive"
+FORMAT_VERSION = "0.1"
+
+ARCHIVE_DESCRIPTOR = recfile.Record("Archive", [
+    ("%rec", "Archive"),
+    ("%doc", "Entry point of a smart-archive disc: which format and version this is, which disc,\n"
+             "and where its other catalogue files are (paths relative to the disc root).\n"
+             "Specification: tools/bluray-archival-workflow/docs/smart-archive-format.md"),
+    ("%mandatory", "Format Version Disc Uuid"),
+])
+
+# (Archive field, path pattern on disc); a field is written only when the file exists
+ARCHIVE_POINTERS = [
+    ("Manifest", "manifest-sha256.txt"),
+    ("Listing", "catalog/listings/{id}.tsv"),
+    ("Tags", "catalog/tags/{id}.tags"),
+    ("Formats", "catalog/formats/{id}.csv"),
+    ("Snapshot", "catalog/archive.rec"),
+    ("Viewer", "index.html"),
+    ("Search", "search.html"),
+    ("Payload", "data/"),
+]
+
+
+def archive_records(disc, root):
+    """[descriptor, record] for the Archive entry record at the top of a disc's catalog.rec."""
+    r = recfile.Record("Archive", [("Format", FORMAT_NAME), ("Version", FORMAT_VERSION),
+                                   ("Disc", disc.get("Id")), ("Uuid", disc.get("Uuid") or "")])
+    for field, pattern in ARCHIVE_POINTERS:
+        rel = pattern.format(id=disc.get("Id"))
+        if field == "Payload" or os.path.exists(os.path.join(root, rel)):
+            r.add(field, rel)
+    return [ARCHIVE_DESCRIPTOR, r]
 
 
 SNAPSHOT_DESCRIPTOR = recfile.Record("Snapshot", [

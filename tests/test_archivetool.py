@@ -200,9 +200,19 @@ class MakeTest(unittest.TestCase):
         self.assertIn("100% ünïcode.txt", page)
         self.assertIn('href="data/sub%20dir/100%25%20%C3%BCn%C3%AFcode.txt"', page)
         self.assertNotIn("<script", page)
-        on_disc = catalog.Catalog(recfile.read(os.path.join(disc, "catalog.rec")))
+        records = recfile.read(os.path.join(disc, "catalog.rec"))
+        on_disc = catalog.Catalog(records)
         self.assertEqual(on_disc.disc(disc_id).get("Location"), "Shelf A")
         self.assertEqual([e.get("Type") for e in on_disc.events], ["message digest calculation"])
+        # Entry point for other tools: first real record says what this is and where things are
+        archive = [r for r in records if r.type == "Archive" and not r.is_descriptor][0]
+        self.assertEqual((archive.get("Format"), archive.get("Version")), ("smart-archive", "0.1"))
+        self.assertEqual(archive.get("Uuid"), on_disc.disc(disc_id).get("Uuid"))
+        self.assertEqual(len(archive.get("Uuid")), 36)
+        for field in ("Manifest", "Listing", "Snapshot", "Viewer"):
+            self.assertTrue(os.path.exists(os.path.join(disc, archive.get(field))), field)
+        # Uuid is also in the home catalogue, so a re-read disc maps back to the same record
+        self.assertEqual(catalog.Home(self.home).load().disc(disc_id).get("Uuid"), archive.get("Uuid"))
 
     def test_snapshot_scopes_and_find(self):
         self.make(self.projects)
