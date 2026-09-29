@@ -12,6 +12,7 @@ import re
 import shutil
 import sys
 import tempfile
+import uuid
 from dataclasses import dataclass, field
 
 from . import bag, catalog, formats, html, image, index, media, recfile, rocrate, web
@@ -165,7 +166,9 @@ class Maker:
 
     def disc_record(self, plan):
         m, a = self.meta, self.args
-        r = recfile.Record("Disc", [("Id", plan.disc_id), ("Title", m["title"]), ("Set", m["set"]),
+        # Uuid: machine identity of this image (copies burned from it share it); Id is for humans
+        r = recfile.Record("Disc", [("Id", plan.disc_id), ("Uuid", str(uuid.uuid4())),
+                                    ("Title", m["title"]), ("Set", m["set"]),
                                     ("Coverage", m["coverage"]), ("Date", catalog.today())])
         if plan.parts > 1:
             r.add("Part", "%d of %d" % (plan.part, plan.parts))
@@ -258,10 +261,6 @@ class Maker:
         info += [("Payload-Oxum", bag.payload_oxum(plan.payload_entries)), ("Bag-Software-Agent", self.version)]
         bag.write_bag_tags(stage, plan.payload_entries, info)
 
-        own = catalog.Catalog()
-        own.discs, own.events = [plan.record], list(plan.events)
-        recfile.write(os.path.join(stage, "catalog.rec"), own.records())
-
         if a.snapshot == "disc":
             batch_plans = [plan]
         else:
@@ -287,6 +286,13 @@ class Maker:
             f.write(html.render_index(plan.record, plan.payload_entries, snapshot))
         with open(os.path.join(stage, "search.html"), "w", encoding="utf-8") as f:
             f.write(web.render_search())
+
+        # catalog.rec: the disc's entry point (Archive record, see docs/smart-archive-format.md),
+        # then this disc's own Disc and Event records. Written last so it can point to every file.
+        own = catalog.Catalog()
+        own.discs, own.events = [plan.record], list(plan.events)
+        recfile.write(os.path.join(stage, "catalog.rec"),
+                      catalog.archive_records(plan.record, stage) + own.records())
         bag.write_tagmanifests(stage)
 
     def payload(self, plan):
