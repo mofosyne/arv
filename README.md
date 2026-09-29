@@ -15,7 +15,7 @@ using only open, well-documented formats.
 ├── tagmanifest-sha256.txt   checksums of the files above + catalog.rec
 ├── catalog.rec              GNU recutils catalogue for this disc
 ├── catalog/                 snapshot of the whole archive catalogue at burn time
-│                            (archive.rec, manifests/, listings/, formats/, web/)
+│                            (archive.rec, manifests/, listings/, formats/, tags/, web/)
 ├── index.html  search.html  offline viewer and cross-disc search
 ├── README.txt               plain-text recovery instructions
 │   data/ro-crate-metadata.json  optional RO-Crate description (--ro-crate)
@@ -102,6 +102,36 @@ searches this disc and every disc in its catalogue snapshot (all offline, from
 - Each disc carries a copy of the committed `HEAD` of this repo, so commit
   before burning (uncommitted changes are flagged in the `Software` field).
 - Tests: `python3 -m unittest discover -s tests` (set `ARCHIVE_TEST_ECC=1` to include dvdisaster).
+
+## Optional: local LLM help with descriptions and tags
+
+A local model can draft the title, description, subjects and **folder tags**, and
+ask you specific questions ("Who is in the Kyoto photos?"). Nothing is written
+until you accept it, your answers are kept verbatim as notes, and each accepted
+change is logged as a PREMIS `metadata modification` event naming the model.
+Everything works without it, and no extra Python packages are needed.
+
+```sh
+ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM Studio, vLLM
+./archive describe ./2025-01-13_Personal --show-inventory   # exactly what the model will see
+./archive make ./2025-01-13_Personal --llm                  # suggestions + questions, then the usual prompts
+./archive describe 2018-2022_PERSONAL_01                    # improve a disc that already exists
+./archive describe ./folder --save draft.json               # prepare, edit by hand, then:
+./archive make ./folder --draft draft.json
+./archive gui                                               # "Suggest" buttons in Make disc and disc details
+```
+
+- Any OpenAI-compatible server works: `--llm-url` / `$ARCHIVE_LLM_URL` (default
+  `http://127.0.0.1:11434/v1`, Ollama), `--llm-model` / `$ARCHIVE_LLM_MODEL`
+  (default: the server's first model).
+- **Privacy:** the model sees an inventory (folder and file names, counts, sizes,
+  dates, types, and up to 6 short README-style text files), never file contents.
+  Only loopback servers are allowed unless you pass `--llm-allow-remote`.
+- Folder tags go in `catalog/tags/<disc-id>.tags` and are searched by `archive find`,
+  the GUI and the disc's `search.html`.
+- Model size matters. Tested on CPU: a 1.5B model gave generic text; a 3B model
+  (qwen2.5-3b, about 1 minute per round) gave useful tags and good questions, and one
+  answered question produced a specific title. Use a 7-8B model if your hardware allows.
 
 ## Quick start (original scripts)
 

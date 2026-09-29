@@ -333,6 +333,157 @@ class MakeTest(unittest.TestCase):
         self.assertEqual(len([e for e in catalog.Home(self.home).load().events if e.get("Type") == "fixity check"]), 2)
 
 
+class FakeLLM:
+    """Minimal OpenAI-compatible server returning a canned reply; records the requests."""
+
+    def __init__(self, reply):
+        import threading
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        fake = self
+        self.reply, self.requests = reply, []
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def _json(self, obj):
+                data = json.dumps(obj).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+            def do_GET(self):
+                self._json({"data": [{"id": "fake-model"}]})
+
+            def do_POST(self):
+                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                fake.requests.append(body)
+                content = fake.reply if isinstance(fake.reply, str) else json.dumps(fake.reply)
+                self._json({"choices": [{"message": {"role": "assistant", "content": content}}]})
+
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.url = "http://127.0.0.1:%d/v1" % self.server.server_address[1]
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def close(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+
+REPLY = {"title": "Family trip photos 2019", "description": "Photos from a 2019 trip, one folder per day.",
+         "subjects": ["Travel", "family", "travel"], "questions": ["Where was the 2019 trip?", "Who took the photos?"],
+         "folder_tags": {"photos/2019 trip": ["travel", "2019"], "no/such/folder": ["x"]}}
+
+
+class LLMTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.src = os.path.join(self.tmp, "Trip")
+        write(os.path.join(self.src, "photos", "2019 trip", "IMG_0001.JPG"), "jpeg", 2019)
+        write(os.path.join(self.src, "README.txt"), "Pictures from our holiday.", 2019)
+        self.fake = FakeLLM(REPLY)
+
+    def tearDown(self):
+        self.fake.close()
+        shutil.rmtree(self.tmp)
+
+    def test_suggest_parses_and_filters(self):
+        from archivetool import describe, llm
+        entries = describe.folder_entries(self.src)
+        inv = llm.inventory(entries, "Trip", text_root=self.src)
+        self.assertIn("Pictures from our holiday.", inv)  # README text is included
+        self.assertIn("photos/2019 trip/", inv)
+        result = llm.suggest(llm.Client(self.fake.url), inv, folders=llm.folders_of(entries))
+        self.assertEqual(result["subjects"], ["travel", "family"])  # lowercased, de-duplicated
+        self.assertEqual(result["folder_tags"], {"photos/2019 trip": ["travel", "2019"]})  # unknown folder dropped
+        self.assertEqual(self.fake.requests[0]["model"], "fake-model")  # picked from /models
+
+    def test_fenced_json_and_bad_json(self):
+        from archivetool import llm
+        self.fake.reply = "Sure!\n```json\n" + json.dumps(REPLY) + "\n```"
+        self.assertEqual(llm.suggest(llm.Client(self.fake.url), "inv")["title"], "Family trip photos 2019")
+        self.fake.reply = "I cannot help with that."
+        with self.assertRaises(llm.LLMError):
+            llm.suggest(llm.Client(self.fake.url), "inv")
+
+    def test_refuses_remote_server(self):
+        from archivetool import llm
+        with self.assertRaises(llm.LLMError):
+            llm.Client("http://203.0.113.5:11434/v1")
+        llm.Client("http://203.0.113.5:11434/v1", allow_remote=True)  # explicit opt-in
+
+    def test_describe_save_then_make_with_draft(self):
+        home = os.path.join(self.tmp, "home")
+        draft = os.path.join(self.tmp, "draft.json")
+        code, _ = run_cli("--home", home, "describe", self.src, "--llm-url", self.fake.url, "--save", draft)
+        self.assertEqual(code, 0)
+        with open(draft, encoding="utf-8") as f:
+            self.assertEqual(json.load(f)["agent"], "llm:fake-model")
+        if not HAVE_IMAGE_TOOLS:
+            return
+        code, out = run_cli("--home", home, "make", "-y", "--no-ecc", "--draft", draft,
+                            "-o", os.path.join(self.tmp, "t.iso"), self.src)
+        self.assertEqual(code, 0, out)
+        cat = catalog.Home(home).load()
+        disc = cat.discs[0]
+        self.assertEqual(disc.get("Title"), "Family trip photos 2019")
+        self.assertEqual(disc.get_all("Subject"), ["travel", "family"])
+        self.assertIn("metadata modification", [e.get("Type") for e in cat.events])
+        code, out = run_cli("--home", home, "find", "travel")
+        self.assertIn("TAG   %s" % disc.get("Id"), out)
+        self.assertIn("data/photos/2019 trip/", out)
+
+    def test_interactive_questions_refine_and_review(self):
+        from archivetool import describe, llm
+        client = llm.Client(self.fake.url)
+        entries = describe.folder_entries(self.src)
+        replies = iter(["Kyoto, Japan", "",   # round 1: answer the first question, skip the second
+                        "", "", "", "n"])      # review: accept title, description, subjects; drop tags
+        original = describe.ask
+        describe.ask = lambda prompt: next(replies)
+        try:
+            with contextlib.redirect_stderr(io.StringIO()):
+                suggestion, answers = describe.conversation(client, "inv", llm.folders_of(entries), rounds=1)
+                draft = describe.review(suggestion, answers)
+        finally:
+            describe.ask = original
+        self.assertEqual(answers, [("Where was the 2019 trip?", "Kyoto, Japan")])
+        # the refine request carried the owner's answer
+        self.assertIn("Kyoto, Japan", self.fake.requests[-1]["messages"][-1]["content"])
+        self.assertEqual(draft["notes"], ["Q: Where was the 2019 trip?\nA: Kyoto, Japan"])
+        self.assertEqual(draft["folder_tags"], {})
+        self.assertEqual(draft["title"], "Family trip photos 2019")
+
+    @unittest.skipUnless(HAVE_IMAGE_TOOLS, "genisoimage and 7z required")
+    def test_apply_draft_to_existing_disc(self):
+        home = os.path.join(self.tmp, "home")
+        code, out = run_cli("--home", home, "make", "-y", "--no-ecc", "--title", "Old title",
+                            "-o", os.path.join(self.tmp, "t.iso"), self.src)
+        self.assertEqual(code, 0, out)
+        disc_id = out.split("\t")[0]
+        draft = os.path.join(self.tmp, "d.json")
+        with open(draft, "w", encoding="utf-8") as f:
+            json.dump({"title": "New title", "subjects": ["travel"], "notes": ["Q: Who?\nA: Us"],
+                       "folder_tags": {"photos": ["travel"]}, "agent": "llm:test"}, f)
+        code, out = run_cli("--home", home, "describe", disc_id, "--apply", draft)
+        self.assertEqual(code, 0)
+        cat = catalog.Home(home).load()
+        disc = cat.disc(disc_id)
+        self.assertEqual(disc.get("Title"), "New title")
+        self.assertEqual(disc.get_all("Subject"), ["travel"])
+        self.assertEqual(disc.get_all("Note"), ["Q: Who?\nA: Us"])
+        event = [e for e in cat.events if e.get("Type") == "metadata modification"][-1]
+        self.assertEqual(event.get("Agent"), "llm:test + owner review")
+        self.assertIn("TAG", run_cli("--home", home, "find", "travel")[1])
+
+    def test_make_llm_requires_terminal(self):
+        code, _ = run_cli("--home", os.path.join(self.tmp, "home"), "make", "-y", "--no-ecc", "--llm",
+                          "--llm-url", self.fake.url, self.src)
+        self.assertIn("interactive", str(code))
+
+
 class GuiTest(unittest.TestCase):
     def setUp(self):
         import threading

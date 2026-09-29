@@ -6,6 +6,7 @@ Home layout (the authoritative copy, default ~/.local/share/bluray-archive):
     manifests/<disc-id>.sha256  that disc's manifest-sha256.txt
     listings/<disc-id>.tsv      size, modification time and path of each file
     formats/<disc-id>.csv       PRONOM format of each file (when Siegfried is installed)
+    tags/<disc-id>.tags         folder tags (optional)
     archive.sqlite              search index built by `archive index` (disposable)
 
 Each disc carries a snapshot of this under catalog/.
@@ -51,6 +52,7 @@ DISC_FILE_KINDS = {
     "manifests": ".sha256",  # that disc's manifest-sha256.txt
     "listings": ".tsv",      # size, modified time, path
     "formats": ".csv",       # PRONOM format identification (optional)
+    "tags": ".tags",         # folder <TAB> comma-separated tags (optional, e.g. from --llm)
 }
 
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
@@ -258,6 +260,37 @@ DISC_SEARCH_FIELDS = ("Id", "Title", "Description", "Subject", "Note", "Coverage
 def find_discs(catalog, pattern):
     match = _matcher(pattern)
     return [d for d in catalog.discs if any(match(v) for k, v in d.fields if k in DISC_SEARCH_FIELDS)]
+
+
+def write_tags(path, folder_tags):
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write("# folder (relative to data/)\ttags\n")
+        for folder in sorted(folder_tags):
+            f.write("%s\t%s\n" % (folder, ", ".join(folder_tags[folder])))
+
+
+def read_tags(path):
+    out = {}
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.rstrip("\n")
+            if line and not line.startswith("#") and "\t" in line:
+                folder, tags = line.split("\t", 1)
+                out[folder] = [t.strip() for t in tags.split(",") if t.strip()]
+    return out
+
+
+def find_tags(home, catalog, pattern):
+    """[(Disc, folder, tags)] where a folder tag matches ``pattern``."""
+    match = _matcher(pattern)
+    hits = []
+    for d in catalog.discs:
+        path = home.disc_file("tags", d.get("Id"))
+        if os.path.exists(path):
+            for folder, tags in read_tags(path).items():
+                if any(match(t) for t in tags):
+                    hits.append((d, folder, tags))
+    return hits
 
 
 def find(home, catalog, pattern):

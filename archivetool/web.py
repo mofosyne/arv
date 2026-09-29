@@ -31,12 +31,18 @@ def disc_summary(disc):
     return out
 
 
-def write_web_data(web_dir, this_id, discs, listing_paths):
-    """discs: Disc records; listing_paths: {disc_id: path to a listing .tsv}."""
+def write_web_data(web_dir, this_id, discs, listing_paths, folder_tags=None):
+    """discs: Disc records; listing_paths: {disc_id: listing .tsv}; folder_tags: {disc_id: {folder: [tags]}}."""
     os.makedirs(os.path.join(web_dir, "files"), exist_ok=True)
+    summaries = []
+    for d in discs:
+        summary = disc_summary(d)
+        tags = (folder_tags or {}).get(d.get("Id"))
+        if tags:
+            summary["FolderTags"] = tags
+        summaries.append(summary)
     with open(os.path.join(web_dir, "discs.js"), "w", encoding="utf-8") as f:
-        f.write("var ARCHIVE_THIS = %s;\nvar ARCHIVE_DISCS = %s;\n"
-                % (_js(this_id), _js([disc_summary(d) for d in discs])))
+        f.write("var ARCHIVE_THIS = %s;\nvar ARCHIVE_DISCS = %s;\n" % (_js(this_id), _js(summaries)))
     for disc_id, path in listing_paths.items():
         rows = []
         for size, _mtime, rel in read_listing(path):
@@ -186,6 +192,28 @@ button { font:inherit; padding:8px 16px; border-radius:6px; border:1px solid var
       discHits.forEach(function (id) { discBox.appendChild(el("div", "hit", describe(discs[id]))); });
     }
 
+    var tagHits = [];
+    ids.forEach(function (id) {
+      var tags = discs[id].FolderTags || {};
+      Object.keys(tags).forEach(function (folder) {
+        if (tags[folder].some(match)) tagHits.push([id, folder, tags[folder]]);
+      });
+    });
+    if (tagHits.length) {
+      discBox.appendChild(el("h2", null, "Tagged folders"));
+      tagHits.forEach(function (t) {
+        var hit = el("div", "hit");
+        if (t[0] === ARCHIVE_THIS) {
+          var a = el("a", "path", t[1] + "/"); a.href = dataHref(t[1]) + "/"; hit.appendChild(a);
+        } else {
+          hit.appendChild(el("span", "path", t[1] + "/"));
+        }
+        hit.appendChild(el("span", "size", t[2].join(", ")));
+        hit.appendChild(el("div", "where", t[0] === ARCHIVE_THIS ? "On this disc" : "On disc " + describe(discs[t[0]])));
+        discBox.appendChild(hit);
+      });
+    }
+
     var total = 0, shown = 0, missing = [];
     var heading = el("h2", null, "Files");
     fileBox.appendChild(heading);
@@ -212,7 +240,7 @@ button { font:inherit; padding:8px 16px; border-radius:6px; border:1px solid var
       });
     });
     heading.textContent = "Files (" + total + (total > shown ? ", showing first " + shown : "") + ")";
-    setStatus(total || discHits.length ? "" : "No matches." +
+    setStatus(total || discHits.length || tagHits.length ? "" : "No matches." +
       (missing.length ? " File lists missing for: " + missing.join(", ") : ""));
   }
 

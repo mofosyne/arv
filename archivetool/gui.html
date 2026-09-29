@@ -47,6 +47,9 @@ button.plain { background:var(--panel); color:var(--fg); border:1px solid var(--
 pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-height:420px; overflow:auto;
           font-size:12px; white-space:pre-wrap; overflow-wrap:anywhere; }
 .ok { color:var(--ok); } .bad { color:var(--bad); } .warn { color:var(--warn); }
+.llm { border:1px dashed var(--line); border-radius:8px; padding:8px 14px 14px; margin:14px 0; }
+.llm .q { margin-top:10px; }
+.llm .q div { font-size:14px; }
 .browser { border:1px solid var(--line); border-radius:6px; max-height:220px; overflow:auto; margin-top:6px; }
 .browser div { padding:4px 10px; cursor:pointer; font-family:ui-monospace, monospace; font-size:13px; }
 .browser div:hover { background:var(--panel); }
@@ -82,6 +85,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     <label for="m-source">Folder to archive (left unmodified)</label>
     <div class="inline"><input type="text" id="m-source" required><button class="plain" type="button" id="m-browse">Browse…</button></div>
     <div class="browser" id="m-browser" hidden></div>
+    <div class="llm" id="m-llm"></div>
     <div class="row">
       <div><label for="m-set">Set name</label><input type="text" id="m-set" placeholder="e.g. PHOTOS"></div>
       <div><label for="m-title">Title</label><input type="text" id="m-title" placeholder="default: from folder name"></div>
@@ -94,6 +98,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       <div><label for="m-rights">Rights / licence</label><input type="text" id="m-rights"></div>
     </div>
     <label for="m-note">Note</label><textarea id="m-note"></textarea>
+    <label for="m-tags">Folder tags (one per line: folder: tag, tag)</label><textarea id="m-tags" rows="5" placeholder="photos/2019 trip: travel, family"></textarea>
     <div class="row">
       <div><label for="m-medium">Target disc</label><select id="m-medium">
         <option value="bd25">BD-R 25 GB</option><option value="bd50">BD-R DL 50 GB</option>
@@ -228,6 +233,11 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     box.appendChild(el("div", { class: "inline" }, [loc, saveLoc]));
     box.appendChild(el("div", { class: "inline" }, [copies, burned]));
 
+    box.appendChild(el("h2", { text: "Improve the description" }));
+    var llmBox = el("div", { class: "llm" });
+    box.appendChild(llmBox);
+    discLLM(llmBox, d);
+
     box.appendChild(el("h2", { text: "History" }));
     var ev = el("table");
     ev.appendChild(el("tr", {}, ["Date", "Event", "Outcome", "Agent", "Note"].map(function (h) { return el("th", { text: h }); })));
@@ -282,9 +292,115 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       subject: split($("m-subject").value), note: $("m-note").value ? [$("m-note").value] : [],
       medium: $("m-medium").value, min_redundancy: $("m-redundancy").value, snapshot: $("m-snapshot").value,
       output_dir: $("m-outdir").value, split: $("m-split").checked, ro_crate: $("m-rocrate").checked,
-      no_defect_management: $("m-nodm").checked
+      no_defect_management: $("m-nodm").checked,
+      draft: (makeLLM.agent || $("m-tags").value.trim()) ? {
+        notes: qaNotes(makeLLM), folder_tags: textToTags($("m-tags").value), agent: makeLLM.agent || "owner" } : null
     }, false, "/api/make");
   };
+
+  // ---------------------------------------------------------------- local LLM (optional)
+  var llmStatus = null;
+  function tagsToText(tags) {
+    return Object.keys(tags || {}).sort().map(function (f) { return f + ": " + tags[f].join(", "); }).join("\n");
+  }
+  function textToTags(text) {
+    var out = {};
+    text.split("\n").forEach(function (line) {
+      var i = line.indexOf(":");
+      if (i < 1) return;
+      var tags = line.slice(i + 1).split(",").map(function (t) { return t.trim().toLowerCase(); }).filter(Boolean);
+      if (tags.length) out[line.slice(0, i).trim().replace(/\/$/, "")] = tags;
+    });
+    return out;
+  }
+  // A panel that asks the model, shows its questions with answer boxes, and refines.
+  // target(): {source} or {disc_id}; fill(result) puts suggestions into editable fields.
+  function llmPanel(box, target, fill) {
+    var state = { previous: null, answers: [], agent: null };
+    box.textContent = "";
+    if (!llmStatus || !llmStatus.available) {
+      box.appendChild(el("p", { class: "muted", text: "Local LLM help (optional): not available" +
+        (llmStatus && llmStatus.error ? " \u2014 " + llmStatus.error : "") +
+        ". Start a local server (e.g. Ollama) and run archive gui --llm-url \u2026" }));
+      return state;
+    }
+    var status = el("span", { class: "muted", text: "Local LLM: " + llmStatus.model + " (suggestions only; you review everything)" });
+    var go = el("button", { class: "plain", type: "button", text: "Suggest title, description and tags" });
+    var qbox = el("div");
+    box.appendChild(el("div", { class: "inline" }, [status, go]));
+    box.appendChild(qbox);
+    function ask(answers) {
+      go.disabled = true; status.textContent = "Asking " + llmStatus.model + "\u2026 (can take a minute)";
+      var body = Object.assign({ answers: answers || [], previous: state.previous }, target());
+      api("/api/llm/suggest", body).then(function (res) {
+        go.disabled = false;
+        if (res.error) { status.textContent = "LLM error: " + res.error; return; }
+        state.previous = { title: res.title, description: res.description, subjects: res.subjects,
+                           folder_tags: res.folder_tags, questions: res.questions };
+        state.agent = res.agent;
+        status.textContent = "Suggested by " + llmStatus.model + ". Edit anything below; answers are kept as notes.";
+        fill(res);
+        qbox.textContent = "";
+        if (state.answers.length) {
+          qbox.appendChild(el("h2", { text: "Your answers (saved as notes)" }));
+          state.answers.forEach(function (p) { qbox.appendChild(el("div", { class: "note", text: "Q: " + p[0] + "\nA: " + p[1] })); });
+        }
+        if (!res.questions.length) return;
+        qbox.appendChild(el("h2", { text: "Questions from the model" }));
+        var inputs = res.questions.map(function (q) {
+          var input = el("input", { type: "text", "aria-label": q });
+          qbox.appendChild(el("div", { class: "q" }, [el("div", { text: q }), input]));
+          return [q, input];
+        });
+        var refine = el("button", { class: "plain", type: "button", text: "Refine with my answers" });
+        refine.onclick = function () {
+          inputs.forEach(function (p) { if (p[1].value.trim()) state.answers.push([p[0], p[1].value.trim()]); });
+          ask(state.answers);
+        };
+        qbox.appendChild(refine);
+      }).catch(function (e) { go.disabled = false; status.textContent = "Error: " + e.message; });
+    }
+    go.onclick = function () { ask(state.answers); };
+    return state;
+  }
+  function qaNotes(state) {
+    return state.answers.map(function (p) { return "Q: " + p[0] + "\nA: " + p[1]; });
+  }
+
+  var makeLLM = { answers: [], agent: null };
+  function setupMakeLLM() {
+    makeLLM = llmPanel($("m-llm"), function () { return { source: $("m-source").value }; }, function (r) {
+      $("m-title").value = r.title; $("m-description").value = r.description;
+      $("m-subject").value = r.subjects.join(", "); $("m-tags").value = tagsToText(r.folder_tags);
+    });
+  }
+
+  function discLLM(box, d) {
+    var fields = el("div");
+    var title = el("input", { type: "text", "aria-label": "Title" });
+    var desc = el("textarea", { "aria-label": "Description" });
+    var subj = el("input", { type: "text", "aria-label": "Subjects" });
+    var tags = el("textarea", { "aria-label": "Folder tags" });
+    var apply = el("button", { class: "primary", type: "button", text: "Apply to catalogue" });
+    var state = llmPanel(box, function () { return { disc_id: d.Id }; }, function (r) {
+      title.value = r.title; desc.value = r.description; subj.value = r.subjects.join(", ");
+      tags.value = tagsToText(r.folder_tags);
+      fields.hidden = false;
+    });
+    fields.hidden = true;
+    [["Title", title], ["Description", desc], ["Subjects (comma separated)", subj],
+     ["Folder tags (folder: tag, tag)", tags]].forEach(function (p) {
+      fields.appendChild(el("label", { text: p[0] })); fields.appendChild(p[1]);
+    });
+    apply.onclick = function () {
+      run({ command: "apply_draft", disc_id: d.Id, draft: {
+        title: title.value, description: desc.value, agent: state.agent,
+        subjects: subj.value.split(",").map(function (x) { return x.trim().toLowerCase(); }).filter(Boolean),
+        notes: qaNotes(state), folder_tags: textToTags(tags.value) } }, true);
+    };
+    fields.appendChild(apply);
+    box.appendChild(fields);
+  }
 
   // ---------------------------------------------------------------- tools
   $("check-form").onsubmit = function (ev) {
@@ -331,7 +447,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     });
   }
 
-  loadDiscs();
+  api("/api/llm/status").then(function (st) { llmStatus = st; }).catch(function () { llmStatus = null; })
+    .then(function () { setupMakeLLM(); loadDiscs(); });
 })();
 </script>
 </body></html>
