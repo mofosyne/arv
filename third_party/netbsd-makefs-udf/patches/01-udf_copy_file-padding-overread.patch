@@ -1,0 +1,30 @@
+makefs -t udf: udf_copy_file reads past its buffer into the image padding
+
+The read buffer holds the file (chunk) size, but the last, partial sector is
+written as a whole sector, so up to 2047 bytes after the malloc'd buffer end
+up in the image. Allocate whole sectors and zero the padding.
+
+Against NetBSD src 477d71b4d1b73a66b61a03b5f6d3dc9212d4f888 (usr.sbin/makefs/udf.c v1.31). Apply with patch -p1
+in the src tree. Details: BUG-REPORT.md, bug 1.
+
+--- a/usr.sbin/makefs/udf.c
++++ b/usr.sbin/makefs/udf.c
+@@ -835,7 +835,8 @@
+ 	sz = fnode->st.st_size;
+ 
+ 	chunk = MIN(sz, UDF_MAX_CHUNK_SIZE);
+-	data = malloc(MAX(chunk, context.sector_size));
++	/* whole sectors: the last, partial sector is written out in full */
++	data = calloc(1, UDF_ROUNDUP(MAX(chunk, context.sector_size), context.sector_size));
+ 	assert(data);
+ 
+ 	intern = (udf_datablocks(chunk) == 0);
+@@ -848,6 +849,8 @@
+ 			break;
+ 		}
+ 
++		/* zero the padding after a short last chunk (not old data or heap) */
++		memset(data + chunk, 0, UDF_ROUNDUP(chunk, context.sector_size) - chunk);
+ 		nblk = UDF_ROUNDUP(chunk, context.sector_size) / context.sector_size;
+ 		if (chunk && !intern)
+ 			udf_data_alloc(nblk, &data_icb);
