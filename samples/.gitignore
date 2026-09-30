@@ -1,1 +1,3 @@
 home/archive.sqlite
+# the sample images are committed on purpose (the repository ignores *.iso elsewhere)
+!discs/*.iso
