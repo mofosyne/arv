@@ -40,6 +40,9 @@ Each layer does its own job:
 | `scripts/create-archive-udf.sh` | Experimental. UDF 2.01 image via `mkudffs` + loop mount (needs sudo), then RS03 augment |
 | `tests/smoke-test.sh` | End-to-end check: bag → image → ECC → damage → repair → validate bag |
 
+`samples/` has seven small sample discs made with the full workflow (37 MB, with
+RS03 error correction) and their catalogue: try `./archive --home samples/home list`.
+
 `docs/plan.md` has the disc layout, phased plan and open decisions.
 
 `docs/smart-archive-format.md` specifies the on-disc catalogue format (draft 0.1) so other
