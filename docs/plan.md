@@ -96,8 +96,11 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 
 ### Phase 4: extras
 - [x] GUI over the CLI (`archive gui`)
-- [ ] Optional UDF 2.50 metadata mirror. Blocked: Debian's `makefs` is built without UDF
-      (cd9660/ffs only), so this needs NetBSD's `usr.sbin/makefs` + `sys/fs/udf` ported to Linux.
+- [x] NetBSD `makefs -t udf` builds on Linux: `third_party/netbsd-makefs-udf/` (UDF 2.50,
+      metadata partition, two upstream bugs fixed).
+- [ ] Metadata mirror duplication in that makefs (upstream lacks it), then send the fixes upstream.
+- [ ] `archive make --filesystem udf250` using it (default stays the ISO9660 + UDF 1.02 hybrid).
+- [ ] Test the images with a Linux kernel mount, Windows and macOS.
 - [ ] Standalone RS03 library (see below). Needs the licence decision first.
 
 ## Decisions (2026-09-29)
