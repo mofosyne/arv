@@ -1,6 +1,17 @@
 --- a/sbin/newfs_udf/udf_core.c
 +++ b/sbin/newfs_udf/udf_core.c
-@@ -775,7 +775,8 @@ udf_set_regid(struct regid *regid, char const *name)
+@@ -764,6 +764,10 @@ unix_to_udf_name(char *result, uint8_t *result_len, char const *name, int name_l
+ 		strncpy(result, name + 1, name_len);
+ 		udf_chars += name_len;
+ 	}
++	/* l_fi is one byte: a longer name would wrap and corrupt the directory */
++	if (udf_chars > 255)
++		errx(EXIT_FAILURE, "file name too long for UDF (%d bytes encoded, at most 255): %.*s",
++		    udf_chars, name_len, name);
+ 	*result_len = udf_chars;
+ 	free(raw_name);
+ }
+@@ -775,7 +779,8 @@ udf_set_regid(struct regid *regid, char const *name)
  {
  	memset(regid, 0, sizeof(*regid));
  	regid->flags    = 0;		/* not dirty and not protected */
