@@ -69,6 +69,7 @@ and `dvdisaster` (use the [speed47 fork](https://github.com/speed47/dvdisaster) 
 #  -> prompts for set (PROJ, from the folder name), categories (CODE, ELEC: from the files), title, ...
 #  -> PROJ-01_2020-2025_K.iso  (bag + catalogue + index.html + tools/ + RS03 ECC, verified)
 ./archive make ./Diaries --access sealed      # other discs' catalogues show only its id and location
+./archive make ./Photos --filesystem udf250   # UDF 2.50 image (Blu-ray style) instead of the hybrid ISO; needs lib/udfmake
 ./archive make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: only this set's catalogue
 ./archive make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
 ./archive make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03
@@ -115,6 +116,10 @@ searches this disc and every disc in its catalogue snapshot (all offline, from
   `data/ro-crate-metadata.json` (RO-Crate 1.2, passes the validator's required checks).
 - The source folder is never modified: tag files are staged separately and the
   folder is grafted into the image as `data/`.
+- `--filesystem` picks the image: `hybrid` (default: ISO9660 + Rock Ridge + Joliet with a
+  UDF 1.02 bridge, readable almost anywhere) or `udf250` (UDF 2.50 with a metadata partition,
+  built by [`lib/udfmake`](lib/udfmake/), NetBSD's makefs as a C library and program; run
+  `make -C lib/udfmake` once). Both carry the same files, catalogue and RS03 data.
 - Disc ids look like `PHOTOS-07_2015-2024_Q`: set, number, coverage and a check character
   that catches typos. They are derived from the record's `Set`, `Sequence` and `Coverage`
   (EDTF: `2019`, `2015/2024`, `199X`, `1995~`) and used as the volume label. `archive id <ID>`

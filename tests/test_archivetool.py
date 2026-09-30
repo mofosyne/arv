@@ -21,6 +21,14 @@ from archivetool import bag, catalog, cli, image, make, media, recfile  # noqa: 
 
 HAVE_IMAGE_TOOLS = all(shutil.which(t) for t in ("genisoimage", "7z"))
 
+
+def udfmake_available():
+    """udfmake for --filesystem udf250 tests: built from lib/udfmake if a compiler is present."""
+    if not image.find_udfmake() and shutil.which("make") and shutil.which("cc"):
+        subprocess.run(["make", "-s", "-C", os.path.join(REPO, "lib", "udfmake")],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return image.find_udfmake() is not None and shutil.which("7z") is not None
+
 from archivetool import discid  # noqa: E402
 
 PROJ_01 = discid.compose("PROJ", 1, "2020/2025")  # folder "Projects" resolves to PROJ via its alias
@@ -255,6 +263,13 @@ class SplitTest(unittest.TestCase):
 
     def test_split(self):
         code, out = self.make("--split")
+        self.assertEqual(code, 0, out)
+        self.check_split(out)
+
+    def test_split_udf250(self):
+        if not udfmake_available():
+            self.skipTest("udfmake (lib/udfmake) and 7z required")
+        code, out = self.make("--split", "--filesystem", "udf250")
         self.assertEqual(code, 0, out)
         self.check_split(out)
 
@@ -608,6 +623,44 @@ class MakeTest(unittest.TestCase):
         code, out = run_cli("--home", self.home, "check", "--image", iso)  # disc id read from the volume label
         self.assertEqual(code, 0, out)
         self.assertEqual(len([e for e in catalog.Home(self.home).load().events if e.get("Type") == "fixity check"]), 2)
+
+
+class Udf250Test(unittest.TestCase):
+    """--filesystem udf250: the same disc contents, as a UDF 2.50 image built by lib/udfmake."""
+
+    def setUp(self):
+        if not udfmake_available():
+            self.skipTest("udfmake (lib/udfmake) and 7z required")
+        self.tmp = tempfile.mkdtemp()
+        self.home = os.path.join(self.tmp, "home")
+        self.src = os.path.join(self.tmp, "Projects")
+        write(os.path.join(self.src, "readme.md"), "hello", 2020)
+        write(os.path.join(self.src, "sub dir", "100% ünïcode.txt"), "unicode " * 1000, 2025)
+        os.makedirs(os.path.join(self.src, "empty folder"))
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def test_udf250_disc(self):
+        iso = os.path.join(self.tmp, "u.iso")
+        code, out = run_cli("--home", self.home, "make", "-y", "--no-ecc", "--filesystem", "udf250",
+                            "--ro-crate", "-o", iso, self.src)
+        self.assertEqual(code, 0, out)
+        disc_id = out.split("\t")[0]
+        with open(iso, "rb") as f:
+            d = f.read()
+        self.assertIn(b"*UDF Metadata Partition", d)
+        self.assertNotIn(b"CD001", d[16 * 2048:17 * 2048])      # UDF only, no ISO 9660
+        self.assertEqual(image.read_volume_id(iso), disc_id)    # label read back for `archive check`
+        dest = os.path.join(self.tmp, "x")
+        subprocess.run(["7z", "x", "-o" + dest, iso], check=True, stdout=subprocess.DEVNULL)
+        proc = subprocess.run([sys.executable, "-I", os.path.join(dest, "tools", "bagit.py"), "--validate", dest],
+                              capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        for name in ("index.html", "catalog.rec", "data/ro-crate-metadata.json", "data/sub dir/100% ünïcode.txt"):
+            self.assertTrue(os.path.exists(os.path.join(dest, name)), name)
+        disc = catalog.Home(self.home).load().disc(disc_id)
+        self.assertEqual(disc.get("Filesystem"), image.FILESYSTEMS["udf250"])
 
 
 class FakeLLM:

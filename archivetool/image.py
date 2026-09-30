@@ -1,4 +1,4 @@
-"""Disc image building (genisoimage) and error correction (dvdisaster RS03)."""
+"""Disc image building (genisoimage, or udfmake for UDF 2.50) and error correction (dvdisaster RS03)."""
 
 import os
 import shutil
@@ -72,6 +72,100 @@ def print_size(stage, volume_id, payload_dir=None, payload_files=None):
     return int(out.strip().splitlines()[-1])
 
 
+# ---------------------------------------------------------------- UDF 2.50 (lib/udfmake)
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FILESYSTEMS = {
+    "hybrid": "ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge",
+    "udf250": "UDF 2.50, BD-ROM layout with metadata partition (NetBSD makefs via udfmake)",
+}
+UDF_OPTIONS = "T=bdrom,v=2.50,V=2.50"
+
+
+def find_udfmake(explicit=None):
+    """Path of the udfmake program: --udfmake, $PATH, or lib/udfmake/build in this repository."""
+    for candidate in (explicit, shutil.which("udfmake"),
+                      os.path.join(REPO_ROOT, "lib", "udfmake", "build", "udfmake"),
+                      os.path.join(REPO_ROOT, "lib", "udfmake", "build-static", "udfmake")):
+        if candidate and os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    return None
+
+
+def _udf_view(parent, stage, payload_dir=None, payload_files=None):
+    """One folder of symlinks: the staged files at the top, the untouched source under
+    data/ (udfmake -L follows them).
+
+    A single folder because makefs -t udf mishandles several source folders (it opens
+    every file relative to the first). The payload itself never contains symlinks
+    (bag.scan_payload rejects them), so the only links followed are these.
+    """
+    view = tempfile.mkdtemp(prefix="udfview-", dir=parent)
+    for name in os.listdir(stage):
+        os.symlink(os.path.abspath(os.path.join(stage, name)), os.path.join(view, name))
+    data = os.path.join(view, "data")
+    if payload_dir is not None and not payload_files:
+        os.symlink(os.path.abspath(payload_dir), data)       # whole folder, empty folders included
+        return view
+    os.mkdir(data)
+    if payload_dir is not None:
+        for name in os.listdir(payload_dir):
+            os.symlink(os.path.abspath(os.path.join(payload_dir, name)), os.path.join(data, name))
+    for rel, src in payload_files or []:
+        dest = os.path.join(data, rel)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        os.symlink(os.path.abspath(src), dest)
+    return view
+
+
+def build_udf(stage, out, volume_id, payload_dir=None, payload_files=None, udfmake=None):
+    """UDF 2.50 image (BD-ROM layout) of the stage plus the payload under data/. Returns its sectors."""
+    tool = find_udfmake(udfmake)
+    if not tool:
+        raise SystemExit("Error: udfmake not found. Build it with 'make -C %s', put it on PATH, "
+                         "or pass --udfmake PATH" % os.path.join(REPO_ROOT, "lib", "udfmake"))
+    view = _udf_view(os.path.dirname(stage), stage, payload_dir, payload_files)
+    try:
+        if os.path.exists(out):
+            os.remove(out)
+        proc = subprocess.run([tool, "-L", "-o", "%s,L=%s" % (UDF_OPTIONS, volume_id), out, view],
+                              stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                              text=True, errors="replace")
+    finally:
+        shutil.rmtree(view, ignore_errors=True)
+    if proc.returncode != 0 or not os.path.exists(out):
+        raise SystemExit("Error: udfmake failed:\n" + "\n".join(proc.stdout.splitlines()[-15:]))
+    size = os.path.getsize(out)
+    if size % 2048:
+        raise SystemExit("Error: udfmake wrote %d bytes, not whole 2048-byte sectors" % size)
+    return size // 2048
+
+
+def read_udf_volume_id(f):
+    """Logical volume identifier of a UDF image (no ISO9660 descriptor on UDF-only discs)."""
+    f.seek(256 * 2048)                                    # anchor volume descriptor pointer
+    avdp = f.read(2048)
+    if int.from_bytes(avdp[0:2], "little") != 2:
+        return None
+    length = int.from_bytes(avdp[16:20], "little")
+    start = int.from_bytes(avdp[20:24], "little")
+    for i in range(min(length // 2048, 64)):              # main volume descriptor sequence
+        f.seek((start + i) * 2048)
+        desc = f.read(2048)
+        tag = int.from_bytes(desc[0:2], "little")
+        if tag == 6:                                      # logical volume descriptor
+            ident = desc[84:84 + 128]                     # dstring: compression id, chars, length
+            n = ident[127]
+            if ident[0] == 8:
+                return ident[1:n].decode("latin-1").strip() or None
+            if ident[0] == 16:
+                return ident[1:n].decode("utf-16-be", "replace").strip() or None
+            return None
+        if tag == 8:                                      # terminating descriptor
+            break
+    return None
+
+
 def dvdisaster_sets_medium_size():
     """True for dvdisaster builds (the speed47 fork) that honour -n <sectors> for RS03 images."""
     proc = subprocess.run(["dvdisaster", "--help"], stdin=subprocess.DEVNULL,
@@ -107,13 +201,13 @@ def verify_ecc(image):
 
 
 def read_volume_id(path):
-    """Volume id from the ISO9660 primary volume descriptor of an image file or device."""
+    """Volume id of an image file or device: ISO9660 primary volume descriptor, else UDF."""
     with open(path, "rb") as f:
         f.seek(16 * 2048)
         pvd = f.read(2048)
-    if pvd[1:6] != b"CD001":
-        return None
-    return pvd[40:72].decode("ascii", "replace").strip() or None
+        if pvd[1:6] == b"CD001":
+            return pvd[40:72].decode("ascii", "replace").strip() or None
+        return read_udf_volume_id(f)
 
 
 def scan_device(device):

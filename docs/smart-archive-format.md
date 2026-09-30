@@ -47,6 +47,12 @@ column in `device.csv` is a natural place for the disc's `Uuid`.
 
 ## Discovery
 
+The filesystem is either a hybrid of ISO 9660 (Rock Ridge, Joliet) and UDF 1.02,
+readable almost anywhere, or UDF 2.50 only (BD-ROM layout with a metadata
+partition; `Disc.Filesystem` says which). Both show the same files. A UDF-only
+disc has no ISO 9660 volume descriptor, so readers take the label from the UDF
+logical volume identifier instead.
+
 A reader recognises a smart-archive disc by **`catalog.rec` at the root whose
 first `Archive` record has `Format: smart-archive`**:
 
@@ -90,7 +96,7 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 
 | Field | Meaning | Notes |
 |---|---|---|
-| `Id` | Human disc id, e.g. `PHOTOS-07_2015-2024_Q` | Also the volume label; written on the disc. **Derived**, see [Disc ids](#disc-ids) |
+| `Id` | Human disc id, e.g. `PHOTOS-07_2015-2024_Q` | Also the volume label (ISO 9660/Joliet volume id, or the UDF logical volume identifier on UDF-only discs); written on the disc. **Derived**, see [Disc ids](#disc-ids) |
 | `IdScheme` | Which rule built `Id` | `set-seq-coverage/1`; absent for older discs |
 | `Uuid` | Machine identity (UUID v4) of this image | Copies burned from one image share it |
 | `Set`, `Sequence` | Set code and number within the set | `Sequence` is never reused within a set |
