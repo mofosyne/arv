@@ -1,5 +1,5 @@
-/* Linux stand-ins for the NetBSD library functions makefs uses.
- * mtree spec files (-F) and user/group databases (-N) are not supported. */
+/* NetBSD libc/libutil functions that other hosts lack. Each is built only
+ * where nbtool_config.h says the host does not have it. Not used on NetBSD. */
 #include "nbtool_config.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,9 +7,8 @@
 #include <errno.h>
 #include <err.h>
 #include <sys/stat.h>
-#include "makefs.h"
-#include "mtree.h"
 
+#if !HAVE_SETPROGNAME
 static const char *progname = "udfmake";
 
 void setprogname(const char *name)
@@ -19,8 +18,9 @@ void setprogname(const char *name)
 }
 
 const char *getprogname(void) { return progname; }
+#endif
 
-#ifdef COMPAT_NEED_STRLCPY
+#if !HAVE_STRLCPY
 size_t strlcpy(char *dst, const char *src, size_t size)
 {
 	size_t len = strlen(src);
@@ -32,18 +32,6 @@ size_t strlcpy(char *dst, const char *src, size_t size)
 	return len;
 }
 #endif
-
-NODE *spec(FILE *fp) { (void)fp; errx(1, "-F (mtree spec files) is not supported in this build"); }
-void free_nodes(NODE *n) { (void)n; }
-u_int nodetoino(u_int type) { (void)type; return 0; }
-const char *inotype(u_int mode) {
-	switch (mode & S_IFMT) {
-	case S_IFDIR: return "dir"; case S_IFREG: return "file"; case S_IFLNK: return "link";
-	case S_IFBLK: return "block"; case S_IFCHR: return "char"; case S_IFIFO: return "fifo";
-	case S_IFSOCK: return "socket"; default: return "unknown";
-	}
-}
-int setup_getid(const char *dir) { (void)dir; errno = ENOTSUP; return -1; }
 
 int snprintb(char *buf, size_t len, const char *fmt, uint64_t val)
 {	/* debug output only: print the value in hex */

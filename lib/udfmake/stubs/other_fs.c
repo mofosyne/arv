@@ -1,6 +1,5 @@
 /* makefs.c lists every filesystem type; only UDF is built here. These stand in
  * for the others, so the NetBSD sources need no edits to leave them out. */
-#include "nbtool_config.h"
 #include <err.h>
 #include <stdlib.h>
 #include "makefs.h"
