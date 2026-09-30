@@ -130,6 +130,21 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - Manifest paths are written unencoded (bagit-python and `sha256sum -c`
   compatible). Names with CR/LF or a literal `%0A`/`%0D`/`%25` are rejected.
 
+## Decisions (2026-09-30)
+
+- Language: **Python for the workflow while it is still changing; C for durable, low-level
+  format code** (`lib/udfmake`, later an RS03 library). A full C rewrite is worth it only
+  once the workflow is settled. To keep that port cheap:
+  - the formats are the contract: `docs/smart-archive-format.md` is the spec, not the Python code;
+  - tests should move toward language-neutral fixtures (sample catalogues, ids, listings and
+    expected outputs as files) that a C version can be checked against;
+  - heavy parts live in separate C libraries and tools that a port reuses unchanged;
+  - Python modules stay small with one job each (recfile, discid, catalog, bag).
+- Disc ids: superseded the 2026-09-29 entry. Scheme `set-seq-coverage/1`
+  (`PHOTO-07_2015-2024_Q`), derived from the record's Set, Sequence and Coverage.
+- UDF 2.50: available through `lib/udfmake` (NetBSD makefs as a C library and program). The
+  hybrid ISO9660 + UDF 1.02 image stays the default.
+
 ## Optional: local LLM metadata help (done)
 
 - `archive describe` (folder or disc), `archive make --llm` / `--draft`, GUI "Suggest" panels.
