@@ -1,0 +1,2 @@
+# Not part of the tool snapshot that `archive make` puts on every disc (git archive HEAD)
+samples/discs export-ignore
