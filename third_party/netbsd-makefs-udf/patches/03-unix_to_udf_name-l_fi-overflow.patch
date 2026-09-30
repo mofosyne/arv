@@ -1,0 +1,23 @@
+newfs_udf/makefs -t udf: over-long file names wrap the one-byte l_fi
+
+unix_to_udf_name stores the encoded length (1 + n, or 1 + 2n with any
+character above U+00FF) in fid->l_fi, a uint8_t, without a check: 255 Latin-1
+characters give l_fi = 0 (unreadable image), 128 wide ones a wrong name, while
+makefs exits 0. Refuse such names.
+
+Against NetBSD src 477d71b4d1b73a66b61a03b5f6d3dc9212d4f888 (sbin/newfs_udf/udf_core.c v1.14). Apply with patch -p1
+in the src tree. Details: BUG-REPORT.md, bug 3.
+
+--- a/sbin/newfs_udf/udf_core.c
++++ b/sbin/newfs_udf/udf_core.c
+@@ -764,6 +764,10 @@
+ 		strncpy(result, name + 1, name_len);
+ 		udf_chars += name_len;
+ 	}
++	/* l_fi is one byte: a longer name would wrap and corrupt the directory */
++	if (udf_chars > 255)
++		errx(EXIT_FAILURE, "file name too long for UDF (%d bytes encoded, at most 255): %.*s",
++		    udf_chars, name_len, name);
+ 	*result_len = udf_chars;
+ 	free(raw_name);
+ }

@@ -1,0 +1,22 @@
+newfs_udf/makefs -t udf: udf_set_regid strcpy overruns regid.id by one byte
+
+"*UDF Metadata Partition" and "*UDF Sparable Partition" are exactly 23
+characters, the size of regid.id, so strcpy writes its NUL into id_suffix[0].
+Harmless in the image (already zero), but undefined behaviour, and glibc's
+_FORTIFY_SOURCE aborts. Copy at most the field size.
+
+Against NetBSD src 477d71b4d1b73a66b61a03b5f6d3dc9212d4f888 (sbin/newfs_udf/udf_core.c v1.14). Apply with patch -p1
+in the src tree. Details: BUG-REPORT.md, bug 2.
+
+--- a/sbin/newfs_udf/udf_core.c
++++ b/sbin/newfs_udf/udf_core.c
+@@ -775,7 +775,8 @@
+ {
+ 	memset(regid, 0, sizeof(*regid));
+ 	regid->flags    = 0;		/* not dirty and not protected */
+-	strcpy((char *) regid->id, name);
++	/* ids may fill the field exactly ("*UDF Metadata Partition" is 23 of 23 bytes): no NUL */
++	memcpy(regid->id, name, MIN(strlen(name), sizeof(regid->id)));
+ }
+ 
+ 

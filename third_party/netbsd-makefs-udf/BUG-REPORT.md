@@ -75,7 +75,7 @@ For files over 4 MiB, the last chunk is shorter than the buffer. The padding is 
 
 ### Suggested fix
 
-Allocate whole sectors and zero the tail after each read. See `proposed.patch`:
+Allocate whole sectors and zero the tail after each read. See `patches/01-udf_copy_file-padding-overread.patch`:
 
 ```c
 -	data = malloc(MAX(chunk, context.sector_size));
@@ -132,6 +132,8 @@ whole object, so it probably doesn't abort there.
 
 ### Suggested fix
 
+`patches/02-udf_set_regid-strcpy-overrun.patch`:
+
 ```c
 -	strcpy((char *) regid->id, name);
 +	/* ids may fill the field exactly ("*UDF Metadata Partition" is 23 of 23 bytes): no NUL */
@@ -182,7 +184,8 @@ Names like this are legal on the source filesystem (Linux allows 255 bytes).
 
 ### Suggested fix
 
-Refuse the name, since there is no correct truncation for an image builder:
+Refuse the name, since there is no correct truncation for an image builder.
+See `patches/03-unix_to_udf_name-l_fi-overflow.patch`:
 
 ```c
 +	/* l_fi is one byte: a longer name would wrap and corrupt the directory */
@@ -223,25 +226,34 @@ The script:
    `usr.sbin/mtree`, `sbin/newfs_udf`, `sbin/fsck`, `sys/fs/udf`);
 2. copies out the 17 files makefs -t udf uses, **unmodified**;
 3. builds them with the Linux glue in `lib/udfmake/` (compat headers, stubs for the other filesystems, `main` renamed). None of the glue touches the UDF code;
-4. runs the four checks, then repeats them with `proposed.patch` applied.
+4. runs the four checks on unmodified upstream, then with each patch in `patches/` on
+   its own (it should fix only its own bug), then with all of them.
 
-Expected output (abridged):
+Expected output: the details of each run, then this summary (`shows`: the bug shows):
 
 ```
-=== upstream: NetBSD src 477d71b4..., files unmodified
+                       1 fortify    2 asan       3 padding    4 long name
+                       (bug 2)      (bug 1)      (bug 1)      (bug 3)
+upstream               shows        shows        shows        shows
+only-01                shows        ok           ok           shows
+only-02                ok           shows        shows        shows
+only-03                shows        shows        shows        ok
+all-patches            ok           ok           ok           ok
+```
+
+For unmodified upstream, the details include:
+
+```
 1. fortified build: FAILED: *** buffer overflow detected ***: terminated
    ... udf_set_regid ... udf_core.c:778 / udf_add_logvol_part_meta ... udf_core.c:1403
 2. AddressSanitizer: ERROR: AddressSanitizer: heap-buffer-overflow
    ... udf_write_sector udf_core.c:3672 ... udf_copy_file udf.c:854
 3. padding after file data: 40 of 40 files have non-zero padding
 4. 255-character name: makefs exit 0; image cannot be read
-
-=== proposed: NetBSD src 477d71b4..., with proposed.patch
-1. fortified build: OK
-2. AddressSanitizer: no errors
-3. padding after file data: 0 of 40 files have non-zero padding
-4. 255-character name: makefs refused it: file name too long for UDF (256 bytes encoded, at most 255)
 ```
+
+The patches are independent. Each applies to unmodified upstream on its own, and
+all three apply in any order (at most a line offset, no fuzz).
 
 You can also confirm by reading the code alone:
 - **Bug 1:** compare the `malloc` size at udf.c:838 with the byte count written through udf.c:653-655.

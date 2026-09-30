@@ -10,7 +10,9 @@
 #   2. AddressSanitizer build                  -> expect heap-buffer-overflow via udf_copy_file (bug 1)
 #   3. plain build, image padding scan         -> expect non-zero bytes after file data (bug 1)
 #   4. a 255-character file name               -> expect exit 0 and an unreadable image (bug 3)
-#   then the same four with proposed.patch applied -> expect all clean
+#   then the same four with each patch in patches/ on its own (it should fix
+#   only its own bug), and with all of them (everything clean). A summary table
+#   comes last.
 # Needs: git, cc, make, python3.
 set -u
 
@@ -65,8 +67,9 @@ run_all() {  # run_all NB LABEL DESCRIPTION
     b=$work/$label-fortify
     build "$nb" "$b" "-O2 -g -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2"
     rm -f "$work/img"
+    r1=shows r2=shows r3=shows r4=shows
     if "$b/udfmake" -o T=bdrom,v=2.50,V=2.50 "$work/img" "$work/files" > "$b.run" 2>&1; then
-        echo "1. fortified build: OK"
+        echo "1. fortified build: OK"; r1=ok
     else
         echo "1. fortified build: FAILED: $(grep -m1 '\*\*\*' "$b.run" || tail -1 "$b.run")"
         if command -v gdb > /dev/null; then
@@ -79,7 +82,7 @@ run_all() {  # run_all NB LABEL DESCRIPTION
     build "$nb" "$b" "-O0 -g -fsanitize=address" "-fsanitize=address -lm"
     rm -f "$work/img"
     if ASAN_OPTIONS=detect_leaks=0 "$b/udfmake" -o T=bdrom,v=2.50,V=2.50 "$work/img" "$work/files" > "$b.run" 2>&1; then
-        echo "2. AddressSanitizer: no errors"
+        echo "2. AddressSanitizer: no errors"; r2=ok
     else
         echo "2. AddressSanitizer: $(grep -m1 -o 'ERROR: AddressSanitizer: [a-z-]*' "$b.run")"
         grep -m1 -A9 'ERROR: AddressSanitizer' "$b.run" | grep -E '#[0-9]+ ' | sed 's/^ */   /'
@@ -93,6 +96,7 @@ run_all() {  # run_all NB LABEL DESCRIPTION
     python3 "$here/padding.py" scan "$work/files" "$work/img" > "$b.scan"
     tail -1 "$b.scan"
     head -3 "$b.scan" | grep '^ ' | sed 's/^ */   /'
+    grep -q '^0 of' "$b.scan" && r3=ok
 
     rm -rf "$work/longname" "$work/img"            # bug 3: one file with a 255-character name
     mkdir -p "$work/longname"
@@ -107,16 +111,33 @@ run_all() {  # run_all NB LABEL DESCRIPTION
             echo "makefs exit 0; image cannot be read"
         fi
     else
-        echo "makefs refused it: $(grep -o 'file name too long for UDF ([^)]*)' "$b.long")"
+        echo "makefs refused it: $(grep -o 'file name too long for UDF ([^)]*)' "$b.long")"; r4=ok
     fi
+    printf '%-22s %-12s %-12s %-12s %-12s\n' "$label" "$r1" "$r2" "$r3" "$r4" >> "$work/summary"
 }
 
 python3 "$here/padding.py" make "$work/files"
+rm -f "$work/summary"
 
 fetch "$work/netbsd-git"
 extract "$work/netbsd-git" "$work/upstream"
 run_all "$work/upstream" upstream "files unmodified"
 
-extract "$work/netbsd-git" "$work/proposed"
-(cd "$work/proposed" && patch -s -p1 < "$here/../proposed.patch") || exit 1
-run_all "$work/proposed" proposed "with proposed.patch"
+# each patch on its own (it should fix its own bug and nothing else), then all of them
+for patch in "$here"/../patches/*.patch; do
+    name=$(basename "$patch" .patch)
+    extract "$work/netbsd-git" "$work/$name"
+    (cd "$work/$name" && patch -s -p1 < "$patch") || exit 1
+    run_all "$work/$name" "only-${name%%-*}" "with only patches/$name.patch"
+done
+extract "$work/netbsd-git" "$work/all"
+for patch in "$here"/../patches/*.patch; do
+    (cd "$work/all" && patch -s -p1 < "$patch") || exit 1
+done
+run_all "$work/all" all-patches "with every patch in patches/"
+
+echo
+echo "=== summary (shows: the bug shows; ok: it does not)"
+printf '%-22s %-12s %-12s %-12s %-12s\n' "" "1 fortify" "2 asan" "3 padding" "4 long name"
+printf '%-22s %-12s %-12s %-12s %-12s\n' "" "(bug 2)" "(bug 1)" "(bug 1)" "(bug 3)"
+cat "$work/summary"
