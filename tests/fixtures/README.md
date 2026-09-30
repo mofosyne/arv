@@ -24,6 +24,7 @@ TSV, one case per line; see `tsv.py` (about 40 lines to reimplement):
 | `covers.tsv` | does a coverage overlap a query date or range |
 | `tags.tsv` | folder tag normalisation, namespaces, XMP hierarchical form |
 | `match-rules.tsv` | vocabulary `Match` globs against paths |
+| `names.tsv` | file names each disc filesystem keeps exactly, changes for some readers, or cannot hold |
 | `vocab.rec`, `vocab-paths.tsv`, `vocab-words.tsv` | a fixed set vocabulary: paths in the DAG, aliases (`resolve` for typed words, `guess` for folder names) |
 | `recfile/*.rec`, `*.expected.tsv` | recfile parsing: every field of every record, in order |
 

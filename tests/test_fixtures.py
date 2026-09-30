@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(HERE))
 sys.path.insert(0, FIX)
 
 import tsv  # noqa: E402
-from archivetool import catalog, discid, recfile, sets  # noqa: E402
+from archivetool import catalog, discid, names, recfile, sets  # noqa: E402
 
 ERROR = "ERROR"
 
@@ -72,6 +72,12 @@ class FixtureTest(unittest.TestCase):
     def test_match_rules(self):
         for pattern, path, expected in cases("match-rules.tsv"):
             self.assertEqual("yes" if sets.path_matches(pattern, path) else "no", expected, (pattern, path))
+
+    def test_names(self):
+        for fs, name, expected in cases("names.tsv"):
+            sev = {i[1] for i in names.check([name], fs)}
+            got = "error" if "error" in sev else "warning" if sev else "ok"
+            self.assertEqual(got, expected, (fs, name))
 
     def test_vocabulary(self):
         vocab = sets.load(None, os.path.join(FIX, "vocab.rec"))

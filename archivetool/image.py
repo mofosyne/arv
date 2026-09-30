@@ -30,6 +30,8 @@ def _genisoimage(stage, volume_id, payload_dir=None, payload_files=None, extra=(
         raise SystemExit("Error: volume id %r is longer than %d characters" % (volume_id, MAX_VOLID_LEN))
     cmd = [
         "genisoimage", "-quiet",
+        "-input-charset", "utf-8",   # source names are UTF-8; the default (locale or ISO-8859-1)
+                                     # garbles every non-ASCII name in the Joliet and UDF trees
         "-udf", "-R", "-J", "-joliet-long",
         "-allow-lowercase", "-allow-multidot", "-allow-limited-size",
         "-iso-level", "3",
