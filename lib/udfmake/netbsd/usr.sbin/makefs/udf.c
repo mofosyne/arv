@@ -835,7 +835,8 @@ udf_copy_file(struct stat *st, char *path, fsnode *cur, struct fileid_desc *fid,
 	sz = fnode->st.st_size;
 
 	chunk = MIN(sz, UDF_MAX_CHUNK_SIZE);
-	data = malloc(MAX(chunk, context.sector_size));
+	/* whole sectors: the last, partial sector is written out in full */
+	data = calloc(1, UDF_ROUNDUP(MAX(chunk, context.sector_size), context.sector_size));
 	assert(data);
 
 	intern = (udf_datablocks(chunk) == 0);
@@ -848,6 +849,8 @@ udf_copy_file(struct stat *st, char *path, fsnode *cur, struct fileid_desc *fid,
 			break;
 		}
 
+		/* zero the padding after a short last chunk (not old data or heap) */
+		memset(data + chunk, 0, UDF_ROUNDUP(chunk, context.sector_size) - chunk);
 		nblk = UDF_ROUNDUP(chunk, context.sector_size) / context.sector_size;
 		if (chunk && !intern)
 			udf_data_alloc(nblk, &data_icb);
