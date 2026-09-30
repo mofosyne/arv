@@ -1,10 +1,12 @@
-/* Linux build of NetBSD makefs (UDF only) */
+/* Linux build of NetBSD makefs (UDF only): what NetBSD's <sys/cdefs.h> and
+ * libc provide that glibc does not. Only the C library is needed. */
 #define _GNU_SOURCE 1
-#include <bsd/sys/cdefs.h>
-#include <bsd/string.h>
-#include <bsd/stdlib.h>
-#include <bsd/err.h>
+#include <sys/cdefs.h>
 #include <sys/types.h>
+#include <stddef.h>
+#include <string.h>
+#include <stdlib.h>
+#include <err.h>
 #include <stdint.h>
 #include <endian.h>
 #ifndef __RCSID
@@ -34,3 +36,11 @@
 #define __unused __attribute__((__unused__))
 #endif
 #include <sys/time.h>
+
+/* NetBSD libc functions, in compat.c */
+void setprogname(const char *);
+const char *getprogname(void);
+#if !defined(__GLIBC__) || !__GLIBC_PREREQ(2, 38)
+size_t strlcpy(char *, const char *, size_t);
+#define COMPAT_NEED_STRLCPY 1
+#endif

@@ -143,7 +143,7 @@ whole object, so it probably doesn't abort there.
 ## How to check this yourself
 
 ```sh
-sudo apt install build-essential libbsd-dev git python3 gdb   # gdb optional
+sudo apt install build-essential git python3 gdb   # gdb optional
 third_party/netbsd-makefs-udf/repro/repro.sh /tmp/udf-repro
 ```
 

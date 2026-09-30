@@ -10,6 +10,29 @@
 #include "makefs.h"
 #include "mtree.h"
 
+static const char *progname = "udfmake";
+
+void setprogname(const char *name)
+{
+	const char *slash = strrchr(name, '/');
+	progname = slash ? slash + 1 : name;
+}
+
+const char *getprogname(void) { return progname; }
+
+#ifdef COMPAT_NEED_STRLCPY
+size_t strlcpy(char *dst, const char *src, size_t size)
+{
+	size_t len = strlen(src);
+	if (size) {
+		size_t n = len < size - 1 ? len : size - 1;
+		memcpy(dst, src, n);
+		dst[n] = '\0';
+	}
+	return len;
+}
+#endif
+
 NODE *spec(FILE *fp) { (void)fp; errx(1, "-F (mtree spec files) is not supported in this build"); }
 void free_nodes(NODE *n) { (void)n; }
 u_int nodetoino(u_int type) { (void)type; return 0; }

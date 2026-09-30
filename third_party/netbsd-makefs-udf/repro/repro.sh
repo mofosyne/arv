@@ -10,7 +10,7 @@
 #   2. AddressSanitizer build                  -> expect heap-buffer-overflow via udf_copy_file (bug 1)
 #   3. plain build, image padding scan         -> expect non-zero bytes after file data (bug 1)
 #   4. the same three with proposed.patch applied -> expect all clean
-# Needs: git, cc, make, libbsd-dev, python3.
+# Needs: git, cc, make, python3.
 set -u
 
 NETBSD_REPO=https://github.com/NetBSD/src.git
@@ -52,7 +52,7 @@ extract() {  # extract GITDIR DEST: exact copies of FILES at the pinned commit
 }
 
 build() {  # build NB B CFLAGS [LIBS]
-    make -s -C "$lib" NB="$1" B="$2" CFLAGS="$3" LIBS="${4:--lbsd -lm}" all > "$2.log" 2>&1 \
+    make -s -C "$lib" NB="$1" B="$2" CFLAGS="$3" LIBS="${4:--lm}" all > "$2.log" 2>&1 \
         || { echo "build failed, see $2.log"; exit 1; }
 }
 
@@ -75,7 +75,7 @@ run_all() {  # run_all NB LABEL DESCRIPTION
     fi
 
     b=$work/$label-asan
-    build "$nb" "$b" "-O0 -g -fsanitize=address" "-fsanitize=address -lbsd -lm"
+    build "$nb" "$b" "-O0 -g -fsanitize=address" "-fsanitize=address -lm"
     rm -f "$work/img"
     if ASAN_OPTIONS=detect_leaks=0 "$b/udfmake" -o T=bdrom,v=2.50,V=2.50 "$work/img" "$work/files" > "$b.run" 2>&1; then
         echo "2. AddressSanitizer: no errors"
