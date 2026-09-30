@@ -214,11 +214,12 @@ button { font:inherit; padding:8px 16px; border-radius:6px; border:1px solid var
     if (tagHits.length) {
       discBox.appendChild(el("h2", null, "Tagged folders"));
       tagHits.forEach(function (t) {
-        var hit = el("div", "hit");
+        var hit = el("div", "hit"), top = t[1] === ".";
+        var label = top ? "(whole disc)" : t[1] + "/";
         if (t[0] === ARCHIVE_THIS) {
-          var a = el("a", "path", t[1] + "/"); a.href = dataHref(t[1]) + "/"; hit.appendChild(a);
+          var a = el("a", "path", label); a.href = top ? "data/" : dataHref(t[1]) + "/"; hit.appendChild(a);
         } else {
-          hit.appendChild(el("span", "path", t[1] + "/"));
+          hit.appendChild(el("span", "path", label));
         }
         hit.appendChild(el("span", "size", t[2].join(", ")));
         hit.appendChild(el("div", "where", t[0] === ARCHIVE_THIS ? "On this disc" : "On disc " + describe(discs[t[0]])));

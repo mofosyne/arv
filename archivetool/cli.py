@@ -305,7 +305,8 @@ def cmd_find(args):
         print("DISC  %s  %s  [%s]" % (d.get("Id"), d.get("Title"), cat.where(d) or "location unknown"))
     tag_hits = catalog.find_tags(home, cat, args.pattern)
     for d, folder, tags in tag_hits:
-        print("TAG   %s  [%s]  data/%s/  (%s)" % (d.get("Id"), cat.where(d) or "?", folder, ", ".join(tags)))
+        print("TAG   %s  [%s]  %s  (%s)" % (d.get("Id"), cat.where(d) or "?",
+                                          "data/" if folder == "." else "data/%s/" % folder, ", ".join(tags)))
     for d, path in file_hits[: args.limit] if args.limit else file_hits:
         print("%s  [%s]  %s" % (d.get("Id"), cat.where(d) or "?", path))
     if args.limit and len(file_hits) > args.limit:

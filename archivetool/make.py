@@ -97,7 +97,8 @@ class Maker:
             return [self.entries]
         tools = os.path.join(self.workdir, "tools-probe")
         self.stage_tools(tools, self.is_git, self.args.extra_tools, self.args.tools_history)
-        reserve = dir_sectors(tools) + self.snapshot_estimate() + self.budget // 200 + 1024
+        # slack for directory records and the like: 2 MiB on real media, less on tiny test media
+        reserve = dir_sectors(tools) + self.snapshot_estimate() + self.budget // 200 + min(1024, self.budget // 20)
         shutil.rmtree(tools)
         return greedy_split(self.entries, self.budget - reserve)
 
@@ -147,7 +148,8 @@ class Maker:
             if self.meta.get("draft_agent"):
                 plan.events.append(catalog.new_event(
                     disc_id, "metadata modification", "success", "%s + owner review" % self.meta["draft_agent"],
-                    "title, description, subjects and folder tags drafted with a local LLM and reviewed by the owner"))
+                    "title, description, subjects and folder tags taken from a draft (made by: %s)"
+                    % self.meta["draft_agent"]))
             if self.formats:
                 header, rows = self.formats
                 unknown = sum(1 for e in entries if (rows.get(e.path) or {}).get("puid", "UNKNOWN") == "UNKNOWN")
