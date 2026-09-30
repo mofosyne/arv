@@ -31,6 +31,12 @@ dvdisaster 0.79.10, bagit-python 1.9.0).
     `metaperc`). This is the only open-source "directory → UDF 2.50/2.60 image"
     builder I found. Porting or containerising it is an option.
   - Windows: ImgBurn / IMAPI2 build UDF 2.50/2.60 images.
+  - Not UDFclient (Debian `udfclient` 0.8.11, the userspace predecessor of
+    NetBSD's UDF code, by the same author). Tested 2026-09: `newfs_udf` has no
+    revision option and writes **UDF 2.01** without a metadata partition, and
+    `udfclient -W` could not add a file or folder to a fresh 2048-byte-sector
+    image ("couldn't add new file entry ... Invalid argument"). Useful for
+    inspecting images (`udfdump`), not for building 2.50 ones.
 - **Recommendation:** default to an ISO9660 (RR + Joliet) + UDF bridge for
   compatibility (the current ISO script), or plain UDF 2.01. Treat 2.50 with a
   metadata mirror as an optional stretch goal through NetBSD `makefs`.
