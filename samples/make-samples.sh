@@ -1,6 +1,6 @@
 #!/bin/sh
 # Make the sample discs: samples/discs/*.iso (about 40 MB in total) and their
-# home catalogue in samples/home.
+# home catalogue in samples/home (both replaced).
 #
 #   samples/make-samples.sh [OUTPUT_DIR]      (default: samples/)
 #
@@ -25,9 +25,10 @@ trap 'rm -rf "$work"' EXIT
 src=$work/sources
 python3 "$here/gen_sources.py" "$src"
 
-home=$out/home
-discs=$out/discs
-rm -rf "$home" "$discs"
+# built in the work directory and moved into place at the end, so a re-run inside
+# this repository does not count as uncommitted changes in the discs' Software field
+home=$work/home
+discs=$work/discs
 mkdir -p "$discs"
 a() { python3 "$repo/archive" --home "$home" "$@"; }
 common="-y --medium-sectors 3000 --output-dir $discs --creator Sample_Person --formats no"
@@ -96,5 +97,9 @@ a index
 
 echo "== result"
 a list
-ls -l "$discs"
-du -ch "$discs"/*.iso | tail -1
+rm -rf "$out/home" "$out/discs"
+mv "$home" "$out/home"
+mv "$discs" "$out/discs"
+python3 "$repo/archive" --home "$out/home" index > /dev/null   # the index records its home path
+ls -l "$out/discs"
+du -ch "$out/discs"/*.iso | tail -1

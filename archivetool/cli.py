@@ -69,7 +69,8 @@ def software_version():
         try:
             commit = subprocess.run(["git", "-C", REPO_ROOT, "rev-parse", "--short=12", "HEAD"],
                                     capture_output=True, text=True, check=True).stdout.strip()
-            dirty = subprocess.run(["git", "-C", REPO_ROOT, "status", "--porcelain"],
+            # untracked files never reach the disc (it carries `git archive HEAD`), so ignore them
+            dirty = subprocess.run(["git", "-C", REPO_ROOT, "status", "--porcelain", "--untracked-files=no"],
                                    capture_output=True, text=True, check=True).stdout.strip()
             return "%s@%s%s" % (REPO_NAME, commit, "+uncommitted" if dirty else ""), True
         except subprocess.CalledProcessError:
