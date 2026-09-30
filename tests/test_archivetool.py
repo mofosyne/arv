@@ -566,6 +566,28 @@ class MakeTest(unittest.TestCase):
             self.assertEqual(keywords("data/day 2/IMG_0002.JPG"),
                              ["MEMORIES|PHOTO|TRIP", "person|alice", "place|kyoto", "travel"])
 
+    def test_non_ascii_names_survive_for_windows_and_macos(self):
+        src = os.path.join(self.tmp, "Names")
+        write(os.path.join(src, "日本語の名前.txt"), "x", 2020)
+        write(os.path.join(src, "ünïcode.txt"), "x", 2020)
+        _, _ = self.make(src, "--set", "MISC")
+        iso = os.path.join(self.tmp, "disc%d.iso" % self.count)
+        for handler in ("-tIso", "-tUdf"):            # 7-Zip's ISO reader uses the Joliet names
+            listing = subprocess.run(["7z", "l", handler, "-slt", iso], capture_output=True, text=True).stdout
+            self.assertIn("data/日本語の名前.txt", listing, handler)
+            self.assertIn("data/ünïcode.txt", listing, handler)
+
+    def test_names_that_udf_cannot_hold_stop_make(self):
+        src = os.path.join(self.tmp, "Long")
+        write(os.path.join(src, "d" * 251 + ".txt"), "x", 2020)
+        code, out = run_cli("--home", self.home, "make", "-y", "--no-ecc", "--filesystem", "udf250",
+                            "-o", os.path.join(self.tmp, "long.iso"), src)
+        self.assertIn("cannot be stored in a udf250 image", str(code))
+        self.assertFalse(os.path.exists(os.path.join(self.tmp, "long.iso")))
+        code, out = run_cli("names", src)
+        self.assertEqual(code, 1)
+        self.assertIn("shortened to 103", out)
+
     def test_rebuild_from_newest_disc(self):
         self.make(self.projects, "--location", "Shelf A")
         _, newest = self.make(self.photos, "--set", "PHOTOS")

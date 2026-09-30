@@ -2,6 +2,7 @@
 
 Commands:
   make   bag a folder, write the catalogue + viewer, build the image, add RS03 ECC
+  names  check a folder's file names against the disc filesystems' limits
   find   search every disc's catalogue and file list (no discs needed)
   list   list discs in the home catalogue
   note   add a note to a disc
@@ -31,7 +32,7 @@ import subprocess
 import sys
 import tarfile
 
-from . import bag, catalog, describe, discid, image, index, llm, make, media, models, recfile, sets, tagger
+from . import bag, catalog, describe, discid, image, index, llm, make, media, models, names, recfile, sets, tagger
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO_NAME = "bluray-archival-workflow"
@@ -218,6 +219,7 @@ def cmd_make(args):
 
     log("Scanning and hashing %s ..." % src)
     entries = bag.scan_payload(src)
+    check_names([e.path for e in entries], args.filesystem, args.ignore_names)
 
     draft = {}
     if args.draft:
@@ -291,6 +293,41 @@ def cmd_make(args):
     version, is_git = software_version()
     maker = make.Maker(args, meta, entries, src, home, cat, version, is_git, stage_tools, write_readme)
     return maker.run()
+
+
+def check_names(paths, filesystem, ignore_warnings=False):
+    """Stop on names the image cannot hold; show names some systems will see differently."""
+    issues = names.check(paths, filesystem)
+    errors = [i for i in issues if i[1] == "error"]
+    if errors:
+        raise SystemExit("Error: %d file name(s) cannot be stored in a %s image (rename them, or use the "
+                         "default hybrid image, which keeps them exactly for Linux):\n%s"
+                         % (len(errors), filesystem, "\n".join(names.report(errors))))
+    if issues and not ignore_warnings:
+        log("Note: %d file name(s) will look different on Windows/macOS (the manifests and Linux keep "
+            "them exactly; --ignore-names hides this):\n%s" % (len(issues), "\n".join(names.report(issues))))
+
+
+def cmd_names(args):
+    """`archive names FOLDER`: which names a disc image would change, without making one."""
+    src = os.path.abspath(args.source)
+    if not os.path.isdir(src):
+        raise SystemExit("Error: %s is not a directory" % src)
+    paths = []
+    for root, dirs, files in os.walk(src):
+        dirs.sort()
+        rel = os.path.relpath(root, src)
+        for n in sorted(files):
+            paths.append(n if rel == "." else "%s/%s" % (rel.replace(os.sep, "/"), n))
+    code = 0
+    for fs in ([args.filesystem] if args.filesystem else list(image.FILESYSTEMS)):
+        issues = names.check(paths, fs)
+        print("%s: %s" % (fs, "all %d names kept exactly" % len(paths) if not issues else
+                          "%d issue(s)" % len(issues)))
+        for line in names.report(issues, limit=args.limit or len(issues)):
+            print(line)
+        code = code or any(i[1] == "error" for i in issues)
+    return 1 if code else 0
 
 
 def cmd_find(args):
@@ -761,6 +798,8 @@ def build_parser():
                    help="hybrid (default): ISO9660 + Joliet + UDF 1.02, readable almost anywhere; "
                         "udf250: UDF 2.50 with a metadata partition, as Blu-ray uses (needs lib/udfmake)")
     m.add_argument("--udfmake", help="path to the udfmake program (default: PATH, then lib/udfmake/build)")
+    m.add_argument("--ignore-names", action="store_true",
+                   help="don't list names that Windows/macOS will see shortened or changed (see 'archive names')")
     m.add_argument("--medium", choices=["auto"] + list(media.MEDIA), default="bd25",
                    help="target disc: RS03 fills it with error correction (default: bd25). "
                         "auto lets dvdisaster pick the smallest standard size")
@@ -795,6 +834,12 @@ def build_parser():
     m.add_argument("--keep-stage", action="store_true")
     m.add_argument("-y", "--yes", action="store_true", help="no prompts; use defaults")
     m.set_defaults(func=cmd_make)
+
+    nm = sub.add_parser("names", help="check a folder's file names against each disc filesystem's limits")
+    nm.add_argument("source")
+    nm.add_argument("--filesystem", choices=list(image.FILESYSTEMS), help="only this one (default: all)")
+    nm.add_argument("--limit", type=int, default=20, help="issues listed per kind (0: all)")
+    nm.set_defaults(func=cmd_names)
 
     f = sub.add_parser("find", help="search disc descriptions and file lists")
     f.add_argument("pattern", help="substring, or glob if it contains * ? [")

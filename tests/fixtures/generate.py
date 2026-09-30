@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(HERE)))
 sys.path.insert(0, HERE)
 
 import tsv  # noqa: E402
-from archivetool import catalog, discid, recfile, sets  # noqa: E402
+from archivetool import catalog, discid, names, recfile, sets  # noqa: E402
 
 ERROR = "ERROR"
 
@@ -97,6 +97,19 @@ def build():
                               [[p, f, "yes" if sets.path_matches(p, f) else "no"] for p, f in rules],
                               "Match globs: without / against each path segment, with / against the whole path;\n"
                               "case ignored.")
+
+    name_cases = ["plain.txt", "a" * 103, "a" * 104, "ü" * 254, "ü" * 255, "日" * 127, "日" * 128,
+                  "a" * 127 + "日", "a" * 126 + "日", "semi;colon.txt", "star*?.txt", "photo \U0001F600 ok.txt",
+                  "日本語の名前.txt"]
+    rows = []
+    for fs in ("hybrid", "udf250"):
+        for n in name_cases:
+            sev = {i[1] for i in names.check([n], fs)}
+            rows.append([fs, n, "error" if "error" in sev else "warning" if sev else "ok"])
+    out["names.tsv"] = (["filesystem", "file name", "result"], rows,
+                        "ok: kept exactly everywhere. warning: Windows/macOS show another name (hybrid:\n"
+                        "Joliet/UDF 1.02). error: the image cannot hold it (udf250: 254 characters, or 127\n"
+                        "when any is beyond U+00FF; nothing beyond U+FFFF).")
 
     vocab = sets.load(None, os.path.join(HERE, "vocab.rec"))
     out["vocab-paths.tsv"] = (["code", "paths (space separated)"],
