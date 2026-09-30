@@ -203,7 +203,12 @@ def cmd_make(args):
     src = os.path.abspath(args.source)
     if not os.path.isdir(src):
         raise SystemExit("Error: %s is not a directory" % src)
-    image.require("genisoimage", *(["dvdisaster"] if not args.no_ecc else []))
+    image.require(*(["genisoimage"] if args.filesystem == "hybrid" else []),
+                  *(["dvdisaster"] if not args.no_ecc else []))
+    if args.filesystem == "udf250" and not image.find_udfmake(args.udfmake):
+        raise SystemExit("Error: --filesystem udf250 needs udfmake: build it with 'make -C %s', "
+                         "put it on PATH, or pass --udfmake PATH"
+                         % os.path.join(REPO_ROOT, "lib", "udfmake"))
     if args.output and args.output_dir:
         raise SystemExit("Error: use either --output or --output-dir")
     interactive = sys.stdin.isatty() and not args.yes
@@ -750,6 +755,10 @@ def build_parser():
                    help="what other discs' catalogues may show of this one: public (also discs given to "
                         "others), private (your own discs; default), sealed (only its id and location)")
     m.add_argument("--rights")
+    m.add_argument("--filesystem", choices=list(image.FILESYSTEMS), default="hybrid",
+                   help="hybrid (default): ISO9660 + Joliet + UDF 1.02, readable almost anywhere; "
+                        "udf250: UDF 2.50 with a metadata partition, as Blu-ray uses (needs lib/udfmake)")
+    m.add_argument("--udfmake", help="path to the udfmake program (default: PATH, then lib/udfmake/build)")
     m.add_argument("--medium", choices=["auto"] + list(media.MEDIA), default="bd25",
                    help="target disc: RS03 fills it with error correction (default: bd25). "
                         "auto lets dvdisaster pick the smallest standard size")

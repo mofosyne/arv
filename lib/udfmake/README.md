@@ -91,4 +91,8 @@ Both are described in the [bug report](../../third_party/netbsd-makefs-udf/BUG-R
   `METADATA_DUPLICATED` is not set (upstream: `XXX no support for metadata
   mirroring yet`), so there is no second copy of the directory data.
 - UDF only. There is no ISO 9660 bridge, and `-F` (mtree specs) and `-N` are not supported.
+- Give it **one** source directory. With several, the UDF backend opens every file relative
+  to the first one: it ignores `fsnode->root`, which `walk.c` sets for this. The result is
+  "Can't open file" errors and an assertion in `udf_populate_walk`. `archive make` passes a
+  single folder of symlinks with `-L` instead. This is upstream behaviour, not yet reported.
 - Tested with 7-Zip read-back and dvdisaster RS03. Not yet tested with a Linux kernel mount, Windows or macOS.

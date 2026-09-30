@@ -16,7 +16,6 @@ from dataclasses import dataclass, field
 
 from . import bag, catalog, discid, formats, html, image, index, media, recfile, rocrate, web
 
-FILESYSTEM = "ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge"
 
 
 def log(msg):
@@ -34,6 +33,7 @@ class Plan:
     out: str = ""
     stage: str = ""
     sectors: int = 0
+    prebuilt: str = ""   # udf250: the image built while measuring it (moved into place by build())
     events: list = field(default_factory=list)
     extras: list = field(default_factory=list)  # [(Entry, source path)] added to data/, e.g. RO-Crate files
 
@@ -86,6 +86,7 @@ class Maker:
         self.workdir = None
         self.plans = []
         self.formats = None  # (header, {path: row}) from Siegfried
+        self.filesystem = getattr(args, "filesystem", None) or "hybrid"
 
     # ------------------------------------------------------------ planning
 
@@ -203,7 +204,8 @@ class Maker:
             ecc = "dvdisaster RS03 augmented image"
         for k, v in [("Media", a.media or ("M-DISC " + (self.medium_label if self.capacity else "BD-R"))),
                      ("Files", len(plan.entries)), ("Bytes", sum(e.size for e in plan.entries)),
-                     ("Filesystem", FILESYSTEM), ("Ecc", ecc), ("Software", self.version)]:
+                     ("Filesystem", image.FILESYSTEMS[self.filesystem]), ("Ecc", ecc),
+                     ("Software", self.version)]:
             r.add(k, str(v))
         return r
 
@@ -328,7 +330,7 @@ class Maker:
             over = None
             for i, plan in enumerate(self.plans):
                 self.stage(plan, batch)
-                plan.sectors = image.print_size(plan.stage, plan.disc_id, **self.payload(plan))
+                plan.sectors = self.measure(plan)
                 if self.budget is not None and plan.sectors > self.budget and over is None:
                     over = i
             if over is None:
@@ -358,16 +360,31 @@ class Maker:
             bins = [b for b in bins if b]
             for p in self.plans:
                 shutil.rmtree(p.stage, ignore_errors=True)
+                if p.prebuilt and os.path.exists(p.prebuilt):
+                    os.remove(p.prebuilt)
             shutil.rmtree(os.path.join(self.workdir, "batch"), ignore_errors=True)
             log("Rebalancing: disc %d was %d sectors over budget" % (over + 1, plan.sectors - self.budget))
         raise SystemExit("Error: could not fit the files onto discs after %d attempts" % attempts)
+
+    def measure(self, plan):
+        """Exact image size in sectors. genisoimage can print it; for UDF the image is
+        built (in the work directory) and kept for build()."""
+        if self.filesystem == "udf250":
+            plan.prebuilt = plan.stage + ".udf"
+            return image.build_udf(plan.stage, plan.prebuilt, plan.disc_id,
+                                   udfmake=getattr(self.args, "udfmake", None), **self.payload(plan))
+        return image.print_size(plan.stage, plan.disc_id, **self.payload(plan))
 
     # ------------------------------------------------------------ building
 
     def build(self, plan):
         a = self.args
         log("Building %s (%d of %d, %s) ..." % (plan.out, plan.part, plan.parts, html.human_size(plan.sectors * media.SECTOR)))
-        image.build_iso(plan.stage, plan.out, plan.disc_id, **self.payload(plan))
+        if plan.prebuilt:
+            shutil.move(plan.prebuilt, plan.out)
+            plan.prebuilt = ""
+        else:
+            image.build_iso(plan.stage, plan.out, plan.disc_id, **self.payload(plan))
         note = "image %s, %d sectors" % (os.path.basename(plan.out), plan.sectors)
         plan.events.append(catalog.new_event(plan.disc_id, "creation", "success", self.version, note))
         if a.no_ecc:
