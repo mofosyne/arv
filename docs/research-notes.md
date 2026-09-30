@@ -10,8 +10,8 @@ dvdisaster 0.79.10, bagit-python 1.9.0).
 |---|---|---|---|
 | 1.02 | Baseline, DVD-Video | read/write | `genisoimage -udf` (ISO9660 bridge) |
 | 2.01 | Large files, current default | **read/write** | `mkudffs` + loop mount + `cp` |
-| 2.50 | **Metadata partition, optional metadata mirror** (duplicate of the directory/inode data); BD-ROM uses it | read-only | none that populates from a directory |
-| 2.60 | Pseudo-OverWrite for BD-R drives | read-only | none that populates from a directory |
+| 2.50 | **Metadata partition, optional metadata mirror** (duplicate of the directory/inode data); BD-ROM uses it | read-only | **`lib/udfmake`** (NetBSD makefs, userspace; since 2026-09; no metadata mirror yet) |
+| 2.60 | Pseudo-OverWrite for BD-R drives | read-only | none (makefs caps at 2.50: `udf.c:151`, "0x260 is not ready"); not needed for single-pass images |
 
 - The only feature past 2.01 that helps *robustness* is the 2.50 **metadata
   mirror**. 2.60 only adds a recording method for drives, which does nothing for
