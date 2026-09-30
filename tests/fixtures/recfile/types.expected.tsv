@@ -1,0 +1,10 @@
+# record	type	field	value
+# Every field of every record (descriptors included), in file order.
+0	Disc	%rec	Disc
+1	Disc	Id	X
+1	Disc	Title	t
+2	Event	%rec	Event
+3	Event	Disc	X
+3	Event	Type	creation
+4	Event	Disc	X
+4	Event	Type	fixity check

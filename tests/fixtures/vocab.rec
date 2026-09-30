@@ -1,0 +1,50 @@
+# Fixed vocabulary for the fixtures (independent of archivetool/default_sets.rec).
+
+%rec: Set
+%key: Code
+
+Code: MEMORIES
+Name: Memories
+Order: 1
+
+Code: PHOTO
+Name: Photos
+Parent: MEMORIES
+Alias: pictures
+Match: *.jpg
+
+Code: TRIP
+Name: Trips and holidays
+Parent: PHOTO
+Alias: holiday
+Alias: vacation
+
+Code: RECORDS
+Name: Records
+Order: 2
+
+Code: SCAN
+Name: Scans
+Parent: RECORDS
+Parent: PHOTO
+
+Code: PROJECTS
+Name: Projects
+Order: 3
+
+Code: PROJ
+Name: Personal projects
+Parent: PROJECTS
+Alias: projects
+
+Code: CODE
+Name: Software
+Parent: PROJECTS
+Match: *.c
+Match: *.git
+
+Code: ELEC
+Name: Electronics
+Parent: PROJECTS
+Match: *.kicad_pcb
+Match: */gerbers/*

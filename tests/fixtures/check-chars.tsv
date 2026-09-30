@@ -1,0 +1,9 @@
+# payload	check character
+# Luhn mod 36 over the letters and digits (case-insensitive; - and _ ignored).
+PHOTOS-07_2015-2024	Q
+TRIP-01_201907	Q
+TAXES-03_2019	I
+A	G
+0	0
+ZZZZZZZZ-99_9999	Z
+photos-07_2015-2024	Q
