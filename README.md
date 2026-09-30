@@ -73,6 +73,7 @@ and `dvdisaster` (use the [speed47 fork](https://github.com/speed47/dvdisaster) 
 #  -> PROJ-01_2020-2025_K.iso  (bag + catalogue + index.html + tools/ + RS03 ECC, verified)
 ./archive make ./Diaries --access sealed      # other discs' catalogues show only its id and location
 ./archive make ./Photos --filesystem udf250   # UDF 2.50 image (Blu-ray style) instead of the hybrid ISO; needs lib/udfmake
+./archive names ./Photos                      # names each image type would shorten or change on Windows/macOS
 ./archive make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: only this set's catalogue
 ./archive make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
 ./archive make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03

@@ -46,6 +46,25 @@ dvdisaster 0.79.10, bagit-python 1.9.0).
   compatibility (the current ISO script), or plain UDF 2.01. Treat 2.50 with a
   metadata mirror as an optional stretch goal through NetBSD `makefs`.
 
+### File name limits (measured 2026-09-30)
+
+What each directory tree on our discs keeps of a file name. The BagIt
+manifests always keep the exact names, and `archive names FOLDER` reports the
+issues for a folder.
+
+| Tree | Read by | Longest name | Changed |
+|---|---|---|---|
+| ISO 9660 level 3 | nothing modern prefers it | 31 characters | nearly everything; ignored in practice |
+| Rock Ridge | Linux, BSDs | 255 bytes (as the source) | nothing |
+| Joliet (`-joliet-long`) | Windows, macOS | 103 characters | `* : ; ? \` become `_`; the name ends at the first character beyond U+FFFF |
+| UDF 1.02 (genisoimage) | Windows, macOS | 103 characters | as Joliet |
+| UDF 2.50 (udfmake) | Windows Vista+, macOS, Linux | 254 characters, or 127 with any above U+00FF | nothing beyond U+FFFF can be stored (`archive make` refuses) |
+
+genisoimage needs `-input-charset utf-8`. Without it, in a C/POSIX locale,
+every non-ASCII name was garbled in the Joliet and UDF trees; this was fixed
+2026-09-30. Windows also shows names with `< > : " \ | ? *` changed, and
+of names that differ only in case, it shows only one.
+
 ## 2. dvdisaster
 
 - **Not a library.** It is a single C program (GPLv3) with a GTK GUI and a

@@ -84,6 +84,9 @@ Both are described in the [bug report](../../third_party/netbsd-makefs-udf/BUG-R
 
 1. `usr.sbin/makefs/udf.c`, `udf_copy_file`: whole-sector read buffer, and the padding is zeroed (it was an out-of-bounds read into the image).
 2. `sbin/newfs_udf/udf_core.c`, `udf_set_regid`: bounded copy (it was a 1-byte `strcpy` overrun).
+3. `sbin/newfs_udf/udf_core.c`, `unix_to_udf_name`: refuse names longer than UDF can hold (254
+   characters, or 127 with any character above U+00FF). It used to wrap the one-byte length
+   silently, which gave wrong names or an unreadable image.
 
 ## Limits
 
@@ -91,6 +94,8 @@ Both are described in the [bug report](../../third_party/netbsd-makefs-udf/BUG-R
   `METADATA_DUPLICATED` is not set (upstream: `XXX no support for metadata
   mirroring yet`), so there is no second copy of the directory data.
 - UDF only. There is no ISO 9660 bridge, and `-F` (mtree specs) and `-N` are not supported.
+- Characters beyond U+FFFF (emoji) are stored as their UTF-8 bytes read as Latin-1, i.e. a
+  different name. `archive make` refuses such names for UDF 2.50 before calling udfmake.
 - Give it **one** source directory. With several, the UDF backend opens every file relative
   to the first one: it ignores `fsnode->root`, which `walk.c` sets for this. The result is
   "Can't open file" errors and an assertion in `udf_populate_walk`. `archive make` passes a

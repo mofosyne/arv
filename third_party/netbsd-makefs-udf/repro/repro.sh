@@ -9,7 +9,8 @@
 #   1. fortified build (-D_FORTIFY_SOURCE=2)   -> expect abort in udf_set_regid (bug 2)
 #   2. AddressSanitizer build                  -> expect heap-buffer-overflow via udf_copy_file (bug 1)
 #   3. plain build, image padding scan         -> expect non-zero bytes after file data (bug 1)
-#   4. the same three with proposed.patch applied -> expect all clean
+#   4. a 255-character file name               -> expect exit 0 and an unreadable image (bug 3)
+#   then the same four with proposed.patch applied -> expect all clean
 # Needs: git, cc, make, python3.
 set -u
 
@@ -92,6 +93,22 @@ run_all() {  # run_all NB LABEL DESCRIPTION
     python3 "$here/padding.py" scan "$work/files" "$work/img" > "$b.scan"
     tail -1 "$b.scan"
     head -3 "$b.scan" | grep '^ ' | sed 's/^ */   /'
+
+    rm -rf "$work/longname" "$work/img"            # bug 3: one file with a 255-character name
+    mkdir -p "$work/longname"
+    python3 -c "import sys; open(sys.argv[1] + '/' + 'd' * 255, 'w').write('x')" "$work/longname"
+    printf '4. 255-character name: '
+    if "$b/udfmake" -o T=bdrom,v=2.50,V=2.50 "$work/img" "$work/longname" > "$b.long" 2>&1; then
+        if ! command -v 7z > /dev/null; then
+            echo "makefs exit 0 (install 7z to check the image)"
+        elif 7z l "$work/img" > /dev/null 2>&1; then
+            echo "makefs exit 0; image readable, name length $(7z l -slt "$work/img" | sed -n 's/^Path = d/d/p' | awk '{print length($0)}')"
+        else
+            echo "makefs exit 0; image cannot be read"
+        fi
+    else
+        echo "makefs refused it: $(grep -o 'file name too long for UDF ([^)]*)' "$b.long")"
+    fi
 }
 
 python3 "$here/padding.py" make "$work/files"

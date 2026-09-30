@@ -140,6 +140,77 @@ whole object, so it probably doesn't abort there.
 
 ---
 
+## Bug 3: file names longer than a UDF name can hold silently corrupt the image
+
+**Severity:** high for users: `makefs` exits 0, but the image has a wrong file
+name or cannot be opened at all.
+
+### Where
+
+`sbin/newfs_udf/udf_core.c`, `unix_to_udf_name()`, called for every file
+identifier from `udf_create_fid()`:
+
+```c
+747: 			bits=16;                                /* any character above U+00FF */
+757: 		udf_chars = udf_CompressUnicode(udf_chars, bits, ...);   /* bytes: 1 + n or 1 + 2n */
+767: 	*result_len = udf_chars;                            /* result_len is &fid->l_fi */
+```
+
+`sys/fs/udf/ecma167-udf.h:651`: `uint8_t l_fi;`. The file identifier length is one byte.
+
+### Why it is wrong
+
+A name takes one compression byte plus one byte per character, or two bytes
+per character once any character is above U+00FF. So the most a name can hold
+is 254 characters, or 127 with any wide character. Nothing checks this, and
+the length wraps modulo 256:
+- 255 Latin-1 characters encode to 256 bytes, so `l_fi` becomes 0;
+- 128 wide characters encode to 257 bytes, so `l_fi` becomes 1.
+
+Names like this are legal on the source filesystem (Linux allows 255 bytes).
+
+### Evidence
+
+`makefs -t udf -o T=bdrom,v=2.50,V=2.50` on a folder with one file:
+
+| Name | makefs | Result (7-Zip) |
+|---|---|---|
+| 254 × `a` | exit 0 | correct |
+| 255 × `a` | exit 0 | "Cannot open the file as archive" |
+| 127 × `a` + `日` (128 characters) | exit 0 | wrong 1-character name |
+| 200 × `a` + `日` | exit 0 | "Cannot open the file as archive" |
+
+### Suggested fix
+
+Refuse the name, since there is no correct truncation for an image builder:
+
+```c
++	/* l_fi is one byte: a longer name would wrap and corrupt the directory */
++	if (udf_chars > 255)
++		errx(EXIT_FAILURE, "file name too long for UDF (%d bytes encoded, at most 255): %.*s",
++		    udf_chars, name_len, name);
+ 	*result_len = udf_chars;
+```
+
+---
+
+## Also noticed (not bugs in the strict sense; worth mentioning)
+
+- **Characters beyond U+FFFF.** `wget_utf8()` in `sbin/newfs_udf/unicode.h`
+  (lines 77-98) has no entry for 4-byte UTF-8 sequences (`_utf_count[0xf]` is 0).
+  So an emoji is stored as its four UTF-8 bytes taken as Latin-1 characters:
+  `photo 😀 ok.txt` reads back as `photo ð\x9f\x98\x80 ok.txt`. UDF's OSTA
+  Unicode stores 16-bit units, so refusing such names, or at least warning, would
+  be kinder than writing a different name.
+- **Several source directories with `-t udf`.** `makefs` accepts extra
+  directories and `walk.c:363` records each node's `root`, and `ffs.c:822` uses it
+  to open files. The UDF backend builds paths from the first directory only
+  (`udf.c:1043`/`1059`), so files from the second directory fail to open ("Can't
+  open file … for reading") and `udf_populate_walk` then trips
+  `assert(dirlen == ddoff)` (`udf.c:1015`).
+
+---
+
 ## How to check this yourself
 
 ```sh
@@ -152,7 +223,7 @@ The script:
    `usr.sbin/mtree`, `sbin/newfs_udf`, `sbin/fsck`, `sys/fs/udf`);
 2. copies out the 17 files makefs -t udf uses, **unmodified**;
 3. builds them with the Linux glue in `lib/udfmake/` (compat headers, stubs for the other filesystems, `main` renamed). None of the glue touches the UDF code;
-4. runs the three checks, then repeats them with `proposed.patch` applied.
+4. runs the four checks, then repeats them with `proposed.patch` applied.
 
 Expected output (abridged):
 
@@ -163,16 +234,19 @@ Expected output (abridged):
 2. AddressSanitizer: ERROR: AddressSanitizer: heap-buffer-overflow
    ... udf_write_sector udf_core.c:3672 ... udf_copy_file udf.c:854
 3. padding after file data: 40 of 40 files have non-zero padding
+4. 255-character name: makefs exit 0; image cannot be read
 
 === proposed: NetBSD src 477d71b4..., with proposed.patch
 1. fortified build: OK
 2. AddressSanitizer: no errors
 3. padding after file data: 0 of 40 files have non-zero padding
+4. 255-character name: makefs refused it: file name too long for UDF (256 bytes encoded, at most 255)
 ```
 
 You can also confirm by reading the code alone:
 - **Bug 1:** compare the `malloc` size at udf.c:838 with the byte count written through udf.c:653-655.
 - **Bug 2:** `"*UDF Metadata Partition"` has 23 characters, and `strcpy` writes 24 bytes into the 23-byte field.
+- **Bug 3:** `udf_chars` at udf_core.c:767 can exceed 255, and it is stored into the `uint8_t l_fi`.
 
 Before sending, check that trunk hasn't changed these lines since the commit above:
 
