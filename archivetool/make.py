@@ -34,6 +34,7 @@ class Plan:
     stage: str = ""
     sectors: int = 0
     prebuilt: str = ""   # udf250: the image built while measuring it (moved into place by build())
+    label: str = ""      # volume label: the disc id, then as much of the title as fits
     events: list = field(default_factory=list)
     extras: list = field(default_factory=list)  # [(Entry, source path)] added to data/, e.g. RO-Crate files
 
@@ -142,6 +143,9 @@ class Maker:
             if os.path.exists(out):
                 raise SystemExit("Error: %s already exists" % out)
             plan = Plan(entries=entries, disc_id=disc_id, part=i + 1, parts=n, out=out, sequence=first + i)
+            label_text = getattr(self.args, "label", None)
+            plan.label = image.volume_label(disc_id, meta["title"] if label_text is None else label_text,
+                                            self.filesystem)
             plan.record = self.disc_record(plan)
             plan.events = [catalog.new_event(disc_id, "message digest calculation", "success", self.version,
                                              "sha256 and sha512 manifests of %d files" % len(entries))]
@@ -178,6 +182,8 @@ class Maker:
         r = recfile.Record("Disc", [("Id", plan.disc_id), ("Uuid", str(uuid.uuid4()))])
         if not a.id:
             r.add("IdScheme", discid.SCHEME)
+        if plan.label != plan.disc_id:
+            r.add("Label", plan.label)   # the volume label: the id, then as much of the title as fits
         r.fields += [("Title", m["title"]), ("Set", m["set"])]
         r.fields += [("Category", c) for c in m.get("categories") or []]
         # every vocabulary path of the set and categories, recorded at burn time (self-describing)
@@ -373,9 +379,9 @@ class Maker:
         built (in the work directory) and kept for build()."""
         if self.filesystem == "udf250":
             plan.prebuilt = plan.stage + ".udf"
-            return image.build_udf(plan.stage, plan.prebuilt, plan.disc_id,
+            return image.build_udf(plan.stage, plan.prebuilt, plan.label, disc_id=plan.disc_id,
                                    udfmake=getattr(self.args, "udfmake", None), **self.payload(plan))
-        return image.print_size(plan.stage, plan.disc_id, **self.payload(plan))
+        return image.print_size(plan.stage, plan.label, **self.payload(plan))
 
     # ------------------------------------------------------------ building
 
@@ -386,7 +392,7 @@ class Maker:
             shutil.move(plan.prebuilt, plan.out)
             plan.prebuilt = ""
         else:
-            image.build_iso(plan.stage, plan.out, plan.disc_id, **self.payload(plan))
+            image.build_iso(plan.stage, plan.out, plan.label, **self.payload(plan))
         note = "image %s, %d sectors" % (os.path.basename(plan.out), plan.sectors)
         plan.events.append(catalog.new_event(plan.disc_id, "creation", "success", self.version, note))
         if a.no_ecc:

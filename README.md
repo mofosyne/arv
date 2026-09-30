@@ -77,6 +77,8 @@ and `dvdisaster` (use the [speed47 fork](https://github.com/speed47/dvdisaster) 
 ./archive make ./Diaries --access sealed      # other discs' catalogues show only its id and location
 ./archive make ./Photos --filesystem udf250   # UDF 2.50 image (Blu-ray style) instead of the hybrid ISO; needs lib/udfmake
 ./archive names ./Photos                      # names each image type would shorten or change on Windows/macOS
+# volume label: the disc id, then the title as far as it fits (32 bytes hybrid, 126 characters UDF 2.50);
+# --label TEXT to choose the text, --label '' for the id alone
 ./archive make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: only this set's catalogue
 ./archive make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
 ./archive make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03

@@ -104,6 +104,7 @@ The choices that matter:
 | `--access` | `private`: your own discs' catalogues only | `public` to appear on discs you give away; `sealed` so other discs carry only its id and location |
 | `--snapshot` | `full`: every disc carries the whole catalogue | `set` for a disc given to someone else (public discs of that set only) |
 | `--split` | off: stop if it doesn't fit | the folder needs several discs (`Bag-Count: n of N`) |
+| `--label` | the title: the volume label is `ID Title`, cut to 32 bytes (hybrid) or 126 characters (UDF 2.50) | another text after the id, or `''` for the id alone |
 
 ### What `archive make` does, step by step
 

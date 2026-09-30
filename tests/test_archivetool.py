@@ -684,6 +684,31 @@ class Udf250Test(unittest.TestCase):
         disc = catalog.Home(self.home).load().disc(disc_id)
         self.assertEqual(disc.get("Filesystem"), image.FILESYSTEMS["udf250"])
 
+    def test_descriptive_labels(self):
+        title = "Weather station, board rev B and firmware notes"
+        for fs, expected in (("udf250", disc_id_then("Weather station board rev B and firmware notes")),
+                             ("hybrid", None)):
+            iso = os.path.join(self.tmp, fs + ".iso")
+            code, out = run_cli("--home", self.home, "make", "-y", "--no-ecc", "--filesystem", fs,
+                                "--title", title, "-o", iso, self.src)
+            self.assertEqual(code, 0, out)
+            disc_id = out.split("\t")[0]
+            label = image.read_volume_label(iso)
+            self.assertEqual(image.read_volume_id(iso), disc_id)          # `archive check` still finds it
+            self.assertTrue(label.startswith(disc_id + " Weather"), label)
+            if fs == "udf250":
+                self.assertEqual(label, expected(disc_id))              # whole title (commas dropped)
+            else:
+                self.assertEqual(len(label), 32)                       # ISO 9660 limit
+            self.assertEqual(catalog.Home(self.home).load().disc(disc_id).get("Label"), label)
+        code, out = run_cli("--home", self.home, "make", "-y", "--no-ecc", "--label", "",
+                            "-o", os.path.join(self.tmp, "plain.iso"), self.src)
+        self.assertEqual(image.read_volume_label(os.path.join(self.tmp, "plain.iso")), out.split("\t")[0])
+
+
+def disc_id_then(text):
+    return lambda disc_id: disc_id + " " + text
+
 
 class FakeLLM:
     """Minimal OpenAI-compatible server returning a canned reply; records the requests."""

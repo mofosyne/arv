@@ -545,7 +545,7 @@ def _resolve_disc(cat, disc_id, source):
     if not disc_id:
         disc_id = image.read_volume_id(source)
         if not disc_id:
-            raise SystemExit("Error: no ISO9660 volume id on %s; pass the disc id explicitly" % source)
+            raise SystemExit("Error: no volume label on %s; pass the disc id explicitly" % source)
     disc = cat.disc(disc_id)
     if not disc:
         raise SystemExit("Error: disc %s is not in the catalogue" % disc_id)
@@ -785,6 +785,9 @@ def build_parser():
                    help="dates the contents span, in EDTF: 2019, 2015/2024, 2019-07/2019-08, 199X, 1995~ "
                         "(default: from file modification times)")
     m.add_argument("--title")
+    m.add_argument("--label", metavar="TEXT",
+                   help="volume label text after the disc id (default: the title; '' for the id only). "
+                        "Fits 32 characters in all on the hybrid image, 126 on UDF 2.50")
     m.add_argument("--description")
     m.add_argument("--creator")
     m.add_argument("--subject", action="append", help="repeatable")
