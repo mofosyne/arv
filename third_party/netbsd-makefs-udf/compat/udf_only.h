@@ -1,1 +1,0 @@
-/* only the UDF backend is built on Linux */
