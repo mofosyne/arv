@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(HERE)))
 sys.path.insert(0, HERE)
 
 import tsv  # noqa: E402
-from archivetool import catalog, discid, names, recfile, sets  # noqa: E402
+from archivetool import catalog, discid, image, names, recfile, sets  # noqa: E402
 
 ERROR = "ERROR"
 
@@ -110,6 +110,18 @@ def build():
                         "ok: kept exactly everywhere. warning: Windows/macOS show another name (hybrid:\n"
                         "Joliet/UDF 1.02). error: the image cannot hold it (udf250: 254 characters, or 127\n"
                         "when any is beyond U+00FF; nothing beyond U+FFFF).")
+
+    label_cases = [("TRIP-01_2019_4", "Kyoto, July 2019"), ("TRIP-01_2019_4", ""),
+                   ("TRIP-01_2019_4", "Kyoto trip July 2019 photos and notes"),
+                   ("SCAN-01_1995-2008_D", "Letters 1995-2008, scanned"),
+                   ("FAMILY-01_2020-2021_K", "Family photos 2020-2021 " + "x" * 120),
+                   ("FAMILY-01_2020-2021_K", "日本の旅 " + "y" * 60), ("MISC-01_2020_1", "emoji \U0001F600 ok"),
+                   ("MISC-01_2020_1", "  spaced   out  ")]
+    out["labels.tsv"] = (["disc id", "text (title)", "filesystem", "volume label"],
+                         [[i, t, fs, image.volume_label(i, t, fs)] for fs in ("hybrid", "udf250") for i, t in label_cases],
+                         "The id first and whole; then the text as far as it fits: 32 bytes of UTF-8 (hybrid),\n"
+                         "126 characters, or 63 with any above U+00FF (udf250, which also drops commas).\n"
+                         "Characters beyond U+FFFF are dropped. A reader takes the first word as the disc id.")
 
     vocab = sets.load(None, os.path.join(HERE, "vocab.rec"))
     out["vocab-paths.tsv"] = (["code", "paths (space separated)"],

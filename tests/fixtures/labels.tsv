@@ -1,0 +1,20 @@
+# disc id	text (title)	filesystem	volume label
+# The id first and whole; then the text as far as it fits: 32 bytes of UTF-8 (hybrid),
+# 126 characters, or 63 with any above U+00FF (udf250, which also drops commas).
+# Characters beyond U+FFFF are dropped. A reader takes the first word as the disc id.
+TRIP-01_2019_4	Kyoto, July 2019	hybrid	TRIP-01_2019_4 Kyoto, July 2019
+TRIP-01_2019_4		hybrid	TRIP-01_2019_4
+TRIP-01_2019_4	Kyoto trip July 2019 photos and notes	hybrid	TRIP-01_2019_4 Kyoto trip July 2
+SCAN-01_1995-2008_D	Letters 1995-2008, scanned	hybrid	SCAN-01_1995-2008_D Letters 1995
+FAMILY-01_2020-2021_K	Family photos 2020-2021 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx	hybrid	FAMILY-01_2020-2021_K Family pho
+FAMILY-01_2020-2021_K	日本の旅 yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy	hybrid	FAMILY-01_2020-2021_K 日本の
+MISC-01_2020_1	emoji 😀 ok	hybrid	MISC-01_2020_1 emoji ok
+MISC-01_2020_1	  spaced   out  	hybrid	MISC-01_2020_1 spaced out
+TRIP-01_2019_4	Kyoto, July 2019	udf250	TRIP-01_2019_4 Kyoto July 2019
+TRIP-01_2019_4		udf250	TRIP-01_2019_4
+TRIP-01_2019_4	Kyoto trip July 2019 photos and notes	udf250	TRIP-01_2019_4 Kyoto trip July 2019 photos and notes
+SCAN-01_1995-2008_D	Letters 1995-2008, scanned	udf250	SCAN-01_1995-2008_D Letters 1995-2008 scanned
+FAMILY-01_2020-2021_K	Family photos 2020-2021 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx	udf250	FAMILY-01_2020-2021_K Family photos 2020-2021 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+FAMILY-01_2020-2021_K	日本の旅 yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy	udf250	FAMILY-01_2020-2021_K 日本の旅 yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+MISC-01_2020_1	emoji 😀 ok	udf250	MISC-01_2020_1 emoji ok
+MISC-01_2020_1	  spaced   out  	udf250	MISC-01_2020_1 spaced out

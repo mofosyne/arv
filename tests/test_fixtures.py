@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(HERE))
 sys.path.insert(0, FIX)
 
 import tsv  # noqa: E402
-from archivetool import catalog, discid, names, recfile, sets  # noqa: E402
+from archivetool import catalog, discid, image, names, recfile, sets  # noqa: E402
 
 ERROR = "ERROR"
 
@@ -78,6 +78,11 @@ class FixtureTest(unittest.TestCase):
             sev = {i[1] for i in names.check([name], fs)}
             got = "error" if "error" in sev else "warning" if sev else "ok"
             self.assertEqual(got, expected, (fs, name))
+
+    def test_labels(self):
+        for disc_id, text, fs, expected in cases("labels.tsv"):
+            self.assertEqual(image.volume_label(disc_id, text, fs), expected, (disc_id, text, fs))
+            self.assertEqual(image.disc_id_from_label(expected), disc_id)
 
     def test_vocabulary(self):
         vocab = sets.load(None, os.path.join(FIX, "vocab.rec"))

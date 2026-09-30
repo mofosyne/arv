@@ -53,6 +53,11 @@ partition; `Disc.Filesystem` says which). Both show the same files. A UDF-only
 disc has no ISO 9660 volume descriptor, so readers take the label from the UDF
 logical volume identifier instead.
 
+The volume label starts with the disc `Id`, optionally followed by a space and
+the title as far as it fits, so the disc is recognisable in a file manager.
+**The disc id is the label's first word.** Older discs have the id alone. The
+UDF 2.50 primary volume identifier holds the id alone.
+
 A reader recognises a smart-archive disc by **`catalog.rec` at the root whose
 first `Archive` record has `Format: smart-archive`**:
 
@@ -96,7 +101,8 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 
 | Field | Meaning | Notes |
 |---|---|---|
-| `Id` | Human disc id, e.g. `PHOTOS-07_2015-2024_Q` | Also the volume label (ISO 9660/Joliet volume id, or the UDF logical volume identifier on UDF-only discs); written on the disc. **Derived**, see [Disc ids](#disc-ids) |
+| `Id` | Human disc id, e.g. `PHOTOS-07_2015-2024_Q` | The first word of the volume label; written on the disc. **Derived**, see [Disc ids](#disc-ids) |
+| `Label` | The volume label, when it is more than the id | The id, a space, then as much of the title as fits: 32 bytes on hybrid discs, 126 characters on UDF 2.50, e.g. `TRIP-01_2019_4 Kyoto July 2019` |
 | `IdScheme` | Which rule built `Id` | `set-seq-coverage/1`; absent for older discs |
 | `Uuid` | Machine identity (UUID v4) of this image | Copies burned from one image share it |
 | `Set`, `Sequence` | Set code and number within the set | `Sequence` is never reused within a set |

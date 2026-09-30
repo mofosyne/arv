@@ -9,6 +9,34 @@ import tempfile
 MAX_VOLID_LEN = 32
 
 
+def volume_label(disc_id, text, filesystem):
+    """The volume label: the disc id, then a space and ``text`` (usually the title) as far as it fits.
+
+    The id always comes first and whole: tools identify a disc by the label's first word,
+    and Joliet shows only 16 characters. Limits: 32 bytes of UTF-8 on the hybrid image
+    (genisoimage's limit for ISO 9660 and its UDF), 126 characters on UDF 2.50 (63 with
+    any character above U+00FF). Characters beyond U+FFFF (emoji) are dropped: UDF
+    cannot store them and genisoimage rejects them. Commas are dropped for UDF 2.50,
+    because makefs separates its options with them.
+    """
+    text = "".join(c for c in (text or "") if ord(c) <= 0xFFFF)
+    if filesystem == "udf250":
+        text = text.replace(",", "")
+    text = " ".join(text.split())
+    label = disc_id + (" " + text if text else "")
+    if filesystem == "udf250":
+        label = label[:63 if any(ord(c) > 0xFF for c in label) else 126]
+    else:
+        while len(label.encode("utf-8")) > MAX_VOLID_LEN:
+            label = label[:-1]
+    return (label if label.startswith(disc_id) else disc_id).rstrip()
+
+
+def disc_id_from_label(label):
+    """The disc id at the start of a volume label (older discs: the whole label)."""
+    return label.split()[0] if label and label.split() else None
+
+
 def require(*commands):
     missing = [c for c in commands if shutil.which(c) is None]
     if missing:
@@ -120,8 +148,14 @@ def _udf_view(parent, stage, payload_dir=None, payload_files=None):
     return view
 
 
-def build_udf(stage, out, volume_id, payload_dir=None, payload_files=None, udfmake=None):
-    """UDF 2.50 image (BD-ROM layout) of the stage plus the payload under data/. Returns its sectors."""
+def build_udf(stage, out, volume_id, payload_dir=None, payload_files=None, udfmake=None, disc_id=None):
+    """UDF 2.50 image (BD-ROM layout) of the stage plus the payload under data/. Returns its sectors.
+
+    volume_id is the label (logical volume identifier); disc_id, when given, also goes
+    into the 32-byte primary volume identifier (otherwise udfmake puts a random number there).
+    """
+    if "," in volume_id or (disc_id and "," in disc_id):
+        raise SystemExit("Error: a UDF volume label cannot contain commas (makefs option syntax)")
     tool = find_udfmake(udfmake)
     if not tool:
         raise SystemExit("Error: udfmake not found. Build it with 'make -C %s', put it on PATH, "
@@ -130,7 +164,8 @@ def build_udf(stage, out, volume_id, payload_dir=None, payload_files=None, udfma
     try:
         if os.path.exists(out):
             os.remove(out)
-        proc = subprocess.run([tool, "-L", "-o", "%s,L=%s" % (UDF_OPTIONS, volume_id), out, view],
+        options = "%s,L=%s" % (UDF_OPTIONS, volume_id) + (",P=%s" % disc_id if disc_id else "")
+        proc = subprocess.run([tool, "-L", "-o", options, out, view],
                               stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                               text=True, errors="replace")
     finally:
@@ -203,7 +238,12 @@ def verify_ecc(image):
 
 
 def read_volume_id(path):
-    """Volume id of an image file or device: ISO9660 primary volume descriptor, else UDF."""
+    """Disc id of an image file or device: the first word of its volume label."""
+    return disc_id_from_label(read_volume_label(path))
+
+
+def read_volume_label(path):
+    """Volume label of an image file or device: ISO9660 primary volume descriptor, else UDF."""
     with open(path, "rb") as f:
         f.seek(16 * 2048)
         pvd = f.read(2048)
