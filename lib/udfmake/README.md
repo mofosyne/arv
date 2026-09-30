@@ -6,7 +6,7 @@ library. This is **our modified copy**; the upstream reference and the bug
 report are in [`third_party/netbsd-makefs-udf/`](../../third_party/netbsd-makefs-udf/).
 
 ```sh
-sudo apt install build-essential    # a C compiler; nothing else is needed
+sudo apt install build-essential    # a C compiler and C library; nothing else
 make                 # build/libudfmake.a and build/udfmake (needs only the C library)
 make static          # build-static/udfmake: one self-contained binary, no runtime dependencies
 make check           # also build a BD-ROM UDF 2.50 image and verify it (7-Zip reads it back)
@@ -27,16 +27,44 @@ Options are makefs's `-o` list:
 Upstream reports errors with `err(3)`, which **exits the process**. Callers that
 must survive a failure should run the `udfmake` program as a child process.
 
+## Platforms
+
+The same tree builds on NetBSD natively and on other systems the way NetBSD
+builds its own tools on foreign hosts. The NetBSD sources already contain
+`#if HAVE_NBTOOL_CONFIG_H` blocks for this; `compat/nbtool_config.h` sets it and
+says which NetBSD functions the host lacks, and `compat/` supplies only those.
+The Makefile picks the mode from `uname -s` (override with `HOST_OS=`).
+
+| Platform | Mode | `compat/` supplies | Status |
+|---|---|---|---|
+| Linux, glibc | host | `setprogname`, `strsuftoll`, `snprintb` (+ `strlcpy` before glibc 2.38) | built and tested (gcc and clang; `check`, `asan`, `static`) |
+| Linux, musl | host | the same, plus NetBSD's `queue.h`, `ALLPERMS` | built and tested (static) |
+| FreeBSD 14.5 | host | only `strsuftoll`, `snprintb` | compiles and links (cross-built against its headers and libc); not run |
+| NetBSD-current | native | nothing: its own headers, `libutil`, `libprop` | compiles and links (cross-built against a 2026-09 daily snapshot); not run |
+| NetBSD 10.1 | native | nothing | does not compile: `partutil.c` from trunk uses `struct disk_geom` fields newer than 10.1 |
+| OpenBSD, DragonFly, macOS | host | guarded for, untested | untested |
+
+Cross-building for a platform with clang, given its headers and libraries in a sysroot directory:
+
+```sh
+make B=build-freebsd HOST_OS=FreeBSD AR=llvm-ar LDFLAGS="-static -fuse-ld=lld" \
+     CC="clang --target=x86_64-unknown-freebsd14.5 --sysroot=/path/to/freebsd-sysroot"
+make B=build-musl CC=musl-gcc LDFLAGS=-static check
+```
+
 ## How it differs from upstream
 
 | Path | Origin |
 |---|---|
 | `netbsd/` | NetBSD files at their upstream paths, from src `477d71b4d1b73a66b61a03b5f6d3dc9212d4f888` |
-| `compat/`, `udfmake.[ch]`, `udfmake_cli.c`, `Makefile`, `check.sh` | ours: Linux glue, library wrapper, build |
+| `stubs/` | ours, all platforms: stand-ins for the filesystems and mtree code that aren't built |
+| `compat/` | ours, non-NetBSD hosts only: the NetBSD libc pieces the host lacks |
+| `udfmake.[ch]`, `udfmake_cli.c`, `Makefile`, `check.sh` | ours: library wrapper, program, build |
 
 The history keeps these apart:
-1. `lib/udfmake: import NetBSD makefs UDF sources, unmodified`: `netbsd/` exactly as upstream.
-2. `lib/udfmake: Linux build glue ... (no NetBSD edits)`: glue only.
+1. `lib/udfmake: import NetBSD makefs UDF sources, unmodified`: `netbsd/` exactly as upstream
+   (plus `sys/sys/queue.h`, imported unmodified later for hosts without one).
+2. `lib/udfmake: Linux build glue ... (no NetBSD edits)` and later build commits: no edits to `netbsd/`.
 3. `lib/udfmake: fix two memory bugs in the NetBSD UDF code`: the only changes to `netbsd/`.
 
 To see every change to NetBSD code:
@@ -46,11 +74,9 @@ git log --oneline -- lib/udfmake/netbsd
 git diff $(git log --format=%h --diff-filter=A -1 -- lib/udfmake/netbsd/usr.sbin/makefs/udf.c) -- lib/udfmake/netbsd
 ```
 
-The glue avoids editing NetBSD files:
-- `compat/` supplies the few NetBSD libc functions and macros glibc lacks (`setprogname`, `TAILQ_FOREACH_SAFE`, `strsuftoll` and so on), so no extra libraries are needed.
-- `compat/cd9660.h` and `compat/other_fs.c` stand in for the filesystems that aren't built.
-- `makefs.c` is compiled with `-Dmain=netbsd_makefs_main`.
-- `DEFAULT_FSTYPE` is set to `udf` on the compiler command line.
+No NetBSD file is edited to build on other systems:
+- `makefs.c` is compiled with `-Dmain=netbsd_makefs_main`, and `DEFAULT_FSTYPE` is set to `udf` on the compiler command line.
+- `stubs/` stands in for what isn't built.
 
 ## Local changes to NetBSD code
 
