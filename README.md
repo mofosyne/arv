@@ -4,10 +4,13 @@ Tools for writing long-term personal archives (photos, video, source code) to
 Blu-ray discs that can still be read, checked and repaired decades from now
 using only open, well-documented formats.
 
-## Disc layout (planned)
+**Start with [docs/workflow.md](docs/workflow.md)**: the whole flow, from a folder to discs on a
+shelf, finding and checking them over the years, and recovering from damage or loss.
+
+## Disc layout
 
 ```
-<disc root>                  filesystem: ISO9660 (Rock Ridge + Joliet) + UDF bridge, or UDF 2.01
+<disc root>                  filesystem: ISO9660 (Rock Ridge + Joliet) + UDF 1.02 (default), or UDF 2.50
 ├── bagit.txt                BagIt signature (RFC 8493)
 ├── bag-info.txt             Bagging-Date, Bag-Group-Identifier, Bag-Count "n of N", Payload-Oxum
 ├── manifest-sha256.txt      per-file checksums (`sha256sum -c` compatible)

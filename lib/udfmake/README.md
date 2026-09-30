@@ -61,18 +61,11 @@ make B=build-musl CC=musl-gcc LDFLAGS=-static check
 | `compat/` | ours, non-NetBSD hosts only: the NetBSD libc pieces the host lacks |
 | `udfmake.[ch]`, `udfmake_cli.c`, `Makefile`, `check.sh` | ours: library wrapper, program, build |
 
-The history keeps these apart:
-1. `lib/udfmake: import NetBSD makefs UDF sources, unmodified`: `netbsd/` exactly as upstream
-   (plus `sys/sys/queue.h`, imported unmodified later for hosts without one).
-2. `lib/udfmake: Linux build glue ... (no NetBSD edits)` and later build commits: no edits to `netbsd/`.
-3. `lib/udfmake: fix two memory bugs in the NetBSD UDF code`: the only changes to `netbsd/`.
-
-To see every change to NetBSD code:
-
-```sh
-git log --oneline -- lib/udfmake/netbsd
-git diff $(git log --format=%h --diff-filter=A -1 -- lib/udfmake/netbsd/usr.sbin/makefs/udf.c) -- lib/udfmake/netbsd
-```
+Every change to NetBSD's code is a bug fix, and each one is also a standalone patch
+against unmodified upstream in
+[`third_party/netbsd-makefs-udf/patches/`](../../third_party/netbsd-makefs-udf/patches/).
+Together the patches are exactly the difference between `netbsd/` and upstream.
+`netbsd/sys/sys/queue.h` is an unmodified addition, used only on hosts without one (musl).
 
 No NetBSD file is edited to build on other systems:
 - `makefs.c` is compiled with `-Dmain=netbsd_makefs_main`, and `DEFAULT_FSTYPE` is set to `udf` on the compiler command line.
