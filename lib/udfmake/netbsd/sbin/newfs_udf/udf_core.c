@@ -775,7 +775,8 @@ udf_set_regid(struct regid *regid, char const *name)
 {
 	memset(regid, 0, sizeof(*regid));
 	regid->flags    = 0;		/* not dirty and not protected */
-	strcpy((char *) regid->id, name);
+	/* ids may fill the field exactly ("*UDF Metadata Partition" is 23 of 23 bytes): no NUL */
+	memcpy(regid->id, name, MIN(strlen(name), sizeof(regid->id)));
 }
 
 
