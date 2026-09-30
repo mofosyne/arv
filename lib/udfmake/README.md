@@ -6,8 +6,9 @@ library. This is **our modified copy**; the upstream reference and the bug
 report are in [`third_party/netbsd-makefs-udf/`](../../third_party/netbsd-makefs-udf/).
 
 ```sh
-sudo apt install build-essential libbsd-dev
-make                 # build/libudfmake.a and build/udfmake
+sudo apt install build-essential    # a C compiler; nothing else is needed
+make                 # build/libudfmake.a and build/udfmake (needs only the C library)
+make static          # build-static/udfmake: one self-contained binary, no runtime dependencies
 make check           # also build a BD-ROM UDF 2.50 image and verify it (7-Zip reads it back)
 make asan            # the same under AddressSanitizer
 build/udfmake -o T=bdrom,v=2.50,V=2.50,L=MYDISC disc.udf folder/
@@ -46,6 +47,7 @@ git diff $(git log --format=%h --diff-filter=A -1 -- lib/udfmake/netbsd/usr.sbin
 ```
 
 The glue avoids editing NetBSD files:
+- `compat/` supplies the few NetBSD libc functions and macros glibc lacks (`setprogname`, `TAILQ_FOREACH_SAFE`, `strsuftoll` and so on), so no extra libraries are needed.
 - `compat/cd9660.h` and `compat/other_fs.c` stand in for the filesystems that aren't built.
 - `makefs.c` is compiled with `-Dmain=netbsd_makefs_main`.
 - `DEFAULT_FSTYPE` is set to `udf` on the compiler command line.

@@ -1,9 +1,10 @@
 # libudfmake.a and the udfmake program: NetBSD makefs, UDF backend, for Linux.
-# Needs a C compiler and libbsd (Debian/Ubuntu: libbsd-dev).
+# Needs only a C compiler and the C library (glibc).
 #
 #   make            build libudfmake.a and udfmake
 #   make check      also build a BD-ROM UDF 2.50 image and verify it
 #   make asan       the same with AddressSanitizer (in build-asan/)
+#   make static     a statically linked udfmake with no runtime dependencies (in build-static/)
 
 CC      ?= cc
 CFLAGS  ?= -O2 -g
@@ -13,7 +14,7 @@ DEFS     = -DDEFAULT_FSTYPE='"udf"' -include compat/nbtool_config.h
 INCS     = -Icompat -I$(NB)/usr.sbin/makefs -I$(NB)/usr.sbin/mtree \
            -I$(NB)/sbin/newfs_udf -I$(NB)/sys/fs/udf
 WARN     = -Wno-address-of-packed-member
-LIBS     = -lbsd -lm
+LIBS     = -lm
 
 NB_SRCS  = $(NB)/usr.sbin/makefs/makefs.c $(NB)/usr.sbin/makefs/walk.c \
            $(NB)/usr.sbin/makefs/udf.c $(NB)/sbin/newfs_udf/udf_core.c \
@@ -35,7 +36,7 @@ $(B)/libudfmake.a: $(OBJS)
 	ar rcs $@ $^
 
 $(B)/udfmake: udfmake_cli.c $(B)/libudfmake.a
-	$(CC) $(CFLAGS) -I. $< $(B)/libudfmake.a $(LIBS) -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) -I. $< $(B)/libudfmake.a $(LIBS) -o $@
 
 $(B):
 	mkdir -p $@
@@ -44,10 +45,12 @@ check: all
 	./check.sh $(B)/udfmake
 
 asan:
-	$(MAKE) B=build-asan CFLAGS="-O0 -g -fsanitize=address" LDFLAGS=-fsanitize=address \
-	    LIBS="-fsanitize=address -lbsd -lm" check
+	$(MAKE) B=build-asan CFLAGS="-O0 -g -fsanitize=address" LDFLAGS=-fsanitize=address check
+
+static:
+	$(MAKE) B=build-static LDFLAGS=-static check
 
 clean:
 	rm -rf build build-asan
 
-.PHONY: all check asan clean
+.PHONY: all check asan static clean
