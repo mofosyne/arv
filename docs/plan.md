@@ -188,6 +188,29 @@ bit-for-bit compatibility (tested against the dvdisaster CLI), and expose
 create/verify/repair. The result stays GPLv3, which constrains the licence
 of anything linking to it (this repo's licence is still undecided).
 
+## Decisions (2026-10-01)
+
+- Browser search data stays as it is: `search.html` reads small `.js` views that `archive make`
+  derives from the catalogue. Recfiles are never wrapped in JavaScript. JSON brings no gain
+  (measured); recutils-js does not load from `file://`. See research-notes.md section 6.
+
+## Later: catalogue snapshot size
+
+Each disc carries every earlier disc's manifests, listings, format IDs and search data:
+about 480 bytes per file in the archive. Up to about a million files that is under 3% of a
+25 GB disc, and nothing changes. When an archive heads past that (5 million files would be
+13%), do the following, in this order:
+
+- [ ] Leave other discs' format IDs (`formats/*.csv`, about half the size) out of
+      snapshots; each disc keeps its own.
+- [ ] Compress only the *other* discs' copies (`listings/*.tsv.gz`, `manifests/*.sha256.gz`,
+      `formats/*.csv.gz`; about 28% of plain). This disc's own catalogue, manifests and listing
+      stay plain, so it stays readable without tools. `rebuild`/`find` read `.gz`.
+- [ ] Do it automatically, only when the snapshot would exceed about 2% of the disc's data
+      budget, so small archives stay entirely plain.
+- Keep the browser search data uncompressed. A `file://` page could only decompress
+  base64-wrapped data, saving about 7%.
+
 ## Open decisions
 
 - Licence for this repo (GPLv3 fits if the RS03 library happens)
