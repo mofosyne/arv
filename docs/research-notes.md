@@ -340,7 +340,9 @@ with permanently unreadable sectors.
    limit as dvdisaster, natively and as `.wasm` (byte-identical results). But it fails as soon as
    any RS03 sector itself is damaged (header, CRC or ECC sectors), and the ECC area is at the
    end of the disc, the outer edge, where discs usually degrade first. It also holds the whole
-   image in memory, and its `augment` only targets the standard media sizes. So it is a readable
+   image in memory (1.3 GB for a 1 GiB image, 3x slower than dvdisaster there), and its
+   `augment` only targets the standard media sizes. Its `.wasm` build fails on large images
+   (section 7 below). So it is a readable
    reference implementation and a last resort, not a replacement. A portable decoder for our
    discs must tolerate damage to RS03's own sectors.
 4. **Two damaged copies rebuild each other with stock tools.** Each copy 30% unreadable in
@@ -497,7 +499,28 @@ almost the whole disc (3,058 of 3,060 sectors at 35%), so these tests use cluste
 
 #### 7. A 1 GiB image: time and peak memory
 
-BIGRESULTS
+A random 1 GiB image (524,288 sectors) with RS03 for a 655,360-sector medium (23.8%
+redundancy, 655,350 sectors in all), then 5% of it (32,767 sectors) made unreadable in the data
+area, so that lcsas-ecc could take part. Four CPU threads.
+
+| Step | Time | Peak memory | Result |
+|---|---|---|---|
+| speed47: create RS03 | 5.3 s | 136 MiB | |
+| Light: create RS03 | 5.5 s | 136 MiB | byte-identical to speed47 |
+| Light `-f` | 188 s | 36 MiB | repaired |
+| lcsas-ecc `fix` (native) | 613 s | 1,281 MiB | repaired |
+| lcsas-ecc `fix` (`.wasm`, Node) | 717 s | 1,331 MiB | **not repaired**: Node crashed (SIGSEGV) |
+
+Why the `.wasm` run failed: lcsas-ecc reads the whole image with one `fread()` and treats a
+short read as an error. WASI runtimes return a read that large in pieces: wasmtime reports
+"short read", and Node's WASI crashes. Reading in 16 MiB chunks (a five-line change, tested
+with both runtimes) fixes reading. The design still does not scale: it keeps the image and a
+work buffer of the same size in memory (about 2.6 GB here), and sizes the image with a `long`,
+which is 32 bits in WebAssembly, so a 25 GB disc image cannot work in a 32-bit `.wasm` at all.
+A portable decoder has to stream the image (RS03 works one layer at a time), as dvdisaster
+does: 36 MiB for the same repair.
+
+(A full `.wasm` repair of the 1 GiB image with chunked reads is being measured.)
 
 ## 9. Other ideas from LCSAS, tested or noted (2026-10-01)
 
