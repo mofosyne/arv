@@ -26,6 +26,64 @@ Don't make physical copies to file a disc under each category.
 Leave room at the end of each set for future discs, because sequence numbers
 only grow. A box per set (or per small group of sets) makes that easy.
 
+![Recommended shelving: boxes per vocabulary group, discs in id order, the safe, and the off-site copies](img/shelving.svg)
+
+(Drawn by `img/shelving-svg.py`; the ids are real, computed with the tool's id rules.)
+
+### Why not by year?
+
+The shelf needs **one** order that never has to be reshuffled. Year order isn't
+that:
+- **Discs span years.** `SCAN-01_1995-2008` belongs to fourteen of them.
+- **Old material keeps arriving.** Letters from the 1990s, scanned in 2026, would
+  have to be squeezed in between discs made years ago.
+
+Set-then-sequence only ever **appends at the end of a set**. Within a set,
+sequence order is usually close to chronological anyway, because you archive as
+you go, and every id carries its coverage years (`PHOTO-03_2018-2019_B`), so the
+shelf is easy to scan by eye for dates.
+
+You don't lose the year view, because it's virtual (next section).
+
+## The virtual structure: every order at once
+
+Physically a disc can be in only one place. In the catalogue it can be in many,
+and catalogue software can show any of these trees from the newest disc alone
+(see [the format spec](smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)):
+- by kind, through the vocabulary, where a disc appears under each of its paths;
+- by year, from each disc's coverage;
+- by place, from the location records;
+- by collection and by tag.
+
+```mermaid
+flowchart LR
+    A([Archive catalogue<br/>on every disc])
+
+    A --> K[By kind]
+    K --> KM[MEMORIES] --> KP[PHOTO]
+    KP --> KT[TRIP] --> k1["TRIP-01_2019_4<br/>Kyoto July 2019"]
+    KP --> KS[SCAN] --> k2["SCAN-01..03_1995-2008<br/>Letters scanned"]
+    K --> KR[RECORDS]
+    KR --> KS2[SCAN] --> k3["SCAN-01..03_1995-2008<br/>(same discs: two parents)"]
+    KR --> KF[FINANCE] --> KX[TAXES] --> k4["TAXES-01_2019-2020_I<br/>sealed"]
+
+    A --> Y[By year]
+    Y --> Y1[1995 ... 2008] --> y1["SCAN-01..03_1995-2008"]
+    Y --> Y2[2019] --> y2["TRIP-01_2019_4"]
+    Y2 --> y3["TAXES-01_2019-2020_I"]
+    Y --> Y3[2020] --> y4["TAXES-01_2019-2020_I"]
+
+    A --> P[By place]
+    P --> PH[Home / Study] --> PB[HOME-B01] --> p1["TRIP-01_2019_4"]
+    PH --> PB2[HOME-B02] --> p2["SCAN-01..03_1995-2008"]
+    P --> PS[Home / Fire safe] --> p3["TAXES-01_2019-2020_I"]
+    P --> PP[Parents' house] --> PP1[PARENTS-B01] --> p4["TRIP-01_2019_4 (copy 2)"]
+```
+
+So the physical shelf only has to be **stable and easy to keep**, and the
+virtual structure gives you every other order. That's why the shelf follows the
+id rather than the year.
+
 ## Location codes: down to the box, not the slot
 
 Record locations down to the **box** (or case, or binder), not the position
