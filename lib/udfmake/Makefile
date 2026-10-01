@@ -4,6 +4,8 @@
 #   make check      also build a BD-ROM UDF 2.50 image and verify it
 #   make asan       the same with AddressSanitizer (in build-asan/)
 #   make static     a statically linked udfmake with no runtime dependencies (in build-static/)
+#   make wasi       a WebAssembly (WASI) udfmake, checked by running it with Node (in build-wasi/);
+#                   needs clang with the wasm32 target and a WASI libc (WASI_SYSROOT)
 #
 # On NetBSD the sources build natively (their own headers and libraries). On
 # any other host (Linux, FreeBSD, ...) they build the way NetBSD builds its own
@@ -65,7 +67,15 @@ asan:
 static:
 	$(MAKE) B=build-static LDFLAGS=-static check
 
+WASI_SYSROOT ?= /usr
+WASI_AR      ?= llvm-ar
+wasi:
+	$(MAKE) B=build-wasi CC="clang --target=wasm32-wasi --sysroot=$(WASI_SYSROOT)" AR=$(WASI_AR) \
+	    CFLAGS="-O2 -D_WASI_EMULATED_SIGNAL -D_WASI_EMULATED_PROCESS_CLOCKS" \
+	    LDFLAGS="-lwasi-emulated-signal -lwasi-emulated-process-clocks" all
+	UDFMAKE_WASM=build-wasi/udfmake ./check.sh wasi/udfmake
+
 clean:
 	rm -rf build build-*
 
-.PHONY: all check asan static clean
+.PHONY: all check asan static wasi clean

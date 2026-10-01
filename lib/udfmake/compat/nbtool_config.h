@@ -40,7 +40,7 @@
 #else
 #define HAVE_STRLCPY		0
 #endif
-#elif defined(__linux__)	/* musl and other non-glibc Linux libcs */
+#elif defined(__linux__) || defined(__wasi__)	/* musl, other non-glibc Linux libcs, WASI (musl-based) */
 #define HAVE_SETPROGNAME	0
 #define HAVE_STRLCPY		1
 #else
@@ -48,6 +48,16 @@
 #define HAVE_STRLCPY		0
 #endif
 /* NetBSD-only on every other host: strsuftoll, snprintb, emalloc & co (compat.c, util.h) */
+
+#if defined(__wasi__)	/* readdir(3) that always gives "." first (compat.c) */
+#include <dirent.h>
+DIR *compat_opendir(const char *);
+struct dirent *compat_readdir(DIR *);
+int compat_closedir(DIR *);
+#define opendir compat_opendir
+#define readdir compat_readdir
+#define closedir compat_closedir
+#endif
 
 #if !HAVE_SETPROGNAME
 void setprogname(const char *);

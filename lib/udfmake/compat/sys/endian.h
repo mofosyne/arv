@@ -1,7 +1,7 @@
 /* <sys/endian.h> as the NetBSD sources expect it: BYTE_ORDER and bswap16/32/64. */
 #ifndef COMPAT_SYS_ENDIAN_H
 #define COMPAT_SYS_ENDIAN_H
-#if defined(__linux__)
+#if defined(__linux__) || defined(__wasi__)
 #include <endian.h>
 #elif defined(__APPLE__)
 #include <machine/endian.h>
