@@ -9,7 +9,7 @@ import json
 import os
 import sys
 
-from . import bag, catalog, llm, vision, web
+from . import bag, catalog, listing, llm, vision
 
 
 def log(msg=""):
@@ -176,7 +176,7 @@ def disc_entries(home, disc_id):
     if not os.path.exists(path):
         raise SystemExit("Error: no file listing for %s at %s" % (disc_id, path))
     entries = []
-    for size, mtime, rel in web.read_listing(path):
+    for size, mtime, rel in listing.read_listing(path):
         try:
             ts = calendar.timegm(time.strptime(mtime, "%Y-%m-%dT%H:%M:%SZ"))
         except ValueError:

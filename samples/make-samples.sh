@@ -6,7 +6,7 @@
 #
 # Needs: python3, genisoimage, git, the speed47 dvdisaster fork (the stock
 # 0.79.10 build pads every image to CD size), and lib/udfmake (built here with
-# make if missing). The discs use a custom 3000-sector "medium" (6 MB) so they
+# make if missing). The discs use a custom 3200-sector "medium" (6.5 MB) so they
 # stay small; real discs use --medium bd25 (the default) or bd100.
 set -eu
 
@@ -31,7 +31,7 @@ home=$work/home
 discs=$work/discs
 mkdir -p "$discs"
 a() { python3 "$repo/archive" --home "$home" "$@"; }
-common="-y --medium-sectors 3000 --output-dir $discs --creator Sample_Person --formats no"
+common="-y --medium-sectors 3200 --output-dir $discs --creator Sample_Person --formats no"
 
 draft() {  # draft NAME JSON: a hand-written metadata draft
     printf '%s\n' "$2" > "$work/$1.json"

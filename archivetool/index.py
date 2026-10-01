@@ -8,7 +8,7 @@ import os
 import sqlite3
 
 from . import catalog as catalog_mod
-from .web import read_listing
+from .listing import read_listing
 
 SCHEMA = """
 CREATE TABLE files (disc TEXT, path TEXT, lpath TEXT, size INTEGER);

@@ -69,7 +69,7 @@ def badge(x, y, n):
 add("<svg xmlns='http://www.w3.org/2000/svg' width='%d' height='%d' viewBox='0 0 %d %d'>" % (W, H, W, H))
 add("<rect width='100%' height='100%' fill='#ffffff'/>")
 text(30, 38, "Recommended shelving: by access level, then the year the disc was made", 20, "bold")
-text(30, 60, "New discs only ever go at the end. Kind (PHOTO, TRIP, SCAN ...) is virtual: the catalogue on every disc and search.html.",
+text(30, 60, "New discs only ever go at the end. Kind (PHOTO, TRIP, SCAN ...) is virtual: the catalogue on every disc.",
      13, fill="#57606a")
 
 # bookcase at HOME / Study

@@ -19,8 +19,8 @@ shelf, finding and checking them over the years, and recovering from damage or l
 ├── tagmanifest-sha256.txt   checksums of the files above + catalog.rec
 ├── catalog.rec              GNU recutils catalogue for this disc
 ├── catalog/                 snapshot of the whole archive catalogue at burn time
-│                            (archive.rec, manifests/, listings/, formats/, tags/, web/)
-├── index.html  search.html  offline viewer and cross-disc search
+│                            (archive.rec, manifests/, listings/, formats/, tags/)
+├── index.html               offline viewer (no JavaScript)
 ├── README.txt               plain-text recovery instructions
 │   data/ro-crate-metadata.json  optional RO-Crate description (--ro-crate)
 ├── tools/                   this tool (snapshot of the last commit), bagit.py
@@ -44,7 +44,7 @@ Each layer does its own job:
 | `scripts/create-archive-udf.sh` | Experimental. UDF 2.01 image via `mkudffs` + loop mount (needs sudo), then RS03 augment |
 | `tests/smoke-test.sh` | End-to-end check: bag → image → ECC → damage → repair → validate bag |
 
-`samples/` has seven small sample discs made with the full workflow (37 MB, with
+`samples/` has seven small sample discs made with the full workflow (40 MB, with
 RS03 error correction) and their catalogue: try `./archive --home samples/home list`.
 
 `docs/plan.md` has the disc layout, phased plan and open decisions.
@@ -112,9 +112,11 @@ the disc list and history, notes, location and burned copies, search, making a
 disc (with a folder picker), checking discs and rebuilding the catalogue. Every
 action runs the same `archive` command as the terminal and shows its output.
 
-On the disc, `index.html` browses the disc without JavaScript, and `search.html`
-searches this disc and every disc in its catalogue snapshot (all offline, from
-`file://`; ~1M files: about 1 s for the first search, then about 0.3 s).
+On the disc, `index.html` browses the disc without JavaScript. Searching across
+discs is the job of catalogue software (such as Katalog) reading the catalogue,
+or of this tool, which is on every disc: from the disc's root,
+`python3 tools/bluray-archival-workflow/archive --home catalog find PATTERN`
+searches every disc in its snapshot with nothing but Python.
 
 - `--medium` (default `bd25`; also `bd50`, `bd100`, `bd128`, `auto`) sets the disc the image
   targets. RS03 fills the rest of the disc, and each disc keeps at least `--min-redundancy`
@@ -216,7 +218,7 @@ ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM S
   dates, types, and up to 6 short README-style text files), never file contents.
   Only loopback servers are allowed unless you pass `--llm-allow-remote`.
 - Folder tags (and image captions) go in `catalog/tags/<disc-id>.tags` and are searched by
-  `archive find`, the GUI and the disc's `search.html`.
+  `archive find` and the GUI.
 - **Images (`--vision`, or the checkbox in the GUI):** a few images per folder (and a
   frame per video when `ffmpeg` is installed) are shown to a local vision model. Its
   captions ("a red VW Beetle on a cobblestone street") feed the description and folder

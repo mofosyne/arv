@@ -127,7 +127,14 @@ data stored after the filesystem.
 
 BROWSE
   Open index.html in any web browser. It lists every file on this disc
-  and{other_discs}. search.html searches file names on this disc{search_scope}.
+  and{other_discs}.
+
+SEARCH
+  Catalogue software that reads this format (the spec is
+  tools/{repo}/docs/smart-archive-format.md) can search every disc. With only Python 3, from the root of the mounted disc:
+    python3 tools/{repo}/archive --home catalog find PATTERN
+    python3 tools/{repo}/archive --home catalog list
+  Or plain text tools: grep -ri PATTERN catalog/listings/
 
 VERIFY (detect damage)
   From the root of the mounted disc, either of:
@@ -169,7 +176,6 @@ def write_readme(path, disc, snapshot_scope, history=False):
         catalog_lines=cat_lines, repo=REPO_NAME,
         bundle_line=("  tools/%s.bundle     the same with full history: git clone <bundle>\n" % REPO_NAME)
         if history else "",
-        search_scope="" if snapshot_scope == "disc" else " and on every disc in the catalogue",
     )
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
@@ -484,7 +490,7 @@ def _listing_paths(home, disc_id):
     path = home.disc_file("listings", disc_id)
     if not os.path.exists(path):
         return None
-    from .web import read_listing
+    from .listing import read_listing
     return [rel for _, _, rel in read_listing(path)]
 
 

@@ -234,21 +234,23 @@ with realistic photo, code and document paths):
 | `formats/*.csv` (only with Siegfried) | 249 bytes | 58 (23%) | 48 |
 | `manifests/*.sha256` (BagIt) | 112 | 50 (44%; hex checksums barely compress) | 42 |
 | `listings/*.tsv` | 70 | 14 (20%) | 9 |
-| `web/files/*.js` (search.html) | 51 | 13 | 9 |
-| **total** | **483** | **about 135** | |
+| ~~`web/files/*.js` (search.html)~~ | ~~51~~ | ~~13~~ | removed 2026-10-01 |
+| **total** | **431** | **about 122** | |
 
 | Files in the whole archive | Snapshot on each new disc | Share of a 25 GB disc's data (~18.6 GB at 20% RS03) |
 |---|---|---|
-| 100,000 | 0.05 GB | 0.3% |
-| 1,000,000 | 0.48 GB | 2.6% |
-| 5,000,000 | 2.4 GB | 13% |
-| 20,000,000 | 9.7 GB | 52% |
+| 100,000 | 0.04 GB | 0.2% |
+| 1,000,000 | 0.43 GB | 2.3% |
+| 5,000,000 | 2.2 GB | 12% |
+| 20,000,000 | 8.6 GB | 46% |
 
 A 25 GB personal disc holds roughly 5,000-50,000 files, so a million files means
 about 20-200 discs. Up to that point the snapshot is under 3% and stays plain.
 What to do beyond that is in plan.md ("Later: catalogue snapshot size").
 
 ### Search data in the browser (measured in Chromium, 1,000,000 files)
+
+(Kept for the record: `search.html` was removed on 2026-10-01; see plan.md, Decisions.)
 
 | Form of a file list | Size | Load | First search | Later searches |
 |---|---|---|---|---|
@@ -260,7 +262,9 @@ JSON brings no gain. The archival files stay recfiles and TSV: line-oriented
 (grep, diff, sort, `sha256sum -c`; damage loses lines, not the whole file),
 commented, readable and editable by hand, and easy to append to.
 
-### Why search.html loads `.js` files, and what was not adopted
+### Why search.html loaded `.js` files, and what was not adopted
+
+(Historical: `search.html` was removed on 2026-10-01.)
 
 A page opened from `file://` has a `null` origin. Browsers then **block**
 `fetch`/`XMLHttpRequest` of `.rec`, `.tsv`, `.json` and `.wasm` files, and any

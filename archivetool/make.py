@@ -14,7 +14,7 @@ import tempfile
 import uuid
 from dataclasses import dataclass, field
 
-from . import bag, catalog, discid, formats, html, image, index, media, recfile, rocrate, web
+from . import bag, catalog, discid, formats, html, image, index, listing, media, recfile, rocrate
 
 
 
@@ -104,12 +104,12 @@ class Maker:
         return greedy_split(self.entries, self.budget - reserve)
 
     def snapshot_estimate(self):
-        """Sectors for catalog/ (prior discs' files + this batch's lists, twice: listings + web)."""
+        """Sectors for catalog/ (prior discs' files + this batch's lists), with room to spare."""
         total = 0
         for d in self.prior_discs():
             for p in self.home.disc_files(d.get("Id")).values():
                 total += 2 * os.path.getsize(p)
-        total += sum(4 * (len(e.path) + 200) for e in self.entries)  # manifests, listings, web, formats
+        total += sum(4 * (len(e.path) + 200) for e in self.entries)  # manifests, listings, formats
         return total // media.SECTOR + 256
 
     def prior_discs(self):
@@ -232,7 +232,7 @@ class Maker:
             files = {"manifests": os.path.join(batch, p.disc_id + ".sha256"),
                      "listings": os.path.join(batch, p.disc_id + ".tsv")}
             bag.write_manifest(files["manifests"], [(e.hashes["sha256"], "data/" + e.path) for e in p.payload_entries])
-            web.write_listing(files["listings"], p.payload_entries)
+            listing.write_listing(files["listings"], p.payload_entries)
             tags, captions = self.plan_tags(p)
             if tags or captions:
                 files["tags"] = os.path.join(batch, p.disc_id + ".tags")
@@ -301,23 +301,11 @@ class Maker:
         files.update({p.disc_id: batch[p.disc_id] for p in batch_plans})
         catalog_dir = os.path.join(stage, "catalog")
         catalog.write_snapshot(catalog_dir, snapshot, files, a.snapshot)
-        listings = os.path.join(catalog_dir, "listings")
-        tags_dir = os.path.join(catalog_dir, "tags")
-        folder_tags = {n[:-5]: catalog.read_tag_info(os.path.join(tags_dir, n))
-                       for n in (os.listdir(tags_dir) if os.path.isdir(tags_dir) else [])}
-        web.write_web_data(os.path.join(catalog_dir, "web"), plan.disc_id, snapshot.discs,
-                           {n[:-4]: os.path.join(listings, n) for n in os.listdir(listings)}, folder_tags,
-                           {l.get("Code"): snapshot.location_path(l.get("Code")) for l in snapshot.locations},
-                           [{"code": c.get("Code"), "name": snapshot.collection_path(c.get("Code")),
-                             "description": c.get("Description") or "", "items": c.get_all("Item")}
-                            for c in snapshot.collections])
 
         self.stage_tools(os.path.join(stage, "tools"), self.is_git, a.extra_tools, a.tools_history)
         self.write_readme(os.path.join(stage, "README.txt"), plan.record, a.snapshot, a.tools_history)
         with open(os.path.join(stage, "index.html"), "w", encoding="utf-8") as f:
             f.write(html.render_index(plan.record, plan.payload_entries, snapshot))
-        with open(os.path.join(stage, "search.html"), "w", encoding="utf-8") as f:
-            f.write(web.render_search())
 
         # catalog.rec: the disc's entry point (Archive record, see docs/smart-archive-format.md),
         # then this disc's own Disc and Event records. Written last so it can point to every file.
