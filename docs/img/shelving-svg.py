@@ -7,7 +7,7 @@ The ids are real (computed with the tool's id rules); the years made are illustr
 import os
 from xml.sax.saxutils import escape as e
 
-W, H = 1240, 820
+W, H = 1240, 1080
 FONT = "font-family='DejaVu Sans, Helvetica, Arial, sans-serif'"
 MONO = "font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'"
 COL = {"public": ("#dcefdc", "#2f6b34"), "private": ("#dbe8f8", "#2f5d8a"), "sealed": ("#e3e3e3", "#444444")}
@@ -100,30 +100,36 @@ x = row(44, 410, 228, [
 ])
 next_box(x, 410, 228, 70, COL["public"][1], ["next", "year's", "box"])
 
-# safe
-add("<rect x='430' y='412' width='230' height='222' rx='10' fill='#f1f1f1' stroke='#444' stroke-width='3'/>")
-add("<circle cx='642' cy='523' r='9' fill='none' stroke='#444' stroke-width='2'/>")
-text(444, 432, "HOME-SAFE  (fire safe)", 12, "bold", "#444")
-text(444, 448, "SEALED, by year made:", 11, fill="#444")
-for i, (code, d) in enumerate([("2021", ("TAXES-01_2019-2020_I", "Tax 2019")), ("2024", ("LEGAL-01_2001-2024_K", "ID documents"))]):
-    bx = 444 + 82 * i
-    add("<rect x='%d' y='456' width='74' height='170' rx='4' fill='none' stroke='#444' stroke-dasharray='3 3'/>" % bx)
-    text(bx + 6, 474, code, 10.5, "bold", "#444", mono=True)
-    spine(bx + 36, 462, 158, d[0], d[1], "sealed")
+# safe: a separate piece of furniture, not part of the bookcase
+SY = 676
+ink = COL["sealed"][1]
+add("<rect x='24' y='%d' width='400' height='236' rx='10' fill='#f1f1f1' stroke='%s' stroke-width='3'/>" % (SY, ink))
+add("<circle cx='402' cy='%d' r='9' fill='none' stroke='%s' stroke-width='2'/>" % (SY + 118, ink))
+text(36, SY + 22, "HOME  /  HOME-SAFE  (fire safe, locked)", 13, "bold", ink)
+text(36, SY + 40, "SEALED", 12, "bold", ink)
+for i, (code, d) in enumerate([("HOME-SEALED-2021", ("TAXES-01_2019-2020_I", "Tax 2019")),
+                               ("HOME-SEALED-2024", ("LEGAL-01_2001-2024_K", "ID documents"))]):
+    bx = 40 + 150 * i
+    add("<rect x='%d' y='%d' width='138' height='176' rx='4' fill='none' stroke='%s' stroke-dasharray='3 3'/>" % (bx, SY + 50, ink))
+    spine(bx + 10, SY + 60, 158, d[0], d[1], "sealed")
+    text(bx + 54, SY + 76, code[:11], 10.5, "bold", ink, mono=True)
+    text(bx + 54, SY + 90, code[12:], 10.5, "bold", ink, mono=True)
+next_box(340, SY + 50, 176, 48, ink, ["next", "year"])
 
-# labels legend inside the bookcase
-add("<rect x='690' y='412' width='190' height='222' rx='6' fill='#fffdf5' stroke='#d0c4a8'/>")
-text(702, 434, "Labels", 13, "bold")
+# labels legend
+LX, LY = 450, SY
+add("<rect x='%d' y='%d' width='220' height='236' rx='6' fill='#fffdf5' stroke='#d0c4a8'/>" % (LX, LY))
+text(LX + 12, LY + 22, "Labels", 13, "bold")
 rows = [("Disc hub", ["the full id,", "solvent-free marker"]), ("Case spine", ["volume label: id + title"]),
         ("Box", ["its code, large; contents", "list in the lid"])]
-yy = 458
+yy = LY + 48
 for head, lines in rows:
-    text(702, yy, head, 11.5, "bold")
+    text(LX + 12, yy, head, 11.5, "bold")
     for line in lines:
         yy += 15
-        text(702, yy, line, 11, fill="#57606a")
+        text(LX + 12, yy, line, 11, fill="#57606a")
     yy += 22
-text(702, yy - 4, "archive list --at BOX", 10, fill="#57606a", mono=True)
+text(LX + 12, yy - 4, "archive list --at BOX", 10, fill="#57606a", mono=True)
 
 # off-site
 add("<rect x='918' y='84' width='300' height='560' rx='8' fill='none' stroke='#6b7280' stroke-width='3' stroke-dasharray='8 5'/>")
@@ -139,19 +145,19 @@ box(934, 410, 228, "PARENTS-PRV-2026", "private", [("LETTERS-01_1990-1999_R", "L
 text(1068, 386, "...  same split, burned from the same .iso", 10.5, fill="#4b5563", anchor="middle")
 
 # callouts
-for n, (bx, by) in enumerate([(870, 150), (130, 128), (300, 158), (524, 392), (420, 404), (928, 128)], 1):
+for n, (bx, by) in enumerate([(870, 150), (130, 128), (300, 158), (524, 392), (24, SY), (928, 128)], 1):
     badge(bx, by, n)
 notes = [
-    "One section per access level: private and public on the shelf, sealed in the safe.",
+    "One section per access level: private and public on separate shelves, sealed locked away in the safe.",
     "Within a section, one box per year the disc was made (its Date field, not its coverage).",
     "Within a box, in the order made: a new disc always goes at the end of the newest box.",
     "Old material goes in the year it was archived; the id still shows what it covers (SCAN-..._1995-2008).",
-    "Sealed discs (taxes, identity documents) go in the safe, also by year made.",
+    "Sealed discs (taxes, identity documents) are not on the bookcase: they go in the safe, also by year made.",
     "Second copies, burned from the same image, at another site, in the same split.",
 ]
 for i, s in enumerate(notes):
-    badge(42, 672 + 22 * i, i + 1)
-    text(60, 676 + 22 * i, s, 12.5)
+    badge(42, 944 + 22 * i, i + 1)
+    text(60, 948 + 22 * i, s, 12.5)
 add("</svg>")
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "shelving.svg"), "w", encoding="utf-8") as f:
     f.write("\n".join(out) + "\n")
