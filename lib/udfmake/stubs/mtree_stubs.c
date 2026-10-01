@@ -16,7 +16,10 @@ const char *inotype(u_int mode) {
 	switch (mode & S_IFMT) {
 	case S_IFDIR: return "dir"; case S_IFREG: return "file"; case S_IFLNK: return "link";
 	case S_IFBLK: return "block"; case S_IFCHR: return "char"; case S_IFIFO: return "fifo";
-	case S_IFSOCK: return "socket"; default: return "unknown";
+#if S_IFSOCK != S_IFIFO		/* WASI gives both the same value */
+	case S_IFSOCK: return "socket";
+#endif
+	default: return "unknown";
 	}
 }
 int setup_getid(const char *dir) { (void)dir; errno = ENOTSUP; return -1; }
