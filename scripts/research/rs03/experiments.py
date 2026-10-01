@@ -208,6 +208,8 @@ def e3_limits():
                     row.append(mark(fix(copy(damaged, "dmg.iso"), img)))
                 rows.append(row)
         for pct in levels[:3]:
+            if i["total"] * pct // 100 > i["data"]:
+                continue
             hit = random.Random(pct).sample(range(i["data"]), i["total"] * pct // 100)
             damaged = copy(img, "damaged.iso")
             erase(damaged, hit)
