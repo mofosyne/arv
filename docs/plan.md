@@ -215,20 +215,32 @@ Found 2026-10-01, both worth starting from:
   are burned from one `.iso`, so they are sector-identical: read one with a map of bad sectors
   (`ddrescue`), fill the gaps from the other, and RS03 repairs what both lost. Parity spread
   across discs (PAR2 sets) only pays without whole-disc copies.
-- **Encryption, when it comes (not now): sealed discs only, opt-in, a filesystem image encrypted
-  with age.** age has a small published spec, several independent implementations and is in
-  every major distribution. Points settled in advance:
-  - The disc stays a normal disc: bag, README, `catalog.rec` and tools in the clear; the
-    payload is one encrypted image (`data.img.age`). No names leak.
-  - The inner image: SquashFS (compression, very mature, Linux mounts it, 7-Zip reads it) or a
-    UDF image made by our own udfmake (Windows and macOS mount it natively, one filesystem format
-    across the project; media files barely compress anyway). Decide when implementing.
-  - Encrypt to two recipients: your key and a rescue key printed on paper with the estate
-    papers. (age cannot mix a passphrase with key recipients in one file.)
-  - RS03 protects the ciphertext, since the image is built after encryption. age stops at the
-    first damaged 64 KiB chunk, so a sealed disc must be fully repaired (RS03, or the other
-    copy) before decrypting; splitting into a few images bounds the loss if that ever fails.
-  - Decrypting needs scratch space the size of the image (age streams; no random access).
+- **Encryption, when it comes (not now): sealed discs only, opt-in.** The disc stays a normal
+  disc (bag, README, `catalog.rec` and tools in the clear); only the payload is encrypted, as one
+  piece, so no file names leak. Two candidates, chosen at implementation time:
+  - **age over a filesystem image** (`data.img.age`). age has a small published spec, several
+    independent implementations and is in every major distribution. The tool does it all
+    (`age -r ... < image > image.age`). Encrypt to two recipients: your key and a rescue key
+    printed on paper with the estate papers (age cannot mix a passphrase with key recipients in
+    one file). Inner image: SquashFS (compressed, very mature, 7-Zip reads it) or a UDF image from
+    our udfmake (Windows and macOS mount it natively; one filesystem format across the project).
+    Costs: age stops at the first damaged 64 KiB chunk, and decrypting needs scratch space the
+    size of the image (no random access).
+  - **VeraCrypt container, bring your own** (the ovenmitts model): you make the container in
+    VeraCrypt; the tool only burns it and writes the read-only mount command
+    (`veracrypt --text --mount-options ro ...`) into README.txt. Sectors are encrypted
+    independently (XTS), so damage stays local; it mounts in place; Linux's `cryptsetup --type
+    tcrypt --veracrypt` opens it too (a second, in-kernel implementation). Costs: one password
+    rather than several recipients, and VeraCrypt itself is a heavier install outside Debian/Ubuntu.
+    Carry over ovenmitts's rules: refuse a container that is currently mounted
+    (`veracrypt --text --list`); a **fresh container per archive generation** (diverged copies of
+    one container share a master key, permanently on write-once media); keep an **external backup
+    of the volume header**, its single point of total failure.
+  - **Reminder: error correction is already handled below this layer.** RS03 over the whole
+    image plus identical copies at other sites repair the ciphertext before anything is
+    decrypted. So the encryption layer does not need to tolerate damage itself, and the choice
+    should favour **simplicity of implementation** over self-healing features. VeraCrypt's local
+    damage is a bonus, not a requirement, which leans towards age.
 
 ## Later: catalogue snapshot size
 
