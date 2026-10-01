@@ -224,12 +224,15 @@ of anything linking to it (this repo's licence is still undecided).
 Found 2026-10-01, both worth starting from:
 - [dvdisaster-light](https://github.com/teaching-droid/dvdisaster-light): RS03-only, CLI-only
   fork, bit-identical to 0.79.10-pl6, with a `ddrescue`-format map file and a read-until-complete
-  `--rescue` mode. GPLv3. Not yet checked: custom small media sizes (speed47's `-n`).
+  `--rescue` mode. GPLv3. Tested (section 8): byte-identical to speed47 on all samples including
+  custom `-n` sizes, same repair results; a drop-in replacement for `archive make` and recovery.
 - `lcsas-ecc` in [LCSAS](https://github.com/mikmorg/lcsas) (`recovery/src/lcsas-ecc/`, plus
   `docs/DVDISASTER_RS03_FORMAT.md`, a written RS03 spec): a 1,500-line C89 RS03
-  verify/repair/augment tool, stdio only. Tested here on our sample discs: it reads their RS03
-  geometry, and repairs 50-60 wiped sectors byte-identically, natively and as a WASI `.wasm`
-  under Node (UDF 2.50 disc too). Licence unclear: LCSAS says MIT, but the code is
+  verify/repair/augment tool, stdio only. Tested on our sample discs (research-notes.md, section
+  8): it repairs unreadable *data* sectors up to the RS03 limit, natively and as a WASI `.wasm`,
+  but fails whenever RS03's own header, CRC or ECC sectors are damaged, holds the whole image in
+  memory, and only augments to the standard media sizes. A reference and a last resort; our
+  portable decoder must tolerate damage to RS03's own sectors. Licence unclear: LCSAS says MIT, but the code is
   "transcribed to match dvdisaster" (GPLv3); ask the author or treat it as GPLv3.
 
 ## Decisions (2026-10-01)

@@ -230,6 +230,8 @@ def e4_bookkeeping():
              ("RS03 header sector (%d)" % i["header"], [i["header"]]),
              ("header + first CRC layer", [i["header"]] + list(range(i["crc"], i["crc"] + i["spl"]))),
              ("all CRC sectors (%d-%d)" % (i["crc"], i["ecc"] - 1), range(i["crc"], i["ecc"])),
+             ("everything after the header up to the ECC area (%d-%d)" % (i["header"] + 1, i["ecc"] - 1),
+              range(i["header"] + 1, i["ecc"])),
              ("last 300 sectors (ECC area)", range(i["total"] - 300, i["total"]))]
     rows = []
     for kind in ("unreadable", "garbled"):
@@ -294,7 +296,11 @@ def e6_rescue():
         disc = copy(img, "disc.iso")
         erase(disc, hit)
         for tool, cmd in (("Light `-r --rescue`", [LIGHT, "-r", "--rescue", "--mapfile"]),
-                          ("speed47 `-r -j 1` then `-f`", [SPEED47, "-r", "-j", "1"])):
+                          ("Light `-r --rescue --ignore-iso-size`", [LIGHT, "-r", "--rescue", "--ignore-iso-size",
+                                                                     "--mapfile"]),
+                          ("speed47 `-r -j 1` then `-f`", [SPEED47, "-r", "-j", "1"]),
+                          ("speed47 `-r -j 1 --ignore-iso-size` then `-f`",
+                           [SPEED47, "-r", "-j", "1", "--ignore-iso-size"])):
             out, mapfile = os.path.join(WORK, "rescue.iso"), os.path.join(WORK, "rescue.map")
             for p in (out, mapfile):
                 if os.path.exists(p):

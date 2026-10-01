@@ -309,6 +309,196 @@ Smaller ones: daneubauer/immich-go-disc-archive (bash, PAR2 and manifests),
 ambauma/BdArchivePlanner, llawsxx/DiscHelper and volumespan-py (splitting files across discs),
 rbuchberger/bdar (shelved before it worked).
 
+## 8. RS03 tools compared: dvdisaster, dvdisaster Light, lcsas-ecc (measured 2026-10-01)
+
+Three implementations of dvdisaster's RS03 format, run on our seven sample discs:
+- **dvdisaster 0.79.10-pl6, speed47 fork** (commit 9c5c616), what `archive make` uses now;
+- **dvdisaster Light 0.3.0** (teaching-droid, commit 6a481a6), an RS03-only CLI fork;
+- **lcsas-ecc** (LCSAS commit 0fb28e7, `recovery/src/lcsas-ecc/`), a 1,500-line C89
+  verify/repair/augment tool, natively and as a WASI `.wasm` under Node.
+
+Reproduce: `scripts/research/rs03/build-tools.sh DIR` (fetches and builds all of them at those
+commits), then `scripts/research/rs03/experiments.py DIR [--big]`. Damage is seeded, so runs
+repeat. A drive that cannot read a sector reports an error, and dvdisaster writes a marker in
+its place ("unreadable" below, an *erasure*); the harness writes the same markers. "Garbled"
+(wrong bytes passed off as good) is the rarer case, because drives have their own error
+correction. Section 6 uses dvdisaster's simulated drive (`--debug --sim-cd`) serving an image
+with permanently unreadable sectors.
+
+### Findings
+
+1. **dvdisaster Light is a drop-in replacement for speed47.** It verifies every sample, and
+   re-creating RS03 with `-n 3200` gives byte-identical images in both tools (also on a 1 GiB
+   image). Repairs and reads behave the same in every test here. It adds `--rescue` (read, fill
+   from RS03, re-read, in one command), a ddrescue-format `--mapfile`, reverse reading and retry
+   passes, and faster encoders.
+2. **Repair limits match the theory.** Unreadable sectors up to the parity share (nroots/255:
+   19.6% and 52.2% here) are repaired, less a margin because random damage is uneven across
+   codewords (15% of 19.6% passed, 18% failed). Garbled sectors cost about twice as much, since
+   the decoder must first find them.
+3. **lcsas-ecc only repairs the data area.** It repairs unreadable data sectors up to the same
+   limit as dvdisaster, natively and as `.wasm` (byte-identical results). But it fails as soon as
+   any RS03 sector itself is damaged (header, CRC or ECC sectors), and the ECC area is at the
+   end of the disc, the outer edge, where discs usually degrade first. It also holds the whole
+   image in memory, and its `augment` only targets the standard media sizes. So it is a readable
+   reference implementation and a last resort, not a replacement. A portable decoder for our
+   discs must tolerate damage to RS03's own sectors.
+4. **Two damaged copies rebuild each other with stock tools.** Each copy 30% unreadable in
+   clusters (beyond repair alone), 6.9% bad on both: reading disc A, then disc B into the same
+   image (dvdisaster reads only the sectors still missing), then `-f`, gives the original. So
+   do the merge by hand and both dvdisaster builds. This confirms full-disc copies plus RS03, no
+   PAR2 (plan.md).
+5. **Reading: two settings matter.**
+   - **`--ignore-iso-size`.** If the RS03 header sector is unreadable when reading from a drive,
+     both tools size the image from the filesystem and drop the whole ECC area (2,441 of 3,060
+     sectors read); the repair then fails. With `--ignore-iso-size` the whole disc is read and
+     the repair succeeds. `README.txt` on each disc should say this.
+   - **Scattered damage and the 16-sector skip.** After a read error dvdisaster skips 16
+     sectors (fast on scratches). With damage scattered evenly (35%), almost nothing was read;
+     `-j 1` (or Light's retry passes) avoids that. Real damage is mostly clustered.
+6. **A weak spot right after the filesystem.** Losing the 18 sectors between the RS03 header
+   and the ECC area (here the padding sectors 2,442-2,447 and the whole CRC block,
+   2,448-2,459), with no other damage, makes all error correction unrecognisable, even with
+   `--ignore-rs03-header`; each part alone is repaired. The CRC block is one RS03 layer
+   (medium / 255 sectors): 12 sectors on these samples, about 47,900 (~94 MB) on a 25 GB BD-R,
+   so one scratch is unlikely to cover it there. Still to test on a full-size layout.
+7. **Simulated drive defects are not permanent.** `--sim-defects` failures are read back by
+   Light's retry passes, so permanent damage has to be simulated with marked source images.
+
+#### 1. Verifying the sample discs
+
+| Disc | Data sectors | RS03 redundancy | speed47 -t | Light -t | lcsas-ecc verify |
+|---|---|---|---|---|---|
+| FAMILY-01_2020-2021_K.iso | 2400 | 26.2% | pass | pass | pass |
+| PROJ-01_2020-2023_L.iso | 1663 | 82.1% | pass | pass | pass |
+| SCAN-01_1995-2008_D.iso | 2441 | 24.4% | pass | pass | pass |
+| SCAN-02_1995-2008_B.iso | 2441 | 24.4% | pass | pass | pass |
+| SCAN-03_1995-2008_9.iso | 2236 | 35.6% | pass | pass | pass |
+| TAXES-01_2019-2020_I.iso | 1424 | 112.5% | pass | pass | pass |
+| TRIP-01_2019_4.iso | 1448 | 109.0% | pass | pass | pass |
+
+#### 2. Re-creating RS03 from the bare image (same medium size)
+
+| Disc | speed47 -c -n 3200 | Light -c -n 3200 |
+|---|---|---|
+| FAMILY-01_2020-2021_K.iso | identical | identical |
+| PROJ-01_2020-2023_L.iso | identical | identical |
+| SCAN-01_1995-2008_D.iso | identical | identical |
+| SCAN-02_1995-2008_B.iso | identical | identical |
+| SCAN-03_1995-2008_9.iso | identical | identical |
+| TAXES-01_2019-2020_I.iso | identical | identical |
+| TRIP-01_2019_4.iso | identical | identical |
+
+lcsas-ecc augment only targets the standard media sizes (CD, DVD, BD), so it cannot
+re-create these custom-size samples; see the notes.
+
+#### 3. Repair limits: random sectors across the whole image
+
+*Unreadable* is what a damaged disc gives: the drive reports a read error and dvdisaster
+marks the sector. *Garbled* is silent corruption (wrong bytes returned as good), which
+optical drives' own error correction makes rare.
+
+SCAN-01_1995-2008_D.iso: 24.4% redundancy, 50 roots per 255-byte codeword (19.6% of the image)
+
+| Damage | dvdisaster (speed47) | dvdisaster Light | lcsas-ecc | lcsas-ecc.wasm |
+|---|---|---|---|---|
+| unreadable 10% (306 sectors) | repaired | repaired | **failed** | **failed** |
+| unreadable 15% (459 sectors) | repaired | repaired | **failed** | **failed** |
+| unreadable 18% (550 sectors) | **failed** | **failed** | **failed** | **failed** |
+| unreadable 19% (581 sectors) | **failed** | **failed** | **failed** | **failed** |
+| unreadable 20% (612 sectors) | **failed** | **failed** | **failed** | **failed** |
+| unreadable 22% (673 sectors) | **failed** | **failed** | **failed** | **failed** |
+| garbled 10% (306 sectors) | repaired | repaired | **failed** | **failed** |
+| garbled 15% (459 sectors) | **failed** | **failed** | **failed** | **failed** |
+| garbled 18% (550 sectors) | **failed** | **failed** | **failed** | **failed** |
+| garbled 19% (581 sectors) | **failed** | **failed** | **failed** | **failed** |
+| garbled 20% (612 sectors) | **failed** | **failed** | **failed** | **failed** |
+| garbled 22% (673 sectors) | **failed** | **failed** | **failed** | **failed** |
+| unreadable 10%, data area only | repaired | repaired | repaired | repaired |
+| unreadable 15%, data area only | repaired | repaired | repaired | repaired |
+| unreadable 18%, data area only | **failed** | **failed** | **failed** | **failed** |
+
+TRIP-01_2019_4.iso: 109.0% redundancy, 133 roots per 255-byte codeword (52.2% of the image)
+
+| Damage | dvdisaster (speed47) | dvdisaster Light | lcsas-ecc | lcsas-ecc.wasm |
+|---|---|---|---|---|
+| unreadable 20% (612 sectors) | repaired | repaired | **failed** | **failed** |
+| unreadable 40% (1224 sectors) | repaired | repaired | **failed** | **failed** |
+| unreadable 48% (1468 sectors) | **failed** | **failed** | **failed** | **failed** |
+| unreadable 50% (1530 sectors) | **failed** | **failed** | **failed** | **failed** |
+| unreadable 52% (1591 sectors) | **failed** | **failed** | **failed** | **failed** |
+| unreadable 55% (1683 sectors) | **failed** | **failed** | **failed** | **failed** |
+| garbled 20% (612 sectors) | repaired | repaired | **failed** | **failed** |
+| garbled 40% (1224 sectors) | **failed** | **failed** | **failed** | **failed** |
+| garbled 48% (1468 sectors) | **failed** | **failed** | **failed** | **failed** |
+| garbled 50% (1530 sectors) | **failed** | **failed** | **failed** | **failed** |
+| garbled 52% (1591 sectors) | **failed** | **failed** | **failed** | **failed** |
+| garbled 55% (1683 sectors) | **failed** | **failed** | **failed** | **failed** |
+| unreadable 20%, data area only | repaired | repaired | repaired | repaired |
+| unreadable 40%, data area only | repaired | repaired | repaired | repaired |
+
+#### 4. Damage to the filesystem and to RS03's own bookkeeping
+
+| Damaged | dvdisaster (speed47) | dvdisaster Light | lcsas-ecc | lcsas-ecc.wasm |
+|---|---|---|---|---|
+| unreadable: filesystem area (sectors 0-299) | repaired | repaired | repaired | repaired |
+| unreadable: RS03 header sector (2441) | repaired | repaired | **failed** | **failed** |
+| unreadable: header + first CRC layer | **failed** | **failed** | **failed** | **failed** |
+| unreadable: all CRC sectors (2448-2459) | repaired | repaired | **failed** | **failed** |
+| unreadable: everything after the header up to the ECC area (2442-2459) | **failed** | **failed** | **failed** | **failed** |
+| unreadable: last 300 sectors (ECC area) | repaired | repaired | **failed** | **failed** |
+| garbled: filesystem area (sectors 0-299) | repaired | repaired | repaired | repaired |
+| garbled: RS03 header sector (2441) | repaired | repaired | **failed** | **failed** |
+| garbled: header + first CRC layer | **failed** | **failed** | **failed** | **failed** |
+| garbled: all CRC sectors (2448-2459) | **failed** | **failed** | **failed** | **failed** |
+| garbled: everything after the header up to the ECC area (2442-2459) | **failed** | **failed** | **failed** | **failed** |
+| garbled: last 300 sectors (ECC area) | repaired | repaired | **failed** | **failed** |
+
+#### 5. Two damaged copies of the same disc (each beyond repair alone)
+
+Clustered damage (runs of 8-128 sectors), 30% of each copy; 212 sectors (6.9%) are bad on both.
+
+| Method | One copy alone | Both copies |
+|---|---|---|
+| merge the two images sector by sector, then `-f` | **failed** / **failed** | repaired |
+| speed47: read disc A, then disc B into the same image (`-r -j 1`), then `-f` | **failed** | repaired |
+| Light: read disc A, then disc B into the same image (`-r -j 1`), then `-f` | **failed** | repaired |
+
+#### 6. Reading a damaged disc (simulated drive, permanent damage)
+
+| Permanently unreadable | Tool | Sectors in the image read | Result |
+|---|---|---|---|
+| clustered 5% (191 sectors) | Light `-r --rescue` | 2441 | **incomplete** |
+| clustered 5% (191 sectors) | Light `-r --rescue --ignore-iso-size` | 3060 | **incomplete** |
+| clustered 5% (191 sectors) | speed47 `-r -j 1` then `-f` | 2441 | **incomplete** |
+| clustered 5% (191 sectors) | speed47 `-r -j 1 --ignore-iso-size` then `-f` | 3060 | **incomplete** |
+| clustered 15% (517 sectors) | Light `-r --rescue` | 3060 | identical |
+| clustered 15% (517 sectors) | Light `-r --rescue --ignore-iso-size` | 3060 | identical |
+| clustered 15% (517 sectors) | speed47 `-r -j 1` then `-f` | 3060 | identical |
+| clustered 15% (517 sectors) | speed47 `-r -j 1 --ignore-iso-size` then `-f` | 3060 | identical |
+| clustered 18% (590 sectors) | Light `-r --rescue` | 3060 | **incomplete** |
+| clustered 18% (590 sectors) | Light `-r --rescue --ignore-iso-size` | 3060 | **incomplete** |
+| clustered 18% (590 sectors) | speed47 `-r -j 1` then `-f` | 3060 | **incomplete** |
+| clustered 18% (590 sectors) | speed47 `-r -j 1 --ignore-iso-size` then `-f` | 3060 | **incomplete** |
+| only the RS03 header sector (2441) (1 sectors) | Light `-r --rescue` | 2441 | **incomplete** |
+| only the RS03 header sector (2441) (1 sectors) | Light `-r --rescue --ignore-iso-size` | 3060 | identical |
+| only the RS03 header sector (2441) (1 sectors) | speed47 `-r -j 1` then `-f` | 2441 | **incomplete** |
+| only the RS03 header sector (2441) (1 sectors) | speed47 `-r -j 1 --ignore-iso-size` then `-f` | 3060 | identical |
+| only ISO/UDF sector 16 (1 sectors) | Light `-r --rescue` | 3060 | identical |
+| only ISO/UDF sector 16 (1 sectors) | Light `-r --rescue --ignore-iso-size` | 3060 | identical |
+| only ISO/UDF sector 16 (1 sectors) | speed47 `-r -j 1` then `-f` | 3060 | identical |
+| only ISO/UDF sector 16 (1 sectors) | speed47 `-r -j 1 --ignore-iso-size` then `-f` | 3060 | identical |
+
+The simulated drive's own `--sim-defects` failures are not permanent: Light's reverse
+and retry passes read all of them back, so permanent damage is simulated by marking
+sectors unreadable in the image the simulated drive serves. With damage scattered
+evenly (not clustered), reading with the default 16-sector skip after an error gives up on
+almost the whole disc (3,058 of 3,060 sectors at 35%), so these tests use clustered damage.
+
+#### 7. A 1 GiB image: time and peak memory
+
+BIGRESULTS
+
 ## 9. Other ideas from LCSAS, tested or noted (2026-10-01)
 
 ### Cross-compiling static binaries with zig (tested)
