@@ -15,14 +15,15 @@
 %type: Access enum public private sealed
 
 Id: TRIP-01_2019_4
-Uuid: 806be23e-8ea2-4e40-aab1-baa39162837f
+Uuid: c34184d4-9cc8-4bd2-a544-1a192d93327a
 IdScheme: set-seq-coverage/1
+Label: TRIP-01_2019_4 Kyoto, July 2019
 Title: Kyoto, July 2019
 Set: TRIP
 Path: MEMORIES/PHOTO/TRIP
 Sequence: 1
 Coverage: 2019
-Date: 2026-09-30
+Date: 2026-10-01
 Creator: Sample_Person
 Description: Three days in Kyoto: shrines, temples and the bamboo grove.
 Subject: travel
@@ -34,14 +35,15 @@ Media: M-DISC custom medium
 Files: 16
 Bytes: 9443
 Filesystem: ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge
-Ecc: dvdisaster RS03 augmented image, custom medium (3000 sectors), minimum 20% redundancy
-Software: bluray-archival-workflow@f42304e5d9e7
+Ecc: dvdisaster RS03 augmented image, custom medium (3200 sectors), minimum 20% redundancy
+Software: bluray-archival-workflow@5f594f28f853
 Copies: 2
 Location: OFFSITE
 
 Id: PROJ-01_2020-2023_L
-Uuid: 44fa52b9-027f-4db3-961e-ee18d21a62bc
+Uuid: 2441e794-4783-413c-8657-a29e31e78678
 IdScheme: set-seq-coverage/1
+Label: PROJ-01_2020-2023_L Weather stat
 Title: Weather station project
 Set: PROJ
 Category: CODE
@@ -51,7 +53,7 @@ Path: PROJECTS/CODE
 Path: PROJECTS/ELEC
 Sequence: 1
 Coverage: 2020/2023
-Date: 2026-09-30
+Date: 2026-10-01
 Creator: Sample_Person
 Description: ESP32 weather station: firmware, KiCad board, gerbers and the git repository.
 Location: BOX1
@@ -60,20 +62,21 @@ Media: M-DISC custom medium
 Files: 51
 Bytes: 31444
 Filesystem: ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge
-Ecc: dvdisaster RS03 augmented image, custom medium (3000 sectors), minimum 20% redundancy
-Software: bluray-archival-workflow@f42304e5d9e7
+Ecc: dvdisaster RS03 augmented image, custom medium (3200 sectors), minimum 20% redundancy
+Software: bluray-archival-workflow@5f594f28f853
 Copies: 1
 Note: Board rev B; rev A gerbers were never ordered.
 
 Id: TAXES-01_2019-2020_I
-Uuid: 79dac08a-29ea-4b95-bf6f-2d2cc7467fd6
+Uuid: 531ff9fc-14e5-4c33-b925-805941544455
 IdScheme: set-seq-coverage/1
+Label: TAXES-01_2019-2020_I Tax return
 Title: Tax return 2019
 Set: TAXES
 Path: RECORDS/FINANCE/TAXES
 Sequence: 1
 Coverage: 2019/2020
-Date: 2026-09-30
+Date: 2026-10-01
 Creator: Sample_Person
 Description: Tax return and quarterly receipts for 2019.
 Location: SAFE
@@ -82,13 +85,14 @@ Media: M-DISC custom medium
 Files: 5
 Bytes: 3196
 Filesystem: ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge
-Ecc: dvdisaster RS03 augmented image, custom medium (3000 sectors), minimum 20% redundancy
-Software: bluray-archival-workflow@f42304e5d9e7
+Ecc: dvdisaster RS03 augmented image, custom medium (3200 sectors), minimum 20% redundancy
+Software: bluray-archival-workflow@5f594f28f853
 Copies: 1
 
 Id: SCAN-01_1995-2008_D
-Uuid: f16de5b7-bbef-4693-9eeb-86672c3dabc9
+Uuid: ff98b948-9a89-46ac-83d9-7a63e97e49ab
 IdScheme: set-seq-coverage/1
+Label: SCAN-01_1995-2008_D Letters 1995
 Title: Letters 1995-2008, scanned
 Set: SCAN
 Category: LETTERS
@@ -97,23 +101,24 @@ Path: RECORDS/SCAN
 Path: RECORDS/LETTERS
 Sequence: 1
 Coverage: 1995/2008
-Date: 2026-09-30
+Date: 2026-10-01
 Part: 1 of 3
 Creator: Sample_Person
 Description: Scans of letters kept since 1995.
 Location: BOX1
 Access: private
 Media: M-DISC custom medium
-Files: 18
-Bytes: 1803342
+Files: 20
+Bytes: 2003726
 Filesystem: ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge
-Ecc: dvdisaster RS03 augmented image, custom medium (3000 sectors), minimum 20% redundancy
-Software: bluray-archival-workflow@f42304e5d9e7
+Ecc: dvdisaster RS03 augmented image, custom medium (3200 sectors), minimum 20% redundancy
+Software: bluray-archival-workflow@5f594f28f853
 Copies: 1
 
 Id: SCAN-02_1995-2008_B
-Uuid: bbc845e3-ff92-448a-bf78-bd38e0a99fcb
+Uuid: e4cc57d9-d477-40db-894f-2d1fbd4b48dc
 IdScheme: set-seq-coverage/1
+Label: SCAN-02_1995-2008_B Letters 1995
 Title: Letters 1995-2008, scanned
 Set: SCAN
 Category: LETTERS
@@ -122,23 +127,24 @@ Path: RECORDS/SCAN
 Path: RECORDS/LETTERS
 Sequence: 2
 Coverage: 1995/2008
-Date: 2026-09-30
+Date: 2026-10-01
 Part: 2 of 3
 Creator: Sample_Person
 Description: Scans of letters kept since 1995.
 Location: BOX1
 Access: private
 Media: M-DISC custom medium
-Files: 18
-Bytes: 1803032
+Files: 20
+Bytes: 2003282
 Filesystem: ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge
-Ecc: dvdisaster RS03 augmented image, custom medium (3000 sectors), minimum 20% redundancy
-Software: bluray-archival-workflow@f42304e5d9e7
+Ecc: dvdisaster RS03 augmented image, custom medium (3200 sectors), minimum 20% redundancy
+Software: bluray-archival-workflow@5f594f28f853
 Copies: 1
 
 Id: SCAN-03_1995-2008_9
-Uuid: 05428a58-491d-46a1-821c-cab3723b5afa
+Uuid: a8b38a3a-f15a-4abb-a9e2-ab755e79f1b7
 IdScheme: set-seq-coverage/1
+Label: SCAN-03_1995-2008_9 Letters 1995
 Title: Letters 1995-2008, scanned
 Set: SCAN
 Category: LETTERS
@@ -147,29 +153,30 @@ Path: RECORDS/SCAN
 Path: RECORDS/LETTERS
 Sequence: 3
 Coverage: 1995/2008
-Date: 2026-09-30
+Date: 2026-10-01
 Part: 3 of 3
 Creator: Sample_Person
 Description: Scans of letters kept since 1995.
 Location: BOX1
 Access: private
 Media: M-DISC custom medium
-Files: 20
-Bytes: 2003780
+Files: 16
+Bytes: 1603146
 Filesystem: ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge
-Ecc: dvdisaster RS03 augmented image, custom medium (3000 sectors), minimum 20% redundancy
-Software: bluray-archival-workflow@f42304e5d9e7
+Ecc: dvdisaster RS03 augmented image, custom medium (3200 sectors), minimum 20% redundancy
+Software: bluray-archival-workflow@5f594f28f853
 Copies: 1
 
 Id: FAMILY-01_2020-2021_K
-Uuid: c5d2afa4-8b87-49fa-bd5e-e9d7315e8bf9
+Uuid: c28fd23c-fa95-447c-bec6-9485147e7055
 IdScheme: set-seq-coverage/1
+Label: FAMILY-01_2020-2021_K Family photos 2020-2021
 Title: Family photos 2020-2021
 Set: FAMILY
 Path: MEMORIES/PHOTO/FAMILY
 Sequence: 1
 Coverage: 2020/2021
-Date: 2026-09-30
+Date: 2026-10-01
 Creator: Sample_Person
 Description: Birthdays, the garden, the beach and Christmas.
 Location: OFFSITE
@@ -178,8 +185,8 @@ Media: M-DISC custom medium
 Files: 16
 Bytes: 8828
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition (NetBSD makefs via udfmake)
-Ecc: dvdisaster RS03 augmented image, custom medium (3000 sectors), minimum 20% redundancy
-Software: bluray-archival-workflow@f42304e5d9e7
+Ecc: dvdisaster RS03 augmented image, custom medium (3200 sectors), minimum 20% redundancy
+Software: bluray-archival-workflow@5f594f28f853
 Copies: 1
 
 %rec: Location
@@ -215,315 +222,328 @@ Name: Parents' house
 
 Disc: TRIP-01_2019_4
 Type: message digest calculation
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
-Agent: bluray-archival-workflow@f42304e5d9e7
+Agent: bluray-archival-workflow@5f594f28f853
 Note: sha256 and sha512 manifests of 16 files
 
 Disc: TRIP-01_2019_4
 Type: metadata modification
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: sample script (hand-written) + owner review
 Note: title, description, subjects and folder tags taken from a draft (made by: sample script (hand-written))
 
 Disc: TRIP-01_2019_4
 Type: creation
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
-Agent: bluray-archival-workflow@f42304e5d9e7
-Note: image TRIP-01_2019_4.iso, 1304 sectors; RS03: 2 MiB data, 2 MiB ecc (135 roots; 112.5% redundancy), 0 MiB padding.
+Agent: bluray-archival-workflow@5f594f28f853
+Note: image TRIP-01_2019_4.iso, 1448 sectors; RS03: 2 MiB data, 3 MiB ecc (133 roots; 109.0% redundancy), 0 MiB padding.
 
 Disc: TRIP-01_2019_4
 Type: fixity check
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: dvdisaster
 Note: image test after creation
 
 Disc: PROJ-01_2020-2023_L
 Type: message digest calculation
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
-Agent: bluray-archival-workflow@f42304e5d9e7
+Agent: bluray-archival-workflow@5f594f28f853
 Note: sha256 and sha512 manifests of 51 files
 
 Disc: PROJ-01_2020-2023_L
 Type: metadata modification
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: sample script (hand-written) + owner review
 Note: title, description, subjects and folder tags taken from a draft (made by: sample script (hand-written))
 
 Disc: PROJ-01_2020-2023_L
 Type: creation
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
-Agent: bluray-archival-workflow@f42304e5d9e7
-Note: image PROJ-01_2020-2023_L.iso, 1520 sectors; RS03: 2 MiB data, 2 MiB ecc (115 roots; 82.1% redundancy), 0 MiB padding.
+Agent: bluray-archival-workflow@5f594f28f853
+Note: image PROJ-01_2020-2023_L.iso, 1663 sectors; RS03: 3 MiB data, 2 MiB ecc (115 roots; 82.1% redundancy), 0 MiB padding.
 
 Disc: PROJ-01_2020-2023_L
 Type: fixity check
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: dvdisaster
 Note: image test after creation
 
 Disc: TAXES-01_2019-2020_I
 Type: message digest calculation
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
-Agent: bluray-archival-workflow@f42304e5d9e7
+Agent: bluray-archival-workflow@5f594f28f853
 Note: sha256 and sha512 manifests of 5 files
 
 Disc: TAXES-01_2019-2020_I
 Type: creation
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
-Agent: bluray-archival-workflow@f42304e5d9e7
-Note: image TAXES-01_2019-2020_I.iso, 1284 sectors; RS03: 2 MiB data, 2 MiB ecc (137 roots; 116.1% redundancy), 0 MiB padding.
+Agent: bluray-archival-workflow@5f594f28f853
+Note: image TAXES-01_2019-2020_I.iso, 1424 sectors; RS03: 2 MiB data, 3 MiB ecc (135 roots; 112.5% redundancy), 0 MiB padding.
 
 Disc: TAXES-01_2019-2020_I
 Type: fixity check
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: dvdisaster
 Note: image test after creation
 
 Disc: SCAN-01_1995-2008_D
 Type: message digest calculation
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
-Agent: bluray-archival-workflow@f42304e5d9e7
-Note: sha256 and sha512 manifests of 18 files
-
-Disc: SCAN-01_1995-2008_D
-Type: creation
-Date: 2026-09-30
-Outcome: success
-Agent: bluray-archival-workflow@f42304e5d9e7
-Note: image SCAN-01_1995-2008_D.iso, 2207 sectors; RS03: 4 MiB data, 1 MiB ecc (53 roots; 26.2% redundancy), 0 MiB padding.
-
-Disc: SCAN-01_1995-2008_D
-Type: fixity check
-Date: 2026-09-30
-Outcome: success
-Agent: dvdisaster
-Note: image test after creation
-
-Disc: SCAN-02_1995-2008_B
-Type: message digest calculation
-Date: 2026-09-30
-Outcome: success
-Agent: bluray-archival-workflow@f42304e5d9e7
-Note: sha256 and sha512 manifests of 18 files
-
-Disc: SCAN-02_1995-2008_B
-Type: creation
-Date: 2026-09-30
-Outcome: success
-Agent: bluray-archival-workflow@f42304e5d9e7
-Note: image SCAN-02_1995-2008_B.iso, 2207 sectors; RS03: 4 MiB data, 1 MiB ecc (53 roots; 26.2% redundancy), 0 MiB padding.
-
-Disc: SCAN-02_1995-2008_B
-Type: fixity check
-Date: 2026-09-30
-Outcome: success
-Agent: dvdisaster
-Note: image test after creation
-
-Disc: SCAN-03_1995-2008_9
-Type: message digest calculation
-Date: 2026-09-30
-Outcome: success
-Agent: bluray-archival-workflow@f42304e5d9e7
+Agent: bluray-archival-workflow@5f594f28f853
 Note: sha256 and sha512 manifests of 20 files
 
+Disc: SCAN-01_1995-2008_D
+Type: creation
+Date: 2026-10-01
+Outcome: success
+Agent: bluray-archival-workflow@5f594f28f853
+Note: image SCAN-01_1995-2008_D.iso, 2441 sectors; RS03: 4 MiB data, 1 MiB ecc (50 roots; 24.4% redundancy), 0 MiB padding.
+
+Disc: SCAN-01_1995-2008_D
+Type: fixity check
+Date: 2026-10-01
+Outcome: success
+Agent: dvdisaster
+Note: image test after creation
+
+Disc: SCAN-02_1995-2008_B
+Type: message digest calculation
+Date: 2026-10-01
+Outcome: success
+Agent: bluray-archival-workflow@5f594f28f853
+Note: sha256 and sha512 manifests of 20 files
+
+Disc: SCAN-02_1995-2008_B
+Type: creation
+Date: 2026-10-01
+Outcome: success
+Agent: bluray-archival-workflow@5f594f28f853
+Note: image SCAN-02_1995-2008_B.iso, 2441 sectors; RS03: 4 MiB data, 1 MiB ecc (50 roots; 24.4% redundancy), 0 MiB padding.
+
+Disc: SCAN-02_1995-2008_B
+Type: fixity check
+Date: 2026-10-01
+Outcome: success
+Agent: dvdisaster
+Note: image test after creation
+
+Disc: SCAN-03_1995-2008_9
+Type: message digest calculation
+Date: 2026-10-01
+Outcome: success
+Agent: bluray-archival-workflow@5f594f28f853
+Note: sha256 and sha512 manifests of 16 files
+
 Disc: SCAN-03_1995-2008_9
 Type: creation
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
-Agent: bluray-archival-workflow@f42304e5d9e7
-Note: image SCAN-03_1995-2008_9.iso, 2307 sectors; RS03: 4 MiB data, 0 MiB ecc (44 roots; 20.9% redundancy), 0 MiB padding.
+Agent: bluray-archival-workflow@5f594f28f853
+Note: image SCAN-03_1995-2008_9.iso, 2236 sectors; RS03: 4 MiB data, 1 MiB ecc (67 roots; 35.6% redundancy), 0 MiB padding.
 
 Disc: SCAN-03_1995-2008_9
 Type: fixity check
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: dvdisaster
 Note: image test after creation
 
 Disc: FAMILY-01_2020-2021_K
 Type: message digest calculation
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
-Agent: bluray-archival-workflow@f42304e5d9e7
+Agent: bluray-archival-workflow@5f594f28f853
 Note: sha256 and sha512 manifests of 16 files
 
 Disc: FAMILY-01_2020-2021_K
 Type: metadata modification
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: sample script (hand-written) + owner review
 Note: title, description, subjects and folder tags taken from a draft (made by: sample script (hand-written))
 
 Disc: FAMILY-01_2020-2021_K
 Type: creation
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
-Agent: bluray-archival-workflow@f42304e5d9e7
-Note: image FAMILY-01_2020-2021_K.iso, 2304 sectors; RS03: 4 MiB data, 0 MiB ecc (44 roots; 20.9% redundancy), 0 MiB padding.
+Agent: bluray-archival-workflow@5f594f28f853
+Note: image FAMILY-01_2020-2021_K.iso, 2400 sectors; RS03: 4 MiB data, 1 MiB ecc (53 roots; 26.2% redundancy), 0 MiB padding.
 
 Disc: FAMILY-01_2020-2021_K
 Type: fixity check
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: dvdisaster
 Note: image test after creation
 
 Disc: TRIP-01_2019_4
 Type: replication
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: manual
 Note: burned 1 copy
 
 Disc: PROJ-01_2020-2023_L
 Type: replication
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: manual
 Note: burned 1 copy
 
 Disc: TAXES-01_2019-2020_I
 Type: replication
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: manual
 Note: burned 1 copy
 
 Disc: SCAN-01_1995-2008_D
 Type: replication
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: manual
 Note: burned 1 copy
 
 Disc: SCAN-02_1995-2008_B
 Type: replication
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: manual
 Note: burned 1 copy
 
 Disc: SCAN-03_1995-2008_9
 Type: replication
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: manual
 Note: burned 1 copy
 
 Disc: FAMILY-01_2020-2021_K
 Type: replication
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: manual
 Note: burned 1 copy
 
 Disc: TRIP-01_2019_4
 Type: replication
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: manual
 Note: burned 1 copy, kept at Parents' house; second copy for the parents
 
 Disc: FAMILY-01_2020-2021_K
 Type: fixity check
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: dvdisaster
 Note: image test with dvdisaster -t
 + - data md5sum      : none available
 + Data integrity:
-+ - medium sectors   : 2805 total / 2304 data
++ - medium sectors   : 3060 total / 2400 data
 + - good image/file  : all sectors present
-+ - data md5sum      : d1ce0c38b39265720bed7b207b7b4290
++ - data md5sum      : ce0a12d71b19647937b65c23e6efaee4
 + - Ecc block test   : pass
 
 Disc: PROJ-01_2020-2023_L
 Type: fixity check
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: dvdisaster
 Note: image test with dvdisaster -t
 + - data md5sum      : none available
 + Data integrity:
-+ - medium sectors   : 2805 total / 1520 data
++ - medium sectors   : 3060 total / 1663 data
 + - good image/file  : all sectors present
-+ - data md5sum      : a02d0936e475a211e49e17a033c9715c
++ - data md5sum      : 17ac491031226ccf048386b246592624
 + - Ecc block test   : pass
 
 Disc: SCAN-01_1995-2008_D
 Type: fixity check
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: dvdisaster
 Note: image test with dvdisaster -t
 + - data md5sum      : none available
 + Data integrity:
-+ - medium sectors   : 2805 total / 2207 data
++ - medium sectors   : 3060 total / 2441 data
 + - good image/file  : all sectors present
-+ - data md5sum      : f52a44d1a65eaac02f259cc10a85b5d8
++ - data md5sum      : aa68c54c013b0f8fc182b976d7fef540
 + - Ecc block test   : pass
 
 Disc: SCAN-02_1995-2008_B
 Type: fixity check
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: dvdisaster
 Note: image test with dvdisaster -t
 + - data md5sum      : none available
 + Data integrity:
-+ - medium sectors   : 2805 total / 2207 data
++ - medium sectors   : 3060 total / 2441 data
 + - good image/file  : all sectors present
-+ - data md5sum      : 95737d17309e1b30599d031ba714a88b
++ - data md5sum      : d2d4a03506e2fff09f3ba551c4a3c35a
 + - Ecc block test   : pass
 
 Disc: SCAN-03_1995-2008_9
 Type: fixity check
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: dvdisaster
 Note: image test with dvdisaster -t
 + - data md5sum      : none available
 + Data integrity:
-+ - medium sectors   : 2805 total / 2307 data
++ - medium sectors   : 3060 total / 2236 data
 + - good image/file  : all sectors present
-+ - data md5sum      : d9364006e36fbf9130703c6ec9ced0d9
++ - data md5sum      : 90de1dfa9e3bb7daee25b7f4283ede87
 + - Ecc block test   : pass
 
 Disc: TAXES-01_2019-2020_I
 Type: fixity check
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: dvdisaster
 Note: image test with dvdisaster -t
 + - data md5sum      : none available
 + Data integrity:
-+ - medium sectors   : 2805 total / 1284 data
++ - medium sectors   : 3060 total / 1424 data
 + - good image/file  : all sectors present
-+ - data md5sum      : 243d075d5a1b5aed0a44679e7bf7985d
++ - data md5sum      : 8982bb69b68c34a7cf8fbfe6e238f70d
 + - Ecc block test   : pass
 
 Disc: TRIP-01_2019_4
 Type: fixity check
-Date: 2026-09-30
+Date: 2026-10-01
 Outcome: success
 Agent: dvdisaster
 Note: image test with dvdisaster -t
 + - data md5sum      : none available
 + Data integrity:
-+ - medium sectors   : 2805 total / 1304 data
++ - medium sectors   : 3060 total / 1448 data
 + - good image/file  : all sectors present
-+ - data md5sum      : 32c1c775f8be4f93660decf24b31f645
++ - data md5sum      : 59d2511d929106465f5501d08d4dd3be
++ - Ecc block test   : pass
+
+Disc: FAMILY-01_2020-2021_K
+Type: fixity check
+Date: 2026-10-01
+Outcome: success
+Agent: dvdisaster
+Note: image test with dvdisaster -t
++ - data md5sum      : none available
++ Data integrity:
++ - medium sectors   : 3060 total / 2400 data
++ - good image/file  : all sectors present
++ - data md5sum      : ce0a12d71b19647937b65c23e6efaee4
 + - Ecc block test   : pass
