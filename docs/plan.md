@@ -108,7 +108,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - Disc ids: **year range of the files + set + number**, e.g. `2020-2025_PROJECTS_01`.
 - Discs for other people or external parties: **minimal catalogue**
   (`--snapshot set`, only this set). Own off-site copies can take `full`.
-- Encryption: optional later, not implemented now.
+- Encryption: optional later, not implemented now (direction: see Decisions 2026-10-01).
 - Media: **M-DISC BD-R** as standard.
 - Copies: not managed. The tool makes the ISO; you burn it and record the count with `archive burned`.
 - Physical disc identity: our disc id (volume label + bag-info + written on the disc). Drive-reported
@@ -186,6 +186,17 @@ bit-for-bit compatibility (tested against the dvdisaster CLI), and expose
 create/verify/repair. The result stays GPLv3, which constrains the licence
 of anything linking to it (this repo's licence is still undecided).
 
+Found 2026-10-01, both worth starting from:
+- [dvdisaster-light](https://github.com/teaching-droid/dvdisaster-light): RS03-only, CLI-only
+  fork, bit-identical to 0.79.10-pl6, with a `ddrescue`-format map file and a read-until-complete
+  `--rescue` mode. GPLv3. Not yet checked: custom small media sizes (speed47's `-n`).
+- `lcsas-ecc` in [LCSAS](https://github.com/mikmorg/lcsas) (`recovery/src/lcsas-ecc/`, plus
+  `docs/DVDISASTER_RS03_FORMAT.md`, a written RS03 spec): a 1,500-line C89 RS03
+  verify/repair/augment tool, stdio only. Tested here on our sample discs: it reads their RS03
+  geometry, and repairs 50-60 wiped sectors byte-identically, natively and as a WASI `.wasm`
+  under Node (UDF 2.50 disc too). Licence unclear: LCSAS says MIT, but the code is
+  "transcribed to match dvdisaster" (GPLv3); ask the author or treat it as GPLv3.
+
 ## Decisions (2026-10-01)
 
 - ~~Browser search data stays as it is~~ (superseded the same day, below).
@@ -199,6 +210,25 @@ of anything linking to it (this repo's licence is still undecided).
   be a WASI program that serves the catalogue over local http, not data duplicated on the disc.
 - When the C pieces needed to read or repair a disc exist (verify, RS03 repair), each goes on
   the disc as source plus a `.wasm` build, so a WASI runtime alone is enough to run them.
+- **No PAR2.** Protection is RS03 over the whole image (which also covers the filesystem's own
+  records, unlike file-level PAR2) plus **identical full-disc copies at different sites**. Copies
+  are burned from one `.iso`, so they are sector-identical: read one with a map of bad sectors
+  (`ddrescue`), fill the gaps from the other, and RS03 repairs what both lost. Parity spread
+  across discs (PAR2 sets) only pays without whole-disc copies.
+- **Encryption, when it comes (not now): sealed discs only, opt-in, a filesystem image encrypted
+  with age.** age has a small published spec, several independent implementations and is in
+  every major distribution. Points settled in advance:
+  - The disc stays a normal disc: bag, README, `catalog.rec` and tools in the clear; the
+    payload is one encrypted image (`data.img.age`). No names leak.
+  - The inner image: SquashFS (compression, very mature, Linux mounts it, 7-Zip reads it) or a
+    UDF image made by our own udfmake (Windows and macOS mount it natively, one filesystem format
+    across the project; media files barely compress anyway). Decide when implementing.
+  - Encrypt to two recipients: your key and a rescue key printed on paper with the estate
+    papers. (age cannot mix a passphrase with key recipients in one file.)
+  - RS03 protects the ciphertext, since the image is built after encryption. age stops at the
+    first damaged 64 KiB chunk, so a sealed disc must be fully repaired (RS03, or the other
+    copy) before decrypting; splitting into a few images bounds the loss if that ever fails.
+  - Decrypting needs scratch space the size of the image (age streams; no random access).
 
 ## Later: catalogue snapshot size
 
