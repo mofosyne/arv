@@ -497,6 +497,12 @@ class MakeTest(unittest.TestCase):
         self.assertEqual(catalog.Home(self.home).load().disc(sealed_id).get("Title"), "Secret")
         run_cli("--home", self.home, "access", private_id, "public")
         self.assertIn(private_id, run_cli("--home", self.home, "list", "--access", "public")[1])
+        # the physical shelf is by access level, then the year the disc was made
+        made = catalog.today()[:4]
+        sealed_box = run_cli("--home", self.home, "list", "--access", "sealed", "--made", made)[1]
+        self.assertIn(sealed_id, sealed_box)
+        self.assertNotIn(public_id, sealed_box)
+        self.assertNotIn(sealed_id, run_cli("--home", self.home, "list", "--made", "1999")[1])
 
     def test_location_tree(self):
         home = ("--home", self.home)

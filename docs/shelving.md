@@ -6,53 +6,60 @@ recommends a physical arrangement that matches the catalogue, so the shelf and
 the records stay easy to keep in step and anyone can find a disc from its id
 alone.
 
-## The rule: shelf order is id order
+## The rule: physically by access level and year, virtually by kind
 
-Disc ids sort the way the archive is organised: set code, then sequence number
-(`PHOTO-03_…`, `PHOTO-04_…`, `TRIP-01_…`). So:
+The physical shelf answers "where is it?" and "who may open it?". The catalogue
+answers "what is it?". So the two are arranged differently:
 
-1. **One section per top-level group** of the vocabulary, in its `Order`
-   (`archive sets` shows it): MEMORIES, RECORDS, CAREER, PROJECTS, COLLECT,
-   BACKUPS, MISC. A section is a shelf, a drawer or a run of boxes.
-2. **Within a section, by set code,** in the vocabulary's order or
-   alphabetically. Pick one and keep to it.
-3. **Within a set, by sequence number.** Split sets (`Bag-Count: n of N`) have
-   consecutive numbers, so they stay together.
+1. **One section per access level** (`public`, `private`, `sealed`; see
+   `archive access`). Sealed discs (taxes, identity documents) go in the safe.
+   Private and public discs go on the shelf, in separate boxes, so a public box
+   can be lent or copied for family without thinking about what else is in it.
+2. **Within a section, one box per year the disc was made**: the year in its
+   `Date` field, not the years it covers. When a year fills a box, start a
+   second one (`HOME-PRV-2024-2`).
+3. **Within a box, in the order made.** A new disc always goes at the end of the
+   newest box, and `archive list` lists discs in that order.
 
-A disc with several categories still has exactly **one** home: its Set, the
-first part of its id. Categories, tags and collections are for finding it.
-Don't make physical copies to file a disc under each category.
+Kind (PHOTO, TRIP, SCAN …) isn't physical at all. A disc with several categories
+still has exactly **one** shelf place, and the catalogue on every disc, the
+`search.html` page and catalogue software show it under every kind it belongs to
+(next section). Don't make physical copies to file a disc under each kind.
 
-Leave room at the end of each set for future discs, because sequence numbers
-only grow. A box per set (or per small group of sets) makes that easy.
+![Recommended shelving: sections by access level, a box per year made, the safe, and the off-site copies](img/shelving.svg)
 
-![Recommended shelving: boxes per vocabulary group, discs in id order, the safe, and the off-site copies](img/shelving.svg)
+(Drawn by `img/shelving-svg.py`. The ids are real, computed with the tool's id
+rules; the years made are illustrative.)
 
-(Drawn by `img/shelving-svg.py`; the ids are real, computed with the tool's id rules.)
+### Why the year made, not the years covered
 
-### Why not by year?
+The year made has one property the alternatives lack: **it only ever moves
+forward**, so the shelf never has to be reshuffled.
+- **Discs span years.** `SCAN-01_1995-2008` covers fourteen of them but was made
+  in one.
+- **Old material keeps arriving.** Letters from the 1990s scanned in 2026 go in
+  the 2026 box, at the end. Shelving by coverage would mean squeezing them in
+  between discs made years ago.
 
-The shelf needs **one** order that never has to be reshuffled. Year order isn't
-that:
-- **Discs span years.** `SCAN-01_1995-2008` belongs to fourteen of them.
-- **Old material keeps arriving.** Letters from the 1990s, scanned in 2026, would
-  have to be squeezed in between discs made years ago.
+The coverage isn't lost: it is in every id (`PHOTO-03_2018-2019_B`), so a box is
+easy to scan by eye for dates, and `archive list --covers 2019` finds every disc
+with something from 2019, wherever it is shelved.
 
-Set-then-sequence only ever **appends at the end of a set**. Within a set,
-sequence order is usually close to chronological anyway, because you archive as
-you go, and every id carries its coverage years (`PHOTO-03_2018-2019_B`), so the
-shelf is easy to scan by eye for dates.
+Shelving by kind (set, then sequence number) also works, and is the other
+reasonable choice if you prefer it, because sequence numbers only grow too. It
+needs room left at the end of every set, though, while year boxes only ever grow
+at one place.
 
-You don't lose the year view, because it's virtual (next section).
-
-## The virtual structure: every order at once
+## The virtual structure: by kind, and every other order
 
 Physically a disc can be in only one place. In the catalogue it can be in many,
 and catalogue software can show any of these trees from the newest disc alone
 (see [the format spec](smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)):
-- by kind, through the vocabulary, where a disc appears under each of its paths;
-- by year, from each disc's coverage;
-- by place, from the location records;
+- **by kind**, through the vocabulary: the main view, where a disc appears under
+  each of its paths;
+- by the years covered, from each disc's coverage;
+- by place, from the location records (which mirror the shelf: access level,
+  then year made);
 - by collection and by tag.
 
 ```mermaid
@@ -67,46 +74,49 @@ flowchart LR
     KR --> KS2[SCAN] --> k3["SCAN-01..03_1995-2008<br/>(same discs: two parents)"]
     KR --> KF[FINANCE] --> KX[TAXES] --> k4["TAXES-01_2019-2020_I<br/>sealed"]
 
-    A --> Y[By year]
+    A --> Y[By years covered]
     Y --> Y1[1995 ... 2008] --> y1["SCAN-01..03_1995-2008"]
     Y --> Y2[2019] --> y2["TRIP-01_2019_4"]
     Y2 --> y3["TAXES-01_2019-2020_I"]
     Y --> Y3[2020] --> y4["TAXES-01_2019-2020_I"]
 
     A --> P[By place]
-    P --> PH[Home / Study] --> PB[HOME-B01] --> p1["TRIP-01_2019_4"]
-    PH --> PB2[HOME-B02] --> p2["SCAN-01..03_1995-2008"]
-    P --> PS[Home / Fire safe] --> p3["TAXES-01_2019-2020_I"]
-    P --> PP[Parents' house] --> PP1[PARENTS-B01] --> p4["TRIP-01_2019_4 (copy 2)"]
+    P --> PH[Home / Study] --> PB[HOME-PUB-2020] --> p1["TRIP-01_2019_4"]
+    PH --> PB2[HOME-PRV-2026] --> p2["SCAN-01..03_1995-2008"]
+    P --> PS[Home / Fire safe] --> PS1[HOME-SEALED-2021] --> p3["TAXES-01_2019-2020_I"]
+    P --> PP[Parents' house] --> PP1[PARENTS-PUB-2020] --> p4["TRIP-01_2019_4 (copy 2)"]
 ```
 
 So the physical shelf only has to be **stable and easy to keep**, and the
-virtual structure gives you every other order. That's why the shelf follows the
-id rather than the year.
+virtual structure gives you every other order, most of all the one by kind.
 
 ## Location codes: down to the box, not the slot
 
 Record locations down to the **box** (or case, or binder), not the position
-inside it. The id order inside the box already tells you where a disc is, and
-not tracking slots means re-shelving never makes the records wrong.
+inside it. Boxes are small and in the order made, and not tracking slots means
+re-shelving never makes the records wrong.
 
 ```sh
 archive location add HOME "Home"
 archive location add HOME-STUDY "Study" --in HOME
-archive location add HOME-B01 "Box 1: MEMORIES (PHOTO, TRIP)" --in HOME-STUDY
-archive location add HOME-B02 "Box 2: RECORDS" --in HOME-STUDY
+archive location add HOME-PRV-2026 "Private, made 2026" --in HOME-STUDY
+archive location add HOME-PUB-2026 "Public, made 2026" --in HOME-STUDY
 archive location add HOME-SAFE "Fire safe" --in HOME
+archive location add HOME-SEALED-2026 "Sealed, made 2026" --in HOME-SAFE
 archive location add PARENTS "Parents' house"
-archive location add PARENTS-B01 "Box 1 (copies)" --in PARENTS
+archive location add PARENTS-PRV-2026 "Private copies, made 2026" --in PARENTS
 ```
 
-- **Codes:** short, written large on the box itself, site first (`HOME-B01`,
-  `PARENTS-B01`), so the code says which site it belongs to even after a box
-  moves. Codes allow 1–24 capital letters, digits, `-` and `_`.
+- **Codes:** short, written large on the box itself, site first, then access
+  level, then year (`HOME-PRV-2026`, `PARENTS-PRV-2026`), so the code says which
+  site it belongs to even after a box moves. Codes allow 1–24 capital letters,
+  digits, `-` and `_`.
 - **Names:** say what's inside. They show up in `archive list`, `search.html` and
-  every disc's catalogue ("stored at Home / Study / Box 1: MEMORIES …").
-- **Moving a box:** `archive location move HOME-B01 --in PARENTS` moves every
-  disc in it.
+  every disc's catalogue ("stored at Home / Study / Private, made 2026").
+- **Which box a new disc goes in:** `archive list --access private --made 2026`
+  lists the discs that belong in `HOME-PRV-2026`.
+- **Moving a box:** `archive location move HOME-PRV-2020 --in PARENTS` moves
+  every disc in it.
 
 ## Copies: same image, different places
 
@@ -115,16 +125,13 @@ can repair each other (see [workflow.md](workflow.md#6-recover)). Keep at least
 two copies, in two places: the usual 3-2-1 idea, with an off-site copy.
 
 ```sh
-archive burned TRIP-01_2019_4 --copies 1 --location HOME-B01
-archive burned TRIP-01_2019_4 --copies 1 --location PARENTS-B01
-archive list --at PARENTS          # what the off-site box holds
+archive burned SCAN-01_1995-2008_D --copies 1 --location HOME-PRV-2026
+archive burned SCAN-01_1995-2008_D --copies 1 --location PARENTS-PRV-2026
+archive list --at PARENTS          # what the off-site boxes hold
 ```
 
-Discs you made `sealed` (taxes, identity documents) belong in the safe:
-`--location HOME-SAFE`.
-
-The off-site box doesn't need to follow the home box's order exactly. Because
-everything is located by box, it only needs the same ids.
+The off-site boxes follow the same split. Sealed copies need somewhere locked
+there too (a second safe, or a bank's safe deposit box).
 
 ## Labels
 
@@ -132,7 +139,7 @@ everything is located by box, it only needs the same ids.
 |---|---|---|
 | On the disc | the **full id**, e.g. `TRIP-01_2019_4` | a solvent-free (water-based) marker meant for discs, on the clear inner hub ring only. No paper labels. |
 | Case spine | the volume label: the id, then the title, e.g. `TRIP-01_2019_4 Kyoto July 2019` | printed or written spine insert |
-| Box | its location code, large, and its contents list | print `archive list --at HOME-B01` and keep it in the box lid |
+| Box | its location code, large, and its contents list | print `archive list --at HOME-PRV-2026` and keep it in the box lid |
 
 The id's last character is a check character, so a smudged or misread id is
 caught: `archive id` says whether an id is valid, and suggests the likely disc.
@@ -165,12 +172,12 @@ conditions and copies in more than one place still matter.
 
 ## What this buys you
 
-With the shelf in id order and locations recorded per box, every index points
-to a physical place:
+With the shelf by access level and year, and locations recorded per box, every
+index points to a physical place:
 - `archive find`;
 - `search.html` on any disc;
 - a virtual tree in catalogue software, "by place", for example
-  `Home/Study/Box 1/TRIP-01_2019_4/…` (see
+  `Home/Study/HOME-PUB-2020/TRIP-01_2019_4/…` (see
   [the format spec](smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)).
 
-Inside the box, the disc's place follows from its id.
+Inside the box, discs are in the order made, the same order as the lid's list.

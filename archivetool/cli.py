@@ -363,6 +363,8 @@ def cmd_list(args):
             continue
         if args.access and catalog.access(d) != args.access:
             continue
+        if args.made and not (d.get("Date") or "").startswith(args.made):
+            continue
         if args.covers:
             try:
                 if not discid.covers(d.get("Coverage"), args.covers):
@@ -944,6 +946,7 @@ def build_parser():
     ls.add_argument("--in", dest="within", metavar="CODE",
                     help="only discs whose set or categories are CODE or anywhere below it (e.g. --in MEMORIES)")
     ls.add_argument("--at", metavar="LOCATION", help="only discs kept at this location or anywhere inside it")
+    ls.add_argument("--made", metavar="DATE", help="only discs made in this year or month (2024, 2024-05)")
     ls.add_argument("--access", choices=catalog.ACCESS_LEVELS, help="only discs with this access level")
     ls.set_defaults(func=cmd_list)
 
