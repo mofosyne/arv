@@ -66,8 +66,9 @@ Set up **where discs live** once. You can extend it later:
 
 ```sh
 archive location add HOME "Home"
-archive location add BOX1 "Box 1, blue lid" --in HOME
-archive location add OFFSITE "Parents' house"
+archive location add HOME-PRV-2026 "Private, made 2026" --in HOME
+archive location add PARENTS "Parents' house"
+archive location add PARENTS-PRV-2026 "Private copies, made 2026" --in PARENTS
 ```
 
 ## 1. Prepare a folder
@@ -90,7 +91,7 @@ project, a year of paperwork.
 ## 2. Make the disc image
 
 ```sh
-archive make FOLDER --location BOX1 [--set trip] [--category scan] [--access private]
+archive make FOLDER --location HOME-PRV-2026 [--set trip] [--category scan] [--access private]
                     [--medium bd25|bd100] [--filesystem hybrid|udf250] [--split] [--draft d.json]
 ```
 
@@ -154,13 +155,16 @@ character, so a mistyped id is caught: `archive id TRIP-01_2019_5` tells you it'
 ## 4. Store
 
 How to arrange the discs so the shelf matches the catalogue is covered in
-**[shelving.md](shelving.md)**. In short: shelf order is id order (set, then
-sequence); locations are recorded down to the box; copies of the same image go to
-different sites; the id goes on the disc hub and the volume label on the spine.
+**[shelving.md](shelving.md)**. In short: physically by access level, then a box
+per year made, in the order made (sealed discs in the safe); virtually by kind,
+through the catalogue. Locations are recorded down to the box; copies of the same
+image go to different sites; the id goes on the disc hub and the volume label on
+the spine.
 
 ```sh
-archive locate TRIP-01_2019_4 BOX1 OFFSITE    # one location per place copies are kept
-archive location move BOX1 --in OFFSITE       # moving a box moves its discs
+archive list --access private --made 2026     # the discs that belong in this year's private box
+archive locate TRIP-01_2019_4 HOME-PUB-2020 PARENTS-PUB-2020   # one location per place copies are kept
+archive location move HOME-PUB-2020 --in PARENTS               # moving a box moves its discs
 archive location list -v
 ```
 

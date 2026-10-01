@@ -372,7 +372,7 @@ in `catalog/archive.rec` and the listings of the newest disc. Useful trees:
 |---|---|---|
 | By disc | each disc's listing | `TRIP-01_2019_4/day1 Fushimi Inari/IMG_0100.png` |
 | By kind | `Disc.Path` (vocabulary paths), then by disc | `MEMORIES/PHOTO/TRIP/TRIP-01_2019_4/...` |
-| By place | `Disc.Location` + `Location` tree | `Home/Study/Box 1/TRIP-01_2019_4/...` |
+| By place | `Disc.Location` + `Location` tree | `Home/Study/HOME-PUB-2020/TRIP-01_2019_4/...` |
 | By date | `Disc.Coverage` (EDTF), or each file's modified time from the listing | `2019/07/TRIP-01_2019_4/...` |
 | By collection | `Collection` tree and `Item`s | `Travel/Best of Kyoto/day2 Kinkaku-ji/...` |
 | By tag | Tags TSV (`namespace:value`) | `place/kyoto/TRIP-01_2019_4/...` |
@@ -380,7 +380,7 @@ in `catalog/archive.rec` and the listings of the newest disc. Useful trees:
 What each entry can show:
 - **Files:** size and modified time (listing); SHA-256 (manifest); PRONOM format (formats CSV, optional).
 - **Folders:** implied by the file paths. Empty folders are not listed.
-- **Discs:** where their copies are (location path), so opening a file can say "insert TRIP-01_2019_4, kept in Home / Study / Box 1".
+- **Discs:** where their copies are (location path), so opening a file can say "insert TRIP-01_2019_4, kept in Home / Study / Public, made 2020".
 
 A disc in several categories, places or collections appears in each tree under
 each of them. That is the point of a DAG vocabulary.
