@@ -520,7 +520,10 @@ which is 32 bits in WebAssembly, so a 25 GB disc image cannot work in a 32-bit `
 A portable decoder has to stream the image (RS03 works one layer at a time), as dvdisaster
 does: 36 MiB for the same repair.
 
-(A full `.wasm` repair of the 1 GiB image with chunked reads is being measured.)
+With chunked reads, a full `.wasm` repair of the 1 GiB image got further but still failed:
+under wasmtime the decode completed (418 s) and then writing the image back failed the same way
+("short write", one `fwrite()` of the whole image); under Node the program crashed at once,
+most likely on the ~2.6 GB it allocates. Both point the same way: stream, don't load.
 
 ## 9. Other ideas from LCSAS, tested or noted (2026-10-01)
 
