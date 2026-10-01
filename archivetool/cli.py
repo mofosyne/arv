@@ -8,6 +8,7 @@ Commands:
   note   add a note to a disc
   locate set where a disc's copies are kept
   location  places (site, room, shelf, box) as a tree
+  collection  virtual folders of discs, folders and files across discs
   access set what other discs' catalogues may show of a disc
   burned record that copies were burned
   check  verify a disc or image with dvdisaster and log a fixity-check event
@@ -477,6 +478,94 @@ def cmd_locate(args):
     return 0
 
 
+def _listing_paths(home, disc_id):
+    path = home.disc_file("listings", disc_id)
+    if not os.path.exists(path):
+        return None
+    from .web import read_listing
+    return [rel for _, _, rel in read_listing(path)]
+
+
+def cmd_collection(args):
+    """Collections: virtual folders of whole discs, folders and files across discs."""
+    home = catalog.Home(args.home)
+    cat = home.load()
+    if args.action == "list":
+        def show(col, depth):
+            items = col.get_all("Item")
+            print("%s%-12s %-36s %d item%s" % ("  " * depth, col.get("Code"), col.get("Name"), len(items),
+                                              "" if len(items) == 1 else "s"))
+            for child in [c for c in cat.collections if (c.get("Parent") or "").upper() == col.get("Code")]:
+                show(child, depth + 1)
+        for top in [c for c in cat.collections if not cat.collection(c.get("Parent"))]:
+            show(top, 0)
+        return 0
+    if not args.code:
+        raise SystemExit("Error: archive collection %s needs a collection code" % args.action)
+    code = args.code.strip().upper()
+    col = cat.collection(code)
+    if args.action == "show":
+        if not col:
+            raise SystemExit("Error: no collection %s" % code)
+        print("%s  %s" % (code, cat.collection_path(code)))
+        if col.get("Description"):
+            print("  " + col.get("Description"))
+        for item in col.get_all("Item"):
+            disc_id, path, _ = catalog.parse_item(item)
+            disc = cat.disc(disc_id)
+            print("  %-50s %s  [%s]" % (path or "(whole disc)", disc_id,
+                                         cat.where(disc) if disc else "not in the catalogue"))
+        return 0
+    if args.action == "add":
+        if col:
+            raise SystemExit("Error: collection %s already exists" % code)
+        if not catalog.COLLECTION_RE.match(code):
+            raise SystemExit("Error: collection code %r: use 1-32 capital letters, digits, - or _" % args.code)
+        if args.within and not cat.collection(args.within):
+            raise SystemExit("Error: no collection %s (add it first)" % args.within.upper())
+        col = recfile.Record("Collection", [("Code", code), ("Name", args.name or code)])
+        if args.within:
+            col.add("Parent", args.within.strip().upper())
+        if args.description:
+            col.add("Description", args.description)
+        cat.collections.append(col)
+    elif not col:
+        raise SystemExit("Error: no collection %s" % code)
+    if args.action in ("add", "put"):
+        have = set(col.get_all("Item"))
+        for item in args.items:
+            disc_id, path, is_folder = catalog.parse_item(item)
+            if not cat.disc(disc_id):
+                raise SystemExit("Error: no disc %s in the catalogue (items are DISC-ID, DISC-ID:folder/ or "
+                                 "DISC-ID:folder/file)" % disc_id)
+            paths = _listing_paths(home, disc_id) if path else None
+            if path and paths is not None and not (
+                    any(p.startswith(path) for p in paths) if is_folder else path in paths):
+                if not is_folder and any(p.startswith(path + "/") for p in paths):
+                    path += "/"            # a folder given without the trailing slash
+                else:
+                    raise SystemExit("Error: %s has no %s %s" % (disc_id, "folder" if is_folder else "file", path))
+            item = disc_id + (":" + path if path else "")
+            if item not in have:
+                col.add("Item", item)
+                have.add(item)
+    elif args.action == "drop":
+        gone = {catalog.parse_item(i)[0] + (":" + catalog.parse_item(i)[1] if catalog.parse_item(i)[1] else "")
+                for i in args.items}
+        col.fields = [(k, v) for k, v in col.fields if not (k == "Item" and v in gone)]
+    elif args.action == "move":
+        if args.within and code in [c.get("Code") for c in cat.collection_chain(args.within)]:
+            raise SystemExit("Error: %s is inside %s; that would make a loop" % (args.within.upper(), code))
+        col.fields = [(k, v) for k, v in col.fields if k != "Parent"]
+        if args.within:
+            col.fields.insert(2, ("Parent", args.within.strip().upper()))
+        if args.name:
+            col.set("Name", args.name)
+    home.save(cat)
+    print("%s: %s, %d items" % (code, cat.collection_path(code), len(col.get_all("Item"))))
+    return 0
+
+
 def cmd_access(args):
     return _edit_disc(args, lambda d: d.set("Access", args.level))
 
@@ -886,6 +975,15 @@ def build_parser():
     lo.add_argument("-v", "--verbose", action="store_true", help="list: show the discs at each place")
     lo.set_defaults(func=cmd_location)
 
+    co = sub.add_parser("collection", help="virtual folders of discs, folders and files across discs")
+    co.add_argument("action", choices=["list", "show", "add", "put", "drop", "move"])
+    co.add_argument("code", nargs="?", help="collection code, e.g. KYOTO-BEST")
+    co.add_argument("items", nargs="*", help="add/put/drop: DISC-ID, DISC-ID:folder/ or DISC-ID:folder/file")
+    co.add_argument("--name", help="readable name (add, move)")
+    co.add_argument("--in", dest="within", metavar="PARENT", help="the collection it is inside (add, move)")
+    co.add_argument("--description")
+    co.set_defaults(func=cmd_collection)
+
     ac = sub.add_parser("access", help="set what other discs' catalogues may show of a disc")
     ac.add_argument("disc_id")
     ac.add_argument("level", choices=catalog.ACCESS_LEVELS)
@@ -971,7 +1069,14 @@ def build_parser():
 
 
 def main(argv=None):
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args, extra = parser.parse_known_args(argv)
+    if extra:
+        # `collection add CODE --name X ITEM ...`: items after options are still items
+        if args.command == "collection" and not any(e.startswith("-") for e in extra):
+            args.items += extra
+        else:
+            parser.error("unrecognized arguments: %s" % " ".join(extra))
     try:
         return args.func(args)
     except BrokenPipeError:  # output piped into e.g. `head`, which stopped reading

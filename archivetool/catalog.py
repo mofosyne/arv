@@ -53,6 +53,17 @@ DESCRIPTORS = [
         ],
     ),
     recfile.Record(
+        "Collection",
+        [
+            ("%rec", "Collection"),
+            ("%doc", "Virtual folders across discs. Item is DISC-ID (a whole disc), DISC-ID:folder/\n"
+                     "or DISC-ID:folder/file (paths relative to the disc's data/). Parent nests\n"
+                     "collections. Snapshots on other discs carry only items they may show."),
+            ("%key", "Code"),
+            ("%mandatory", "Code Name"),
+        ],
+    ),
+    recfile.Record(
         "Event",
         [
             ("%rec", "Event"),
@@ -74,6 +85,14 @@ DISC_FILE_KINDS = {
 
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 LOCATION_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{0,23}$")
+COLLECTION_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{0,31}$")
+
+
+def parse_item(item):
+    """A collection Item -> (disc id, path relative to data/, is_folder). Whole disc: path ''."""
+    disc_id, _, path = item.strip().partition(":")
+    path = path.strip().lstrip("/")
+    return disc_id.strip(), path, path == "" or path.endswith("/")
 
 # Access: who may see a disc's description and file list on *other* discs' catalogue snapshots.
 #   public   anywhere, including discs given to other people (--snapshot set)
@@ -124,6 +143,7 @@ class Catalog:
     def __init__(self, records=None):
         self.discs = []
         self.locations = []
+        self.collections = []
         self.events = []
         for r in records or []:
             if r.is_descriptor:
@@ -132,16 +152,63 @@ class Catalog:
                 self.discs.append(r)
             elif r.type == "Location":
                 self.locations.append(r)
+            elif r.type == "Collection":
+                self.collections.append(r)
             elif r.type == "Event":
                 self.events.append(r)
 
     def records(self):
         """Records in file order: each type's descriptor is followed by its records."""
-        disc_desc, location_desc, event_desc = DESCRIPTORS
+        disc_desc, location_desc, collection_desc, event_desc = DESCRIPTORS
         out = [disc_desc] + self.discs
         if self.locations:
             out += [location_desc] + self.locations
+        if self.collections:
+            out += [collection_desc] + self.collections
         return out + [event_desc] + self.events
+
+    # ------------------------------------------------------------ collections
+
+    def collection(self, code):
+        code = (code or "").strip().upper()
+        return next((c for c in self.collections if c.get("Code") == code), None)
+
+    def collection_chain(self, code):
+        """[Collection, its parent, ...] from ``code`` up to the top (cycles are cut)."""
+        chain, seen = [], set()
+        col = self.collection(code)
+        while col is not None and col.get("Code") not in seen:
+            seen.add(col.get("Code"))
+            chain.append(col)
+            col = self.collection(col.get("Parent"))
+        return chain
+
+    def collection_path(self, code):
+        chain = self.collection_chain(code)
+        return " / ".join(c.get("Name") or c.get("Code") for c in reversed(chain)) if chain else code
+
+    def collections_for(self, disc_ids, sealed=()):
+        """Collections as a snapshot may carry them: items only for ``disc_ids``, and no paths
+        on ``sealed`` discs (only the whole-disc item). Collections left empty are dropped,
+        unless a kept collection is inside them."""
+        kept = {}
+        for col in self.collections:
+            items = []
+            for item in col.get_all("Item"):
+                disc_id, path, _ = parse_item(item)
+                if disc_id in disc_ids and not (path and disc_id in sealed):
+                    items.append(item)
+            if items:
+                kept[col.get("Code")] = items
+        codes = set()
+        for code in kept:
+            codes.update(c.get("Code") for c in self.collection_chain(code))
+        out = []
+        for col in self.collections:
+            if col.get("Code") in codes:
+                out.append(recfile.Record("Collection", [(k, v) for k, v in col.fields if k != "Item"]
+                                          + [("Item", i) for i in kept.get(col.get("Code"), [])]))
+        return out
 
     # ------------------------------------------------------------ locations
 
@@ -212,7 +279,11 @@ class Catalog:
         c.discs = [d for d in self.discs if d.get("Id") in disc_ids]
         c.events = [e for e in self.events if e.get("Disc") in disc_ids]
         c.locations = self.locations_for(c.discs)
+        c.collections = self.collections_for(disc_ids, self.sealed_ids())
         return c
+
+    def sealed_ids(self):
+        return {d.get("Id") for d in self.discs if access(d) == "sealed"}
 
     def shared_view(self):
         """This catalogue as other discs may carry it: sealed discs cut down to their identity."""
@@ -221,6 +292,7 @@ class Catalog:
         c.discs = [sealed_view(d) if d.get("Id") in sealed else d for d in self.discs]
         c.events = [e for e in self.events if e.get("Disc") not in sealed]
         c.locations = list(self.locations)
+        c.collections = self.collections_for({d.get("Id") for d in self.discs}, sealed)
         return c
 
 
@@ -364,6 +436,16 @@ def merge(home_catalog, other, prefer_other=False):
         elif prefer_other and existing.fields != d.fields and not (d.get("Withheld") and not existing.get("Withheld")):
             existing.fields = list(d.fields)
             updated.append(d.get("Id"))
+    for col in other.collections:   # items are unioned: a filtered copy never removes any
+        existing = home_catalog.collection(col.get("Code"))
+        if existing is None:
+            home_catalog.collections.append(col)
+            continue
+        if prefer_other:
+            keep = [(k, v) for k, v in col.fields if k != "Item"]
+            existing.fields = keep + [(k, v) for k, v in existing.fields if k == "Item"]
+        have = set(existing.get_all("Item"))
+        existing.fields += [("Item", i) for i in col.get_all("Item") if i not in have]
     for loc in other.locations:
         existing = home_catalog.location(loc.get("Code"))
         if existing is None:

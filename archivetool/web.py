@@ -31,9 +31,9 @@ def disc_summary(disc):
     return out
 
 
-def write_web_data(web_dir, this_id, discs, listing_paths, folder_tags=None, places=None):
+def write_web_data(web_dir, this_id, discs, listing_paths, folder_tags=None, places=None, collections=None):
     """discs: Disc records; listing_paths: {disc_id: listing .tsv}; folder_tags: {disc_id: {folder: (tags, caption)}};
-    places: {location code: readable path}."""
+    places: {location code: readable path}; collections: [{code, name, description, items}]."""
     os.makedirs(os.path.join(web_dir, "files"), exist_ok=True)
     summaries = []
     for d in discs:
@@ -47,7 +47,8 @@ def write_web_data(web_dir, this_id, discs, listing_paths, folder_tags=None, pla
         summaries.append(summary)
     with open(os.path.join(web_dir, "discs.js"), "w", encoding="utf-8") as f:
         f.write("var ARCHIVE_THIS = %s;\nvar ARCHIVE_DISCS = %s;\nvar ARCHIVE_PLACES = %s;\n"
-                % (_js(this_id), _js(summaries), _js(places or {})))
+                "var ARCHIVE_COLLECTIONS = %s;\n"
+                % (_js(this_id), _js(summaries), _js(places or {}), _js(collections or [])))
     for disc_id, path in listing_paths.items():
         rows = []
         for size, _mtime, rel in read_listing(path):
@@ -203,6 +204,30 @@ button { font:inherit; padding:8px 16px; border-radius:6px; border:1px solid var
       discHits.forEach(function (id) { discBox.appendChild(el("div", "hit", describe(discs[id]))); });
     }
 
+    var colHits = (window.ARCHIVE_COLLECTIONS || []).filter(function (c) {
+      return [c.code, c.name, c.description].some(match);
+    });
+    if (colHits.length) {
+      discBox.appendChild(el("h2", null, "Collections"));
+      colHits.forEach(function (c) {
+        var box = el("div", "hit");
+        box.appendChild(el("div", null, c.name + (c.description ? " \u2014 " + c.description : "")));
+        c.items.forEach(function (item) {
+          var sep = item.indexOf(":"), id = sep < 0 ? item : item.slice(0, sep), path = sep < 0 ? "" : item.slice(sep + 1);
+          var line = el("div", "where");
+          if (id === ARCHIVE_THIS && path) {
+            var a = el("a", "path", path); a.href = dataHref(path.replace(/\/$/, "")) + (path.slice(-1) === "/" ? "/" : "");
+            line.appendChild(a); line.appendChild(document.createTextNode(" \u2014 on this disc"));
+          } else {
+            line.textContent = (path || "(whole disc)") + " \u2014 " +
+              (discs[id] ? "on disc " + describe(discs[id]) : "on disc " + id);
+          }
+          box.appendChild(line);
+        });
+        discBox.appendChild(box);
+      });
+    }
+
     var tagHits = [];
     ids.forEach(function (id) {
       var tags = discs[id].FolderTags || {}, captions = discs[id].FolderCaptions || {};
@@ -253,7 +278,7 @@ button { font:inherit; padding:8px 16px; border-radius:6px; border:1px solid var
       });
     });
     heading.textContent = "Files (" + total + (total > shown ? ", showing first " + shown : "") + ")";
-    setStatus(total || discHits.length || tagHits.length ? "" : "No matches." +
+    setStatus(total || discHits.length || tagHits.length || colHits.length ? "" : "No matches." +
       (missing.length ? " File lists missing for: " + missing.join(", ") : ""));
   }
 

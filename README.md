@@ -92,6 +92,8 @@ and `dvdisaster` (use the [speed47 fork](https://github.com/speed47/dvdisaster) 
 ./archive burned 2020-2025_PROJECTS_01 --copies 1 --location OFFSITE  # after burning the ISO yourself
 ./archive location move BOX3 --in OFFSITE             # moving a box moves its discs
 ./archive location list -v                            # places as a tree, with the discs in each
+./archive collection add KYOTO-BEST --name "Best of Kyoto" TRIP-01_2019_4:"day2 Kinkaku-ji/"
+./archive collection show KYOTO-BEST                  # virtual folders across discs, with where each disc is
 ./archive list --at HOME                              # discs anywhere inside a place
 ./archive access 2020-2025_PROJECTS_01 public          # public / private (default) / sealed
 ./archive tags                                         # every folder tag in use, by namespace

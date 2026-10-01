@@ -528,6 +528,33 @@ class MakeTest(unittest.TestCase):
         with open(os.path.join(later, "catalog", "web", "discs.js"), encoding="utf-8") as f:
             self.assertIn("Parents' house / Box 3, blue lid", f.read())
 
+    def test_collections_travel_with_access_rules(self):
+        home = ("--home", self.home)
+        public_id, _ = self.make(self.photos, "--set", "PHOTO", "--access", "public")
+        private_id, _ = self.make(self.projects, "--set", "PROJ")
+        sealed_id, _ = self.make(self.photos, "--set", "PHOTO", "--access", "sealed")
+        self.assertEqual(run_cli(*home, "collection", "add", "BEST", "--name", "Best of", public_id + ":IMG_0001.JPG",
+                                 private_id + ":sub dir", sealed_id + ":IMG_0001.JPG", sealed_id)[0], 0)
+        self.assertNotEqual(run_cli(*home, "collection", "put", "BEST", public_id + ":missing.jpg")[0], 0)
+        col = catalog.Home(self.home).load().collection("BEST")
+        self.assertIn(private_id + ":sub dir/", col.get_all("Item"))          # folder recognised
+        # a full snapshot carries it, without paths on the sealed disc
+        _, full = self.make(self.photos, "--set", "PHOTO")
+        snap = catalog.Catalog(recfile.read(os.path.join(full, "catalog", "archive.rec"))).collection("BEST")
+        self.assertEqual(snap.get_all("Item"), [public_id + ":IMG_0001.JPG", private_id + ":sub dir/", sealed_id])
+        with open(os.path.join(full, "catalog", "web", "discs.js"), encoding="utf-8") as f:
+            self.assertIn("ARCHIVE_COLLECTIONS", f.read())
+        # a disc for other people carries only the public disc's item
+        _, shared = self.make(self.photos, "--set", "PHOTO", "--snapshot", "set")
+        snap = catalog.Catalog(recfile.read(os.path.join(shared, "catalog", "archive.rec"))).collection("BEST")
+        self.assertEqual(snap.get_all("Item"), [public_id + ":IMG_0001.JPG"])
+        # rebuilding from that disc never removes items from the full collection
+        run_cli(*home, "rebuild", "--prefer-disc", shared)
+        self.assertEqual(len(catalog.Home(self.home).load().collection("BEST").get_all("Item")), 4)
+        out = run_cli(*home, "collection", "show", "BEST")[1]
+        self.assertIn("sub dir/", out)
+        self.assertNotEqual(run_cli(*home, "list", "--bogus")[0], 0)        # stray options still fail
+
     def test_namespaced_tags_and_keywords(self):
         draft = os.path.join(self.tmp, "draft.json")
         with open(draft, "w", encoding="utf-8") as f:

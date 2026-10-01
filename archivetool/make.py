@@ -293,6 +293,9 @@ class Maker:
         snapshot.events += [e for p in batch_plans for e in p.events]
         snapshot.locations = (list(self.cat.locations) if a.snapshot == "full"
                               else self.cat.locations_for(snapshot.discs))
+        # virtual folders, limited to the discs this snapshot carries (no paths on sealed discs)
+        snapshot.collections = self.cat.collections_for({d.get("Id") for d in snapshot.discs},
+                                                        self.cat.sealed_ids())
         files = {d.get("Id"): self.home.disc_files(d.get("Id")) for d in prior
                  if catalog.access(d) != "sealed"}
         files.update({p.disc_id: batch[p.disc_id] for p in batch_plans})
@@ -304,7 +307,10 @@ class Maker:
                        for n in (os.listdir(tags_dir) if os.path.isdir(tags_dir) else [])}
         web.write_web_data(os.path.join(catalog_dir, "web"), plan.disc_id, snapshot.discs,
                            {n[:-4]: os.path.join(listings, n) for n in os.listdir(listings)}, folder_tags,
-                           {l.get("Code"): snapshot.location_path(l.get("Code")) for l in snapshot.locations})
+                           {l.get("Code"): snapshot.location_path(l.get("Code")) for l in snapshot.locations},
+                           [{"code": c.get("Code"), "name": snapshot.collection_path(c.get("Code")),
+                             "description": c.get("Description") or "", "items": c.get_all("Item")}
+                            for c in snapshot.collections])
 
         self.stage_tools(os.path.join(stage, "tools"), self.is_git, a.extra_tools, a.tools_history)
         self.write_readme(os.path.join(stage, "README.txt"), plan.record, a.snapshot, a.tools_history)
