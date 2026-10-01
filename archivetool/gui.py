@@ -17,7 +17,19 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import catalog, describe, index, llm, vision, web
+from . import catalog, describe, index, llm, vision
+
+DISC_FIELDS = ("Id", "Part", "Title", "Set", "Category", "Path", "Coverage", "Date", "Location", "Description", "Subject", "Note", "Files", "Copies")
+
+
+def disc_summary(disc):
+    out = {}
+    for name in DISC_FIELDS:
+        values = disc.get_all(name)
+        if values:
+            out[name] = values if name in ("Subject", "Note", "Category", "Path", "Location") else values[0]
+    return out
+
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARCHIVE = os.path.join(os.path.dirname(HERE), "archive")
@@ -66,7 +78,7 @@ class App:
         cat = self.home.load()
         out = []
         for d in cat.discs:
-            summary = web.disc_summary(d)
+            summary = disc_summary(d)
             summary.update({k: d.get(k) for k in ("Media", "Bytes", "Ecc", "Rights", "Creator", "Access") if d.get(k)})
             summary["Where"] = cat.where(d)
             summary["Events"] = [dict(e.fields) for e in cat.events_for(d.get("Id"))]
@@ -82,7 +94,7 @@ class App:
             disc_hits, file_hits = index.find(self.home, cat, pattern)
         else:
             disc_hits, file_hits = catalog.find(self.home, cat, pattern)
-        return {"discs": [web.disc_summary(d) for d in disc_hits],
+        return {"discs": [disc_summary(d) for d in disc_hits],
                 "files": [{"disc": d.get("Id"), "title": d.get("Title"), "location": cat.where(d), "path": p}
                           for d, p in file_hits[:500]],
                 "total": len(file_hits)}

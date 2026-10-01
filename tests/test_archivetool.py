@@ -417,16 +417,21 @@ class MakeTest(unittest.TestCase):
             _, disc = self.make(self.photos, "--set", "PHOTOS", "--tools-history")
             self.assertIn("bluray-archival-workflow.bundle", os.listdir(os.path.join(disc, "tools")))
 
-    def test_search_page_data(self):
+    def test_search_from_the_disc_alone(self):
         self.make(self.projects)
         disc_id, disc = self.make(self.photos, "--set", "PHOTOS")
-        for name in ("search.html", "catalog/web/discs.js", "catalog/web/files/%s.js" % disc_id,
-                     "catalog/web/files/%s.js" % PROJ_01, "catalog/listings/%s.tsv" % disc_id):
+        for name in ("catalog/listings/%s.tsv" % disc_id, "catalog/listings/%s.tsv" % PROJ_01):
             self.assertTrue(os.path.exists(os.path.join(disc, name)), name)
-        with open(os.path.join(disc, "catalog/web/files/%s.js" % PROJ_01), encoding="utf-8") as f:
-            self.assertIn("100% ünïcode.txt", f.read())
-        with open(os.path.join(disc, "search.html"), encoding="utf-8") as f:
-            self.assertIn('<script src="catalog/web/discs.js">', f.read())
+        for name in ("search.html", "catalog/web"):  # search is catalogue software's job (or archive find)
+            self.assertFalse(os.path.exists(os.path.join(disc, name)), name)
+        with open(os.path.join(disc, "README.txt"), encoding="utf-8") as f:
+            self.assertIn("archive --home catalog find PATTERN", f.read())
+        # a disc's catalog/ works as a read-only catalogue home: an earlier disc's file is found
+        before = sorted(os.listdir(os.path.join(disc, "catalog")))
+        code, out = run_cli("--home", os.path.join(disc, "catalog"), "find", "ünïcode")
+        self.assertEqual(code, 0)
+        self.assertIn(PROJ_01, out)
+        self.assertEqual(sorted(os.listdir(os.path.join(disc, "catalog"))), before)
 
     def test_disc_scope_has_only_this_disc(self):
         self.make(self.projects)
@@ -487,8 +492,8 @@ class MakeTest(unittest.TestCase):
                          ("(sealed disc)", "Safe", None))
         self.assertTrue(sealed.get("Withheld"))
         self.assertFalse(os.path.exists(os.path.join(full, "catalog", "manifests", sealed_id + ".sha256")))
-        self.assertFalse(os.path.exists(os.path.join(full, "catalog", "web", "files", sealed_id + ".js")))
-        for name in ("index.html", "catalog/web/discs.js"):
+        self.assertFalse(os.path.exists(os.path.join(full, "catalog", "listings", sealed_id + ".tsv")))
+        for name in ("index.html", "catalog/archive.rec"):
             with open(os.path.join(full, name), encoding="utf-8") as f:
                 self.assertNotIn("Secret", f.read())
         self.assertEqual(full_cat.disc(private_id).get("Title"), "Private album")
@@ -531,8 +536,8 @@ class MakeTest(unittest.TestCase):
         run_cli(*home, "locate", disc_id, "BOX3")
         self.assertEqual(catalog.Home(self.home).load().disc(disc_id).get_all("Location"), ["BOX3"])
         _, later = self.make(self.photos, "--set", "PHOTO")
-        with open(os.path.join(later, "catalog", "web", "discs.js"), encoding="utf-8") as f:
-            self.assertIn("Parents' house / Box 3, blue lid", f.read())
+        snap = catalog.Catalog(recfile.read(os.path.join(later, "catalog", "archive.rec")))
+        self.assertEqual(snap.where(snap.disc(disc_id)), "Parents' house / Box 3, blue lid")
 
     def test_collections_travel_with_access_rules(self):
         home = ("--home", self.home)
@@ -548,8 +553,6 @@ class MakeTest(unittest.TestCase):
         _, full = self.make(self.photos, "--set", "PHOTO")
         snap = catalog.Catalog(recfile.read(os.path.join(full, "catalog", "archive.rec"))).collection("BEST")
         self.assertEqual(snap.get_all("Item"), [public_id + ":IMG_0001.JPG", private_id + ":sub dir/", sealed_id])
-        with open(os.path.join(full, "catalog", "web", "discs.js"), encoding="utf-8") as f:
-            self.assertIn("ARCHIVE_COLLECTIONS", f.read())
         # a disc for other people carries only the public disc's item
         _, shared = self.make(self.photos, "--set", "PHOTO", "--snapshot", "set")
         snap = catalog.Catalog(recfile.read(os.path.join(shared, "catalog", "archive.rec"))).collection("BEST")

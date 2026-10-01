@@ -22,8 +22,8 @@ answers "what is it?". So the two are arranged differently:
    newest box, and `archive list` lists discs in that order.
 
 Kind (PHOTO, TRIP, SCAN …) isn't physical at all. A disc with several categories
-still has exactly **one** shelf place, and the catalogue on every disc, the
-`search.html` page and catalogue software show it under every kind it belongs to
+still has exactly **one** shelf place, and the catalogue on every disc (read by
+catalogue software or `archive find`) shows it under every kind it belongs to
 (next section). Don't make physical copies to file a disc under each kind.
 
 ![Recommended shelving: sections by access level, a box per year made, the safe, and the off-site copies](img/shelving.svg)
@@ -111,7 +111,7 @@ archive location add PARENTS-PRV-2026 "Private copies, made 2026" --in PARENTS
   level, then year (`HOME-PRV-2026`, `PARENTS-PRV-2026`), so the code says which
   site it belongs to even after a box moves. Codes allow 1–24 capital letters,
   digits, `-` and `_`.
-- **Names:** say what's inside. They show up in `archive list`, `search.html` and
+- **Names:** say what's inside. They show up in `archive list`, `archive find` and
   every disc's catalogue ("stored at Home / Study / Private, made 2026").
 - **Which box a new disc goes in:** `archive list --access private --made 2026`
   lists the discs that belong in `HOME-PRV-2026`.
@@ -175,7 +175,7 @@ conditions and copies in more than one place still matter.
 With the shelf by access level and year, and locations recorded per box, every
 index points to a physical place:
 - `archive find`;
-- `search.html` on any disc;
+- `archive --home catalog find` run from any disc;
 - a virtual tree in catalogue software, "by place", for example
   `Home/Study/HOME-PUB-2020/TRIP-01_2019_4/…` (see
   [the format spec](smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)).

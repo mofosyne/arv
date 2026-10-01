@@ -374,7 +374,6 @@ ARCHIVE_POINTERS = [
     ("Formats", "catalog/formats/{id}.csv"),
     ("Snapshot", "catalog/archive.rec"),
     ("Viewer", "index.html"),
-    ("Search", "search.html"),
     ("Payload", "data/"),
 ]
 

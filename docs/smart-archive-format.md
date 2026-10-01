@@ -75,7 +75,6 @@ Tags: catalog/tags/2020-2025_PROJECTS_01.tags
 Formats: catalog/formats/2020-2025_PROJECTS_01.csv
 Snapshot: catalog/archive.rec
 Viewer: index.html
-Search: search.html
 Payload: data/
 ```
 
@@ -94,7 +93,7 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 | `catalog/formats/<id>.csv` | CSV | PRONOM format identification per file (optional) |
 | `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Location` and `Event` records (limited by [Access](#access)) |
 | `catalog/{manifests,listings,tags,formats}/<other-id>.*` | as above | The same per-file data for the other discs in the snapshot |
-| `index.html`, `search.html` | HTML | Offline viewer and search (for people; readers can ignore) |
+| `index.html` | HTML | Offline viewer (for people; readers can ignore) |
 | `data/` | files | The payload, untouched |
 
 ### `Disc` record (recfile)

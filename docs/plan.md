@@ -18,13 +18,12 @@ Working plan for turning the scripts into an `archive` tool. Background is in
 ## Disc layout
 
 ```
-index.html   search.html   README.txt          ← open these first
+index.html   README.txt                        ← open these first
 bagit.txt  bag-info.txt  manifest-*.txt  tagmanifest-*.txt
 catalog.rec                                    this disc: Disc/Copy/Event records
 catalog/                                       snapshot of the whole archive at burn time
   archive.rec
   manifests/<disc-id>.sha256
-  web/<disc-id>.js                             lazy-loaded data for search.html
   archive.sqlite                               optional convenience copy
 tools/
   bluray-archival-workflow/                    uncompressed snapshot of this repo (HEAD)
@@ -51,10 +50,9 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 
 - `index.html`: static, no JavaScript. Disc description, notes, location, a
   folder tree with relative links into `data/`, and sizes and checksums.
-- `search.html`: vanilla JS with no dependencies, working from `file://`. Data
-  is loaded with `<script src>` (not `fetch`, which `file://` blocks). It
-  searches across the snapshot, loading `catalog/web/<disc-id>.js` per disc on
-  demand.
+- ~~`search.html`~~: removed 2026-10-01 (see Decisions). Searching across
+  discs is catalogue software's job, or `archive --home catalog find` run from
+  the disc. The notes below are kept for the record.
 - One search box with scope **This disc / All discs**, plus disc-level search
   over titles, descriptions, notes and subjects. Results show disc ID, title,
   physical location and path:
@@ -82,7 +80,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - [x] `catalog/` snapshot with `--snapshot full|set|disc` (+ `listings/` with sizes and dates)
 - [ ] ~~Snapshot hash chain~~ dropped: the tagmanifests already cover the snapshot
 - [ ] Per-copy tracking via the BD-R BCA serial (deferred, low priority)
-- [x] `search.html` across the snapshot (tested: 1M files, ~1 s first search)
+- [x] ~~`search.html` across the snapshot~~ (built, then removed 2026-10-01)
 - [x] Generated `archive.sqlite` (`archive index`); `find` uses it when fresh
 - [x] `archive check --device|--image`: dvdisaster scan/test → `fixity check` Event
 - [x] `archive rebuild <disc>`: merge a disc's catalogue into home (idempotent)
@@ -153,7 +151,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
   title / description / subjects / folder tags / questions as JSON. The owner reviews every
   field; Q&A answers become notes; accepted changes are PREMIS `metadata modification` events
   with agent `llm:<model> + owner review`.
-- Folder tags: `catalog/tags/<disc-id>.tags`, searched by `find`, the GUI and `search.html`.
+- Folder tags: `catalog/tags/<disc-id>.tags`, searched by `find` and the GUI.
 - Images (done, `--vision`): sampled images and video frames go to a local vision model only
   (loopback enforced, no override, since file contents leave the inventory-only design).
   Captions feed the text model and are stored in the tags file (third column); searchable.
@@ -190,16 +188,24 @@ of anything linking to it (this repo's licence is still undecided).
 
 ## Decisions (2026-10-01)
 
-- Browser search data stays as it is: `search.html` reads small `.js` views that `archive make`
-  derives from the catalogue. Recfiles are never wrapped in JavaScript. JSON brings no gain
-  (measured); recutils-js does not load from `file://`. See research-notes.md section 6.
+- ~~Browser search data stays as it is~~ (superseded the same day, below).
+- **No search page on the disc.** `search.html` and its JavaScript copy of the catalogue
+  (`catalog/web/`) are removed; `index.html` stays (static, no JavaScript). The bet is on
+  two things outlasting any browser API: **Python 3**, and a **WebAssembly runtime that runs
+  WASI command-line programs** (several independent ones exist; udfmake already builds as one,
+  `make wasi`). Every disc carries the tool's source in `tools/`, so from the disc alone:
+  `python3 tools/bluray-archival-workflow/archive --home catalog find PATTERN`. Convenient
+  searching is catalogue software's job (Katalog). If a browser view is wanted later, it can
+  be a WASI program that serves the catalogue over local http, not data duplicated on the disc.
+- When the C pieces needed to read or repair a disc exist (verify, RS03 repair), each goes on
+  the disc as source plus a `.wasm` build, so a WASI runtime alone is enough to run them.
 
 ## Later: catalogue snapshot size
 
-Each disc carries every earlier disc's manifests, listings, format IDs and search data:
-about 480 bytes per file in the archive. Up to about a million files that is under 3% of a
+Each disc carries every earlier disc's manifests, listings and format IDs:
+about 430 bytes per file in the archive. Up to about a million files that is under 3% of a
 25 GB disc, and nothing changes. When an archive heads past that (5 million files would be
-13%), do the following, in this order:
+12%), do the following, in this order:
 
 - [ ] Leave other discs' format IDs (`formats/*.csv`, about half the size) out of
       snapshots; each disc keeps its own.
@@ -208,8 +214,6 @@ about 480 bytes per file in the archive. Up to about a million files that is und
       stay plain, so it stays readable without tools. `rebuild`/`find` read `.gz`.
 - [ ] Do it automatically, only when the snapshot would exceed about 2% of the disc's data
       budget, so small archives stay entirely plain.
-- Keep the browser search data uncompressed. A `file://` page could only decompress
-  base64-wrapped data, saving about 7%.
 
 ## Open decisions
 
