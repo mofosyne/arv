@@ -219,8 +219,8 @@ Implications: a fixed, editable tag vocabulary (consistent across discs) scored
 by embeddings by default, with optional SemIf-style readout when a >= 1.5B model
 is available; both over OpenAI-compatible HTTP (`/v1/embeddings`,
 `/v1/chat/completions` with `logprobs`). Model weights stay out of the repo (a
-pinned download or `--extra-tools` per disc), because every disc carries the
-repo's full git history.
+pinned download or `--extra-tools` per disc), because every disc carries a
+snapshot of the repository (and its full history with `--tools-history`).
 
 
 ## 6. Catalogue size and the browser search data (measured 2026-10-01)
