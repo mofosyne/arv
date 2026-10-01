@@ -130,8 +130,9 @@ BROWSE
   and{other_discs}.
 
 SEARCH
-  Catalogue software that reads this format (the spec is
-  tools/{repo}/docs/smart-archive-format.md) can search every disc. With only Python 3, from the root of the mounted disc:
+  Catalogue software that reads this format can search every disc (the
+  spec: tools/{repo}/docs/smart-archive-format.md).
+  With only Python 3, from the root of the mounted disc:
     python3 tools/{repo}/archive --home catalog find PATTERN
     python3 tools/{repo}/archive --home catalog list
   Or plain text tools: grep -ri PATTERN catalog/listings/
@@ -378,7 +379,7 @@ def cmd_list(args):
             except discid.IdError as err:
                 raise SystemExit("Error: --covers: %s" % err)
         print("%s\t%s\t%s\t%s files\t%s\t%s" % (d.get("Id"), d.get("Date"), d.get("Title"),
-                                               d.get("Files"), catalog.access(d), cat.where(d)))
+                                               d.get("Files") or "?", catalog.access(d), cat.where(d)))
     return 0
 
 
