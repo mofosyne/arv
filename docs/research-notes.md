@@ -221,3 +221,63 @@ is available; both over OpenAI-compatible HTTP (`/v1/embeddings`,
 `/v1/chat/completions` with `logprobs`). Model weights stay out of the repo (a
 pinned download or `--extra-tools` per disc), because every disc carries the
 repo's full git history.
+
+
+## 6. Catalogue size and the browser search data (measured 2026-10-01)
+
+Every disc carries the catalogue of all earlier discs (`--snapshot full`). Per
+file in the archive, each later disc carries this (synthetic 50,000-file disc
+with realistic photo, code and document paths):
+
+| Per file, per snapshot copy | Plain | gzip -9 | xz |
+|---|---|---|---|
+| `formats/*.csv` (only with Siegfried) | 249 bytes | 58 (23%) | 48 |
+| `manifests/*.sha256` (BagIt) | 112 | 50 (44%; hex checksums barely compress) | 42 |
+| `listings/*.tsv` | 70 | 14 (20%) | 9 |
+| `web/files/*.js` (search.html) | 51 | 13 | 9 |
+| **total** | **483** | **about 135** | |
+
+| Files in the whole archive | Snapshot on each new disc | Share of a 25 GB disc's data (~18.6 GB at 20% RS03) |
+|---|---|---|
+| 100,000 | 0.05 GB | 0.3% |
+| 1,000,000 | 0.48 GB | 2.6% |
+| 5,000,000 | 2.4 GB | 13% |
+| 20,000,000 | 9.7 GB | 52% |
+
+A 25 GB personal disc holds roughly 5,000-50,000 files, so a million files means
+about 20-200 discs. Up to that point the snapshot is under 3% and stays plain.
+What to do beyond that is in plan.md ("Later: catalogue snapshot size").
+
+### Search data in the browser (measured in Chromium, 1,000,000 files)
+
+| Form of a file list | Size | Load | First search | Later searches |
+|---|---|---|---|---|
+| **in use:** one JS string of TSV rows | 47.6 MB | 875 ms | 196 ms (one split, then cached) | about 35 ms |
+| JSON arrays `[[size, path], ...]` | 49.6 MB | 1,176 ms | 33 ms | 33 ms |
+| JSON objects `[{size, path}, ...]` | 63.6 MB | 2,358 ms | 34 ms | 34 ms |
+
+JSON brings no gain. The archival files stay recfiles and TSV: line-oriented
+(grep, diff, sort, `sha256sum -c`; damage loses lines, not the whole file),
+commented, readable and editable by hand, and easy to append to.
+
+### Why search.html loads `.js` files, and what was not adopted
+
+A page opened from `file://` has a `null` origin. Browsers then **block**
+`fetch`/`XMLHttpRequest` of `.rec`, `.tsv`, `.json` and `.wasm` files, and any
+`<script type="module">`. They **allow** classic `<script src>` (the pre-CORS rule)
+and files the user picks or drops (`FileReader`). So `archive make` derives small
+`.js` views (`discs.js`, `files/<id>.js`) from the catalogue, like the SQLite
+index. The recfiles and TSV themselves are never wrapped.
+
+- **recutils-js** (npm 0.1.0, 2025-08, GPL-3.0; WebAssembly build of GNU
+  recutils): not adopted. It ships as ES modules loading separate `.wasm` files,
+  which Chromium blocks on `file://` (tested: "blocked by CORS policy"). Making it
+  work needs a bundling step, and adds about 270 KB of WebAssembly per tool, plus
+  its JavaScript wrapper, to every disc. It would only cover the disc records,
+  because the file lists are TSV. It could suit `archive gui`, which is served
+  over http.
+- **Wrapping recfiles in `.js`** so the page can parse them: rejected. The
+  recfiles stay exactly as they are.
+- **A JavaScript recfile parser reading picked or dropped files** (`FileReader`,
+  no wrapping): possible later, for catalogues of other or older discs. It would
+  be tested against `tests/fixtures/recfile/`.
