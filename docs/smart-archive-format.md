@@ -237,6 +237,40 @@ its path of names: `Home / Study / Box 3, blue lid`. A disc carries the
 `Location` records it refers to (and the places containing them), so it stays
 self-describing; a full snapshot carries all of them.
 
+### Collection records
+
+Virtual folders that you make: named groups of whole discs, folders and files
+from **different** discs, e.g. "Best of Kyoto" or "Tax documents 2015-2024".
+They work like VVV's virtual folders or Lightroom's collections.
+
+```
+%rec: Collection
+%key: Code
+
+Code: KYOTO-BEST
+Name: Best of Kyoto
+Parent: TRAVEL
+Description: favourite shots
+Item: TRIP-01_2019_4:day2 Kinkaku-ji/
+Item: TRIP-01_2019_4:day1 Fushimi Inari/IMG_0100.png
+Item: TAXES-01_2019-2020_I
+```
+
+| Field | Meaning |
+|---|---|
+| `Code`, `Name` | key and readable name |
+| `Parent` | the collection it is inside (collections form a tree) |
+| `Item`* | `DISC-ID` (a whole disc), `DISC-ID:folder/` (a folder: trailing `/`) or `DISC-ID:folder/file`; paths relative to `data/`. Disc ids contain no `:` |
+
+Collections live in `archive.rec` and travel in snapshots, limited by
+[Access](#access):
+- a snapshot keeps only items on discs it carries;
+- items with paths on **sealed** discs are dropped (the whole-disc item stays);
+- collections left empty are dropped.
+
+When merging, readers **union** a collection's items and never remove any,
+because a snapshot's copy may be filtered.
+
 ### Access
 
 `Access` decides what other discs' catalogue snapshots may carry of a disc (the
@@ -323,9 +357,33 @@ digiKam) replaces the colon with `|`: `place|kyoto`; set paths become
 5. Import folder tags and captions; optionally PRONOM formats.
 6. Optionally read `catalog/archive.rec` plus the other discs' listings, and
    create entries for discs that are **not** inserted (marked offline), so a
-   single disc restores a whole archive's catalogue.
+   single disc restores a whole archive's catalogue. Merge `Location` and
+   `Collection` records too (union collection items).
 7. Optionally verify: `Payload-Oxum` in `bag-info.txt` for a quick completeness
    check; the manifests for a full one.
+
+## Building a virtual file system from the catalogue
+
+A catalogue program can present the whole archive as a browsable or mountable
+tree (for example with FUSE) without any disc inserted. Everything it needs is
+in `catalog/archive.rec` and the listings of the newest disc. Useful trees:
+
+| Tree | Built from | Example path |
+|---|---|---|
+| By disc | each disc's listing | `TRIP-01_2019_4/day1 Fushimi Inari/IMG_0100.png` |
+| By kind | `Disc.Path` (vocabulary paths), then by disc | `MEMORIES/PHOTO/TRIP/TRIP-01_2019_4/...` |
+| By place | `Disc.Location` + `Location` tree | `Home/Study/Box 1/TRIP-01_2019_4/...` |
+| By date | `Disc.Coverage` (EDTF), or each file's modified time from the listing | `2019/07/TRIP-01_2019_4/...` |
+| By collection | `Collection` tree and `Item`s | `Travel/Best of Kyoto/day2 Kinkaku-ji/...` |
+| By tag | Tags TSV (`namespace:value`) | `place/kyoto/TRIP-01_2019_4/...` |
+
+What each entry can show:
+- **Files:** size and modified time (listing); SHA-256 (manifest); PRONOM format (formats CSV, optional).
+- **Folders:** implied by the file paths. Empty folders are not listed.
+- **Discs:** where their copies are (location path), so opening a file can say "insert TRIP-01_2019_4, kept in Home / Study / Box 1".
+
+A disc in several categories, places or collections appears in each tree under
+each of them. That is the point of a DAG vocabulary.
 
 ## Mapping to Katalog
 
@@ -346,6 +404,7 @@ Based on Katalog's source (collection files `device.csv`, `storage.csv`,
 | Manifest SHA-256 | Katalog's checksum column (catalogue with checksums enabled) |
 | Tags TSV row | `tags.csv`: one tag per (tag, folder path) with type folder; `namespace:value` kept as the tag name |
 | `catalog/archive.rec` other discs | additional devices marked as not connected |
+| `Collection` records | virtual folders, if Katalog adds them (no direct equivalent today; folder tags named after the collection come closest) |
 
 Things Katalog would have no place for today (candidates for its developer):
 events (provenance history), multi-line notes, image captions, PRONOM IDs,

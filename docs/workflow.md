@@ -167,6 +167,7 @@ archive location list -v
 | What do I have from July 2019? | `archive list --covers 2019-07` |
 | Everything under a category or a place | `archive list --in MEMORIES`, `archive list --at OFFSITE` |
 | Which tags do I use? | `archive tags`; `archive find place:kyoto` |
+| Group things across discs | `archive collection add BEST --name "Best of" DISC:folder/ DISC:file`, `archive collection show BEST`: virtual folders; other software can show them as a tree ([spec](smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)) |
 | Without this tool? | open `search.html` on any disc: it searches every disc it knows about |
 | Changes after burning | `archive note`, `archive locate`, `archive access` (home catalogue; later discs carry them) |
 
