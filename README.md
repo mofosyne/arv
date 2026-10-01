@@ -6,6 +6,7 @@ using only open, well-documented formats.
 
 **Start with [docs/workflow.md](docs/workflow.md)**: the whole flow, from a folder to discs on a
 shelf, finding and checking them over the years, and recovering from damage or loss.
+[docs/shelving.md](docs/shelving.md) covers arranging, labelling and storing the physical discs.
 
 ## Disc layout
 
