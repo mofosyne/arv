@@ -67,7 +67,7 @@ and how BagIt and recfiles split the work.
 ## The `archive` tool
 
 Python 3.8+, standard library only (bagit.py is vendored). Needs `genisoimage`
-and `dvdisaster` (use the [speed47 fork](https://github.com/speed47/dvdisaster) for BD-sized images).
+and `dvdisaster` ([dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light), or the [speed47 fork](https://github.com/speed47/dvdisaster), for BD-sized images; the two give byte-identical results).
 
 ```sh
 ./archive location add HOME Home
@@ -123,7 +123,7 @@ searches every disc in its snapshot with nothing but Python.
   (default 20%): about 20 GB of data per 25 GB disc. Sizes are measured exactly before
   writing. A folder that is too big either reports how many discs it needs or, with
   `--split`, becomes a set of complete bags (`Bag-Count: n of N`) that each know the whole set.
-- Filling the disc needs the [speed47 dvdisaster fork](https://github.com/speed47/dvdisaster);
+- Filling the disc needs [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) or the [speed47 fork](https://github.com/speed47/dvdisaster) of dvdisaster;
   the distro 0.79.10 build shrinks RS03 to the smallest standard size (a warning says so).
   Both builds exit with status 1 after a *successful* `-f` repair; check with `-t`.
 - With [Siegfried](https://www.itforarchivists.com/siegfried) (`sf`) installed, each file's
@@ -254,9 +254,10 @@ dvdisaster -i image.iso -t     # test
 dvdisaster -i image.iso -f     # repair (0.79.10 exits 1 even on success; re-run -t)
 ```
 
-For BD-sized images, use the multithreaded
-[speed47 dvdisaster fork](https://github.com/speed47/dvdisaster). The distro
-0.79.10 build is single-threaded.
+For BD-sized images, use a multithreaded build: [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (RS03 only, faster encoders,
+`--rescue` reading of damaged discs) or the [speed47 fork](https://github.com/speed47/dvdisaster). They produce byte-identical
+images (tested, docs/research-notes.md section 8). The distro 0.79.10 build is
+single-threaded.
 
 ## Roadmap
 

@@ -195,7 +195,7 @@ Making a disc (`archive make` runs these in order):
 | 2 | Describe: vocabulary, tags, catalogue snapshot | Python | Python (optional local LLM) |
 | 3 | Bag (BagIt) | Python | C |
 | 4 | Image: hybrid ISO9660/UDF 1.02, or UDF 2.50 | genisoimage, or our udfmake (C, also `.wasm`) | udfmake |
-| 5 | Add RS03 | dvdisaster (speed47) | dvdisaster Light: bit-identical output (tested), faster encoder, rescue reading |
+| 5 | Add RS03 | dvdisaster Light (recommended) or speed47: byte-identical output (tested) | librs03, if dvdisaster Light splits into libraries ([issue](https://github.com/teaching-droid/dvdisaster-light/issues/1)) |
 | 6 | Verify the image | dvdisaster `-t` | same |
 | 7 | Burn and record | any burner; `archive burned` | a safe-burning note (xorriso) |
 
@@ -225,7 +225,10 @@ Found 2026-10-01, both worth starting from:
 - [dvdisaster-light](https://github.com/teaching-droid/dvdisaster-light): RS03-only, CLI-only
   fork, bit-identical to 0.79.10-pl6, with a `ddrescue`-format map file and a read-until-complete
   `--rescue` mode. GPLv3. Tested (section 8): byte-identical to speed47 on all samples including
-  custom `-n` sizes, same repair results; a drop-in replacement for `archive make` and recovery.
+  custom `-n` sizes, same repair results; a drop-in replacement for `archive make` and recovery,
+  now the recommended build. Proposed upstream (2026-10-01): split it into an RS03 codec library
+  and a drive-reading library with the CLI on top, for GUIs and automation such as a jukebox:
+  https://github.com/teaching-droid/dvdisaster-light/issues/1
 - `lcsas-ecc` in [LCSAS](https://github.com/mikmorg/lcsas) (`recovery/src/lcsas-ecc/`, plus
   `docs/DVDISASTER_RS03_FORMAT.md`, a written RS03 spec): a 1,500-line C89 RS03
   verify/repair/augment tool, stdio only. Tested on our sample discs (research-notes.md, section
@@ -248,6 +251,10 @@ Found 2026-10-01, both worth starting from:
   be a WASI program that serves the catalogue over local http, not data duplicated on the disc.
 - When the C pieces needed to read or repair a disc exist (verify, RS03 repair), each goes on
   the disc as source plus a `.wasm` build, so a WASI runtime alone is enough to run them.
+- **README.txt on every disc carries the tested recovery steps:** the exact image size (so a
+  read that lost the RS03 area is noticed; read again with `--ignore-iso-size`), dvdisaster
+  Light's `--rescue`, and reading a second copy into the same image. It opens with a plain
+  paragraph for whoever finds the disc (from LCSAS's START_HERE idea).
 - **No PAR2.** Protection is RS03 over the whole image (which also covers the filesystem's own
   records, unlike file-level PAR2) plus **identical full-disc copies at different sites**. Copies
   are burned from one `.iso`, so they are sector-identical: read one with a map of bad sectors

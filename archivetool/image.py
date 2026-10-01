@@ -1,5 +1,6 @@
 """Disc image building (genisoimage, or udfmake for UDF 2.50) and error correction (dvdisaster RS03)."""
 
+import functools
 import os
 import shutil
 import subprocess
@@ -203,6 +204,7 @@ def read_udf_volume_id(f):
     return None
 
 
+@functools.lru_cache(maxsize=None)
 def dvdisaster_sets_medium_size():
     """True for dvdisaster builds (the speed47 fork) that honour -n <sectors> for RS03 images."""
     proc = subprocess.run(["dvdisaster", "--help"], stdin=subprocess.DEVNULL,

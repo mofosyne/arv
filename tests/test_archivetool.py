@@ -674,8 +674,13 @@ class MakeTest(unittest.TestCase):
         iso = os.path.join(self.tmp, "ecc.iso")
         code, out = run_cli("--home", self.home, "make", "-y", "--medium-sectors", "20000", "-o", iso, self.photos)
         self.assertEqual(code, 0, out)
-        if image.dvdisaster_sets_medium_size():  # speed47: RS03 fills exactly the requested medium
+        readme = subprocess.run(["7z", "e", "-so", iso, "README.txt"], capture_output=True, text=True).stdout
+        self.assertIn("--ignore-iso-size", readme)
+        self.assertIn("any computer can open them", readme)
+        if image.dvdisaster_sets_medium_size():  # speed47 / Light: RS03 fills exactly the requested medium
             self.assertEqual(os.path.getsize(iso), 20000 // 255 * 255 * 2048)
+            # the recovery steps on the disc state the image's exact size
+            self.assertIn("The image must be %d sectors" % (os.path.getsize(iso) // 2048), readme)
         events = catalog.Home(self.home).load().events
         self.assertIn(("fixity check", "success"), [(e.get("Type"), e.get("Outcome")) for e in events])
         code, out = run_cli("--home", self.home, "check", "--image", iso)  # disc id read from the volume label
