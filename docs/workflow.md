@@ -153,6 +153,11 @@ character, so a mistyped id is caught: `archive id TRIP-01_2019_5` tells you it'
 
 ## 4. Store
 
+How to arrange the discs so the shelf matches the catalogue is covered in
+**[shelving.md](shelving.md)**. In short: shelf order is id order (set, then
+sequence); locations are recorded down to the box; copies of the same image go to
+different sites; the id goes on the disc hub and the volume label on the spine.
+
 ```sh
 archive locate TRIP-01_2019_4 BOX1 OFFSITE    # one location per place copies are kept
 archive location move BOX1 --in OFFSITE       # moving a box moves its discs
