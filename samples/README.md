@@ -35,7 +35,7 @@ after the discs were made.
 ```
 
 Check the error correction, then damage a copy and repair it (needs dvdisaster;
-the speed47 fork, or 0.79.10 for these already-augmented images):
+dvdisaster Light, the speed47 fork, or 0.79.10 for these already-augmented images):
 
 ```sh
 dvdisaster -i samples/discs/TRIP-01_2019_4.iso -t
@@ -62,7 +62,7 @@ repaired back to a byte-identical image.
 
 ```sh
 make -C lib/udfmake                  # once
-samples/make-samples.sh              # needs genisoimage, git and the speed47 dvdisaster on PATH
+samples/make-samples.sh              # needs genisoimage, git and dvdisaster Light or speed47 on PATH
 ```
 
 This replaces `samples/home` and `samples/discs`. The images differ on every run,

@@ -48,7 +48,7 @@ flowchart TD
 |---|---|---|
 | Python 3.8+ | everything (standard library only) | usually installed |
 | `genisoimage` | the default hybrid image | `apt install genisoimage` |
-| `dvdisaster` | RS03 error correction | the [speed47 fork](https://github.com/speed47/dvdisaster) fills a whole BD; the stock 0.79.10 build works but pads to the smallest standard size |
+| `dvdisaster` | RS03 error correction | [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) or the [speed47 fork](https://github.com/speed47/dvdisaster) fill a whole BD (byte-identical results); the stock 0.79.10 build works but pads to the smallest standard size |
 | `lib/udfmake` | only for `--filesystem udf250` | `make -C lib/udfmake` (a C compiler; nothing else) |
 | optional | format IDs, tagging, descriptions | Siegfried (`sf`); `archive models fetch` for `archive tag`; a local LLM server for `archive describe` |
 
@@ -191,10 +191,10 @@ disc is always a backup of the catalogue**.
 
 | What happened | What to do |
 |---|---|
-| A disc reads with errors | `dvdisaster -d /dev/sr0 -r -i disc.iso` (read what's readable), `dvdisaster -i disc.iso -f` (repair from RS03), then burn a new copy. Copies from the same image are sector-identical, so another copy can fill in sectors RS03 cannot. |
+| A disc reads with errors | Follow REPAIR in the disc's `README.txt`: `dvdisaster -d /dev/sr0 -r -i disc.iso` (dvdisaster Light: add `--rescue`), check the image has the size the README states (if smaller, read again with `--ignore-iso-size`), then `dvdisaster -i disc.iso -f`. Too damaged? Copies are sector-identical: read another copy into the same image (`-r -j 1`, only missing sectors are read) and repair again. Then burn a new copy. Tested in research-notes.md section 8. |
 | The home catalogue is lost | `archive rebuild /media/disc` with the newest disc: discs, events, locations, file lists. Then rebuild from later discs, or re-enter notes. |
 | This tool is lost | every disc has `tools/` (the code at burn time) and `README.txt`. Without Python: `sha256sum -c manifest-sha256.txt` verifies, `index.html` browses, `grep` searches `catalog/listings/`, and `catalog.rec` is plain text. |
-| dvdisaster is lost | a copy can go in `tools/extra/` with `--extra-tools`; keep one off-disc too. The RS03 format is documented by dvdisaster. |
+| dvdisaster is lost | a copy can go in `tools/extra/` with `--extra-tools`; keep one off-disc too. The RS03 format is written up in LCSAS's DVDISASTER_RS03_FORMAT.md (research-notes.md section 7). |
 | Decades later, unknown software | [smart-archive-format.md](smart-archive-format.md) (on every disc under `tools/`) explains every file; BagIt is RFC 8493; recfiles are plain text. |
 
 The rule behind all of this: **the discs describe themselves**. Nothing on a
@@ -210,7 +210,7 @@ archivetool/               the workflow, Python standard library only
   make.py                  the make pipeline (plan, stage, build, protect)
   bag.py  catalog.py  recfile.py  discid.py  sets.py  names.py   formats and rules
   image.py                 genisoimage / udfmake / dvdisaster
-  html.py  web.py  gui.py  viewers and the local web UI
+  html.py  listing.py  gui.py   viewer, file listings, the local web UI
   tagger.py  describe.py  llm.py  vision.py  models.py            optional AI helpers (local only)
   default_sets.rec  default_tags.rec                              starting vocabularies
 lib/udfmake/               UDF 2.50 image builder in C: NetBSD makefs, extracted (our copy)
@@ -230,7 +230,7 @@ The layers, from most to least durable:
 
 - **Tests:** `python3 -m unittest discover -s tests`. Add `ARCHIVE_TEST_ECC=1` to include dvdisaster.
 - **Fixtures:** after an intended behaviour change, run `python3 tests/fixtures/generate.py`, then read `git diff tests/fixtures` before committing ([README](../tests/fixtures/README.md)).
-- **Sample discs:** `samples/make-samples.sh` (needs the speed47 dvdisaster and `lib/udfmake`) replaces `samples/discs` and `samples/home`.
+- **Sample discs:** `samples/make-samples.sh` (needs dvdisaster Light or the speed47 fork, and `lib/udfmake`) replaces `samples/discs` and `samples/home`.
 - **udfmake:**
   - `make -C lib/udfmake check` (also `asan`, `static`);
   - changes to NetBSD's code go in `lib/udfmake/netbsd/`, and each also gets a patch in `third_party/netbsd-makefs-udf/patches/`;

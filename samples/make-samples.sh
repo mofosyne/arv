@@ -4,7 +4,7 @@
 #
 #   samples/make-samples.sh [OUTPUT_DIR]      (default: samples/)
 #
-# Needs: python3, genisoimage, git, the speed47 dvdisaster fork (the stock
+# Needs: python3, genisoimage, git, dvdisaster Light or the speed47 fork (the stock
 # 0.79.10 build pads every image to CD size), and lib/udfmake (built here with
 # make if missing). The discs use a custom 3200-sector "medium" (6.5 MB) so they
 # stay small; real discs use --medium bd25 (the default) or bd100.
@@ -15,7 +15,7 @@ repo=$(cd "$here/.." && pwd)
 out=$(mkdir -p "${1:-$here}" && cd "${1:-$here}" && pwd)
 
 if ! dvdisaster --help 2>&1 | grep -q no-bdr-defect-management; then
-    echo "error: needs the speed47 dvdisaster fork on PATH (https://github.com/speed47/dvdisaster)" >&2
+    echo "error: needs dvdisaster Light or the speed47 fork on PATH (https://github.com/teaching-droid/dvdisaster-light)" >&2
     exit 1
 fi
 [ -x "$repo/lib/udfmake/build/udfmake" ] || make -s -C "$repo/lib/udfmake"

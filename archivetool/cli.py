@@ -32,6 +32,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import textwrap
 
 from . import bag, catalog, describe, discid, image, index, llm, make, media, models, names, recfile, sets, tagger
 
@@ -122,6 +123,11 @@ Burned:   {date}
 Contents: {files} files, {bytes} bytes (in data/)
 Made by:  {software}
 
+{plain}
+
+The rest of this page is for checking the disc and, if it is ever damaged,
+repairing it. Anyone comfortable with a command line can follow it.
+
 This disc is a BagIt bag (RFC 8493) with dvdisaster RS03 error correction
 data stored after the filesystem.
 
@@ -143,11 +149,19 @@ VERIFY (detect damage)
     python3 tools/bagit.py --validate .
 
 REPAIR (fix damage)
-  Use dvdisaster (https://github.com/speed47/dvdisaster; a copy may be in
-  tools/extra/, but keep one off-disc too):
-    dvdisaster -d /dev/sr0 -r -i disc.iso   # read the disc, even if damaged
-    dvdisaster -i disc.iso -f                # repair using the embedded RS03 data
-    dvdisaster -i disc.iso -t                # check
+  Use dvdisaster: https://github.com/teaching-droid/dvdisaster-light or
+  https://github.com/speed47/dvdisaster (a copy may be in tools/extra/, but
+  keep one off-disc too).
+  1. Read the disc into an image, even if parts are unreadable:
+       dvdisaster -d /dev/sr0 -r -i disc.iso
+     (dvdisaster Light can read, repair and re-read in one go: add --rescue.)
+{size_check}  2. Repair, then check:
+       dvdisaster -i disc.iso -f
+       dvdisaster -i disc.iso -t
+  3. Still damaged? Every copy of this disc is identical. Put in another copy
+     and read it into the same image; only the missing sectors are read:
+       dvdisaster -d /dev/sr0 -r -j 1 -i disc.iso
+     then repair as in step 2.
   Then burn or mount disc.iso and verify as above.
 
 CATALOGUE
@@ -159,7 +173,7 @@ TOOLS
 """
 
 
-def write_readme(path, disc, snapshot_scope, history=False):
+def write_readme(path, disc, snapshot_scope, history=False, image_sectors=None):
     if snapshot_scope == "disc":
         other = ""
         cat_lines = "  catalog/listings/       file list of this disc with sizes and dates\n"
@@ -169,7 +183,21 @@ def write_readme(path, disc, snapshot_scope, history=False):
                      "  catalog/manifests/      sha256 file lists of those discs\n"
                      "  catalog/listings/       file lists with sizes and dates\n")
     title = disc.get("Title")
+    who = disc.get("Creator")
+    plain = ("This is an archive disc%s, made on %s: %s. Its files are ordinary files in the\n"
+             "data/ folder, and any computer can open them."
+             % (" by " + who if who else "", disc.get("Date"), title))
+    if image_sectors:
+        size_check = ("The image must be %d sectors (%d bytes). If it comes out smaller, the error "
+                      "correction was not found; read again with --ignore-iso-size."
+                      % (image_sectors, image_sectors * 2048))
+    else:
+        size_check = ("The image is larger than the filesystem. If dvdisaster does not mention RS03 "
+                      "error correction while reading, read again with --ignore-iso-size.")
+    size_check = textwrap.fill(size_check, 76, initial_indent=" " * 5, subsequent_indent=" " * 5,
+                               break_on_hyphens=False) + "\n"
     text = README_TEMPLATE.format(
+        plain=textwrap.fill(plain.replace("\n", " "), 76), size_check=size_check,
         title=title, underline="=" * len(title), id=disc.get("Id"), set=disc.get("Set"),
         part=("  (part %s)" % disc.get("Part")) if disc.get("Part") else "",
         date=disc.get("Date"), files=disc.get("Files"), bytes=disc.get("Bytes"),

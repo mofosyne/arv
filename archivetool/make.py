@@ -163,6 +163,12 @@ class Maker:
                     "PRONOM ids for %d files, %d unidentified" % (len(entries), unknown)))
             self.plans.append(plan)
 
+    def image_sectors(self):
+        """Size of the finished image (filesystem + RS03), when it is known in advance."""
+        if self.args.no_ecc or not self.capacity or not image.dvdisaster_sets_medium_size():
+            return None
+        return media.rs03_image_sectors(self.capacity)
+
     @property
     def medium_label(self):
         if self.args.medium_sectors:
@@ -303,7 +309,8 @@ class Maker:
         catalog.write_snapshot(catalog_dir, snapshot, files, a.snapshot)
 
         self.stage_tools(os.path.join(stage, "tools"), self.is_git, a.extra_tools, a.tools_history)
-        self.write_readme(os.path.join(stage, "README.txt"), plan.record, a.snapshot, a.tools_history)
+        self.write_readme(os.path.join(stage, "README.txt"), plan.record, a.snapshot, a.tools_history,
+                          image_sectors=self.image_sectors())
         with open(os.path.join(stage, "index.html"), "w", encoding="utf-8") as f:
             f.write(html.render_index(plan.record, plan.payload_entries, snapshot))
 
@@ -393,6 +400,9 @@ class Maker:
             return
         log("Adding dvdisaster RS03 error correction ...")
         output = image.add_ecc(plan.out, medium_sectors=self.capacity)
+        expected, got = self.image_sectors(), os.path.getsize(plan.out) // media.SECTOR
+        if expected and got != expected:
+            log("Warning: README.txt on %s says the image is %d sectors, but it is %d" % (plan.disc_id, expected, got))
         for line in output.splitlines():
             if "redundancy" in line:
                 plan.events[-1].set("Note", note + "; RS03: " + line.strip())
