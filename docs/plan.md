@@ -177,6 +177,41 @@ See research-notes.md section 5 for the measurements behind this.
 
 All tiers remain optional, suggestion-only, and recorded as PREMIS events with the model as agent.
 
+## Direction: a chain of small programs, each carried on every disc (2026-10-01)
+
+The end state is a series of programs run in order, every one of them on every disc, so a
+disc can be read, checked, repaired and searched with what is on it. Each program is small,
+does one step, reads and writes plain files, and has a written format behind it. On the disc
+each one travels as **source**, plus **static binaries** for the common platforms (zig cc builds
+Linux x86_64/arm64/armv7/riscv64, macOS and Windows from one machine; tested 2026-10-01), plus
+a **`.wasm`** build for anything else (any WASI runtime). Python glue stays while the workflow
+settles; settled steps move to C.
+
+Making a disc (`archive make` runs these in order):
+
+| # | Step | Now | Later |
+|---|---|---|---|
+| 1 | Scan, hash, check names | Python (`archivetool`) | C, once settled |
+| 2 | Describe: vocabulary, tags, catalogue snapshot | Python | Python (optional local LLM) |
+| 3 | Bag (BagIt) | Python | C |
+| 4 | Image: hybrid ISO9660/UDF 1.02, or UDF 2.50 | genisoimage, or our udfmake (C, also `.wasm`) | udfmake |
+| 5 | Add RS03 | dvdisaster (speed47) | dvdisaster Light: bit-identical output (tested), faster encoder, rescue reading |
+| 6 | Verify the image | dvdisaster `-t` | same |
+| 7 | Burn and record | any burner; `archive burned` | a safe-burning note (xorriso) |
+
+Reading, checking and repairing (what a disc must carry for itself):
+
+| # | Step | Now | Gap |
+|---|---|---|---|
+| 1 | Read a damaged disc to an image | dvdisaster `-r` (`--ignore-iso-size` if the RS03 header is unreadable); Light `-r --rescue --mapfile` | needs a real drive: native binaries only (SCSI), no `.wasm` |
+| 2 | Combine two damaged copies | read copy B into copy A's image (stock dvdisaster reads only what is missing; tested) | a documented procedure in README.txt |
+| 3 | Repair the image | dvdisaster `-f` | a small portable RS03 decoder (C → `.wasm`) that, unlike lcsas-ecc, survives damage to the CRC/ECC sectors and the header |
+| 4 | Check the files | `sha256sum -c`, `tools/bagit.py` | a tiny C `sha256` checker for the `.wasm` set |
+| 5 | Get files out without mounting | OS mount, or 7-Zip | a userspace reader for UDF 2.50 (and Rock Ridge/Joliet for hybrid discs) |
+| 6 | Search the archive | `archive --home catalog find` (Python) | — |
+
+Details and measurements: research-notes.md, sections 7-9.
+
 ## Separate track: standalone RS03 library
 
 Neither dvdisaster nor the speed47 fork has a library or API; it is one GPLv3 C

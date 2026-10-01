@@ -285,3 +285,65 @@ index. The recfiles and TSV themselves are never wrapped.
 - **A JavaScript recfile parser reading picked or dropped files** (`FileReader`,
   no wrapping): possible later, for catalogues of other or older discs. It would
   be tested against `tests/fixtures/recfile/`.
+
+## 7. Related projects (searched 2026-10-01)
+
+Searched GitHub for "bluray archive", "m-disc archive", "blu-ray backup par2", the
+`optical-disc` topic and "dvdisaster". Packing, adding error correction and burning is a crowded
+field. None of these keeps a catalogue of what is on each disc and where the disc is kept, with
+plain files and a published format, which is what this project does.
+
+| Project | What it does | Error correction | Notes for us |
+|---|---|---|---|
+| [mikmorg/lcsas](https://github.com/mikmorg/lcsas) (Python + C, MIT stated) | Deduplicated, encrypted backup packs (Rustic) on BD-R/M-DISC; a full SQLite catalogue on every disc; a meta-volume of tools and source | dvdisaster RS03 augmented images, like ours | Closest in design. Its RS03 spec and C decoder are tested in section 8; other ideas in section 9 |
+| [teaching-droid/dvdisaster-light](https://github.com/teaching-droid/dvdisaster-light) (C, GPLv3) | dvdisaster fork: RS03 only, CLI only; faster encoders (AVX2, optional GPU); damaged-disc reading (`--rescue`, `--mapfile`, `--retry`, `-R`) | RS03, bit-identical to 0.79.10-pl6 | Tested in section 8 |
+| [jzbz/brb](https://github.com/jzbz/brb) (Go + bash) | Per disc: SquashFS, then age encryption, then PAR2, then ISO; every disc independent; encrypted path index | PAR2 over the ciphertext | A Go writer plus a small bash reader you can audit, held to identical answers by a test |
+| [greenseeing/ovenmitts](https://github.com/greenseeing/ovenmitts) (Rust) | Burns large files (VeraCrypt containers) with xorriso; each disc documents its own recovery | PAR2, optional dvdisaster RS02 | Burn notes: growisofs pre-formats blank BD-R (unusable to other tools), Brasero's 4 GiB limit, verification must bypass the page cache; VeraCrypt hygiene (plan.md) |
+| [Xitee1/bd-archiver](https://github.com/Xitee1/bd-archiver) (Python) | Plain-file discs or DAR archives across discs; SHA-512; burn with verify and resume | PAR2 | Exact fit check without writing the image |
+| [nathansottung/obelisk](https://github.com/nathansottung/obelisk) (Go) | Backup to tape, drives, discs, cloud, re-verified on a schedule | PAR2; optional dvdisaster RS02/RS03 layer | |
+| [kurmann/disc-archiver](https://github.com/kurmann/disc-archiver) (Python) | PAR2 archives; spec plans a SQLite index of volumes | PAR2 | Index not built yet |
+| [hammad93/crypto-disco](https://github.com/hammad93/crypto-disco) (Python) | GUI image builder | per-file Reed-Solomon (reedsolo) | |
+| [salfter/bdarchiver](https://github.com/salfter/bdarchiver) (shell, 2015) | Archives a media server to BD-R | dvdisaster | |
+
+Smaller ones: daneubauer/immich-go-disc-archive (bash, PAR2 and manifests),
+ambauma/BdArchivePlanner, llawsxx/DiscHelper and volumespan-py (splitting files across discs),
+rbuchberger/bdar (shelved before it worked).
+
+## 9. Other ideas from LCSAS, tested or noted (2026-10-01)
+
+### Cross-compiling static binaries with zig (tested)
+
+LCSAS cross-builds its C recovery tools for six platforms with `zig cc`. zig 0.13 (from PyPI,
+`pip install ziglang`), one Linux machine, no SDKs:
+
+| Target | lcsas-ecc | udfmake |
+|---|---|---|
+| x86_64-linux-musl (static) | 356 KB; runs, verifies our discs | (built natively already) |
+| aarch64-linux-musl (static) | 1.1 MB | builds |
+| arm-linux-musleabihf (static) | 0.9 MB | |
+| riscv64-linux-musl (static) | 1.5 MB | |
+| x86_64-macos, aarch64-macos | 32 KB, 69 KB | builds (first macOS build of udfmake) |
+| x86_64-windows-gnu | 163 KB `.exe` | does not build (POSIX headers); the `.wasm` covers Windows |
+
+Only the x86_64 Linux binary was run. This makes "static binaries for the common platforms,
+plus `.wasm` for the rest" cheap for our own C tools (plan.md, "a chain of small programs").
+
+### A kernel-free ISO 9660 reader (tested)
+
+LCSAS's `lcsas-iso9660` (`ls`, `cat`, `extract` without mounting) reads our hybrid discs, but
+only the plain ISO 9660 names: `bag-info.txt` shows as `bag_info.txt`, and deep folders appear
+under Rock Ridge's `rr_moved/`. It cannot open our UDF 2.50 discs at all. A userspace reader
+for our discs has to understand UDF (and Rock Ridge or Joliet for hybrid discs); for now the
+operating system's mount or 7-Zip does that.
+
+### Worth adopting (not tested)
+
+- **A plain-language first page for whoever finds the disc** (LCSAS `START_HERE.txt`): what the
+  discs are, who made them, who can help, where keys are kept. Our `README.txt` opens with
+  technical identifiers; a short plain paragraph at its top would do.
+- **Record tool versions** used to make each disc (we record our own `Software`, not
+  dvdisaster's or genisoimage's).
+- **Pin upstream sources by SHA-256 and carry them on the disc** (LCSAS `UPSTREAM.sha256`):
+  the dvdisaster source tarball next to any dvdisaster binary, which GPLv3 asks for anyway.
+- **The written RS03 specification** (LCSAS `docs/DVDISASTER_RS03_FORMAT.md`, 445 lines) on
+  every disc next to the repair tools, so RS03 can be re-implemented from the disc alone.

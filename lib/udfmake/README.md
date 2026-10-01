@@ -42,7 +42,10 @@ The Makefile picks the mode from `uname -s` (override with `HOST_OS=`).
 | FreeBSD 14.5 | host | only `strsuftoll`, `snprintb` | compiles and links (cross-built against its headers and libc); not run |
 | NetBSD-current | native | nothing: its own headers, `libutil`, `libprop` | compiles and links (cross-built against a 2026-09 daily snapshot); not run |
 | NetBSD 10.1 | native | nothing | does not compile: `partutil.c` from trunk uses `struct disk_geom` fields newer than 10.1 |
-| OpenBSD, DragonFly, macOS | host | guarded for, untested | untested |
+| macOS (x86_64, arm64) | host | only `strsuftoll`, `snprintb` | compiles and links (cross-built with `zig cc -target x86_64-macos` / `aarch64-macos`, zig 0.13); not run |
+| Linux, ARM64 (musl) | host | as Linux, musl | compiles and links (`zig cc -target aarch64-linux-musl`); not run |
+| Windows (native) | — | — | does not build (POSIX headers such as `err.h`); use the WebAssembly build |
+| OpenBSD, DragonFly | host | guarded for, untested | untested |
 | WebAssembly (WASI preview 1) | host | as musl, plus the `err(3)`/`warn(3)` family and a `readdir` that always gives `.` (Node's runtime leaves it out) | built and tested (`make wasi`: run with Node's WASI; same speed as native on 800 MB; `archive make --filesystem udf250 --udfmake lib/udfmake/wasi/udfmake` end to end) |
 
 Cross-building for a platform with clang, given its headers and libraries in a sysroot directory:
@@ -51,6 +54,7 @@ Cross-building for a platform with clang, given its headers and libraries in a s
 make B=build-freebsd HOST_OS=FreeBSD AR=llvm-ar LDFLAGS="-static -fuse-ld=lld" \
      CC="clang --target=x86_64-unknown-freebsd14.5 --sysroot=/path/to/freebsd-sysroot"
 make B=build-musl CC=musl-gcc LDFLAGS=-static check
+make B=build-mac HOST_OS=Darwin CC="zig cc -target aarch64-macos" AR="zig ar"   # any target zig knows
 make wasi WASI_AR=llvm-ar-18      # WebAssembly; Debian/Ubuntu: apt install wasi-libc libclang-rt-18-dev-wasm32
 wasi/udfmake -o T=bdrom,v=2.50,V=2.50 image.udf dir   # run it with Node (UDFMAKE_WASM picks the .wasm)
 ```
