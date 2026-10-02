@@ -212,6 +212,19 @@ Reading, checking and repairing (what a disc must carry for itself):
 
 Details and measurements: research-notes.md, sections 7-9.
 
+## Later: an archive organiser (2026-10-02)
+
+Not everything fits on Blu-ray, and not everything needs to (philosophy.md). The NAS and
+loose drives hold everything; discs hold a curated selection. An organiser would propose
+what is worth a disc:
+- [ ] rank folders on everyday storage by importance and audience (rules, tags, collections,
+      optionally a local model), and show why;
+- [ ] skip what is already archived (by SHA-256 against the catalogue manifests);
+- [ ] fill discs with the most important material first, by set;
+- [ ] report copy health: discs with fewer than two copies, or all copies at one site.
+
+The tool proposes; the person decides.
+
 ## Separate track: standalone RS03 library
 
 Neither dvdisaster nor the speed47 fork has a library or API; it is one GPLv3 C
