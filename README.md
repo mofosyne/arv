@@ -18,7 +18,8 @@ a hash of every file, a catalogue of the whole archive so far, the source of the
 made it, and the steps to repair it; error correction fills the rest of the disc. Blu-ray
 (M-DISC BD-R) is today's medium; the format does not depend on it.
 
-(This repository is still called `bluray-archival-workflow`, its name before ARV.)
+(Formerly `bluray-archival-workflow`. Discs made so far still keep the tool in
+`tools/bluray-archival-workflow/`.)
 
 Why it works the way it does (curated discs on top of everyday storage, plain files, copies): [docs/philosophy.md](docs/philosophy.md).
 

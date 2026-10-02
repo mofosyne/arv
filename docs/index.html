@@ -59,8 +59,8 @@ and can be read, checked and repaired decades from now without this tool.</p>
 
 <div class="buttons">
   <a class="button primary" href="#try-it">Try it</a>
-  <a class="button" href="https://github.com/mofosyne/bluray-archival-workflow/issues/new?template=feedback.md">Give feedback</a>
-  <a class="button" href="https://github.com/mofosyne/bluray-archival-workflow">Source on GitHub</a>
+  <a class="button" href="https://github.com/mofosyne/arv/issues/new?template=feedback.md">Give feedback</a>
+  <a class="button" href="https://github.com/mofosyne/arv">Source on GitHub</a>
 </div>
 
 <h2>What it does</h2>
@@ -79,7 +79,7 @@ and can be read, checked and repaired decades from now without this tool.</p>
 <figure>
   <a href="img/architecture.svg"><img src="img/architecture.svg" alt="Four layers on every disc: content and description above a boundary, container, protection and medium below it. Making a disc runs down the left side, reading and repairing it runs up the right side."></a>
   <figcaption>How a disc is built, and how it is read back.
-  <a href="https://github.com/mofosyne/bluray-archival-workflow/blob/main/docs/architecture.md">More on the layers</a>.</figcaption>
+  <a href="https://github.com/mofosyne/arv/blob/main/docs/architecture.md">More on the layers</a>.</figcaption>
 </figure>
 
 <h2 id="try-it">Try it</h2>
@@ -88,8 +88,8 @@ in the first two steps.</p>
 
 <p><strong>1. Look around the sample archive</strong>: eight small sample discs (46 MB in all)
 and their catalogue.</p>
-<pre><code>git clone https://github.com/mofosyne/bluray-archival-workflow
-cd bluray-archival-workflow
+<pre><code>git clone https://github.com/mofosyne/arv
+cd arv
 ./arv --home samples/home list          # the discs, and where they are kept
 ./arv --home samples/home find kyoto    # which disc holds it
 ./arv --home samples/home gui           # the same, in your web browser</code></pre>
@@ -106,7 +106,7 @@ read its <code>README.txt</code>.</p>
 <p><strong>3. When you want real discs</strong>: install it, build
 <a href="https://github.com/teaching-droid/dvdisaster-light">dvdisaster Light</a> for the error
 correction, and follow the
-<a href="https://github.com/mofosyne/bluray-archival-workflow/blob/main/docs/workflow.md">workflow guide</a>.</p>
+<a href="https://github.com/mofosyne/arv/blob/main/docs/workflow.md">workflow guide</a>.</p>
 <pre><code>make install PREFIX=~/.local
 cd /path/above/your/files &amp;&amp; arv init --name home --default
 arv make /path/to/folder</code></pre>
@@ -117,16 +117,16 @@ the program only; your catalogues (<code>.arv</code> folders) and discs stay as 
 <p>Feedback of any size helps: a step that confused you, something that broke, a disc that would
 not read back, or a reason you would not trust it with your files.</p>
 <div class="buttons">
-  <a class="button primary" href="https://github.com/mofosyne/bluray-archival-workflow/issues/new?template=feedback.md">Give feedback</a>
-  <a class="button" href="https://github.com/mofosyne/bluray-archival-workflow/issues">Open issues</a>
+  <a class="button primary" href="https://github.com/mofosyne/arv/issues/new?template=feedback.md">Give feedback</a>
+  <a class="button" href="https://github.com/mofosyne/arv/issues">Open issues</a>
 </div>
 
 <h2>Read more</h2>
 <ul>
-  <li><a href="https://github.com/mofosyne/bluray-archival-workflow#readme">README</a>: install and every command</li>
-  <li><a href="https://github.com/mofosyne/bluray-archival-workflow/blob/main/docs/workflow.md">Workflow</a>: from a folder to discs on a shelf, and back</li>
-  <li><a href="https://github.com/mofosyne/bluray-archival-workflow/blob/main/docs/philosophy.md">Philosophy</a>: why it works this way</li>
-  <li><a href="https://github.com/mofosyne/bluray-archival-workflow/blob/main/docs/smart-archive-format.md">Disc format</a>: for anyone who wants to read or write these discs with their own tools</li>
+  <li><a href="https://github.com/mofosyne/arv#readme">README</a>: install and every command</li>
+  <li><a href="https://github.com/mofosyne/arv/blob/main/docs/workflow.md">Workflow</a>: from a folder to discs on a shelf, and back</li>
+  <li><a href="https://github.com/mofosyne/arv/blob/main/docs/philosophy.md">Philosophy</a>: why it works this way</li>
+  <li><a href="https://github.com/mofosyne/arv/blob/main/docs/smart-archive-format.md">Disc format</a>: for anyone who wants to read or write these discs with their own tools</li>
 </ul>
 
 <footer>
