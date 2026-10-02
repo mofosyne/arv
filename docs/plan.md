@@ -180,6 +180,14 @@ See research-notes.md section 5 for the measurements behind this.
 
 All tiers remain optional, suggestion-only, and recorded as PREMIS events with the model as agent.
 
+## Decision (2026-10-02): the name `arv`
+
+- **`arv`** is both Norwegian for "inheritance" and short for **Archive, Record, Verify**.
+  Short and Unix-style; free in Debian/Ubuntu. Not `ark` (KDE's Ark ships `/usr/bin/ark`, and
+  ARK is the Archival Resource Key identifier scheme).
+- **The folder beside the files is always `.arv`.**
+- The on-disc format keeps its name, *smart-archive* (written into every disc's `catalog.rec`).
+
 ## Direction: a chain of small programs, each carried on every disc (2026-10-01)
 
 The end state is a series of programs run in order, every one of them on every disc, so a
