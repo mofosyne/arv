@@ -48,7 +48,7 @@ MODULE_NAME = "bagit" if __name__ == "__main__" else __name__
 
 LOGGER = logging.getLogger(MODULE_NAME)
 
-# Patched for vendoring (bluray-archival-workflow): fall back when no package metadata is installed
+# Patched for vendoring (arv): fall back when no package metadata is installed
 try:
     VERSION = version(MODULE_NAME)
 except Exception:

@@ -88,7 +88,7 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 | Path | Shape | Contents |
 |---|---|---|
 | `catalog.rec` | recfile | `Archive` entry record, then this disc's `Disc` and `Binding` records, the `Location` records it refers to, and its `Event` records |
-| `bagit.txt`, `bag-info.txt` | BagIt | Bag declaration; `External-Identifier` = disc Id, `Bag-Group-Identifier` / `Bag-Count` for multi-disc sets |
+| `bagit.txt`, `bag-info.txt` | BagIt | Bag declaration; `External-Identifier` = disc Id, `External-Description` = title and description, `Bag-Group-Identifier` = set and `Bag-Count` for multi-disc sets, `Payload-Oxum`, and `Bag-Software-Agent` = `arv@<commit> <https://github.com/mofosyne/arv>` |
 | `manifest-sha256.txt`, `manifest-sha512.txt` | BagIt manifest | `<hash>  data/<path>`, one per payload file (`sha256sum -c` compatible) |
 | `catalog/volumes/<id>/listing.tsv` | TSV | Size, modification time and path of every payload file |
 | `catalog/volumes/<id>/tags.tsv` | TSV | Folder tags and optional image captions |

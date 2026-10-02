@@ -36,10 +36,10 @@ import sys
 import tarfile
 import textwrap
 
-from . import bag, catalog, homes, describe, discid, image, index, llm, make, media, models, names, recfile, sets, tagger
+from . import NAME, bag, catalog, homes, describe, discid, image, index, llm, make, media, models, names, recfile, sets, tagger
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-REPO_NAME = "bluray-archival-workflow"
+REPO_NAME = NAME
 
 
 # ---------------------------------------------------------------- helpers

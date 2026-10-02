@@ -32,7 +32,7 @@ install: all
 	rm -rf "$(DESTDIR)$(SHARE)"
 	mkdir -p "$(DESTDIR)$(SHARE)" "$(DESTDIR)$(BIN)"
 	git archive --format=tar HEAD | tar -x -C "$(DESTDIR)$(SHARE)"
-	printf 'bluray-archival-workflow@%s\n' "$$(git rev-parse --short=12 HEAD)" > "$(DESTDIR)$(SHARE)/VERSION"
+	printf 'arv@%s\n' "$$(git rev-parse --short=12 HEAD)" > "$(DESTDIR)$(SHARE)/VERSION"
 	printf '#!/bin/sh\nexec python3 "%s/arv" "$$@"\n' "$(SHARE)" > "$(DESTDIR)$(BIN)/arv"
 	chmod 755 "$(DESTDIR)$(BIN)/arv"
 	install -m 755 lib/udfmake/build/udfmake "$(DESTDIR)$(BIN)/udfmake"

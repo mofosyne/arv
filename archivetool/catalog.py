@@ -345,7 +345,7 @@ class Catalog:
 
 
 CACHEDIR_TAG = ("Signature: 8a477f597d28d172789f06886806bc55\n"
-                "# This folder holds caches made by the archive tool (bluray-archival-workflow).\n"
+                "# This folder holds caches made by arv (Archive, Record, Verify).\n"
                 "# Everything here can be rebuilt; backup tools may skip it.\n"
                 "# See https://bford.info/cachedir/\n")
 
@@ -482,7 +482,7 @@ ARCHIVE_DESCRIPTOR = recfile.Record("Archive", [
     ("%rec", "Archive"),
     ("%doc", "Entry point of a smart-archive disc: which format and version this is, which disc,\n"
              "and where its other catalogue files are (paths relative to the disc root).\n"
-             "Specification: tools/bluray-archival-workflow/docs/smart-archive-format.md"),
+             "Specification: tools/arv/docs/smart-archive-format.md"),
     ("%mandatory", "Format Version Disc Uuid"),
 ])
 

@@ -29,8 +29,8 @@ catalog/                                       snapshot of the whole archive at 
   volumes/<disc-id>/                           each volume's index: manifest.sha256,
                                                listing.tsv, formats.csv, tags.tsv
 tools/
-  bluray-archival-workflow/                    uncompressed snapshot of this repo (HEAD)
-  bluray-archival-workflow.bundle              git bundle, only with --tools-history
+  arv/                                         uncompressed snapshot of this repo (HEAD)
+  arv.bundle                                   git bundle, only with --tools-history
   dvdisaster/                                  source tarball + static Linux/Windows binaries
   bagit.py
 data/                                          payload (embedded EXIF/XMP untouched)
@@ -359,7 +359,7 @@ Found 2026-10-01, both worth starting from:
   two things outlasting any browser API: **Python 3**, and a **WebAssembly runtime that runs
   WASI command-line programs** (several independent ones exist; udfmake already builds as one,
   `make wasi`). Every disc carries the tool's source in `tools/`, so from the disc alone:
-  `python3 tools/bluray-archival-workflow/arv --home catalog find PATTERN`. Convenient
+  `python3 tools/arv/arv --home catalog find PATTERN`. Convenient
   searching is catalogue software's job (Katalog). If a browser view is wanted later, it can
   be a WASI program that serves the catalogue over local http, not data duplicated on the disc.
 - When the C pieces needed to read or repair a disc exist (verify, RS03 repair), each goes on

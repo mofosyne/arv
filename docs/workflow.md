@@ -209,7 +209,7 @@ arv location list -v
 | Everything under a category or a place | `arv list --in MEMORIES`, `arv list --at OFFSITE` |
 | Which tags do I use? | `arv tags`; `arv find place:kyoto` |
 | Group things across discs | `arv collection add BEST --name "Best of" DISC:folder/ DISC:file`, `arv collection show BEST`: virtual folders; other software can show them as a tree ([spec](smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)) |
-| Without this tool installed? | every disc carries it: `python3 tools/bluray-archival-workflow/arv --home catalog find PATTERN` from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
+| Without this tool installed? | every disc carries it: `python3 tools/arv/arv --home catalog find PATTERN` from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
 | Changes after burning | `arv note`, `arv locate`, `arv access` (home catalogue; later discs carry them) |
 
 **Check discs every few years** with `arv check --device /dev/sr0`.

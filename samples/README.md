@@ -30,7 +30,7 @@ after the discs were made.
 ./arv --home samples/home keywords TRIP-01_2019_4
 
 7z x -oFAMILY samples/discs/FAMILY-01_2020-2021_K.iso   # or mount it (Linux: mount -o loop,ro)
-(cd FAMILY && python3 tools/bluray-archival-workflow/arv --home catalog find Kyoto)   # search every disc from this one
+(cd FAMILY && python3 tools/arv/arv --home catalog find Kyoto)   # search every disc from this one
 (cd FAMILY && sha256sum -c manifest-sha256.txt)          # verify
 ```
 

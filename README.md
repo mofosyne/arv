@@ -18,9 +18,6 @@ a hash of every file, a catalogue of the whole archive so far, the source of the
 made it, and the steps to repair it; error correction fills the rest of the disc. Blu-ray
 (M-DISC BD-R) is today's medium; the format does not depend on it.
 
-(Formerly `bluray-archival-workflow`. Discs made so far still keep the tool in
-`tools/bluray-archival-workflow/`.)
-
 Why it works the way it does (curated discs on top of everyday storage, plain files, copies): [docs/philosophy.md](docs/philosophy.md).
 
 **Start with [docs/workflow.md](docs/workflow.md)**: the whole flow, from a folder to discs on a
@@ -187,7 +184,7 @@ action runs the same `arv` command as the terminal and shows its output.
 On the disc, `index.html` browses the disc without JavaScript. Searching across
 discs is the job of catalogue software (such as Katalog) reading the catalogue,
 or of this tool, which is on every disc: from the disc's root,
-`python3 tools/bluray-archival-workflow/arv --home catalog find PATTERN`
+`python3 tools/arv/arv --home catalog find PATTERN`
 searches every disc in its snapshot with nothing but Python.
 
 - `--medium` (default `bd25`; also `bd50`, `bd100`, `bd128`, `auto`) sets the disc the image

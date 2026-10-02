@@ -14,7 +14,7 @@ import tempfile
 import uuid
 from dataclasses import dataclass, field
 
-from . import bag, catalog, discid, formats, html, image, index, listing, media, recfile, rocrate
+from . import URL, bag, catalog, discid, formats, html, image, index, listing, media, recfile, rocrate
 
 
 
@@ -301,7 +301,7 @@ class Maker:
                 ("Bag-Group-Identifier", self.group_id or self.meta["set"])]
         if plan.parts > 1:
             info.append(("Bag-Count", "%d of %d" % (plan.part, plan.parts)))
-        info += [("Payload-Oxum", bag.payload_oxum(plan.payload_entries)), ("Bag-Software-Agent", self.version)]
+        info += [("Payload-Oxum", bag.payload_oxum(plan.payload_entries)), ("Bag-Software-Agent", "%s <%s>" % (self.version, URL))]
         bag.write_bag_tags(stage, plan.payload_entries, info)
 
         if a.snapshot == "disc":

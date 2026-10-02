@@ -325,7 +325,9 @@ class SplitTest(unittest.TestCase):
                                   capture_output=True, text=True)
             self.assertEqual(proc.returncode, 0, proc.stderr)
             with open(os.path.join(dest, "bag-info.txt"), encoding="utf-8") as f:
-                self.assertIn("Bag-Count: %d of %d" % (n, len(lines)), f.read())
+                info = f.read()
+            self.assertIn("Bag-Count: %d of %d" % (n, len(lines)), info)
+            self.assertRegex(info, r"Bag-Software-Agent: arv@\S+ <https://github.com/mofosyne/arv>\n")
             self.assertEqual(len(os.listdir(os.path.join(dest, "catalog", "volumes"))), len(lines))
             for root, _, names in os.walk(os.path.join(dest, "data")):
                 seen += [os.path.relpath(os.path.join(root, x), os.path.join(dest, "data")) for x in names]
@@ -393,7 +395,7 @@ class MakeTest(unittest.TestCase):
         self.validate(disc)
         subprocess.run(["sha256sum", "-c", "--quiet", "manifest-sha256.txt"], cwd=disc, check=True)
         for name in ("index.html", "README.txt", "catalog.rec", "catalog/archive.rec",
-                     "tools/bagit.py", "tools/bluray-archival-workflow/archivetool/cli.py"):
+                     "tools/bagit.py", "tools/arv/archivetool/cli.py"):
             self.assertTrue(os.path.exists(os.path.join(disc, name)), name)
         with open(os.path.join(disc, "index.html"), encoding="utf-8") as f:
             page = f.read()
@@ -484,13 +486,13 @@ class MakeTest(unittest.TestCase):
     def test_tools_snapshot_without_history_by_default(self):
         _, disc = self.make(self.photos, "--set", "PHOTOS")
         tools = os.listdir(os.path.join(disc, "tools"))
-        self.assertIn("bluray-archival-workflow", tools)
-        self.assertNotIn("bluray-archival-workflow.bundle", tools)
+        self.assertIn("arv", tools)
+        self.assertNotIn("arv.bundle", tools)
         with open(os.path.join(disc, "README.txt"), encoding="utf-8") as f:
             self.assertNotIn(".bundle", f.read())
         if os.path.isdir(os.path.join(REPO, ".git")):
             _, disc = self.make(self.photos, "--set", "PHOTOS", "--tools-history")
-            self.assertIn("bluray-archival-workflow.bundle", os.listdir(os.path.join(disc, "tools")))
+            self.assertIn("arv.bundle", os.listdir(os.path.join(disc, "tools")))
 
     def test_search_from_the_disc_alone(self):
         self.make(self.projects)
