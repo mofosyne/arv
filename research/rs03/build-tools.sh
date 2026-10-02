@@ -1,8 +1,8 @@
 #!/bin/sh
-# Fetch and build the RS03 tools compared in docs/research-notes.md ("RS03 tools compared"),
+# Fetch and build the RS03 tools compared in research/research-notes.md ("RS03 tools compared"),
 # at pinned commits, into a work directory (default: /tmp/rs03-tools).
 #
-#   scripts/research/rs03/build-tools.sh [WORKDIR]
+#   research/rs03/build-tools.sh [WORKDIR]
 #
 # Builds:
 #   speed47/      dvdisaster 0.79.10-pl6 (speed47 fork; what arv make uses today)

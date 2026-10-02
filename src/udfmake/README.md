@@ -3,7 +3,7 @@
 Builds UDF images, including Blu-ray **UDF 2.50** with a metadata partition, from
 a folder on Linux. It is NetBSD's `makefs -t udf`, extracted and made into a
 library. This is **our modified copy**; the upstream reference and the bug
-report are in [`third_party/netbsd-makefs-udf/`](../../third_party/netbsd-makefs-udf/).
+report are in [`src/udfmake/upstream/`](upstream/).
 
 ```sh
 sudo apt install build-essential    # a C compiler and C library; nothing else
@@ -46,7 +46,7 @@ The Makefile picks the mode from `uname -s` (override with `HOST_OS=`).
 | Linux, ARM64 (musl) | host | as Linux, musl | compiles and links (`zig cc -target aarch64-linux-musl`); not run |
 | Windows (native) | — | — | does not build (POSIX headers such as `err.h`); use the WebAssembly build |
 | OpenBSD, DragonFly | host | guarded for, untested | untested |
-| WebAssembly (WASI preview 1) | host | as musl, plus the `err(3)`/`warn(3)` family and a `readdir` that always gives `.` (Node's runtime leaves it out) | built and tested (`make wasi`: run with Node's WASI; same speed as native on 800 MB; `arv make --filesystem udf250 --udfmake lib/udfmake/wasi/udfmake` end to end) |
+| WebAssembly (WASI preview 1) | host | as musl, plus the `err(3)`/`warn(3)` family and a `readdir` that always gives `.` (Node's runtime leaves it out) | built and tested (`make wasi`: run with Node's WASI; same speed as native on 800 MB; `arv make --filesystem udf250 --udfmake src/udfmake/wasi/udfmake` end to end) |
 
 Cross-building for a platform with clang, given its headers and libraries in a sysroot directory:
 
@@ -71,7 +71,7 @@ wasi/udfmake -o T=bdrom,v=2.50,V=2.50 image.udf dir   # run it with Node (UDFMAK
 
 Every change to NetBSD's code is a bug fix, and each one is also a standalone patch
 against unmodified upstream in
-[`third_party/netbsd-makefs-udf/patches/`](../../third_party/netbsd-makefs-udf/patches/).
+[`src/udfmake/upstream/patches/`](upstream/patches/).
 Together the patches are exactly the difference between `netbsd/` and upstream.
 `netbsd/sys/sys/queue.h` is an unmodified addition, used only on hosts without one (musl).
 
@@ -81,7 +81,7 @@ No NetBSD file is edited to build on other systems:
 
 ## Local changes to NetBSD code
 
-Both are described in the [draft bug report, not yet confirmed or sent](../../third_party/netbsd-makefs-udf/BUG-REPORT.md):
+Both are described in the [draft bug report, not yet confirmed or sent](upstream/BUG-REPORT.md):
 
 1. `usr.sbin/makefs/udf.c`, `udf_copy_file`: whole-sector read buffer, and the padding is zeroed (it was an out-of-bounds read into the image).
 2. `sbin/newfs_udf/udf_core.c`, `udf_set_regid`: bounded copy (it was a 1-byte `strcpy` overrun).

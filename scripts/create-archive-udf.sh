@@ -3,7 +3,7 @@
 # Blu‑ray Archival Script
 #
 # Status: EXPERIMENTAL. Earlier versions failed to mount with 'wrong fs type,
-# bad option, bad superblock'. Cause (see docs/research-notes.md):
+# bad option, bad superblock'. Cause (see research/research-notes.md):
 #   * `--media-type=bdr` makes mkudffs lay out an empty *write-once* (VAT)
 #     filesystem meant to be burned straight to a BD-R. A loop-mounted file
 #     has no VAT yet, so the kernel can't mount it. mkudffs also silently caps

@@ -1,7 +1,7 @@
 # Philosophy
 
 What this project is for, and what it deliberately is not. The how is in
-[workflow.md](workflow.md); the decisions and their reasons are in [plan.md](plan.md).
+[workflow.md](workflow.md); the decisions and their reasons are in [plan.md](../research/plan.md).
 
 ## In one sentence
 
@@ -131,7 +131,7 @@ archive, a company records system) should be routine, not a rescue. So:
 - **field meanings come from their standards:** Dublin Core names for
   description, PREMIS event types and preservation levels, PRONOM ids for file
   formats, ISO 8601/EDTF dates. The crosswalk is in
-  [metadata-standards.md](metadata-standards.md), section 6;
+  [metadata-standards.md](../research/metadata-standards.md), section 6;
 - **identifiers are stable and paths are plain:** disc ids plus UUIDs, file paths
   relative to `data/`, SHA-256 for every file;
 - **exports, not rewrites:** an RO-Crate description already exists

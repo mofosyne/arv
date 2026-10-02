@@ -12,11 +12,11 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIX = os.path.join(HERE, "fixtures")
-sys.path.insert(0, os.path.dirname(HERE))
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "src"))
 sys.path.insert(0, FIX)
 
 import tsv  # noqa: E402
-from archivetool import catalog, discid, image, names, recfile, sets  # noqa: E402
+from arv import catalog, discid, image, names, recfile, sets  # noqa: E402
 
 ERROR = "ERROR"
 

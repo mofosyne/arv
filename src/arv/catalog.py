@@ -53,7 +53,7 @@ DESCRIPTORS = [
             ("%rec", "Binding"),
             ("%doc", "How one volume is stored on its medium: the container (filesystem) and the\n"
                      "protection (error correction) it was made with. These change with the medium;\n"
-                     "the files and the rest of the catalogue do not (docs/plan.md, four layers).\n"
+                     "the files and the rest of the catalogue do not (research/plan.md, four layers).\n"
                      "Container: iso9660+udf-1.02, udf-2.50 (later perhaps ltfs, exfat, tar, afs).\n"
                      "Protection: rs03 or none. Media, Filesystem and Ecc describe them for people\n"
                      "(format 0.2 and earlier kept those three in the Disc record)."),

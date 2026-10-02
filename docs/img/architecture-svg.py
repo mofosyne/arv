@@ -122,7 +122,7 @@ text(bx + bw / 2, by + 33, "the only place the medium is named", 11, fill=MUTED,
 
 band(*Y["container"], "container", "3", "CONTAINER", [
     ("hybrid (default)", "ISO 9660 + Rock Ridge + Joliet, UDF 1.02 bridge"),
-    ("udf250", "UDF 2.50, Blu-ray layout (lib/udfmake)"),
+    ("udf250", "UDF 2.50, Blu-ray layout (src/udfmake)"),
 ], "depends on the medium")
 chips(X0 + 14, Y["container"][0] + 76, "other bindings later:", ["LTFS", "exFAT", "tar", "Piql AFS"],
       COL["container"][1])

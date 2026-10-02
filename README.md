@@ -57,30 +57,33 @@ Each layer does its own job:
 
 | Path | What |
 |---|---|
-| `arv`, `archivetool/` | The tool (see below) |
-| `lib/udfmake/` | NetBSD's `makefs -t udf` as a C library and program, for UDF 2.50 images |
+| `arv` | The command: runs `src/arv/` from a checkout, or from `tools/arv/` on any disc |
+| `src/arv/` | The tool: a Python package, standard library only |
+| `src/udfmake/` | NetBSD's `makefs -t udf` as a C library and program, for UDF 2.50 images; `upstream/` has the draft NetBSD bug report, patches and reproduction |
+| `docs/` | For users and implementers: workflow, shelving, architecture, philosophy, the disc format, and the website |
+| `research/` | Why, and what next: research notes, the standards survey, organising lessons, the plan, RS03 experiments |
 | `samples/` | Sample discs and their catalogue |
-| `docs/` | How to use it, why it works this way, and the disc format |
-| `tests/` | `python3 -m unittest discover -s tests`; `tests/smoke-test.sh` for the original scripts |
+| `tests/` | Unit and integration tests, and language-neutral fixtures |
 | `scripts/` | The original shell scripts, before ARV (see [Without arv](#without-arv-the-original-scripts)) |
+| `justfile`, `Makefile` | `just` lists everyday commands (test, install, samples, site preview); `make` alone builds and installs |
 
 `samples/` has seven small sample discs made with the full workflow (40 MB, with
 RS03 error correction) and their catalogue: try `./arv --home samples/home list`.
 
-`docs/plan.md` has the disc layout, phased plan and open decisions.
+`research/plan.md` has the disc layout, phased plan and open decisions.
 
 `docs/smart-archive-format.md` specifies the on-disc catalogue format (draft 0.3) so other
 cataloguing programs (e.g. Katalog) can read a disc and prefill their database without scanning it.
 
-`docs/metadata-standards.md` surveys archival metadata standards (Dublin Core,
+`research/metadata-standards.md` surveys archival metadata standards (Dublin Core,
 PREMIS, METS, E-ARK, RO-Crate, OCFL, NDSA Levels...) and existing disc-cataloguing
 software, and proposes this project's metadata profile.
 
-`docs/organising.md` collects what Katalog, Hydrus, Lightroom/digiKam, Paperless-ngx,
+`research/organising.md` collects what Katalog, Hydrus, Lightroom/digiKam, Paperless-ngx,
 Johnny.Decimal and archival software teach about categories and structure, and what
 was adopted (aliases, match rules, access levels, namespaced tags, location records).
 
-`docs/research-notes.md` explains the choices: why UDF 2.50/2.60 is hard to
+`research/research-notes.md` explains the choices: why UDF 2.50/2.60 is hard to
 produce on Linux and adds little over RS03, why dvdisaster is not a library,
 and how BagIt and recfiles split the work.
 
@@ -145,7 +148,7 @@ arv make ./2025-01-13_Projects_2020_-_2025 --location BOX3
 #  -> prompts for set (PROJ, from the folder name), categories (CODE, ELEC: from the files), title, ...
 #  -> PROJ-01_2020-2025_K.iso  (bag + catalogue + index.html + tools/ + RS03 ECC, verified)
 arv make ./Diaries --access sealed      # other discs' catalogues show only its id and location
-arv make ./Photos --filesystem udf250   # UDF 2.50 image (Blu-ray style) instead of the hybrid ISO; needs lib/udfmake
+arv make ./Photos --filesystem udf250   # UDF 2.50 image (Blu-ray style) instead of the hybrid ISO; needs src/udfmake
 arv names ./Photos                      # names each image type would shorten or change on Windows/macOS
 # volume label: the disc id, then the title as far as it fits (32 bytes hybrid, 126 characters UDF 2.50);
 # --label TEXT to choose the text, --label '' for the id alone
@@ -202,8 +205,8 @@ searches every disc in its snapshot with nothing but Python.
   folder is grafted into the image as `data/`.
 - `--filesystem` picks the image: `hybrid` (default: ISO9660 + Rock Ridge + Joliet with a
   UDF 1.02 bridge, readable almost anywhere) or `udf250` (UDF 2.50 with a metadata partition,
-  built by [`lib/udfmake`](lib/udfmake/), NetBSD's makefs as a C library and program; run
-  `make -C lib/udfmake` once). Both carry the same files, catalogue and RS03 data.
+  built by [`src/udfmake`](src/udfmake/), NetBSD's makefs as a C library and program; run
+  `make -C src/udfmake` once). Both carry the same files, catalogue and RS03 data.
 - Disc ids look like `PHOTOS-07_2015-2024_Q`: set, number, coverage and a check character
   that catches typos. They are derived from the record's `Set`, `Sequence` and `Coverage`
   (EDTF: `2019`, `2015/2024`, `199X`, `1995~`) and used as the volume label. `arv id <ID>`
@@ -243,7 +246,7 @@ subprocess: no server, no API, no Python packages.
 ./arv tag 2018-2022_PERSONAL_01                     # re-tag a disc already in the catalogue
 ```
 
-- The vocabulary is `<home>/config/tags.rec` (created from `archivetool/default_tags.rec`); edit
+- The vocabulary is `<home>/config/tags.rec` (created from `src/arv/default_tags.rec`); edit
   the descriptions freely. Describe *content*, not the medium ("cats, dogs", not "photos of").
 - Tags may have `Alias` words (typing `holiday` in review stores `travel`) and `Match` globs
   that tag folders without the model: `arv tag FOLDER --rules-only` needs no download.
@@ -326,7 +329,7 @@ dvdisaster -i image.iso -f     # repair (0.79.10 exits 1 even on success; re-run
 
 For BD-sized images, use a multithreaded build: [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (RS03 only, faster encoders,
 `--rescue` reading of damaged discs) or the [speed47 fork](https://github.com/speed47/dvdisaster). They produce byte-identical
-images (tested, docs/research-notes.md section 8). The distro 0.79.10 build is
+images (tested, research/research-notes.md section 8). The distro 0.79.10 build is
 single-threaded.
 
 ## Roadmap
@@ -340,7 +343,7 @@ single-threaded.
 - [x] Multi-disc splitting for sets larger than one disc (`Bag-Count: n of N`)
 - [x] `README.txt` and the tool's source on each disc
 - [x] Target medium size, minimum redundancy, defect-management sizes for RS03
-- [x] Optional UDF 2.50 through NetBSD `makefs -t udf` (`lib/udfmake`)
+- [x] Optional UDF 2.50 through NetBSD `makefs -t udf` (`src/udfmake`)
 - [x] GUI front end over the CLI (`arv gui`, local web UI, standard library only)
 - [x] `.arv` homes, change events, `Binding` records (format 0.3)
 - [ ] dvdisaster sources (and static binaries) on each disc for self-contained repair
@@ -349,12 +352,12 @@ single-threaded.
 - [ ] A man page generated from the command's own help
 - [ ] First real burns, and reading them back after time on the shelf
 
-The detailed plan and the reasons behind each decision: [docs/plan.md](docs/plan.md).
+The detailed plan and the reasons behind each decision: [research/plan.md](research/plan.md).
 
 ## Licence
 
 GNU GPL version 3 (GPL-3.0); see [LICENSE](LICENSE). Code from elsewhere keeps its own licence: NetBSD's
-makefs in `lib/udfmake/netbsd/` (BSD) and `archivetool/vendor/bagit.py` (CC0).
+makefs in `src/udfmake/netbsd/` (BSD) and `src/arv/vendor/bagit.py` (CC0).
 
 The disc format ([docs/smart-archive-format.md](docs/smart-archive-format.md)) is meant to be
 implemented by anyone, in any program, under any licence: reading and writing these discs

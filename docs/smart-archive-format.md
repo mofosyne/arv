@@ -186,7 +186,7 @@ BACKUPS  Backups and exports
   EMAIL    Email and messages
 ```
 
-(abridged; the default is `archivetool/default_sets.rec`, a recfile with
+(abridged; the default is `src/arv/default_sets.rec`, a recfile with
 `Code`, `Name`, `Description`, repeatable `Parent`, optional `Order`, and the
 optional fields below.)
 

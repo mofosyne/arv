@@ -226,14 +226,14 @@ See `patches/03-unix_to_udf_name-l_fi-overflow.patch`:
 
 ```sh
 sudo apt install build-essential git python3 gdb   # gdb optional
-third_party/netbsd-makefs-udf/repro/repro.sh /tmp/udf-repro
+src/udfmake/upstream/repro/repro.sh /tmp/udf-repro
 ```
 
 The script:
 1. fetches NetBSD src at the commit above (sparse: `usr.sbin/makefs`,
    `usr.sbin/mtree`, `sbin/newfs_udf`, `sbin/fsck`, `sys/fs/udf`);
 2. copies out the 17 files makefs -t udf uses, **unmodified**;
-3. builds them with the Linux glue in `lib/udfmake/` (compat headers, stubs for the other filesystems, `main` renamed). None of the glue touches the UDF code;
+3. builds them with the Linux glue in `src/udfmake/` (compat headers, stubs for the other filesystems, `main` renamed). None of the glue touches the UDF code;
 4. runs the four checks on unmodified upstream, then with each patch in `patches/` on
    its own (it should fix only its own bug), then with all of them.
 

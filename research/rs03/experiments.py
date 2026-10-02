@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""RS03 tool experiments behind docs/research-notes.md ("RS03 tools compared").
+"""RS03 tool experiments behind research/research-notes.md ("RS03 tools compared").
 
-    scripts/research/rs03/build-tools.sh /tmp/rs03-tools
-    scripts/research/rs03/experiments.py /tmp/rs03-tools [--big]
+    research/rs03/build-tools.sh /tmp/rs03-tools
+    research/rs03/experiments.py /tmp/rs03-tools [--big]
 
 Compares dvdisaster (speed47 fork), dvdisaster Light and LCSAS's lcsas-ecc (native and
 WASI) on the sample discs in samples/discs/: verifying, re-creating RS03 bit for bit,
@@ -20,7 +20,7 @@ import sys
 import tempfile
 import time
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SAMPLES = os.path.join(REPO, "samples", "discs")
 SECTOR = 2048
 MEDIUM = 3200          # the sample discs' custom medium (samples/make-samples.sh)
@@ -31,7 +31,7 @@ SPEED47 = os.path.join(T, "speed47", "dvdisaster")
 LIGHT = os.path.join(T, "light", "dvdisaster")
 LCSAS = os.path.join(T, "lcsas-ecc")
 WASM = os.path.join(T, "lcsas-ecc.wasm")
-RUN_WASI = os.path.join(REPO, "lib", "udfmake", "wasi", "run.mjs")
+RUN_WASI = os.path.join(REPO, "src", "udfmake", "wasi", "run.mjs")
 HAVE_WASM = os.path.exists(WASM) and shutil.which("node") is not None
 WORK = tempfile.mkdtemp(prefix="rs03-")
 
@@ -368,7 +368,7 @@ def e7_big():
 def main():
     for tool in (SPEED47, LIGHT, LCSAS):
         if not os.path.exists(tool):
-            raise SystemExit("missing %s: run scripts/research/rs03/build-tools.sh %s" % (tool, T))
+            raise SystemExit("missing %s: run research/rs03/build-tools.sh %s" % (tool, T))
     print("Tools: %s; %s; lcsas-ecc%s\n" % (run([SPEED47, "--version"])[1].strip().splitlines()[0],
                                              run([LIGHT, "--version"])[1].strip().splitlines()[0],
                                              " (+ WASI build under Node)" if HAVE_WASM else ""))

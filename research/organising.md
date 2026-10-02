@@ -36,13 +36,13 @@ from reading its source; the rest is from the tools' documented behaviour.
 5. **Automate first, ask a person last.** The order is `Match` rules, then EXIF and file dates, then the embedding tagger, then a local LLM, then the owner's review.
 6. **Physical location is a tree of records**, so moving a box is one edit.
 7. **Original order is kept.** The payload is never rearranged; classification lives in metadata.
-8. **Interoperate.** Hierarchical keywords export for XMP tools, and there is a Katalog mapping in [smart-archive-format.md](smart-archive-format.md).
+8. **Interoperate.** Hierarchical keywords export for XMP tools, and there is a Katalog mapping in [smart-archive-format.md](../docs/smart-archive-format.md).
 
 ## What was adopted
 
 | | Feature | Where |
 |---|---|---|
-| A | `Alias` and `ScopeNote` in `sets.rec`. `--set holidays` means TRIP; a folder named "Projects" means PROJ. | `archivetool/sets.py`, `arv sets -v` |
+| A | `Alias` and `ScopeNote` in `sets.rec`. `--set holidays` means TRIP; a folder named "Projects" means PROJ. | `src/arv/sets.py`, `arv sets -v` |
 | B | `Match` globs in both vocabularies. They suggest set and categories in `arv make`, and tags in `arv tag` (`--rules-only` needs no model). | `sets.Vocabulary.match`, `tagger.TagVocab.rule_tags` |
 | C | `Access`: `public` / `private` (default) / `sealed`. It controls what other discs' snapshots carry. | `catalog.access`, `catalog.sealed_view`, `arv access` |
 | D | Namespaced tags (`person:`, `place:`, `event:`, `source:`, `project:`) and tag aliases, normalised in review and in drafts. | `catalog.normalise_tag`, `arv tags` |

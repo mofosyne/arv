@@ -1,6 +1,6 @@
 # arv (Archive, Record, Verify): install on Linux.
 #
-#   make                       build lib/udfmake (needs a C compiler)
+#   make                       build src/udfmake (needs a C compiler)
 #   make install               install for everyone: /usr/local (run as root)
 #   make install PREFIX=~/.local     install for yourself (~/.local/bin must be on PATH)
 #   make uninstall [PREFIX=...]
@@ -21,7 +21,7 @@ SHARE    = $(PREFIX)/share/arv
 BIN      = $(PREFIX)/bin
 
 all:
-	$(MAKE) -C lib/udfmake
+	$(MAKE) -C src/udfmake
 
 check: all
 	python3 -m unittest discover -s tests
@@ -35,7 +35,7 @@ install: all
 	printf 'arv@%s\n' "$$(git rev-parse --short=12 HEAD)" > "$(DESTDIR)$(SHARE)/VERSION"
 	printf '#!/bin/sh\nexec python3 "%s/arv" "$$@"\n' "$(SHARE)" > "$(DESTDIR)$(BIN)/arv"
 	chmod 755 "$(DESTDIR)$(BIN)/arv"
-	install -m 755 lib/udfmake/build/udfmake "$(DESTDIR)$(BIN)/udfmake"
+	install -m 755 src/udfmake/build/udfmake "$(DESTDIR)$(BIN)/udfmake"
 	@echo "Installed arv $$(cat "$(DESTDIR)$(SHARE)/VERSION") in $(PREFIX). Try: arv --help"
 
 uninstall:

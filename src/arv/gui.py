@@ -32,7 +32,7 @@ def disc_summary(disc):
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ARV = os.path.join(os.path.dirname(HERE), "arv")
+ARV = os.path.join(os.path.dirname(os.path.dirname(HERE)), "arv")  # the launcher at the repository root
 MAX_OUTPUT_LINES = 5000
 
 

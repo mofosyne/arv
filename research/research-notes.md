@@ -10,7 +10,7 @@ dvdisaster 0.79.10, bagit-python 1.9.0).
 |---|---|---|---|
 | 1.02 | Baseline, DVD-Video | read/write | `genisoimage -udf` (ISO9660 bridge) |
 | 2.01 | Large files, current default | **read/write** | `mkudffs` + loop mount + `cp` |
-| 2.50 | **Metadata partition, optional metadata mirror** (duplicate of the directory/inode data); BD-ROM uses it | read-only | **`lib/udfmake`** (NetBSD makefs, userspace; since 2026-09; no metadata mirror yet) |
+| 2.50 | **Metadata partition, optional metadata mirror** (duplicate of the directory/inode data); BD-ROM uses it | read-only | **`src/udfmake`** (NetBSD makefs, userspace; since 2026-09; no metadata mirror yet) |
 | 2.60 | Pseudo-OverWrite for BD-R drives | read-only | none (makefs caps at 2.50: `udf.c:151`, "0x260 is not ready"); not needed for single-pass images |
 
 - The only feature past 2.01 that helps *robustness* is the 2.50 **metadata
@@ -29,10 +29,10 @@ dvdisaster 0.79.10, bagit-python 1.9.0).
 - Ways to get real UDF 2.50/2.60 images:
   - NetBSD `makefs -t udf` (options `disctype=bdrom|bdr|...`, `minver`/`maxver`,
     `metaperc`). This is the only open-source "directory → UDF 2.50/2.60 image"
-    builder I found. **Ported (image builder only):** `lib/udfmake/` is a C
+    builder I found. **Ported (image builder only):** `src/udfmake/` is a C
     library and self-contained program (C library only; `make static` for one
     binary) built from the NetBSD files plus a small compat layer, with two upstream memory bugs fixed. Draft upstream report and
-    reproduction: `third_party/netbsd-makefs-udf/`.
+    reproduction: `src/udfmake/upstream/`.
     `T=bdrom` gives UDF 2.50 with a metadata partition (7-Zip reads it back
     identical). Missing upstream: the metadata *mirror* is not duplicated.
   - Windows: ImgBurn / IMAPI2 build UDF 2.50/2.60 images.
@@ -462,8 +462,8 @@ Three implementations of dvdisaster's RS03 format, run on our seven sample discs
 - **lcsas-ecc** (LCSAS commit 0fb28e7, `recovery/src/lcsas-ecc/`), a 1,500-line C89
   verify/repair/augment tool, natively and as a WASI `.wasm` under Node.
 
-Reproduce: `scripts/research/rs03/build-tools.sh DIR` (fetches and builds all of them at those
-commits), then `scripts/research/rs03/experiments.py DIR [--big]`. Damage is seeded, so runs
+Reproduce: `research/rs03/build-tools.sh DIR` (fetches and builds all of them at those
+commits), then `research/rs03/experiments.py DIR [--big]`. Damage is seeded, so runs
 repeat. A drive that cannot read a sector reports an error, and dvdisaster writes a marker in
 its place ("unreadable" below, an *erasure*); the harness writes the same markers. "Garbled"
 (wrong bytes passed off as good) is the rarer case, because drives have their own error

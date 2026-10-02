@@ -103,9 +103,9 @@ def print_size(stage, volume_id, payload_dir=None, payload_files=None):
     return int(out.strip().splitlines()[-1])
 
 
-# ---------------------------------------------------------------- UDF 2.50 (lib/udfmake)
+# ---------------------------------------------------------------- UDF 2.50 (src/udfmake)
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # src/arv/ -> repository
 CONTAINERS = {"hybrid": "iso9660+udf-1.02", "udf250": "udf-2.50"}  # Binding Container tokens
 FILESYSTEMS = {
     "hybrid": "ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge",
@@ -115,10 +115,10 @@ UDF_OPTIONS = "T=bdrom,v=2.50,V=2.50"
 
 
 def find_udfmake(explicit=None):
-    """Path of the udfmake program: --udfmake, $PATH, or lib/udfmake/build in this repository."""
+    """Path of the udfmake program: --udfmake, $PATH, or src/udfmake/build in this repository."""
     for candidate in (explicit, shutil.which("udfmake"),
-                      os.path.join(REPO_ROOT, "lib", "udfmake", "build", "udfmake"),
-                      os.path.join(REPO_ROOT, "lib", "udfmake", "build-static", "udfmake")):
+                      os.path.join(REPO_ROOT, "src", "udfmake", "build", "udfmake"),
+                      os.path.join(REPO_ROOT, "src", "udfmake", "build-static", "udfmake")):
         if candidate and os.path.isfile(candidate) and os.access(candidate, os.X_OK):
             return candidate
     return None
@@ -161,7 +161,7 @@ def build_udf(stage, out, volume_id, payload_dir=None, payload_files=None, udfma
     tool = find_udfmake(udfmake)
     if not tool:
         raise SystemExit("Error: udfmake not found. Build it with 'make -C %s', put it on PATH, "
-                         "or pass --udfmake PATH" % os.path.join(REPO_ROOT, "lib", "udfmake"))
+                         "or pass --udfmake PATH" % os.path.join(REPO_ROOT, "src", "udfmake"))
     view = _udf_view(os.path.dirname(stage), stage, payload_dir, payload_files)
     try:
         if os.path.exists(out):

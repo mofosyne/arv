@@ -1,4 +1,4 @@
-# Fixed vocabulary for the fixtures (independent of archivetool/default_sets.rec).
+# Fixed vocabulary for the fixtures (independent of src/arv/default_sets.rec).
 
 %rec: Set
 %key: Code

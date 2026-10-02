@@ -38,7 +38,7 @@ import textwrap
 
 from . import NAME, bag, catalog, homes, describe, discid, image, index, llm, make, media, models, names, recfile, sets, tagger
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # src/arv/ -> repository
 REPO_NAME = NAME
 
 
@@ -113,7 +113,7 @@ def stage_tools(tools_dir, is_git, extra_tools, history=False):
                 os.remove(bundle)
     if not is_git:
         shutil.copytree(REPO_ROOT, tree, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".git", "*.iso"))
-    shutil.copyfile(os.path.join(REPO_ROOT, "archivetool", "vendor", "bagit.py"),
+    shutil.copyfile(os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor", "bagit.py"),
                     os.path.join(tools_dir, "bagit.py"))
     if extra_tools:
         shutil.copytree(extra_tools, os.path.join(tools_dir, "extra"))
@@ -251,7 +251,7 @@ def cmd_make(args):
     if args.filesystem == "udf250" and not image.find_udfmake(args.udfmake):
         raise SystemExit("Error: --filesystem udf250 needs udfmake: build it with 'make -C %s', "
                          "put it on PATH, or pass --udfmake PATH"
-                         % os.path.join(REPO_ROOT, "lib", "udfmake"))
+                         % os.path.join(REPO_ROOT, "src", "udfmake"))
     if args.output and args.output_dir:
         raise SystemExit("Error: use either --output or --output-dir")
     interactive = sys.stdin.isatty() and not args.yes
@@ -1029,8 +1029,8 @@ def build_parser():
     m.add_argument("--rights")
     m.add_argument("--filesystem", choices=list(image.FILESYSTEMS), default="hybrid",
                    help="hybrid (default): ISO9660 + Joliet + UDF 1.02, readable almost anywhere; "
-                        "udf250: UDF 2.50 with a metadata partition, as Blu-ray uses (needs lib/udfmake)")
-    m.add_argument("--udfmake", help="path to the udfmake program (default: PATH, then lib/udfmake/build)")
+                        "udf250: UDF 2.50 with a metadata partition, as Blu-ray uses (needs src/udfmake)")
+    m.add_argument("--udfmake", help="path to the udfmake program (default: PATH, then src/udfmake/build)")
     m.add_argument("--ignore-names", action="store_true",
                    help="don't list names that Windows/macOS will see shortened or changed (see 'arv names')")
     m.add_argument("--medium", choices=["auto"] + list(media.MEDIA), default="bd25",

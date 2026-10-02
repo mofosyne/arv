@@ -1,7 +1,7 @@
 # NetBSD makefs (UDF): upstream reference
 
 This folder is about **upstream NetBSD**, not our code. Our extracted and modified
-copy, built as a C library, is in [`lib/udfmake/`](../../lib/udfmake/).
+copy, built as a C library, is in [`src/udfmake/`](../).
 
 | File | What |
 |---|---|
@@ -14,7 +14,7 @@ copy, built as a C library, is in [`lib/udfmake/`](../../lib/udfmake/).
 
 Each patch has a short description at the top, is against upstream paths (`patch -p1` in
 a NetBSD src tree), and applies on its own or together with the others in any order.
-Together they are exactly the changes in `lib/udfmake/netbsd/`.
+Together they are exactly the changes in `src/udfmake/netbsd/`.
 
 Pinned upstream: NetBSD src `477d71b4d1b73a66b61a03b5f6d3dc9212d4f888`
 (https://github.com/NetBSD/src, a mirror of NetBSD CVS; trunk as of 2026-09-30).

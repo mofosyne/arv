@@ -5,7 +5,7 @@ Working plan for turning the scripts into an `archive` tool. Background is in
 
 ## Principles
 
-The project's overall philosophy is in [philosophy.md](philosophy.md); these are the technical
+The project's overall philosophy is in [philosophy.md](../docs/philosophy.md); these are the technical
 principles that follow from it.
 
 1. **Plain text is the source of truth.** Everything else (SQLite, HTML,
@@ -77,7 +77,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - [x] Home catalogue `archive.rec` (Disc/Copy/Event), short disc IDs, `Location`
 - [x] `arv find <pattern>` (plain scan of manifests to start)
 - [x] `arv note <disc-id> <text>` (+ `arv locate`)
-- [x] Tests (`tests/test_archivetool.py`)
+- [x] Tests (`tests/test_arv.py`)
 
 ### Phase 2: whole-archive retrieval
 - [x] `catalog/` snapshot with `--snapshot full|set|disc` (+ `listings/` with sizes and dates)
@@ -97,9 +97,9 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 
 ### Phase 4: extras
 - [x] GUI over the CLI (`arv gui`)
-- [x] NetBSD `makefs -t udf` builds on Linux as a C library: `lib/udfmake/` (UDF 2.50,
+- [x] NetBSD `makefs -t udf` builds on Linux as a C library: `src/udfmake/` (UDF 2.50,
       metadata partition, two upstream bugs fixed).
-- [ ] Confirm `third_party/netbsd-makefs-udf/BUG-REPORT.md` by hand, then send it to NetBSD.
+- [ ] Confirm `src/udfmake/upstream/BUG-REPORT.md` by hand, then send it to NetBSD.
 - [ ] Metadata mirror duplication in udfmake (upstream lacks it).
 - [x] `arv make --filesystem udf250` using it (default stays the ISO9660 + UDF 1.02 hybrid).
 - [ ] Test the images with a Linux kernel mount, Windows and macOS.
@@ -134,7 +134,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 ## Decisions (2026-09-30)
 
 - Language: **Python for the workflow while it is still changing; C for durable, low-level
-  format code** (`lib/udfmake`, later an RS03 library). A full C rewrite is worth it only
+  format code** (`src/udfmake`, later an RS03 library). A full C rewrite is worth it only
   once the workflow is settled. To keep that port cheap:
   - the formats are the contract: `docs/smart-archive-format.md` is the spec, not the Python code;
   - tests should move toward language-neutral fixtures (sample catalogues, ids, listings and
@@ -143,7 +143,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
   - Python modules stay small with one job each (recfile, discid, catalog, bag).
 - Disc ids: superseded the 2026-09-29 entry. Scheme `set-seq-coverage/1`
   (`PHOTO-07_2015-2024_Q`), derived from the record's Set, Sequence and Coverage.
-- UDF 2.50: available through `lib/udfmake` (NetBSD makefs as a C library and program). The
+- UDF 2.50: available through `src/udfmake` (NetBSD makefs as a C library and program). The
   hybrid ISO9660 + UDF 1.02 image stays the default.
 
 ## Optional: local LLM metadata help (done)
@@ -208,7 +208,7 @@ All tiers remain optional, suggestion-only, and recorded as PREMIS events with t
 ## Design: four layers, and a binding per volume (2026-10-02; Binding done)
 
 Blu-ray and UDF are today's medium, not the format (philosophy.md, principle 4). Drawn and
-explained in [architecture.md](architecture.md).
+explained in [architecture.md](../docs/architecture.md).
 
 | Layer | What it is | Depends on the medium? |
 |---|---|---|
@@ -254,7 +254,7 @@ Making a disc (`arv make` runs these in order):
 
 | # | Step | Now | Later |
 |---|---|---|---|
-| 1 | Scan, hash, check names | Python (`archivetool`) | C, once settled |
+| 1 | Scan, hash, check names | Python (`arv`) | C, once settled |
 | 2 | Describe: vocabulary, tags, catalogue snapshot | Python | Python (optional local LLM) |
 | 3 | Bag (BagIt) | Python | C |
 | 4 | Image: hybrid ISO9660/UDF 1.02, or UDF 2.50 | genisoimage, or our udfmake (C, also `.wasm`) | udfmake |

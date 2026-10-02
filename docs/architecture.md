@@ -120,5 +120,5 @@ A healthy disc skips steps 1 and 2: put it in a drive and open it.
   Light splits into libraries ([issue](https://github.com/teaching-droid/dvdisaster-light/issues/1)).
 - **A userspace UDF 2.50 reader**, so files can be read from an image without mounting it.
 
-Details and the reasons: [plan.md](plan.md), "four layers" and "a chain of small programs";
-[research-notes.md](research-notes.md), sections 7 to 9.
+Details and the reasons: [plan.md](../research/plan.md), "four layers" and "a chain of small programs";
+[research-notes.md](../research/research-notes.md), sections 7 to 9.

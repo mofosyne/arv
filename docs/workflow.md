@@ -7,7 +7,7 @@ damage or loss. It also says where each part of this repository fits.
 Details live elsewhere and are linked:
 - the command reference is in [README.md](../README.md);
 - the on-disc format is in [smart-archive-format.md](smart-archive-format.md);
-- the reasons for each choice are in [research-notes.md](research-notes.md) and [plan.md](plan.md).
+- the reasons for each choice are in [research-notes.md](../research/research-notes.md) and [plan.md](../research/plan.md).
 
 ## The whole thing on one page
 
@@ -236,8 +236,8 @@ read or repaired.
 ## 7. How the repository fits together
 
 ```
-archive                    the command (python3 arv ...)
-archivetool/               the workflow, Python standard library only
+arv                        the command (runs src/arv/)
+src/arv/                   the workflow, Python standard library only
   cli.py                   commands
   make.py                  the make pipeline (plan, stage, build, protect)
   bag.py  catalog.py  recfile.py  discid.py  sets.py  names.py   formats and rules
@@ -245,26 +245,29 @@ archivetool/               the workflow, Python standard library only
   html.py  listing.py  gui.py   viewer, file listings, the local web UI
   tagger.py  describe.py  llm.py  vision.py  models.py            optional AI helpers (local only)
   default_sets.rec  default_tags.rec                              starting vocabularies
-lib/udfmake/               UDF 2.50 image builder in C: NetBSD makefs, extracted (our copy)
-third_party/netbsd-makefs-udf/   upstream reference: bug report, one patch per bug, reproduction
+src/udfmake/               UDF 2.50 image builder in C: NetBSD makefs, extracted (our copy)
+src/udfmake/upstream/      upstream reference: draft bug report, one patch per bug, reproduction
 samples/                   seven small sample discs and their catalogue; the scripts that make them
 tests/                     unit and integration tests
 tests/fixtures/            language-neutral test cases (TSV): the contract for a future port
-docs/                      this file, the format spec, research and plan
+docs/                      this file, the format spec, architecture, philosophy, the website
+research/                  research notes, standards survey, plan and decisions, RS03 experiments
+scripts/                   the original shell scripts, before arv
+justfile, Makefile         everyday commands (just), build and install (make)
 ```
 
 The layers, from most to least durable:
 1. **Formats:** BagIt, recfiles, TSV, EDTF, and [the spec](smart-archive-format.md). They outlive any code.
 2. **C tools:** `udfmake`, and later an RS03 library. Low-level, reused as they are.
-3. **Python workflow:** it can change freely while the workflow settles, and may be ported to C later ([plan.md](plan.md), decisions 2026-09-30).
+3. **Python workflow:** it can change freely while the workflow settles, and may be ported to C later ([plan.md](../research/plan.md), decisions 2026-09-30).
 
 ## 8. Developer flows
 
 - **Tests:** `python3 -m unittest discover -s tests`. Add `ARCHIVE_TEST_ECC=1` to include dvdisaster.
 - **Fixtures:** after an intended behaviour change, run `python3 tests/fixtures/generate.py`, then read `git diff tests/fixtures` before committing ([README](../tests/fixtures/README.md)).
-- **Sample discs:** `samples/make-samples.sh` (needs dvdisaster Light or the speed47 fork, and `lib/udfmake`) replaces `samples/discs` and `samples/home`.
+- **Sample discs:** `samples/make-samples.sh` (needs dvdisaster Light or the speed47 fork, and `src/udfmake`) replaces `samples/discs` and `samples/home`.
 - **udfmake:**
-  - `make -C lib/udfmake check` (also `asan`, `static`);
-  - changes to NetBSD's code go in `lib/udfmake/netbsd/`, and each also gets a patch in `third_party/netbsd-makefs-udf/patches/`;
-  - `third_party/netbsd-makefs-udf/repro/repro.sh` shows each patch against unmodified upstream.
+  - `make -C src/udfmake check` (also `asan`, `static`);
+  - changes to NetBSD's code go in `src/udfmake/netbsd/`, and each also gets a patch in `src/udfmake/upstream/patches/`;
+  - `src/udfmake/upstream/repro/repro.sh` shows each patch against unmodified upstream.
 - **Format changes:** update [smart-archive-format.md](smart-archive-format.md) first, and bump its version for anything a reader must know.

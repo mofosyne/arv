@@ -15,21 +15,21 @@ import tempfile
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, REPO)
+sys.path.insert(0, os.path.join(REPO, "src"))
 
-from archivetool import bag, catalog, cli, image, make, media, recfile  # noqa: E402
+from arv import bag, catalog, cli, image, make, media, recfile  # noqa: E402
 
 HAVE_IMAGE_TOOLS = all(shutil.which(t) for t in ("genisoimage", "7z"))
 
 
 def udfmake_available():
-    """udfmake for --filesystem udf250 tests: built from lib/udfmake if a compiler is present."""
+    """udfmake for --filesystem udf250 tests: built from src/udfmake if a compiler is present."""
     if not image.find_udfmake() and shutil.which("make") and shutil.which("cc"):
-        subprocess.run(["make", "-s", "-C", os.path.join(REPO, "lib", "udfmake")],
+        subprocess.run(["make", "-s", "-C", os.path.join(REPO, "src", "udfmake")],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return image.find_udfmake() is not None and shutil.which("7z") is not None
 
-from archivetool import discid  # noqa: E402
+from arv import discid  # noqa: E402
 
 PROJ_01 = discid.compose("PROJ", 1, "2020/2025")  # folder "Projects" resolves to PROJ via its alias
 PHOTO_01 = discid.compose("PHOTO", 1, "2023")  # --set PHOTOS resolves to PHOTO
@@ -181,7 +181,7 @@ class HomeLayoutTest(unittest.TestCase):
 
 class HomeDiscoveryTest(unittest.TestCase):
     def test_arv_folder_pointer_disc_root_and_machine_config(self):
-        from archivetool import homes
+        from arv import homes
         with tempfile.TemporaryDirectory() as d:
             env = {"XDG_CONFIG_HOME": os.path.join(d, "cfg"), "XDG_DATA_HOME": os.path.join(d, "data"),
                    "ARV_HOME": "", "BLURAY_ARCHIVE_HOME": ""}
@@ -225,7 +225,7 @@ class HomeDiscoveryTest(unittest.TestCase):
 
 class SetsTest(unittest.TestCase):
     def test_vocabulary_is_a_dag_of_words(self):
-        from archivetool import sets
+        from arv import sets
         with tempfile.TemporaryDirectory() as d:
             vocab = sets.load(catalog.Home(d))
             self.assertTrue(os.path.exists(os.path.join(d, "config", "sets.rec")))  # copied for editing
@@ -239,7 +239,7 @@ class SetsTest(unittest.TestCase):
                 self.assertTrue(discid.SET_RE.match(code), code)  # every code fits in an id
 
     def test_cycles_and_unknown_parents_are_rejected(self):
-        from archivetool import sets
+        from arv import sets
         with tempfile.TemporaryDirectory() as d:
             path = os.path.join(d, "v.rec")
             for body, message in (("Code: AA\nName: a\nParent: BB\n\nCode: BB\nName: b\nParent: AA\n", "cycle"),
@@ -250,7 +250,7 @@ class SetsTest(unittest.TestCase):
                     sets.load(None, path)
 
     def test_aliases_scope_notes_and_match_rules(self):
-        from archivetool import sets
+        from arv import sets
         vocab = sets.load(None, sets.DEFAULT_SETS)
         self.assertEqual(vocab.resolve("holidays"), "TRIP")        # alias
         self.assertEqual(vocab.resolve("trips"), "TRIP")           # plural of a code
@@ -344,7 +344,7 @@ class SplitTest(unittest.TestCase):
 
     def test_split_udf250(self):
         if not udfmake_available():
-            self.skipTest("udfmake (lib/udfmake) and 7z required")
+            self.skipTest("udfmake (src/udfmake) and 7z required")
         code, out = self.make("--split", "--filesystem", "udf250")
         self.assertEqual(code, 0, out)
         self.check_split(out)
@@ -395,7 +395,7 @@ class MakeTest(unittest.TestCase):
         self.validate(disc)
         subprocess.run(["sha256sum", "-c", "--quiet", "manifest-sha256.txt"], cwd=disc, check=True)
         for name in ("index.html", "README.txt", "catalog.rec", "catalog/archive.rec",
-                     "tools/bagit.py", "tools/arv/archivetool/cli.py"):
+                     "tools/bagit.py", "tools/arv/src/arv/cli.py"):
             self.assertTrue(os.path.exists(os.path.join(disc, name)), name)
         with open(os.path.join(disc, "index.html"), encoding="utf-8") as f:
             page = f.read()
@@ -775,7 +775,7 @@ class MakeTest(unittest.TestCase):
         write(os.path.join(self.photos, "doc.pdf"), "%PDF-1.4\n%%EOF\n")
         extra = ["--sf-home", os.environ["SF_HOME"]] if os.environ.get("SF_HOME") else []
         disc_id, disc = self.make(self.photos, "--set", "PHOTOS", "--formats", "yes", *extra)
-        from archivetool import formats
+        from arv import formats
         rows = formats.read(os.path.join(disc, "catalog", "volumes", disc_id, "formats.csv"))
         self.assertEqual(rows["doc.pdf"]["puid"], "fmt/18")
         events = catalog.Home(self.home).load().events_for(disc_id)
@@ -801,11 +801,11 @@ class MakeTest(unittest.TestCase):
 
 
 class Udf250Test(unittest.TestCase):
-    """--filesystem udf250: the same disc contents, as a UDF 2.50 image built by lib/udfmake."""
+    """--filesystem udf250: the same disc contents, as a UDF 2.50 image built by src/udfmake."""
 
     def setUp(self):
         if not udfmake_available():
-            self.skipTest("udfmake (lib/udfmake) and 7z required")
+            self.skipTest("udfmake (src/udfmake) and 7z required")
         self.tmp = tempfile.mkdtemp()
         self.home = os.path.join(self.tmp, "home")
         self.src = os.path.join(self.tmp, "Projects")
@@ -934,7 +934,7 @@ class LLMTest(unittest.TestCase):
         shutil.rmtree(self.tmp)
 
     def test_suggest_parses_and_filters(self):
-        from archivetool import describe, llm
+        from arv import describe, llm
         entries = describe.folder_entries(self.src)
         inv = llm.inventory(entries, "Trip", text_root=self.src)
         self.assertIn("Pictures from our holiday.", inv)  # README text is included
@@ -945,7 +945,7 @@ class LLMTest(unittest.TestCase):
         self.assertEqual(self.fake.requests[0]["model"], "fake-model")  # picked from /models
 
     def test_fenced_json_and_bad_json(self):
-        from archivetool import llm
+        from arv import llm
         self.fake.reply = "Sure!\n```json\n" + json.dumps(REPLY) + "\n```"
         self.assertEqual(llm.suggest(llm.Client(self.fake.url), "inv")["title"], "Family trip photos 2019")
         self.fake.reply = "I cannot help with that."
@@ -953,7 +953,7 @@ class LLMTest(unittest.TestCase):
             llm.suggest(llm.Client(self.fake.url), "inv")
 
     def test_refuses_remote_server(self):
-        from archivetool import llm
+        from arv import llm
         with self.assertRaises(llm.LLMError):
             llm.Client("http://203.0.113.5:11434/v1")
         llm.Client("http://203.0.113.5:11434/v1", allow_remote=True)  # explicit opt-in
@@ -980,7 +980,7 @@ class LLMTest(unittest.TestCase):
         self.assertIn("data/photos/2019 trip/", out)
 
     def test_interactive_questions_refine_and_review(self):
-        from archivetool import describe, llm
+        from arv import describe, llm
         client = llm.Client(self.fake.url)
         entries = describe.folder_entries(self.src)
         replies = iter(["Kyoto, Japan", "",   # round 1: answer the first question, skip the second
@@ -1060,18 +1060,18 @@ class VisionTest(unittest.TestCase):
         shutil.rmtree(self.tmp)
 
     def test_sampling(self):
-        from archivetool import describe, vision
+        from arv import describe, vision
         picked = vision.sample(describe.folder_entries(self.src), per_folder=3)
         self.assertEqual([e.path.rsplit("/", 1)[1] for e in picked["photos/beach day"]],
                          ["IMG_0.png", "IMG_1.png", "IMG_3.png"])  # evenly spaced
 
     def test_vision_is_local_only(self):
-        from archivetool import llm, vision
+        from arv import llm, vision
         with self.assertRaises(llm.LLMError):
             vision.VisionClient("http://203.0.113.5:11434/v1")
 
     def test_parse_image_replies(self):
-        from archivetool import vision
+        from arv import vision
         self.assertEqual(vision.parse_image_reply("Caption: A dog on grass.\nTags: Dog, grass, dog, park."),
                          {"caption": "A dog on grass.", "tags": ["dog", "grass", "park"]})
         self.assertEqual(vision.parse_image_reply('{"caption": "A cat.", "tags": "cat; pet"}'),
@@ -1127,7 +1127,7 @@ print(json.dumps(out))
 
 class TagTest(unittest.TestCase):
     def setUp(self):
-        from archivetool import models
+        from arv import models
         self.tmp = tempfile.mkdtemp()
         self.home = os.path.join(self.tmp, "home")
         self.binary = os.path.join(self.tmp, "llama-embedding")
@@ -1151,18 +1151,18 @@ class TagTest(unittest.TestCase):
         write(os.path.join(self.src, "beach trip", "DSC_0001.JPG"), "x", 2020)
 
     def tearDown(self):
-        from archivetool import models
+        from arv import models
         models.MODELS.pop("test-model", None)
         shutil.rmtree(self.tmp)
 
     def tagger(self):
-        from archivetool import catalog, models, tagger
+        from arv import catalog, models, tagger
         home = catalog.Home(self.home)
         models.install_model_file(home, "test-model", self.model_file)
         return tagger.Tagger(home, self.binary, model_name="test-model", vocab_file=self.vocab)
 
     def test_suggest_and_camera_names_ignored(self):
-        from archivetool import describe, tagger
+        from arv import describe, tagger
         texts = tagger.summaries(describe.folder_entries(self.src), self.src)
         self.assertNotIn("DSC", texts["beach trip"])
         got = self.tagger().suggest(texts, top=1)
@@ -1170,7 +1170,7 @@ class TagTest(unittest.TestCase):
                          {"cats and kittens": "pets", "scripts": "code", "beach trip": "travel"})
 
     def test_learns_from_reviews(self):
-        from archivetool import bag, tagger
+        from arv import bag, tagger
         t = self.tagger()
         seen = tagger.summaries([bag.Entry("kyoto temples garden/a.jpg", 1, 0)])
         t.remember(seen, {"kyoto temples garden": ["japan"]})
@@ -1181,7 +1181,7 @@ class TagTest(unittest.TestCase):
         self.assertNotIn("japan", [x for x, _ in got["scripts"]])
 
     def test_model_checksum_is_enforced(self):
-        from archivetool import catalog, models
+        from arv import catalog, models
         bad = os.path.join(self.tmp, "bad.gguf")
         with open(bad, "wb") as f:
             f.write(b"something else")
@@ -1189,7 +1189,7 @@ class TagTest(unittest.TestCase):
             models.install_model_file(catalog.Home(self.home), "test-model", bad)
 
     def test_cli_save_draft_and_apply_to_disc(self):
-        from archivetool import catalog, models
+        from arv import catalog, models
         models.install_model_file(catalog.Home(self.home), "test-model", self.model_file)
         opts = ["--llama-embedding", self.binary, "--model", "test-model", "--vocab", self.vocab]
         draft = os.path.join(self.tmp, "d.json")
@@ -1213,7 +1213,7 @@ class TagTest(unittest.TestCase):
         self.assertIn("embeddings:test-model (unreviewed)", [e.get("Agent") for e in events])
 
     def test_rules_only_and_aliases_in_review(self):
-        from archivetool import catalog as cat_mod, tagger
+        from arv import catalog as cat_mod, tagger
         with open(self.vocab, "a", encoding="utf-8") as f:
             f.write("Alias: holiday\n\nName: electronics\nDescription: circuits\nMatch: *.kicad_pcb\n")
         write(os.path.join(self.src, "board", "x.kicad_pcb"), "x", 2020)
@@ -1230,7 +1230,7 @@ class TagTest(unittest.TestCase):
         self.assertEqual(result["agent"], "match rules (unreviewed)")
 
     def test_embeddings_api_engine(self):
-        from archivetool import catalog, tagger
+        from arv import catalog, tagger
         import math
         fake = FakeLLM({})
         try:
@@ -1246,7 +1246,7 @@ class TagTest(unittest.TestCase):
 class GuiTest(unittest.TestCase):
     def setUp(self):
         import threading
-        from archivetool import gui
+        from arv import gui
         self.tmp = tempfile.mkdtemp()
         self.home = os.path.join(self.tmp, "home")
         self.server, self.url = gui.serve(self.home, 0, open_browser=False)

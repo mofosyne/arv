@@ -12,7 +12,7 @@ real personal data).
 | `PROJ-01_2020-2023_L` | `--set project` resolves to **PROJ** through its alias; the vocabulary's `Match` rules added **CODE** and **ELEC** from the files (C sources, KiCad board, gerbers, a git repository) |
 | `TAXES-01_2019-2020_I` | **sealed**: later discs carry only its id, dates and location, never its title or file list; kept in the fire safe |
 | `SCAN-01…03_1995-2008` | `--set scan --category letters` (under both MEMORIES and RECORDS), **split** over three discs (`Bag-Count: n of 3`) |
-| `FAMILY-01_2020-2021_K` | a **UDF 2.50** image (`--filesystem udf250`, built by `lib/udfmake`); made last, so it carries the whole catalogue |
+| `FAMILY-01_2020-2021_K` | a **UDF 2.50** image (`--filesystem udf250`, built by `src/udfmake`); made last, so it carries the whole catalogue |
 
 `home/` is the catalogue these were made into, as `archive` keeps it (without the
 disposable SQLite index), including locations, burned copies and notes recorded
@@ -61,7 +61,7 @@ repaired back to a byte-identical image.
 ## Remake
 
 ```sh
-make -C lib/udfmake                  # once
+make -C src/udfmake                  # once
 samples/make-samples.sh              # needs genisoimage, git and dvdisaster Light or speed47 on PATH
 ```
 

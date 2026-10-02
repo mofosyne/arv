@@ -1,10 +1,10 @@
 #!/bin/sh
 # Reproduce BUG-REPORT.md against UNMODIFIED NetBSD sources, on Linux.
 #
-#   third_party/netbsd-makefs-udf/repro/repro.sh [WORKDIR]
+#   src/udfmake/upstream/repro/repro.sh [WORKDIR]
 #
 # Fetches NetBSD src at the pinned commit (only the directories makefs -t udf
-# needs), builds it with the Linux glue from lib/udfmake (compat headers and
+# needs), builds it with the Linux glue from src/udfmake (compat headers and
 # stubs only; the NetBSD files themselves are used as fetched), then:
 #   1. fortified build (-D_FORTIFY_SOURCE=2)   -> expect abort in udf_set_regid (bug 2)
 #   2. AddressSanitizer build                  -> expect heap-buffer-overflow via udf_copy_file (bug 1)
@@ -20,14 +20,14 @@ NETBSD_REPO=https://github.com/NetBSD/src.git
 NETBSD_REV=477d71b4d1b73a66b61a03b5f6d3dc9212d4f888
 
 here=$(cd "$(dirname "$0")" && pwd)
-root=$(cd "$here/../../.." && pwd)
-lib=$root/lib/udfmake
+root=$(cd "$here/../../../.." && pwd)
+lib=$root/src/udfmake
 work=${1:-$(mktemp -d)}
 mkdir -p "$work"
 work=$(cd "$work" && pwd)
 echo "work directory: $work"
 
-# The NetBSD files lib/udfmake uses, at their upstream paths
+# The NetBSD files src/udfmake uses, at their upstream paths
 FILES="usr.sbin/makefs/makefs.c usr.sbin/makefs/makefs.h usr.sbin/makefs/walk.c
 usr.sbin/makefs/udf.c usr.sbin/makefs/udf/cdio_mmc_structs.h usr.sbin/mtree/mtree.h
 sbin/newfs_udf/udf_core.c sbin/newfs_udf/udf_core.h sbin/newfs_udf/newfs_udf.h
