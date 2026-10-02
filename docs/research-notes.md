@@ -388,6 +388,72 @@ to external software; here every disc carries the whole library's index too.
 - read Piql's control-frame fields and iVM design before writing the multi-disc catalogue spec
   and the WebAssembly runtime plan.
 
+#### Piql in more detail: what is open, and the lessons we take
+
+Looked at 2026-10-02: piql/afs (`290567c`), piql/unbox, piql/unboxing and immortalvm/boxing
+(boxinglib), immortalvm/ivm-doc and an iVM emulator.
+
+**Open reader, closed writer.**
+
+| Piece | Public? |
+|---|---|
+| Decoding the 2D barcode frames from scanned film (boxinglib: "a library for **decoding** high-capacity 2D barcode images"; the source has an unboxer, no boxer) | yes, GPLv3 |
+| Error-correction codecs (Reed-Solomon, LDPC, interleaving), both directions | yes, as building blocks only |
+| Rendering data into film frames for the film writer | not found in any public Piql or immortalvm repository |
+| AFS table of contents and control data, read *and* write (`afs_toc_data_save_file` and similar) | yes, GPLv3 |
+| iVM: documentation, ISA, emulators, a C compiler (ivm64), Coq specification | yes (licences of the immortalvm repositories not checked) |
+
+Anyone can read a reel forever, but making one goes through Piql's service and equipment. A
+fair business model, and the reader is what the future needs, but creation depends on one
+vendor. **This project is open on both ends:** anyone can make a disc as well as read one, with
+ordinary burners and open tools (udfmake, dvdisaster, BagIt, this tool), and every disc carries
+the source of the tools that made it.
+
+**AFS keeps files untouched.** Each file in the table of contents is one contiguous byte run:
+
+| AFS file entry (`tocdatafile.xsd`) | Here |
+|---|---|
+| `id`, `uniqueId`, `name`, `parentId` (folder tree) | path in the listing; disc UUID + path |
+| `date`, `size` | listing |
+| `checksum` (SHA-1 by default) | SHA-256 in the BagIt manifest |
+| `formatId` | PRONOM id (Siegfried) |
+| `metadata` sources, in any format or pointing to another file | tags, collections, catalogue records |
+| `start` / `end` as (frame, byte) | **not recorded yet**: where the file sits on the medium |
+
+**iVM** (Immortal Virtual Machine; [Piql's page](https://www.piql.com/about/research-and-development/preservation-virtual-machine/),
+[immortalvm](https://github.com/immortalvm)): a 64-bit stack machine of about 41 instructions,
+described twice for posterity (a step-by-step building guide assuming little knowledge, and an
+ISA), with a Coq formal specification; one emulator is about 2,800 lines of C. Programs can be
+kept as human-readable hex to be typed back in. Its devices are image frames in and out, audio,
+text and bytes out; input arrives as scanned image frames, not files.
+
+| | iVM | WASM (WASI) |
+|---|---|---|
+| Re-implementing from paper | designed for it: ~41 instructions | hard: hundreds of instructions, validation, WASI |
+| File input | none (image frames, text) | ordinary files |
+| Speed | interpreted | near native (our 1 GiB RS03 repair is practical) |
+| Toolchain today | own GCC port, small community | clang, Rust, many runtimes, browsers |
+
+Not a replacement for WASM: WASM stays the practical layer for tools that must run fast now
+(verify, repair, read UDF). iVM's *approach* fits a last-resort layer: a tiny, fully documented
+machine and a minimal decoder for the most essential job (extract files, check hashes), so a
+reader can be rebuilt from the disc's own documentation. Related prior art: VXA, "a virtual
+architecture for durable compressed archives" ([MIT PDOS, FAST 2005](https://pdos.csail.mit.edu/papers/vxa:fast05/)),
+which stores each archive's decoders inside the archive.
+
+**Lessons we take from Piql** (without their film or barcode layer):
+1. **A bootstrap on the medium:** everything needed to start decoding is on the volume itself
+   (our README, catalogue and tools).
+2. **A visual layer readable without a computer:** a printable summary of each disc.
+3. **A table of contents of untouched files with positions:** add each file's location on the
+   medium (sector extents for a disc), kept on the disc and in every later disc's catalogue, so
+   files can be cut out of a raw image even if the filesystem's own records are lost. Positions
+   are a property of the medium; the file list and hashes are not.
+4. **Two independent descriptions of anything a future reader must re-implement** (iVM has a
+   building guide and an ISA): for RS03 and our catalogue format as well as for any runtime.
+5. **A decoder that travels with the data,** kept small enough to re-implement (iVM, VXA): our
+   WASM tools now, possibly an iVM-style minimal layer later.
+
 ## 8. RS03 tools compared: dvdisaster, dvdisaster Light, lcsas-ecc (measured 2026-10-01)
 
 Three implementations of dvdisaster's RS03 format, run on our seven sample discs:
