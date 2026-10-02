@@ -195,7 +195,8 @@ All tiers remain optional, suggestion-only, and recorded as PREMIS events with t
 
 ## Design: four layers, and a binding per volume (2026-10-02; Binding done)
 
-Blu-ray and UDF are today's medium, not the format (philosophy.md, principle 4).
+Blu-ray and UDF are today's medium, not the format (philosophy.md, principle 4). Drawn and
+explained in [architecture.md](architecture.md).
 
 | Layer | What it is | Depends on the medium? |
 |---|---|---|

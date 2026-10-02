@@ -1,0 +1,142 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1240' height='1030' viewBox='0 0 1240 1030'>
+<rect width='100%' height='100%' fill='#ffffff'/>
+<text x='620.0' y='36' font-size='22' font-weight='bold' fill='#1f2328' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>Four layers, one boundary</text>
+<text x='620.0' y='60' font-size='13' font-weight='normal' fill='#57606a' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>What an archive disc is made of, how it is made, and how it is read back without this tool</text>
+<text x='20' y='100' font-size='13' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>Making a disc (arv make)</text>
+<text x='620.0' y='100' font-size='13' font-weight='bold' fill='#1f2328' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>On every disc</text>
+<text x='1220' y='100' font-size='13' font-weight='bold' fill='#1f2328' text-anchor='end' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>Reading and repairing it</text>
+<rect x='284' y='114' width='672' height='110' rx='6' fill='#e3f1e3' stroke='#2f6b34' stroke-width='1.5'/>
+<text x='298' y='136' font-size='14' font-weight='bold' fill='#2f6b34' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>1  CONTENT</text>
+<text x='944' y='136' font-size='11' font-weight='normal' fill='#2f6b34' text-anchor='end' font-style='italic' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>independent of the medium</text>
+<text x='298' y='160' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>data/</text>
+<text x='522' y='160' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>your files, untouched: never moved, renamed or packed</text>
+<text x='298' y='178' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>manifest-sha256.txt</text>
+<text x='522' y='178' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>a hash per file (sha256sum -c works); sha512 too</text>
+<text x='298' y='196' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>bagit.txt, bag-info.txt</text>
+<text x='522' y='196' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>BagIt (RFC 8493), a package archives already take</text>
+<rect x='284' y='234' width='672' height='176' rx='6' fill='#dfeaf8' stroke='#2f5d8a' stroke-width='1.5'/>
+<text x='298' y='256' font-size='14' font-weight='bold' fill='#2f5d8a' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>2  DESCRIPTION</text>
+<text x='944' y='256' font-size='11' font-weight='normal' fill='#2f5d8a' text-anchor='end' font-style='italic' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>independent of the medium</text>
+<text x='298' y='280' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>catalog.rec</text>
+<text x='522' y='280' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>entry point: this Disc, its Binding, its Events</text>
+<text x='298' y='298' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>catalog/archive.rec</text>
+<text x='522' y='298' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>the whole archive at burn time, by access level</text>
+<text x='298' y='316' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>catalog/volumes/&lt;id&gt;/</text>
+<text x='522' y='316' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>every disc's listing, manifest, tags, formats</text>
+<text x='298' y='334' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>README.txt, index.html</text>
+<text x='522' y='334' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>how to check, repair and search; a viewer</text>
+<text x='298' y='352' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>tools/</text>
+<text x='522' y='352' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>the source of the tools that made this disc</text>
+<text x='298' y='370' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>tagmanifest-sha256.txt</text>
+<text x='522' y='370' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>hashes of everything above except data/</text>
+<text x='298' y='400' font-size='11' font-weight='normal' fill='#2f5d8a' text-anchor='start' font-style='italic' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>Plain text: recfiles and TSV. At home the same catalog/ lives in a .arv folder beside your files.</text>
+<line x1='284' y1='470' x2='956' y2='470' stroke='#1f2328' stroke-width='4'/>
+<text x='288' y='444' font-size='12' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>Above: the archive. It never depends</text>
+<text x='288' y='460' font-size='12' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>on anything below.</text>
+<text x='288' y='492' font-size='12' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>Below: how one volume is stored. New medium,</text>
+<text x='288' y='508' font-size='12' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>new binding; nothing above changes.</text>
+<rect x='640' y='430' width='316' height='80' rx='6' fill='#fff8e1' stroke='#1f2328' stroke-width='2'/>
+<text x='798.0' y='450' font-size='13' font-weight='bold' fill='#1f2328' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>Binding record (in the catalogue)</text>
+<text x='798.0' y='470' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='middle' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>Volume  Container  Protection</text>
+<text x='798.0' y='486' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='middle' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>Media  Filesystem  Ecc  MediumSectors</text>
+<text x='798.0' y='503' font-size='11' font-weight='normal' fill='#57606a' text-anchor='middle' font-style='italic' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>the only place the medium is named</text>
+<rect x='284' y='520' width='672' height='104' rx='6' fill='#f8ead8' stroke='#8a5a1f' stroke-width='1.5'/>
+<text x='298' y='542' font-size='14' font-weight='bold' fill='#8a5a1f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>3  CONTAINER</text>
+<text x='944' y='542' font-size='11' font-weight='normal' fill='#8a5a1f' text-anchor='end' font-style='italic' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>depends on the medium</text>
+<text x='298' y='566' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>hybrid (default)</text>
+<text x='522' y='566' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>ISO 9660 + Rock Ridge + Joliet, UDF 1.02 bridge</text>
+<text x='298' y='584' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>udf250</text>
+<text x='522' y='584' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>UDF 2.50, Blu-ray layout (lib/udfmake)</text>
+<text x='298' y='610' font-size='11' font-weight='normal' fill='#8a5a1f' text-anchor='start' font-style='italic' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>other bindings later:</text>
+<rect x='455' y='596' width='44.8' height='20' rx='10' fill='#ffffff' stroke='#8a5a1f' stroke-width='1' stroke-dasharray='4 3'/>
+<text x='477.4' y='610' font-size='11' font-weight='normal' fill='#8a5a1f' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>LTFS</text>
+<rect x='507.8' y='596' width='52.0' height='20' rx='10' fill='#ffffff' stroke='#8a5a1f' stroke-width='1' stroke-dasharray='4 3'/>
+<text x='533.8' y='610' font-size='11' font-weight='normal' fill='#8a5a1f' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>exFAT</text>
+<rect x='567.8' y='596' width='37.6' height='20' rx='10' fill='#ffffff' stroke='#8a5a1f' stroke-width='1' stroke-dasharray='4 3'/>
+<text x='586.5999999999999' y='610' font-size='11' font-weight='normal' fill='#8a5a1f' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>tar</text>
+<rect x='613.4' y='596' width='73.6' height='20' rx='10' fill='#ffffff' stroke='#8a5a1f' stroke-width='1' stroke-dasharray='4 3'/>
+<text x='650.1999999999999' y='610' font-size='11' font-weight='normal' fill='#8a5a1f' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>Piql AFS</text>
+<rect x='284' y='634' width='672' height='132' rx='6' fill='#f8e0dc' stroke='#8a3a2f' stroke-width='1.5'/>
+<text x='298' y='656' font-size='14' font-weight='bold' fill='#8a3a2f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>4  PROTECTION</text>
+<text x='944' y='656' font-size='11' font-weight='normal' fill='#8a3a2f' text-anchor='end' font-style='italic' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>depends on the medium</text>
+<text x='298' y='678' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>RS03 augmented image (dvdisaster Light): Reed-Solomon over the whole image,</text>
+<text x='298' y='694' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>filesystem included, sized to fill the medium (at least 20% redundancy).</text>
+<rect x='298' y='706' width='386.4' height='26' rx='0' fill='#ffffff' stroke='#8a3a2f' stroke-width='1'/>
+<text x='491.2' y='723' font-size='10.5' font-weight='normal' fill='#8a3a2f' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>filesystem: files + catalogue</text>
+<rect x='684.4' y='706' width='25.8' height='26' rx='0' fill='#f3f3f3' stroke='#8a3a2f' stroke-width='1'/>
+<rect x='710.2' y='706' width='16.1' height='26' rx='0' fill='#f2c9c2' stroke='#8a3a2f' stroke-width='1'/>
+<text x='718.2099999999999' y='723' font-size='10.5' font-weight='normal' fill='#8a3a2f' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>H</text>
+<rect x='726.3' y='706' width='35.4' height='26' rx='0' fill='#eab3aa' stroke='#8a3a2f' stroke-width='1'/>
+<text x='743.97' y='723' font-size='10.5' font-weight='normal' fill='#8a3a2f' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>CRC</text>
+<rect x='761.7' y='706' width='180.3' height='26' rx='0' fill='#dd9184' stroke='#8a3a2f' stroke-width='1'/>
+<text x='851.8399999999999' y='723' font-size='10.5' font-weight='normal' fill='#8a3a2f' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>RS03 error correction</text>
+<text x='298' y='752' font-size='10.5' font-weight='normal' fill='#57606a' text-anchor='start' font-style='italic' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>Padding, header (H), CRC layer and ECC follow the filesystem; a reader that knows nothing of RS03 just sees the filesystem.</text>
+<rect x='284' y='776' width='672' height='144' rx='6' fill='#ececec' stroke='#444444' stroke-width='1.5'/>
+<text x='298' y='798' font-size='14' font-weight='bold' fill='#444444' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>5  MEDIUM</text>
+<text x='944' y='798' font-size='11' font-weight='normal' fill='#444444' text-anchor='end' font-style='italic' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>today: Blu-ray</text>
+<circle cx='344' cy='844' r='30' fill='#f6f6f6' stroke='#444' stroke-width='1.5'/>
+<circle cx='344' cy='844' r='6' fill='#ffffff' stroke='#444' stroke-width='1.2'/>
+<text x='384' y='848' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>copy 1: home</text>
+<circle cx='534' cy='844' r='30' fill='#f6f6f6' stroke='#444' stroke-width='1.5'/>
+<circle cx='534' cy='844' r='6' fill='#ffffff' stroke='#444' stroke-width='1.2'/>
+<text x='574' y='848' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>copy 2: off-site</text>
+<text x='724' y='828' font-size='12' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>M-DISC BD-R, 25 or 100 GB</text>
+<text x='724' y='846' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>identical copies of one image;</text>
+<text x='724' y='862' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>copies can rebuild each other</text>
+<text x='298' y='902' font-size='11' font-weight='normal' fill='#444444' text-anchor='start' font-style='italic' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>other media later:</text>
+<rect x='434' y='888' width='73.6' height='20' rx='10' fill='#ffffff' stroke='#444444' stroke-width='1' stroke-dasharray='4 3'/>
+<text x='470.8' y='902' font-size='11' font-weight='normal' fill='#444444' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>LTO tape</text>
+<rect x='515.6' y='888' width='95.2' height='20' rx='10' fill='#ffffff' stroke='#444444' stroke-width='1' stroke-dasharray='4 3'/>
+<text x='563.2' y='902' font-size='11' font-weight='normal' fill='#444444' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>hard drives</text>
+<rect x='618.8000000000001' y='888' width='95.2' height='20' rx='10' fill='#ffffff' stroke='#444444' stroke-width='1' stroke-dasharray='4 3'/>
+<text x='666.4000000000001' y='902' font-size='11' font-weight='normal' fill='#444444' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>film (Piql)</text>
+<line x1='270' y1='114' x2='270' y2='914' stroke='#57606a' stroke-width='3'/>
+<path d='M263,905 L277,905 L270,915.8 Z' fill='#57606a'/>
+<rect x='20' y='116' width='236' height='44' rx='6' fill='#ffffff' stroke='#2f6b34' stroke-width='1.2'/>
+<text x='30' y='135' font-size='11' font-weight='bold' fill='#2f6b34' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>1 scan and hash</text>
+<text x='30' y='151' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>names checked for each image type</text>
+<rect x='20' y='170' width='236' height='44' rx='6' fill='#ffffff' stroke='#2f6b34' stroke-width='1.2'/>
+<text x='30' y='189' font-size='11' font-weight='bold' fill='#2f6b34' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>2 bag it (BagIt)</text>
+<text x='30' y='205' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>the folder itself is never changed</text>
+<rect x='20' y='238' width='236' height='44' rx='6' fill='#ffffff' stroke='#2f5d8a' stroke-width='1.2'/>
+<text x='30' y='257' font-size='11' font-weight='bold' fill='#2f5d8a' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>3 describe</text>
+<text x='30' y='273' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>set, title, tags, access level</text>
+<rect x='20' y='292' width='236' height='60' rx='6' fill='#ffffff' stroke='#2f5d8a' stroke-width='1.2'/>
+<text x='30' y='311' font-size='11' font-weight='bold' fill='#2f5d8a' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>4 snapshot the catalogue</text>
+<text x='30' y='327' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>every disc so far, minus sealed</text>
+<text x='30' y='343' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>detail; add tools/ and README</text>
+<rect x='20' y='524' width='236' height='44' rx='6' fill='#ffffff' stroke='#8a5a1f' stroke-width='1.2'/>
+<text x='30' y='543' font-size='11' font-weight='bold' fill='#8a5a1f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>5 build the image</text>
+<text x='30' y='559' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>genisoimage, or udfmake</text>
+<rect x='20' y='638' width='236' height='44' rx='6' fill='#ffffff' stroke='#8a3a2f' stroke-width='1.2'/>
+<text x='30' y='657' font-size='11' font-weight='bold' fill='#8a3a2f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>6 add RS03</text>
+<text x='30' y='673' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>dvdisaster Light</text>
+<rect x='20' y='692' width='236' height='44' rx='6' fill='#ffffff' stroke='#8a3a2f' stroke-width='1.2'/>
+<text x='30' y='711' font-size='11' font-weight='bold' fill='#8a3a2f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>7 verify the image</text>
+<text x='30' y='727' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>dvdisaster -t</text>
+<rect x='20' y='780' width='236' height='44' rx='6' fill='#ffffff' stroke='#444444' stroke-width='1.2'/>
+<text x='30' y='799' font-size='11' font-weight='bold' fill='#444444' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>8 burn two or more copies</text>
+<text x='30' y='815' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>keep them apart; arv burned</text>
+<line x1='970' y1='914' x2='970' y2='114' stroke='#57606a' stroke-width='3'/>
+<path d='M963,123 L977,123 L970,112.2 Z' fill='#57606a'/>
+<rect x='984' y='780' width='236' height='60' rx='6' fill='#ffffff' stroke='#444444' stroke-width='1.2'/>
+<text x='994' y='799' font-size='11' font-weight='bold' fill='#444444' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>1 read the disc to an image</text>
+<text x='994' y='815' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>dvdisaster -r; read copy B into</text>
+<text x='994' y='831' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>copy A's image to fill its gaps</text>
+<rect x='984' y='638' width='236' height='44' rx='6' fill='#ffffff' stroke='#8a3a2f' stroke-width='1.2'/>
+<text x='994' y='657' font-size='11' font-weight='bold' fill='#8a3a2f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>2 repair the image</text>
+<text x='994' y='673' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>dvdisaster -f</text>
+<rect x='984' y='524' width='236' height='44' rx='6' fill='#ffffff' stroke='#8a5a1f' stroke-width='1.2'/>
+<text x='994' y='543' font-size='11' font-weight='bold' fill='#8a5a1f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>3 open it</text>
+<text x='994' y='559' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>mount, or 7-Zip: no tool of ours</text>
+<rect x='984' y='238' width='236' height='60' rx='6' fill='#ffffff' stroke='#2f5d8a' stroke-width='1.2'/>
+<text x='994' y='257' font-size='11' font-weight='bold' fill='#2f5d8a' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>4 understand and search</text>
+<text x='994' y='273' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>README.txt, index.html;</text>
+<text x='994' y='289' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>arv find, or grep catalog/</text>
+<rect x='984' y='116' width='236' height='44' rx='6' fill='#ffffff' stroke='#2f6b34' stroke-width='1.2'/>
+<text x='994' y='135' font-size='11' font-weight='bold' fill='#2f6b34' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>5 check every file</text>
+<text x='994' y='151' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>sha256sum -c, or bagit.py</text>
+<text x='620.0' y='960' font-size='13' font-weight='normal' fill='#1f2328' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>Every disc stands alone: any one disc, on any computer, holds its files, the whole catalogue,</text>
+<text x='620.0' y='980' font-size='13' font-weight='normal' fill='#1f2328' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>the source of its tools and the steps to repair it.</text>
+<text x='620.0' y='1012' font-size='10.5' font-weight='normal' fill='#57606a' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>Drawn by docs/img/architecture-svg.py</text>
+</svg>
