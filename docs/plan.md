@@ -5,6 +5,9 @@ Working plan for turning the scripts into an `archive` tool. Background is in
 
 ## Principles
 
+The project's overall philosophy is in [philosophy.md](philosophy.md); these are the technical
+principles that follow from it.
+
 1. **Plain text is the source of truth.** Everything else (SQLite, HTML,
    RO-Crate) is generated and can be rebuilt.
 2. **Every disc stands alone.** It can be verified, browsed and understood with
