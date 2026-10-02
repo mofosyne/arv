@@ -64,7 +64,7 @@ Each layer does its own job:
 | `tests/` | `python3 -m unittest discover -s tests`; `tests/smoke-test.sh` for the original scripts |
 | `scripts/` | The original shell scripts, before ARV (see [Without arv](#without-arv-the-original-scripts)) |
 
-`samples/` has eight small sample discs made with the full workflow (46 MB, with
+`samples/` has seven small sample discs made with the full workflow (40 MB, with
 RS03 error correction) and their catalogue: try `./arv --home samples/home list`.
 
 `docs/plan.md` has the disc layout, phased plan and open decisions.
