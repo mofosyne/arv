@@ -21,7 +21,10 @@ Everything else follows from six principles:
    few moving parts as possible.
 4. **The format is the product; the tool is replaceable.** Open standards, plain
    text and written specifications outlive programs. Every disc carries the
-   source of the tools that made it, and nothing on a disc requires them.
+   source of the tools that made it, and nothing on a disc requires them. **Open on
+   both ends:** anyone can make a volume as well as read one, with ordinary
+   equipment and open tools, unlike archives whose reader is open but whose writer
+   belongs to one vendor (research-notes.md, Piql).
 5. **People decide; tools propose.** Automation (sorting, tagging, choosing what
    to archive) only makes suggestions, runs locally, and is never needed to read
    a disc.
