@@ -136,7 +136,12 @@ archive, a company records system) should be routine, not a rescue. So:
   relative to `data/`, SHA-256 for every file;
 - **exports, not rewrites:** an RO-Crate description already exists
   (`--ro-crate`); a METS/PREMIS export can be added the same way when someone
-  needs it, generated from the recfiles rather than replacing them.
+  needs it, generated from the recfiles rather than replacing them;
+- **a path to Piql:** an organisation that wants film storage later should not
+  have to start over. Piql's ingest (PiqlConnect) is built on Archivematica,
+  which takes BagIt bags as they are; and our per-file records are kept mappable
+  to the AFS table of contents, so an AFS export (or an `afs` binding) stays a
+  small step.
 
 Anything we invent that has no standard counterpart (importance per audience,
 cascading appraisals, the catalogue snapshot on every disc) is documented in
