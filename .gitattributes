@@ -1,2 +1,3 @@
 # Not part of the tool snapshot that `arv make` puts on every disc (git archive HEAD)
 samples/discs export-ignore
+samples/home export-ignore
