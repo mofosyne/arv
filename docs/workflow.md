@@ -67,7 +67,7 @@ poorly; worth it only for a subset you want watched file by file.
 | Need | For | How |
 |---|---|---|
 | Python 3 | everything (standard library only) | usually installed |
-| `arv` | the tool | `make install PREFIX=~/.local` in this repository (or run `./arv` from it) |
+| `arv` | the tool | `make install PREFIX=~/.local` in this repository (or run `./arv` from it); `make uninstall PREFIX=~/.local` removes it and leaves your catalogues alone |
 | `genisoimage` | the default hybrid image | `apt install genisoimage` |
 | `dvdisaster` | RS03 error correction | [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) or the [speed47 fork](https://github.com/speed47/dvdisaster) fill a whole BD (byte-identical results); the stock 0.79.10 build works but pads to the smallest standard size |
 | `udfmake` | only for `--filesystem udf250` | installed by `make install` (a C compiler; nothing else) |

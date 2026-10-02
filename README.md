@@ -94,8 +94,19 @@ arv --help
 ```
 
 `make install` copies the last commit (exactly the tree every disc carries in `tools/`) to
-`PREFIX/share/arv`, and puts `arv` and `udfmake` in `PREFIX/bin`. `make uninstall` removes
-them. Without installing, `./arv` in a checkout does the same.
+`PREFIX/share/arv`, and puts `arv` and `udfmake` in `PREFIX/bin`. Without installing, `./arv`
+in a checkout does the same.
+
+### Uninstall
+
+```sh
+make uninstall PREFIX=~/.local   # or: sudo make uninstall   (use the PREFIX you installed with)
+```
+
+This removes `PREFIX/share/arv` and `PREFIX/bin/arv` and `udfmake`, and nothing else. Your
+catalogues are yours and stay where they are: each `.arv` folder (or `~/.local/share/arv`)
+and the list of homes in `~/.config/arv/`. Delete those yourself only if you no longer want
+the catalogue; every disc also carries a copy of it.
 
 ### Where the catalogue lives: `.arv`
 
