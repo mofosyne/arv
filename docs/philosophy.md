@@ -103,6 +103,34 @@ combine copies, repair, check, search. Each one does one step on plain files
 and has a written format behind it, so any of them can be replaced, and each
 can travel on the disc.
 
+## Plain text first, with a way into institutional systems (principle 4)
+
+The catalogue is plain, line-oriented text in the Unix tradition: recfiles for
+records, TSV for file lists, BagIt's text manifests. `cat`, `grep`, `diff` and
+`sort` work on all of it, damage loses lines rather than whole documents, and
+history is kept by appending records, not by editing them. The heavy
+institutional formats (METS XML, PREMIS XML, E-ARK, OCFL) solve problems a
+personal archive does not have, so they are not the source of truth.
+
+But moving the archive into such a system one day (a library, a national
+archive, a company records system) should be routine, not a rescue. So:
+- **the package is already one they take:** every disc is a BagIt bag, which
+  Archivematica and similar systems ingest as a transfer;
+- **field meanings come from their standards:** Dublin Core names for
+  description, PREMIS event types and preservation levels, PRONOM ids for file
+  formats, ISO 8601/EDTF dates. The crosswalk is in
+  [metadata-standards.md](metadata-standards.md), section 6;
+- **identifiers are stable and paths are plain:** disc ids plus UUIDs, file paths
+  relative to `data/`, SHA-256 for every file;
+- **exports, not rewrites:** an RO-Crate description already exists
+  (`--ro-crate`); a METS/PREMIS export can be added the same way when someone
+  needs it, generated from the recfiles rather than replacing them.
+
+Anything we invent that has no standard counterpart (importance per audience,
+cascading appraisals, the catalogue snapshot on every disc) is documented in
+[smart-archive-format.md](smart-archive-format.md), so an exporter knows what
+to carry over and where.
+
 ## Help is optional and local (principle 5)
 
 Language models can suggest descriptions and tags, but only running locally, and
