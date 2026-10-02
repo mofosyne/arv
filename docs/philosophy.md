@@ -141,7 +141,7 @@ to carry over and where.
 
 | | Owns the files | Describes the files |
 |---|---|---|
-| Examples | git, git-annex, restic/Borg repositories, sync and distributed file systems | this archive: the discs, and `.smart-archive/` beside the everyday tree |
+| Examples | git, git-annex, restic/Borg repositories, sync and distributed file systems | this archive: the discs, and `.arv/` beside the everyday tree |
 | Where the content is | in the tool's store (objects, packs, chunks), the tree holding links or managed copies | where it already was, as ordinary files |
 | To get a file back | the tool, often its exact version and settings | copy it |
 | If the tool breaks or is removed | the files can be stranded | nothing happens to the files |
@@ -150,7 +150,7 @@ In practice:
 - **The tool never moves, renames, links or rewrites the owner's files.** It reads
   them, hashes them and copies them onto discs.
 - **Its own data sits beside the files, not in their place:** the catalogue in a
-  `.smart-archive/` folder at the root of the tree, and on every disc. Deleting that
+  `.arv/` folder at the root of the tree, and on every disc. Deleting that
   folder leaves every file exactly as it was.
 - **Everything it writes must survive being copied anywhere:** between Windows,
   macOS and Linux, onto exFAT or NTFS drives and NAS shares. So no symlinks or hard
