@@ -66,14 +66,25 @@ poorly; worth it only for a subset you want watched file by file.
 
 | Need | For | How |
 |---|---|---|
-| Python 3.8+ | everything (standard library only) | usually installed |
+| Python 3 | everything (standard library only) | usually installed |
+| `arv` | the tool | `make install PREFIX=~/.local` in this repository (or run `./arv` from it) |
 | `genisoimage` | the default hybrid image | `apt install genisoimage` |
 | `dvdisaster` | RS03 error correction | [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) or the [speed47 fork](https://github.com/speed47/dvdisaster) fill a whole BD (byte-identical results); the stock 0.79.10 build works but pads to the smallest standard size |
-| `lib/udfmake` | only for `--filesystem udf250` | `make -C lib/udfmake` (a C compiler; nothing else) |
+| `udfmake` | only for `--filesystem udf250` | installed by `make install` (a C compiler; nothing else) |
 | optional | format IDs, tagging, descriptions | Siegfried (`sf`); `arv models fetch` for `arv tag`; a local LLM server for `arv describe` |
 
-The **home catalogue** is created on first use in `~/.local/share/bluray-archive`
-(or `$BLURAY_ARCHIVE_HOME`, or `--home`). It holds:
+The **home catalogue** is a `.arv` folder at the root of the tree it describes, for example
+the NAS share above your photos and projects:
+
+```sh
+cd /nas && arv init --name family --default   # creates /nas/.arv
+cd ~/git && arv init --pointer /nas/.arv      # another tree of the same archive: a pointer file
+arv where                                     # which home is used here, and why
+```
+
+`arv` finds it by walking up from the folder being archived or the current folder (past any
+`.git`), then falls back to the default home registered on this machine. Without `arv init`, a
+home is created on first use in `~/.local/share/arv`. It holds:
 - `config/`: your vocabularies (`sets.rec`, `tags.rec`);
 - `catalog/`: `archive.rec` (every disc, event and location) and `volumes/<disc-id>/` (each
   disc's manifest, listing, formats and tags), laid out exactly like `catalog/` on a disc;
