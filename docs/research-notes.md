@@ -49,7 +49,7 @@ dvdisaster 0.79.10, bagit-python 1.9.0).
 ### File name limits (measured 2026-09-30)
 
 What each directory tree on our discs keeps of a file name. The BagIt
-manifests always keep the exact names, and `archive names FOLDER` reports the
+manifests always keep the exact names, and `arv names FOLDER` reports the
 issues for a folder.
 
 | Tree | Read by | Longest name | Changed |
@@ -58,7 +58,7 @@ issues for a folder.
 | Rock Ridge | Linux, BSDs | 255 bytes (as the source) | nothing |
 | Joliet (`-joliet-long`) | Windows, macOS | 103 characters | `* : ; ? \` become `_`; the name ends at the first character beyond U+FFFF |
 | UDF 1.02 (genisoimage) | Windows, macOS | 103 characters | as Joliet |
-| UDF 2.50 (udfmake) | Windows Vista+, macOS, Linux | 254 characters, or 127 with any above U+00FF | nothing beyond U+FFFF can be stored (`archive make` refuses) |
+| UDF 2.50 (udfmake) | Windows Vista+, macOS, Linux | 254 characters, or 127 with any above U+00FF | nothing beyond U+FFFF can be stored (`arv make` refuses) |
 
 genisoimage needs `-input-charset utf-8`. Without it, in a C/POSIX locale,
 every non-ASCII name was garbled in the Joliet and UDF trees; this was fixed
@@ -269,7 +269,7 @@ commented, readable and editable by hand, and easy to append to.
 A page opened from `file://` has a `null` origin. Browsers then **block**
 `fetch`/`XMLHttpRequest` of `.rec`, `.tsv`, `.json` and `.wasm` files, and any
 `<script type="module">`. They **allow** classic `<script src>` (the pre-CORS rule)
-and files the user picks or drops (`FileReader`). So `archive make` derives small
+and files the user picks or drops (`FileReader`). So `arv make` derives small
 `.js` views (`discs.js`, `files/<id>.js`) from the catalogue, like the SQLite
 index. The recfiles and TSV themselves are never wrapped.
 
@@ -278,7 +278,7 @@ index. The recfiles and TSV themselves are never wrapped.
   which Chromium blocks on `file://` (tested: "blocked by CORS policy"). Making it
   work needs a bundling step, and adds about 270 KB of WebAssembly per tool, plus
   its JavaScript wrapper, to every disc. It would only cover the disc records,
-  because the file lists are TSV. It could suit `archive gui`, which is served
+  because the file lists are TSV. It could suit `arv gui`, which is served
   over http.
 - **Wrapping recfiles in `.js`** so the page can parse them: rejected. The
   recfiles stay exactly as they are.
@@ -457,7 +457,7 @@ which stores each archive's decoders inside the archive.
 ## 8. RS03 tools compared: dvdisaster, dvdisaster Light, lcsas-ecc (measured 2026-10-01)
 
 Three implementations of dvdisaster's RS03 format, run on our seven sample discs:
-- **dvdisaster 0.79.10-pl6, speed47 fork** (commit 9c5c616), what `archive make` uses now;
+- **dvdisaster 0.79.10-pl6, speed47 fork** (commit 9c5c616), what `arv make` uses now;
 - **dvdisaster Light 0.3.0** (teaching-droid, commit 6a481a6), an RS03-only CLI fork;
 - **lcsas-ecc** (LCSAS commit 0fb28e7, `recovery/src/lcsas-ecc/`), a 1,500-line C89
   verify/repair/augment tool, natively and as a WASI `.wasm` under Node.

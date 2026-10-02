@@ -5,7 +5,7 @@
 #   scripts/research/rs03/build-tools.sh [WORKDIR]
 #
 # Builds:
-#   speed47/      dvdisaster 0.79.10-pl6 (speed47 fork; what archive make uses today)
+#   speed47/      dvdisaster 0.79.10-pl6 (speed47 fork; what arv make uses today)
 #   light/        dvdisaster Light (teaching-droid; RS03-only CLI fork)
 #   lcsas-ecc     LCSAS's C89 RS03 verify/repair decoder (mikmorg/lcsas, recovery/src/lcsas-ecc)
 #   lcsas-ecc.wasm  the same as a WASI program, if clang has the wasm32 target and a WASI libc

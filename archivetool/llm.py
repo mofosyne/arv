@@ -1,6 +1,6 @@
 """Optional local-LLM help with descriptive metadata.
 
-Nothing here runs unless asked for (`archive describe`, `archive make --llm`,
+Nothing here runs unless asked for (`arv describe`, `arv make --llm`,
 or the GUI's "Suggest" buttons), and nothing is written without the user
 accepting it. The model gets a compact inventory of the folder or disc (names,
 counts, sizes, dates, extensions, and short README-style text files) and returns

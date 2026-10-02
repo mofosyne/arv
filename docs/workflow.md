@@ -14,10 +14,10 @@ Details live elsewhere and are linked:
 ```mermaid
 flowchart TD
     subgraph prepare [Prepare a folder]
-        A[Folder of files] --> N[archive names<br/>file names each image type keeps]
-        N --> T[optional: archive tag / describe<br/>folder tags, title, description]
+        A[Folder of files] --> N[arv names<br/>file names each image type keeps]
+        N --> T[optional: arv tag / describe<br/>folder tags, title, description]
     end
-    subgraph make [archive make]
+    subgraph make [arv make]
         T --> M1[scan + hash<br/>check names]
         M1 --> M2[classify<br/>Set, Categories, Paths]
         M2 --> M3[plan discs<br/>fit or split to the medium]
@@ -28,16 +28,16 @@ flowchart TD
     end
     subgraph keep [Keep]
         M7 --> B[burn the .iso yourself]
-        B --> R[archive burned / locate<br/>copies, where they are]
+        B --> R[arv burned / locate<br/>copies, where they are]
         R --> S[(discs on shelves)]
     end
     subgraph live [Live with it]
-        S --> F[archive find / list<br/>which disc, where]
-        S --> C[archive check on the drive<br/>every few years]
+        S --> F[arv find / list<br/>which disc, where]
+        S --> C[arv check on the drive<br/>every few years]
     end
     subgraph recover [Recover]
         C -- damage --> D[dvdisaster -r / -f<br/>repair from RS03]
-        S -- home catalogue lost --> RB[archive rebuild /media/disc]
+        S -- home catalogue lost --> RB[arv rebuild /media/disc]
         S -- tools lost --> P[plain tools:<br/>sha256sum, a browser, a text editor]
     end
 ```
@@ -70,7 +70,7 @@ poorly; worth it only for a subset you want watched file by file.
 | `genisoimage` | the default hybrid image | `apt install genisoimage` |
 | `dvdisaster` | RS03 error correction | [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) or the [speed47 fork](https://github.com/speed47/dvdisaster) fill a whole BD (byte-identical results); the stock 0.79.10 build works but pads to the smallest standard size |
 | `lib/udfmake` | only for `--filesystem udf250` | `make -C lib/udfmake` (a C compiler; nothing else) |
-| optional | format IDs, tagging, descriptions | Siegfried (`sf`); `archive models fetch` for `archive tag`; a local LLM server for `archive describe` |
+| optional | format IDs, tagging, descriptions | Siegfried (`sf`); `arv models fetch` for `arv tag`; a local LLM server for `arv describe` |
 
 The **home catalogue** is created on first use in `~/.local/share/bluray-archive`
 (or `$BLURAY_ARCHIVE_HOME`, or `--home`). It holds:
@@ -86,10 +86,10 @@ Back this folder up. It is small, and every disc also carries a copy of it (see
 Set up **where discs live** once. You can extend it later:
 
 ```sh
-archive location add HOME "Home"
-archive location add HOME-PRV-2026 "Private, made 2026" --in HOME
-archive location add PARENTS "Parents' house"
-archive location add PARENTS-PRV-2026 "Private copies, made 2026" --in PARENTS
+arv location add HOME "Home"
+arv location add HOME-PRV-2026 "Private, made 2026" --in HOME
+arv location add PARENTS "Parents' house"
+arv location add PARENTS-PRV-2026 "Private copies, made 2026" --in PARENTS
 ```
 
 ## 1. Prepare a folder
@@ -98,21 +98,21 @@ One folder becomes one disc, or a set of discs if it is too big. The folder is
 never modified. Group things the way you would look for them later: a trip, a
 project, a year of paperwork.
 
-1. **Check the names:** `archive names FOLDER`.
+1. **Check the names:** `arv names FOLDER`.
    - Linux sees exact names on either image type.
    - The hybrid image shortens names to 103 characters for Windows and macOS, and replaces `* : ; ? \`.
    - UDF 2.50 keeps names up to 254 characters.
    - Rename anything you care about now.
 2. **Optional: tags and descriptions.**
-   - `archive tag FOLDER --save d.json` suggests folder tags from your vocabulary. It uses match rules and a small built-in model, and you review each suggestion.
-   - `archive describe FOLDER --save d.json` asks a local LLM for a title, description and questions.
+   - `arv tag FOLDER --save d.json` suggests folder tags from your vocabulary. It uses match rules and a small built-in model, and you review each suggestion.
+   - `arv describe FOLDER --save d.json` asks a local LLM for a title, description and questions.
    - Both write a draft that `make` uses with `--draft d.json`.
    - Tags can be namespaced: `person:alice`, `place:kyoto`.
 
 ## 2. Make the disc image
 
 ```sh
-archive make FOLDER --location HOME-PRV-2026 [--set trip] [--category scan] [--access private]
+arv make FOLDER --location HOME-PRV-2026 [--set trip] [--category scan] [--access private]
                     [--medium bd25|bd100] [--filesystem hybrid|udf250] [--split] [--draft d.json]
 ```
 
@@ -120,7 +120,7 @@ The choices that matter:
 
 | Option | Default | Choose otherwise when |
 |---|---|---|
-| `--set` / `--category` | guessed from the folder name and the files (vocabulary aliases and match rules) | the guess is wrong; `archive sets -v` shows the vocabulary |
+| `--set` / `--category` | guessed from the folder name and the files (vocabulary aliases and match rules) | the guess is wrong; `arv sets -v` shows the vocabulary |
 | `--medium` | `bd25` (about 20 GB of data at 20% RS03) | `bd100` for BDXL M-DISC |
 | `--filesystem` | `hybrid`: readable almost anywhere, ISO 9660 fallback | `udf250`: longer names on Windows/macOS, Blu-ray style (no metadata mirror yet) |
 | `--access` | `private`: your own discs' catalogues only | `public` to appear on discs you give away; `sealed` so other discs carry only its id and location |
@@ -128,7 +128,7 @@ The choices that matter:
 | `--split` | off: stop if it doesn't fit | the folder needs several discs (`Bag-Count: n of N`) |
 | `--label` | the title: the volume label is `ID Title`, cut to 32 bytes (hybrid) or 126 characters (UDF 2.50) | another text after the id, or `''` for the id alone |
 
-### What `archive make` does, step by step
+### What `arv make` does, step by step
 
 1. **Scan and hash** every file (SHA-256 and SHA-512). Symlinks and ambiguous
    names are refused. **Check names** for the chosen image type: stop on names it
@@ -165,13 +165,13 @@ Burn the `.iso` yourself, with any burning program, as a disc-at-once burn of th
 whole image. M-DISC BD-R is the standard medium here. Then record what you did:
 
 ```sh
-archive burned TRIP-01_2019_4 --copies 2
-archive burned TRIP-01_2019_4 --copies 1 --location OFFSITE --note "for the parents"
-archive check --device /dev/sr0          # reads the whole disc once; logs a fixity-check event
+arv burned TRIP-01_2019_4 --copies 2
+arv burned TRIP-01_2019_4 --copies 1 --location OFFSITE --note "for the parents"
+arv check --device /dev/sr0          # reads the whole disc once; logs a fixity-check event
 ```
 
 Write the disc id on the disc and the case. The id's last character is a check
-character, so a mistyped id is caught: `archive id TRIP-01_2019_5` tells you it's wrong.
+character, so a mistyped id is caught: `arv id TRIP-01_2019_5` tells you it's wrong.
 
 ## 4. Store
 
@@ -183,27 +183,27 @@ image go to different sites; the id goes on the disc hub and the volume label on
 the spine.
 
 ```sh
-archive list --access private --made 2026     # the discs that belong in this year's private box
-archive locate TRIP-01_2019_4 HOME-PUB-2020 PARENTS-PUB-2020   # one location per place copies are kept
-archive location move HOME-PUB-2020 --in PARENTS               # moving a box moves its discs
-archive location list -v
+arv list --access private --made 2026     # the discs that belong in this year's private box
+arv locate TRIP-01_2019_4 HOME-PUB-2020 PARENTS-PUB-2020   # one location per place copies are kept
+arv location move HOME-PUB-2020 --in PARENTS               # moving a box moves its discs
+arv location list -v
 ```
 
 ## 5. Live with the archive
 
 | Question | Answer |
 |---|---|
-| Which disc has this file, and where is it? | `archive find IMG_2019` (a glob works: `'*.kicad_pcb'`) |
-| What do I have from July 2019? | `archive list --covers 2019-07` |
-| Everything under a category or a place | `archive list --in MEMORIES`, `archive list --at OFFSITE` |
-| Which tags do I use? | `archive tags`; `archive find place:kyoto` |
-| Group things across discs | `archive collection add BEST --name "Best of" DISC:folder/ DISC:file`, `archive collection show BEST`: virtual folders; other software can show them as a tree ([spec](smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)) |
-| Without this tool installed? | every disc carries it: `python3 tools/bluray-archival-workflow/archive --home catalog find PATTERN` from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
-| Changes after burning | `archive note`, `archive locate`, `archive access` (home catalogue; later discs carry them) |
+| Which disc has this file, and where is it? | `arv find IMG_2019` (a glob works: `'*.kicad_pcb'`) |
+| What do I have from July 2019? | `arv list --covers 2019-07` |
+| Everything under a category or a place | `arv list --in MEMORIES`, `arv list --at OFFSITE` |
+| Which tags do I use? | `arv tags`; `arv find place:kyoto` |
+| Group things across discs | `arv collection add BEST --name "Best of" DISC:folder/ DISC:file`, `arv collection show BEST`: virtual folders; other software can show them as a tree ([spec](smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)) |
+| Without this tool installed? | every disc carries it: `python3 tools/bluray-archival-workflow/arv --home catalog find PATTERN` from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
+| Changes after burning | `arv note`, `arv locate`, `arv access` (home catalogue; later discs carry them) |
 
-**Check discs every few years** with `archive check --device /dev/sr0`.
+**Check discs every few years** with `arv check --device /dev/sr0`.
 - A disc that needed repair is a warning sign: copy it to new media.
-- `archive list` shows copies and locations, so you know which discs have only one copy.
+- `arv list` shows copies and locations, so you know which discs have only one copy.
 
 Every new disc carries the whole catalogue as of its burn date. So **the newest
 disc is always a backup of the catalogue**.
@@ -213,7 +213,7 @@ disc is always a backup of the catalogue**.
 | What happened | What to do |
 |---|---|
 | A disc reads with errors | Follow REPAIR in the disc's `README.txt`: `dvdisaster -d /dev/sr0 -r -i disc.iso` (dvdisaster Light: add `--rescue`), check the image has the size the README states (if smaller, read again with `--ignore-iso-size`), then `dvdisaster -i disc.iso -f`. Too damaged? Copies are sector-identical: read another copy into the same image (`-r -j 1`, only missing sectors are read) and repair again. Then burn a new copy. Tested in research-notes.md section 8. |
-| The home catalogue is lost | `archive rebuild /media/disc` with the newest disc: discs, events, locations, file lists. Then rebuild from later discs, or re-enter notes. |
+| The home catalogue is lost | `arv rebuild /media/disc` with the newest disc: discs, events, locations, file lists. Then rebuild from later discs, or re-enter notes. |
 | This tool is lost | every disc has `tools/` (the code at burn time) and `README.txt`. Without Python: `sha256sum -c manifest-sha256.txt` verifies, `index.html` browses, `grep` searches `catalog/volumes/*/listing.tsv`, and `catalog.rec` is plain text. |
 | dvdisaster is lost | a copy can go in `tools/extra/` with `--extra-tools`; keep one off-disc too. The RS03 format is written up in LCSAS's DVDISASTER_RS03_FORMAT.md (research-notes.md section 7). |
 | Decades later, unknown software | [smart-archive-format.md](smart-archive-format.md) (on every disc under `tools/`) explains every file; BagIt is RFC 8493; recfiles are plain text. |
@@ -225,7 +225,7 @@ read or repaired.
 ## 7. How the repository fits together
 
 ```
-archive                    the command (python3 archive ...)
+archive                    the command (python3 arv ...)
 archivetool/               the workflow, Python standard library only
   cli.py                   commands
   make.py                  the make pipeline (plan, stage, build, protect)

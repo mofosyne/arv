@@ -1,7 +1,7 @@
 """Disposable SQLite search index built from the plain-text catalogue.
 
-recutils and plain scans get slow past ~100k files; this makes `archive find`
-fast at millions. Delete archive.sqlite at any time; `archive index` rebuilds it.
+recutils and plain scans get slow past ~100k files; this makes `arv find`
+fast at millions. Delete archive.sqlite at any time; `arv index` rebuilds it.
 """
 
 import os

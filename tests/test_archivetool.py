@@ -179,6 +179,50 @@ class HomeLayoutTest(unittest.TestCase):
             self.assertEqual(catalog.Home(disc_catalog).catalog_dir, disc_catalog)
 
 
+class HomeDiscoveryTest(unittest.TestCase):
+    def test_arv_folder_pointer_disc_root_and_machine_config(self):
+        from archivetool import homes
+        with tempfile.TemporaryDirectory() as d:
+            env = {"XDG_CONFIG_HOME": os.path.join(d, "cfg"), "XDG_DATA_HOME": os.path.join(d, "data"),
+                   "ARV_HOME": "", "BLURAY_ARCHIVE_HOME": ""}
+            old = {k: os.environ.get(k) for k in env}
+            os.environ.update(env)
+            try:
+                tree, other, outside = (os.path.join(d, n) for n in ("tree", "other", "outside"))
+                deep = os.path.join(tree, "repo", "sub")
+                os.makedirs(os.path.join(tree, "repo", ".git"))     # git does not stop the walk
+                os.makedirs(deep)
+                os.makedirs(other)
+                os.makedirs(outside)
+                self.assertEqual(run_cli("init", tree, "--name", "family", "--default")[0], 0)
+                arv = os.path.join(tree, ".arv")
+                self.assertTrue(os.path.isdir(os.path.join(arv, "catalog")))
+                self.assertTrue(os.path.exists(os.path.join(arv, "cache", "CACHEDIR.TAG")))
+                self.assertEqual(homes.find(start=deep)[0], arv)
+                # a pointer file in another tree, written with Windows line endings
+                with open(os.path.join(other, ".arv"), "w", newline="") as f:
+                    f.write("Home: ../tree/.arv\r\n")
+                self.assertEqual(homes.find(start=other)[0], arv)
+                # outside any tree: the machine config's default; --archive by name; --home wins
+                self.assertEqual(homes.find(start=outside)[0], arv)
+                self.assertEqual(homes.find(archive="family", start=outside)[0], arv)
+                self.assertEqual(homes.find(home="x", start=deep)[0], "x")
+                # make: the walk starts at the folder being archived
+                os.remove(homes.config_path())
+                self.assertEqual(homes.find(start=outside, source=deep)[0], arv)
+                self.assertEqual(homes.find(start=outside)[0], os.path.join(d, "data", "arv"))
+                # the root of an archive disc: its catalog/ is read in place
+                write(os.path.join(outside, "catalog.rec"), "%rec: Archive\n")
+                write(os.path.join(outside, "catalog", "archive.rec"), "%rec: Disc\n")
+                self.assertEqual(homes.find(start=outside)[0], os.path.join(outside, "catalog"))
+            finally:
+                for k, v in old.items():
+                    if v is None:
+                        os.environ.pop(k, None)
+                    else:
+                        os.environ[k] = v
+
+
 class SetsTest(unittest.TestCase):
     def test_vocabulary_is_a_dag_of_words(self):
         from archivetool import sets
@@ -453,10 +497,10 @@ class MakeTest(unittest.TestCase):
         disc_id, disc = self.make(self.photos, "--set", "PHOTOS")
         for name in ("catalog/volumes/%s/listing.tsv" % disc_id, "catalog/volumes/%s/listing.tsv" % PROJ_01):
             self.assertTrue(os.path.exists(os.path.join(disc, name)), name)
-        for name in ("search.html", "catalog/web"):  # search is catalogue software's job (or archive find)
+        for name in ("search.html", "catalog/web"):  # search is catalogue software's job (or arv find)
             self.assertFalse(os.path.exists(os.path.join(disc, name)), name)
         with open(os.path.join(disc, "README.txt"), encoding="utf-8") as f:
-            self.assertIn("archive --home catalog find PATTERN", f.read())
+            self.assertIn("arv --home catalog find PATTERN", f.read())
         # a disc's catalog/ works as a read-only catalogue home: an earlier disc's file is found
         before = sorted(os.listdir(os.path.join(disc, "catalog")))
         code, out = run_cli("--home", os.path.join(disc, "catalog"), "find", "ünïcode")
@@ -744,7 +788,7 @@ class Udf250Test(unittest.TestCase):
             d = f.read()
         self.assertIn(b"*UDF Metadata Partition", d)
         self.assertNotIn(b"CD001", d[16 * 2048:17 * 2048])      # UDF only, no ISO 9660
-        self.assertEqual(image.read_volume_id(iso), disc_id)    # label read back for `archive check`
+        self.assertEqual(image.read_volume_id(iso), disc_id)    # label read back for `arv check`
         dest = os.path.join(self.tmp, "x")
         subprocess.run(["7z", "x", "-o" + dest, iso], check=True, stdout=subprocess.DEVNULL)
         proc = subprocess.run([sys.executable, "-I", os.path.join(dest, "tools", "bagit.py"), "--validate", dest],
@@ -765,7 +809,7 @@ class Udf250Test(unittest.TestCase):
             self.assertEqual(code, 0, out)
             disc_id = out.split("\t")[0]
             label = image.read_volume_label(iso)
-            self.assertEqual(image.read_volume_id(iso), disc_id)          # `archive check` still finds it
+            self.assertEqual(image.read_volume_id(iso), disc_id)          # `arv check` still finds it
             self.assertTrue(label.startswith(disc_id + " Weather"), label)
             if fs == "udf250":
                 self.assertEqual(label, expected(disc_id))              # whole title (commas dropped)

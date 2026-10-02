@@ -47,7 +47,7 @@ Each layer does its own job:
 | `tests/smoke-test.sh` | End-to-end check: bag → image → ECC → damage → repair → validate bag |
 
 `samples/` has seven small sample discs made with the full workflow (40 MB, with
-RS03 error correction) and their catalogue: try `./archive --home samples/home list`.
+RS03 error correction) and their catalogue: try `./arv --home samples/home list`.
 
 `docs/plan.md` has the disc layout, phased plan and open decisions.
 
@@ -72,44 +72,44 @@ Python 3.8+, standard library only (bagit.py is vendored). Needs `genisoimage`
 and `dvdisaster` ([dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light), or the [speed47 fork](https://github.com/speed47/dvdisaster), for BD-sized images; the two give byte-identical results).
 
 ```sh
-./archive location add HOME Home
-./archive location add BOX3 "Box 3, blue lid" --in HOME
-./archive make ./2025-01-13_Projects_2020_-_2025 --location BOX3
+./arv location add HOME Home
+./arv location add BOX3 "Box 3, blue lid" --in HOME
+./arv make ./2025-01-13_Projects_2020_-_2025 --location BOX3
 #  -> prompts for set (PROJ, from the folder name), categories (CODE, ELEC: from the files), title, ...
 #  -> PROJ-01_2020-2025_K.iso  (bag + catalogue + index.html + tools/ + RS03 ECC, verified)
-./archive make ./Diaries --access sealed      # other discs' catalogues show only its id and location
-./archive make ./Photos --filesystem udf250   # UDF 2.50 image (Blu-ray style) instead of the hybrid ISO; needs lib/udfmake
-./archive names ./Photos                      # names each image type would shorten or change on Windows/macOS
+./arv make ./Diaries --access sealed      # other discs' catalogues show only its id and location
+./arv make ./Photos --filesystem udf250   # UDF 2.50 image (Blu-ray style) instead of the hybrid ISO; needs lib/udfmake
+./arv names ./Photos                      # names each image type would shorten or change on Windows/macOS
 # volume label: the disc id, then the title as far as it fits (32 bytes hybrid, 126 characters UDF 2.50);
 # --label TEXT to choose the text, --label '' for the id alone
-./archive make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: only this set's catalogue
-./archive make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
-./archive make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03
-./archive find IMG_2019            # which disc holds it, and where the disc is
-./archive list --covers 2019-07-15    # discs whose date range includes that day (or 2019, 2019-07)
-./archive sets -v                     # the vocabulary tree with disc counts, aliases and match rules
-./archive list --in MEMORIES          # discs anywhere under a vocabulary entry
-./archive id PHOTOS-07_2015-2024_Q   # explain / check an id (catches typos)
-./archive note 2020-2025_PROJECTS_01 "Only copy of the 2019 PCB gerbers"
-./archive locate 2020-2025_PROJECTS_01 BOX3 OFFSITE   # one location per place a copy is kept
-./archive burned 2020-2025_PROJECTS_01 --copies 1 --location OFFSITE  # after burning the ISO yourself
-./archive location move BOX3 --in OFFSITE             # moving a box moves its discs
-./archive location list -v                            # places as a tree, with the discs in each
-./archive collection add KYOTO-BEST --name "Best of Kyoto" TRIP-01_2019_4:"day2 Kinkaku-ji/"
-./archive collection show KYOTO-BEST                  # virtual folders across discs, with where each disc is
-./archive list --at HOME                              # discs anywhere inside a place
-./archive list --access private --made 2026          # what belongs in this year's private box
-./archive access 2020-2025_PROJECTS_01 public          # public / private (default) / sealed
-./archive tags                                         # every folder tag in use, by namespace
-./archive keywords PROJ-01_2020-2025_K --format exiftool > kw.args  # tags as XMP keywords
-./archive check --device /dev/sr0                        # scan a disc, log a fixity-check event
-./archive check --image 2020-2025_PROJECTS_01.iso
-./archive rebuild /media/disc                            # recreate/merge the home catalogue from a disc
-./archive index                                          # SQLite index: fast find at millions of files
-./archive gui                                            # the same, in your web browser
+./arv make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: only this set's catalogue
+./arv make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
+./arv make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03
+./arv find IMG_2019            # which disc holds it, and where the disc is
+./arv list --covers 2019-07-15    # discs whose date range includes that day (or 2019, 2019-07)
+./arv sets -v                     # the vocabulary tree with disc counts, aliases and match rules
+./arv list --in MEMORIES          # discs anywhere under a vocabulary entry
+./arv id PHOTOS-07_2015-2024_Q   # explain / check an id (catches typos)
+./arv note 2020-2025_PROJECTS_01 "Only copy of the 2019 PCB gerbers"
+./arv locate 2020-2025_PROJECTS_01 BOX3 OFFSITE   # one location per place a copy is kept
+./arv burned 2020-2025_PROJECTS_01 --copies 1 --location OFFSITE  # after burning the ISO yourself
+./arv location move BOX3 --in OFFSITE             # moving a box moves its discs
+./arv location list -v                            # places as a tree, with the discs in each
+./arv collection add KYOTO-BEST --name "Best of Kyoto" TRIP-01_2019_4:"day2 Kinkaku-ji/"
+./arv collection show KYOTO-BEST                  # virtual folders across discs, with where each disc is
+./arv list --at HOME                              # discs anywhere inside a place
+./arv list --access private --made 2026          # what belongs in this year's private box
+./arv access 2020-2025_PROJECTS_01 public          # public / private (default) / sealed
+./arv tags                                         # every folder tag in use, by namespace
+./arv keywords PROJ-01_2020-2025_K --format exiftool > kw.args  # tags as XMP keywords
+./arv check --device /dev/sr0                        # scan a disc, log a fixity-check event
+./arv check --image 2020-2025_PROJECTS_01.iso
+./arv rebuild /media/disc                            # recreate/merge the home catalogue from a disc
+./arv index                                          # SQLite index: fast find at millions of files
+./arv gui                                            # the same, in your web browser
 ```
 
-`archive gui` opens a local page (127.0.0.1 only, per-session token) with tabs for
+`arv gui` opens a local page (127.0.0.1 only, per-session token) with tabs for
 the disc list and history, notes, location and burned copies, search, making a
 disc (with a folder picker), checking discs and rebuilding the catalogue. Every
 action runs the same `archive` command as the terminal and shows its output.
@@ -117,7 +117,7 @@ action runs the same `archive` command as the terminal and shows its output.
 On the disc, `index.html` browses the disc without JavaScript. Searching across
 discs is the job of catalogue software (such as Katalog) reading the catalogue,
 or of this tool, which is on every disc: from the disc's root,
-`python3 tools/bluray-archival-workflow/archive --home catalog find PATTERN`
+`python3 tools/bluray-archival-workflow/arv --home catalog find PATTERN`
 searches every disc in its snapshot with nothing but Python.
 
 - `--medium` (default `bd25`; also `bd50`, `bd100`, `bd128`, `auto`) sets the disc the image
@@ -139,8 +139,8 @@ searches every disc in its snapshot with nothing but Python.
   `make -C lib/udfmake` once). Both carry the same files, catalogue and RS03 data.
 - Disc ids look like `PHOTOS-07_2015-2024_Q`: set, number, coverage and a check character
   that catches typos. They are derived from the record's `Set`, `Sequence` and `Coverage`
-  (EDTF: `2019`, `2015/2024`, `199X`, `1995~`) and used as the volume label. `archive id <ID>`
-  explains and checks one; `archive list --covers 2019-07-15` finds discs by date. Older ids stay valid.
+  (EDTF: `2019`, `2015/2024`, `199X`, `1995~`) and used as the volume label. `arv id <ID>`
+  explains and checks one; `arv list --covers 2019-07-15` finds discs by date. Older ids stay valid.
 - Discs are classified with a word vocabulary in `<home>/config/sets.rec` (PHOTO, TRIP, SCAN, TAXES,
   PROJ, CODE, ...), a hierarchy where an entry can have several parents (SCAN is under PHOTO
   and RECORDS). One `--set` gives the id prefix; `--category` (repeatable) adds more codes,
@@ -163,33 +163,33 @@ searches every disc in its snapshot with nothing but Python.
   are flagged in the `Software` field).
 - Tests: `python3 -m unittest discover -s tests` (set `ARCHIVE_TEST_ECC=1` to include dvdisaster).
 
-## Optional: built-in tagging (`archive tag`)
+## Optional: built-in tagging (`arv tag`)
 
 Consistent folder tags from your own tag vocabulary, using a 37 MB embedding
 model (bge-small-en-v1.5, MIT) run by llama.cpp's `llama-embedding` program as a
 subprocess: no server, no API, no Python packages.
 
 ```sh
-./archive models fetch            # pinned download, SHA-256 checked, into <home>/cache/models/
-./archive models status           # model + runtime found?
-./archive tag ./2025-01-13_Personal --save draft.json   # suggest, review, save
-./archive make ./2025-01-13_Personal --draft draft.json
-./archive tag 2018-2022_PERSONAL_01                     # re-tag a disc already in the catalogue
+./arv models fetch            # pinned download, SHA-256 checked, into <home>/cache/models/
+./arv models status           # model + runtime found?
+./arv tag ./2025-01-13_Personal --save draft.json   # suggest, review, save
+./arv make ./2025-01-13_Personal --draft draft.json
+./arv tag 2018-2022_PERSONAL_01                     # re-tag a disc already in the catalogue
 ```
 
 - The vocabulary is `<home>/config/tags.rec` (created from `archivetool/default_tags.rec`); edit
   the descriptions freely. Describe *content*, not the medium ("cats, dogs", not "photos of").
 - Tags may have `Alias` words (typing `holiday` in review stores `travel`) and `Match` globs
-  that tag folders without the model: `archive tag FOLDER --rules-only` needs no download.
+  that tag folders without the model: `arv tag FOLDER --rules-only` needs no download.
 - Namespaced tags keep facets apart: `person:alice`, `place:kyoto`, `event:wedding-2019`,
-  `source:pixel-7`. `archive tags` lists all in use (and flags words that are aliases or not
-  in the vocabulary); `archive keywords DISC` exports set paths and tags as hierarchical
+  `source:pixel-7`. `arv tags` lists all in use (and flags words that are aliases or not
+  in the vocabulary); `arv keywords DISC` exports set paths and tags as hierarchical
   keywords (`MEMORIES|PHOTO|TRIP`, `place|kyoto`) for Lightroom and digiKam, or as an
   exiftool argument file that writes them into a restored copy.
 - Tags you accept are remembered, and similar folders later get the same tags, even
   tags that are not in the vocabulary. No training involved.
 - Runtime: `llama-embedding` from PATH (llama.cpp is packaged by Homebrew and many
-  distributions), `--llama-embedding PATH`, or `archive models build-runtime`.
+  distributions), `--llama-embedding PATH`, or `arv models build-runtime`.
 - Fallback engine: `--embed-url` for any OpenAI-compatible `/v1/embeddings` server.
   Remembered examples are kept per model, because vectors from different models
   cannot be compared.
@@ -207,12 +207,12 @@ Everything works without it, and no extra Python packages are needed.
 
 ```sh
 ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM Studio, vLLM
-./archive describe ./2025-01-13_Personal --show-inventory   # exactly what the model will see
-./archive make ./2025-01-13_Personal --llm                  # suggestions + questions, then the usual prompts
-./archive describe 2018-2022_PERSONAL_01                    # improve a disc that already exists
-./archive describe ./folder --save draft.json               # prepare, edit by hand, then:
-./archive make ./folder --draft draft.json
-./archive gui                                               # "Suggest" buttons in Make disc and disc details
+./arv describe ./2025-01-13_Personal --show-inventory   # exactly what the model will see
+./arv make ./2025-01-13_Personal --llm                  # suggestions + questions, then the usual prompts
+./arv describe 2018-2022_PERSONAL_01                    # improve a disc that already exists
+./arv describe ./folder --save draft.json               # prepare, edit by hand, then:
+./arv make ./folder --draft draft.json
+./arv gui                                               # "Suggest" buttons in Make disc and disc details
 ```
 
 - Any OpenAI-compatible server works: `--llm-url` / `$ARCHIVE_LLM_URL` (default
@@ -222,7 +222,7 @@ ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM S
   dates, types, and up to 6 short README-style text files), never file contents.
   Only loopback servers are allowed unless you pass `--llm-allow-remote`.
 - Folder tags (and image captions) go in `catalog/volumes/<disc-id>/tags.tsv` and are searched by
-  `archive find` and the GUI.
+  `arv find` and the GUI.
 - **Images (`--vision`, or the checkbox in the GUI):** a few images per folder (and a
   frame per video when `ffmpeg` is installed) are shown to a local vision model. Its
   captions ("a red VW Beetle on a cobblestone street") feed the description and folder
@@ -275,5 +275,5 @@ single-threaded.
 - [ ] `README.txt` + dvdisaster sources/binaries on each disc for self-contained recovery
 - [x] Target medium size, minimum redundancy, defect-management sizes for RS03
 - [ ] Optional UDF 2.50 (metadata mirror) through NetBSD `makefs -t udf`
-- [x] GUI front end over the CLI (`archive gui`, local web UI, standard library only)
+- [x] GUI front end over the CLI (`arv gui`, local web UI, standard library only)
 - [ ] Standalone RS03 library extracted from dvdisaster (GPLv3)

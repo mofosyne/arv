@@ -1,4 +1,4 @@
-"""`archive gui`: a local web interface over the CLI (standard library only).
+"""`arv gui`: a local web interface over the CLI (standard library only).
 
 Serves a single page on 127.0.0.1 and opens it in the default browser. Every
 action runs the same `archive` commands as the terminal, so the GUI adds no
@@ -32,7 +32,7 @@ def disc_summary(disc):
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ARCHIVE = os.path.join(os.path.dirname(HERE), "archive")
+ARV = os.path.join(os.path.dirname(HERE), "arv")
 MAX_OUTPUT_LINES = 5000
 
 
@@ -41,7 +41,7 @@ class Job:
         self.id, self.argv = job_id, argv
         self.lines, self.returncode, self.done = [], None, False
         self.proc = subprocess.Popen(
-            [sys.executable, "-u", ARCHIVE] + argv, stdin=subprocess.DEVNULL,
+            [sys.executable, "-u", ARV] + argv, stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
         threading.Thread(target=self._pump, daemon=True).start()
 

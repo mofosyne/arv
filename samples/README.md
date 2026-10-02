@@ -21,16 +21,16 @@ after the discs were made.
 ## Try it
 
 ```sh
-./archive --home samples/home list                 # discs, access level, where they are kept
-./archive --home samples/home location list -v     # Home / Study / Box 1, the fire safe, the parents' house
-./archive --home samples/home sets                 # the vocabulary with disc counts
-./archive --home samples/home find letter-2001     # which disc, and where it is
-./archive --home samples/home tags                 # folder tags by namespace
-./archive --home samples/home list --covers 2019-07-15
-./archive --home samples/home keywords TRIP-01_2019_4
+./arv --home samples/home list                 # discs, access level, where they are kept
+./arv --home samples/home location list -v     # Home / Study / Box 1, the fire safe, the parents' house
+./arv --home samples/home sets                 # the vocabulary with disc counts
+./arv --home samples/home find letter-2001     # which disc, and where it is
+./arv --home samples/home tags                 # folder tags by namespace
+./arv --home samples/home list --covers 2019-07-15
+./arv --home samples/home keywords TRIP-01_2019_4
 
 7z x -oFAMILY samples/discs/FAMILY-01_2020-2021_K.iso   # or mount it (Linux: mount -o loop,ro)
-(cd FAMILY && python3 tools/bluray-archival-workflow/archive --home catalog find Kyoto)   # search every disc from this one
+(cd FAMILY && python3 tools/bluray-archival-workflow/arv --home catalog find Kyoto)   # search every disc from this one
 (cd FAMILY && sha256sum -c manifest-sha256.txt)          # verify
 ```
 

@@ -53,6 +53,7 @@ class Record:
 
 def parse(text):
     """Parse recfile text into a list of Records (descriptors included, in file order)."""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")  # any line endings
     records = []
     current_type = None
     fields = []

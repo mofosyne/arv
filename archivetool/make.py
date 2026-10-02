@@ -1,4 +1,4 @@
-"""`archive make`: plan, stage, build and protect one or more disc images.
+"""`arv make`: plan, stage, build and protect one or more disc images.
 
 A folder that does not fit on one disc (at the requested minimum RS03
 redundancy) can be split with --split: files are assigned in path order, each

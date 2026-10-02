@@ -7,7 +7,7 @@ same archive hold. A cataloguing program (for example
 its database immediately, without scanning or hashing the payload, and a
 person can read every file with a text editor.
 
-This project (`archive make`) writes discs in this format. The format itself is
+This project (`arv make`) writes discs in this format. The format itself is
 independent of the tool.
 
 ## Design rules

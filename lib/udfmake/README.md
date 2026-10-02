@@ -46,7 +46,7 @@ The Makefile picks the mode from `uname -s` (override with `HOST_OS=`).
 | Linux, ARM64 (musl) | host | as Linux, musl | compiles and links (`zig cc -target aarch64-linux-musl`); not run |
 | Windows (native) | — | — | does not build (POSIX headers such as `err.h`); use the WebAssembly build |
 | OpenBSD, DragonFly | host | guarded for, untested | untested |
-| WebAssembly (WASI preview 1) | host | as musl, plus the `err(3)`/`warn(3)` family and a `readdir` that always gives `.` (Node's runtime leaves it out) | built and tested (`make wasi`: run with Node's WASI; same speed as native on 800 MB; `archive make --filesystem udf250 --udfmake lib/udfmake/wasi/udfmake` end to end) |
+| WebAssembly (WASI preview 1) | host | as musl, plus the `err(3)`/`warn(3)` family and a `readdir` that always gives `.` (Node's runtime leaves it out) | built and tested (`make wasi`: run with Node's WASI; same speed as native on 800 MB; `arv make --filesystem udf250 --udfmake lib/udfmake/wasi/udfmake` end to end) |
 
 Cross-building for a platform with clang, given its headers and libraries in a sysroot directory:
 
@@ -96,9 +96,9 @@ Both are described in the [bug report](../../third_party/netbsd-makefs-udf/BUG-R
   mirroring yet`), so there is no second copy of the directory data.
 - UDF only. There is no ISO 9660 bridge, and `-F` (mtree specs) and `-N` are not supported.
 - Characters beyond U+FFFF (emoji) are stored as their UTF-8 bytes read as Latin-1, i.e. a
-  different name. `archive make` refuses such names for UDF 2.50 before calling udfmake.
+  different name. `arv make` refuses such names for UDF 2.50 before calling udfmake.
 - Give it **one** source directory. With several, the UDF backend opens every file relative
   to the first one: it ignores `fsnode->root`, which `walk.c` sets for this. The result is
-  "Can't open file" errors and an assertion in `udf_populate_walk`. `archive make` passes a
+  "Can't open file" errors and an assertion in `udf_populate_walk`. `arv make` passes a
   single folder of symlinks with `-L` instead. This is upstream behaviour, not yet reported.
 - Tested with 7-Zip read-back and dvdisaster RS03. Not yet tested with a Linux kernel mount, Windows or macOS.
