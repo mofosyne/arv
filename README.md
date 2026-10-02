@@ -4,6 +4,8 @@ Tools for writing long-term personal archives (photos, video, source code) to
 Blu-ray discs that can still be read, checked and repaired decades from now
 using only open, well-documented formats.
 
+Why it works the way it does (curated discs on top of everyday storage, plain files, copies): [docs/philosophy.md](docs/philosophy.md).
+
 **Start with [docs/workflow.md](docs/workflow.md)**: the whole flow, from a folder to discs on a
 shelf, finding and checking them over the years, and recovering from damage or loss.
 [docs/shelving.md](docs/shelving.md) covers arranging, labelling and storing the physical discs.
