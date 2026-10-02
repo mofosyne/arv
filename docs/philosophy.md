@@ -3,7 +3,32 @@
 What this project is for, and what it deliberately is not. The how is in
 [workflow.md](workflow.md); the decisions and their reasons are in [plan.md](plan.md).
 
-## Not everything goes on Blu-ray
+## In one sentence
+
+**Keep what matters readable, by the people it matters to, for decades, without
+depending on us, this tool, or any company.**
+
+Everything else follows from five principles:
+
+1. **Curate, don't hoard.** Durable media is small and costly in effort, so it
+   holds a chosen selection, not everything. What goes on a disc, and who may see
+   it, is decided on purpose. Everyday storage keeps the rest.
+2. **Every disc stands alone.** A disc is ordinary files plus everything needed to
+   understand, check and repair it, and a catalogue of every disc before it.
+   Any one disc, read with any computer, is enough to start from.
+3. **Durability comes from copies and simplicity**, not from clever layers:
+   identical copies in different places, error correction on every disc, and as
+   few moving parts as possible.
+4. **The format is the product; the tool is replaceable.** Open standards, plain
+   text and written specifications outlive programs. Every disc carries the
+   source of the tools that made it, and nothing on a disc requires them.
+5. **People decide; tools propose.** Automation (sorting, tagging, choosing what
+   to archive) only makes suggestions, runs locally, and is never needed to read
+   a disc.
+
+The sections below say what each principle means in practice.
+
+## Not everything goes on Blu-ray (principle 1)
 
 A Blu-ray holds 25 GB. A household's data does not fit, and most of it does not
 need to last fifty years. So there are two tiers:
@@ -16,7 +41,7 @@ need to last fifty years. So there are two tiers:
 The discs are not a backup of the NAS. They are a **curated selection**: the
 things worth the extra effort of a durable copy. Choosing is part of the work.
 
-## Plain files, not a backup engine
+## Plain files, not a backup engine (principle 2)
 
 Backup programs like restic/rustic (used by LCSAS) store as much as possible in
 as little space as possible: files cut into chunks, deduplicated, compressed,
@@ -32,7 +57,7 @@ Here, a file on a disc is the file:
 - **space is not optimised.** No compression, no deduplication. Curating keeps
   the volume small enough that this does not matter.
 
-## Importance decides what is archived, and for whom
+## Importance decides what is archived, and for whom (principles 1 and 5)
 
 Data matters differently to different people: some to you, some to family,
 some to whoever inherits the discs, some to anyone. The tool already records
@@ -48,7 +73,7 @@ optionally a local model), leave out what is already archived (by hash), and
 fill discs with the most important material first. People decide; the tool
 proposes.
 
-## Durability comes from copies and simplicity
+## Durability in practice (principle 3)
 
 - **Identical copies in different places**, burned from the same image. Two
   damaged copies can rebuild each other (tested; research-notes.md section 8).
@@ -62,7 +87,7 @@ proposes.
   on Python 3 or as WebAssembly. Every disc carries the source of the tools that
   made it.
 
-## Two orders: the shelf and the catalogue
+## Two orders: the shelf and the catalogue (principle 2)
 
 Physically, discs are kept by access level and the year they were made, so new
 discs only ever go at the end ([shelving.md](shelving.md)). Virtually, the
@@ -70,7 +95,7 @@ catalogue on every disc shows them by kind, by year covered, by place, by
 collection and by tag. The shelf only has to be stable; the catalogue gives
 every other view, and catalogue software such as Katalog can present it.
 
-## Small tools, run in order
+## Small tools, run in order (principle 4)
 
 The work is a chain of small programs (plan.md, "a chain of small programs"):
 scan, describe, bag, image, protect, verify; and on the reading side, read,
@@ -78,7 +103,7 @@ combine copies, repair, check, search. Each one does one step on plain files
 and has a written format behind it, so any of them can be replaced, and each
 can travel on the disc.
 
-## Help is optional and local
+## Help is optional and local (principle 5)
 
 Language models can suggest descriptions and tags, but only running locally, and
 only as suggestions. Nothing about reading, checking or repairing a disc depends
