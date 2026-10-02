@@ -41,6 +41,11 @@ def rs03_layout(data_sectors, medium_sectors):
     return roots, roots * 100.0 / ndata
 
 
+def rs03_image_sectors(medium_sectors):
+    """Sectors in an RS03-augmented image for this medium: 255 equal layers, rounded down."""
+    return medium_sectors // GF_FIELDMAX * GF_FIELDMAX
+
+
 def data_budget(medium_sectors, min_redundancy):
     """Largest image (in sectors) that still gets at least ``min_redundancy`` % RS03 redundancy."""
     per_layer = medium_sectors // GF_FIELDMAX

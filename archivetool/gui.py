@@ -1,4 +1,4 @@
-"""`archive gui`: a local web interface over the CLI (standard library only).
+"""`arv gui`: a local web interface over the CLI (standard library only).
 
 Serves a single page on 127.0.0.1 and opens it in the default browser. Every
 action runs the same `archive` commands as the terminal, so the GUI adds no
@@ -17,10 +17,22 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import catalog, describe, index, llm, vision, web
+from . import catalog, describe, index, llm, vision
+
+DISC_FIELDS = ("Id", "Part", "Title", "Set", "Category", "Path", "Coverage", "Date", "Location", "Description", "Subject", "Note", "Files", "Copies")
+
+
+def disc_summary(disc):
+    out = {}
+    for name in DISC_FIELDS:
+        values = disc.get_all(name)
+        if values:
+            out[name] = values if name in ("Subject", "Note", "Category", "Path", "Location") else values[0]
+    return out
+
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ARCHIVE = os.path.join(os.path.dirname(HERE), "archive")
+ARV = os.path.join(os.path.dirname(HERE), "arv")
 MAX_OUTPUT_LINES = 5000
 
 
@@ -29,7 +41,7 @@ class Job:
         self.id, self.argv = job_id, argv
         self.lines, self.returncode, self.done = [], None, False
         self.proc = subprocess.Popen(
-            [sys.executable, "-u", ARCHIVE] + argv, stdin=subprocess.DEVNULL,
+            [sys.executable, "-u", ARV] + argv, stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
         threading.Thread(target=self._pump, daemon=True).start()
 
@@ -66,8 +78,10 @@ class App:
         cat = self.home.load()
         out = []
         for d in cat.discs:
-            summary = web.disc_summary(d)
-            summary.update({k: d.get(k) for k in ("Media", "Bytes", "Ecc", "Rights", "Creator") if d.get(k)})
+            summary = disc_summary(d)
+            full = cat.with_binding(d)
+            summary.update({k: full.get(k) for k in ("Media", "Bytes", "Ecc", "Rights", "Creator", "Access") if full.get(k)})
+            summary["Where"] = cat.where(d)
             summary["Events"] = [dict(e.fields) for e in cat.events_for(d.get("Id"))]
             out.append(summary)
         return {"home": self.home.path, "discs": out}
@@ -81,8 +95,8 @@ class App:
             disc_hits, file_hits = index.find(self.home, cat, pattern)
         else:
             disc_hits, file_hits = catalog.find(self.home, cat, pattern)
-        return {"discs": [web.disc_summary(d) for d in disc_hits],
-                "files": [{"disc": d.get("Id"), "title": d.get("Title"), "location": d.get("Location"), "path": p}
+        return {"discs": [disc_summary(d) for d in disc_hits],
+                "files": [{"disc": d.get("Id"), "title": d.get("Title"), "location": cat.where(d), "path": p}
                           for d, p in file_hits[:500]],
                 "total": len(file_hits)}
 
@@ -157,7 +171,7 @@ class App:
         return result
 
     def write_draft(self, draft):
-        folder = os.path.join(self.home.path, "drafts")
+        folder = self.home.drafts_dir
         os.makedirs(folder, exist_ok=True)
         path = os.path.join(folder, "draft-%s.json" % secrets.token_hex(4))
         describe.save_draft(path, {
@@ -198,7 +212,7 @@ class App:
         if command == "note":
             argv = ["note", body["disc_id"], body["text"]]
         elif command == "locate":
-            argv = ["locate", body["disc_id"], body["location"]]
+            argv = ["locate", body["disc_id"]] + [l.strip() for l in body["location"].split(";") if l.strip()]
         elif command == "burned":
             argv = ["burned", body["disc_id"], "--copies", str(int(body.get("copies") or 1))]
             if body.get("media_id"):

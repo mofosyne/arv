@@ -100,10 +100,11 @@ def render_index(disc, entries, snapshot_catalog):
     for desc in disc.get_all("Description"):
         out.append('<p>%s</p>' % _e(desc))
 
-    out.append('<p><a href="search.html">Search this disc and the rest of the archive</a></p>')
+    out.append('<p>To search this disc and the rest of the archive, see SEARCH in '
+               '<a href="README.txt">README.txt</a>.</p>')
     out.append("<h2>About this disc</h2><table>")
-    out.append(_field_rows(disc, ["Id", "Part", "Set", "Coverage", "Date", "Creator", "Subject",
-                                  "Location", "Rights", "Media", "Filesystem", "Ecc", "Software"]))
+    out.append(_field_rows(snapshot_catalog.with_binding(disc), ["Id", "Label", "Part", "Set", "Category", "Path", "Sequence", "Coverage", "Date", "Creator", "Subject",
+                                  "Location", "Access", "Rights", "Media", "Container", "Filesystem", "Protection", "Ecc", "Software"]))
     out.append("<tr><th>Contents</th><td>%s files, %s</td></tr>"
                % (_e(disc.get("Files")), human_size(int(disc.get("Bytes", "0")))))
     out.append("</table>")
@@ -122,12 +123,13 @@ def render_index(disc, entries, snapshot_catalog):
     others = [d for d in snapshot_catalog.discs if d.get("Id") != disc.get("Id")] if snapshot_catalog else []
     if others:
         out.append("<h2>Other discs in this archive</h2>")
-        out.append("<p>As of this disc's burn date. File lists: <code>catalog/manifests/</code>.</p>")
+        out.append("<p>As of this disc's burn date. File lists: <code>catalog/volumes/</code>.</p>")
         out.append('<div class="scroll"><table><tr><th>Id</th><th>Title</th><th>Coverage</th>'
                    "<th>Location</th><th>Files</th></tr>")
         for d in others:
             out.append("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"
-                       % tuple(_e(d.get(k, "")) for k in ("Id", "Title", "Coverage", "Location", "Files")))
+                       % (_e(d.get("Id", "")), _e(d.get("Title", "")), _e(d.get("Coverage", "")),
+                          _e(snapshot_catalog.where(d)), _e(d.get("Files", ""))))
         out.append("</table></div>")
 
     out.append("<h2>Verify and recover</h2>")

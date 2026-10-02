@@ -143,7 +143,7 @@ institutions.
 
 Id: 2025-01-13_Projects_2020_-_2025
 Title: Projects 2020 - 2025
-Creator: Brian Khuu
+Creator: A. Person
 Date: 2025-01-13
 Description: Source code and design files for personal projects
 Subject: electronics
@@ -152,9 +152,14 @@ Rights: All rights reserved
 IsPartOf: PROJECTS-2025
 Index: 1
 Count: 3
+
+%rec: Binding
+%doc: How the volume is stored on its medium (container, protection), kept apart from the Disc.
+
+Volume: 2025-01-13_Projects_2020_-_2025
+Container: iso9660+udf-1.02
+Protection: rs03
 Media: BD-R 25GB
-Filesystem: ISO9660+RR+Joliet / UDF 1.02
-Ecc: dvdisaster RS03 augmented
 
 %rec: Event
 %doc: Preservation actions. Type uses the PREMIS eventType vocabulary.
@@ -173,7 +178,8 @@ Note: 0 unreadable sectors, ECC blocks pass
 Event types to start with (all from the PREMIS vocabulary): `creation`,
 `ingestion`, `message digest calculation`, `fixity check`, `replication`
 (burned another copy), `migration` (copied to new media or converted format),
-`deaccession` (disc destroyed or discarded).
+`deaccession` (disc destroyed or discarded), and `metadata modification` for every hand edit
+of the catalogue (Agent `human:LOGIN`; see smart-archive-format.md, Event records).
 
 ### Per-file data: plain text on the disc, search in SQLite
 
@@ -215,8 +221,7 @@ backup systems do the same with their catalogues (e.g. Bacula, Amanda).
 ```
 catalog/                         BagIt tag directory (covered by tagmanifest)
   archive.rec                    all Disc / Copy / Event records at burn time
-  manifests/<disc-id>.sha256     per-file lists of every earlier disc
-  archive.sqlite                 optional convenience copy of the search index
+  volumes/<disc-id>/             each earlier disc's index: manifest, listing, formats, tags
 ```
 
 - Header fields `Snapshot-Date`, `Includes-Up-To: <disc-id>` and

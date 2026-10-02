@@ -1,0 +1,39 @@
+# text	scheme	set	sequence	coverage	check	valid
+# scheme none: not an id of any scheme. Every single-character typo and neighbour
+# swap of the first id must be valid=no.
+PHOTOS-07_2015-2024_Q	set-seq-coverage/1	PHOTOS	7	2015-2024	Q	yes
+photos-07_2015-2024_q	set-seq-coverage/1	PHOTOS	7	2015-2024	Q	yes
+  PHOTOS-07_2015-2024_Q  	set-seq-coverage/1	PHOTOS	7	2015-2024	Q	yes
+0HOTOS-07_2015-2024_Q	set-seq-coverage/1	0HOTOS	7	2015-2024	Q	no
+P0OTOS-07_2015-2024_Q	set-seq-coverage/1	P0OTOS	7	2015-2024	Q	no
+PH0TOS-07_2015-2024_Q	set-seq-coverage/1	PH0TOS	7	2015-2024	Q	no
+PHO0OS-07_2015-2024_Q	set-seq-coverage/1	PHO0OS	7	2015-2024	Q	no
+PHOT0S-07_2015-2024_Q	set-seq-coverage/1	PHOT0S	7	2015-2024	Q	no
+PHOTO0-07_2015-2024_Q	set-seq-coverage/1	PHOTO0	7	2015-2024	Q	no
+PHOTOS-17_2015-2024_Q	set-seq-coverage/1	PHOTOS	17	2015-2024	Q	no
+PHOTOS-00_2015-2024_Q	set-seq-coverage/1	PHOTOS	0	2015-2024	Q	no
+PHOTOS-07_0015-2024_Q	set-seq-coverage/1	PHOTOS	7	0015-2024	Q	no
+PHOTOS-07_2115-2024_Q	set-seq-coverage/1	PHOTOS	7	2115-2024	Q	no
+PHOTOS-07_2005-2024_Q	set-seq-coverage/1	PHOTOS	7	2005-2024	Q	no
+PHOTOS-07_2010-2024_Q	set-seq-coverage/1	PHOTOS	7	2010-2024	Q	no
+PHOTOS-07_2015-0024_Q	set-seq-coverage/1	PHOTOS	7	2015-0024	Q	no
+PHOTOS-07_2015-2124_Q	set-seq-coverage/1	PHOTOS	7	2015-2124	Q	no
+PHOTOS-07_2015-2004_Q	set-seq-coverage/1	PHOTOS	7	2015-2004	Q	no
+PHOTOS-07_2015-2020_Q	set-seq-coverage/1	PHOTOS	7	2015-2020	Q	no
+HPOTOS-07_2015-2024_Q	set-seq-coverage/1	HPOTOS	7	2015-2024	Q	no
+POHTOS-07_2015-2024_Q	set-seq-coverage/1	POHTOS	7	2015-2024	Q	no
+PHTOOS-07_2015-2024_Q	set-seq-coverage/1	PHTOOS	7	2015-2024	Q	no
+PHOOTS-07_2015-2024_Q	set-seq-coverage/1	PHOOTS	7	2015-2024	Q	no
+PHOTSO-07_2015-2024_Q	set-seq-coverage/1	PHOTSO	7	2015-2024	Q	no
+PHOTOS-70_2015-2024_Q	set-seq-coverage/1	PHOTOS	70	2015-2024	Q	no
+PHOTOS-07_0215-2024_Q	set-seq-coverage/1	PHOTOS	7	0215-2024	Q	no
+PHOTOS-07_2105-2024_Q	set-seq-coverage/1	PHOTOS	7	2105-2024	Q	no
+PHOTOS-07_2051-2024_Q	set-seq-coverage/1	PHOTOS	7	2051-2024	Q	no
+PHOTOS-07_2015-0224_Q	set-seq-coverage/1	PHOTOS	7	2015-0224	Q	no
+PHOTOS-07_2015-2204_Q	set-seq-coverage/1	PHOTOS	7	2015-2204	Q	no
+PHOTOS-07_2015-2042_Q	set-seq-coverage/1	PHOTOS	7	2015-2042	Q	no
+2020-2025_PROJECTS_01	coverage-set-seq/0	PROJECTS	1	2020-2025		yes
+2019_TAXES_3	coverage-set-seq/0	TAXES	3	2019		yes
+not an id	none					no
+	none					no
+PHOTOS-7_2015_A	none					no

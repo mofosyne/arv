@@ -1,14 +1,14 @@
 """Disposable SQLite search index built from the plain-text catalogue.
 
-recutils and plain scans get slow past ~100k files; this makes `archive find`
-fast at millions. Delete archive.sqlite at any time; `archive index` rebuilds it.
+recutils and plain scans get slow past ~100k files; this makes `arv find`
+fast at millions. Delete archive.sqlite at any time; `arv index` rebuilds it.
 """
 
 import os
 import sqlite3
 
 from . import catalog as catalog_mod
-from .web import read_listing
+from .listing import read_listing
 
 SCHEMA = """
 CREATE TABLE files (disc TEXT, path TEXT, lpath TEXT, size INTEGER);
@@ -25,6 +25,7 @@ def _sources(home, disc_id):
 
 
 def build(home, cat):
+    home.ensure(home.cache_dir)
     tmp = home.sqlite_path + ".tmp"
     if os.path.exists(tmp):
         os.remove(tmp)
@@ -52,9 +53,9 @@ def is_fresh(home):
         return False
     built = os.path.getmtime(home.sqlite_path)
     sources = [home.rec_path]
-    for folder in (home.manifest_dir, home.listing_dir):
-        if os.path.isdir(folder):
-            sources += [os.path.join(folder, n) for n in os.listdir(folder)]
+    if os.path.isdir(home.volumes_dir):
+        for disc_id in os.listdir(home.volumes_dir):
+            sources += [home.manifest_path(disc_id), home.listing_path(disc_id)]
     return all(os.path.getmtime(p) <= built for p in sources if os.path.exists(p))
 
 

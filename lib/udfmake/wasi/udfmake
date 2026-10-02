@@ -1,0 +1,4 @@
+#!/bin/sh
+# udfmake, run from its WebAssembly build (make wasi) by Node. Same arguments as udfmake.
+here=$(dirname "$0")
+exec node --no-warnings "$here/run.mjs" "${UDFMAKE_WASM:-$here/../build-wasi/udfmake}" "$@"

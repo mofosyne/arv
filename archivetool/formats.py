@@ -1,7 +1,7 @@
 """File format identification with Siegfried (PRONOM IDs).
 
 Optional: used when the `sf` command is available. Results go to
-catalog/formats/<disc-id>.csv so that decades from now it is clear exactly
+catalog/volumes/<disc-id>/formats.csv so that decades from now it is clear exactly
 which format (and version) each file is, even if its extension is wrong.
 """
 

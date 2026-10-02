@@ -1,4 +1,4 @@
-"""`archive make`: plan, stage, build and protect one or more disc images.
+"""`arv make`: plan, stage, build and protect one or more disc images.
 
 A folder that does not fit on one disc (at the requested minimum RS03
 redundancy) can be split with --split: files are assigned in path order, each
@@ -8,15 +8,14 @@ catalogue of the whole batch. Sizes are checked exactly with
 """
 
 import os
-import re
 import shutil
 import sys
 import tempfile
+import uuid
 from dataclasses import dataclass, field
 
-from . import bag, catalog, formats, html, image, index, media, recfile, rocrate, web
+from . import bag, catalog, discid, formats, html, image, index, listing, media, recfile, rocrate
 
-FILESYSTEM = "ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge"
 
 
 def log(msg):
@@ -28,11 +27,15 @@ class Plan:
     entries: list
     disc_id: str = ""
     record: recfile.Record = None
+    binding: recfile.Record = None
     part: int = 1
     parts: int = 1
+    sequence: int = 1
     out: str = ""
     stage: str = ""
     sectors: int = 0
+    prebuilt: str = ""   # udf250: the image built while measuring it (moved into place by build())
+    label: str = ""      # volume label: the disc id, then as much of the title as fits
     events: list = field(default_factory=list)
     extras: list = field(default_factory=list)  # [(Entry, source path)] added to data/, e.g. RO-Crate files
 
@@ -85,6 +88,7 @@ class Maker:
         self.workdir = None
         self.plans = []
         self.formats = None  # (header, {path: row}) from Siegfried
+        self.filesystem = getattr(args, "filesystem", None) or "hybrid"
 
     # ------------------------------------------------------------ planning
 
@@ -94,25 +98,27 @@ class Maker:
                 raise SystemExit("Error: --split needs a target --medium (not auto)")
             return [self.entries]
         tools = os.path.join(self.workdir, "tools-probe")
-        self.stage_tools(tools, self.is_git, self.args.extra_tools)
-        reserve = dir_sectors(tools) + self.snapshot_estimate() + self.budget // 200 + 1024
+        self.stage_tools(tools, self.is_git, self.args.extra_tools, self.args.tools_history)
+        # slack for directory records and the like: 2 MiB on real media, less on tiny test media
+        reserve = dir_sectors(tools) + self.snapshot_estimate() + self.budget // 200 + min(1024, self.budget // 20)
         shutil.rmtree(tools)
         return greedy_split(self.entries, self.budget - reserve)
 
     def snapshot_estimate(self):
-        """Sectors for catalog/ (prior discs' files + this batch's lists, twice: listings + web)."""
+        """Sectors for catalog/ (prior discs' files + this batch's lists), with room to spare."""
         total = 0
         for d in self.prior_discs():
             for p in self.home.disc_files(d.get("Id")).values():
                 total += 2 * os.path.getsize(p)
-        total += sum(4 * (len(e.path) + 200) for e in self.entries)  # manifests, listings, web, formats
+        total += sum(4 * (len(e.path) + 200) for e in self.entries)  # manifests, listings, formats
         return total // media.SECTOR + 256
 
     def prior_discs(self):
         if self.args.snapshot == "full":
             return list(self.cat.discs)
-        if self.args.snapshot == "set":
-            return [d for d in self.cat.discs if d.get("Set") == self.meta["set"]]
+        if self.args.snapshot == "set":  # for other people: public discs only
+            return [d for d in self.cat.discs
+                    if d.get("Set") == self.meta["set"] and catalog.access(d) == "public"]
         return []
 
     def assign(self, bins):
@@ -122,7 +128,10 @@ class Maker:
         first = self.cat.next_number(meta["set"])
         self.plans = []
         for i, entries in enumerate(bins):
-            disc_id = self.args.id or catalog.make_disc_id(meta["coverage"], meta["set"], first + i)
+            try:
+                disc_id = self.args.id or discid.compose(meta["set"], first + i, meta["coverage"])
+            except discid.IdError as err:
+                raise SystemExit("Error: %s" % err)
             if not catalog.ID_RE.match(disc_id) or len(disc_id) > image.MAX_VOLID_LEN:
                 raise SystemExit("Error: invalid disc id %r (letters, digits, _ . -; at most %d characters)"
                                  % (disc_id, image.MAX_VOLID_LEN))
@@ -134,14 +143,19 @@ class Maker:
                 out = os.path.join(os.path.abspath(self.args.output_dir or "."), disc_id + ".iso")
             if os.path.exists(out):
                 raise SystemExit("Error: %s already exists" % out)
-            plan = Plan(entries=entries, disc_id=disc_id, part=i + 1, parts=n, out=out)
+            plan = Plan(entries=entries, disc_id=disc_id, part=i + 1, parts=n, out=out, sequence=first + i)
+            label_text = getattr(self.args, "label", None)
+            plan.label = image.volume_label(disc_id, meta["title"] if label_text is None else label_text,
+                                            self.filesystem)
             plan.record = self.disc_record(plan)
+            plan.binding = self.binding_record(plan)
             plan.events = [catalog.new_event(disc_id, "message digest calculation", "success", self.version,
                                              "sha256 and sha512 manifests of %d files" % len(entries))]
             if self.meta.get("draft_agent"):
                 plan.events.append(catalog.new_event(
                     disc_id, "metadata modification", "success", "%s + owner review" % self.meta["draft_agent"],
-                    "title, description, subjects and folder tags drafted with a local LLM and reviewed by the owner"))
+                    "title, description, subjects and folder tags taken from a draft (made by: %s)"
+                    % self.meta["draft_agent"]))
             if self.formats:
                 header, rows = self.formats
                 unknown = sum(1 for e in entries if (rows.get(e.path) or {}).get("puid", "UNKNOWN") == "UNKNOWN")
@@ -150,6 +164,12 @@ class Maker:
                     header.splitlines()[0].lstrip("# ") if header else "siegfried",
                     "PRONOM ids for %d files, %d unidentified" % (len(entries), unknown)))
             self.plans.append(plan)
+
+    def image_sectors(self):
+        """Size of the finished image (filesystem + RS03), when it is known in advance."""
+        if self.args.no_ecc or not self.capacity or not image.dvdisaster_sets_medium_size():
+            return None
+        return media.rs03_image_sectors(self.capacity)
 
     @property
     def medium_label(self):
@@ -161,12 +181,22 @@ class Maker:
     def group_id(self):
         if len(self.plans) < 2:
             return None
-        return "%s-%02d" % (self.plans[0].disc_id, int(self.plans[-1].disc_id.rsplit("_", 1)[1]))
+        return "%s-%02d-%02d" % (self.meta["set"], self.plans[0].sequence, self.plans[-1].sequence)
 
     def disc_record(self, plan):
         m, a = self.meta, self.args
-        r = recfile.Record("Disc", [("Id", plan.disc_id), ("Title", m["title"]), ("Set", m["set"]),
-                                    ("Coverage", m["coverage"]), ("Date", catalog.today())])
+        # Uuid: machine identity of this image (copies burned from it share it); Id is for humans
+        # Id is derived from IdScheme + Set + Sequence + Coverage, so it can be regenerated and checked
+        r = recfile.Record("Disc", [("Id", plan.disc_id), ("Uuid", str(uuid.uuid4()))])
+        if not a.id:
+            r.add("IdScheme", discid.SCHEME)
+        if plan.label != plan.disc_id:
+            r.add("Label", plan.label)   # the volume label: the id, then as much of the title as fits
+        r.fields += [("Title", m["title"]), ("Set", m["set"])]
+        r.fields += [("Category", c) for c in m.get("categories") or []]
+        # every vocabulary path of the set and categories, recorded at burn time (self-describing)
+        r.fields += [("Path", p) for p in m.get("paths") or []]
+        r.fields += [("Sequence", str(plan.sequence)), ("Coverage", m["coverage"]), ("Date", catalog.today())]
         if plan.parts > 1:
             r.add("Part", "%d of %d" % (plan.part, plan.parts))
         for key in ("creator", "description"):
@@ -178,8 +208,18 @@ class Maker:
             r.add("Note", n)
         if m.get("location"):
             r.add("Location", m["location"])
+        r.add("Access", m.get("access") or catalog.DEFAULT_ACCESS)
         if a.rights:
             r.add("Rights", a.rights)
+        for k, v in [("Files", len(plan.entries)), ("Bytes", sum(e.size for e in plan.entries)),
+                     ("Software", self.version)]:
+            r.add(k, str(v))
+        return r
+
+    def binding_record(self, plan):
+        """How this volume is stored: container and protection, kept apart from the Disc record
+        because they belong to the medium, not to the archive (Binding, docs/smart-archive-format.md)."""
+        a = self.args
         if a.no_ecc:
             ecc = "none"
         elif self.capacity:
@@ -187,10 +227,16 @@ class Maker:
                 self.medium_label, self.capacity, a.min_redundancy)
         else:
             ecc = "dvdisaster RS03 augmented image"
-        for k, v in [("Media", a.media or ("M-DISC " + (self.medium_label if self.capacity else "BD-R"))),
-                     ("Files", len(plan.entries)), ("Bytes", sum(e.size for e in plan.entries)),
-                     ("Filesystem", FILESYSTEM), ("Ecc", ecc), ("Software", self.version)]:
-            r.add(k, str(v))
+        r = recfile.Record("Binding", [
+            ("Volume", plan.disc_id),
+            ("Container", image.CONTAINERS[self.filesystem]),
+            ("Protection", "none" if a.no_ecc else "rs03"),
+            ("Media", a.media or ("M-DISC " + (self.medium_label if self.capacity else "BD-R"))),
+            ("Filesystem", image.FILESYSTEMS[self.filesystem]),
+            ("Ecc", ecc),
+        ])
+        if self.capacity and not a.no_ecc:
+            r.add("MediumSectors", str(self.capacity))
         return r
 
     # ------------------------------------------------------------ staging
@@ -208,7 +254,7 @@ class Maker:
             files = {"manifests": os.path.join(batch, p.disc_id + ".sha256"),
                      "listings": os.path.join(batch, p.disc_id + ".tsv")}
             bag.write_manifest(files["manifests"], [(e.hashes["sha256"], "data/" + e.path) for e in p.payload_entries])
-            web.write_listing(files["listings"], p.payload_entries)
+            listing.write_listing(files["listings"], p.payload_entries)
             tags, captions = self.plan_tags(p)
             if tags or captions:
                 files["tags"] = os.path.join(batch, p.disc_id + ".tags")
@@ -258,35 +304,44 @@ class Maker:
         info += [("Payload-Oxum", bag.payload_oxum(plan.payload_entries)), ("Bag-Software-Agent", self.version)]
         bag.write_bag_tags(stage, plan.payload_entries, info)
 
-        own = catalog.Catalog()
-        own.discs, own.events = [plan.record], list(plan.events)
-        recfile.write(os.path.join(stage, "catalog.rec"), own.records())
-
         if a.snapshot == "disc":
             batch_plans = [plan]
         else:
             batch_plans = self.plans
         prior = self.prior_discs()
-        snapshot = self.cat.subset({d.get("Id") for d in prior})
+        # other discs' records as this disc may carry them (sealed ones cut down to their identity)
+        snapshot = self.cat.subset({d.get("Id") for d in prior}).shared_view()
         snapshot.discs += [p.record for p in batch_plans]
+        snapshot.bindings += [p.binding for p in batch_plans]
         snapshot.events += [e for p in batch_plans for e in p.events]
-        files = {d.get("Id"): self.home.disc_files(d.get("Id")) for d in prior}
+        snapshot.locations = (list(self.cat.locations) if a.snapshot == "full"
+                              else self.cat.locations_for(snapshot.discs))
+        # virtual folders, limited to the discs this snapshot carries (no paths on sealed discs)
+        snapshot.collections = self.cat.collections_for({d.get("Id") for d in snapshot.discs},
+                                                        self.cat.sealed_ids())
+        if a.snapshot == "full":  # the history of the places and collections it carries (not for other people)
+            carried = {"location:" + l.get("Code") for l in snapshot.locations}
+            carried |= {"collection:" + c.get("Code") for c in snapshot.collections}
+            snapshot.events += [e for e in self.cat.events if e.get("Object") in carried]
+        files = {d.get("Id"): self.home.disc_files(d.get("Id")) for d in prior
+                 if catalog.access(d) != "sealed"}
         files.update({p.disc_id: batch[p.disc_id] for p in batch_plans})
         catalog_dir = os.path.join(stage, "catalog")
         catalog.write_snapshot(catalog_dir, snapshot, files, a.snapshot)
-        listings = os.path.join(catalog_dir, "listings")
-        tags_dir = os.path.join(catalog_dir, "tags")
-        folder_tags = {n[:-5]: catalog.read_tag_info(os.path.join(tags_dir, n))
-                       for n in (os.listdir(tags_dir) if os.path.isdir(tags_dir) else [])}
-        web.write_web_data(os.path.join(catalog_dir, "web"), plan.disc_id, snapshot.discs,
-                           {n[:-4]: os.path.join(listings, n) for n in os.listdir(listings)}, folder_tags)
 
-        self.stage_tools(os.path.join(stage, "tools"), self.is_git, a.extra_tools)
-        self.write_readme(os.path.join(stage, "README.txt"), plan.record, a.snapshot)
+        self.stage_tools(os.path.join(stage, "tools"), self.is_git, a.extra_tools, a.tools_history)
+        self.write_readme(os.path.join(stage, "README.txt"), plan.record, a.snapshot, a.tools_history,
+                          image_sectors=self.image_sectors())
         with open(os.path.join(stage, "index.html"), "w", encoding="utf-8") as f:
             f.write(html.render_index(plan.record, plan.payload_entries, snapshot))
-        with open(os.path.join(stage, "search.html"), "w", encoding="utf-8") as f:
-            f.write(web.render_search())
+
+        # catalog.rec: the disc's entry point (Archive record, see docs/smart-archive-format.md),
+        # then this disc's own Disc and Event records. Written last so it can point to every file.
+        own = catalog.Catalog()
+        own.discs, own.bindings, own.events = [plan.record], [plan.binding], list(plan.events)
+        own.locations = self.cat.locations_for(own.discs)
+        recfile.write(os.path.join(stage, "catalog.rec"),
+                      catalog.archive_records(plan.record, stage) + own.records())
         bag.write_tagmanifests(stage)
 
     def payload(self, plan):
@@ -305,7 +360,7 @@ class Maker:
             over = None
             for i, plan in enumerate(self.plans):
                 self.stage(plan, batch)
-                plan.sectors = image.print_size(plan.stage, plan.disc_id, **self.payload(plan))
+                plan.sectors = self.measure(plan)
                 if self.budget is not None and plan.sectors > self.budget and over is None:
                     over = i
             if over is None:
@@ -335,22 +390,40 @@ class Maker:
             bins = [b for b in bins if b]
             for p in self.plans:
                 shutil.rmtree(p.stage, ignore_errors=True)
+                if p.prebuilt and os.path.exists(p.prebuilt):
+                    os.remove(p.prebuilt)
             shutil.rmtree(os.path.join(self.workdir, "batch"), ignore_errors=True)
             log("Rebalancing: disc %d was %d sectors over budget" % (over + 1, plan.sectors - self.budget))
         raise SystemExit("Error: could not fit the files onto discs after %d attempts" % attempts)
+
+    def measure(self, plan):
+        """Exact image size in sectors. genisoimage can print it; for UDF the image is
+        built (in the work directory) and kept for build()."""
+        if self.filesystem == "udf250":
+            plan.prebuilt = plan.stage + ".udf"
+            return image.build_udf(plan.stage, plan.prebuilt, plan.label, disc_id=plan.disc_id,
+                                   udfmake=getattr(self.args, "udfmake", None), **self.payload(plan))
+        return image.print_size(plan.stage, plan.label, **self.payload(plan))
 
     # ------------------------------------------------------------ building
 
     def build(self, plan):
         a = self.args
         log("Building %s (%d of %d, %s) ..." % (plan.out, plan.part, plan.parts, html.human_size(plan.sectors * media.SECTOR)))
-        image.build_iso(plan.stage, plan.out, plan.disc_id, **self.payload(plan))
+        if plan.prebuilt:
+            shutil.move(plan.prebuilt, plan.out)
+            plan.prebuilt = ""
+        else:
+            image.build_iso(plan.stage, plan.out, plan.label, **self.payload(plan))
         note = "image %s, %d sectors" % (os.path.basename(plan.out), plan.sectors)
         plan.events.append(catalog.new_event(plan.disc_id, "creation", "success", self.version, note))
         if a.no_ecc:
             return
         log("Adding dvdisaster RS03 error correction ...")
         output = image.add_ecc(plan.out, medium_sectors=self.capacity)
+        expected, got = self.image_sectors(), os.path.getsize(plan.out) // media.SECTOR
+        if expected and got != expected:
+            log("Warning: README.txt on %s says the image is %d sectors, but it is %d" % (plan.disc_id, expected, got))
         for line in output.splitlines():
             if "redundancy" in line:
                 plan.events[-1].set("Note", note + "; RS03: " + line.strip())
@@ -392,10 +465,11 @@ class Maker:
                 self.build(plan)
             for plan in self.plans:
                 self.cat.discs.append(plan.record)
+                self.cat.bindings.append(plan.binding)
                 self.cat.events.extend(plan.events)
                 self.home.store_disc_files(plan.disc_id, {
-                    kind: os.path.join(plan.stage, "catalog", kind, plan.disc_id + ext)
-                    for kind, ext in catalog.DISC_FILE_KINDS.items()})
+                    kind: catalog.volume_file(os.path.join(plan.stage, "catalog"), kind, plan.disc_id)
+                    for kind in catalog.DISC_FILE_KINDS})
             self.home.save(self.cat)
             if os.path.exists(self.home.sqlite_path):
                 index.build(self.home, self.cat)
@@ -411,4 +485,8 @@ class Maker:
 
 
 def sanitize_set(name):
-    return re.sub(r"[^A-Za-z0-9-]", "", name or "").upper() or "ARCHIVE"
+    """Set code for ids: 2-8 capital letters or digits (longer names are shortened)."""
+    try:
+        return discid.normalise_set(name)
+    except discid.IdError:
+        return "ARCHIVE"

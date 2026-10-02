@@ -1,0 +1,10 @@
+# input	normalised	hierarchical (XMP)
+# Folder tags: plain words or namespace:value.
+travel	travel	travel
+  Travel  	travel	travel
+Place : Kyoto	place:kyoto	place|kyoto
+person:Alice Smith	person:alice smith	person|alice smith
+event:wedding-2019	event:wedding-2019	event|wedding-2019
+a, b	a b	a b
+not a namespace: x y	not a namespace: x y	not a namespace: x y
+source:pixel-7	source:pixel-7	source|pixel-7

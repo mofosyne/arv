@@ -1,7 +1,7 @@
 """Interactive metadata help from a local LLM: suggest, ask the owner, refine, review.
 
-Used by `archive describe` (a folder before burning, or an existing disc) and
-by `archive make --llm`. Results are a "draft": plain JSON that `archive make
+Used by `arv describe` (a folder before burning, or an existing disc) and
+by `arv make --llm`. Results are a "draft": plain JSON that `arv make
 --draft` reads, so suggestions can be prepared, edited by hand, and reused.
 """
 
@@ -9,7 +9,7 @@ import json
 import os
 import sys
 
-from . import bag, catalog, llm, vision, web
+from . import bag, catalog, listing, llm, vision
 
 
 def log(msg=""):
@@ -176,7 +176,7 @@ def disc_entries(home, disc_id):
     if not os.path.exists(path):
         raise SystemExit("Error: no file listing for %s at %s" % (disc_id, path))
     entries = []
-    for size, mtime, rel in web.read_listing(path):
+    for size, mtime, rel in listing.read_listing(path):
         try:
             ts = calendar.timegm(time.strptime(mtime, "%Y-%m-%dT%H:%M:%SZ"))
         except ValueError:
@@ -199,7 +199,7 @@ def apply_to_disc(home, cat, disc, draft, agent):
             changed.append(field)
     if draft.get("subjects") and draft["subjects"] != disc.get_all("Subject"):
         disc.fields = [(k, v) for k, v in disc.fields if k != "Subject"]
-        insert_at = next((i for i, (k, _) in enumerate(disc.fields) if k in ("Note", "Location", "Rights", "Media")), len(disc.fields))
+        insert_at = next((i for i, (k, _) in enumerate(disc.fields) if k in ("Note", "Location", "Rights", "Media", "Files")), len(disc.fields))
         disc.fields[insert_at:insert_at] = [("Subject", s) for s in draft["subjects"]]
         changed.append("Subject")
     for note in draft.get("notes") or []:
@@ -220,7 +220,7 @@ def apply_to_disc(home, cat, disc, draft, agent):
 
 
 def run(args):
-    """`archive describe`."""
+    """`arv describe`."""
     home = catalog.Home(args.home)
     cat = home.load()
     disc = cat.disc(args.target)
@@ -274,7 +274,7 @@ def run(args):
             return 0
     if args.save:
         save_draft(args.save, draft, client.agent)
-        log("Draft saved to %s (use: archive make --draft %s ...)" % (args.save, args.save))
+        log("Draft saved to %s (use: arv make --draft %s ...)" % (args.save, args.save))
     if disc and sys.stdin.isatty():
         if ask("Apply to %s in the home catalogue? [y/N] " % disc.get("Id")).lower().startswith("y"):
             changed = apply_to_disc(home, cat, disc, draft, client.agent)
@@ -285,10 +285,10 @@ def run(args):
 
 
 def make_draft(args, src, entries, interactive):
-    """For `archive make --llm`: run the conversation and review before the usual prompts."""
+    """For `arv make --llm`: run the conversation and review before the usual prompts."""
     if not interactive:
         raise SystemExit("Error: --llm needs an interactive terminal (or prepare a draft with "
-                         "'archive describe <folder> --save draft.json' and pass --draft draft.json)")
+                         "'arv describe <folder> --save draft.json' and pass --draft draft.json)")
     client = llm.Client(args.llm_url, args.llm_model, args.llm_allow_remote)
     seen = look_at_images(args, client, src, entries)
     inv = llm.inventory(entries, os.path.basename(src), text_root=src) + vision.inventory_section(seen)

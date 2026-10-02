@@ -1,0 +1,11 @@
+# record	type	field	value
+# Every field of every record (descriptors included), in file order.
+0	Disc	%rec	Disc
+0	Disc	%key	Id
+1	Disc	Id	A
+1	Disc	Note	line one\nline two\n\nafter a blank line
+1	Disc	Note	second note
+1	Disc	Title	with trailing spaces   
+2	Disc	Id	B
+2	Disc	Empty	
+2	Disc	Joined	first half second half

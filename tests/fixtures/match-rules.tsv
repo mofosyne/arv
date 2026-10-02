@@ -1,0 +1,11 @@
+# pattern	path	matches
+# Match globs: without / against each path segment, with / against the whole path;
+# case ignored.
+*.jpg	trip/IMG_1.JPG	yes
+*.jpg	trip/IMG_1.jpeg	no
+*.git	tool/.git/HEAD	yes
+*/gerbers/*	board/gerbers/top.gbr	yes
+*/gerbers/*	gerbers/top.gbr	no
+*/Taxes/*	2019/taxes/return.pdf	yes
+Makefile	src/Makefile	yes
+Makefile	src/Makefile.am	no
