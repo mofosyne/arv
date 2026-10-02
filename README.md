@@ -1,4 +1,4 @@
-# Blu-ray Archival Workflow
+# ARV: Archive, Record, Verify
 
 > [!WARNING]
 > **Experimental. Do not trust your only copy of anything to this yet.**
@@ -11,9 +11,14 @@
 > mature project: read the code before relying on it, check what it produces, and expect
 > bugs. Provided as is, with no warranty (see [LICENSE](LICENSE)).
 
-Tools for writing long-term personal archives (photos, video, source code) to
-Blu-ray discs that can still be read, checked and repaired decades from now
-using only open, well-documented formats.
+**ARV** (`arv`; also Norwegian for "inheritance") writes long-term personal archives (photos,
+video, documents, source code) to discs that can still be read, checked and repaired decades
+from now, with nothing but open, well-documented formats. Each disc holds your files untouched,
+a hash of every file, a catalogue of the whole archive so far, the source of the tools that
+made it, and the steps to repair it; error correction fills the rest of the disc. Blu-ray
+(M-DISC BD-R) is today's medium; the format does not depend on it.
+
+(This repository is still called `bluray-archival-workflow`, its name before ARV.)
 
 Why it works the way it does (curated discs on top of everyday storage, plain files, copies): [docs/philosophy.md](docs/philosophy.md).
 
@@ -50,13 +55,16 @@ Each layer does its own job:
 | BagIt manifests | **Detect** corruption per file, portable off-disc | `bagit.py`, or plain `sha256sum -c` |
 | recfile catalogue | **Find** which disc holds what, without mounting | `recsel`, `recfix` |
 
-## Current state
+## What's here
 
-| Path | Status |
+| Path | What |
 |---|---|
-| `scripts/create-archive-iso.sh` | Working. Hybrid ISO9660/UDF 1.02 image via `genisoimage`, then RS03 augment |
-| `scripts/create-archive-udf.sh` | Experimental. UDF 2.01 image via `mkudffs` + loop mount (needs sudo), then RS03 augment |
-| `tests/smoke-test.sh` | End-to-end check: bag → image → ECC → damage → repair → validate bag |
+| `arv`, `archivetool/` | The tool (see below) |
+| `lib/udfmake/` | NetBSD's `makefs -t udf` as a C library and program, for UDF 2.50 images |
+| `samples/` | Sample discs and their catalogue |
+| `docs/` | How to use it, why it works this way, and the disc format |
+| `tests/` | `python3 -m unittest discover -s tests`; `tests/smoke-test.sh` for the original scripts |
+| `scripts/` | The original shell scripts, before ARV (see [Without arv](#without-arv-the-original-scripts)) |
 
 `samples/` has eight small sample discs made with the full workflow (46 MB, with
 RS03 error correction) and their catalogue: try `./arv --home samples/home list`.
@@ -298,7 +306,7 @@ ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM S
   (qwen2.5-3b, about 1 minute per round) gave useful tags and good questions, and one
   answered question produced a specific title. Use a 7-8B model if your hardware allows.
 
-## Quick start (original scripts)
+## Without arv: the original scripts
 
 ```sh
 # dependencies (Debian/Ubuntu)
@@ -325,18 +333,25 @@ single-threaded.
 
 ## Roadmap
 
-- [x] Single `archive` CLI (Python, stdlib only): bag → catalog.rec → image → ECC → verify
-- [ ] Generate `catalog.rec` per disc (Dublin Core-named `Disc` fields, PREMIS-typed `Event` records), and merge into a master `archive.rec`
-- [ ] Generate `archive.sqlite` search index from the manifests + recfiles (recutils is too slow for per-file records)
+- [x] Single `arv` CLI (Python, stdlib only): bag → catalog.rec → image → ECC → verify; `make install`
+- [x] `catalog.rec` per disc (Dublin Core-named `Disc` fields, PREMIS-typed `Event` records) and the home `archive.rec`
+- [x] `archive.sqlite` search index from the manifests and recfiles (`arv index`)
 - [x] PRONOM format IDs via Siegfried (`catalog/volumes/<id>/formats.csv`) and optional RO-Crate (`--ro-crate`)
-- [ ] Cumulative catalogue snapshot (`catalog/`) on every disc so the newest disc indexes all earlier ones; opt-out for discs given away
-- [ ] Physical `Location` / `Copy` records and short disc IDs for retrieval
+- [x] Cumulative catalogue snapshot (`catalog/`) on every disc; access levels decide what it shows
+- [x] `Location` records, short disc ids with a check character, collections across discs
 - [x] Multi-disc splitting for sets larger than one disc (`Bag-Count: n of N`)
-- [ ] `README.txt` + dvdisaster sources/binaries on each disc for self-contained recovery
+- [x] `README.txt` and the tool's source on each disc
 - [x] Target medium size, minimum redundancy, defect-management sizes for RS03
-- [ ] Optional UDF 2.50 (metadata mirror) through NetBSD `makefs -t udf`
+- [x] Optional UDF 2.50 through NetBSD `makefs -t udf` (`lib/udfmake`)
 - [x] GUI front end over the CLI (`arv gui`, local web UI, standard library only)
-- [ ] Standalone RS03 library extracted from dvdisaster (GPLv3)
+- [x] `.arv` homes, change events, `Binding` records (format 0.3)
+- [ ] dvdisaster sources (and static binaries) on each disc for self-contained repair
+- [ ] File extents per volume, so files can be cut out of a raw image
+- [ ] A small portable RS03 decoder; a standalone RS03 library if dvdisaster Light splits into libraries
+- [ ] A man page generated from the command's own help
+- [ ] First real burns, and reading them back after time on the shelf
+
+The detailed plan and the reasons behind each decision: [docs/plan.md](docs/plan.md).
 
 ## Licence
 
