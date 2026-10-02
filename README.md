@@ -106,6 +106,37 @@ arv --help
 `PREFIX/share/arv`, and puts `arv` and `udfmake` in `PREFIX/bin`. Without installing, `./arv`
 in a checkout does the same.
 
+### What it needs
+
+`arv` itself is Python with nothing to install from pip. Making a disc also runs two other
+programs, which it finds on `PATH`:
+
+| Program | Needed for | Where it comes from |
+|---|---|---|
+| `genisoimage` | the default hybrid image | your distribution (`apt install genisoimage`) |
+| `udfmake` | `--filesystem udf250` only | this repository: built and installed by `make install` |
+| `dvdisaster` | RS03 error correction (skip with `--no-ecc`, for testing) | **not bundled:** build [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the [speed47 fork](https://github.com/speed47/dvdisaster)); the distro 0.79.10 package works but pads only to the smallest standard size |
+| `sf` (Siegfried), `ffmpeg`, a local LLM | optional extras (format ids, video frames, descriptions) | install if you want them |
+
+`arv make` stops with a clear message if a program it needs is missing. Reading a disc later
+needs none of these: any computer can open it, and `README.txt` on the disc explains checking
+and repair (repair needs dvdisaster).
+
+### What `arv make` creates
+
+```sh
+arv make ~/photos/2019-kyoto
+```
+
+| Where | What |
+|---|---|
+| the current folder (or `--output-dir`, `-o`) | **`<disc-id>.iso`**, e.g. `TRIP-01_2019_4.iso`: the finished image with RS03, ready to burn. With `--split`, one image per disc |
+| your home catalogue (`.arv/catalog/`) | the disc's record and events in `archive.rec`, and `volumes/<disc-id>/` with its file list and checksums |
+| `~/photos/2019-kyoto` | **nothing:** the folder is read, never changed |
+
+Staging happens in a temporary folder that is removed afterwards (`--keep-stage` keeps it). The
+image holds the files under `data/` plus everything in [Disc layout](#disc-layout).
+
 ### Uninstall
 
 ```sh
