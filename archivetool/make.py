@@ -302,6 +302,10 @@ class Maker:
         # virtual folders, limited to the discs this snapshot carries (no paths on sealed discs)
         snapshot.collections = self.cat.collections_for({d.get("Id") for d in snapshot.discs},
                                                         self.cat.sealed_ids())
+        if a.snapshot == "full":  # the history of the places and collections it carries (not for other people)
+            carried = {"location:" + l.get("Code") for l in snapshot.locations}
+            carried |= {"collection:" + c.get("Code") for c in snapshot.collections}
+            snapshot.events += [e for e in self.cat.events if e.get("Object") in carried]
         files = {d.get("Id"): self.home.disc_files(d.get("Id")) for d in prior
                  if catalog.access(d) != "sealed"}
         files.update({p.disc_id: batch[p.disc_id] for p in batch_plans})

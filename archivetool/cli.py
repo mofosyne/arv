@@ -483,18 +483,29 @@ def cmd_id(args):
 
 
 def _edit_disc(args, fn):
+    """Apply ``fn(disc)``, which returns a description of the change for its event (None: no change)."""
     home = catalog.Home(args.home)
     cat = home.load()
     disc = cat.disc(args.disc_id)
     if not disc:
         raise SystemExit("Error: no disc %s in %s" % (args.disc_id, home.rec_path))
-    fn(disc)
+    change = fn(disc)
+    if change:
+        catalog.metadata_change(cat, change, disc_id=disc.get("Id"))
     home.save(cat)
     return 0
 
 
+def _clip(text, width=60):
+    text = " ".join(text.split())
+    return text if len(text) <= width else text[:width - 3] + "..."
+
+
 def cmd_note(args):
-    return _edit_disc(args, lambda d: d.add("Note", args.text))
+    def add(disc):
+        disc.add("Note", args.text)
+        return "Note added: %s" % _clip(args.text)
+    return _edit_disc(args, add)
 
 
 def cmd_locate(args):
@@ -504,6 +515,7 @@ def cmd_locate(args):
     disc = cat.disc(args.disc_id)
     if not disc:
         raise SystemExit("Error: no disc %s in %s" % (args.disc_id, home.rec_path))
+    old_all = disc.get_all("Location")
     new = [place(cat, l) for l in args.location]
     for l in new:
         if not cat.location(l):
@@ -515,6 +527,10 @@ def cmd_locate(args):
     before = [f for f in disc.fields[:first] if f[0] != "Location"]
     after = [f for f in disc.fields[first:] if f[0] != "Location"]
     disc.fields = before + [("Location", l) for i, l in enumerate(keep) if l not in keep[:i]] + after
+    now = disc.get_all("Location")
+    if now != old_all:
+        catalog.metadata_change(cat, "Location: %s -> %s" % (", ".join(old_all) or "(none)", ", ".join(now)),
+                                disc_id=disc.get("Id"))
     home.save(cat)
     print("%s: %s" % (disc.get("Id"), cat.where(disc)))
     return 0
@@ -571,8 +587,13 @@ def cmd_collection(args):
         if args.description:
             col.add("Description", args.description)
         cat.collections.append(col)
+        changes = ["created" + (" in %s" % args.within.strip().upper() if args.within else "")]
     elif not col:
         raise SystemExit("Error: no collection %s" % code)
+    else:
+        changes = []
+    items_before = len(col.get_all("Item"))
+    parent_before, name_before = col.get("Parent"), col.get("Name")
     if args.action in ("add", "put"):
         have = set(col.get_all("Item"))
         for item in args.items:
@@ -603,13 +624,29 @@ def cmd_collection(args):
             col.fields.insert(2, ("Parent", args.within.strip().upper()))
         if args.name:
             col.set("Name", args.name)
+    # counts only: item paths could name files on sealed discs
+    delta = len(col.get_all("Item")) - items_before
+    if delta > 0:
+        changes.append("%d item%s added" % (delta, "" if delta == 1 else "s"))
+    elif delta < 0:
+        changes.append("%d item%s removed" % (-delta, "" if delta == -1 else "s"))
+    if args.action == "move" and col.get("Parent") != parent_before:
+        changes.append("moved into %s" % (col.get("Parent") or "the top level"))
+    if args.action == "move" and col.get("Name") != name_before:
+        changes.append("renamed %s -> %s" % (name_before, col.get("Name")))
+    if changes:
+        catalog.metadata_change(cat, "; ".join(changes), obj="collection:" + code)
     home.save(cat)
     print("%s: %s, %d items" % (code, cat.collection_path(code), len(col.get_all("Item"))))
     return 0
 
 
 def cmd_access(args):
-    return _edit_disc(args, lambda d: d.set("Access", args.level))
+    def set_access(disc):
+        before = catalog.access(disc)
+        disc.set("Access", args.level)
+        return None if before == args.level else "Access: %s -> %s" % (before, args.level)
+    return _edit_disc(args, set_access)
 
 
 def cmd_location(args):
@@ -657,16 +694,27 @@ def cmd_location(args):
         if args.description:
             loc.add("Description", args.description)
         cat.locations.append(loc)
+        catalog.metadata_change(cat, "created" + (" in %s" % parent if parent else ""), obj="location:" + code)
     elif args.action == "move":
         if not loc:
             raise SystemExit("Error: no location %s" % code)
         if parent and code in [l.get("Code") for l in cat.location_chain(parent)]:
             raise SystemExit("Error: %s is inside %s; that would make a loop" % (parent, code))
+        parent_before, name_before = loc.get("Parent"), loc.get("Name")
+        if not parent and args.name:
+            parent = parent_before  # a rename alone keeps the place where it is
         loc.fields = [(k, v) for k, v in loc.fields if k != "Parent"]
         if parent:
             loc.fields.insert(2, ("Parent", parent))
         if args.name:
             loc.set("Name", args.name)
+        changes = []
+        if loc.get("Parent") != parent_before:
+            changes.append("moved into %s" % (loc.get("Parent") or "the top level"))
+        if loc.get("Name") != name_before:
+            changes.append("renamed %s -> %s" % (name_before, loc.get("Name")))
+        if changes:
+            catalog.metadata_change(cat, "; ".join(changes), obj="location:" + code)
     home.save(cat)
     print("%s: %s" % (code, cat.location_path(code)))
     return 0

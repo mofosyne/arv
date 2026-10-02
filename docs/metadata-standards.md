@@ -173,7 +173,8 @@ Note: 0 unreadable sectors, ECC blocks pass
 Event types to start with (all from the PREMIS vocabulary): `creation`,
 `ingestion`, `message digest calculation`, `fixity check`, `replication`
 (burned another copy), `migration` (copied to new media or converted format),
-`deaccession` (disc destroyed or discarded).
+`deaccession` (disc destroyed or discarded), and `metadata modification` for every hand edit
+of the catalogue (Agent `human:LOGIN`; see smart-archive-format.md, Event records).
 
 ### Per-file data: plain text on the disc, search in SQLite
 

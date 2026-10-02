@@ -73,9 +73,11 @@ DESCRIPTORS = [
         "Event",
         [
             ("%rec", "Event"),
-            ("%doc", "Preservation actions. Type uses the PREMIS eventType vocabulary:\n"
-                     "https://id.loc.gov/vocabulary/preservation/eventType"),
-            ("%mandatory", "Disc Type Date Outcome"),
+            ("%doc", "Preservation actions and metadata changes, appended and never edited. Type uses\n"
+                     "the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType\n"
+                     "Disc names the disc; a change to a location or a collection names it in Object\n"
+                     "(location:CODE, collection:CODE) instead. Agent is software, or human:LOGIN."),
+            ("%mandatory", "Type Date Outcome"),
             ("%type", "Outcome enum success failure warning"),
         ],
     ),
@@ -410,17 +412,31 @@ class Home:
                 shutil.copyfile(src, dest)
 
 
-def new_event(disc_id, type_, outcome, agent, note=None, date=None):
-    r = recfile.Record("Event", [
-        ("Disc", disc_id),
+def new_event(disc_id, type_, outcome, agent, note=None, date=None, obj=None):
+    r = recfile.Record("Event", [("Disc", disc_id)] if disc_id else [("Object", obj)])
+    r.fields += [
         ("Type", type_),
         ("Date", date or today()),
         ("Outcome", outcome),
         ("Agent", agent),
-    ])
+    ]
     if note:
         r.add("Note", note)
     return r
+
+
+def person():
+    """The Agent of a change made by hand: human:LOGIN."""
+    try:
+        import getpass
+        return "human:" + getpass.getuser()
+    except Exception:  # no login name (e.g. some containers)
+        return "human:unknown"
+
+
+def metadata_change(cat, note, disc_id=None, obj=None):
+    """Append a PREMIS 'metadata modification' event: every hand edit of the catalogue leaves one."""
+    cat.events.append(new_event(disc_id, "metadata modification", "success", person(), note, obj=obj))
 
 
 FORMAT_NAME = "smart-archive"
