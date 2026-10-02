@@ -152,9 +152,14 @@ Rights: All rights reserved
 IsPartOf: PROJECTS-2025
 Index: 1
 Count: 3
+
+%rec: Binding
+%doc: How the volume is stored on its medium (container, protection), kept apart from the Disc.
+
+Volume: 2025-01-13_Projects_2020_-_2025
+Container: iso9660+udf-1.02
+Protection: rs03
 Media: BD-R 25GB
-Filesystem: ISO9660+RR+Joliet / UDF 1.02
-Ecc: dvdisaster RS03 augmented
 
 %rec: Event
 %doc: Preservation actions. Type uses the PREMIS eventType vocabulary.

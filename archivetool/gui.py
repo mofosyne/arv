@@ -79,7 +79,8 @@ class App:
         out = []
         for d in cat.discs:
             summary = disc_summary(d)
-            summary.update({k: d.get(k) for k in ("Media", "Bytes", "Ecc", "Rights", "Creator", "Access") if d.get(k)})
+            full = cat.with_binding(d)
+            summary.update({k: full.get(k) for k in ("Media", "Bytes", "Ecc", "Rights", "Creator", "Access") if full.get(k)})
             summary["Where"] = cat.where(d)
             summary["Events"] = [dict(e.fields) for e in cat.events_for(d.get("Id"))]
             out.append(summary)

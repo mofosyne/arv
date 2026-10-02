@@ -103,8 +103,8 @@ def render_index(disc, entries, snapshot_catalog):
     out.append('<p>To search this disc and the rest of the archive, see SEARCH in '
                '<a href="README.txt">README.txt</a>.</p>')
     out.append("<h2>About this disc</h2><table>")
-    out.append(_field_rows(disc, ["Id", "Label", "Part", "Set", "Category", "Path", "Sequence", "Coverage", "Date", "Creator", "Subject",
-                                  "Location", "Access", "Rights", "Media", "Filesystem", "Ecc", "Software"]))
+    out.append(_field_rows(snapshot_catalog.with_binding(disc), ["Id", "Label", "Part", "Set", "Category", "Path", "Sequence", "Coverage", "Date", "Creator", "Subject",
+                                  "Location", "Access", "Rights", "Media", "Container", "Filesystem", "Protection", "Ecc", "Software"]))
     out.append("<tr><th>Contents</th><td>%s files, %s</td></tr>"
                % (_e(disc.get("Files")), human_size(int(disc.get("Bytes", "0")))))
     out.append("</table>")

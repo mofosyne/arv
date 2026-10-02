@@ -1,4 +1,4 @@
-# Smart archive disc format (draft 0.1)
+# Smart archive disc format (draft 0.3)
 
 A disc (or any folder, image or drive) that **describes itself**: what it is,
 what is on it, what each file is, how to verify it, and what other discs of the
@@ -49,7 +49,7 @@ column in `device.csv` is a natural place for the disc's `Uuid`.
 
 The filesystem is either a hybrid of ISO 9660 (Rock Ridge, Joliet) and UDF 1.02,
 readable almost anywhere, or UDF 2.50 only (BD-ROM layout with a metadata
-partition; `Disc.Filesystem` says which). Both show the same files. A UDF-only
+partition; the disc's [`Binding`](#binding-record-recfile) says which). Both show the same files. A UDF-only
 disc has no ISO 9660 volume descriptor, so readers take the label from the UDF
 logical volume identifier instead.
 
@@ -66,7 +66,7 @@ first `Archive` record has `Format: smart-archive`**:
 %mandatory: Format Version Disc Uuid
 
 Format: smart-archive
-Version: 0.2
+Version: 0.3
 Disc: 2020-2025_PROJECTS_01
 Uuid: 4f1c2a9e-7b3d-4c55-9e2a-1d0b6f8c3a71
 Manifest: manifest-sha256.txt
@@ -85,14 +85,14 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 
 | Path | Shape | Contents |
 |---|---|---|
-| `catalog.rec` | recfile | `Archive` entry record, then this disc's `Disc` record, the `Location` records it refers to, and its `Event` records |
+| `catalog.rec` | recfile | `Archive` entry record, then this disc's `Disc` and `Binding` records, the `Location` records it refers to, and its `Event` records |
 | `bagit.txt`, `bag-info.txt` | BagIt | Bag declaration; `External-Identifier` = disc Id, `Bag-Group-Identifier` / `Bag-Count` for multi-disc sets |
 | `manifest-sha256.txt`, `manifest-sha512.txt` | BagIt manifest | `<hash>  data/<path>`, one per payload file (`sha256sum -c` compatible) |
 | `catalog/volumes/<id>/listing.tsv` | TSV | Size, modification time and path of every payload file |
 | `catalog/volumes/<id>/tags.tsv` | TSV | Folder tags and optional image captions |
 | `catalog/volumes/<id>/formats.csv` | CSV | PRONOM format identification per file (optional) |
 | `catalog/volumes/<id>/manifest.sha256` | BagIt manifest | Copy of the disc's `manifest-sha256.txt` |
-| `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Location` and `Event` records (limited by [Access](#access)) |
+| `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Binding`, `Location` and `Event` records (limited by [Access](#access)) |
 | `catalog/volumes/<other-id>/` | as above | The same per-volume index files for the other discs in the snapshot: one folder per volume, as LTFS keeps one index per tape |
 | `index.html` | HTML | Offline viewer (for people; readers can ignore) |
 | `data/` | files | The payload, untouched |
@@ -118,7 +118,6 @@ Version 0.1 (samples only, never burned) kept these files by kind instead: `cata
 | `Access` | `public`, `private` (default) or `sealed` | What *other* discs' snapshots may show of this one, see [Access](#access) |
 | `Withheld` | What was left out of this record | Only on the cut-down copy of a sealed disc in another disc's snapshot |
 | `Note`* | Free-text notes; Q&A from the owner | Multi-line values continue with `+ ` |
-| `Media`, `Filesystem`, `Ecc` | Physical and technical description | e.g. `M-DISC BD-R 25GB`, RS03 details |
 | `Files`, `Bytes` | Payload totals | integers |
 | `Copies`, `MediaId` | Burned copies and drive-reported media ids | home catalogue only |
 | `Software` | Tool and commit that made the disc | |
@@ -409,7 +408,7 @@ Based on Katalog's source (collection files `device.csv`, `storage.csv`,
 | `Disc.Id` (volume label) | `storage.csv` `Label` |
 | `Disc.Location` + `Location` records | `storage.csv` `Location` (the readable path, e.g. `Home / Study / Box 3`) |
 | `Disc.Access` = `sealed` | import the identity only (or skip the disc) |
-| `Disc.Filesystem`, `Media` | `storage.csv` `FileSystem`, `Type` / `Comment` |
+| `Binding.Filesystem`, `Media` | `storage.csv` `FileSystem`, `Type` / `Comment` |
 | `Disc.Description`, `Note` | `storage.csv` `Comment` (or a new notes table) |
 | Listing TSV row | `.idx` row: `<mount>/data/<path>`, size, date converted from UTC to `yyyy/MM/dd hh:mm:ss` |
 | Manifest SHA-256 | Katalog's checksum column (catalogue with checksums enabled) |
@@ -417,13 +416,50 @@ Based on Katalog's source (collection files `device.csv`, `storage.csv`,
 | `catalog/archive.rec` other discs | additional devices marked as not connected |
 | `Collection` records | virtual folders, if Katalog adds them (no direct equivalent today; folder tags named after the collection come closest) |
 
+Up to version 0.2 the Disc record also held `Media`, `Filesystem` and `Ecc`; they are now in
+the disc's `Binding`. Readers look in the Binding first, then in the Disc record.
+
+### `Binding` record (recfile)
+
+How one volume is stored on its medium. The files and the rest of the catalogue never depend
+on the medium; the container and its protection do, so they are kept here, apart from the
+`Disc` record (four layers: content, description, container, protection; plan.md). A new
+medium needs a new kind of Binding, not a new format.
+
+```rec
+%rec: Binding
+%key: Volume
+%mandatory: Volume Container Protection
+
+Volume: TRIP-01_2019_4
+Container: iso9660+udf-1.02
+Protection: rs03
+Media: M-DISC BD-R 25GB
+Filesystem: ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge
+Ecc: dvdisaster RS03 augmented image, BD-R 25GB (12219392 sectors), minimum 20% redundancy
+MediumSectors: 12219392
+```
+
+| Field | Meaning |
+|---|---|
+| `Volume` | The disc `Id` |
+| `Container` | How the volume is laid out: `iso9660+udf-1.02` (hybrid) or `udf-2.50`; later perhaps `ltfs`, `exfat`, `tar`, `afs` |
+| `Protection` | Error correction around the container: `rs03` (dvdisaster augmented image) or `none` |
+| `Media`, `Filesystem`, `Ecc` | The same, described for people |
+| `MediumSectors` | The medium size RS03 was computed for, in 2048-byte sectors |
+
+Planned: an optional `Extents` pointer to `catalog/volumes/<id>/extents.tsv` (path, start and
+length of each file in the container's units), so files can be cut out of a raw image with
+only the manifest (as Piql's AFS table of contents allows).
+
 Things Katalog would have no place for today (candidates for its developer):
 events (provenance history), multi-line notes, image captions, PRONOM IDs,
 and set/part numbering beyond a virtual-device parent.
 
 ## Versioning
 
-- `Version: 0.1` is a draft; field names may still change before `1.0`.
+- `Version: 0.3` is a draft; field names may still change before `1.0`. 0.2 grouped
+  per-volume files by volume; 0.3 moved the medium's fields into `Binding`.
 - Minor versions only add optional fields or files. A major version bump means
   a reader must not assume the old layout.
 - Listing and tags files carry their own header version (`listing 1`).

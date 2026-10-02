@@ -48,6 +48,21 @@ DESCRIPTORS = [
         ],
     ),
     recfile.Record(
+        "Binding",
+        [
+            ("%rec", "Binding"),
+            ("%doc", "How one volume is stored on its medium: the container (filesystem) and the\n"
+                     "protection (error correction) it was made with. These change with the medium;\n"
+                     "the files and the rest of the catalogue do not (docs/plan.md, four layers).\n"
+                     "Container: iso9660+udf-1.02, udf-2.50 (later perhaps ltfs, exfat, tar, afs).\n"
+                     "Protection: rs03 or none. Media, Filesystem and Ecc describe them for people\n"
+                     "(format 0.2 and earlier kept those three in the Disc record)."),
+            ("%key", "Volume"),
+            ("%mandatory", "Volume Container Protection"),
+            ("%type", "MediumSectors int"),
+        ],
+    ),
+    recfile.Record(
         "Location",
         [
             ("%rec", "Location"),
@@ -154,6 +169,7 @@ def coverage_years(entries):
 class Catalog:
     def __init__(self, records=None):
         self.discs = []
+        self.bindings = []
         self.locations = []
         self.collections = []
         self.events = []
@@ -162,6 +178,8 @@ class Catalog:
                 continue
             if r.type == "Disc":
                 self.discs.append(r)
+            elif r.type == "Binding":
+                self.bindings.append(r)
             elif r.type == "Location":
                 self.locations.append(r)
             elif r.type == "Collection":
@@ -171,13 +189,29 @@ class Catalog:
 
     def records(self):
         """Records in file order: each type's descriptor is followed by its records."""
-        disc_desc, location_desc, collection_desc, event_desc = DESCRIPTORS
+        disc_desc, binding_desc, location_desc, collection_desc, event_desc = DESCRIPTORS
         out = [disc_desc] + self.discs
+        if self.bindings:
+            out += [binding_desc] + self.bindings
         if self.locations:
             out += [location_desc] + self.locations
         if self.collections:
             out += [collection_desc] + self.collections
         return out + [event_desc] + self.events
+
+    # ------------------------------------------------------------ bindings
+
+    def binding(self, disc_id):
+        return next((b for b in self.bindings if b.get("Volume") == disc_id), None)
+
+    def with_binding(self, disc):
+        """The disc's record with its Binding's fields added after it (for showing to people).
+        Older records kept Media, Filesystem and Ecc in the Disc record itself; they show as they are."""
+        b = self.binding(disc.get("Id"))
+        r = recfile.Record("Disc", list(disc.fields))
+        if b is not None:
+            r.fields += [(k, v) for k, v in b.fields if k != "Volume" and r.get(k) is None]
+        return r
 
     # ------------------------------------------------------------ collections
 
@@ -289,6 +323,7 @@ class Catalog:
     def subset(self, disc_ids):
         c = Catalog()
         c.discs = [d for d in self.discs if d.get("Id") in disc_ids]
+        c.bindings = [b for b in self.bindings if b.get("Volume") in disc_ids]
         c.events = [e for e in self.events if e.get("Disc") in disc_ids]
         c.locations = self.locations_for(c.discs)
         c.collections = self.collections_for(disc_ids, self.sealed_ids())
@@ -302,6 +337,7 @@ class Catalog:
         c = Catalog()
         sealed = {d.get("Id") for d in self.discs if access(d) == "sealed"}
         c.discs = [sealed_view(d) if d.get("Id") in sealed else d for d in self.discs]
+        c.bindings = list(self.bindings)  # how a disc is stored says nothing about what is on it
         c.events = [e for e in self.events if e.get("Disc") not in sealed]
         c.locations = list(self.locations)
         c.collections = self.collections_for({d.get("Id") for d in self.discs}, sealed)
@@ -440,7 +476,7 @@ def metadata_change(cat, note, disc_id=None, obj=None):
 
 
 FORMAT_NAME = "smart-archive"
-FORMAT_VERSION = "0.2"  # 0.2: per-volume index files in catalog/volumes/<disc-id>/
+FORMAT_VERSION = "0.3"  # 0.2: per-volume index files in catalog/volumes/<disc-id>/; 0.3: Binding records
 
 ARCHIVE_DESCRIPTOR = recfile.Record("Archive", [
     ("%rec", "Archive"),
@@ -519,6 +555,12 @@ def merge(home_catalog, other, prefer_other=False):
         elif prefer_other and existing.fields != d.fields and not (d.get("Withheld") and not existing.get("Withheld")):
             existing.fields = list(d.fields)
             updated.append(d.get("Id"))
+    for b in other.bindings:
+        existing = home_catalog.binding(b.get("Volume"))
+        if existing is None:
+            home_catalog.bindings.append(b)
+        elif prefer_other:
+            existing.fields = list(b.fields)
     for col in other.collections:   # items are unioned: a filtered copy never removes any
         existing = home_catalog.collection(col.get("Code"))
         if existing is None:
