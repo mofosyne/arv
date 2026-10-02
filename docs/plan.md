@@ -215,6 +215,10 @@ Extents: volumes/TRIP-01_2019_4/extents.tsv   (optional: path, start, length in 
       extracting files from a raw image with only the extents and the manifest (Piql lesson 3).
 - [ ] Per-binding recovery steps in README.txt (dvdisaster for disc images).
 - [ ] Name checks and size limits become per-container profiles (already `--filesystem`).
+- [ ] Keep Piql compatibility in reach: per-file records stay mappable to AFS `tocdatafile.xsd`
+      (id, name, parent, date, size, checksum, format id, metadata, start/end); later, an AFS
+      table-of-contents export via afslib (GPLv3, it can write) or an `afs` binding. Piql's
+      ingest (PiqlConnect) runs Archivematica, which accepts our BagIt bags directly.
 
 ## Direction: a chain of small programs, each carried on every disc (2026-10-01)
 
