@@ -242,6 +242,11 @@ commit): it holds new or changed files whole, plus a log of every earlier node.
   set to file, and are appended, never edited. A person's appraisal outranks a bot's.
 - **A git-like CLI:** `archive status` (NAS vs. manifests by hash), `archive make` (the next
   node), `archive log`, `archive show NODE`, `archive diff A B`, `archive verify-chain`.
+- **Not a git backend.** History is kept per disc, not per edit: each disc's catalogue snapshot
+  is the whole archive's state at that node, so changes between two discs are a diff of their
+  snapshots (`archive diff A B`). Events and appraisals carry their own dates. No `.git` or git
+  bundle of the catalogue goes on a disc, and the tool does not need git; git's model is
+  borrowed, not its software.
 
 ## Later: an archive organiser (2026-10-02)
 
