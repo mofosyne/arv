@@ -1,5 +1,16 @@
 # Blu-ray Archival Workflow
 
+> [!WARNING]
+> **Experimental. Do not trust your only copy of anything to this yet.**
+> No disc made with it has been burned and read back over years; the disc format is a draft
+> (0.3) and may still change in ways older discs do not follow. Keep your data where it is
+> now, and treat discs made with this as an extra copy while you test it.
+>
+> **Written largely by an AI coding assistant** ("vibe-coded"), with a human choosing the
+> direction and reviewing the results. It has tests, but it has not had the scrutiny of a
+> mature project: read the code before relying on it, check what it produces, and expect
+> bugs. Provided as is, with no warranty (see [LICENSE](LICENSE)).
+
 Tools for writing long-term personal archives (photos, video, source code) to
 Blu-ray discs that can still be read, checked and repaired decades from now
 using only open, well-documented formats.
@@ -315,3 +326,12 @@ single-threaded.
 - [ ] Optional UDF 2.50 (metadata mirror) through NetBSD `makefs -t udf`
 - [x] GUI front end over the CLI (`arv gui`, local web UI, standard library only)
 - [ ] Standalone RS03 library extracted from dvdisaster (GPLv3)
+
+## Licence
+
+GNU GPL version 3 (GPL-3.0); see [LICENSE](LICENSE). Code from elsewhere keeps its own licence: NetBSD's
+makefs in `lib/udfmake/netbsd/` (BSD) and `archivetool/vendor/bagit.py` (CC0).
+
+The disc format ([docs/smart-archive-format.md](docs/smart-archive-format.md)) is meant to be
+implemented by anyone, in any program, under any licence: reading and writing these discs
+must never depend on this code.

@@ -143,7 +143,7 @@ institutions.
 
 Id: 2025-01-13_Projects_2020_-_2025
 Title: Projects 2020 - 2025
-Creator: Brian Khuu
+Creator: A. Person
 Date: 2025-01-13
 Description: Source code and design files for personal projects
 Subject: electronics
