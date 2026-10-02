@@ -193,6 +193,18 @@ All tiers remain optional, suggestion-only, and recorded as PREMIS events with t
 - Later: `Root` records (the archive's trees by name, in the catalogue) and `Mount` records
   (where each is mounted on this machine, in `homes.rec`), for `arv status` across every tree.
 
+## Decision (2026-10-02): arv makes discs, Katalog browses them
+
+- **Separate concerns.** `arv` (and `arv gui`) makes, describes and checks archive discs.
+  Browsing and searching across many devices, virtual folders and FUSE mounts are catalogue
+  software's job, Katalog's in particular; `arv find` stays only so one disc can be searched
+  with nothing installed.
+- **They meet through the disc format, not through code.** A Katalog "smart import" would read
+  `catalog.rec` and `catalog/` (smart-archive-format.md, "Reading a disc" and "Mapping to
+  Katalog") instead of scanning. To propose to Katalog's developer
+  ([StephaneCouturier/Katalog](https://github.com/StephaneCouturier/Katalog)), with the sample
+  discs as test data.
+
 ## Design: four layers, and a binding per volume (2026-10-02; Binding done)
 
 Blu-ray and UDF are today's medium, not the format (philosophy.md, principle 4). Drawn and
