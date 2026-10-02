@@ -25,6 +25,9 @@ Everything else follows from six principles:
    both ends:** anyone can make a volume as well as read one, with ordinary
    equipment and open tools, unlike archives whose reader is open but whose writer
    belongs to one vendor (research-notes.md, Piql).
+   **The archive is independent of its medium:** files and the catalogue never
+   depend on a filesystem or medium; a volume's *binding* (UDF on Blu-ray today)
+   is recorded separately, so new media need a new binding, not a new format.
 5. **People decide; tools propose.** Automation (sorting, tagging, choosing what
    to archive) only makes suggestions, runs locally, and is never needed to read
    a disc.
