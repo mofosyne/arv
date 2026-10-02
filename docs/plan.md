@@ -81,7 +81,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 
 ### Phase 2: whole-archive retrieval
 - [x] `catalog/` snapshot with `--snapshot full|set|disc` (+ `listings/` with sizes and dates)
-- [ ] ~~Snapshot hash chain~~ dropped: the tagmanifests already cover the snapshot
+- [ ] ~~Snapshot hash chain~~ dropped for integrity (the tagmanifests already cover it); back as a *history* graph, see "Design: discs as nodes in a history graph" (2026-10-02)
 - [ ] Per-copy tracking via the BD-R BCA serial (deferred, low priority)
 - [x] ~~`search.html` across the snapshot~~ (built, then removed 2026-10-01)
 - [x] Generated `archive.sqlite` (`archive index`); `find` uses it when fresh
@@ -214,6 +214,34 @@ Reading, checking and repairing (what a disc must carry for itself):
 | 6 | Search the archive | `archive --home catalog find` (Python) | — |
 
 Details and measurements: research-notes.md, sections 7-9.
+
+## Design: discs as nodes in a history graph (2026-10-02, not implemented)
+
+Git's model, with the content kept where it already is. Each disc image is a **node** (a
+commit): it holds new or changed files whole, plus a log of every earlier node.
+
+| git | Here |
+|---|---|
+| commit hash | node hash: SHA-256 of the disc's `tagmanifest-sha256.txt`, which already lists the hashes of every manifest and catalogue file; computed before RS03, so error correction does not change it |
+| parents | the newest node(s) when the disc is made; a DAG (split discs share a parent, histories can merge) |
+| `git log` | `catalog/history.rec` on every disc: each earlier node's hash, parents, disc id, date, message |
+| objects | files, stored whole on discs (and on the NAS) |
+| working tree | the NAS (everyday storage) |
+| `.git` | the home catalogue: history log, manifests, appraisals; **no file content and no diffs** (content lives on the discs and backups) |
+
+- **A lost disc does not break the chain:** later discs carry its node hash, parents and full
+  manifest, so what was on it is known exactly; a copy found later is proven by re-hashing.
+- **Tamper-evident:** changing a file on an old disc changes its node hash, which no longer
+  matches the log on newer discs.
+- **Versioned collections:** a collection snapshot maps logical paths to `disc:path` + SHA-256
+  as of a node, with its previous snapshot as parent. Changed files go on the new disc whole
+  (`Supersedes: OLD-01_...:path`); unchanged ones are referenced. Each disc still stands alone;
+  only the snapshot spans discs, as collections already do.
+- **Appraisals** (`Appraisal` records: target, for whom, importance word, note, by
+  `human:`/`bot:` with basis, date, review) attach to nodes, paths or collections, cascade from
+  set to file, and are appended, never edited. A person's appraisal outranks a bot's.
+- **A git-like CLI:** `archive status` (NAS vs. manifests by hash), `archive make` (the next
+  node), `archive log`, `archive show NODE`, `archive diff A B`, `archive verify-chain`.
 
 ## Later: an archive organiser (2026-10-02)
 
