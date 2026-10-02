@@ -42,6 +42,26 @@ flowchart TD
     end
 ```
 
+## Before the discs: everyday storage
+
+Discs hold a curated selection ([philosophy.md](philosophy.md)); everything lives first on
+everyday storage, which is robust enough for years, not decades. Suggested setup (the tools
+named here are not part of this repository and were not tested in it):
+
+| Need | Suggested | Why |
+|---|---|---|
+| Master copy that notices bit rot | The NAS on **ZFS or Btrfs**, scheduled scrubs, snapshots | checksums every block, repairs from redundancy; snapshots undo mistakes |
+| A pile of mismatched hard drives | **SnapRAID + mergerfs**, or plain `rsync` mirrors checked with **chkbit** / hashdeep | files stay ordinary on each drive (any one drive readable alone); parity or checksums catch rot |
+| History and an off-site copy | **restic/rustic**, Borg or Kopia; **rclone** for cloud | compact and versioned; tool-dependence is acceptable on this tier |
+| Clean up before choosing | duplicate finders (Czkawka, rmlint, jdupes); photo managers (digiKam ratings and tags go into XMP) | less to sort; ratings can feed appraisal |
+| "Which drive or disc is it on?" | **Katalog** | catalogues offline drives and, through our format, the discs |
+| What is already archived, what matters | **this tool** | SHA-256 manifests mark archived files; appraisals rank the rest; the organiser (plan.md) proposes the next disc |
+
+Organise the NAS in plain folders by the same kinds as the archive vocabulary (photos,
+projects, records ...), so folders map to disc sets. git-annex also tracks every file's copies
+across drives, but turns folders into symlinks into a hidden store, which NAS clients handle
+poorly; worth it only for a subset you want watched file by file.
+
 ## 0. One-time setup
 
 | Need | For | How |

@@ -40,6 +40,7 @@ need to last fifty years. So there are two tiers:
 
 The discs are not a backup of the NAS. They are a **curated selection**: the
 things worth the extra effort of a durable copy. Choosing is part of the work.
+How the everyday tier can be set up: [workflow.md](workflow.md), "Before the discs".
 
 ## Plain files, not a backup engine (principle 2)
 
