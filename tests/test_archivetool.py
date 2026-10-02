@@ -613,6 +613,42 @@ class MakeTest(unittest.TestCase):
         snap = catalog.Catalog(recfile.read(os.path.join(later, "catalog", "archive.rec")))
         self.assertEqual(snap.where(snap.disc(disc_id)), "Parents' house / Box 3, blue lid")
 
+    def test_every_metadata_change_leaves_an_event(self):
+        home = ("--home", self.home)
+        run_cli(*home, "location", "add", "HOME", "Home")
+        run_cli(*home, "location", "add", "SAFE", "Safe", "--in", "HOME")
+        disc_id, _ = self.make(self.photos, "--set", "PHOTO", "--location", "HOME")
+        sealed_id, _ = self.make(self.photos, "--set", "PHOTO", "--access", "sealed")
+        before = len(catalog.Home(self.home).load().events)
+        run_cli(*home, "note", disc_id, "Only copy of\nthe 2019 photos")
+        run_cli(*home, "access", disc_id, "public")
+        run_cli(*home, "access", disc_id, "public")                  # no change, no event
+        run_cli(*home, "locate", disc_id, "SAFE")
+        run_cli(*home, "location", "move", "SAFE", "Fire safe")              # rename: stays in HOME
+        run_cli(*home, "location", "move", "SAFE")                           # to the top level
+        run_cli(*home, "collection", "add", "BEST", "--name", "Best", disc_id, sealed_id + ":IMG_0001.JPG")
+        run_cli(*home, "note", sealed_id, "tax papers inside")
+        events = catalog.Home(self.home).load().events[before:]
+        self.assertTrue(all(e.get("Type") == "metadata modification" and e.get("Agent").startswith("human:")
+                            for e in events))
+        self.assertEqual([(e.get("Disc") or e.get("Object"), e.get("Note")) for e in events], [
+            (disc_id, "Note added: Only copy of the 2019 photos"),
+            (disc_id, "Access: private -> public"),
+            (disc_id, "Location: HOME -> SAFE"),
+            ("location:SAFE", "renamed Safe -> Fire safe"),
+            ("location:SAFE", "moved into the top level"),
+            ("collection:BEST", "created; 2 items added"),            # no paths: one is on a sealed disc
+            (sealed_id, "Note added: tax papers inside"),
+        ])
+        # snapshots keep the rules: nothing about the sealed disc, nothing disc-less for other people
+        _, full = self.make(self.photos, "--set", "PHOTO")
+        snap = catalog.Catalog(recfile.read(os.path.join(full, "catalog", "archive.rec")))
+        self.assertFalse([e for e in snap.events if e.get("Disc") == sealed_id])
+        self.assertTrue([e for e in snap.events if e.get("Object") == "collection:BEST"])
+        _, shared = self.make(self.photos, "--set", "PHOTO", "--snapshot", "set")
+        snap = catalog.Catalog(recfile.read(os.path.join(shared, "catalog", "archive.rec")))
+        self.assertFalse([e for e in snap.events if e.get("Object")])
+
     def test_collections_travel_with_access_rules(self):
         home = ("--home", self.home)
         public_id, _ = self.make(self.photos, "--set", "PHOTO", "--access", "public")

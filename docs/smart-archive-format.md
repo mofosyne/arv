@@ -312,10 +312,18 @@ record keeps full precision.
 
 ### `Event` records (recfile)
 
-`Disc`, `Type` (PREMIS event type: `message digest calculation`, `creation`,
+`Disc` (or, for a change to a place or a collection, `Object`: `location:CODE`,
+`collection:CODE`), `Type` (PREMIS event type: `message digest calculation`, `creation`,
 `fixity check`, `format identification`, `metadata modification`,
 `replication`), `Date`, `Outcome` (`success` / `failure` / `warning`), `Agent`
-(software or `llm:<model> + owner review`), optional `Note`.
+(software, `human:LOGIN` for a hand edit, or `llm:<model> + owner review`), optional `Note`.
+
+Events are appended, never edited. **Every change to the catalogue leaves one:** a note, an
+access level, where a disc is kept, a place or a collection added, moved or renamed
+(`metadata modification`, with what changed in `Note`, e.g. `Access: private -> public`).
+Collection events give counts, never item paths, so they reveal nothing about sealed discs.
+A disc's events follow its access level; events with an `Object` go only into full
+snapshots, for the places and collections that snapshot carries.
 
 ### Listing TSV
 
