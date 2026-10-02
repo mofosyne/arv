@@ -42,15 +42,15 @@ from reading its source; the rest is from the tools' documented behaviour.
 
 | | Feature | Where |
 |---|---|---|
-| A | `Alias` and `ScopeNote` in `sets.rec`. `--set holidays` means TRIP; a folder named "Projects" means PROJ. | `archivetool/sets.py`, `archive sets -v` |
-| B | `Match` globs in both vocabularies. They suggest set and categories in `archive make`, and tags in `archive tag` (`--rules-only` needs no model). | `sets.Vocabulary.match`, `tagger.TagVocab.rule_tags` |
-| C | `Access`: `public` / `private` (default) / `sealed`. It controls what other discs' snapshots carry. | `catalog.access`, `catalog.sealed_view`, `archive access` |
-| D | Namespaced tags (`person:`, `place:`, `event:`, `source:`, `project:`) and tag aliases, normalised in review and in drafts. | `catalog.normalise_tag`, `archive tags` |
-| E | `Location` records (a tree), one disc `Location` per place copies are kept, `burned --location`, `list --at`. | `catalog.Catalog.locations`, `archive location` |
-| F | Hierarchical keywords (`MEMORIES\|PHOTO\|TRIP`, `place\|kyoto`) as TSV or as an exiftool argument file. | `archive keywords` |
+| A | `Alias` and `ScopeNote` in `sets.rec`. `--set holidays` means TRIP; a folder named "Projects" means PROJ. | `archivetool/sets.py`, `arv sets -v` |
+| B | `Match` globs in both vocabularies. They suggest set and categories in `arv make`, and tags in `arv tag` (`--rules-only` needs no model). | `sets.Vocabulary.match`, `tagger.TagVocab.rule_tags` |
+| C | `Access`: `public` / `private` (default) / `sealed`. It controls what other discs' snapshots carry. | `catalog.access`, `catalog.sealed_view`, `arv access` |
+| D | Namespaced tags (`person:`, `place:`, `event:`, `source:`, `project:`) and tag aliases, normalised in review and in drafts. | `catalog.normalise_tag`, `arv tags` |
+| E | `Location` records (a tree), one disc `Location` per place copies are kept, `burned --location`, `list --at`. | `catalog.Catalog.locations`, `arv location` |
+| F | Hierarchical keywords (`MEMORIES\|PHOTO\|TRIP`, `place\|kyoto`) as TSV or as an exiftool argument file. | `arv keywords` |
 
 ## Not adopted (yet)
 
 - Per-tag privacy (Lightroom's "don't export" per keyword): `Access` is per disc.
-- Metadata-driven views as folders (git-annex views). `archive list --in/--at/--covers` and search cover most of it.
+- Metadata-driven views as folders (git-annex views). `arv list --in/--at/--covers` and search cover most of it.
 - Auto-derived place and people facets from EXIF GPS and faces. This needs libraries beyond the standard library.

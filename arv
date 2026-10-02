@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entry point: ./archive <command> ... (same as python3 -m archivetool)."""
+"""Entry point: arv <command> ... (same as python3 -m archivetool)."""
 import os
 import sys
 

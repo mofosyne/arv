@@ -129,7 +129,7 @@ for head, lines in rows:
         yy += 15
         text(LX + 12, yy, line, 11, fill="#57606a")
     yy += 22
-text(LX + 12, yy - 4, "archive list --at BOX", 10, fill="#57606a", mono=True)
+text(LX + 12, yy - 4, "arv list --at BOX", 10, fill="#57606a", mono=True)
 
 # off-site
 add("<rect x='918' y='84' width='300' height='560' rx='8' fill='none' stroke='#6b7280' stroke-width='3' stroke-dasharray='8 5'/>")

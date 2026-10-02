@@ -30,7 +30,7 @@ python3 "$here/gen_sources.py" "$src"
 home=$work/home
 discs=$work/discs
 mkdir -p "$discs"
-a() { python3 "$repo/archive" --home "$home" "$@"; }
+a() { python3 "$repo/arv" --home "$home" "$@"; }
 common="-y --medium-sectors 3200 --output-dir $discs --creator Sample_Person --formats no"
 
 draft() {  # draft NAME JSON: a hand-written metadata draft
@@ -100,6 +100,6 @@ a list
 rm -rf "$out/home" "$out/discs"
 mv "$home" "$out/home"
 mv "$discs" "$out/discs"
-python3 "$repo/archive" --home "$out/home" index > /dev/null   # the index records its home path
+python3 "$repo/arv" --home "$out/home" index > /dev/null   # the index records its home path
 ls -l "$out/discs"
 du -ch "$out/discs"/*.iso | tail -1

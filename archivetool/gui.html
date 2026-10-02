@@ -323,7 +323,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (!llmStatus || !llmStatus.available) {
       box.appendChild(el("p", { class: "muted", text: "Local LLM help (optional): not available" +
         (llmStatus && llmStatus.error ? " \u2014 " + llmStatus.error : "") +
-        ". Start a local server (e.g. Ollama) and run archive gui --llm-url \u2026" }));
+        ". Start a local server (e.g. Ollama) and run arv gui --llm-url \u2026" }));
       return state;
     }
     var status = el("span", { class: "muted", text: "Local LLM: " + llmStatus.model + " (suggestions only; you review everything)" });
@@ -457,7 +457,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         var status = el("span", { class: j.done ? (j.returncode === 0 ? "ok" : "bad") : "warn",
           text: j.done ? (j.returncode === 0 ? "finished" : "failed (exit " + j.returncode + ")") : "running…" });
         var pre = el("pre", { class: "log" });
-        box.appendChild(el("div", { class: "card" }, [el("div", { class: "mono", text: "archive " + j.argv.join(" ") }), status, pre]));
+        box.appendChild(el("div", { class: "card" }, [el("div", { class: "mono", text: "arv " + j.argv.join(" ") }), status, pre]));
         poll(j.id, 0, pre, null);
       });
     });

@@ -54,7 +54,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - `index.html`: static, no JavaScript. Disc description, notes, location, a
   folder tree with relative links into `data/`, and sizes and checksums.
 - ~~`search.html`~~: removed 2026-10-01 (see Decisions). Searching across
-  discs is catalogue software's job, or `archive --home catalog find` run from
+  discs is catalogue software's job, or `arv --home catalog find` run from
   the disc. The notes below are kept for the record.
 - One search box with scope **This disc / All discs**, plus disc-level search
   over titles, descriptions, notes and subjects. Results show disc ID, title,
@@ -72,11 +72,11 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 ## Phases
 
 ### Phase 1: single-disc MVP
-- [x] `archive make <folder>`: bag → prompt for Title/Description/Notes/Subject →
+- [x] `arv make <folder>`: bag → prompt for Title/Description/Notes/Subject →
       `catalog.rec` → `tools/` → `index.html` → image → RS03 → `dvdisaster -t`
 - [x] Home catalogue `archive.rec` (Disc/Copy/Event), short disc IDs, `Location`
-- [x] `archive find <pattern>` (plain scan of manifests to start)
-- [x] `archive note <disc-id> <text>` (+ `archive locate`)
+- [x] `arv find <pattern>` (plain scan of manifests to start)
+- [x] `arv note <disc-id> <text>` (+ `arv locate`)
 - [x] Tests (`tests/test_archivetool.py`)
 
 ### Phase 2: whole-archive retrieval
@@ -84,10 +84,10 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - [ ] ~~Snapshot hash chain~~ dropped for integrity (the tagmanifests already cover it); back as a *history* graph, see "Design: discs as nodes in a history graph" (2026-10-02)
 - [ ] Per-copy tracking via the BD-R BCA serial (deferred, low priority)
 - [x] ~~`search.html` across the snapshot~~ (built, then removed 2026-10-01)
-- [x] Generated `archive.sqlite` (`archive index`); `find` uses it when fresh
-- [x] `archive check --device|--image`: dvdisaster scan/test → `fixity check` Event
-- [x] `archive rebuild <disc>`: merge a disc's catalogue into home (idempotent)
-- [x] `archive burned <id> --copies N`: record manual burns (`replication` Event)
+- [x] Generated `archive.sqlite` (`arv index`); `find` uses it when fresh
+- [x] `arv check --device|--image`: dvdisaster scan/test → `fixity check` Event
+- [x] `arv rebuild <disc>`: merge a disc's catalogue into home (idempotent)
+- [x] `arv burned <id> --copies N`: record manual burns (`replication` Event)
 - [ ] Import from VVV exports
 
 ### Phase 3: scale and standards
@@ -96,12 +96,12 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - [x] Siegfried/PRONOM `catalog/volumes/<id>/formats.csv` (+ `format identification` event), RO-Crate 1.2 export (`--ro-crate`, crate inside `data/` per the RO-Crate BagIt notes)
 
 ### Phase 4: extras
-- [x] GUI over the CLI (`archive gui`)
+- [x] GUI over the CLI (`arv gui`)
 - [x] NetBSD `makefs -t udf` builds on Linux as a C library: `lib/udfmake/` (UDF 2.50,
       metadata partition, two upstream bugs fixed).
 - [ ] Confirm `third_party/netbsd-makefs-udf/BUG-REPORT.md` by hand, then send it to NetBSD.
 - [ ] Metadata mirror duplication in udfmake (upstream lacks it).
-- [x] `archive make --filesystem udf250` using it (default stays the ISO9660 + UDF 1.02 hybrid).
+- [x] `arv make --filesystem udf250` using it (default stays the ISO9660 + UDF 1.02 hybrid).
 - [ ] Test the images with a Linux kernel mount, Windows and macOS.
 - [ ] Standalone RS03 library (see below). Needs the licence decision first.
 
@@ -113,7 +113,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
   (`--snapshot set`, only this set). Own off-site copies can take `full`.
 - Encryption: optional later, not implemented now (direction: see Decisions 2026-10-01).
 - Media: **M-DISC BD-R** as standard.
-- Copies: not managed. The tool makes the ISO; you burn it and record the count with `archive burned`.
+- Copies: not managed. The tool makes the ISO; you burn it and record the count with `arv burned`.
 - Physical disc identity: our disc id (volume label + bag-info + written on the disc). Drive-reported
   Media IDs identify the product line, not the disc; stored only as optional info.
 - Redundancy: **RS03 inside every image + whole extra copies** rather than
@@ -125,7 +125,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
   speed47 dvdisaster fork to fill the disc; the stock build is detected and warned about.
 - RO-Crate is opt-in (`--ro-crate`) because it adds two files to `data/`, so the payload is no
   longer byte-identical to the source folder.
-- GUI: **local web UI** (`archive gui`), not Tk. tkinter is a separate distro package
+- GUI: **local web UI** (`arv gui`), not Tk. tkinter is a separate distro package
   (`python3-tk`) and was missing even here; a browser is always present and matches the
   on-disc HTML. Bound to 127.0.0.1, token-protected, and it only runs `archive` commands.
 - Manifest paths are written unencoded (bagit-python and `sha256sum -c`
@@ -148,7 +148,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 
 ## Optional: local LLM metadata help (done)
 
-- `archive describe` (folder or disc), `archive make --llm` / `--draft`, GUI "Suggest" panels.
+- `arv describe` (folder or disc), `arv make --llm` / `--draft`, GUI "Suggest" panels.
 - OpenAI-compatible HTTP API, standard library only; loopback only unless `--llm-allow-remote`.
 - The model gets an inventory (names, counts, sizes, dates, types, short README text), returns
   title / description / subjects / folder tags / questions as JSON. The owner reviews every
@@ -171,7 +171,7 @@ See research-notes.md section 5 for the measurements behind this.
    owner's past tag reviews. Runtime managed by the tool (a local process on a random loopback
    port). Model and runtime are a pinned, SHA-256-checked download to
    `~/.local/share/bluray-archive/models/`, never committed (every disc carries the repo history).
-   Done: `archive tag` runs llama.cpp's `llama-embedding` CLI as a subprocess (no server/API),
+   Done: `arv tag` runs llama.cpp's `llama-embedding` CLI as a subprocess (no server/API),
    with `--embed-url` (OpenAI-compatible /v1/embeddings) as a fallback engine.
 2. **Bring your own AI (optional, OpenAI-compatible):** >= 1.5B model for SemIf-style decisions
    (logprob readout over lettered options: private/shareable, content type, rule-based yes/no);
@@ -230,7 +230,7 @@ Linux x86_64/arm64/armv7/riscv64, macOS and Windows from one machine; tested 202
 a **`.wasm`** build for anything else (any WASI runtime). Python glue stays while the workflow
 settles; settled steps move to C.
 
-Making a disc (`archive make` runs these in order):
+Making a disc (`arv make` runs these in order):
 
 | # | Step | Now | Later |
 |---|---|---|---|
@@ -240,7 +240,7 @@ Making a disc (`archive make` runs these in order):
 | 4 | Image: hybrid ISO9660/UDF 1.02, or UDF 2.50 | genisoimage, or our udfmake (C, also `.wasm`) | udfmake |
 | 5 | Add RS03 | dvdisaster Light (recommended) or speed47: byte-identical output (tested) | librs03, if dvdisaster Light splits into libraries ([issue](https://github.com/teaching-droid/dvdisaster-light/issues/1)) |
 | 6 | Verify the image | dvdisaster `-t` | same |
-| 7 | Burn and record | any burner; `archive burned` | a safe-burning note (xorriso) |
+| 7 | Burn and record | any burner; `arv burned` | a safe-burning note (xorriso) |
 
 Reading, checking and repairing (what a disc must carry for itself):
 
@@ -251,7 +251,7 @@ Reading, checking and repairing (what a disc must carry for itself):
 | 3 | Repair the image | dvdisaster `-f` | a small portable RS03 decoder (C → `.wasm`) that, unlike lcsas-ecc, survives damage to the CRC/ECC sectors and the header |
 | 4 | Check the files | `sha256sum -c`, `tools/bagit.py` | a tiny C `sha256` checker for the `.wasm` set |
 | 5 | Get files out without mounting | OS mount, or 7-Zip | a userspace reader for UDF 2.50 (and Rock Ridge/Joliet for hybrid discs) |
-| 6 | Search the archive | `archive --home catalog find` (Python) | — |
+| 6 | Search the archive | `arv --home catalog find` (Python) | — |
 
 Details and measurements: research-notes.md, sections 7-9.
 
@@ -280,7 +280,7 @@ commit): it holds new or changed files whole, plus a log of every earlier node.
 - **Appraisals** (`Appraisal` records: target, for whom, importance word, note, by
   `human:`/`bot:` with basis, date, review) attach to nodes, paths or collections, cascade from
   set to file, and are appended, never edited. A person's appraisal outranks a bot's.
-- **A git-like CLI:** `archive status` (NAS vs. manifests by hash), `archive make` (the next
+- **A git-like CLI:** `archive status` (NAS vs. manifests by hash), `arv make` (the next
   node), `archive log`, `archive show NODE`, `archive diff A B`, `archive verify-chain`.
 - **Not a git backend.** History is kept per disc, not per edit: each disc's catalogue snapshot
   is the whole archive's state at that node, so changes between two discs are a diff of their
@@ -299,7 +299,7 @@ what is worth a disc:
 - [ ] fill discs with the most important material first, by set;
 - [ ] report copy health: discs with fewer than two copies, or all copies at one site
       (git-annex's `numcopies`, per disc rather than per file);
-- [ ] report duplicates: at `archive make`, list files whose SHA-256 is already on another disc,
+- [ ] report duplicates: at `arv make`, list files whose SHA-256 is already on another disc,
       and on request, which files are on several discs. Report only, never deduplicate: every disc
       stands alone, so a file archived twice stays on both discs unless the person drops it.
 
@@ -318,7 +318,7 @@ Found 2026-10-01, both worth starting from:
 - [dvdisaster-light](https://github.com/teaching-droid/dvdisaster-light): RS03-only, CLI-only
   fork, bit-identical to 0.79.10-pl6, with a `ddrescue`-format map file and a read-until-complete
   `--rescue` mode. GPLv3. Tested (section 8): byte-identical to speed47 on all samples including
-  custom `-n` sizes, same repair results; a drop-in replacement for `archive make` and recovery,
+  custom `-n` sizes, same repair results; a drop-in replacement for `arv make` and recovery,
   now the recommended build. Proposed upstream (2026-10-01): split it into an RS03 codec library
   and a drive-reading library with the CLI on top, for GUIs and automation such as a jukebox:
   https://github.com/teaching-droid/dvdisaster-light/issues/1
@@ -339,7 +339,7 @@ Found 2026-10-01, both worth starting from:
   two things outlasting any browser API: **Python 3**, and a **WebAssembly runtime that runs
   WASI command-line programs** (several independent ones exist; udfmake already builds as one,
   `make wasi`). Every disc carries the tool's source in `tools/`, so from the disc alone:
-  `python3 tools/bluray-archival-workflow/archive --home catalog find PATTERN`. Convenient
+  `python3 tools/bluray-archival-workflow/arv --home catalog find PATTERN`. Convenient
   searching is catalogue software's job (Katalog). If a browser view is wanted later, it can
   be a WASI program that serves the catalogue over local http, not data duplicated on the disc.
 - When the C pieces needed to read or repair a disc exist (verify, RS03 repair), each goes on

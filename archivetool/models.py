@@ -1,6 +1,6 @@
 """Built-in AI tier: a pinned embedding model run by llama.cpp's command-line tool.
 
-Nothing here is needed for archiving. It backs `archive tag`:
+Nothing here is needed for archiving. It backs `arv tag`:
 
 - Models are pinned to an exact Hugging Face revision and SHA-256, downloaded
   once into <home>/models/, never committed to the repository (every disc
@@ -8,7 +8,7 @@ Nothing here is needed for archiving. It backs `archive tag`:
 - The runtime is llama.cpp's `llama-embedding` program, run as a plain
   subprocess (texts in, vectors out): no server, no port, no API. It is taken
   from --llama-embedding / $ARCHIVE_LLAMA_EMBEDDING, <home>/runtime/, or PATH;
-  `archive models build-runtime` compiles it from source (needs git, cmake and
+  `arv models build-runtime` compiles it from source (needs git, cmake and
   a C++ compiler).
 """
 

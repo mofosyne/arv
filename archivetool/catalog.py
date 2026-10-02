@@ -1,6 +1,6 @@
 """The archive catalogue: Disc and Event records in recfiles, plus each volume's index files.
 
-Home layout (the working copy; default ~/.local/share/bluray-archive):
+Home layout (the working copy: a .arv folder, found as described in homes.py):
 
     config/         what you set up: sets.rec (vocabulary), tags.rec (tag vocabulary)
     catalog/        the catalogue, laid out exactly like catalog/ on every disc:
@@ -24,7 +24,7 @@ import os
 import re
 import shutil
 
-from . import recfile
+from . import homes, recfile
 
 DESCRIPTORS = [
     recfile.Record(
@@ -132,11 +132,8 @@ def sealed_view(disc):
 
 
 def default_home():
-    env = os.environ.get("BLURAY_ARCHIVE_HOME")
-    if env:
-        return env
-    base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
-    return os.path.join(base, "bluray-archive")
+    """The home used when none is given: see homes.find (a .arv folder above, the machine config...)."""
+    return homes.find()[0]
 
 
 def today():
@@ -362,7 +359,7 @@ class Home:
                 os.replace(old, os.path.join(folder, name))
         old_index = os.path.join(top, "archive.sqlite")
         if os.path.exists(old_index):
-            os.remove(old_index)  # rebuildable; `archive index` makes a new one in cache/
+            os.remove(old_index)  # rebuildable; `arv index` makes a new one in cache/
 
     def ensure(self, folder):
         """Create one of the home's folders; cache/ gets its CACHEDIR.TAG and .gitignore."""

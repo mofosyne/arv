@@ -1,6 +1,8 @@
-"""archive: build self-describing, error-corrected archival disc images.
+"""arv (Archive, Record, Verify): build self-describing, error-corrected archival disc images.
 
 Commands:
+  init   start an archive: a .arv folder here (or a pointer to one elsewhere)
+  where  which home catalogue is used here, and why
   make   bag a folder, write the catalogue + viewer, build the image, add RS03 ECC
   names  check a folder's file names against the disc filesystems' limits
   find   search every disc's catalogue and file list (no discs needed)
@@ -34,7 +36,7 @@ import sys
 import tarfile
 import textwrap
 
-from . import bag, catalog, describe, discid, image, index, llm, make, media, models, names, recfile, sets, tagger
+from . import bag, catalog, homes, describe, discid, image, index, llm, make, media, models, names, recfile, sets, tagger
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO_NAME = "bluray-archival-workflow"
@@ -78,6 +80,10 @@ def software_version():
             return "%s@%s%s" % (REPO_NAME, commit, "+uncommitted" if dirty else ""), True
         except subprocess.CalledProcessError:
             pass
+    stamp = os.path.join(REPO_ROOT, "VERSION")  # written by `make install`
+    if os.path.exists(stamp):
+        with open(stamp, encoding="utf-8") as f:
+            return f.read().strip(), False
     return "%s@unknown" % REPO_NAME, False
 
 
@@ -139,8 +145,8 @@ SEARCH
   Catalogue software that reads this format can search every disc (the
   spec: tools/{repo}/docs/smart-archive-format.md).
   With only Python 3, from the root of the mounted disc:
-    python3 tools/{repo}/archive --home catalog find PATTERN
-    python3 tools/{repo}/archive --home catalog list
+    python3 tools/{repo}/arv --home catalog find PATTERN
+    python3 tools/{repo}/arv --home catalog list
   Or plain text tools: grep -ri PATTERN catalog/volumes/*/listing.tsv
 
 VERIFY (detect damage)
@@ -285,7 +291,7 @@ def cmd_make(args):
         raise SystemExit("Error: %s" % err)
     rule_codes = [] if args.no_rules else rule_suggestions(vocab, entries)
     default_set = vocab.guess(default_set) or (rule_codes[0] if rule_codes else default_set)
-    set_code = pick_code(vocab, args.set or ask("Set code (see 'archive sets')", default_set, interactive))
+    set_code = pick_code(vocab, args.set or ask("Set code (see 'arv sets')", default_set, interactive))
     rule_categories = [c for c in rule_codes if c != set_code and c not in vocab.ancestors(set_code)][:3]
     if args.category:
         categories = args.category
@@ -316,7 +322,7 @@ def cmd_make(args):
         "title": args.title or ask("Title", default_title, interactive),
         "description": args.description or ask("Description (optional)", None, interactive),
         "creator": args.creator or ask("Creator", os.environ.get("USER"), interactive),
-        "location": place(cat, args.location or ask("Physical location (optional; see 'archive location list')",
+        "location": place(cat, args.location or ask("Physical location (optional; see 'arv location list')",
                                                     None, interactive)),
         "access": args.access,
         "subjects": args.subject or [s.strip() for s in (ask("Subjects, comma separated (optional)", None, interactive) or "").split(",") if s.strip()],
@@ -344,7 +350,7 @@ def check_names(paths, filesystem, ignore_warnings=False):
 
 
 def cmd_names(args):
-    """`archive names FOLDER`: which names a disc image would change, without making one."""
+    """`arv names FOLDER`: which names a disc image would change, without making one."""
     src = os.path.abspath(args.source)
     if not os.path.isdir(src):
         raise SystemExit("Error: %s is not a directory" % src)
@@ -372,7 +378,7 @@ def cmd_find(args):
         disc_hits, file_hits = index.find(home, cat, args.pattern)
     else:
         if os.path.exists(home.sqlite_path):
-            log("Note: archive.sqlite is out of date; scanning manifests (run 'archive index' to refresh)")
+            log("Note: archive.sqlite is out of date; scanning manifests (run 'arv index' to refresh)")
         disc_hits, file_hits = catalog.find(home, cat, args.pattern)
     for d in disc_hits:
         print("DISC  %s  %s  [%s]" % (d.get("Id"), d.get("Title"), cat.where(d) or "location unknown"))
@@ -501,7 +507,7 @@ def cmd_locate(args):
     new = [place(cat, l) for l in args.location]
     for l in new:
         if not cat.location(l):
-            log("Note: %s is not a location code ('archive location add' to define it); stored as text" % l)
+            log("Note: %s is not a location code ('arv location add' to define it); stored as text" % l)
     old = [] if not args.add else disc.get_all("Location")
     keep = [l for l in old + new if l]
     # replace in place: the new Location fields go where the first old one was (or at the end)
@@ -537,7 +543,7 @@ def cmd_collection(args):
             show(top, 0)
         return 0
     if not args.code:
-        raise SystemExit("Error: archive collection %s needs a collection code" % args.action)
+        raise SystemExit("Error: arv collection %s needs a collection code" % args.action)
     code = args.code.strip().upper()
     col = cat.collection(code)
     if args.action == "show":
@@ -633,7 +639,7 @@ def cmd_location(args):
             print("%-10s (free text, not a location code)" % text)
         return 0
     if not args.code:
-        raise SystemExit("Error: archive location %s needs a location code" % args.action)
+        raise SystemExit("Error: arv location %s needs a location code" % args.action)
     code = args.code.strip().upper()
     if not catalog.LOCATION_RE.match(code):
         raise SystemExit("Error: location code %r: use 1-24 capital letters, digits, - or _" % args.code)
@@ -643,7 +649,7 @@ def cmd_location(args):
     loc = cat.location(code)
     if args.action == "add":
         if loc:
-            raise SystemExit("Error: location %s already exists (use 'archive location move' or edit %s)"
+            raise SystemExit("Error: location %s already exists (use 'arv location move' or edit %s)"
                              % (code, home.rec_path))
         loc = recfile.Record("Location", [("Code", code), ("Name", args.name or code)])
         if parent:
@@ -774,6 +780,42 @@ def disc_root_id(root):
     return None
 
 
+def cmd_init(args):
+    """Create a .arv home in a folder, or a .arv pointer file to an existing home."""
+    folder = os.path.abspath(args.folder)
+    target = os.path.join(folder, homes.FOLDER)
+    if os.path.exists(target):
+        raise SystemExit("Error: %s already exists" % target)
+    if os.path.isdir(os.path.join(folder, ".git")):
+        log("Note: %s is a git repository; a .arv in the folder above it can cover several "
+            "repositories and stays out of git" % folder)
+    if args.pointer:
+        home = os.path.abspath(args.pointer)
+        if not os.path.isdir(home):
+            raise SystemExit("Error: %s is not a folder" % home)
+        print("Wrote %s -> %s" % (homes.write_pointer(folder, home), home))
+        return 0
+    home = catalog.Home(target)
+    for d in (home.config_dir, home.catalog_dir, home.drafts_dir, home.cache_dir):
+        home.ensure(d)
+    print("Created %s" % target)
+    if args.name:
+        homes.register(args.name, target, default=args.default)
+        print("Registered as %s in %s%s" % (args.name, homes.config_path(), " (default)" if args.default else ""))
+    return 0
+
+
+def cmd_where(args):
+    print(args.home)
+    print("  found by %s" % args.home_found)
+    homes_list = homes.configured()
+    if homes_list:
+        print("homes on this machine (%s):" % homes.config_path())
+        for h in homes_list:
+            print("  %-12s %s%s" % (h.get("Name"), h.get("Path"), "  (default)" if h.get("Default") == "yes" else ""))
+    return 0
+
+
 def cmd_index(args):
     home = catalog.Home(args.home)
     cat = home.load()
@@ -891,10 +933,23 @@ def cmd_gui(args):
 
 
 def build_parser():
-    p = argparse.ArgumentParser(prog="archive", description=__doc__,
+    p = argparse.ArgumentParser(prog="arv", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--home", help="catalogue directory (default: $BLURAY_ARCHIVE_HOME or ~/.local/share/bluray-archive)")
+    p.add_argument("--home", help="home catalogue folder (default: $ARV_HOME, else the nearest .arv folder "
+                                  "or pointer above the current folder, else the machine config's default; "
+                                  "see `arv where`)")
+    p.add_argument("--archive", metavar="NAME", help="use the home registered under NAME in ~/.config/arv/homes.rec")
     sub = p.add_subparsers(dest="command", required=True)
+
+    it = sub.add_parser("init", help="start an archive: a .arv folder here, or a pointer to one")
+    it.add_argument("folder", nargs="?", default=".", help="root of the tree the archive describes (default: here)")
+    it.add_argument("--pointer", metavar="HOME", help="write a .arv pointer file to this existing home instead")
+    it.add_argument("--name", help="also register the home on this machine under this name (for --archive)")
+    it.add_argument("--default", action="store_true", help="with --name: the home used outside any .arv tree")
+    it.set_defaults(func=cmd_init)
+
+    wh = sub.add_parser("where", help="which home catalogue is used here, and why")
+    wh.set_defaults(func=cmd_where)
 
     m = sub.add_parser("make", help="build a disc image from a folder")
     m.add_argument("source", help="folder to archive (left unmodified)")
@@ -917,7 +972,7 @@ def build_parser():
     m.add_argument("--creator")
     m.add_argument("--subject", action="append", help="repeatable")
     m.add_argument("--note", action="append", help="repeatable")
-    m.add_argument("--location", help="where the disc will be stored: a code from 'archive location list', or text")
+    m.add_argument("--location", help="where the disc will be stored: a code from 'arv location list', or text")
     m.add_argument("--access", choices=catalog.ACCESS_LEVELS, default=catalog.DEFAULT_ACCESS,
                    help="what other discs' catalogues may show of this one: public (also discs given to "
                         "others), private (your own discs; default), sealed (only its id and location)")
@@ -927,7 +982,7 @@ def build_parser():
                         "udf250: UDF 2.50 with a metadata partition, as Blu-ray uses (needs lib/udfmake)")
     m.add_argument("--udfmake", help="path to the udfmake program (default: PATH, then lib/udfmake/build)")
     m.add_argument("--ignore-names", action="store_true",
-                   help="don't list names that Windows/macOS will see shortened or changed (see 'archive names')")
+                   help="don't list names that Windows/macOS will see shortened or changed (see 'arv names')")
     m.add_argument("--medium", choices=["auto"] + list(media.MEDIA), default="bd25",
                    help="target disc: RS03 fills it with error correction (default: bd25). "
                         "auto lets dvdisaster pick the smallest standard size")
@@ -947,7 +1002,7 @@ def build_parser():
                    help="ask a local LLM to suggest title, description, subjects and folder tags, "
                         "and to ask you questions about the folder (optional)")
     m.add_argument("--llm-rounds", type=int, default=2, help="question rounds with --llm (default: 2)")
-    m.add_argument("--draft", help="metadata draft JSON from 'archive describe --save'")
+    m.add_argument("--draft", help="metadata draft JSON from 'arv describe --save'")
     add_llm_options(m)
     m.add_argument("--ro-crate", action="store_true",
                    help="add RO-Crate 1.2 metadata (data/ro-crate-metadata.json + preview) for research-data tools")
@@ -999,7 +1054,7 @@ def build_parser():
 
     loc = sub.add_parser("locate", help="set where a disc's copies are kept (one location per place)")
     loc.add_argument("disc_id")
-    loc.add_argument("location", nargs="+", help="location codes (see 'archive location') or text")
+    loc.add_argument("location", nargs="+", help="location codes (see 'arv location') or text")
     loc.add_argument("--add", action="store_true", help="add to the disc's locations instead of replacing them")
     loc.set_defaults(func=cmd_locate)
 
@@ -1055,7 +1110,7 @@ def build_parser():
     ds.add_argument("target", help="folder to be archived, or a disc id")
     ds.add_argument("--rounds", type=int, default=2, help="question rounds (default: 2)")
     ds.add_argument("--questions", type=int, default=5, help="questions per round (default: 5)")
-    ds.add_argument("--save", help="write the reviewed result as a draft JSON for 'archive make --draft'")
+    ds.add_argument("--save", help="write the reviewed result as a draft JSON for 'arv make --draft'")
     ds.add_argument("--disc-root", help="mounted disc, so README-style files on it can be read")
     ds.add_argument("--show-inventory", action="store_true", help="print exactly what would be sent, and stop")
     ds.add_argument("--apply", metavar="DRAFT", help="apply a saved draft to the disc (no LLM needed)")
@@ -1066,7 +1121,7 @@ def build_parser():
     tg.add_argument("target", help="folder to be archived, or a disc id")
     tg.add_argument("--top", type=int, default=3, help="at most this many tags per folder (default: 3)")
     tg.add_argument("--vocab", help="tag vocabulary recfile (default: <home>/config/tags.rec)")
-    tg.add_argument("--save", help="write (or merge into) a draft JSON for 'archive make --draft'")
+    tg.add_argument("--save", help="write (or merge into) a draft JSON for 'arv make --draft'")
     tg.add_argument("--apply", action="store_true", help="for a disc: write the tags without prompting")
     tg.add_argument("--disc-root", help="mounted disc, so README files on it can be read")
     tg.add_argument("--show-summaries", action="store_true", help="print what the model compares, and stop")
@@ -1090,7 +1145,7 @@ def build_parser():
                     help="tsv (default) or an exiftool -@ argument file that writes them into a restored copy")
     kw.set_defaults(func=cmd_keywords)
 
-    mo = sub.add_parser("models", help="built-in model for 'archive tag': fetch, status, build-runtime")
+    mo = sub.add_parser("models", help="built-in model for 'arv tag': fetch, status, build-runtime")
     mo.add_argument("action", choices=["fetch", "status", "build-runtime"])
     mo.add_argument("--model", default=models.DEFAULT_EMBEDDING, choices=list(models.MODELS))
     mo.add_argument("--from", dest="from_file", help="install from a local file (checksum-verified) instead of downloading")
@@ -1114,6 +1169,9 @@ def main(argv=None):
             args.items += extra
         else:
             parser.error("unrecognized arguments: %s" % " ".join(extra))
+    if args.command != "init":
+        source = getattr(args, "source", None) if args.command == "make" else None
+        args.home, args.home_found = homes.find(args.home, args.archive, source=source)
     try:
         return args.func(args)
     except BrokenPipeError:  # output piped into e.g. `head`, which stopped reading

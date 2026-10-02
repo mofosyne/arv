@@ -1,4 +1,4 @@
-"""`archive tag`: consistent folder tags from your own tag vocabulary, using a
+"""`arv tag`: consistent folder tags from your own tag vocabulary, using a
 small built-in embedding model (see models.py). No server or API.
 
 How it works:
@@ -198,10 +198,10 @@ class Tagger:
         if not self.binary:
             raise TagError("llama.cpp's llama-embedding was not found. Install llama.cpp (it is in Homebrew and "
                            "many Linux distributions), pass --llama-embedding PATH, run "
-                           "'archive models build-runtime', or use an embeddings server with --embed-url")
+                           "'arv models build-runtime', or use an embeddings server with --embed-url")
         self.model = models.model_path(home, model_name)
         if not os.path.exists(self.model):
-            raise TagError("model %s is not downloaded yet: run 'archive models fetch'" % model_name)
+            raise TagError("model %s is not downloaded yet: run 'arv models fetch'" % model_name)
 
     @property
     def agent(self):
@@ -328,7 +328,7 @@ def review(suggestions, interactive, ask=input, vocab=None):
 
 
 def run(args):
-    """`archive tag <folder|disc-id>`"""
+    """`arv tag <folder|disc-id>`"""
     import sys
     from . import describe
     home = catalog.Home(args.home)
@@ -382,7 +382,7 @@ def run(args):
 
     if args.save:
         draft = {"folder_tags": {f: t for f, t in accepted.items() if t}, "agent": agent}
-        if os.path.exists(args.save):  # merge into an existing draft (e.g. from `archive describe`)
+        if os.path.exists(args.save):  # merge into an existing draft (e.g. from `arv describe`)
             with open(args.save, encoding="utf-8") as f:
                 old = json.load(f)
             old.setdefault("folder_tags", {}).update(draft["folder_tags"])
@@ -391,7 +391,7 @@ def run(args):
         with open(args.save, "w", encoding="utf-8") as f:
             json.dump(draft, f, ensure_ascii=False, indent=2)
             f.write("\n")
-        _log("Saved to %s (use: archive make --draft %s ...)" % (args.save, args.save))
+        _log("Saved to %s (use: arv make --draft %s ...)" % (args.save, args.save))
     elif disc and (args.apply or interactive):
         merge_into_tags_file(home, disc.get("Id"), accepted)
         cat.events.append(catalog.new_event(disc.get("Id"), "metadata modification", "success", agent,
@@ -405,7 +405,7 @@ def run(args):
 
 
 def models_command(args):
-    """`archive models fetch|status|build-runtime`"""
+    """`arv models fetch|status|build-runtime`"""
     home = catalog.Home(args.home)
     try:
         if args.action == "fetch":
@@ -418,10 +418,10 @@ def models_command(args):
         if args.action == "status" or args.action == "fetch":
             for name, spec in models.MODELS.items():
                 path = models.model_path(home, name)
-                state = "downloaded" if os.path.exists(path) else "not downloaded (archive models fetch)"
+                state = "downloaded" if os.path.exists(path) else "not downloaded (arv models fetch)"
                 print("%-20s %-10s %6.1f MB  %s  [%s]" % (name, spec["kind"], spec["size"] / 1e6, state, spec["licence"]))
             print("%-20s %s" % ("runtime", runtime or "llama-embedding not found (install llama.cpp, or "
-                                                        "archive models build-runtime)"))
+                                                        "arv models build-runtime)"))
     except (models.ModelError, OSError) as err:
         raise SystemExit("Error: %s" % err)
     return 0
