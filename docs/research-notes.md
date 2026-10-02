@@ -309,6 +309,33 @@ Smaller ones: daneubauer/immich-go-disc-archive (bash, PAR2 and manifests),
 ambauma/BdArchivePlanner, llawsxx/DiscHelper and volumespan-py (splitting files across discs),
 rbuchberger/bdar (shelved before it worked).
 
+### restic/rustic and git-annex: two opposite models
+
+LCSAS stores its data with **rustic** ([rustic-rs/rustic](https://github.com/rustic-rs/rustic),
+docs at <https://rustic.cli.rs>), a Rust reimplementation of
+**restic** ([restic/restic](https://github.com/restic/restic)) using the same repository format.
+**git-annex** (<https://git-annex.branchable.com>) is often mentioned alongside, but works the
+other way round:
+
+| | restic / rustic | git-annex | This project |
+|---|---|---|---|
+| What it is | Backup program | File tracking on top of git | Archive discs + catalogue |
+| How files are stored | Cut into variable-size chunks, deduplicated, encrypted (AES-256-CTR + Poly1305), packed into opaque pack files | Whole files, as they are (encrypted only on some remotes) | Whole files, as they are (BagIt) |
+| Getting a file back | rustic/restic plus the password, and every disc holding its chunks | Copy it | Copy it; any OS |
+| One disc on its own | Not useful | Readable | Readable, with the catalogue of every earlier disc |
+| History | Snapshots; each backup adds only new chunks | Git history of where each file was | Events per disc (made, burned, checked, moved) |
+| Where copies are | One repository (LCSAS spreads its packs over discs) | Tracks which "remotes" (drives, servers, offline discs) hold each file; enforces a minimum number of copies | Locations per disc, copy counts |
+| Space | Dedup across everything | No dedup beyond identical files | None; a file is on the discs it was archived to |
+
+restic/rustic optimises for space and confidentiality and pays in dependence on the tool
+and the key: LCSAS offsets that by carrying the restic format spec and a pure-Python restore
+fallback on every disc. git-annex is the closer relative to this project: its tracking of
+where each file's content is and how many copies exist overlaps with our catalogue's
+locations and copy counts, though per file rather than per disc, and inside a git repository
+rather than on the discs themselves. Not adopted: dedup and opaque packs go against "any disc,
+read on its own, with any OS"; git-annex's per-file tracking is more than a disc-level
+archive needs, and needs git to read.
+
 ## 8. RS03 tools compared: dvdisaster, dvdisaster Light, lcsas-ecc (measured 2026-10-01)
 
 Three implementations of dvdisaster's RS03 format, run on our seven sample discs:
