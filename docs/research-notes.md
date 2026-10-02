@@ -336,6 +336,58 @@ rather than on the discs themselves. Not adopted: dedup and opaque packs go agai
 read on its own, with any OS"; git-annex's per-file tracking is more than a disc-level
 archive needs, and needs git to read.
 
+### Self-describing media: Piql AFS and LTFS (2026-10-02)
+
+Two established formats share the idea that the medium must explain itself. Neither replaces
+this project, but both confirm the approach and are design references.
+
+**Piql AFS** ([github.com/piql/afs](https://github.com/piql/afs), C99, GPLv3; commit
+`290567c`, 2026-01). The Archival File System used on piqlFilm: digital data written as 2D
+barcode frames on photosensitive film, read by scanning. Its stated goal is "a completely self
+contained file system, containing all information needed to decode and understand its content
+in the near and distant future"; each reel also carries human-readable decoding instructions
+([IS&T overview](https://library.imaging.org/jist/articles/69/2/020402)).
+
+| Piql AFS (film) | This project (Blu-ray) |
+|---|---|
+| Control frame: a self-contained bootstrap for decoding the rest of the reel | `README.txt`, `catalog.rec` and `tools/` on every disc |
+| Visual (human-readable) frames next to digital ones | `index.html`, the plain README and file listings; nothing readable without a computer yet |
+| Table of contents with file format ids, checksums, dates, metadata "in any format" (XML: `tocdata.xsd`) | BagIt manifests, PRONOM ids (Siegfried), recfile catalogue |
+| The TOC knows about several reels (`ReelsType`); control frame has Title, Creator, Description, Location, ReelId | Catalogue of every earlier disc; Disc fields; Location tree |
+| iVM: "a minimal execution environment for file format decoders", so future implementers need little effort | `.wasm` builds of the tools on every disc (WASI) |
+
+Not adoptable as our format: it is built for scanned film frames, while a Blu-ray already has a
+filesystem every computer reads; it serves an institutional film service; it has no curation
+(appraisal, access levels) or history between volumes. Worth borrowing: a *visual* layer that
+needs no computer at all; for us a printable sheet (README and the disc's index as a PDF) kept
+with the disc or in the box.
+
+**LTFS** (Linear Tape File System; SNIA standard, also ISO/IEC 20919;
+[overview](https://en.wikipedia.org/wiki/Linear_Tape_File_System),
+[IBM documentation](https://www.ibm.com/docs/en/storage-archive-le/2.4.6?topic=overview-ltfs-format)).
+Each tape is split into an **index partition** and a **data partition**. The index is an XML
+file listing every file and where its blocks are, so any LTFS-capable system mounts the tape
+like a disk with no external database. Each new index records a generation number and where the
+previous index is, so earlier states of the tape can be recovered. A library of many tapes is
+tracked by separate software (LTFS LE/EE and others), not by the tapes.
+
+| LTFS (tape) | This project (Blu-ray) |
+|---|---|
+| Index partition: this volume's index | at the root of each disc: `catalog.rec` + `manifest-sha256.txt` |
+| Data partition | `data/` (the BagIt payload) |
+| Index generations, each pointing to the previous one | discs as nodes, each recording the previous ones (plan.md, history graph) |
+| Library software tracking all tapes | `catalog/` on every disc: every volume's index travels with each volume |
+
+The last row is the difference: LTFS makes each tape self-describing but leaves the *library*
+to external software; here every disc carries the whole library's index too.
+
+**Consequences for the design** (plan.md):
+- lay out the per-volume index files by volume (`volumes/<disc-id>/`), as LTFS keeps one index
+  per tape, identically on discs and in `.arv/catalog/`;
+- keep a printable, computer-free summary of each disc (Piql's visual layer);
+- read Piql's control-frame fields and iVM design before writing the multi-disc catalogue spec
+  and the WebAssembly runtime plan.
+
 ## 8. RS03 tools compared: dvdisaster, dvdisaster Light, lcsas-ecc (measured 2026-10-01)
 
 Three implementations of dvdisaster's RS03 format, run on our seven sample discs:
