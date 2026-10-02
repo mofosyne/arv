@@ -1,7 +1,15 @@
-# Draft bug report: makefs -t udf (NetBSD)
+# DRAFT bug report: makefs -t udf (NetBSD)
 
-Status: **draft, not yet sent.** Confirm it yourself with `repro/repro.sh`
-(below) before sending to NetBSD (send-pr / gnats, or the tech-kern / tech-userlevel lists).
+> [!CAUTION]
+> **To NetBSD developers: this is an unconfirmed draft. Please don't act on it yet.**
+> It was found and written with the help of an AI assistant and has not yet been checked by
+> a person on real hardware or on NetBSD itself. It has not been sent through send-pr or the
+> mailing lists. If it is confirmed, it will arrive through the usual channels; until then,
+> treat everything below as unverified.
+
+Status: **draft, not yet sent.** Before sending: confirm every bug yourself with
+`repro/repro.sh` (below), then send to NetBSD (send-pr / gnats, or the tech-kern /
+tech-userlevel lists).
 
 Found while building UDF 2.50 images with makefs on Linux. It was found and
 drafted with the help of an AI assistant, and every claim below comes with the

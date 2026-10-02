@@ -81,7 +81,7 @@ No NetBSD file is edited to build on other systems:
 
 ## Local changes to NetBSD code
 
-Both are described in the [bug report](../../third_party/netbsd-makefs-udf/BUG-REPORT.md):
+Both are described in the [draft bug report, not yet confirmed or sent](../../third_party/netbsd-makefs-udf/BUG-REPORT.md):
 
 1. `usr.sbin/makefs/udf.c`, `udf_copy_file`: whole-sector read buffer, and the padding is zeroed (it was an out-of-bounds read into the image).
 2. `sbin/newfs_udf/udf_core.c`, `udf_set_regid`: bounded copy (it was a 1-byte `strcpy` overrun).

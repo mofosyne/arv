@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>arv: Blu-ray archives that explain themselves</title>
+<meta name="description" content="arv (Archive, Record, Verify) writes long-term archives to Blu-ray: plain files, checksums, error correction and a catalogue on every disc, readable without this tool. Experimental.">
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1f2328; --muted: #57606a; --line: #d0d7de; --card: #f6f8fa;
+    --accent: #2f5d8a; --warn-bg: #fff8e1; --warn-line: #d4a72c; --code: #eff1f3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --fg: #e6edf3; --muted: #9da7b3; --line: #30363d; --card: #161b22;
+      --accent: #79b8ff; --warn-bg: #2b2111; --warn-line: #9e7a1f; --code: #1c2128;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 16px/1.6 -apple-system, "Segoe UI", "DejaVu Sans", Helvetica, Arial, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 2rem; margin: 0 0 4px; }
+  h2 { font-size: 1.3rem; margin: 40px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .tagline { color: var(--muted); font-size: 1.1rem; margin: 0 0 24px; }
+  a { color: var(--accent); }
+  code, pre { font-family: "DejaVu Sans Mono", Menlo, Consolas, monospace; font-size: 0.9em; }
+  code { background: var(--code); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code); padding: 12px 14px; border-radius: 6px; overflow-x: auto; line-height: 1.45; }
+  pre code { background: none; padding: 0; }
+  .warn { background: var(--warn-bg); border: 1px solid var(--warn-line); border-left-width: 5px;
+          border-radius: 6px; padding: 12px 16px; margin: 0 0 24px; }
+  .warn p { margin: 4px 0; }
+  figure { margin: 16px 0; }
+  figure img { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+  figcaption { color: var(--muted); font-size: 0.9rem; margin-top: 6px; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+  .button { display: inline-block; padding: 8px 14px; border: 1px solid var(--line); border-radius: 6px;
+            background: var(--card); color: var(--fg); text-decoration: none; font-weight: 600; }
+  .button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  ul { padding-left: 22px; }
+  footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>arv</h1>
+<p class="tagline">Archive, Record, Verify: long-term archives on Blu-ray that explain themselves,
+and can be read, checked and repaired decades from now without this tool.</p>
+
+<div class="warn">
+  <p><strong>Experimental.</strong> No disc made with it has yet been read back after years on a
+  shelf, and the disc format is a draft that may still change. Treat anything you make with it
+  as an <em>extra</em> copy while you try it.</p>
+  <p><strong>Written largely by an AI coding assistant</strong>, with a human choosing the direction
+  and reviewing the results. It has tests, but expect bugs. That's why we'd like your feedback.</p>
+</div>
+
+<div class="buttons">
+  <a class="button primary" href="#try-it">Try it</a>
+  <a class="button" href="https://github.com/mofosyne/bluray-archival-workflow/issues/new?template=feedback.md">Give feedback</a>
+  <a class="button" href="https://github.com/mofosyne/bluray-archival-workflow">Source on GitHub</a>
+</div>
+
+<h2>What it does</h2>
+<ul>
+  <li><strong>Your files stay plain files.</strong> No packing, compression or proprietary
+  container: any computer can open the disc and copy them off.</li>
+  <li><strong>Every disc stands alone.</strong> Each one carries a hash of every file, a
+  catalogue of the whole archive so far, the source of the tools that made it, and a
+  <code>README.txt</code> with the steps to check and repair it.</li>
+  <li><strong>Damage can be repaired.</strong> dvdisaster's RS03 error correction fills the
+  rest of each disc, and two damaged copies can rebuild each other.</li>
+  <li><strong>Open standards, plain text.</strong> BagIt, recfiles and TSV, UDF or a hybrid
+  ISO 9660 image. Nothing on a disc needs this tool to be read.</li>
+</ul>
+
+<figure>
+  <a href="img/architecture.svg"><img src="img/architecture.svg" alt="Four layers on every disc: content and description above a boundary, container, protection and medium below it. Making a disc runs down the left side, reading and repairing it runs up the right side."></a>
+  <figcaption>How a disc is built, and how it is read back.
+  <a href="https://github.com/mofosyne/bluray-archival-workflow/blob/main/docs/architecture.md">More on the layers</a>.</figcaption>
+</figure>
+
+<h2 id="try-it">Try it</h2>
+<p>You need Linux, <code>git</code> and Python 3. Nothing is installed and nothing is burned
+in the first two steps.</p>
+
+<p><strong>1. Look around the sample archive</strong>: eight small sample discs (46 MB in all)
+and their catalogue.</p>
+<pre><code>git clone https://github.com/mofosyne/bluray-archival-workflow
+cd bluray-archival-workflow
+./arv --home samples/home list          # the discs, and where they are kept
+./arv --home samples/home find kyoto    # which disc holds it
+./arv --home samples/home gui           # the same, in your web browser</code></pre>
+<p>The disc images are in <code>samples/discs/</code>: open one with your file manager or 7-Zip and
+read its <code>README.txt</code>.</p>
+
+<p><strong>2. Make a test image of a small folder</strong> (needs <code>genisoimage</code>).
+<code>--no-ecc</code> skips error correction, so you don't need dvdisaster yet; a separate
+<code>--home</code> keeps the trial apart from anything real.</p>
+<pre><code>sudo apt install genisoimage
+./arv --home /tmp/arv-try make ~/some/small/folder --no-ecc --output-dir /tmp
+./arv --home /tmp/arv-try list</code></pre>
+
+<p><strong>3. When you want real discs</strong>: install it, build
+<a href="https://github.com/teaching-droid/dvdisaster-light">dvdisaster Light</a> for the error
+correction, and follow the
+<a href="https://github.com/mofosyne/bluray-archival-workflow/blob/main/docs/workflow.md">workflow guide</a>.</p>
+<pre><code>make install PREFIX=~/.local
+cd /path/above/your/files &amp;&amp; arv init --name home --default
+arv make /path/to/folder</code></pre>
+
+<h2>Tell us how it went</h2>
+<p>Feedback of any size helps: a step that confused you, something that broke, a disc that would
+not read back, or a reason you would not trust it with your files.</p>
+<div class="buttons">
+  <a class="button primary" href="https://github.com/mofosyne/bluray-archival-workflow/issues/new?template=feedback.md">Give feedback</a>
+  <a class="button" href="https://github.com/mofosyne/bluray-archival-workflow/issues">Open issues</a>
+</div>
+
+<h2>Read more</h2>
+<ul>
+  <li><a href="https://github.com/mofosyne/bluray-archival-workflow#readme">README</a>: install and every command</li>
+  <li><a href="https://github.com/mofosyne/bluray-archival-workflow/blob/main/docs/workflow.md">Workflow</a>: from a folder to discs on a shelf, and back</li>
+  <li><a href="https://github.com/mofosyne/bluray-archival-workflow/blob/main/docs/philosophy.md">Philosophy</a>: why it works this way</li>
+  <li><a href="https://github.com/mofosyne/bluray-archival-workflow/blob/main/docs/smart-archive-format.md">Disc format</a>: for anyone who wants to read or write these discs with their own tools</li>
+</ul>
+
+<footer>
+  arv is free software under the GNU GPL version 3, provided as is, with no warranty.
+  The disc format may be implemented by anyone, under any licence.
+</footer>
+
+</main>
+</body>
+</html>
