@@ -21,7 +21,7 @@ shelf, finding and checking them over the years, and recovering from damage or l
 ├── tagmanifest-sha256.txt   checksums of the files above + catalog.rec
 ├── catalog.rec              GNU recutils catalogue for this disc
 ├── catalog/                 snapshot of the whole archive catalogue at burn time
-│                            (archive.rec, manifests/, listings/, formats/, tags/)
+│                            (archive.rec, volumes/<disc-id>/: manifest, listing, formats, tags)
 ├── index.html               offline viewer (no JavaScript)
 ├── README.txt               plain-text recovery instructions
 │   data/ro-crate-metadata.json  optional RO-Crate description (--ro-crate)
@@ -129,7 +129,7 @@ searches every disc in its snapshot with nothing but Python.
   the distro 0.79.10 build shrinks RS03 to the smallest standard size (a warning says so).
   Both builds exit with status 1 after a *successful* `-f` repair; check with `-t`.
 - With [Siegfried](https://www.itforarchivists.com/siegfried) (`sf`) installed, each file's
-  PRONOM format is recorded in `catalog/formats/<disc-id>.csv`. `--ro-crate` adds
+  PRONOM format is recorded in `catalog/volumes/<disc-id>/formats.csv`. `--ro-crate` adds
   `data/ro-crate-metadata.json` (RO-Crate 1.2, passes the validator's required checks).
 - The source folder is never modified: tag files are staged separately and the
   folder is grafted into the image as `data/`.
@@ -141,7 +141,7 @@ searches every disc in its snapshot with nothing but Python.
   that catches typos. They are derived from the record's `Set`, `Sequence` and `Coverage`
   (EDTF: `2019`, `2015/2024`, `199X`, `1995~`) and used as the volume label. `archive id <ID>`
   explains and checks one; `archive list --covers 2019-07-15` finds discs by date. Older ids stay valid.
-- Discs are classified with a word vocabulary in `<home>/sets.rec` (PHOTO, TRIP, SCAN, TAXES,
+- Discs are classified with a word vocabulary in `<home>/config/sets.rec` (PHOTO, TRIP, SCAN, TAXES,
   PROJ, CODE, ...), a hierarchy where an entry can have several parents (SCAN is under PHOTO
   and RECORDS). One `--set` gives the id prefix; `--category` (repeatable) adds more codes,
   e.g. `--set PROJ --category CODE --category ELEC`. The folder name suggests a set
@@ -155,7 +155,9 @@ searches every disc in its snapshot with nothing but Python.
   people with `--snapshot set`), `private` (default: your own discs only), `sealed`
   (only its id, set, dates and location; no title, notes or file list).
 - The home catalogue lives in `$BLURAY_ARCHIVE_HOME` (default
-  `~/.local/share/bluray-archive`): `archive.rec` plus `manifests/<disc-id>.sha256`.
+  `~/.local/share/bluray-archive`): `config/` (vocabularies), `catalog/` (laid out like
+  `catalog/` on every disc), `drafts/`, and `cache/` (rebuildable; marked with `CACHEDIR.TAG`).
+  A home in the older flat layout is moved into this one on first use.
 - Each disc carries a snapshot of the committed `HEAD` of this repo (not its history;
   `--tools-history` adds a git bundle), so commit before burning (uncommitted changes
   are flagged in the `Software` field).
@@ -168,14 +170,14 @@ model (bge-small-en-v1.5, MIT) run by llama.cpp's `llama-embedding` program as a
 subprocess: no server, no API, no Python packages.
 
 ```sh
-./archive models fetch            # pinned download, SHA-256 checked, into <home>/models/
+./archive models fetch            # pinned download, SHA-256 checked, into <home>/cache/models/
 ./archive models status           # model + runtime found?
 ./archive tag ./2025-01-13_Personal --save draft.json   # suggest, review, save
 ./archive make ./2025-01-13_Personal --draft draft.json
 ./archive tag 2018-2022_PERSONAL_01                     # re-tag a disc already in the catalogue
 ```
 
-- The vocabulary is `<home>/tags.rec` (created from `archivetool/default_tags.rec`); edit
+- The vocabulary is `<home>/config/tags.rec` (created from `archivetool/default_tags.rec`); edit
   the descriptions freely. Describe *content*, not the medium ("cats, dogs", not "photos of").
 - Tags may have `Alias` words (typing `holiday` in review stores `travel`) and `Match` globs
   that tag folders without the model: `archive tag FOLDER --rules-only` needs no download.
@@ -219,7 +221,7 @@ ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM S
 - **Privacy:** the model sees an inventory (folder and file names, counts, sizes,
   dates, types, and up to 6 short README-style text files), never file contents.
   Only loopback servers are allowed unless you pass `--llm-allow-remote`.
-- Folder tags (and image captions) go in `catalog/tags/<disc-id>.tags` and are searched by
+- Folder tags (and image captions) go in `catalog/volumes/<disc-id>/tags.tsv` and are searched by
   `archive find` and the GUI.
 - **Images (`--vision`, or the checkbox in the GUI):** a few images per folder (and a
   frame per video when `ffmpeg` is installed) are shown to a local vision model. Its
@@ -266,7 +268,7 @@ single-threaded.
 - [x] Single `archive` CLI (Python, stdlib only): bag → catalog.rec → image → ECC → verify
 - [ ] Generate `catalog.rec` per disc (Dublin Core-named `Disc` fields, PREMIS-typed `Event` records), and merge into a master `archive.rec`
 - [ ] Generate `archive.sqlite` search index from the manifests + recfiles (recutils is too slow for per-file records)
-- [x] PRONOM format IDs via Siegfried (`catalog/formats/`) and optional RO-Crate (`--ro-crate`)
+- [x] PRONOM format IDs via Siegfried (`catalog/volumes/<id>/formats.csv`) and optional RO-Crate (`--ro-crate`)
 - [ ] Cumulative catalogue snapshot (`catalog/`) on every disc so the newest disc indexes all earlier ones; opt-out for discs given away
 - [ ] Physical `Location` / `Copy` records and short disc IDs for retrieval
 - [x] Multi-disc splitting for sets larger than one disc (`Bag-Count: n of N`)

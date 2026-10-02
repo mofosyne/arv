@@ -1,4 +1,4 @@
-"""File listings on each disc: catalog/listings/<id>.tsv, one line per file with size and date.
+"""File listings on each disc: catalog/volumes/<id>/listing.tsv, one line per file with size and date.
 
 The manifests only have checksums; these add what a person (or Katalog) wants to see.
 """

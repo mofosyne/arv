@@ -2,11 +2,11 @@
 small built-in embedding model (see models.py). No server or API.
 
 How it works:
-- Every tag in <home>/tags.rec has a Description. Each folder gets a short
+- Every tag in <home>/config/tags.rec has a Description. Each folder gets a short
   summary (its path, sample file names, README text, image captions if any).
 - The model turns both into vectors; tags whose descriptions are closest to a
   folder's summary are suggested.
-- Tags you accept are remembered (<home>/tag-examples.jsonl). New folders that
+- Tags you accept are remembered (<home>/config/tag-examples.jsonl). New folders that
   look like folders you tagged before get those tags suggested too, so the
   suggestions follow your own habits without any training.
 
@@ -32,7 +32,7 @@ class TagError(Exception):
 
 
 def vocab_path(home):
-    return os.path.join(home.path, "tags.rec")
+    return os.path.join(home.config_dir, "tags.rec")
 
 
 class TagVocab:
@@ -89,11 +89,11 @@ class TagVocab:
 
 
 def load_tag_vocab(home, path=None):
-    """TagVocab; creates <home>/tags.rec from the default on first use."""
+    """TagVocab; creates <home>/config/tags.rec from the default on first use."""
     if not path:
         path = vocab_path(home)
         if not os.path.exists(path):
-            os.makedirs(home.path, exist_ok=True)
+            os.makedirs(home.config_dir, exist_ok=True)
             shutil.copyfile(DEFAULT_VOCAB, path)
     return TagVocab(recfile.read(path), path)
 
@@ -180,7 +180,7 @@ class Tagger:
         self.home = home
         self.tag_vocab = load_tag_vocab(home, vocab_file)
         self.vocab = self.tag_vocab.pairs
-        self.examples_path = os.path.join(home.path, "tag-examples.jsonl")
+        self.examples_path = os.path.join(home.config_dir, "tag-examples.jsonl")
         self.client = None
         if embed_url:
             from . import llm
@@ -265,6 +265,7 @@ class Tagger:
         if not items:
             return
         vectors = self.embed([text for _, text, _ in items])
+        os.makedirs(os.path.dirname(self.examples_path), exist_ok=True)
         with open(self.examples_path, "a", encoding="utf-8") as f:
             for (folder, text, tags), vec in zip(items, vectors):
                 f.write(json.dumps({"model": self.model_name, "folder": folder, "text": text, "tags": tags,
