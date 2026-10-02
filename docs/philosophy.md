@@ -8,7 +8,7 @@ What this project is for, and what it deliberately is not. The how is in
 **Keep what matters readable, by the people it matters to, for decades, without
 depending on us, this tool, or any company.**
 
-Everything else follows from five principles:
+Everything else follows from six principles:
 
 1. **Curate, don't hoard.** Durable media is small and costly in effort, so it
    holds a chosen selection, not everything. What goes on a disc, and who may see
@@ -25,6 +25,11 @@ Everything else follows from five principles:
 5. **People decide; tools propose.** Automation (sorting, tagging, choosing what
    to archive) only makes suggestions, runs locally, and is never needed to read
    a disc.
+6. **Describe, don't own.** Version control and distributed file systems own your
+   files: they move them into their own stores, replace them with links, and must
+   be running to give them back. An archive does not. It records, checks and
+   copies files, but leaves them as ordinary files under the owner's control,
+   wherever they already are.
 
 The sections below say what each principle means in practice.
 
@@ -131,6 +136,30 @@ Anything we invent that has no standard counterpart (importance per audience,
 cascading appraisals, the catalogue snapshot on every disc) is documented in
 [smart-archive-format.md](smart-archive-format.md), so an exporter knows what
 to carry over and where.
+
+## Describe, don't own (principle 6)
+
+| | Owns the files | Describes the files |
+|---|---|---|
+| Examples | git, git-annex, restic/Borg repositories, sync and distributed file systems | this archive: the discs, and `.smart-archive/` beside the everyday tree |
+| Where the content is | in the tool's store (objects, packs, chunks), the tree holding links or managed copies | where it already was, as ordinary files |
+| To get a file back | the tool, often its exact version and settings | copy it |
+| If the tool breaks or is removed | the files can be stranded | nothing happens to the files |
+
+In practice:
+- **The tool never moves, renames, links or rewrites the owner's files.** It reads
+  them, hashes them and copies them onto discs.
+- **Its own data sits beside the files, not in their place:** the catalogue in a
+  `.smart-archive/` folder at the root of the tree, and on every disc. Deleting that
+  folder leaves every file exactly as it was.
+- **Everything it writes must survive being copied anywhere:** between Windows,
+  macOS and Linux, onto exFAT or NTFS drives and NAS shares. So no symlinks or hard
+  links, plain UTF-8 text read with any line endings, portable file names, nothing
+  that depends on permissions, and indexes that can always be rebuilt. (Lesson
+  from git-annex, whose symlink trees break when moved between operating systems.)
+- **Storage managers stay welcome on the everyday tier** (ZFS, restic, even
+  git-annex in unlocked mode): they manage the storage; the archive only
+  describes and curates.
 
 ## Help is optional and local (principle 5)
 
