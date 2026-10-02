@@ -131,7 +131,7 @@
 <text x='462' y='813' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>Box</text>
 <text x='462' y='828' font-size='11' font-weight='normal' fill='#57606a' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>its code, large; contents</text>
 <text x='462' y='843' font-size='11' font-weight='normal' fill='#57606a' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>list in the lid</text>
-<text x='462' y='861' font-size='10' font-weight='normal' fill='#57606a' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>archive list --at BOX</text>
+<text x='462' y='861' font-size='10' font-weight='normal' fill='#57606a' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>arv list --at BOX</text>
 <rect x='918' y='84' width='300' height='560' rx='8' fill='none' stroke='#6b7280' stroke-width='3' stroke-dasharray='8 5'/>
 <text x='930' y='104' font-size='13' font-weight='bold' fill='#4b5563' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>PARENTS  (off-site)</text>
 <rect x='934' y='140' width='176' height='228' rx='6' fill='#fbfbf8' stroke='#2f5d8a' stroke-width='2'/>
