@@ -53,6 +53,9 @@ proposes.
 - **Identical copies in different places**, burned from the same image. Two
   damaged copies can rebuild each other (tested; research-notes.md section 8).
 - **RS03 error correction on every disc**, covering the filesystem too.
+- **Copy health is watched, duplicates are only reported.** The tool can say which discs have
+  too few copies or only one site, and which files are already on another disc (by SHA-256).
+  It never removes a duplicate itself: each disc must still stand alone.
 - **No extra layers that need their own repair.** No PAR2; if encryption comes,
   it sits on top of RS03, and the simplest option wins.
 - **Long bets only:** plain text (recfiles, TSV), BagIt, UDF, and tools that run

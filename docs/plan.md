@@ -221,7 +221,11 @@ what is worth a disc:
       optionally a local model), and show why;
 - [ ] skip what is already archived (by SHA-256 against the catalogue manifests);
 - [ ] fill discs with the most important material first, by set;
-- [ ] report copy health: discs with fewer than two copies, or all copies at one site.
+- [ ] report copy health: discs with fewer than two copies, or all copies at one site
+      (git-annex's `numcopies`, per disc rather than per file);
+- [ ] report duplicates: at `archive make`, list files whose SHA-256 is already on another disc,
+      and on request, which files are on several discs. Report only, never deduplicate: every disc
+      stands alone, so a file archived twice stays on both discs unless the person drops it.
 
 The tool proposes; the person decides.
 
