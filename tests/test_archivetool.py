@@ -149,12 +149,42 @@ class DiscIdTest(unittest.TestCase):
         self.assertEqual(discid.suggest(typo, [disc_id, discid.compose("TAXES", 4, "2020")]), [disc_id])
 
 
+class HomeLayoutTest(unittest.TestCase):
+    def test_layout_cache_markers_and_migration(self):
+        with tempfile.TemporaryDirectory() as d:
+            # a home in the old flat layout (format 0.1)
+            with open(os.path.join(d, "archive.rec"), "w") as f:
+                f.write("%rec: Disc\n\nId: OLD-01_2020_X\nTitle: Old\n")
+            for kind, name in (("manifests", "OLD-01_2020_X.sha256"), ("listings", "OLD-01_2020_X.tsv")):
+                os.makedirs(os.path.join(d, kind))
+                with open(os.path.join(d, kind, name), "w") as f:
+                    f.write("x\n")
+            with open(os.path.join(d, "sets.rec"), "w") as f:
+                f.write("%rec: Set\n")
+            home = catalog.Home(d)
+            self.assertEqual(home.load().disc("OLD-01_2020_X").get("Title"), "Old")
+            self.assertTrue(os.path.exists(os.path.join(d, "catalog", "volumes", "OLD-01_2020_X", "manifest.sha256")))
+            self.assertTrue(os.path.exists(os.path.join(d, "catalog", "volumes", "OLD-01_2020_X", "listing.tsv")))
+            self.assertTrue(os.path.exists(os.path.join(d, "config", "sets.rec")))
+            for gone in ("archive.rec", "manifests", "listings", "sets.rec"):
+                self.assertFalse(os.path.exists(os.path.join(d, gone)), gone)
+            # the cache folder is marked for backup tools and git
+            home.ensure(home.cache_dir)
+            with open(os.path.join(d, "cache", "CACHEDIR.TAG")) as f:
+                self.assertTrue(f.read().startswith("Signature: 8a477f597d28d172789f06886806bc55"))
+            with open(os.path.join(d, "cache", ".gitignore")) as f:
+                self.assertEqual(f.read(), "*\n")
+            # a disc's catalog/ folder is read in place
+            disc_catalog = os.path.join(d, "catalog")
+            self.assertEqual(catalog.Home(disc_catalog).catalog_dir, disc_catalog)
+
+
 class SetsTest(unittest.TestCase):
     def test_vocabulary_is_a_dag_of_words(self):
         from archivetool import sets
         with tempfile.TemporaryDirectory() as d:
             vocab = sets.load(catalog.Home(d))
-            self.assertTrue(os.path.exists(os.path.join(d, "sets.rec")))  # copied for editing
+            self.assertTrue(os.path.exists(os.path.join(d, "config", "sets.rec")))  # copied for editing
             self.assertEqual(vocab.paths("TRIP"), ["MEMORIES/PHOTO/TRIP"])
             self.assertEqual(vocab.paths("SCAN"), ["MEMORIES/PHOTO/SCAN", "RECORDS/SCAN"])  # two parents
             self.assertEqual(vocab.ancestors("SCAN"), {"MEMORIES", "PHOTO", "RECORDS"})
@@ -252,7 +282,7 @@ class SplitTest(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, proc.stderr)
             with open(os.path.join(dest, "bag-info.txt"), encoding="utf-8") as f:
                 self.assertIn("Bag-Count: %d of %d" % (n, len(lines)), f.read())
-            self.assertEqual(len(os.listdir(os.path.join(dest, "catalog", "manifests"))), len(lines))
+            self.assertEqual(len(os.listdir(os.path.join(dest, "catalog", "volumes"))), len(lines))
             for root, _, names in os.walk(os.path.join(dest, "data")):
                 seen += [os.path.relpath(os.path.join(root, x), os.path.join(dest, "data")) for x in names]
         self.assertEqual(sorted(seen), sorted(e.path for e in bag.scan_payload(self.src, progress=False)))
@@ -332,7 +362,7 @@ class MakeTest(unittest.TestCase):
         self.assertEqual([e.get("Type") for e in on_disc.events], ["message digest calculation"])
         # Entry point for other tools: first real record says what this is and where things are
         archive = [r for r in records if r.type == "Archive" and not r.is_descriptor][0]
-        self.assertEqual((archive.get("Format"), archive.get("Version")), ("smart-archive", "0.1"))
+        self.assertEqual((archive.get("Format"), archive.get("Version")), ("smart-archive", "0.2"))
         self.assertEqual(archive.get("Uuid"), on_disc.disc(disc_id).get("Uuid"))
         self.assertEqual(len(archive.get("Uuid")), 36)
         for field in ("Manifest", "Listing", "Snapshot", "Viewer"):
@@ -344,9 +374,10 @@ class MakeTest(unittest.TestCase):
         self.make(self.projects)
         _, photos_set = self.make(self.photos, "--set", "PHOTOS", "--snapshot", "set")
         _, photos_full = self.make(self.photos, "--set", "PHOTOS")
-        self.assertEqual(os.listdir(os.path.join(photos_set, "catalog", "manifests")), [PHOTO_01 + ".sha256"])
-        self.assertEqual(sorted(os.listdir(os.path.join(photos_full, "catalog", "manifests"))),
-                         sorted([PROJ_01 + ".sha256", PHOTO_01 + ".sha256", PHOTO_02 + ".sha256"]))
+        self.assertEqual(os.listdir(os.path.join(photos_set, "catalog", "volumes")), [PHOTO_01])
+        self.assertEqual(sorted(os.listdir(os.path.join(photos_full, "catalog", "volumes"))),
+                         sorted([PROJ_01, PHOTO_01, PHOTO_02]))
+        self.assertTrue(os.path.exists(os.path.join(photos_full, "catalog", "volumes", PROJ_01, "manifest.sha256")))
         self.validate(photos_full)
         with open(os.path.join(photos_full, "index.html"), encoding="utf-8") as f:
             self.assertIn(PROJ_01, f.read())
@@ -420,7 +451,7 @@ class MakeTest(unittest.TestCase):
     def test_search_from_the_disc_alone(self):
         self.make(self.projects)
         disc_id, disc = self.make(self.photos, "--set", "PHOTOS")
-        for name in ("catalog/listings/%s.tsv" % disc_id, "catalog/listings/%s.tsv" % PROJ_01):
+        for name in ("catalog/volumes/%s/listing.tsv" % disc_id, "catalog/volumes/%s/listing.tsv" % PROJ_01):
             self.assertTrue(os.path.exists(os.path.join(disc, name)), name)
         for name in ("search.html", "catalog/web"):  # search is catalogue software's job (or archive find)
             self.assertFalse(os.path.exists(os.path.join(disc, name)), name)
@@ -436,7 +467,7 @@ class MakeTest(unittest.TestCase):
     def test_disc_scope_has_only_this_disc(self):
         self.make(self.projects)
         disc_id, disc = self.make(self.photos, "--set", "PHOTOS", "--snapshot", "disc")
-        self.assertEqual(os.listdir(os.path.join(disc, "catalog", "manifests")), [disc_id + ".sha256"])
+        self.assertEqual(os.listdir(os.path.join(disc, "catalog", "volumes")), [disc_id])
         self.validate(disc)
 
     def test_index_matches_scan(self):
@@ -491,8 +522,7 @@ class MakeTest(unittest.TestCase):
         self.assertEqual((sealed.get("Title"), sealed.get("Location"), sealed.get("Note")),
                          ("(sealed disc)", "Safe", None))
         self.assertTrue(sealed.get("Withheld"))
-        self.assertFalse(os.path.exists(os.path.join(full, "catalog", "manifests", sealed_id + ".sha256")))
-        self.assertFalse(os.path.exists(os.path.join(full, "catalog", "listings", sealed_id + ".tsv")))
+        self.assertFalse(os.path.exists(os.path.join(full, "catalog", "volumes", sealed_id)))
         for name in ("index.html", "catalog/archive.rec"):
             with open(os.path.join(full, name), encoding="utf-8") as f:
                 self.assertNotIn("Secret", f.read())
@@ -664,7 +694,7 @@ class MakeTest(unittest.TestCase):
         extra = ["--sf-home", os.environ["SF_HOME"]] if os.environ.get("SF_HOME") else []
         disc_id, disc = self.make(self.photos, "--set", "PHOTOS", "--formats", "yes", *extra)
         from archivetool import formats
-        rows = formats.read(os.path.join(disc, "catalog", "formats", disc_id + ".csv"))
+        rows = formats.read(os.path.join(disc, "catalog", "volumes", disc_id, "formats.csv"))
         self.assertEqual(rows["doc.pdf"]["puid"], "fmt/18")
         events = catalog.Home(self.home).load().events_for(disc_id)
         self.assertIn("format identification", [e.get("Type") for e in events])

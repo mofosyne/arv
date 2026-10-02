@@ -446,8 +446,8 @@ class Maker:
                 self.cat.discs.append(plan.record)
                 self.cat.events.extend(plan.events)
                 self.home.store_disc_files(plan.disc_id, {
-                    kind: os.path.join(plan.stage, "catalog", kind, plan.disc_id + ext)
-                    for kind, ext in catalog.DISC_FILE_KINDS.items()})
+                    kind: catalog.volume_file(os.path.join(plan.stage, "catalog"), kind, plan.disc_id)
+                    for kind in catalog.DISC_FILE_KINDS})
             self.home.save(self.cat)
             if os.path.exists(self.home.sqlite_path):
                 index.build(self.home, self.cat)

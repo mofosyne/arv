@@ -170,7 +170,7 @@ class App:
         return result
 
     def write_draft(self, draft):
-        folder = os.path.join(self.home.path, "drafts")
+        folder = self.home.drafts_dir
         os.makedirs(folder, exist_ok=True)
         path = os.path.join(folder, "draft-%s.json" % secrets.token_hex(4))
         describe.save_draft(path, {

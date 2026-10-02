@@ -26,8 +26,8 @@ bagit.txt  bag-info.txt  manifest-*.txt  tagmanifest-*.txt
 catalog.rec                                    this disc: Disc/Copy/Event records
 catalog/                                       snapshot of the whole archive at burn time
   archive.rec
-  manifests/<disc-id>.sha256
-  archive.sqlite                               optional convenience copy
+  volumes/<disc-id>/                           each volume's index: manifest.sha256,
+                                               listing.tsv, formats.csv, tags.tsv
 tools/
   bluray-archival-workflow/                    uncompressed snapshot of this repo (HEAD)
   bluray-archival-workflow.bundle              git bundle, only with --tools-history
@@ -93,7 +93,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 ### Phase 3: scale and standards
 - [x] Split a source folder across N discs (`Bag-Count: n of N`, `Bag-Group-Identifier`); exact sizing via `genisoimage -print-size`
 - [x] Medium sizing (BD 25/50/100/128), `--no-defect-management`, `--min-redundancy` (default 20%)
-- [x] Siegfried/PRONOM `catalog/formats/<id>.csv` (+ `format identification` event), RO-Crate 1.2 export (`--ro-crate`, crate inside `data/` per the RO-Crate BagIt notes)
+- [x] Siegfried/PRONOM `catalog/volumes/<id>/formats.csv` (+ `format identification` event), RO-Crate 1.2 export (`--ro-crate`, crate inside `data/` per the RO-Crate BagIt notes)
 
 ### Phase 4: extras
 - [x] GUI over the CLI (`archive gui`)
@@ -154,7 +154,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
   title / description / subjects / folder tags / questions as JSON. The owner reviews every
   field; Q&A answers become notes; accepted changes are PREMIS `metadata modification` events
   with agent `llm:<model> + owner review`.
-- Folder tags: `catalog/tags/<disc-id>.tags`, searched by `find` and the GUI.
+- Folder tags: `catalog/volumes/<disc-id>/tags.tsv`, searched by `find` and the GUI.
 - Images (done, `--vision`): sampled images and video frames go to a local vision model only
   (loopback enforced, no override, since file contents leave the inventory-only design).
   Captions feed the text model and are stored in the tags file (third column); searchable.
@@ -387,10 +387,10 @@ about 430 bytes per file in the archive. Up to about a million files that is und
 25 GB disc, and nothing changes. When an archive heads past that (5 million files would be
 12%), do the following, in this order:
 
-- [ ] Leave other discs' format IDs (`formats/*.csv`, about half the size) out of
+- [ ] Leave other discs' format IDs (`volumes/*/formats.csv`, about half the size) out of
       snapshots; each disc keeps its own.
-- [ ] Compress only the *other* discs' copies (`listings/*.tsv.gz`, `manifests/*.sha256.gz`,
-      `formats/*.csv.gz`; about 28% of plain). This disc's own catalogue, manifests and listing
+- [ ] Compress only the *other* discs' copies (`volumes/<id>/listing.tsv.gz`, `manifest.sha256.gz`,
+      `formats.csv.gz`; about 28% of plain). This disc's own catalogue, manifests and listing
       stay plain, so it stays readable without tools. `rebuild`/`find` read `.gz`.
 - [ ] Do it automatically, only when the snapshot would exceed about 2% of the disc's data
       budget, so small archives stay entirely plain.

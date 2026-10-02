@@ -66,13 +66,13 @@ first `Archive` record has `Format: smart-archive`**:
 %mandatory: Format Version Disc Uuid
 
 Format: smart-archive
-Version: 0.1
+Version: 0.2
 Disc: 2020-2025_PROJECTS_01
 Uuid: 4f1c2a9e-7b3d-4c55-9e2a-1d0b6f8c3a71
 Manifest: manifest-sha256.txt
-Listing: catalog/listings/2020-2025_PROJECTS_01.tsv
-Tags: catalog/tags/2020-2025_PROJECTS_01.tags
-Formats: catalog/formats/2020-2025_PROJECTS_01.csv
+Listing: catalog/volumes/2020-2025_PROJECTS_01/listing.tsv
+Tags: catalog/volumes/2020-2025_PROJECTS_01/tags.tsv
+Formats: catalog/volumes/2020-2025_PROJECTS_01/formats.csv
 Snapshot: catalog/archive.rec
 Viewer: index.html
 Payload: data/
@@ -88,13 +88,17 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 | `catalog.rec` | recfile | `Archive` entry record, then this disc's `Disc` record, the `Location` records it refers to, and its `Event` records |
 | `bagit.txt`, `bag-info.txt` | BagIt | Bag declaration; `External-Identifier` = disc Id, `Bag-Group-Identifier` / `Bag-Count` for multi-disc sets |
 | `manifest-sha256.txt`, `manifest-sha512.txt` | BagIt manifest | `<hash>  data/<path>`, one per payload file (`sha256sum -c` compatible) |
-| `catalog/listings/<id>.tsv` | TSV | Size, modification time and path of every payload file |
-| `catalog/tags/<id>.tags` | TSV | Folder tags and optional image captions |
-| `catalog/formats/<id>.csv` | CSV | PRONOM format identification per file (optional) |
+| `catalog/volumes/<id>/listing.tsv` | TSV | Size, modification time and path of every payload file |
+| `catalog/volumes/<id>/tags.tsv` | TSV | Folder tags and optional image captions |
+| `catalog/volumes/<id>/formats.csv` | CSV | PRONOM format identification per file (optional) |
+| `catalog/volumes/<id>/manifest.sha256` | BagIt manifest | Copy of the disc's `manifest-sha256.txt` |
 | `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Location` and `Event` records (limited by [Access](#access)) |
-| `catalog/{manifests,listings,tags,formats}/<other-id>.*` | as above | The same per-file data for the other discs in the snapshot |
+| `catalog/volumes/<other-id>/` | as above | The same per-volume index files for the other discs in the snapshot: one folder per volume, as LTFS keeps one index per tape |
 | `index.html` | HTML | Offline viewer (for people; readers can ignore) |
 | `data/` | files | The payload, untouched |
+
+Version 0.1 (samples only, never burned) kept these files by kind instead: `catalog/manifests/<id>.sha256`,
+`catalog/listings/<id>.tsv`, `catalog/tags/<id>.tags`, `catalog/formats/<id>.csv`.
 
 ### `Disc` record (recfile)
 

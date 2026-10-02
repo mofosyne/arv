@@ -74,10 +74,11 @@ poorly; worth it only for a subset you want watched file by file.
 
 The **home catalogue** is created on first use in `~/.local/share/bluray-archive`
 (or `$BLURAY_ARCHIVE_HOME`, or `--home`). It holds:
-- `archive.rec`: every disc, event and location;
-- per-disc manifests, listings and tags;
-- your vocabularies (`sets.rec`, `tags.rec`);
-- a disposable SQLite index.
+- `config/`: your vocabularies (`sets.rec`, `tags.rec`);
+- `catalog/`: `archive.rec` (every disc, event and location) and `volumes/<disc-id>/` (each
+  disc's manifest, listing, formats and tags), laid out exactly like `catalog/` on a disc;
+- `drafts/`: descriptions in progress;
+- `cache/`: the SQLite index and local models; rebuildable, and marked so backup tools skip it.
 
 Back this folder up. It is small, and every disc also carries a copy of it (see
 [Recover](#6-recover)).
@@ -197,7 +198,7 @@ archive location list -v
 | Everything under a category or a place | `archive list --in MEMORIES`, `archive list --at OFFSITE` |
 | Which tags do I use? | `archive tags`; `archive find place:kyoto` |
 | Group things across discs | `archive collection add BEST --name "Best of" DISC:folder/ DISC:file`, `archive collection show BEST`: virtual folders; other software can show them as a tree ([spec](smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)) |
-| Without this tool installed? | every disc carries it: `python3 tools/bluray-archival-workflow/archive --home catalog find PATTERN` from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/listings/` |
+| Without this tool installed? | every disc carries it: `python3 tools/bluray-archival-workflow/archive --home catalog find PATTERN` from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
 | Changes after burning | `archive note`, `archive locate`, `archive access` (home catalogue; later discs carry them) |
 
 **Check discs every few years** with `archive check --device /dev/sr0`.
@@ -213,7 +214,7 @@ disc is always a backup of the catalogue**.
 |---|---|
 | A disc reads with errors | Follow REPAIR in the disc's `README.txt`: `dvdisaster -d /dev/sr0 -r -i disc.iso` (dvdisaster Light: add `--rescue`), check the image has the size the README states (if smaller, read again with `--ignore-iso-size`), then `dvdisaster -i disc.iso -f`. Too damaged? Copies are sector-identical: read another copy into the same image (`-r -j 1`, only missing sectors are read) and repair again. Then burn a new copy. Tested in research-notes.md section 8. |
 | The home catalogue is lost | `archive rebuild /media/disc` with the newest disc: discs, events, locations, file lists. Then rebuild from later discs, or re-enter notes. |
-| This tool is lost | every disc has `tools/` (the code at burn time) and `README.txt`. Without Python: `sha256sum -c manifest-sha256.txt` verifies, `index.html` browses, `grep` searches `catalog/listings/`, and `catalog.rec` is plain text. |
+| This tool is lost | every disc has `tools/` (the code at burn time) and `README.txt`. Without Python: `sha256sum -c manifest-sha256.txt` verifies, `index.html` browses, `grep` searches `catalog/volumes/*/listing.tsv`, and `catalog.rec` is plain text. |
 | dvdisaster is lost | a copy can go in `tools/extra/` with `--extra-tools`; keep one off-disc too. The RS03 format is written up in LCSAS's DVDISASTER_RS03_FORMAT.md (research-notes.md section 7). |
 | Decades later, unknown software | [smart-archive-format.md](smart-archive-format.md) (on every disc under `tools/`) explains every file; BagIt is RFC 8493; recfiles are plain text. |
 

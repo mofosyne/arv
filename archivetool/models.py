@@ -48,7 +48,7 @@ def log(msg):
 
 
 def models_dir(home):
-    return os.path.join(home.path, "models")
+    return os.path.join(home.ensure(home.cache_dir), "models")
 
 
 def model_path(home, name):
@@ -110,7 +110,7 @@ SEPARATOR = "<#archive-sep#>"
 
 def find_runtime(home, explicit=None):
     candidates = [explicit, os.environ.get("ARCHIVE_LLAMA_EMBEDDING"),
-                  os.path.join(home.path, "runtime", RUNTIME), shutil.which(RUNTIME)]
+                  os.path.join(home.cache_dir, "runtime", RUNTIME), shutil.which(RUNTIME)]
     for c in candidates:
         if c and os.path.isfile(c) and os.access(c, os.X_OK):
             return c
@@ -118,11 +118,11 @@ def find_runtime(home, explicit=None):
 
 
 def build_runtime(home, ref="master"):
-    """Clone and build llama-embedding into <home>/runtime/ (portable build, no CPU-specific flags)."""
+    """Clone and build llama-embedding into <home>/cache/runtime/ (portable build, no CPU-specific flags)."""
     for tool in ("git", "cmake"):
         if not shutil.which(tool):
             raise ModelError("building %s needs %s" % (RUNTIME, tool))
-    work = os.path.join(home.path, "runtime", "llama.cpp")
+    work = os.path.join(home.ensure(home.cache_dir), "runtime", "llama.cpp")
     if not os.path.isdir(work):
         subprocess.run(["git", "clone", "--depth", "1", "--branch", ref, LLAMA_CPP_REPO, work], check=True)
     build = os.path.join(work, "build")
@@ -131,11 +131,11 @@ def build_runtime(home, ref="master"):
                     "-DCMAKE_BUILD_TYPE=Release"], check=True)
     subprocess.run(["cmake", "--build", build, "--target", RUNTIME, "-j", str(os.cpu_count() or 2)], check=True)
     binary = os.path.join(build, "bin", RUNTIME)
-    link = os.path.join(home.path, "runtime", RUNTIME)
-    if os.path.lexists(link):
-        os.remove(link)
-    os.symlink(binary, link)
-    return link
+    target = os.path.join(home.cache_dir, "runtime", RUNTIME)
+    if os.path.lexists(target):
+        os.remove(target)
+    shutil.copy2(binary, target)  # a copy, not a symlink: the home must survive being copied anywhere
+    return target
 
 
 def embed(binary, model, texts, batch=64):

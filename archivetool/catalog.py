@@ -1,15 +1,21 @@
-"""The archive catalogue: Disc and Event records in recfiles, plus per-disc manifests.
+"""The archive catalogue: Disc and Event records in recfiles, plus each volume's index files.
 
-Home layout (the authoritative copy, default ~/.local/share/bluray-archive):
+Home layout (the working copy; default ~/.local/share/bluray-archive):
 
-    archive.rec                 Disc / Event records for every disc
-    manifests/<disc-id>.sha256  that disc's manifest-sha256.txt
-    listings/<disc-id>.tsv      size, modification time and path of each file
-    formats/<disc-id>.csv       PRONOM format of each file (when Siegfried is installed)
-    tags/<disc-id>.tags         folder tags (optional)
-    archive.sqlite              search index built by `archive index` (disposable)
+    config/         what you set up: sets.rec (vocabulary), tags.rec (tag vocabulary)
+    catalog/        the catalogue, laid out exactly like catalog/ on every disc:
+      archive.rec                       Disc / Event / Location / Collection records
+      volumes/<disc-id>/manifest.sha256 that disc's manifest-sha256.txt
+      volumes/<disc-id>/listing.tsv     size, modification time and path of each file
+      volumes/<disc-id>/formats.csv     PRONOM format of each file (when Siegfried is installed)
+      volumes/<disc-id>/tags.tsv        folder tags (optional)
+    drafts/         work in progress before `make`
+    cache/          rebuildable: archive.sqlite, models/, runtime/ (marked with CACHEDIR.TAG,
+                    so Borg, restic and GNU tar skip it; .gitignore "*" keeps it out of git)
 
-Each disc carries a snapshot of this under catalog/.
+One folder per volume, as LTFS keeps one index per tape. A disc's catalog/ (read-only) can be
+used directly as a catalogue (--home catalog). A home in the older flat layout is moved into
+this one on first use; only the tool's own files are moved.
 """
 
 import datetime
@@ -77,11 +83,18 @@ DESCRIPTORS = [
 
 # Per-disc files kept at home and in each disc's catalog/ snapshot: folder -> extension
 DISC_FILE_KINDS = {
-    "manifests": ".sha256",  # that disc's manifest-sha256.txt
-    "listings": ".tsv",      # size, modified time, path
-    "formats": ".csv",       # PRONOM format identification (optional)
-    "tags": ".tags",         # folder <TAB> comma-separated tags (optional, e.g. from --llm)
+    "manifests": "manifest.sha256",  # that disc's manifest-sha256.txt
+    "listings": "listing.tsv",       # size, modified time, path
+    "formats": "formats.csv",        # PRONOM format identification (optional)
+    "tags": "tags.tsv",              # folder <TAB> comma-separated tags (optional, e.g. from --llm)
 }
+# the flat layout of format 0.1: <kind>/<disc-id><extension>
+_OLD_EXTENSIONS = {"manifests": ".sha256", "listings": ".tsv", "formats": ".csv", "tags": ".tags"}
+
+
+def volume_file(catalog_dir, kind, disc_id):
+    """Path of one of a volume's index files inside a catalog/ folder (home or disc)."""
+    return os.path.join(catalog_dir, "volumes", disc_id, DISC_FILE_KINDS[kind])
 
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 LOCATION_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{0,23}$")
@@ -296,13 +309,71 @@ class Catalog:
         return c
 
 
+CACHEDIR_TAG = ("Signature: 8a477f597d28d172789f06886806bc55\n"
+                "# This folder holds caches made by the archive tool (bluray-archival-workflow).\n"
+                "# Everything here can be rebuilt; backup tools may skip it.\n"
+                "# See https://bford.info/cachedir/\n")
+
+
 class Home:
+    """The working catalogue folder (see the module docstring for its layout)."""
+
     def __init__(self, path=None):
         self.path = path or default_home()
-        self.rec_path = os.path.join(self.path, "archive.rec")
-        self.manifest_dir = os.path.join(self.path, "manifests")
-        self.listing_dir = os.path.join(self.path, "listings")
-        self.sqlite_path = os.path.join(self.path, "archive.sqlite")
+        if (os.path.isdir(os.path.join(self.path, "volumes"))
+                and os.path.exists(os.path.join(self.path, "archive.rec"))):
+            # a bare catalog/ folder, e.g. on a disc: read it in place
+            self.catalog_dir = self.path
+            self.config_dir = os.path.join(self.path, "config")
+            self.drafts_dir = os.path.join(self.path, "drafts")
+            self.cache_dir = os.path.join(self.path, "cache")
+        else:
+            self.catalog_dir = os.path.join(self.path, "catalog")
+            self.config_dir = os.path.join(self.path, "config")
+            self.drafts_dir = os.path.join(self.path, "drafts")
+            self.cache_dir = os.path.join(self.path, "cache")
+            if os.path.exists(os.path.join(self.path, "archive.rec")):
+                self._migrate_flat_layout()
+        self.rec_path = os.path.join(self.catalog_dir, "archive.rec")
+        self.volumes_dir = os.path.join(self.catalog_dir, "volumes")
+        self.sqlite_path = os.path.join(self.cache_dir, "archive.sqlite")
+
+    def _migrate_flat_layout(self):
+        """Move a format-0.1 home (archive.rec, manifests/, sets.rec ... at the top) into this layout."""
+        top = self.path
+        os.makedirs(self.catalog_dir, exist_ok=True)
+        os.replace(os.path.join(top, "archive.rec"), os.path.join(self.catalog_dir, "archive.rec"))
+        for kind, ext in _OLD_EXTENSIONS.items():
+            old = os.path.join(top, kind)
+            if not os.path.isdir(old):
+                continue
+            for name in os.listdir(old):
+                if name.endswith(ext):
+                    dest = volume_file(self.catalog_dir, kind, name[:-len(ext)])
+                    os.makedirs(os.path.dirname(dest), exist_ok=True)
+                    os.replace(os.path.join(old, name), dest)
+            if not os.listdir(old):
+                os.rmdir(old)
+        for name, folder in (("sets.rec", self.config_dir), ("tags.rec", self.config_dir),
+                             ("drafts", self.path), ("models", self.cache_dir), ("runtime", self.cache_dir)):
+            old = os.path.join(top, name)
+            if os.path.exists(old) and folder != self.path:
+                self.ensure(folder)
+                os.replace(old, os.path.join(folder, name))
+        old_index = os.path.join(top, "archive.sqlite")
+        if os.path.exists(old_index):
+            os.remove(old_index)  # rebuildable; `archive index` makes a new one in cache/
+
+    def ensure(self, folder):
+        """Create one of the home's folders; cache/ gets its CACHEDIR.TAG and .gitignore."""
+        os.makedirs(folder, exist_ok=True)
+        if os.path.abspath(folder) == os.path.abspath(self.cache_dir):
+            for name, text in (("CACHEDIR.TAG", CACHEDIR_TAG), (".gitignore", "*\n")):
+                marker = os.path.join(folder, name)
+                if not os.path.exists(marker):
+                    with open(marker, "w", encoding="utf-8", newline="\n") as f:
+                        f.write(text)
+        return folder
 
     def load(self):
         if os.path.exists(self.rec_path):
@@ -310,7 +381,7 @@ class Home:
         return Catalog()
 
     def save(self, catalog):
-        os.makedirs(self.manifest_dir, exist_ok=True)
+        os.makedirs(self.catalog_dir, exist_ok=True)
         tmp = self.rec_path + ".tmp"
         recfile.write(tmp, catalog.records())
         os.replace(tmp, self.rec_path)
@@ -322,10 +393,10 @@ class Home:
         return self.disc_file("listings", disc_id)
 
     def disc_file(self, kind, disc_id):
-        return os.path.join(self.path, kind, disc_id + DISC_FILE_KINDS[kind])
+        return volume_file(self.catalog_dir, kind, disc_id)
 
     def disc_files(self, disc_id):
-        """{kind: path} of the per-disc files that exist at home."""
+        """{kind: path} of the volume's index files that exist at home."""
         out = {}
         for kind in DISC_FILE_KINDS:
             path = self.disc_file(kind, disc_id)
@@ -356,7 +427,7 @@ def new_event(disc_id, type_, outcome, agent, note=None, date=None):
 
 
 FORMAT_NAME = "smart-archive"
-FORMAT_VERSION = "0.1"
+FORMAT_VERSION = "0.2"  # 0.2: per-volume index files in catalog/volumes/<disc-id>/
 
 ARCHIVE_DESCRIPTOR = recfile.Record("Archive", [
     ("%rec", "Archive"),
@@ -369,9 +440,9 @@ ARCHIVE_DESCRIPTOR = recfile.Record("Archive", [
 # (Archive field, path pattern on disc); a field is written only when the file exists
 ARCHIVE_POINTERS = [
     ("Manifest", "manifest-sha256.txt"),
-    ("Listing", "catalog/listings/{id}.tsv"),
-    ("Tags", "catalog/tags/{id}.tags"),
-    ("Formats", "catalog/formats/{id}.csv"),
+    ("Listing", "catalog/volumes/{id}/listing.tsv"),
+    ("Tags", "catalog/volumes/{id}/tags.tsv"),
+    ("Formats", "catalog/volumes/{id}/formats.csv"),
     ("Snapshot", "catalog/archive.rec"),
     ("Viewer", "index.html"),
     ("Payload", "data/"),
@@ -397,7 +468,7 @@ SNAPSHOT_DESCRIPTOR = recfile.Record("Snapshot", [
 
 
 def write_snapshot(dest, catalog, disc_files, scope):
-    """Write catalog/archive.rec plus manifests/, listings/ and formats/ into ``dest``.
+    """Write catalog/archive.rec plus each volume's index files (volumes/<disc-id>/) into ``dest``.
 
     disc_files: {disc_id: {kind: path}}
     """
@@ -408,13 +479,13 @@ def write_snapshot(dest, catalog, disc_files, scope):
     ])
     os.makedirs(dest, exist_ok=True)
     recfile.write(os.path.join(dest, "archive.rec"), [SNAPSHOT_DESCRIPTOR, info] + catalog.records())
-    for kind in ("manifests", "listings"):
-        os.makedirs(os.path.join(dest, kind), exist_ok=True)
+    os.makedirs(os.path.join(dest, "volumes"), exist_ok=True)
     for disc_id, files in disc_files.items():
         for kind, src in files.items():
             if src and os.path.exists(src):
-                os.makedirs(os.path.join(dest, kind), exist_ok=True)
-                shutil.copyfile(src, os.path.join(dest, kind, disc_id + DISC_FILE_KINDS[kind]))
+                target = volume_file(dest, kind, disc_id)
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                shutil.copyfile(src, target)
 
 
 def _event_key(e):

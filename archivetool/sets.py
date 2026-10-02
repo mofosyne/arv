@@ -1,6 +1,6 @@
 """Set vocabulary: words arranged in a directed acyclic graph.
 
-<home>/sets.rec (created from default_sets.rec) lists codes such as PHOTO,
+<home>/config/sets.rec (created from default_sets.rec) lists codes such as PHOTO,
 TRIP, SCAN, TAXES, PROJ, CODE. Each may have several Parent codes (SCAN is
 under both RECORDS and PHOTO), like SKOS "broader" in library thesauri.
 Cycles are rejected when the vocabulary is loaded.
@@ -165,15 +165,15 @@ class Vocabulary:
 
 
 def vocab_path(home):
-    return os.path.join(home.path, "sets.rec")
+    return os.path.join(home.config_dir, "sets.rec")
 
 
 def load(home, path=None):
-    """The vocabulary; creates <home>/sets.rec from the default on first use."""
+    """The vocabulary; creates <home>/config/sets.rec from the default on first use."""
     if not path:
         path = vocab_path(home)
         if not os.path.exists(path):
-            os.makedirs(home.path, exist_ok=True)
+            os.makedirs(home.config_dir, exist_ok=True)
             shutil.copyfile(DEFAULT_SETS, path)
     entries = []
     for r in recfile.read(path):

@@ -215,8 +215,7 @@ backup systems do the same with their catalogues (e.g. Bacula, Amanda).
 ```
 catalog/                         BagIt tag directory (covered by tagmanifest)
   archive.rec                    all Disc / Copy / Event records at burn time
-  manifests/<disc-id>.sha256     per-file lists of every earlier disc
-  archive.sqlite                 optional convenience copy of the search index
+  volumes/<disc-id>/             each earlier disc's index: manifest, listing, formats, tags
 ```
 
 - Header fields `Snapshot-Date`, `Includes-Up-To: <disc-id>` and

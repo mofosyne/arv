@@ -123,7 +123,7 @@ def render_index(disc, entries, snapshot_catalog):
     others = [d for d in snapshot_catalog.discs if d.get("Id") != disc.get("Id")] if snapshot_catalog else []
     if others:
         out.append("<h2>Other discs in this archive</h2>")
-        out.append("<p>As of this disc's burn date. File lists: <code>catalog/manifests/</code>.</p>")
+        out.append("<p>As of this disc's burn date. File lists: <code>catalog/volumes/</code>.</p>")
         out.append('<div class="scroll"><table><tr><th>Id</th><th>Title</th><th>Coverage</th>'
                    "<th>Location</th><th>Files</th></tr>")
         for d in others:

@@ -141,7 +141,7 @@ SEARCH
   With only Python 3, from the root of the mounted disc:
     python3 tools/{repo}/archive --home catalog find PATTERN
     python3 tools/{repo}/archive --home catalog list
-  Or plain text tools: grep -ri PATTERN catalog/listings/
+  Or plain text tools: grep -ri PATTERN catalog/volumes/*/listing.tsv
 
 VERIFY (detect damage)
   From the root of the mounted disc, either of:
@@ -176,12 +176,11 @@ TOOLS
 def write_readme(path, disc, snapshot_scope, history=False, image_sectors=None):
     if snapshot_scope == "disc":
         other = ""
-        cat_lines = "  catalog/listings/       file list of this disc with sizes and dates\n"
+        cat_lines = "  catalog/volumes/<id>/   this disc's file list (listing.tsv) and checksums\n"
     else:
         other = " the discs made before it (%s catalogue)" % snapshot_scope
         cat_lines = ("  catalog/archive.rec     all discs in the archive as of the burn date\n"
-                     "  catalog/manifests/      sha256 file lists of those discs\n"
-                     "  catalog/listings/       file lists with sizes and dates\n")
+                     "  catalog/volumes/<id>/   per disc: manifest.sha256, listing.tsv, formats.csv\n")
     title = disc.get("Title")
     who = disc.get("Creator")
     plain = ("This is an archive disc%s, made on %s: %s. Its files are ordinary files in the\n"
@@ -746,8 +745,8 @@ def cmd_rebuild(args):
     copied = 0
     for d in cat.discs:
         disc_id = d.get("Id")
-        for kind, ext in catalog.DISC_FILE_KINDS.items():
-            src = os.path.join(snap_dir, kind, disc_id + ext)
+        for kind in catalog.DISC_FILE_KINDS:
+            src = catalog.volume_file(snap_dir, kind, disc_id)
             if kind == "manifests" and not os.path.exists(src) and disc_id == disc_root_id(root):
                 src = os.path.join(root, "manifest-sha256.txt")  # disc without catalog/manifests
             dest = home.disc_file(kind, disc_id)
@@ -1066,7 +1065,7 @@ def build_parser():
     tg = sub.add_parser("tag", help="suggest folder tags from your tag vocabulary (small built-in model)")
     tg.add_argument("target", help="folder to be archived, or a disc id")
     tg.add_argument("--top", type=int, default=3, help="at most this many tags per folder (default: 3)")
-    tg.add_argument("--vocab", help="tag vocabulary recfile (default: <home>/tags.rec)")
+    tg.add_argument("--vocab", help="tag vocabulary recfile (default: <home>/config/tags.rec)")
     tg.add_argument("--save", help="write (or merge into) a draft JSON for 'archive make --draft'")
     tg.add_argument("--apply", action="store_true", help="for a disc: write the tags without prompting")
     tg.add_argument("--disc-root", help="mounted disc, so README files on it can be read")
@@ -1082,7 +1081,7 @@ def build_parser():
 
     tl = sub.add_parser("tags", help="every folder tag in use, grouped by namespace (person:, place:, ...)")
     tl.add_argument("--namespace", help="only this namespace ('' for tags without one)")
-    tl.add_argument("--vocab", help="tag vocabulary recfile (default: <home>/tags.rec)")
+    tl.add_argument("--vocab", help="tag vocabulary recfile (default: <home>/config/tags.rec)")
     tl.set_defaults(func=cmd_tags)
 
     kw = sub.add_parser("keywords", help="a disc's set paths and folder tags as hierarchical keywords (XMP)")
