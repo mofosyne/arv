@@ -193,7 +193,7 @@ All tiers remain optional, suggestion-only, and recorded as PREMIS events with t
 - Later: `Root` records (the archive's trees by name, in the catalogue) and `Mount` records
   (where each is mounted on this machine, in `homes.rec`), for `arv status` across every tree.
 
-## Design: four layers, and a binding per volume (2026-10-02, not implemented)
+## Design: four layers, and a binding per volume (2026-10-02; Binding done)
 
 Blu-ray and UDF are today's medium, not the format (philosophy.md, principle 4).
 
@@ -209,13 +209,15 @@ Nothing in layers 1-2 may depend on layers 3-4. Container facts go in a per-volu
 ```
 %rec: Binding
 Volume: TRIP-01_2019_4
-Container: udf-2.50                    (iso9660+udf-1.02, ltfs-2.4, exfat, tar, afs ...)
-Protection: rs03; medium 12219392 sectors
-Extents: volumes/TRIP-01_2019_4/extents.tsv   (optional: path, start, length in the
+Container: udf-2.50                    (iso9660+udf-1.02; later ltfs, exfat, tar, afs ...)
+Protection: rs03                       (or none)
+Media, Filesystem, Ecc                 (the same for people), MediumSectors: 12219392
+Extents: volumes/TRIP-01_2019_4/extents.tsv   (planned, optional: path, start, length in the
                                                container's units: sectors, blocks, frames)
 ```
 
-- [ ] Move `Filesystem`, `Media` and `Ecc` from the Disc record into Binding (readers accept both).
+- [x] Move `Filesystem`, `Media` and `Ecc` from the Disc record into Binding (readers accept both;
+      format 0.3; `Container: iso9660+udf-1.02 | udf-2.50`, `Protection: rs03 | none`).
 - [ ] Record file extents for UDF/ISO images (from udfmake, or by reading the image), and test
       extracting files from a raw image with only the extents and the manifest (Piql lesson 3).
 - [ ] Per-binding recovery steps in README.txt (dvdisaster for disc images).

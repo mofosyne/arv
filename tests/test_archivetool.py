@@ -406,7 +406,7 @@ class MakeTest(unittest.TestCase):
         self.assertEqual([e.get("Type") for e in on_disc.events], ["message digest calculation"])
         # Entry point for other tools: first real record says what this is and where things are
         archive = [r for r in records if r.type == "Archive" and not r.is_descriptor][0]
-        self.assertEqual((archive.get("Format"), archive.get("Version")), ("smart-archive", "0.2"))
+        self.assertEqual((archive.get("Format"), archive.get("Version")), ("smart-archive", "0.3"))
         self.assertEqual(archive.get("Uuid"), on_disc.disc(disc_id).get("Uuid"))
         self.assertEqual(len(archive.get("Uuid")), 36)
         for field in ("Manifest", "Listing", "Snapshot", "Viewer"):
@@ -833,7 +833,12 @@ class Udf250Test(unittest.TestCase):
         for name in ("index.html", "catalog.rec", "data/ro-crate-metadata.json", "data/sub dir/100% ünïcode.txt"):
             self.assertTrue(os.path.exists(os.path.join(dest, name)), name)
         disc = catalog.Home(self.home).load().disc(disc_id)
-        self.assertEqual(disc.get("Filesystem"), image.FILESYSTEMS["udf250"])
+        binding = catalog.Home(self.home).load().binding(disc_id)
+        self.assertEqual(binding.get("Filesystem"), image.FILESYSTEMS["udf250"])
+        self.assertEqual(binding.get("Container"), "udf-2.50")
+        self.assertIsNone(disc.get("Filesystem"))       # medium facts live in the Binding, not the Disc
+        own = catalog.Catalog(recfile.read(os.path.join(dest, "catalog.rec")))
+        self.assertEqual(own.binding(disc_id).get("Container"), "udf-2.50")   # each disc carries its own Binding
 
     def test_descriptive_labels(self):
         title = "Weather station, board rev B and firmware notes"

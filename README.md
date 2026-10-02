@@ -51,7 +51,7 @@ RS03 error correction) and their catalogue: try `./arv --home samples/home list`
 
 `docs/plan.md` has the disc layout, phased plan and open decisions.
 
-`docs/smart-archive-format.md` specifies the on-disc catalogue format (draft 0.2) so other
+`docs/smart-archive-format.md` specifies the on-disc catalogue format (draft 0.3) so other
 cataloguing programs (e.g. Katalog) can read a disc and prefill their database without scanning it.
 
 `docs/metadata-standards.md` surveys archival metadata standards (Dublin Core,

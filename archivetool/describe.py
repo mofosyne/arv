@@ -199,7 +199,7 @@ def apply_to_disc(home, cat, disc, draft, agent):
             changed.append(field)
     if draft.get("subjects") and draft["subjects"] != disc.get_all("Subject"):
         disc.fields = [(k, v) for k, v in disc.fields if k != "Subject"]
-        insert_at = next((i for i, (k, _) in enumerate(disc.fields) if k in ("Note", "Location", "Rights", "Media")), len(disc.fields))
+        insert_at = next((i for i, (k, _) in enumerate(disc.fields) if k in ("Note", "Location", "Rights", "Media", "Files")), len(disc.fields))
         disc.fields[insert_at:insert_at] = [("Subject", s) for s in draft["subjects"]]
         changed.append("Subject")
     for note in draft.get("notes") or []:

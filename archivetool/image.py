@@ -106,6 +106,7 @@ def print_size(stage, volume_id, payload_dir=None, payload_files=None):
 # ---------------------------------------------------------------- UDF 2.50 (lib/udfmake)
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CONTAINERS = {"hybrid": "iso9660+udf-1.02", "udf250": "udf-2.50"}  # Binding Container tokens
 FILESYSTEMS = {
     "hybrid": "ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge",
     "udf250": "UDF 2.50, BD-ROM layout with metadata partition (NetBSD makefs via udfmake)",

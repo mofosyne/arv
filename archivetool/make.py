@@ -27,6 +27,7 @@ class Plan:
     entries: list
     disc_id: str = ""
     record: recfile.Record = None
+    binding: recfile.Record = None
     part: int = 1
     parts: int = 1
     sequence: int = 1
@@ -147,6 +148,7 @@ class Maker:
             plan.label = image.volume_label(disc_id, meta["title"] if label_text is None else label_text,
                                             self.filesystem)
             plan.record = self.disc_record(plan)
+            plan.binding = self.binding_record(plan)
             plan.events = [catalog.new_event(disc_id, "message digest calculation", "success", self.version,
                                              "sha256 and sha512 manifests of %d files" % len(entries))]
             if self.meta.get("draft_agent"):
@@ -209,6 +211,15 @@ class Maker:
         r.add("Access", m.get("access") or catalog.DEFAULT_ACCESS)
         if a.rights:
             r.add("Rights", a.rights)
+        for k, v in [("Files", len(plan.entries)), ("Bytes", sum(e.size for e in plan.entries)),
+                     ("Software", self.version)]:
+            r.add(k, str(v))
+        return r
+
+    def binding_record(self, plan):
+        """How this volume is stored: container and protection, kept apart from the Disc record
+        because they belong to the medium, not to the archive (Binding, docs/smart-archive-format.md)."""
+        a = self.args
         if a.no_ecc:
             ecc = "none"
         elif self.capacity:
@@ -216,11 +227,16 @@ class Maker:
                 self.medium_label, self.capacity, a.min_redundancy)
         else:
             ecc = "dvdisaster RS03 augmented image"
-        for k, v in [("Media", a.media or ("M-DISC " + (self.medium_label if self.capacity else "BD-R"))),
-                     ("Files", len(plan.entries)), ("Bytes", sum(e.size for e in plan.entries)),
-                     ("Filesystem", image.FILESYSTEMS[self.filesystem]), ("Ecc", ecc),
-                     ("Software", self.version)]:
-            r.add(k, str(v))
+        r = recfile.Record("Binding", [
+            ("Volume", plan.disc_id),
+            ("Container", image.CONTAINERS[self.filesystem]),
+            ("Protection", "none" if a.no_ecc else "rs03"),
+            ("Media", a.media or ("M-DISC " + (self.medium_label if self.capacity else "BD-R"))),
+            ("Filesystem", image.FILESYSTEMS[self.filesystem]),
+            ("Ecc", ecc),
+        ])
+        if self.capacity and not a.no_ecc:
+            r.add("MediumSectors", str(self.capacity))
         return r
 
     # ------------------------------------------------------------ staging
@@ -296,6 +312,7 @@ class Maker:
         # other discs' records as this disc may carry them (sealed ones cut down to their identity)
         snapshot = self.cat.subset({d.get("Id") for d in prior}).shared_view()
         snapshot.discs += [p.record for p in batch_plans]
+        snapshot.bindings += [p.binding for p in batch_plans]
         snapshot.events += [e for p in batch_plans for e in p.events]
         snapshot.locations = (list(self.cat.locations) if a.snapshot == "full"
                               else self.cat.locations_for(snapshot.discs))
@@ -321,7 +338,7 @@ class Maker:
         # catalog.rec: the disc's entry point (Archive record, see docs/smart-archive-format.md),
         # then this disc's own Disc and Event records. Written last so it can point to every file.
         own = catalog.Catalog()
-        own.discs, own.events = [plan.record], list(plan.events)
+        own.discs, own.bindings, own.events = [plan.record], [plan.binding], list(plan.events)
         own.locations = self.cat.locations_for(own.discs)
         recfile.write(os.path.join(stage, "catalog.rec"),
                       catalog.archive_records(plan.record, stage) + own.records())
@@ -448,6 +465,7 @@ class Maker:
                 self.build(plan)
             for plan in self.plans:
                 self.cat.discs.append(plan.record)
+                self.cat.bindings.append(plan.binding)
                 self.cat.events.extend(plan.events)
                 self.home.store_disc_files(plan.disc_id, {
                     kind: catalog.volume_file(os.path.join(plan.stage, "catalog"), kind, plan.disc_id)
