@@ -689,6 +689,8 @@ def cmd_check(args):
     home = catalog.Home(args.home)
     cat = home.load()
     source = args.device or args.image
+    if not os.path.exists(source):
+        raise SystemExit("Error: %s does not exist" % source)
     disc_id, _ = _resolve_disc(cat, args.disc_id, source)
     log("Checking %s (%s) ..." % (disc_id, source))
     if args.device:

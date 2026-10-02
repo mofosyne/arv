@@ -170,7 +170,7 @@ See research-notes.md section 5 for the measurements behind this.
    fixed, editable tag vocabulary, "more like this", and nearest-neighbour learning from the
    owner's past tag reviews. Runtime managed by the tool (a local process on a random loopback
    port). Model and runtime are a pinned, SHA-256-checked download to
-   `~/.local/share/bluray-archive/models/`, never committed (every disc carries the repo history).
+   the home's `cache/models/`, never committed (every disc carries the repo history).
    Done: `arv tag` runs llama.cpp's `llama-embedding` CLI as a subprocess (no server/API),
    with `--embed-url` (OpenAI-compatible /v1/embeddings) as a fallback engine.
 2. **Bring your own AI (optional, OpenAI-compatible):** >= 1.5B model for SemIf-style decisions
@@ -187,6 +187,11 @@ All tiers remain optional, suggestion-only, and recorded as PREMIS events with t
   ARK is the Archival Resource Key identifier scheme).
 - **The folder beside the files is always `.arv`.**
 - The on-disc format keeps its name, *smart-archive* (written into every disc's `catalog.rec`).
+- Done: the command is `arv` (`make install`, Linux); the home is found by walking up to a `.arv`
+  folder or `.arv` pointer file (past `.git`), or a disc root, then `~/.config/arv/homes.rec`
+  (machine-local paths, never on a disc); `arv init`, `arv where`.
+- Later: `Root` records (the archive's trees by name, in the catalogue) and `Mount` records
+  (where each is mounted on this machine, in `homes.rec`), for `arv status` across every tree.
 
 ## Design: four layers, and a binding per volume (2026-10-02, not implemented)
 

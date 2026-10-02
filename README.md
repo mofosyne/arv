@@ -51,7 +51,7 @@ RS03 error correction) and their catalogue: try `./arv --home samples/home list`
 
 `docs/plan.md` has the disc layout, phased plan and open decisions.
 
-`docs/smart-archive-format.md` specifies the on-disc catalogue format (draft 0.1) so other
+`docs/smart-archive-format.md` specifies the on-disc catalogue format (draft 0.2) so other
 cataloguing programs (e.g. Katalog) can read a disc and prefill their database without scanning it.
 
 `docs/metadata-standards.md` surveys archival metadata standards (Dublin Core,
@@ -66,53 +66,91 @@ was adopted (aliases, match rules, access levels, namespaced tags, location reco
 produce on Linux and adds little over RS03, why dvdisaster is not a library,
 and how BagIt and recfiles split the work.
 
-## The `archive` tool
+## The `arv` tool
 
-Python 3.8+, standard library only (bagit.py is vendored). Needs `genisoimage`
-and `dvdisaster` ([dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light), or the [speed47 fork](https://github.com/speed47/dvdisaster), for BD-sized images; the two give byte-identical results).
+`arv` (Archive, Record, Verify; also Norwegian for "inheritance"). Python 3, standard library
+only (bagit.py is vendored). Needs `genisoimage` and `dvdisaster` ([dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light),
+or the [speed47 fork](https://github.com/speed47/dvdisaster), for BD-sized images; the two give byte-identical results).
+
+### Install (Linux)
 
 ```sh
-./arv location add HOME Home
-./arv location add BOX3 "Box 3, blue lid" --in HOME
-./arv make ./2025-01-13_Projects_2020_-_2025 --location BOX3
+sudo apt install python3 genisoimage build-essential    # Debian/Ubuntu
+# dvdisaster Light: build it from https://github.com/teaching-droid/dvdisaster-light
+make install PREFIX=~/.local     # or: sudo make install   (/usr/local)
+arv --help
+```
+
+`make install` copies the last commit (exactly the tree every disc carries in `tools/`) to
+`PREFIX/share/arv`, and puts `arv` and `udfmake` in `PREFIX/bin`. `make uninstall` removes
+them. Without installing, `./arv` in a checkout does the same.
+
+### Where the catalogue lives: `.arv`
+
+```sh
+cd /nas && arv init --name family --default   # /nas/.arv: this archive's home catalogue
+cd ~/git && arv init --pointer /nas/.arv      # ~/git/.arv: a one-line file, "Home: /nas/.arv"
+arv where                                     # which home is used here, and why
+```
+
+The catalogue sits in a `.arv` folder at the root of the tree it describes, beside the files,
+never in their place (deleting it leaves every file as it was). `arv` finds it like git finds
+`.git`, but walks on past `.git` folders, so one `.arv` above `~/git/` covers every repository
+without touching any of them. In order:
+
+1. `--home PATH`, or `--archive NAME` (a home registered with `arv init --name`);
+2. `$ARV_HOME`;
+3. the nearest `.arv` folder, or `.arv` pointer file, above the folder being archived
+   (`arv make FOLDER`) or the current folder; or, from the root of an archive disc, the disc's
+   own `catalog/` (so `arv find` works on any disc);
+4. the default home in `~/.config/arv/homes.rec` (paths are per machine; this file never goes on
+   a disc, and deleting it loses nothing);
+5. `~/.local/share/arv` (or `~/.local/share/bluray-archive` if you used an older version).
+
+### Commands
+
+```sh
+arv location add HOME Home
+arv location add BOX3 "Box 3, blue lid" --in HOME
+arv make ./2025-01-13_Projects_2020_-_2025 --location BOX3
 #  -> prompts for set (PROJ, from the folder name), categories (CODE, ELEC: from the files), title, ...
 #  -> PROJ-01_2020-2025_K.iso  (bag + catalogue + index.html + tools/ + RS03 ECC, verified)
-./arv make ./Diaries --access sealed      # other discs' catalogues show only its id and location
-./arv make ./Photos --filesystem udf250   # UDF 2.50 image (Blu-ray style) instead of the hybrid ISO; needs lib/udfmake
-./arv names ./Photos                      # names each image type would shorten or change on Windows/macOS
+arv make ./Diaries --access sealed      # other discs' catalogues show only its id and location
+arv make ./Photos --filesystem udf250   # UDF 2.50 image (Blu-ray style) instead of the hybrid ISO; needs lib/udfmake
+arv names ./Photos                      # names each image type would shorten or change on Windows/macOS
 # volume label: the disc id, then the title as far as it fits (32 bytes hybrid, 126 characters UDF 2.50);
 # --label TEXT to choose the text, --label '' for the id alone
-./arv make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: only this set's catalogue
-./arv make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
-./arv make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03
-./arv find IMG_2019            # which disc holds it, and where the disc is
-./arv list --covers 2019-07-15    # discs whose date range includes that day (or 2019, 2019-07)
-./arv sets -v                     # the vocabulary tree with disc counts, aliases and match rules
-./arv list --in MEMORIES          # discs anywhere under a vocabulary entry
-./arv id PHOTOS-07_2015-2024_Q   # explain / check an id (catches typos)
-./arv note 2020-2025_PROJECTS_01 "Only copy of the 2019 PCB gerbers"
-./arv locate 2020-2025_PROJECTS_01 BOX3 OFFSITE   # one location per place a copy is kept
-./arv burned 2020-2025_PROJECTS_01 --copies 1 --location OFFSITE  # after burning the ISO yourself
-./arv location move BOX3 --in OFFSITE             # moving a box moves its discs
-./arv location list -v                            # places as a tree, with the discs in each
-./arv collection add KYOTO-BEST --name "Best of Kyoto" TRIP-01_2019_4:"day2 Kinkaku-ji/"
-./arv collection show KYOTO-BEST                  # virtual folders across discs, with where each disc is
-./arv list --at HOME                              # discs anywhere inside a place
-./arv list --access private --made 2026          # what belongs in this year's private box
-./arv access 2020-2025_PROJECTS_01 public          # public / private (default) / sealed
-./arv tags                                         # every folder tag in use, by namespace
-./arv keywords PROJ-01_2020-2025_K --format exiftool > kw.args  # tags as XMP keywords
-./arv check --device /dev/sr0                        # scan a disc, log a fixity-check event
-./arv check --image 2020-2025_PROJECTS_01.iso
-./arv rebuild /media/disc                            # recreate/merge the home catalogue from a disc
-./arv index                                          # SQLite index: fast find at millions of files
-./arv gui                                            # the same, in your web browser
+arv make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: only this set's catalogue
+arv make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
+arv make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03
+arv find IMG_2019            # which disc holds it, and where the disc is
+arv list --covers 2019-07-15    # discs whose date range includes that day (or 2019, 2019-07)
+arv sets -v                     # the vocabulary tree with disc counts, aliases and match rules
+arv list --in MEMORIES          # discs anywhere under a vocabulary entry
+arv id PHOTOS-07_2015-2024_Q   # explain / check an id (catches typos)
+arv note 2020-2025_PROJECTS_01 "Only copy of the 2019 PCB gerbers"
+arv locate 2020-2025_PROJECTS_01 BOX3 OFFSITE   # one location per place a copy is kept
+arv burned 2020-2025_PROJECTS_01 --copies 1 --location OFFSITE  # after burning the ISO yourself
+arv location move BOX3 --in OFFSITE             # moving a box moves its discs
+arv location list -v                            # places as a tree, with the discs in each
+arv collection add KYOTO-BEST --name "Best of Kyoto" TRIP-01_2019_4:"day2 Kinkaku-ji/"
+arv collection show KYOTO-BEST                  # virtual folders across discs, with where each disc is
+arv list --at HOME                              # discs anywhere inside a place
+arv list --access private --made 2026          # what belongs in this year's private box
+arv access 2020-2025_PROJECTS_01 public          # public / private (default) / sealed
+arv tags                                         # every folder tag in use, by namespace
+arv keywords PROJ-01_2020-2025_K --format exiftool > kw.args  # tags as XMP keywords
+arv check --device /dev/sr0                        # scan a disc, log a fixity-check event
+arv check --image 2020-2025_PROJECTS_01.iso
+arv rebuild /media/disc                            # recreate/merge the home catalogue from a disc
+arv index                                          # SQLite index: fast find at millions of files
+arv gui                                            # the same, in your web browser
 ```
 
 `arv gui` opens a local page (127.0.0.1 only, per-session token) with tabs for
 the disc list and history, notes, location and burned copies, search, making a
 disc (with a folder picker), checking discs and rebuilding the catalogue. Every
-action runs the same `archive` command as the terminal and shows its output.
+action runs the same `arv` command as the terminal and shows its output.
 
 On the disc, `index.html` browses the disc without JavaScript. Searching across
 discs is the job of catalogue software (such as Katalog) reading the catalogue,
@@ -154,10 +192,9 @@ searches every disc in its snapshot with nothing but Python.
   *other* discs' catalogues show of a disc: `public` (also on discs given to other
   people with `--snapshot set`), `private` (default: your own discs only), `sealed`
   (only its id, set, dates and location; no title, notes or file list).
-- The home catalogue lives in `$BLURAY_ARCHIVE_HOME` (default
-  `~/.local/share/bluray-archive`): `config/` (vocabularies), `catalog/` (laid out like
-  `catalog/` on every disc), `drafts/`, and `cache/` (rebuildable; marked with `CACHEDIR.TAG`).
-  A home in the older flat layout is moved into this one on first use.
+- A home (`.arv`) holds `config/` (vocabularies), `catalog/` (laid out like `catalog/` on
+  every disc), `drafts/`, and `cache/` (rebuildable; marked with `CACHEDIR.TAG`). A home in the
+  older flat layout is moved into this one on first use.
 - Each disc carries a snapshot of the committed `HEAD` of this repo (not its history;
   `--tools-history` adds a git bundle), so commit before burning (uncommitted changes
   are flagged in the `Software` field).
