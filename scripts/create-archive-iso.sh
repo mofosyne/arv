@@ -2,7 +2,7 @@
 #
 # Blu‑ray Hybrid Disc Image Archival Script
 #
-# Brian Khuu 2025
+# 2025
 #
 # This script creates a hybrid ISO image that combines UDF with ISO9660 
 # (including Rock Ridge and Joliet extensions). It uses ISO‑level 3 to allow
