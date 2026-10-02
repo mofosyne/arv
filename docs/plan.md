@@ -188,6 +188,34 @@ All tiers remain optional, suggestion-only, and recorded as PREMIS events with t
 - **The folder beside the files is always `.arv`.**
 - The on-disc format keeps its name, *smart-archive* (written into every disc's `catalog.rec`).
 
+## Design: four layers, and a binding per volume (2026-10-02, not implemented)
+
+Blu-ray and UDF are today's medium, not the format (philosophy.md, principle 4).
+
+| Layer | What it is | Depends on the medium? |
+|---|---|---|
+| 1. Content | the files, untouched, and their hashes (BagIt manifest) | no |
+| 2. Description | the catalogue: volumes, events, locations, collections, appraisals, history | no |
+| 3. Container | how a volume is laid out: UDF 2.50 or hybrid ISO on Blu-ray today; possibly LTFS, exFAT, tar, an AFS reel | yes |
+| 4. Protection | repair for that medium: RS03 for disc images; tape's own ECC; parity on drives | yes |
+
+Nothing in layers 1-2 may depend on layers 3-4. Container facts go in a per-volume record:
+
+```
+%rec: Binding
+Volume: TRIP-01_2019_4
+Container: udf-2.50                    (iso9660+udf-1.02, ltfs-2.4, exfat, tar, afs ...)
+Protection: rs03; medium 12219392 sectors
+Extents: volumes/TRIP-01_2019_4/extents.tsv   (optional: path, start, length in the
+                                               container's units: sectors, blocks, frames)
+```
+
+- [ ] Move `Filesystem`, `Media` and `Ecc` from the Disc record into Binding (readers accept both).
+- [ ] Record file extents for UDF/ISO images (from udfmake, or by reading the image), and test
+      extracting files from a raw image with only the extents and the manifest (Piql lesson 3).
+- [ ] Per-binding recovery steps in README.txt (dvdisaster for disc images).
+- [ ] Name checks and size limits become per-container profiles (already `--filesystem`).
+
 ## Direction: a chain of small programs, each carried on every disc (2026-10-01)
 
 The end state is a series of programs run in order, every one of them on every disc, so a
