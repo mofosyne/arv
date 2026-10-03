@@ -124,7 +124,28 @@ history is kept by appending records, not by editing them. The heavy
 institutional formats (METS XML, PREMIS XML, E-ARK, OCFL) solve problems a
 personal archive does not have, so they are not the source of truth.
 
-But moving the archive into such a system one day (a library, a national
+**Personal usefulness comes first; a hand-off to an archive comes second, and is never
+a rescue.** The owner never has to do an archivist's work to use their own discs. But what an
+archivist would need is recorded whenever it is known cheaply and automatically, so that one
+day the archive can be given to a library, a national archive or a software archive without
+anyone reconstructing what is in it.
+
+Part of that is **telling an archivist what kind of objects are inside**, not just which file
+formats. Siegfried already names each file's format (a WARC web archive, a PDF/A, a disk
+image). But some objects are whole folders that no per-file tool sees: a git repository, a
+mail folder, a photo library, a website mirror, a bag inside the bag, a build tree. Each
+needs its own handling and its own expert, and an archivist should learn from the catalogue
+that a disc holds one (planned: research/plan.md, "Notable objects").
+
+Code deserves a word of its own. The people likely to care about arv keep their own code,
+so a personal archive is also a small **software heritage** archive: for code, faithful means
+the tree's shape (executable bits, links: the listing records them as git does, see
+"Links" in the format) and its history, and useful later means it can be rebuilt. What
+Software Heritage already holds (public code) can be referenced by its identifier; what only
+the owner has (private repositories, and the notes, photos and reasons around them) is what
+arv is for.
+
+So moving the archive into such a system one day (a library, a national
 archive, a company records system) should be routine, not a rescue. So:
 - **the package is already one they take:** every disc is a BagIt bag, which
   Archivematica and similar systems ingest as a transfer;

@@ -365,6 +365,33 @@ recognise it the same way: a `catalog.rec` at the bag's root.
 - Next: the full archivist log (appraisals: why something was kept or left out, for whom, how
   important, when to review), extending Event records.
 
+## Direction (2026-10-03): personal first, hand-off ready; code is software heritage
+
+Agreed: arv serves the owner first, and records cheaply whatever an archivist would need to
+take the archive over later (docs/philosophy.md, "Plain text first..."). Its likely users keep
+their own code, so it is also a small software heritage archive. Not started:
+
+- [ ] **Notable objects.** Detect objects that are whole folders, or files an archivist must
+      treat specially, and list them per disc in the catalogue (a record with path, kind and
+      what to know), with a one-line summary in the disc's README.txt and index.html:
+      git repositories (`.git`), WARC/ARC web archives, disc and VM images, mailboxes (mbox,
+      Maildir, PST), photo libraries, nested BagIt bags, databases (SQLite), build trees
+      (Yocto `build/`, `node_modules`). Per-file formats stay with Siegfried (formats.csv);
+      this adds the folder level and the "this needs an expert" flag.
+- [ ] **Software Heritage identifiers (SWHID).** Compute `swh:1:dir:` for the folder (and for
+      each git repository's working tree) from data/ and the listing alone: the listing's kind
+      and link target columns are exactly git's tree model. Checks a restore, matches a disc
+      against Software Heritage or a git commit, and proves the listing keeps enough.
+- [ ] **History:** a git bundle per repository (`git bundle verify`-able, one file) as an
+      option, when someone needs it.
+- [ ] **Dependencies:** referenced by identifier (SWHID, URL + checksum) rather than copied,
+      with "keep a copy anyway" for those at risk; recorded as appraisals in the archivist log.
+- [ ] **Restoring trees with links:** `--links keep` (note every internal link, copy none) and
+      `arv restore` (recreates links; offers to repoint absolute links at the new location, from
+      the source path recorded at ingest, private like any path), hard links stored once. What
+      corporations do instead: backup tools keep links as links and expect restore to the same
+      path; Yocto shops archive inputs (layers, download mirror, build container), not `tmp/`.
+
 ## Direction: a chain of small programs, each carried on every disc (2026-10-01)
 
 *Revised 2026-10-03: the steps stay, but as libraries linked into one `arv` program rather than
