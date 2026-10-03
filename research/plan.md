@@ -301,6 +301,9 @@ place every structure deliberately for damage resistance.
 - **RS03 reads the laid-out image:** each codeword takes bytes from across the whole image, so the
   encoder runs over the image after the filesystem is laid out, as dvdisaster does; inside the
   library, not as a second program.
+- **The profile is written down** in `docs/archival-udf.md` (layout, rules, how to check a disc).
+  Writing it found a real issue: RS03 appended after the filesystem leaves the two end anchors
+  mid-disc, so readers find only the anchor at sector 256 (inside RS03's protection).
 - **Checking it:** the Linux kernel mounts it; udftools (`udfinfo`, `udfdump`) and 7-Zip parse it;
   extracted files match the manifest; images compare against udfmake's for the same folder; then
   Windows, macOS and a real burn. `src/udfmake/` stays as the reference and for upstream fixes.

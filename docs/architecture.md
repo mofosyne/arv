@@ -31,7 +31,7 @@ record (`catalog.rec`) and a snapshot of the **whole** archive's catalogue at th
 made it and `README.txt`, which says how to check, repair and search the disc. The BagIt tag
 manifest (`tagmanifest-sha256.txt`) holds a hash of every one of these files.
 
-**Container.** Today a disc image: UDF 2.50, the layout Blu-ray players and recorders expect,
+**Container.** The exact UDF profile arv writes: [archival-udf.md](archival-udf.md). Today a disc image: UDF 2.50, the layout Blu-ray players and recorders expect,
 which current Windows, macOS and Linux read; or, for very old systems, a hybrid image with an
 extra ISO 9660 tree. Both hold the same files.
 
