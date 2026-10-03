@@ -3,8 +3,8 @@ CC      ?= cc
 CFLAGS  ?= -O2
 WARN     = -std=c99 -Wall -Wextra -Wpedantic -Wshadow
 BUILD    = build
-LIB      = $(BUILD)/rec.o $(BUILD)/sha256.o $(BUILD)/edtf.o $(BUILD)/discid.o
-OBJS     = $(BUILD)/arvc.o $(LIB)
+LIB      = $(BUILD)/rec.o $(BUILD)/sha256.o $(BUILD)/sha512.o $(BUILD)/edtf.o $(BUILD)/discid.o
+OBJS     = $(BUILD)/arvc.o $(BUILD)/util.o $(BUILD)/disc.o $(BUILD)/catalogue.o $(LIB)
 
 all: $(BUILD)/arvc $(BUILD)/fixtures
 
@@ -14,7 +14,7 @@ $(BUILD)/arvc: $(OBJS)
 $(BUILD)/fixtures: $(BUILD)/fixtures.o $(LIB)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(BUILD)/fixtures.o $(LIB)
 
-$(BUILD)/%.o: %.c rec.h sha256.h edtf.h discid.h
+$(BUILD)/%.o: %.c arvc.h rec.h sha256.h sha512.h edtf.h discid.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(WARN) -c -o $@ $<
 

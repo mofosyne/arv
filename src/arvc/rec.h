@@ -27,6 +27,18 @@ typedef struct {
 int rec_read(const char *path, rec_file *out, int *bad_line);
 void rec_free(rec_file *f);
 
+/* Building records. A new record's type must outlive it (a string literal, or a descriptor's). */
+rec_record *rec_new(rec_file *f, const char *type);       /* appended to f; pointers into f move */
+void rec_add(rec_record *r, const char *name, const char *value);
+void rec_set(rec_record *r, const char *name, const char *value);   /* replace the first, drop the rest */
+void rec_copy(rec_record *dst, const rec_record *src);  /* dst gets src's fields */
+void rec_clear(rec_record *r);
+/* Writes records as recfile.py does: fields "Name: value" ("+ " continuation lines), records
+ * separated by a blank line. Returns 0, or -1 with errno set. */
+int rec_write(const char *path, rec_record *const *records, size_t n);
+/* The same as text appended to *buf (*len bytes so far). */
+void rec_format(const rec_record *r, char **buf, size_t *len);
+
 /* The first value of a field, or NULL. */
 const char *rec_get(const rec_record *r, const char *name);
 /* The first record of a type (not a descriptor), or NULL. */

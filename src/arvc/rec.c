@@ -154,3 +154,123 @@ const rec_record *rec_first(const rec_file *f, const char *type)
             return &f->records[i];
     return NULL;
 }
+
+static void *grow(void *p, size_t n)
+{
+    p = realloc(p, n ? n : 1);
+    if (!p) {
+        fputs("out of memory\n", stderr);
+        exit(2);
+    }
+    return p;
+}
+
+static char *copy(const char *s)
+{
+    return dup_n(s, strlen(s));
+}
+
+rec_record *rec_new(rec_file *f, const char *type)
+{
+    f->records = grow(f->records, (f->nrecords + 1) * sizeof *f->records);
+    rec_record *r = &f->records[f->nrecords++];
+    memset(r, 0, sizeof *r);
+    r->type = type;
+    return r;
+}
+
+void rec_add(rec_record *r, const char *name, const char *value)
+{
+    r->fields = grow(r->fields, (r->nfields + 1) * sizeof *r->fields);
+    r->fields[r->nfields].name = copy(name);
+    r->fields[r->nfields].value = copy(value ? value : "");
+    if (!r->fields[r->nfields].name || !r->fields[r->nfields].value) {
+        fputs("out of memory\n", stderr);
+        exit(2);
+    }
+    r->nfields++;
+}
+
+void rec_set(rec_record *r, const char *name, const char *value)
+{
+    size_t out = 0;
+    int done = 0;
+    for (size_t i = 0; i < r->nfields; i++) {
+        if (!strcmp(r->fields[i].name, name)) {
+            if (done) {
+                free(r->fields[i].name);
+                free(r->fields[i].value);
+                continue;
+            }
+            free(r->fields[i].value);
+            r->fields[i].value = copy(value);
+            done = 1;
+        }
+        r->fields[out++] = r->fields[i];
+    }
+    r->nfields = out;
+    if (!done) rec_add(r, name, value);
+}
+
+void rec_copy(rec_record *dst, const rec_record *src)
+{
+    for (size_t i = 0; i < src->nfields; i++) rec_add(dst, src->fields[i].name, src->fields[i].value);
+}
+
+void rec_clear(rec_record *r)
+{
+    for (size_t i = 0; i < r->nfields; i++) {
+        free(r->fields[i].name);
+        free(r->fields[i].value);
+    }
+    free(r->fields);
+    r->fields = NULL;
+    r->nfields = 0;
+}
+
+static void put(char **buf, size_t *len, const char *s, size_t n)
+{
+    *buf = grow(*buf, *len + n + 1);
+    memcpy(*buf + *len, s, n);
+    *len += n;
+    (*buf)[*len] = 0;
+}
+
+void rec_format(const rec_record *r, char **buf, size_t *len)
+{
+    for (size_t i = 0; i < r->nfields; i++) {
+        const char *v = r->fields[i].value, *nl = strchr(v, '\n');
+        size_t first = nl ? (size_t)(nl - v) : strlen(v);
+        if (i) put(buf, len, "\n", 1);
+        put(buf, len, r->fields[i].name, strlen(r->fields[i].name));
+        put(buf, len, first ? ": " : ":", first ? 2 : 1);
+        put(buf, len, v, first);
+        while (nl) {                                   /* "+ part", or "+" for an empty line */
+            v = nl + 1;
+            nl = strchr(v, '\n');
+            size_t n = nl ? (size_t)(nl - v) : strlen(v);
+            put(buf, len, n ? "\n+ " : "\n+", n ? 3 : 2);
+            put(buf, len, v, n);
+        }
+    }
+}
+
+int rec_write(const char *path, rec_record *const *records, size_t n)
+{
+    char *buf = NULL;
+    size_t len = 0;
+    for (size_t i = 0; i < n; i++) {
+        if (i) put(&buf, &len, "\n\n", 2);
+        rec_format(records[i], &buf, &len);
+    }
+    put(&buf, &len, "\n", 1);
+    FILE *fp = fopen(path, "wb");
+    if (!fp) {
+        free(buf);
+        return -1;
+    }
+    int bad = fwrite(buf, 1, len, fp) != len;
+    bad |= fclose(fp) != 0;
+    free(buf);
+    return bad ? -1 : 0;
+}

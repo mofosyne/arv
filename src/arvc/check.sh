@@ -76,4 +76,14 @@ for n in range(131):
     open('lengths/data/%03d' % n, 'wb').write(bytes((i * 7 + n) % 256 for i in range(n)))"
 (cd lengths && sha256sum data/* > manifest-sha256.txt && sha256sum catalog.rec manifest-sha256.txt > tagmanifest-sha256.txt)
 "$tool" verify lengths >/dev/null && ok "SHA-256 matches sha256sum for 0 to 130 bytes" || no "SHA-256"
+(cd lengths && "$here/build/fixtures" --hash data/* > ../sha512.c.txt && sha512sum data/* > ../sha512.txt)
+cmp -s sha512.c.txt sha512.txt && ok "SHA-512 matches sha512sum for 0 to 130 bytes" || no "SHA-512"
+n=0
+for f in "$repo"/samples/home/catalog/archive.rec "$repo"/tests/fixtures/recfile/*.rec; do
+    "$here/build/fixtures" --roundtrip "$f" roundtrip.rec || no "roundtrip $f"
+    python3 -c "import sys; sys.path.insert(0, '$repo/src'); from arv import recfile; sys.stdout.write(recfile.dumps(recfile.read('$f')))" > expected.rec
+    cmp -s roundtrip.rec expected.rec || no "recfile writer differs from python for $f"
+    n=$((n + 1))
+done
+ok "recfile writer: $n files written byte for byte as python writes them"
 echo "all checks passed"

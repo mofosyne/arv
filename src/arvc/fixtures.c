@@ -8,6 +8,7 @@
 #include "discid.h"
 #include "edtf.h"
 #include "rec.h"
+#include "sha512.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -184,8 +185,45 @@ static void check_recfile(const char *dir, const char *name)
     rec_free(&rec);
 }
 
+/* fixtures --hash FILE...: "sha512  name" lines, as sha512sum prints them */
+static int hash_files(int argc, char **argv)
+{
+    static unsigned char buf[65536];
+    for (int i = 2; i < argc; i++) {
+        FILE *fp = fopen(argv[i], "rb");
+        sha512_ctx c;
+        unsigned char d[64];
+        char hex[129];
+        size_t n;
+        if (!fp) return 1;
+        sha512_init(&c);
+        while ((n = fread(buf, 1, sizeof buf, fp)) > 0) sha512_update(&c, buf, n);
+        fclose(fp);
+        sha512_final(&c, d);
+        sha512_hex(d, hex);
+        printf("%s  %s\n", hex, argv[i]);
+    }
+    return 0;
+}
+
+/* fixtures --roundtrip IN OUT: read a recfile and write it again (recfile.py writes the same bytes) */
+static int roundtrip(const char *in, const char *out)
+{
+    rec_file f;
+    int bad = 0;
+    if (rec_read(in, &f, &bad)) return 1;
+    rec_record **all = malloc((f.nrecords + 1) * sizeof *all);
+    for (size_t i = 0; i < f.nrecords; i++) all[i] = &f.records[i];
+    int rc = rec_write(out, all, f.nrecords);
+    free(all);
+    rec_free(&f);
+    return rc ? 1 : 0;
+}
+
 int main(int argc, char **argv)
 {
+    if (argc >= 2 && !strcmp(argv[1], "--hash")) return hash_files(argc, argv);
+    if (argc == 4 && !strcmp(argv[1], "--roundtrip")) return roundtrip(argv[2], argv[3]);
     if (argc != 2) {
         fputs("usage: fixtures tests/fixtures\n", stderr);
         return 2;
