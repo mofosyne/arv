@@ -59,7 +59,7 @@ Each layer does its own job:
 |---|---|
 | `arv` | The command: runs `src/arv/` from a checkout, or from `tools/arv/` on any disc |
 | `src/arv/` | The tool: a Python package, standard library only |
-| `src/arvc/` | arv's reader in C (`info`, `verify`, `ls`, `restore`): the first part of the C port, [src/arvc/README.md](src/arvc/README.md) |
+| `src/arvc/` | arv in C (`arvc`), at its MVP: init, make, burned, check, find, list, verify, restore and more, writing the same discs as the Python arv: [src/arvc/README.md](src/arvc/README.md) |
 | `src/udfwrite/` | arv's own UDF 2.50 writer (library and program), the default: [docs/archival-udf.md](docs/archival-udf.md) |
 | `src/udfmake/` | NetBSD's `makefs -t udf` as a C library and program, the reference UDF 2.50 writer; `upstream/` has the draft NetBSD bug report, patches and reproduction |
 | `docs/` | For users and implementers: workflow, shelving, architecture, philosophy, the disc format, and the website |
@@ -125,13 +125,20 @@ programs, which it finds on `PATH`:
 
 `arv make` stops with a clear message if a program it needs is missing. Reading a disc later
 needs none of these: any computer can open it, and `README.txt` on the disc explains checking,
-restoring and repair (repair needs dvdisaster). `arvc`, the reader in C, verifies a disc and
-restores its folder exactly, symbolic links and execute bits included:
+restoring and repair (repair needs dvdisaster).
+
+**`arvc`, arv in C,** does the whole cycle without Python, and writes the same discs and
+catalogue as `arv` (its checks compare them file by file). It has no prompts and no AI helpers;
+one disc per run, UDF 2.50 only ([src/arvc/README.md](src/arvc/README.md) lists what is ported):
 
 ```sh
-arvc verify /media/cdrom                 # every file against its checksum
-arvc find -C /media/cdrom kyoto          # search every disc that disc's catalogue knows
-arvc restore /media/cdrom ~/restored     # copy back, checking each file; links recreated
+arvc init ~/archive                                        # a .arv home
+arvc make --set trip --location BOX1 ~/archive/2019-kyoto  # disc image, recorded in the home
+arvc burned TRIP-01_2019_4 --copies 2                      # after burning
+arvc check --device /dev/sr0                               # fixity check of a burned disc, logged
+arvc find kyoto                                            # which disc, and where it is
+arvc verify /media/cdrom                                   # every file against its checksum
+arvc restore /media/cdrom ~/restored                       # copy back; links and execute bits too
 ```
 
 ### What `arv make` creates

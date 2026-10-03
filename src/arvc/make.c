@@ -16,7 +16,6 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -329,57 +328,6 @@ static void stage_tools(const char *tools, const char *source, int is_git, const
 }
 
 /* ------------------------------------------------------------------ the catalogue */
-
-static char *where_in(const archive *a, const rec_record *d)
-{
-    sbuf out = { 0 };
-    sb_puts(&out, "");
-    for (size_t f = 0; f < d->nfields; f++) {
-        if (strcmp(d->fields[f].name, "Location")) continue;
-        if (out.len) sb_puts(&out, "; ");
-        const rec_record *chain[64];
-        size_t n = 0;
-        for (rec_record *l = archive_location(a, d->fields[f].value); l && n < 64;
-             l = archive_location(a, rec_get(l, "Parent"))) {
-            size_t k;
-            for (k = 0; k < n && chain[k] != l; k++) {}
-            if (k < n) break;
-            chain[n++] = l;
-        }
-        if (!n) sb_puts(&out, d->fields[f].value);
-        while (n--) {
-            const char *name = rec_get(chain[n], "Name") ? rec_get(chain[n], "Name") : rec_get(chain[n], "Code");
-            sb_printf(&out, "%s%s", name, n ? " / " : "");
-        }
-    }
-    return out.s;
-}
-
-static rec_record *new_event(const char *disc_id, const char *type, const char *outcome, const char *agent,
-                             const char *authorship, const char *note)
-{
-    char today[11];
-    today_iso(today);
-    rec_record *r = rec_alloc("Event");
-    rec_add(r, "Disc", disc_id);
-    rec_add(r, "Type", type);
-    rec_add(r, "Date", today);
-    rec_add(r, "Outcome", outcome);
-    rec_add(r, "Authorship", authorship);
-    rec_add(r, "Agent", agent);
-    if (note) rec_add(r, "Note", note);
-    return r;
-}
-
-/* human:LOGIN, found as Python's getpass.getuser() finds it */
-static char *person(void)
-{
-    const char *vars[] = { "LOGNAME", "USER", "LNAME", "USERNAME" };
-    for (int i = 0; i < 4; i++)
-        if (getenv(vars[i]) && *getenv(vars[i])) return xprintf("human:%s", getenv(vars[i]));
-    struct passwd *pw = getpwuid(getuid());
-    return xprintf("human:%s", pw && pw->pw_name ? pw->pw_name : "unknown");
-}
 
 /* --importance '<level> for <audience>' (src/arv/appraisal.py) */
 static rec_record *appraisal(const char *target, const strlist *importance, const char *basis, const char *review)
@@ -1010,7 +958,7 @@ int cmd_make(int argc, char **argv)
             free(size_text);
         }
         {
-            char *html = render_index(disc, binding, &files, &snap, where_in), *p = join(stage, "index.html");
+            char *html = render_index(disc, binding, &files, &snap, archive_where), *p = join(stage, "index.html");
             write_text(p, html);
             free(p);
             free(html);

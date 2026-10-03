@@ -93,6 +93,25 @@ if command -v dvdisaster >/dev/null && dvdisaster --help 2>&1 | grep -q no-bdr-d
         && ok "arvc make with RS03 error correction: image tested by dvdisaster" || no "RS03 events"
 fi
 
+# burned, note, locate (and check, with dvdisaster) change the catalogue as the Python arv does
+for who in py c; do
+    rm -rf "rec-$who" && cp -r "$repo/samples/home" "rec-$who"
+    [ -d ecc-home ] && rm -rf "ecc-$who" && cp -r ecc-home "ecc-$who"
+    if [ $who = py ]; then run="python3 $repo/arv --home"; else run="$tool -C"; fi
+    {
+        $run "rec-$who" burned TRIP-01_2019_4 --copies 2 --location box1 --media-id MEI-T02 --note "for the attic"
+        $run "rec-$who" note PROJ-01_2020-2023_L "A long note that goes on about the weather station, its board revisions and the spare parts"
+        $run "rec-$who" locate SCAN-01_1995-2008_D SAFE --add
+        $run "rec-$who" locate FAMILY-01_2020-2021_K "Somewhere new"
+        if [ -d ecc-home ]; then
+            $run "ecc-$who" check --image ecc-out/*.iso --note "yearly check"     # the id from the image's label
+        fi
+    } >/dev/null 2>&1 || no "$who: burned, note, locate or check failed"
+done
+cmp -s rec-py/catalog/archive.rec rec-c/catalog/archive.rec || no "burned, note, locate: catalogues differ"
+[ ! -d ecc-home ] || cmp -s ecc-py/catalog/archive.rec ecc-c/catalog/archive.rec || no "check: catalogues differ"
+ok "burned, note, locate$([ -d ecc-home ] && echo ", check"): the catalogue byte for byte as python leaves it"
+
 # find and list give the same lines as the Python arv, on the sample catalogue
 same=0
 for q in kyoto IMG '*.png' 'place:*' BOX 2019 nothing-matches; do

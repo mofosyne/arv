@@ -7,6 +7,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -304,4 +305,68 @@ void archive_shared_subset(const archive *a, const strlist *ids, archive *out)
         if (in_list(ids, d) && !in_list(&sealed, d)) recs_add(&out->appraisals, a->appraisals.v[i]);
     }
     strlist_free(&sealed);
+}
+
+/* every place a disc's copies are kept, as readable paths ("" when not recorded) */
+char *archive_where(const archive *a, const rec_record *d)
+{
+    sbuf out = { 0 };
+    sb_puts(&out, "");
+    for (size_t f = 0; f < d->nfields; f++) {
+        if (strcmp(d->fields[f].name, "Location")) continue;
+        if (out.len) sb_puts(&out, "; ");
+        const rec_record *chain[64];
+        size_t n = 0;
+        for (rec_record *l = archive_location(a, d->fields[f].value); l && n < 64;
+             l = archive_location(a, rec_get(l, "Parent"))) {
+            size_t k;
+            for (k = 0; k < n && chain[k] != l; k++) {}
+            if (k < n) break;
+            chain[n++] = l;
+        }
+        if (!n) sb_puts(&out, d->fields[f].value);
+        while (n--) {
+            const char *name = rec_get(chain[n], "Name") ? rec_get(chain[n], "Name") : rec_get(chain[n], "Code");
+            sb_printf(&out, "%s%s", name, n ? " / " : "");
+        }
+    }
+    return out.s;
+}
+
+rec_record *new_event(const char *disc_id, const char *type, const char *outcome, const char *agent,
+                             const char *authorship, const char *note)
+{
+    char today[11];
+    today_iso(today);
+    rec_record *r = rec_alloc("Event");
+    rec_add(r, "Disc", disc_id);
+    rec_add(r, "Type", type);
+    rec_add(r, "Date", today);
+    rec_add(r, "Outcome", outcome);
+    rec_add(r, "Authorship", authorship);
+    rec_add(r, "Agent", agent);
+    if (note) rec_add(r, "Note", note);
+    return r;
+}
+
+/* human:LOGIN, found as Python's getpass.getuser() finds it */
+char *person(void)
+{
+    const char *vars[] = { "LOGNAME", "USER", "LNAME", "USERNAME" };
+    for (int i = 0; i < 4; i++)
+        if (getenv(vars[i]) && *getenv(vars[i])) return xprintf("human:%s", getenv(vars[i]));
+    struct passwd *pw = getpwuid(getuid());
+    return xprintf("human:%s", pw && pw->pw_name ? pw->pw_name : "unknown");
+}
+
+/* a Location code when text names one (any case), else the text as given (trimmed) */
+char *place(const archive *a, const char *text)
+{
+    rec_record *l = archive_location(a, text);
+    if (l) return xstrdup(rec_get(l, "Code"));
+    while (isspace((unsigned char)*text)) text++;
+    char *p = xstrdup(text);
+    size_t n = strlen(p);
+    while (n && isspace((unsigned char)p[n - 1])) p[--n] = 0;
+    return p;
 }

@@ -44,6 +44,10 @@ static void usage(void)
     fputs("usage: arvc init [FOLDER]\n"
           "       arvc make [-C HOME] [--set CODE] [--title T] [--no-ecc] [--output-dir DIR] ... FOLDER\n"
           "              (arvc make --help lists every option)\n"
+          "       arvc check [-C HOME] (--image FILE | --device DRIVE) [--note TEXT] [-v] [DISC-ID]\n"
+          "       arvc burned [-C HOME] [--copies N] [--media-id ID] [--location PLACE] [--note TEXT] DISC-ID\n"
+          "       arvc note [-C HOME] DISC-ID TEXT\n"
+          "       arvc locate [-C HOME] [--add] DISC-ID PLACE...\n"
           "       arvc info DISC\n"
           "       arvc verify [-v] DISC\n"
           "       arvc ls DISC\n"
@@ -64,14 +68,32 @@ int main(int argc, char **argv)
         int (*fn)(int, char **);
     } cmds[] = { { "info", cmd_info }, { "verify", cmd_verify }, { "ls", cmd_ls }, { "restore", cmd_restore },
                  { "find", cmd_find }, { "list", cmd_list }, { "id", cmd_id },
-                 { "init", cmd_init }, { "make", cmd_make } };
+                 { "init", cmd_init }, { "make", cmd_make }, { "check", cmd_check },
+                 { "burned", cmd_burned }, { "note", cmd_note }, { "locate", cmd_locate } };
     if (argc >= 2 && (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-V"))) {
         puts(VERSION);
         return 0;
     }
+    /* "arvc -C HOME make ..." (as "arv --home HOME make ..."): the home goes to the command */
+    const char *home = NULL;
+    if (argc >= 3 && (!strcmp(argv[1], "-C") || !strcmp(argv[1], "--home"))) {
+        home = argv[2];
+        argv += 2;
+        argc -= 2;
+    }
     for (size_t i = 0; argc >= 2 && i < sizeof cmds / sizeof *cmds; i++)
         if (!strcmp(argv[1], cmds[i].name)) {
-            int rc = cmds[i].fn(argc - 2, argv + 2);
+            char **args = argv + 2;
+            int n = argc - 2;
+            if (home) {             /* the command reads -C HOME first */
+                args = xmalloc(((size_t)n + 3) * sizeof *args);
+                args[0] = "-C";
+                args[1] = (char *)home;
+                for (int k = 0; k < n; k++) args[k + 2] = argv[k + 2];
+                args[n + 2] = NULL;
+                n += 2;
+            }
+            int rc = cmds[i].fn(n, args);
             if (rc == 2) usage();
             return rc;
         }

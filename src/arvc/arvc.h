@@ -48,6 +48,10 @@ void home_ensure(const arv_home *h);
 char *home_volume_file(const arv_home *h, const char *disc_id, const char *name);
 int cmd_init(int argc, char **argv);
 int cmd_make(int argc, char **argv);
+int cmd_check(int argc, char **argv);
+int cmd_burned(int argc, char **argv);
+int cmd_note(int argc, char **argv);
+int cmd_locate(int argc, char **argv);
 
 /* archive.c: the catalogue as arv writes it */
 typedef struct {
@@ -74,6 +78,11 @@ void archive_locations_for(const archive *a, const recs *discs, recs *out);
 void archive_collections_for(const archive *a, const strlist *disc_ids, recs *out);
 rec_record *sealed_view(const rec_record *d);
 void archive_shared_subset(const archive *a, const strlist *ids, archive *out);
+char *archive_where(const archive *a, const rec_record *d);
+rec_record *new_event(const char *disc_id, const char *type, const char *outcome, const char *agent,
+                      const char *authorship, const char *note);
+char *person(void);
+char *place(const archive *a, const char *text);
 
 /* bag.c: the payload, BagIt tag files and the listing */
 typedef struct {
