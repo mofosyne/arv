@@ -278,6 +278,23 @@ stays as the reference, the fallback, and the place for upstream fixes.
 | each file in one contiguous run of sectors (split only at the 1 GiB extent limit), in a fixed order | fragmented or out-of-order placement |
 | timestamps from the files, identifiers from the disc's UUID | anything random or clock-based |
 
+**A library others can use**, not just part of arv: its own folder (`src/udfwrite/`, a `.c`/`.h`
+pair plus a tiny CLI), no dependencies beyond the C library, and no file system access of its own:
+the caller lists folders and files and supplies each file's bytes through a read callback, and the
+library hands back sectors through a write callback. That keeps it usable from files, pipes, other
+programs and WebAssembly. Sketch:
+
+```c
+udfw *w = udfw_open(&(udfw_options){ .volume_id = "TRIP-01_2019_4", .uuid = ...,
+                                      .write = sink, .ctx = out });
+udfw_add_dir(w, "data/photos", mtime);
+udfw_add_file(w, "data/photos/IMG_0001.JPG", size, mtime, read_cb, file_ctx);
+udfw_close(w, &stats);             /* finishes the image; stats.extents lists where each file is */
+```
+
+Licence to decide when it is split out: BSD-2-Clause (recommended: matches the NetBSD code it
+learns from, and lets any program embed it) or GPL-3.0 like the rest of arv.
+
 What it buys: reproducible images (same folder and record, same bytes), `extents.tsv` for free
 (where each file starts, for recovery from a raw image), and a writer small enough to audit.
 Steps: write the subset as a spec; write it in C; compare against udfmake (same files out, both
