@@ -12,6 +12,23 @@ The goal is a disc that is **written once, whole and closed**, readable by any U
 Standards: ECMA-167 (3rd edition) and OSTA UDF 2.50. This profile only narrows them; anything
 not mentioned follows UDF 2.50 as a read-only volume.
 
+## Why a profile and a writer of our own
+
+General UDF writers are built for media that keep changing (rewritable discs, hard disks), so
+they carry what that needs and skip what only a finished archive can afford. An archive disc is
+written once and never changed, which makes some robustness features cheap that are costly for
+them. Example: UDF 2.50 lets the metadata mirror point at the same sectors as the metadata it
+mirrors (with the *duplicate* flag clear), and NetBSD makefs does exactly that
+(`/* XXX no support for metadata mirroring yet */`), because on rewritable media a real mirror
+must be kept in sync on every change. For a finished image it is just a second copy of finished
+bytes. Ours writes it, and the Linux kernel mounts through it when the main metadata is destroyed
+(tested 2026-10-03).
+
+So the profile narrows UDF to what an archive needs, and the writer spends what it saves on
+robustness and checkability: a real mirror, contiguous files in a fixed order, and reproducible
+images. The same idea is offered back upstream: a real mirror for makefs's read-only images
+(issue #7).
+
 ## Layout
 
 Sector numbers are 2048-byte sectors from the start of the image. `N` is the last sector of the
