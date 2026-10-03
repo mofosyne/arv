@@ -248,7 +248,7 @@ src/arv/                   the workflow, Python standard library only
 src/udfwrite/              arv's own UDF 2.50 writer in C (library and program), the default
 src/udfmake/               the reference UDF 2.50 writer in C: NetBSD makefs, extracted (our copy)
 src/udfmake/upstream/      upstream reference: draft bug report, one patch per bug, reproduction
-samples/                   eight small sample discs and their catalogue; the scripts that make them
+samples/                   six small sample discs and their catalogue; the scripts that make them
 tests/                     unit and integration tests
 tests/fixtures/            language-neutral test cases (TSV): the contract for a future port
 docs/                      this file, the format spec, architecture, philosophy, the website
