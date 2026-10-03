@@ -38,7 +38,7 @@
 795	268	tools/arv/arv
 796	0	tools/arv/docs/.nojekyll
 796	7799	tools/arv/docs/architecture.md
-800	8492	tools/arv/docs/archival-udf.md
+800	8790	tools/arv/docs/archival-udf.md
 805	10231	tools/arv/docs/img/architecture-svg.py
 810	22912	tools/arv/docs/img/architecture.svg
 822	9059	tools/arv/docs/img/shelving-svg.py
@@ -75,7 +75,7 @@
 1039	13955	tools/arv/src/arv/gui.py
 1046	5924	tools/arv/src/arv/homes.py
 1049	6020	tools/arv/src/arv/html.py
-1052	14352	tools/arv/src/arv/image.py
+1052	14511	tools/arv/src/arv/image.py
 1060	2605	tools/arv/src/arv/index.py
 1062	1097	tools/arv/src/arv/listing.py
 1063	13643	tools/arv/src/arv/llm.py
@@ -141,10 +141,10 @@
 1356	7	tools/arv/src/udfwrite/.gitignore
 1357	688	tools/arv/src/udfwrite/Makefile
 1358	3044	tools/arv/src/udfwrite/README.md
-1360	4581	tools/arv/src/udfwrite/check.sh
-1363	27178	tools/arv/src/udfwrite/udfwrite.c
-1377	2797	tools/arv/src/udfwrite/udfwrite.h
-1379	5509	tools/arv/src/udfwrite/udfwrite_cli.c
+1360	5817	tools/arv/src/udfwrite/check.sh
+1363	27567	tools/arv/src/udfwrite/udfwrite.c
+1377	3036	tools/arv/src/udfwrite/udfwrite.h
+1379	5531	tools/arv/src/udfwrite/udfwrite_cli.c
 1382	19	tools/arv/tests/fixtures/.gitignore
 1383	1920	tools/arv/tests/fixtures/README.md
 1384	209	tools/arv/tests/fixtures/check-chars.tsv
@@ -166,6 +166,6 @@
 1407	354	tools/arv/tests/fixtures/vocab-words.tsv
 1408	649	tools/arv/tests/fixtures/vocab.rec
 1409	2132	tools/arv/tests/smoke-test.sh
-1411	79227	tools/arv/tests/test_arv.py
-1450	4637	tools/arv/tests/test_fixtures.py
-1453	54934	tools/bagit.py
+1411	81997	tools/arv/tests/test_arv.py
+1452	4637	tools/arv/tests/test_fixtures.py
+1455	54934	tools/bagit.py
