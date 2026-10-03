@@ -301,6 +301,15 @@ writes, which keeps it small, and each side tests the other. The last resort nee
 all: `extents.tsv` plus the manifest let anyone cut a file out with `dd` and check it with
 `sha256sum`. (Issue #12, the userspace reader, becomes this.)
 
+**UDF becomes the default container for every medium**, not just Blu-ray: an image mounts on
+current systems, our reader opens it where they can't, and contiguous files plus `extents.tsv`
+survive damage. That likely replaces the `file` (tar) and `share` (zip) preset ideas: a
+`.noecc.iso` on a self-healing NAS does the same job. Two guards: UDF is the default *container*,
+not the format (layers 1 and 2 never depend on it; the Binding names it), and one container
+everywhere is a monoculture, so keep udfmake as an independent reference, test with outside
+readers, and rely on the BagIt manifests and `extents.tsv` as checks and fallback. The bag as a
+plain folder (no container) remains the simplest form for a NAS if anyone asks for it.
+
 Licence to decide when it is split out: BSD-2-Clause (recommended: matches the NetBSD code it
 learns from, and lets any program embed it) or GPL-3.0 like the rest of arv.
 
