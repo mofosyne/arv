@@ -1,0 +1,156 @@
+/*
+ * Checks arvc's C code against tests/fixtures/ (the language-neutral contract the Python
+ * implementation passes too): recfile/, coverage.tsv, covers.tsv.
+ *
+ *   fixtures DIR        prints each failing case; exit 0 when all pass
+ */
+#define _POSIX_C_SOURCE 200809L
+#include "edtf.h"
+#include "rec.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static int failures, cases;
+
+/* TSV escapes: \t \n \\ */
+static void unescape(char *s)
+{
+    char *o = s;
+    for (; *s; s++) {
+        if (*s == '\\' && s[1]) {
+            s++;
+            *o++ = *s == 't' ? '\t' : *s == 'n' ? '\n' : *s;
+        } else {
+            *o++ = *s;
+        }
+    }
+    *o = 0;
+}
+
+/* Calls fn for each case line, split on tabs and unescaped. */
+static void each_case(const char *dir, const char *name, void (*fn)(char **cols, int n))
+{
+    char path[4096], *line = NULL;
+    size_t cap = 0;
+    ssize_t len;
+    snprintf(path, sizeof path, "%s/%s", dir, name);
+    FILE *fp = fopen(path, "r");
+    if (!fp) {
+        printf("FAIL %s: cannot open\n", path);
+        failures++;
+        return;
+    }
+    while ((len = getline(&line, &cap, fp)) >= 0) {
+        while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) line[--len] = 0;
+        if (line[0] == '#' || !len) continue;
+        char *cols[16];
+        int n = 0;
+        for (char *p = line; n < 16;) {
+            cols[n++] = p;
+            char *t = strchr(p, '\t');
+            if (!t) break;
+            *t = 0;
+            p = t + 1;
+        }
+        for (int i = 0; i < n; i++) unescape(cols[i]);
+        cases++;
+        fn(cols, n);
+    }
+    free(line);
+    fclose(fp);
+}
+
+static void day(long d, char out[32])
+{
+    snprintf(out, 32, "%04ld-%02ld-%02ld", d / 10000, d / 100 % 100, d % 100);
+}
+
+/* input, edtf, compact, first day, last day */
+static void coverage_case(char **c, int n)
+{
+    long a = 0, b = 0;
+    char fa[32] = "", fb[32] = "";
+    if (n < 5) return;
+    int r = edtf_span(c[0], &a, &b);
+    if (r > 0) {
+        day(a, fa);
+        day(b, fb);
+    } else if (r < 0) {
+        strcpy(fa, "ERROR");
+        strcpy(fb, "ERROR");
+    }
+    if (strcmp(fa, c[3]) || strcmp(fb, c[4])) {
+        printf("FAIL coverage %s: got %s / %s, want %s / %s\n", c[0], fa, fb, c[3], c[4]);
+        failures++;
+    }
+}
+
+static void covers_case(char **c, int n)
+{
+    if (n < 3) return;
+    int r = edtf_covers(c[0], c[1]);
+    const char *got = r > 0 ? "yes" : r == 0 ? "no" : "ERROR";
+    if (strcmp(got, c[2])) {
+        printf("FAIL covers %s %s: got %s, want %s\n", c[0], c[1], got, c[2]);
+        failures++;
+    }
+}
+
+/* record, type, field, value: every field in file order */
+static rec_file rec;
+static size_t rec_index, field_index;
+static const char *rec_name;
+
+static void recfile_case(char **c, int n)
+{
+    if (n < 4) return;
+    size_t want = (size_t)atol(c[0]);
+    if (want != rec_index) { rec_index = want; field_index = 0; }
+    if (rec_index >= rec.nrecords || field_index >= rec.records[rec_index].nfields) {
+        printf("FAIL recfile %s: record %s has no field %s\n", rec_name, c[0], c[2]);
+        failures++;
+        return;
+    }
+    const rec_record *r = &rec.records[rec_index];
+    const rec_field *f = &r->fields[field_index++];
+    const char *type = r->type ? r->type : "";
+    if (strcmp(type, c[1]) || strcmp(f->name, c[2]) || strcmp(f->value, c[3])) {
+        printf("FAIL recfile %s record %s: got %s %s=[%s], want %s %s=[%s]\n", rec_name, c[0],
+               type, f->name, f->value, c[1], c[2], c[3]);
+        failures++;
+    }
+}
+
+static void check_recfile(const char *dir, const char *name)
+{
+    char path[4096], expected[256];
+    int bad = 0;
+    snprintf(path, sizeof path, "%s/recfile/%s.rec", dir, name);
+    if (rec_read(path, &rec, &bad)) {
+        printf("FAIL recfile %s: cannot read (line %d)\n", name, bad);
+        failures++;
+        return;
+    }
+    rec_name = name;
+    rec_index = 0;
+    field_index = 0;
+    snprintf(expected, sizeof expected, "recfile/%s.expected.tsv", name);
+    each_case(dir, expected, recfile_case);
+    rec_free(&rec);
+}
+
+int main(int argc, char **argv)
+{
+    if (argc != 2) {
+        fputs("usage: fixtures tests/fixtures\n", stderr);
+        return 2;
+    }
+    each_case(argv[1], "coverage.tsv", coverage_case);
+    each_case(argv[1], "covers.tsv", covers_case);
+    check_recfile(argv[1], "multiline");
+    check_recfile(argv[1], "types");
+    printf("%d fixture cases, %d failed\n", cases, failures);
+    return failures != 0;
+}

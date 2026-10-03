@@ -128,6 +128,7 @@ restores its folder exactly, symbolic links and execute bits included:
 
 ```sh
 arvc verify /media/cdrom                 # every file against its checksum
+arvc find -C /media/cdrom kyoto          # search every disc that disc's catalogue knows
 arvc restore /media/cdrom ~/restored     # copy back, checking each file; links recreated
 ```
 

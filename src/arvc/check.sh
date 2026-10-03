@@ -1,7 +1,8 @@
 #!/bin/sh
 # Checks arvc against a disc made by arv (python), from a folder like a git clone:
 # verify passes, restore gives back the same tree (git status is clean: links and execute bits
-# included), and damage is found.
+# included), and damage is found. find and list are compared with python's on samples/home.
+# (tests/fixtures/ is checked by build/fixtures, which make check runs first.)
 #
 #   sh check.sh build/arvc
 # Needs python3 and git, and src/udfwrite built (arv make's default writer).
@@ -48,6 +49,20 @@ grep -q "FAILED   data/docs/guide.md" out.txt && ok "verify finds a damaged file
 if "$tool" restore bad out-bad >out.txt; then no "restore missed damage"; fi
 [ -f out-bad/README.md ] && [ ! -L out-bad/README.md ] \
     && ok "restore keeps a link's copy when its target is damaged" || no "copy of a damaged target"
+# find and list give the same lines as the Python arv, on the sample catalogue
+same=0
+for q in kyoto IMG '*.png' 'place:*' BOX 2019 nothing-matches; do
+    [ "$(python3 "$repo/arv" --home "$repo/samples/home" find "$q" 2>/dev/null)" = \
+      "$("$tool" find -C "$repo/samples/home" "$q" 2>/dev/null)" ] || no "find $q differs from python"
+    same=$((same + 1))
+done
+for o in "" "--in MEMORIES" "--at BOX1" "--access sealed" "--made 2026" "--covers 2019" "--covers 1995-06"; do
+    [ "$(python3 "$repo/arv" --home "$repo/samples/home" list $o 2>&1)" = "$("$tool" list -C "$repo/samples/home" $o 2>&1)" ] \
+        || no "list $o differs from python"
+    same=$((same + 1))
+done
+ok "find and list: $same queries give the same lines as python"
+
 # SHA-256 at every length around the 64-byte block and padding boundaries, against sha256sum
 mkdir -p lengths/data
 printf '%%rec: Disc\n\nId: LEN-01_2026_X\n' > lengths/catalog.rec

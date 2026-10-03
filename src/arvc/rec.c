@@ -72,6 +72,24 @@ int rec_read(const char *path, rec_file *out, int *bad_line)
             f->value = v;
             continue;
         }
+        while (len > 0 && line[len - 1] == '\\') {             /* a trailing \ joins the next line */
+            char *next = NULL;
+            size_t ncap = 0;
+            ssize_t nlen = getline(&next, &ncap, fp);
+            if (nlen < 0) { free(next); break; }
+            lineno++;
+            while (nlen > 0 && (next[nlen - 1] == '\n' || next[nlen - 1] == '\r')) next[--nlen] = 0;
+            if ((size_t)(len + nlen + 1) > cap) {
+                char *grown = realloc(line, (size_t)(len + nlen + 1));
+                if (!grown) { free(next); err = ENOMEM; break; }
+                line = grown;
+                cap = (size_t)(len + nlen + 1);
+            }
+            memcpy(line + len - 1, next, (size_t)nlen + 1);
+            len += nlen - 1;
+            free(next);
+        }
+        if (err) break;
         size_t n = 0;
         if (!is_name_start((unsigned char)line[0])) n = (size_t)-1;
         else
