@@ -378,6 +378,14 @@ their own code, so it is also a small software heritage archive. Not started:
       Maildir, PST), photo libraries, nested BagIt bags, databases (SQLite), build trees
       (Yocto `build/`, `node_modules`). Per-file formats stay with Siegfried (formats.csv);
       this adds the folder level and the "this needs an expert" flag.
+- [ ] **Is the history complete?** The commit log is the "why" of a codebase; without it an
+      archivist pieces intent together from code alone. For each git repository, record what
+      is and isn't there: commits and branches, shallow clone (history starts at X), submodules
+      (their history is elsewhere), Git LFS (pointers only, objects missing), uncommitted
+      changes and stashes, the remotes it came from. Warn at `arv make` when history is cut.
+      Also note what git never holds: issues, pull request reviews and mailing-list threads
+      live at the host (`origin: github.com/...: issues and reviews are not in git`); an export
+      of them is a candidate preset, when someone needs one.
 - [ ] **Software Heritage identifiers (SWHID).** Compute `swh:1:dir:` for the folder (and for
       each git repository's working tree) from data/ and the listing alone: the listing's kind
       and link target columns are exactly git's tree model. Checks a restore, matches a disc
