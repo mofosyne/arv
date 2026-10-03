@@ -5,7 +5,7 @@
     research/rs03/experiments.py /tmp/rs03-tools [--big]
 
 Compares dvdisaster (speed47 fork), dvdisaster Light and LCSAS's lcsas-ecc (native and
-WASI) on the sample discs in samples/discs/: verifying, re-creating RS03 bit for bit,
+WASI) on the sample discs in samples/discs/ (samples/fetch-discs.sh downloads them): verifying, re-creating RS03 bit for bit,
 repair limits, damage to the RS03 bookkeeping sectors, recovering from two damaged copies,
 and dvdisaster Light's rescue reading. --big adds a time and memory test on a 1 GiB image.
 Prints Markdown. Standard library only; randomness is seeded, so runs repeat.

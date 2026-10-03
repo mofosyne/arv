@@ -269,7 +269,7 @@ The layers, from most to least durable:
 
 - **Tests:** `python3 -m unittest discover -s tests`. Add `ARCHIVE_TEST_ECC=1` to include dvdisaster.
 - **Fixtures:** after an intended behaviour change, run `python3 tests/fixtures/generate.py`, then read `git diff tests/fixtures` before committing ([README](../tests/fixtures/README.md)).
-- **Sample discs:** `samples/make-samples.sh` (needs dvdisaster Light or the speed47 fork; builds `src/udfwrite` and `src/udfmake`) replaces `samples/discs` and `samples/home`.
+- **Sample discs:** `samples/make-samples.sh` (needs dvdisaster Light or the speed47 fork; builds `src/udfwrite` and `src/udfmake`) replaces `samples/discs` and `samples/home`; the images are not in git, `samples/publish-discs.sh` publishes them as the `samples` release and `samples/fetch-discs.sh` downloads them.
 - **udfmake:**
   - `make -C src/udfmake check` (also `asan`, `static`);
   - changes to NetBSD's code go in `src/udfmake/netbsd/`, and each also gets a patch in `src/udfmake/upstream/patches/`;

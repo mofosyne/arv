@@ -64,13 +64,15 @@ Each layer does its own job:
 | `src/udfmake/` | NetBSD's `makefs -t udf` as a C library and program, the reference UDF 2.50 writer; `upstream/` has the draft NetBSD bug report, patches and reproduction |
 | `docs/` | For users and implementers: workflow, shelving, architecture, philosophy, the disc format, and the website |
 | `research/` | Why, and what next: research notes, the standards survey, organising lessons, the plan, RS03 experiments |
-| `samples/` | Sample discs and their catalogue |
+| `samples/` | The sample discs' catalogue and the script that makes them (the images are release downloads) |
 | `tests/` | Unit and integration tests, and language-neutral fixtures |
 | `scripts/` | The original shell scripts, before ARV (see [Without arv](#without-arv-the-original-scripts)) |
 | `justfile`, `Makefile` | `just` lists everyday commands (test, install, samples, site preview); `make` alone builds and installs |
 
-`samples/` has six small sample discs made with the full workflow (52 MB, with
-RS03 error correction) and their catalogue: try `./arv --home samples/home list`.
+`samples/` has the catalogue of six small sample discs made with the full workflow: try
+`./arv --home samples/home list`. The disc images themselves (52 MB, with RS03 error
+correction) are in the [`samples` release](https://github.com/mofosyne/arv/releases/tag/samples);
+`samples/fetch-discs.sh` downloads and checks them.
 
 `research/plan.md` has the disc layout, phased plan and open decisions.
 

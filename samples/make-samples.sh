@@ -1,6 +1,6 @@
 #!/bin/sh
-# Make the sample discs: samples/discs/*.iso (about 52 MB in total) and their
-# home catalogue in samples/home (both replaced).
+# Make the sample discs: samples/discs/*.iso (about 52 MB in total; not in git, published
+# with samples/publish-discs.sh) and their home catalogue in samples/home (both replaced).
 #
 #   samples/make-samples.sh [OUTPUT_DIR]      (default: samples/)
 #

@@ -93,8 +93,9 @@ cd arv
 ./arv --home samples/home list          # the discs, and where they are kept
 ./arv --home samples/home find kyoto    # which disc holds it
 ./arv --home samples/home gui           # the same, in your web browser</code></pre>
-<p>The disc images are in <code>samples/discs/</code>: open one with your file manager or 7-Zip and
-read its <code>README.txt</code>.</p>
+<p>The disc images are release downloads (<code>samples/fetch-discs.sh</code> fetches and checks
+them, or take one from the <a href="https://github.com/mofosyne/arv/releases/tag/samples">samples
+release</a>): open one with your file manager or 7-Zip and read its <code>README.txt</code>.</p>
 
 <p><strong>2. Make a test image of a small folder</strong> (needs a C compiler: <code>make</code>
 builds the UDF 2.50 image writer). <code>--no-ecc</code> skips error correction, so you don't

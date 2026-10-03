@@ -33,6 +33,14 @@ uninstall prefix=(env_var("HOME") + "/.local"):
 samples:
     sh samples/make-samples.sh
 
+# Download the sample disc images from the "samples" release into samples/discs/
+samples-fetch:
+    sh samples/fetch-discs.sh
+
+# Publish samples/discs/*.iso as the "samples" release (gh CLI; after pushing samples/home)
+samples-publish:
+    sh samples/publish-discs.sh
+
 # Redraw the diagrams in docs/img
 diagrams:
     python3 docs/img/architecture-svg.py

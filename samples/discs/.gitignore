@@ -1,0 +1,3 @@
+# Disc images: release assets of the "samples" release, not git (samples/fetch-discs.sh)
+*.iso
+SHA256SUMS
