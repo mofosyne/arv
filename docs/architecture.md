@@ -115,7 +115,8 @@ A healthy disc skips steps 1 and 2: put it in a drive and open it.
 ## Not built yet
 
 - **File extents** (`catalog/volumes/<id>/extents.tsv`): where each file starts in the container,
-  so files can be cut out of a raw image with only the manifest, as Piql's AFS allows.
+  kept in the home catalogue and on every later disc (not on the disc itself, whose own map is the
+  UDF metadata and its mirror), so a badly damaged disc's map survives on its siblings.
 - **Other bindings**: LTFS, exFAT, tar, a Piql AFS table of contents.
 - **A small portable RS03 decoder** (C, also WebAssembly), and an RS03 library if dvdisaster
   Light splits into libraries ([issue](https://github.com/teaching-droid/dvdisaster-light/issues/1)).

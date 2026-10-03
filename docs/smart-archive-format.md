@@ -451,8 +451,11 @@ MediumSectors: 12219392
 | `MediumSectors` | The medium size RS03 was computed for, in 2048-byte sectors |
 
 Planned: an optional `Extents` pointer to `catalog/volumes/<id>/extents.tsv` (path, start and
-length of each file in the container's units), so files can be cut out of a raw image with
-only the manifest (as Piql's AFS table of contents allows).
+length of each file in the container's units). It is kept in the home catalogue and in later
+discs' snapshots, not on the volume it describes (a file inside the image can only be found
+through the tree it would replace; the disc's own map is the UDF metadata and its mirror), so a
+volume damaged beyond repair still has its map on its siblings, as Piql's AFS table of contents
+travels apart from the data.
 
 Things Katalog would have no place for today (candidates for its developer):
 events (provenance history), multi-line notes, image captions, PRONOM IDs,

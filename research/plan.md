@@ -233,8 +233,8 @@ Extents: volumes/TRIP-01_2019_4/extents.tsv   (planned, optional: path, start, l
 
 - [x] Move `Filesystem`, `Media` and `Ecc` from the Disc record into Binding (readers accept both;
       format 0.3; `Container: iso9660+udf-1.02 | udf-2.50`, `Protection: rs03 | none`).
-- [ ] Record file extents for UDF/ISO images (from udfmake, or by reading the image), and test
-      extracting files from a raw image with only the extents and the manifest (Piql lesson 3).
+- [ ] Record file extents as Binding data off the disc (home catalogue, later discs' snapshots),
+      written by the archival disc writer; see the 2026-10-03 decisions (Piql lesson 3).
 - [ ] Per-binding recovery steps in README.txt (dvdisaster for disc images).
 - [ ] Name checks and size limits become per-container profiles (already `--filesystem`).
 - [ ] Keep Piql compatibility in reach: per-file records stay mappable to AFS `tocdatafile.xsd`
@@ -287,19 +287,25 @@ place every structure deliberately for damage resistance.
   compressed Unicode up to 255 bytes, refused if they don't fit; each file in one contiguous run
   (split only at the 1 GiB extent limit) in a fixed order; timestamps from the files, identifiers
   from the disc's UUID, so the same folder and record give the same bytes.
-- **`extents.tsv` comes for free.** The writer plans the whole layout before writing a byte (it
-  knows every file's size), so every file's start sector is decided in advance. `extents.tsv` is
-  itself in the image, so it uses fixed-width numbers: its size depends only on the paths, not on
-  the offsets. (With udfmake, it would have to be read back out of the finished image.)
+- **The disc's own map is the UDF metadata and its mirror,** protected by RS03: RS03 repairs
+  damaged metadata first, and a reader falls back to the mirror if the main copy is unreadable.
+  Our writer writes a real mirror and places it far from the main metadata.
+- **`extents.tsv` is Binding data kept off the disc,** not a file on it: a file inside the image can
+  only be found through the very tree it would replace. The writer plans the whole layout before
+  writing a byte, so it knows every file's start sector for free, and records them in the home
+  catalogue and every later disc's snapshot (`catalog/volumes/<id>/extents.tsv`). Uses: a disc
+  damaged beyond RS03 and both metadata copies still has its map on its siblings; and dvdisaster's
+  list of unreadable sectors becomes "these files are affected" by a lookup. (Since files are
+  contiguous, in a fixed order, from a fixed start, the offsets could even be computed from
+  `listing.tsv` and a written layout rule; the explicit record is kept anyway.)
 - **RS03 reads the laid-out image:** each codeword takes bytes from across the whole image, so the
   encoder runs over the image after the filesystem is laid out, as dvdisaster does; inside the
   library, not as a second program.
 - **Checking it:** the Linux kernel mounts it; udftools (`udfinfo`, `udfdump`) and 7-Zip parse it;
   extracted files match the manifest; images compare against udfmake's for the same folder; then
   Windows, macOS and a real burn. `src/udfmake/` stays as the reference and for upstream fixes.
-- **No general UDF reader.** Reading is the operating system's job, and Blu-ray video keeps readers
-  around. The last resort needs no UDF code: `extents.tsv` plus the manifest, `dd` and `sha256sum`,
-  documented in `README.txt`.
+- **No UDF reader of our own.** Reading is the operating system's job, and Blu-ray video keeps
+  readers around.
 
 **A binding per medium; the bag never depends on it.** The bag (layers 1 and 2) is the archive; how
 it sits on each medium is a binding, and a future medium (something like Project Silica) gets a new
