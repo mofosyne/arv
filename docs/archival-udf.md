@@ -21,7 +21,7 @@ them. Example: UDF 2.50 lets the metadata mirror point at the same sectors as th
 mirrors (with the *duplicate* flag clear), and NetBSD makefs does exactly that
 (`/* XXX no support for metadata mirroring yet */`), because on rewritable media a real mirror
 must be kept in sync on every change. For a finished image it is just a second copy of finished
-bytes. Ours writes it, and the Linux kernel mounts through it when the main metadata is destroyed
+bytes, so this profile makes a real mirror **mandatory**. Ours writes it, and the Linux kernel mounts through it when the main metadata is destroyed
 (tested 2026-10-03).
 
 So the profile narrows UDF to what an archive needs, and the writer spends what it saves on
@@ -56,9 +56,13 @@ no sparing, VAT or anything for rewritable or appendable media.
 
 **Two partition maps, as UDF 2.50 requires for the BD layout:** a type 1 map for the physical
 partition and a type 2 *Metadata Partition* map. Allocation and alignment unit: 32 sectors.
-The metadata mirror is **a real copy in separate sectors**, with the *duplicate metadata* flag
-set, placed at the far end of the partition so that one scratch cannot take both.
-*udfmake today: the flag is clear and the mirror file points at the same blocks.*
+**The metadata mirror is mandatory.** UDF 2.50 allows a mirror that points at the same sectors
+as the metadata (duplicate flag clear); this profile does not. The mirror must be **a real copy
+in separate sectors**, byte for byte the same as the metadata, with the *duplicate metadata* flag
+set, placed at the far end of the partition so that one scratch cannot take both. A volume
+without one does not conform to this profile, whatever else it gets right.
+*udfmake today does not conform: the flag is clear and the mirror file points at the same blocks
+(issue #7).*
 
 **Only regular files and folders.** No symbolic or hard links, devices, sockets, extended
 attributes, named streams or ACLs. Permissions: files readable by all, folders readable and
@@ -111,13 +115,16 @@ damaged and RS03 not yet applied, to know what the anchor at 256 alone is worth.
 
 ## Checking a disc against this profile
 
+A disc conforms only if **all** of these hold; the mirror check is not optional.
+
 `make -C src/udfwrite check` runs the automatic part of this list and leaves test images (clean,
 metadata destroyed, anchor 256 destroyed) for the readers that need a person.
 
 
 - `udfinfo` reports revision 2.50, integrity closed, access type read-only.
-- `udfdump -b 2048 -S IMAGE` shows the metadata partition map with the duplicate flag set, and a
-  mirror file whose extents differ from the metadata file's.
+- **Mandatory mirror:** `udfdump -b 2048 -S IMAGE` shows "Metadata is duplicated on disc", the
+  mirror file's extent differs from the metadata file's, and the two extents hold identical bytes
+  (`make -C src/udfwrite check` tests all three).
 - The Linux kernel mounts it read-only, and still mounts it with the main metadata deliberately
   overwritten (falls back to the mirror).
 - 7-Zip lists and extracts it; every file matches `manifest-sha256.txt`.
