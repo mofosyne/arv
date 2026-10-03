@@ -248,7 +248,10 @@ def cmd_make(args):
         raise SystemExit("Error: %s is not a directory" % src)
     image.require(*(["genisoimage"] if args.filesystem == "hybrid" else []),
                   *(["dvdisaster"] if not args.no_ecc else []))
-    if args.filesystem == "udf250" and not image.find_udfmake(args.udfmake):
+    if args.filesystem == "udf250" and args.udf_writer == "udfwrite" and not image.find_udfwrite(args.udfwrite):
+        raise SystemExit("Error: --udf-writer udfwrite needs udfwrite: build it with 'make -C %s'"
+                         % os.path.join(REPO_ROOT, "src", "udfwrite"))
+    if args.filesystem == "udf250" and args.udf_writer == "udfmake" and not image.find_udfmake(args.udfmake):
         raise SystemExit("Error: --filesystem udf250 needs udfmake: build it with 'make -C %s', "
                          "put it on PATH, or pass --udfmake PATH"
                          % os.path.join(REPO_ROOT, "src", "udfmake"))
@@ -1032,6 +1035,10 @@ def build_parser():
                         "src/udfmake); hybrid: ISO9660 + Rock Ridge + Joliet + UDF 1.02 (needs genisoimage), "
                         "named <id>.hybrid.iso")
     m.add_argument("--udfmake", help="path to the udfmake program (default: PATH, then src/udfmake/build)")
+    m.add_argument("--udf-writer", choices=["udfmake", "udfwrite"], default="udfmake",
+                   help="UDF 2.50 writer: udfmake (default, NetBSD makefs) or udfwrite (arv's own, "
+                        "experimental: real metadata mirror, reproducible; image named <id>.udfwrite.iso)")
+    m.add_argument("--udfwrite", help="path to the udfwrite program (default: PATH, then src/udfwrite/build)")
     m.add_argument("--ignore-names", action="store_true",
                    help="don't list names that Windows/macOS will see shortened or changed (see 'arv names')")
     m.add_argument("--medium", choices=["auto"] + list(media.MEDIA), default="bd25",

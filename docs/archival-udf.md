@@ -1,8 +1,9 @@
 # Archival UDF: the disc profile arv writes
 
-**Draft.** The subset of UDF 2.50 that arv's own disc writer will produce (issue #18), and how
-RS03 error correction sits after it. Today's discs come from `src/udfmake/` (NetBSD makefs);
-where it differs from this profile, the difference is noted.
+**Draft.** The subset of UDF 2.50 that arv's own disc writer produces (issue #18), and how
+RS03 error correction sits after it. The writer is [`src/udfwrite/`](../src/udfwrite/)
+(experimental: `arv make --udf-writer udfwrite`); by default discs still come from
+`src/udfmake/` (NetBSD makefs), and where it differs from this profile, the difference is noted.
 
 The goal is a disc that is **written once, whole and closed**, readable by any UDF 2.50 reader
 (Windows, macOS, Linux, 7-Zip), and laid out so that damage is survivable and the image is
@@ -53,6 +54,12 @@ so every file's bytes are in the data area and its location is a single (start, 
 **A fixed order.** Folders and files are placed by their full path, compared as UTF-8 bytes,
 depth first. Directory entries are written in the same order.
 
+**Entries.** Extended File Entries (tag 266), one block each, in the metadata partition. A
+folder's identifiers are in their own metadata blocks (a `short_ad`; udfmake embeds small folders
+in the entry instead), a file's data is described with `long_ad`s into the physical partition.
+A File Identifier Descriptor's CRC covers its padding too: 7-Zip rejects the image otherwise.
+Unique ids: 0 for the root, 16 and up in path order.
+
 **Names.** OSTA compressed Unicode: 8-bit when every character is at most U+00FF, otherwise
 16-bit; at most 255 bytes. Names are stored exactly as given; a name that doesn't fit is refused
 before anything is written (`arv names` checks this).
@@ -84,6 +91,10 @@ dvdisaster, so that is not an option. To do: test readers (Linux, Windows, macOS
 damaged and RS03 not yet applied, to know what the anchor at 256 alone is worth.
 
 ## Checking a disc against this profile
+
+`make -C src/udfwrite check` runs the automatic part of this list and leaves test images (clean,
+metadata destroyed, anchor 256 destroyed) for the readers that need a person.
+
 
 - `udfinfo` reports revision 2.50, integrity closed, access type read-only.
 - `udfdump -b 2048 -S IMAGE` shows the metadata partition map with the duplicate flag set, and a

@@ -29,6 +29,55 @@ def udfmake_available():
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return image.find_udfmake() is not None and shutil.which("7z") is not None
 
+def udfwrite_available():
+    """arv's own UDF writer (src/udfwrite), built here if a compiler is present."""
+    if not image.find_udfwrite() and shutil.which("make") and shutil.which("cc"):
+        subprocess.run(["make", "-s", "-C", os.path.join(REPO, "src", "udfwrite")],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return image.find_udfwrite() is not None and shutil.which("7z") is not None
+
+
+@unittest.skipUnless(udfwrite_available(), "udfwrite or 7z not available")
+class UdfWriteTest(unittest.TestCase):
+    def test_writer_checks(self):
+        proc = subprocess.run(["make", "-s", "-C", os.path.join(REPO, "src", "udfwrite"), "check"],
+                              capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("all checks passed", proc.stdout)
+
+    def test_arv_make_with_udfwrite(self):
+        with tempfile.TemporaryDirectory() as d:
+            home, one, two = (os.path.join(d, n) for n in ("home", "one", "two"))
+            write(os.path.join(one, "sub", "ünïcode.txt"), "u", 2020)
+            write(os.path.join(one, "a.txt"), "a", 2020)
+            write(os.path.join(two, "b.txt"), "b", 2021)
+            out = []
+            for src in (one, two):
+                code, o = run_cli("--home", home, "make", "-y", "--no-ecc", "--set", "TRIP", "--udf-writer",
+                                  "udfwrite", "--output-dir", d, src)
+                self.assertEqual(code, 0, o)
+                out.append(o.split("\t"))
+            first_id, first_iso = out[0][0], out[0][1]
+            self.assertTrue(first_iso.endswith(first_id + ".udfwrite.noecc.iso"))
+            x = os.path.join(d, "x")
+            subprocess.run(["7z", "x", "-o" + x, first_iso], check=True, stdout=subprocess.DEVNULL)
+            with open(os.path.join(x, "data", "sub", "ünïcode.txt")) as f:
+                self.assertEqual(f.read(), "u")
+            proc = subprocess.run([sys.executable, "-I", os.path.join(x, "tools", "bagit.py"), "--validate", x],
+                                  capture_output=True, text=True)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            own = catalog.Catalog(recfile.read(os.path.join(x, "catalog.rec")))
+            self.assertIn("arv udfwrite", own.binding(first_id).get("Filesystem"))
+            # extents: at home for both discs, on the second disc for the first, never on its own disc
+            hc = catalog.Home(home)
+            self.assertTrue(os.path.exists(hc.disc_file("extents", first_id)))
+            self.assertFalse(os.path.exists(catalog.volume_file(os.path.join(x, "catalog"), "extents", first_id)))
+            y = os.path.join(d, "y")
+            subprocess.run(["7z", "x", "-o" + y, out[1][1]], check=True, stdout=subprocess.DEVNULL)
+            self.assertTrue(os.path.exists(catalog.volume_file(os.path.join(y, "catalog"), "extents", first_id)))
+            self.assertFalse(os.path.exists(catalog.volume_file(os.path.join(y, "catalog"), "extents", out[1][0])))
+
+
 from arv import discid  # noqa: E402
 
 PROJ_01 = discid.compose("PROJ", 1, "2020/2025")  # folder "Projects" resolves to PROJ via its alias

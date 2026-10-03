@@ -46,6 +46,11 @@ site port="8000":
 netbsd-repro:
     sh src/udfmake/upstream/repro/repro.sh
 
+# Check arv's own UDF writer and make test images for readers (src/udfwrite/build/check/)
+udfwrite-check:
+    make -C src/udfwrite check
+
 # Remove build output
 clean:
     make -C src/udfmake clean
+    make -C src/udfwrite clean

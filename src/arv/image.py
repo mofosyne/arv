@@ -180,6 +180,47 @@ def build_udf(stage, out, volume_id, payload_dir=None, payload_files=None, udfma
     return size // 2048
 
 
+# ---------------------------------------------------------------- UDF 2.50 (src/udfwrite)
+
+UDFWRITE_FILESYSTEM = "UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)"
+
+
+def find_udfwrite(explicit=None):
+    """Path of arv's own UDF writer: --udfwrite, $PATH, or src/udfwrite/build in this repository."""
+    for candidate in (explicit, shutil.which("udfwrite"),
+                      os.path.join(REPO_ROOT, "src", "udfwrite", "build", "udfwrite")):
+        if candidate and os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    return None
+
+
+def build_udfwrite(stage, out, label, disc_id, volume_set, time, extents=None,
+                   payload_dir=None, payload_files=None, tool=None):
+    """UDF 2.50 image written by src/udfwrite (docs/archival-udf.md). Returns its sectors.
+
+    Reproducible: the same stage, payload, ids and time give the same bytes. ``extents``
+    receives each file's start sector and size (Binding data for the home catalogue).
+    """
+    tool = find_udfwrite(tool)
+    if not tool:
+        raise SystemExit("Error: udfwrite not found. Build it with 'make -C %s'"
+                         % os.path.join(REPO_ROOT, "src", "udfwrite"))
+    view = _udf_view(os.path.dirname(stage), stage, payload_dir, payload_files)
+    try:
+        if os.path.exists(out):
+            os.remove(out)
+        cmd = [tool, "-V", disc_id, "-L", label, "-S", volume_set, "-t", str(int(time))]
+        if extents:
+            cmd += ["-x", extents]
+        proc = subprocess.run(cmd + [out, view], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, text=True, errors="replace")
+    finally:
+        shutil.rmtree(view, ignore_errors=True)
+    if proc.returncode != 0 or not os.path.exists(out):
+        raise SystemExit("Error: udfwrite failed:\n" + "\n".join(proc.stdout.splitlines()[-15:]))
+    return os.path.getsize(out) // 2048
+
+
 def read_udf_volume_id(f):
     """Logical volume identifier of a UDF image (no ISO9660 descriptor on UDF-only discs)."""
     f.seek(256 * 2048)                                    # anchor volume descriptor pointer

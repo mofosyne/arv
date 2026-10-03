@@ -1,6 +1,6 @@
 # arv (Archive, Record, Verify): install on Linux.
 #
-#   make                       build src/udfmake (needs a C compiler)
+#   make                       build src/udfmake and src/udfwrite (needs a C compiler)
 #   make install               install for everyone: /usr/local (run as root)
 #   make install PREFIX=~/.local     install for yourself (~/.local/bin must be on PATH)
 #   make uninstall [PREFIX=...]
@@ -10,7 +10,8 @@
 #   $(PREFIX)/share/arv/       the tool: exactly the tree every disc carries in tools/
 #                              (git archive HEAD; uncommitted changes are not installed)
 #   $(PREFIX)/bin/arv          runs it with python3
-#   $(PREFIX)/bin/udfmake      UDF 2.50 image builder, for `arv make --filesystem udf250`
+#   $(PREFIX)/bin/udfmake      UDF 2.50 image builder (NetBSD makefs), the default
+#   $(PREFIX)/bin/udfwrite     arv's own UDF 2.50 writer, experimental (--udf-writer udfwrite)
 #
 # Needs at run time: python3, genisoimage, and dvdisaster Light (or the speed47
 # fork) on PATH; see README.md, "Install".
@@ -22,6 +23,7 @@ BIN      = $(PREFIX)/bin
 
 all:
 	$(MAKE) -C src/udfmake
+	$(MAKE) -C src/udfwrite
 
 check: all
 	python3 -m unittest discover -s tests
@@ -36,10 +38,11 @@ install: all
 	printf '#!/bin/sh\nexec python3 "%s/arv" "$$@"\n' "$(SHARE)" > "$(DESTDIR)$(BIN)/arv"
 	chmod 755 "$(DESTDIR)$(BIN)/arv"
 	install -m 755 src/udfmake/build/udfmake "$(DESTDIR)$(BIN)/udfmake"
+	install -m 755 src/udfwrite/build/udfwrite "$(DESTDIR)$(BIN)/udfwrite"
 	@echo "Installed arv $$(cat "$(DESTDIR)$(SHARE)/VERSION") in $(PREFIX). Try: arv --help"
 
 uninstall:
 	rm -rf "$(DESTDIR)$(SHARE)"
-	rm -f "$(DESTDIR)$(BIN)/arv" "$(DESTDIR)$(BIN)/udfmake"
+	rm -f "$(DESTDIR)$(BIN)/arv" "$(DESTDIR)$(BIN)/udfmake" "$(DESTDIR)$(BIN)/udfwrite"
 
 .PHONY: all check install uninstall

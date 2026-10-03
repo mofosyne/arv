@@ -19,6 +19,7 @@ if ! dvdisaster --help 2>&1 | grep -q no-bdr-defect-management; then
     exit 1
 fi
 [ -x "$repo/src/udfmake/build/udfmake" ] || make -s -C "$repo/src/udfmake"
+[ -x "$repo/src/udfwrite/build/udfwrite" ] || make -s -C "$repo/src/udfwrite"
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -56,8 +57,8 @@ a make $common --set trip --location BOX1 --access public \
                       "day2 Arashiyama": ["place:arashiyama", "nature"], "day3 Kiyomizu-dera": ["place:kiyomizu-dera"]}}')" \
     "$src/2019-07_Kyoto_trip"
 
-echo "== 2. Weather station: the alias 'project' -> PROJ; Match rules add CODE and ELEC"
-a make $common --set project --location BOX1 \
+echo "== 2. Weather station: the alias 'project' -> PROJ; Match rules add CODE and ELEC; arv's own UDF writer"
+a make $common --set project --location BOX1 --udf-writer udfwrite \
     --draft "$(draft proj '{"title": "Weather station project",
       "description": "ESP32 weather station: firmware, KiCad board, gerbers and the git repository.",
       "agent": "sample script (hand-written)",

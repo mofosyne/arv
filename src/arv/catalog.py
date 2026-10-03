@@ -104,6 +104,8 @@ DISC_FILE_KINDS = {
     "listings": "listing.tsv",       # size, modified time, path
     "formats": "formats.csv",        # PRONOM format identification (optional)
     "tags": "tags.tsv",              # folder <TAB> comma-separated tags (optional, e.g. from --llm)
+    "extents": "extents.tsv",        # where each file starts in the image (Binding data; never on
+                                     # the volume it describes, see docs/archival-udf.md)
 }
 # the flat layout of format 0.1: <kind>/<disc-id><extension>
 _OLD_EXTENSIONS = {"manifests": ".sha256", "listings": ".tsv", "formats": ".csv", "tags": ".tags"}

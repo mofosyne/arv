@@ -7,6 +7,7 @@ catalogue of the whole batch. Sizes are checked exactly with
 `genisoimage -print-size` before any image is written.
 """
 
+import datetime
 import os
 import shutil
 import sys
@@ -27,6 +28,7 @@ def image_name(disc_id, args):
     preset's defaults, so an unprotected image is obvious in any file listing. The name is
     only a hint: the Binding in the image's catalog.rec is what it is."""
     infix = [".hybrid"] if (getattr(args, "filesystem", None) or "udf250") == "hybrid" else []
+    infix += [".udfwrite"] if getattr(args, "udf_writer", None) == "udfwrite" else []
     infix += [".noecc"] if args.no_ecc else []
     return disc_id + "".join(infix) + ".iso"
 
@@ -44,6 +46,7 @@ class Plan:
     stage: str = ""
     sectors: int = 0
     prebuilt: str = ""   # udf250: the image built while measuring it (moved into place by build())
+    extents: str = ""    # udfwrite: where each file starts in the image, for the home catalogue
     label: str = ""      # volume label: the disc id, then as much of the title as fits
     events: list = field(default_factory=list)
     extras: list = field(default_factory=list)  # [(Entry, source path)] added to data/, e.g. RO-Crate files
@@ -241,7 +244,9 @@ class Maker:
             ("Container", image.CONTAINERS[self.filesystem]),
             ("Protection", "none" if a.no_ecc else "rs03"),
             ("Media", a.media or ("M-DISC " + (self.medium_label if self.capacity else "BD-R"))),
-            ("Filesystem", image.FILESYSTEMS[self.filesystem]),
+            ("Filesystem", image.UDFWRITE_FILESYSTEM if (self.filesystem == "udf250" and
+                                                         getattr(a, "udf_writer", None) == "udfwrite")
+                           else image.FILESYSTEMS[self.filesystem]),
             ("Ecc", ecc),
         ])
         if self.capacity and not a.no_ecc:
@@ -408,6 +413,15 @@ class Maker:
     def measure(self, plan):
         """Exact image size in sectors. genisoimage can print it; for UDF the image is
         built (in the work directory) and kept for build()."""
+        if self.filesystem == "udf250" and getattr(self.args, "udf_writer", None) == "udfwrite":
+            plan.prebuilt = plan.stage + ".udf"
+            plan.extents = plan.stage + ".extents.tsv"
+            created = datetime.datetime.strptime(plan.record.get("Date"), "%Y-%m-%d").replace(
+                tzinfo=datetime.timezone.utc).timestamp()
+            return image.build_udfwrite(plan.stage, plan.prebuilt, plan.label, plan.disc_id,
+                                        plan.record.get("Uuid").replace("-", "")[:16], created,
+                                        extents=plan.extents, tool=getattr(self.args, "udfwrite", None),
+                                        **self.payload(plan))
         if self.filesystem == "udf250":
             plan.prebuilt = plan.stage + ".udf"
             return image.build_udf(plan.stage, plan.prebuilt, plan.label, disc_id=plan.disc_id,
@@ -479,6 +493,8 @@ class Maker:
                 self.home.store_disc_files(plan.disc_id, {
                     kind: catalog.volume_file(os.path.join(plan.stage, "catalog"), kind, plan.disc_id)
                     for kind in catalog.DISC_FILE_KINDS})
+                if plan.extents:   # kept at home and on later discs, never on this one
+                    self.home.store_disc_files(plan.disc_id, {"extents": plan.extents})
             self.home.save(self.cat)
             if os.path.exists(self.home.sqlite_path):
                 index.build(self.home, self.cat)

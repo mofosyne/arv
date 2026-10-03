@@ -180,6 +180,7 @@ arv make ./2025-01-13_Projects_2020_-_2025 --location BOX3
 #  -> PROJ-01_2020-2025_K.iso  (bag + catalogue + index.html + tools/ + RS03 ECC, verified)
 arv make ./Diaries --access sealed      # other discs' catalogues show only its id and location
 arv make ./Photos --filesystem hybrid   # ISO 9660 + UDF 1.02 hybrid instead of UDF 2.50 (very old systems; needs genisoimage)
+arv make ./Photos --udf-writer udfwrite  # experimental: arv's own UDF 2.50 writer (real metadata mirror, reproducible)
 arv names ./Photos                      # names each image type would shorten or change on Windows/macOS
 # volume label: the disc id, then the title as far as it fits (32 bytes hybrid, 126 characters UDF 2.50);
 # --label TEXT to choose the text, --label '' for the id alone
