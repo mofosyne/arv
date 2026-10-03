@@ -10,6 +10,7 @@
  *   arvc find [-C CATALOG] [--limit N] PATTERN
  *                                  discs, folder tags and files matching PATTERN, on every disc
  *                                  the catalogue knows (substring, or glob with * ? [)
+ *   arvc id [-C CATALOG] ID         explain a disc id; check its check character (catches typos)
  *   arvc list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]
  *                                  the discs, one per line
  *
@@ -20,6 +21,7 @@
  * only C99 and POSIX: the same reading can be done by hand with sha256sum, cat and ln.
  */
 #define _POSIX_C_SOURCE 200809L
+#include "discid.h"
 #include "edtf.h"
 #include "rec.h"
 #include "sha256.h"
@@ -39,7 +41,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define VERSION "arvc 0.2"
+#define VERSION "arvc 0.3"
 
 static void die(const char *fmt, const char *arg)
 {
@@ -686,7 +688,9 @@ static char *catalogue_in(const char *path)
     return NULL;
 }
 
-static void open_catalogue(const char *given, catalogue *c)
+/* Finds and reads the catalogue; without `required`, returns -1 (an empty catalogue) when there
+ * is none instead of stopping. */
+static int find_catalogue(const char *given, catalogue *c, int required)
 {
     int bad = 0;
     const char *env = getenv("ARV_HOME");
@@ -707,7 +711,13 @@ static void open_catalogue(const char *given, catalogue *c)
             *slash = 0;
         }
         free(here);
-        if (!c->dir) die("%s", "no catalogue found: give -C (a disc root, its catalog/ folder, or a home)");
+        if (!c->dir) {
+            if (!required) {
+                memset(&c->rec, 0, sizeof c->rec);
+                return -1;
+            }
+            die("%s", "no catalogue found: give -C (a disc root, its catalog/ folder, or a home)");
+        }
     }
     char *path = join(c->dir, "archive.rec");
     if (rec_read(path, &c->rec, &bad)) {
@@ -715,6 +725,12 @@ static void open_catalogue(const char *given, catalogue *c)
         exit(2);
     }
     free(path);
+    return 0;
+}
+
+static void open_catalogue(const char *given, catalogue *c)
+{
+    find_catalogue(given, c, 1);
 }
 
 static int is_type(const rec_record *r, const char *type)
@@ -914,6 +930,85 @@ static int cmd_find(int argc, char **argv)
     return any ? 0 : 1;
 }
 
+static const rec_record *find_disc(const catalogue *c, const char *id)
+{
+    for (size_t i = 0; i < c->rec.nrecords; i++)
+        if (is_type(&c->rec.records[i], "Disc") && rec_get(&c->rec.records[i], "Id")
+            && !strcmp(rec_get(&c->rec.records[i], "Id"), id))
+            return &c->rec.records[i];
+    return NULL;
+}
+
+/* Explain a disc id: its parts, whether the check character is right, and what it names. */
+static int cmd_id(int argc, char **argv)
+{
+    const char *given = NULL, *text = NULL;
+    for (int i = 0; i < argc; i++) {
+        if (!strcmp(argv[i], "-C") && i + 1 < argc) given = argv[++i];
+        else if (!text) text = argv[i];
+        else return 2;
+    }
+    if (!text) return 2;
+    discid_parts p;
+    if (!discid_parse(text, &p)) {
+        printf("%s: not a disc id of a known scheme\n", text);
+        return 1;
+    }
+    printf("scheme:    %s\nset:       %s\nsequence:  %ld\ncoverage:  %s\n", p.scheme, p.set, p.sequence, p.coverage);
+    if (p.check) printf("check:     %c (%s)\n", p.check, p.valid ? "correct" : "WRONG: probably a typo");
+    catalogue c;
+    find_catalogue(given, &c, 0);
+    const char *t;
+    size_t len;
+    for (t = text; isspace((unsigned char)*t); t++) {}
+    len = strlen(t);
+    while (len && isspace((unsigned char)t[len - 1])) len--;
+    char *exact = xmalloc(len + 1), *up = xmalloc(len + 1);
+    memcpy(exact, t, len);
+    exact[len] = 0;
+    for (size_t i = 0; i <= len; i++) up[i] = (char)toupper((unsigned char)exact[i]);
+    const rec_record *d = find_disc(&c, up);
+    if (!d) d = find_disc(&c, exact);
+    if (d) {
+        char *w = where(&c, d);
+        printf("disc:      %s [%s]\n", rec_get(d, "Title") ? rec_get(d, "Title") : "None", *w ? w : "location not recorded");
+        free(w);
+        const char *scheme = rec_get(d, "IdScheme"), *seq = rec_get(d, "Sequence");
+        char again[64];
+        if (scheme && !strcmp(scheme, DISCID_SCHEME) && seq
+            && !discid_compose(rec_get(d, "Set"), atol(seq), rec_get(d, "Coverage"), again, sizeof again)) {
+            if (!strcmp(again, rec_get(d, "Id"))) printf("fields:    regenerate this id\n");
+            else printf("fields:    regenerate %s (the record and the id disagree)\n", again);
+        }
+    } else {
+        /* known ids of the same length within two characters, closest first */
+        const char *best[64];
+        int diffs[64], n = 0;
+        for (size_t i = 0; i < c.rec.nrecords && n < 64; i++) {
+            const rec_record *r = &c.rec.records[i];
+            const char *k = is_type(r, "Disc") ? rec_get(r, "Id") : NULL;
+            if (!k || strlen(k) != len) continue;
+            int diff = 0;
+            for (size_t j = 0; j < len; j++) diff += toupper((unsigned char)k[j]) != (unsigned char)up[j];
+            if (diff > 2) continue;
+            int at = n++;
+            while (at > 0 && (diffs[at - 1] > diff || (diffs[at - 1] == diff && strcmp(best[at - 1], k) > 0))) {
+                best[at] = best[at - 1];
+                diffs[at] = diffs[at - 1];
+                at--;
+            }
+            best[at] = k;
+            diffs[at] = diff;
+        }
+        printf("disc:      not in the catalogue");
+        for (int i = 0; i < n; i++) printf("%s%s", i ? ", " : " - did you mean ", best[i]);
+        printf("%s\n", n ? "?" : "");
+    }
+    free(exact);
+    free(up);
+    return p.valid ? 0 : 1;
+}
+
 /* every code a disc belongs to: Set, Category and each part of each Path */
 static int disc_in(const rec_record *d, const char *code)
 {
@@ -1010,6 +1105,7 @@ static void usage(void)
           "       arvc ls DISC\n"
           "       arvc restore [--no-links] DISC DEST\n"
           "       arvc find [-C CATALOG] [--limit N] PATTERN\n"
+          "       arvc id [-C CATALOG] ID\n"
           "       arvc list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]\n"
           "DISC: the root of a mounted arv disc or an extracted image (the folder with catalog.rec)\n"
           "CATALOG: a disc root, its catalog/ folder or a home (.arv); default: $ARV_HOME, or the\n"
@@ -1023,7 +1119,7 @@ int main(int argc, char **argv)
         const char *name;
         int (*fn)(int, char **);
     } cmds[] = { { "info", cmd_info }, { "verify", cmd_verify }, { "ls", cmd_ls }, { "restore", cmd_restore },
-                 { "find", cmd_find }, { "list", cmd_list } };
+                 { "find", cmd_find }, { "list", cmd_list }, { "id", cmd_id } };
     if (argc >= 2 && (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-V"))) {
         puts(VERSION);
         return 0;

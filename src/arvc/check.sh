@@ -61,7 +61,12 @@ for o in "" "--in MEMORIES" "--at BOX1" "--access sealed" "--made 2026" "--cover
         || no "list $o differs from python"
     same=$((same + 1))
 done
-ok "find and list: $same queries give the same lines as python"
+for q in TRIP-01_2019_4 trip-01_2019_4 TRIP-01_2019_5 PROJ-01_2020-2O23_L 2020-2025_PROJECTS_01 "not an id"; do
+    [ "$(python3 "$repo/arv" --home "$repo/samples/home" id "$q" 2>&1; echo $?)" = \
+      "$("$tool" id -C "$repo/samples/home" "$q" 2>&1; echo $?)" ] || no "id $q differs from python"
+    same=$((same + 1))
+done
+ok "find, list and id: $same queries give the same lines as python"
 
 # SHA-256 at every length around the 64-byte block and padding boundaries, against sha256sum
 mkdir -p lengths/data

@@ -5,6 +5,7 @@
  *   fixtures DIR        prints each failing case; exit 0 when all pass
  */
 #define _POSIX_C_SOURCE 200809L
+#include "discid.h"
 #include "edtf.h"
 #include "rec.h"
 
@@ -67,12 +68,22 @@ static void day(long d, char out[32])
     snprintf(out, 32, "%04ld-%02ld-%02ld", d / 10000, d / 100 % 100, d % 100);
 }
 
+static void expect(const char *what, const char *input, const char *got, const char *want)
+{
+    if (strcmp(got, want)) {
+        printf("FAIL %s [%s]: got [%s], want [%s]\n", what, input, got, want);
+        failures++;
+    }
+}
+
 /* input, edtf, compact, first day, last day */
 static void coverage_case(char **c, int n)
 {
     long a = 0, b = 0;
-    char fa[32] = "", fb[32] = "";
+    char fa[32] = "", fb[32] = "", e[64], k[64];
     if (n < 5) return;
+    expect("to_edtf", c[0], discid_to_edtf(c[0], e, sizeof e) ? "ERROR" : e, c[1]);
+    expect("compact", c[0], discid_compact(c[0], k, sizeof k) ? "ERROR" : k, c[2]);
     int r = edtf_span(c[0], &a, &b);
     if (r > 0) {
         day(a, fa);
@@ -96,6 +107,38 @@ static void covers_case(char **c, int n)
         printf("FAIL covers %s %s: got %s, want %s\n", c[0], c[1], got, c[2]);
         failures++;
     }
+}
+
+static void check_char_case(char **c, int n)
+{
+    char got[2] = { 0, 0 };
+    if (n < 2) return;
+    got[0] = discid_check(c[0]);
+    expect("check character", c[0], got, c[1]);
+}
+
+/* set, sequence, coverage, id */
+static void compose_case(char **c, int n)
+{
+    char id[64];
+    if (n < 4) return;
+    expect("compose", c[0], discid_compose(c[0], atol(c[1]), c[2], id, sizeof id) ? "ERROR" : id, c[3]);
+}
+
+/* text, scheme, set, sequence, coverage, check, valid */
+static void parse_case(char **c, int n)
+{
+    discid_parts p;
+    char got[256], want[256];
+    if (n < 7) return;
+    if (discid_parse(c[0], &p))
+        snprintf(got, sizeof got, "%s|%s|%ld|%s|%c|%s", p.scheme, p.set, p.sequence, p.coverage,
+                 p.check ? p.check : '-', p.valid ? "yes" : "no");
+    else
+        snprintf(got, sizeof got, "none|||||no");
+    if (!strcmp(c[1], "none")) snprintf(want, sizeof want, "none|||||no");
+    else snprintf(want, sizeof want, "%s|%s|%s|%s|%c|%s", c[1], c[2], c[3], c[4], c[5][0] ? c[5][0] : '-', c[6]);
+    expect("parse", c[0], got, want);
 }
 
 /* record, type, field, value: every field in file order */
@@ -149,6 +192,9 @@ int main(int argc, char **argv)
     }
     each_case(argv[1], "coverage.tsv", coverage_case);
     each_case(argv[1], "covers.tsv", covers_case);
+    each_case(argv[1], "check-chars.tsv", check_char_case);
+    each_case(argv[1], "disc-id-compose.tsv", compose_case);
+    each_case(argv[1], "disc-id-parse.tsv", parse_case);
     check_recfile(argv[1], "multiline");
     check_recfile(argv[1], "types");
     printf("%d fixture cases, %d failed\n", cases, failures);

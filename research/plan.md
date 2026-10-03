@@ -272,9 +272,10 @@ libraries together, so arv is one repository and one program, shipped on every d
   restores it: `git status` in the restored clone must be clean.
   Then `find` and `list` (with `--covers`: EDTF dates in C, checked against
   `tests/fixtures/coverage.tsv` and `covers.tsv`; recfiles against `fixtures/recfile/`), whose
-  output the check compares line for line with the Python arv's. Next: `id` (disc ids and
-  check characters, `disc-id-*.tsv`), `sets` (`vocab-*.tsv`), `names` (`names.tsv`), then
-  writing: BagIt, the catalogue, and `make` with udfwrite linked in.
+  output the check compares line for line with the Python arv's, and `id` (disc ids and check
+  characters, against `disc-id-*.tsv` and `check-chars.tsv`: 108 fixture cases in all). Next:
+  `sets` (`vocab-*.tsv`), `names` (`names.tsv`), then writing: BagIt, the catalogue, and `make`
+  with udfwrite linked in.
 - **Burn test discs first.** Before the port goes far, burn a few real test discs with today's
   Python arv, read them back on other machines, scratch one and repair it (#5, #4). What they teach
   goes into the C version instead of being found after it.

@@ -11,6 +11,7 @@ arvc info DISC                         the disc's record, binding and appraisals
 arvc find [-C CATALOG] PATTERN         discs, folder tags and files on every disc the catalogue
                                        knows (substring, or a glob with * ? [)
 arvc list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]
+arvc id [-C CATALOG] ID                explain a disc id and check its check character
 arvc verify [-v] DISC                  every file against the BagIt manifests, and files
                                        in data/ that no manifest names
 arvc ls DISC                           the listing: files, executables, links
@@ -37,11 +38,11 @@ letters match regardless of case.
 
 `--no-links` keeps copies and skips noted links, for file systems without links (exFAT, FAT).
 
-`make check` first runs `build/fixtures` against `tests/fixtures/` (coverage dates, recfiles:
-the cases the Python code passes too). Then it makes a disc with `arv make` from a small git repository with links and a script,
+`make check` first runs `build/fixtures` against `tests/fixtures/` (coverage dates, disc ids
+and check characters, recfiles: the cases the Python code passes too). Then it makes a disc with `arv make` from a small git repository with links and a script,
 verifies and restores it with arvc, and checks that `git status` in the restored folder is
 clean: the restore is exact, links and execute bits included. It also damages a file, and
 checks SHA-256 against `sha256sum` at every length around the block boundaries.
 
 Files: `arvc.c` (commands), `rec.c` (recfiles), `sha256.c` (FIPS 180-4), `edtf.c` (coverage
-dates), `fixtures.c` (the fixture runner).
+dates), `discid.c` (disc ids), `fixtures.c` (the fixture runner).

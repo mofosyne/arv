@@ -32,7 +32,7 @@ static int part(const char *s, int n, int allow_x, long *lo, long *hi)
 
 /* One date: YYYY, YYYY-MM, YYYY-MM-DD, with X for unknown digits (19XX, 199X, 2019-XX) and the
  * qualifiers ~ ? % anywhere (they mark it approximate or uncertain; they do not widen it). */
-static int date_span(const char *in, size_t len, long *first, long *last)
+int edtf_date(const char *in, size_t len, long *first, long *last)
 {
     char s[16];
     size_t n = 0;
@@ -104,7 +104,7 @@ int edtf_span(const char *c, long *first, long *last)
             int blank = 1;
             for (const char *q = p; q < stop; q++) if (!isspace((unsigned char)*q)) blank = 0;
             if (!blank && !has_dotdot(p, stop)) {
-                if (date_span(p, (size_t)(stop - p), &a, &b) < 0) return -1;
+                if (edtf_date(p, (size_t)(stop - p), &a, &b) < 0) return -1;
                 if (!any || a < *first) *first = a;
                 if (!any || b > *last) *last = b;
                 any = 1;
@@ -121,11 +121,11 @@ int edtf_span(const char *c, long *first, long *last)
         if (open1 && open2) return 0;
         *first = EDTF_MIN;
         *last = EDTF_MAX;
-        if (!open1 && date_span(c, l1, first, &b) < 0) return -1;
-        if (!open2 && date_span(slash + 1, l2, &a, last) < 0) return -1;
+        if (!open1 && edtf_date(c, l1, first, &b) < 0) return -1;
+        if (!open2 && edtf_date(slash + 1, l2, &a, last) < 0) return -1;
         return 1;
     }
-    return date_span(c, len, first, last) < 0 ? -1 : 1;
+    return edtf_date(c, len, first, last) < 0 ? -1 : 1;
 }
 
 int edtf_covers(const char *coverage, const char *query)
