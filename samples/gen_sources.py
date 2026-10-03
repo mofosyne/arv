@@ -108,6 +108,15 @@ def main(dest):
         put(os.path.join(proj, "hardware", "gerbers", "station-%s.gbr" % layer),
             "%%FSLAX46Y46*%%\n%%MOMM*%%\n%%TF.FileFunction,%s*%%\nM02*\n" % layer, (2023, 1, 9, 9, 0))
     png(os.path.join(proj, "photos", "assembled.png"), 160, 120, photo(rng, "view"), (2023, 2, 11, 15, 0))
+    # what git clones have: an executable script and symbolic links (docs/smart-archive-format.md, "Links")
+    put(os.path.join(proj, "firmware", "flash.sh"), "#!/bin/sh\n# flash the firmware over USB\n"
+        "esptool.py write_flash 0x10000 firmware.bin\n", (2021, 5, 1, 12, 0))
+    os.chmod(os.path.join(proj, "firmware", "flash.sh"), 0o755)
+    ts = datetime.datetime(2023, 1, 9, 9, 0).timestamp()
+    for target, link in (("../README.md", "hardware/README.md"),   # a file link: copied
+                         ("hardware/gerbers", "gerbers")):          # a folder link: noted in the listing
+        os.symlink(target, os.path.join(proj, link))
+        os.utime(os.path.join(proj, link), (ts, ts), follow_symlinks=False)
     if subprocess.run(["git", "--version"], capture_output=True).returncode == 0:
         env = dict(os.environ, GIT_AUTHOR_NAME="Sample", GIT_AUTHOR_EMAIL="sample@example.invalid",
                    GIT_COMMITTER_NAME="Sample", GIT_COMMITTER_EMAIL="sample@example.invalid",

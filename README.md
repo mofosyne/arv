@@ -188,6 +188,8 @@ arv names ./Photos                      # names each image type would shorten or
 # --label TEXT to choose the text, --label '' for the id alone
 arv make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: only this set's catalogue
 arv make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
+arv make ./my-git-clone --links record   # links: file links copied, the rest noted in the listing
+#   (default: links leaving the folder are refused; copy: copy what every link points to)
 arv make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03
 arv find IMG_2019            # which disc holds it, and where the disc is
 arv list --covers 2019-07-15    # discs whose date range includes that day (or 2019, 2019-07)

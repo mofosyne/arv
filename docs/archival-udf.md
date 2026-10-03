@@ -65,7 +65,8 @@ without one does not conform to this profile, whatever else it gets right.
 (issue #7).*
 
 **Only regular files and folders.** No symbolic or hard links, devices, sockets, extended
-attributes, named streams or ACLs. Permissions: everything readable by all and writable by none;
+attributes, named streams or ACLs. (arv copies or notes the source's links before the writer
+sees them: docs/smart-archive-format.md, "Links".) Permissions: everything readable by all and writable by none;
 folders searchable by all; a file whose source had any execute bit is executable by all (as
 `genisoimage -r` and git do: only "executable or not" survives), so a script with `chmod +x`
 runs straight from the mounted disc. "All" matters: on a mounted disc the owner is unknown (−1),

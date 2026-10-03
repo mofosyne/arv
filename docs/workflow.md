@@ -160,6 +160,9 @@ The choices that matter:
    - `README.txt`: recovery instructions in plain text;
    - `tools/`: this repository at its last commit, plus `bagit.py`.
 5. **Build the image.** The folder is grafted in as `data/` and never copied.
+   Symbolic links never reach the disc: links to files inside the folder are stored as the
+   files they point to, the rest are only noted in the listing (`--links`, see "Links" in
+   the format), and the choice is logged as an `ingestion` event.
    UDF 2.50 uses `udfwrite` (or `udfmake` with `--udf-writer udfmake`), fed one
    folder of symlinks; the hybrid image uses `genisoimage`.
 6. **Protect.** dvdisaster adds RS03 error correction in the space left on the

@@ -17,7 +17,7 @@ import unittest
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "src"))
 
-from arv import bag, catalog, cli, image, make, media, recfile  # noqa: E402
+from arv import bag, catalog, cli, image, listing, make, media, recfile  # noqa: E402
 
 HAVE_IMAGE_TOOLS = all(shutil.which(t) for t in ("genisoimage", "7z"))
 
@@ -213,6 +213,121 @@ class BagTest(unittest.TestCase):
             write(os.path.join(d, "a"), "x", 2019)
             write(os.path.join(d, "b"), "x", 2021)
             self.assertEqual(catalog.coverage_years(bag.scan_payload(d, progress=False)), "2019/2021")
+
+
+def link_tree(d):
+    """A folder like a git clone: a file link, a folder link and a broken link, all inside it."""
+    src = os.path.join(d, "src")
+    write(os.path.join(src, "docs", "guide.md"), "guide", 2020)
+    write(os.path.join(src, "bin", "tool.sh"), "#!/bin/sh\necho hi\n", 2020)
+    os.chmod(os.path.join(src, "bin", "tool.sh"), 0o755)
+    os.symlink("docs/guide.md", os.path.join(src, "README.md"))     # file link: copied
+    os.symlink("bin/tool.sh", os.path.join(src, "run"))            # file link to a script: copied, executable
+    os.symlink("docs", os.path.join(src, "latest"))                # folder link: noted only
+    os.symlink("missing.txt", os.path.join(src, "dead"))           # broken: noted only
+    return src
+
+
+class LinksTest(unittest.TestCase):
+    def test_default_policy(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = bag.scan_payload(link_tree(d), progress=False)
+            kinds = {e.path: (e.kind, e.link) for e in list(p) + p.links}
+            self.assertEqual(kinds, {
+                "README.md": ("link copied", "docs/guide.md"),
+                "bin/tool.sh": ("file executable", ""),
+                "dead": ("link broken", "missing.txt"),
+                "docs/guide.md": ("file", ""),
+                "latest": ("link recorded folder", "docs"),
+                "run": ("link copied executable", "bin/tool.sh"),
+            })
+            readme = [e for e in p if e.path == "README.md"][0]
+            self.assertEqual(readme.size, 5)
+            self.assertEqual(readme.hashes, bag.hash_file(os.path.join(d, "src", "docs", "guide.md")))
+            self.assertEqual(p.link_summary(), "links: 2 copied, 1 recorded, 1 broken (policy: default)")
+
+    def test_outside_links_need_a_policy(self):
+        with tempfile.TemporaryDirectory() as d:
+            src = os.path.join(d, "src")
+            write(os.path.join(src, "a.txt"), "a", 2020)
+            write(os.path.join(d, "elsewhere", "b.txt"), "b", 2020)
+            os.symlink(os.path.join(d, "elsewhere", "b.txt"), os.path.join(src, "b.txt"))
+            os.symlink(os.path.join(d, "elsewhere"), os.path.join(src, "other"))
+            with self.assertRaisesRegex(ValueError, "outside the folder"):
+                bag.scan_payload(src, progress=False)
+            p = bag.scan_payload(src, progress=False, links="record")
+            self.assertEqual([e.path for e in p], ["a.txt"])
+            self.assertEqual({e.path: e.kind for e in p.links},
+                             {"b.txt": "link recorded external", "other": "link recorded external"})
+            p = bag.scan_payload(src, progress=False, links="copy")
+            self.assertEqual([e.path for e in p], ["a.txt", "b.txt", "other/b.txt"])
+            self.assertEqual({e.path: e.kind for e in p.links}, {"other": "link copied folder"})
+
+    def test_loops_are_refused(self):
+        with tempfile.TemporaryDirectory() as d:
+            src = os.path.join(d, "src")
+            write(os.path.join(src, "sub", "a.txt"), "a", 2020)
+            os.symlink("..", os.path.join(src, "sub", "up"))
+            self.assertEqual([e.kind for e in bag.scan_payload(src, progress=False).links],
+                             ["link recorded folder"])                   # noted, not followed
+            with self.assertRaisesRegex(ValueError, "loop"):
+                bag.scan_payload(src, progress=False, links="copy")
+
+    def test_special_files_are_refused(self):
+        with tempfile.TemporaryDirectory() as d:
+            write(os.path.join(d, "a.txt"), "a", 2020)
+            os.mkfifo(os.path.join(d, "pipe"))
+            with self.assertRaisesRegex(ValueError, "only files, folders and links"):
+                bag.scan_payload(d, progress=False)
+
+    def test_listing_round_trip(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = bag.scan_payload(link_tree(d), progress=False)
+            path = os.path.join(d, "listing.tsv")
+            listing.write_listing(path, p, p.links)
+            with open(path, encoding="utf-8") as f:
+                self.assertTrue(f.readline().startswith("# arv listing 2\t"))
+            rows = {r["path"]: r for r in listing.read_rows(path)}
+            self.assertEqual(rows["latest"]["size"], None)
+            self.assertEqual(rows["latest"]["link"], "docs")
+            self.assertEqual(rows["run"]["kind"], "link copied executable")
+            # read_listing gives only what is in data/
+            self.assertEqual(sorted(rel for _, _, rel in listing.read_listing(path)),
+                             ["README.md", "bin/tool.sh", "docs/guide.md", "run"])
+
+    def test_reads_listing_version_1(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "listing.tsv")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("# smart-archive listing 1\tsize\tmodified\tpath\n5\t2020-01-01T00:00:00Z\ta\tb.txt\n")
+            self.assertEqual(list(listing.read_listing(path)), [("5", "2020-01-01T00:00:00Z", "a\tb.txt")])
+
+    def test_arv_make_archives_a_folder_with_links(self):
+        with tempfile.TemporaryDirectory() as d:
+            src, home = link_tree(d), os.path.join(d, "home")
+            code, o = run_cli("--home", home, "make", "-y", "--no-ecc", "--set", "CODE", "--output-dir", d, src)
+            self.assertEqual(code, 0, o)
+            disc_id, iso = o.split("\t")[:2]
+            x = os.path.join(d, "x")
+            subprocess.run(["7z", "x", "-o" + x, iso], check=True, stdout=subprocess.DEVNULL)
+            with open(os.path.join(x, "data", "README.md")) as f:
+                self.assertEqual(f.read(), "guide")                     # the link's target, under its name
+            self.assertFalse(os.path.lexists(os.path.join(x, "data", "latest")))
+            self.assertFalse(os.path.lexists(os.path.join(x, "data", "dead")))
+            self.assertEqual(udf_permissions(iso, "data/run"), 0x14A5)
+            proc = subprocess.run([sys.executable, "-I", os.path.join(x, "tools", "bagit.py"), "--validate", x],
+                                  capture_output=True, text=True)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            rows = {r["path"]: r["kind"] for r in listing.read_rows(
+                catalog.volume_file(os.path.join(x, "catalog"), "listings", disc_id))}
+            self.assertEqual(rows["latest"], "link recorded folder")
+            events = [e for e in catalog.Home(home).load().events if e.get("Type") == "ingestion"]
+            self.assertEqual(events[0].get("Note"), "links: 2 copied, 1 recorded, 1 broken (policy: default)")
+            self.assertTrue(events[0].get("Agent").startswith("arv"))
+            # refused without a policy when a link leaves the folder
+            os.symlink(home, os.path.join(src, "out"))
+            code, o = run_cli("--home", home, "make", "-y", "--no-ecc", "--set", "CODE", "--output-dir", d, src)
+            self.assertNotEqual(code, 0)
 
 
 class DiscIdTest(unittest.TestCase):

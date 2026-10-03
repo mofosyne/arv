@@ -51,6 +51,7 @@ class Plan:
     label: str = ""      # volume label: the disc id, then as much of the title as fits
     events: list = field(default_factory=list)
     extras: list = field(default_factory=list)  # [(Entry, source path)] added to data/, e.g. RO-Crate files
+    links: list = field(default_factory=list)   # links only noted in this disc's listing (bag.Payload.links)
 
     @property
     def payload_entries(self):
@@ -162,8 +163,14 @@ class Maker:
                                             self.filesystem)
             plan.record = self.disc_record(plan)
             plan.binding = self.binding_record(plan)
+            plan.links = self.links_for(i, bins)
             plan.events = [catalog.new_event(disc_id, "message digest calculation", "success", self.version,
                                              "sha256 and sha512 manifests of %d files" % len(entries))]
+            summary = self.link_summary(plan)
+            if summary:   # how links were treated: an ingest decision, so it goes into the record
+                plan.events.append(catalog.new_event(
+                    disc_id, "ingestion", "success",
+                    catalog.person() if getattr(self.args, "links", None) else self.version, summary))
             if self.meta.get("draft_agent"):
                 plan.events.append(catalog.new_event(
                     disc_id, "metadata modification", "success", "%s + owner review" % self.meta["draft_agent"],
@@ -177,6 +184,25 @@ class Maker:
                     header.splitlines()[0].lstrip("# ") if header else "siegfried",
                     "PRONOM ids for %d files, %d unidentified" % (len(entries), unknown)))
             self.plans.append(plan)
+
+    def links_for(self, i, bins):
+        """The noted-only links that go into disc i's listing: each with the disc holding the file
+        just before it in path order (files are split in path order), the first disc otherwise."""
+        links = getattr(self.entries, "links", [])
+        if len(bins) == 1:
+            return list(links)
+        firsts = [b[0].path.encode("utf-8") if b else None for b in bins]
+        def disc_of(link):
+            key, at = link.path.encode("utf-8"), 0
+            for j, first in enumerate(firsts):
+                if first is not None and first <= key:
+                    at = j
+            return at
+        return [l for l in links if disc_of(l) == i]
+
+    def link_summary(self, plan):
+        rows = bag.Payload(plan.entries, plan.links, getattr(self.args, "links", None) or "default")
+        return rows.link_summary()
 
     def image_sectors(self):
         """Size of the finished image (filesystem + RS03), when it is known in advance."""
@@ -269,7 +295,7 @@ class Maker:
             files = {"manifests": os.path.join(batch, p.disc_id + ".sha256"),
                      "listings": os.path.join(batch, p.disc_id + ".tsv")}
             bag.write_manifest(files["manifests"], [(e.hashes["sha256"], "data/" + e.path) for e in p.payload_entries])
-            listing.write_listing(files["listings"], p.payload_entries)
+            listing.write_listing(files["listings"], p.payload_entries, p.links)
             tags, captions = self.plan_tags(p)
             if tags or captions:
                 files["tags"] = os.path.join(batch, p.disc_id + ".tags")
@@ -360,10 +386,14 @@ class Maker:
         bag.write_tagmanifests(stage)
 
     def payload(self, plan):
+        """The whole source folder (empty folders included), or a list of files: for part of a
+        folder, and for a folder with links, whose image gets exactly the files in the listing."""
         extras = [(e.path, src) for e, src in plan.extras]
-        if plan.parts == 1 and len(plan.entries) == len(self.entries):
+        has_links = getattr(self.entries, "links", None) or any(e.source for e in self.entries)
+        if plan.parts == 1 and len(plan.entries) == len(self.entries) and not has_links:
             return {"payload_dir": self.src, "payload_files": extras or None}
-        return {"payload_files": [(e.path, os.path.join(self.src, e.path)) for e in plan.entries] + extras}
+        return {"payload_files": [(e.path, e.source or os.path.join(self.src, e.path))
+                                  for e in plan.entries] + extras}
 
     def fit(self):
         """Stage every disc and measure it; move files forward until every disc fits."""

@@ -329,15 +329,46 @@ snapshots, for the places and collections that snapshot carries.
 ### Listing TSV
 
 ```
-# smart-archive listing 1	size (bytes)	modified (UTC, ISO 8601)	path (relative to data/)
-4839201	2019-07-14T09:12:03Z	photos/2019 trip/IMG_0001.JPG
+# arv listing 2	size (bytes)	modified (UTC, ISO 8601)	kind	link target	path (relative to data/)
+4839201	2019-07-14T09:12:03Z	file	-	photos/2019 trip/IMG_0001.JPG
+51	2020-01-02T03:04:05Z	file executable	-	tools/run.sh
+5	2020-01-02T03:04:05Z	link copied	docs/guide.md	README.md
+-	2020-01-02T03:04:05Z	link recorded folder	docs	latest
+-	2020-01-02T03:04:05Z	link broken	missing.txt	dead
 ```
 
-- The first line starts with `# smart-archive listing <version>` and names the columns.
+- The first line starts with `# arv listing <version>` (version 1 said
+  `# smart-archive listing 1` and had only size, modified and path) and names the columns.
 - **The path is always the last column** and may contain tabs; split on the
   first N-1 tabs only. Paths never contain CR or LF (the writer refuses such
-  names), use `/`, and are relative to `data/`.
-- Checksums are in the BagIt manifest (join on `data/` + path).
+  names), use `/`, and are relative to `data/`. Rows are in path order (UTF-8 bytes).
+- **Kind** is words, so readers can test for the ones they know: `file`, `file executable`,
+  and for symbolic links in the source folder `link copied` (+ `executable`), `link copied folder`,
+  `link recorded folder`, `link recorded external`, `link broken` (see Links below).
+  `executable`: the source had an execute bit; the disc keeps it (executable by all).
+- **Link target** is the link's text exactly as it was (relative or absolute), `-` for files.
+- A size of `-` marks a row that is **only noted**: nothing for it is in `data/` or the
+  manifests. Every other row is a file in `data/` (join on `data/` + path for its checksums).
+
+### Links
+
+BagIt holds files only, and an archive must survive being copied anywhere, so no symbolic link is
+ever written to a disc. Instead every link in the source folder is **noted in the listing**,
+with what was done with it, and the choice is logged as an `ingestion` event
+(`Note: links: 2 copied, 1 recorded, 1 broken (policy: default)`; Agent `human:LOGIN` when
+someone chose the policy with `arv make --links`, otherwise arv).
+
+| Link | default | `--links record` | `--links copy` |
+|---|---|---|---|
+| to a file inside the folder | copied | copied | copied |
+| to a folder inside the folder | noted | noted | copied |
+| to anything outside the folder | **refused** | noted | copied |
+| broken | noted, with a warning | same | same |
+| a folder link that leads back into itself | noted | noted | **refused** |
+
+*Copied* means the target's bytes are stored under the link's own name (as `git archive`
+would hand them to someone without links); *noted* means only the listing row. Devices,
+sockets and pipes are refused. To restore a link, read its row: `ln -s <target> <path>`.
 
 ### Tags TSV
 
@@ -467,4 +498,5 @@ and set/part numbering beyond a virtual-device parent.
   per-volume files by volume; 0.3 moved the medium's fields into `Binding`.
 - Minor versions only add optional fields or files. A major version bump means
   a reader must not assume the old layout.
-- Listing and tags files carry their own header version (`listing 1`).
+- Listing and tags files carry their own header version (`arv listing 2`; readers also
+  read version 1).

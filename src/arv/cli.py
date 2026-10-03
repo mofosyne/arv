@@ -262,7 +262,12 @@ def cmd_make(args):
     cat = home.load()
 
     log("Scanning and hashing %s ..." % src)
-    entries = bag.scan_payload(src)
+    try:
+        entries = bag.scan_payload(src, links=args.links or "default")
+    except ValueError as err:
+        raise SystemExit("Error: %s" % err)
+    if entries.link_summary():
+        log("Links: %s" % entries.link_summary()[len("links: "):])
     check_names([e.path for e in entries], args.filesystem, args.ignore_names)
 
     draft = {}
@@ -1031,8 +1036,8 @@ def build_parser():
                         "others), private (your own discs; default), sealed (only its id and location)")
     m.add_argument("--rights")
     m.add_argument("--filesystem", choices=list(image.FILESYSTEMS), default="udf250",
-                   help="udf250 (default): UDF 2.50 with a metadata partition, as Blu-ray uses (built by "
-                        "src/udfmake); hybrid: ISO9660 + Rock Ridge + Joliet + UDF 1.02 (needs genisoimage), "
+                   help="udf250 (default): UDF 2.50 with a metadata partition, as Blu-ray uses (see "
+                        "--udf-writer); hybrid: ISO9660 + Rock Ridge + Joliet + UDF 1.02 (needs genisoimage), "
                         "named <id>.hybrid.iso")
     m.add_argument("--udfmake", help="path to the udfmake program (default: PATH, then src/udfmake/build)")
     m.add_argument("--udf-writer", choices=["udfwrite", "udfmake"], default="udfwrite",
@@ -1040,6 +1045,12 @@ def build_parser():
                         "mirror, reproducible) or udfmake (NetBSD makefs, the reference; no real mirror; "
                         "image named <id>.udfmake.iso)")
     m.add_argument("--udfwrite", help="path to the udfwrite program (default: PATH, then src/udfwrite/build)")
+    m.add_argument("--links", choices=bag.LINK_POLICIES,
+                   help="symbolic links in the folder; each one is noted in the listing whatever happens to "
+                        "it. default: links to files inside the folder are copied (the file under the link's "
+                        "name), links to folders inside it are only noted, links outside it are refused; "
+                        "record: also note links outside it; copy: also copy what folder links and links "
+                        "outside it point to. Broken links are noted and skipped; loops are refused")
     m.add_argument("--ignore-names", action="store_true",
                    help="don't list names that Windows/macOS will see shortened or changed (see 'arv names')")
     m.add_argument("--medium", choices=["auto"] + list(media.MEDIA), default="bd25",

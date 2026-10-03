@@ -6,8 +6,9 @@ Only the tag files are written to a staging directory.
 """
 
 import hashlib
-import re
 import os
+import re
+import stat
 import sys
 from dataclasses import dataclass, field
 
@@ -21,6 +22,9 @@ class Entry:
     size: int
     mtime: float
     hashes: dict = field(default_factory=dict)
+    kind: str = "file"   # words, see listing.py: "file", "file executable", "link copied", ...
+    link: str = ""       # a link's target, as written in the link
+    source: str = None   # where the bytes are read from, when not <payload>/<path> (copied links)
 
 
 AMBIGUOUS_RE = re.compile(r"[\r\n]|%(0A|0D|25)", re.IGNORECASE)
@@ -49,46 +53,144 @@ def hash_file(path):
     return {alg: d.hexdigest() for alg, d in digests.items()}
 
 
-def scan_payload(src, progress=True):
-    """Walk ``src`` and hash every regular file. Symlinks are rejected."""
-    files, symlinks = [], []
-    for root, dirs, names in os.walk(src):
-        dirs.sort()
-        for name in dirs:
-            if os.path.islink(os.path.join(root, name)):
-                symlinks.append(os.path.join(root, name))
-        for name in sorted(names):
-            full = os.path.join(root, name)
-            if os.path.islink(full):
-                symlinks.append(full)
-            elif os.path.isfile(full):
-                files.append(full)
-    ambiguous = [f for f in files if AMBIGUOUS_RE.search(os.path.relpath(f, src))]
+LINK_POLICIES = ("default", "record", "copy")
+
+
+class Payload(list):
+    """The files that go into data/ (Entries, in path order), plus the links that are only
+    listed (``links``: Entries whose ``kind`` is "link recorded ...", "link broken", or
+    "link copied folder" for a folder link whose files were copied)."""
+
+    def __init__(self, entries=(), links=(), policy="default"):
+        super().__init__(entries)
+        self.links = list(links)
+        self.policy = policy
+
+    def link_summary(self):
+        """'links: 2 copied, 1 recorded, 1 broken (policy: default)', or None without links."""
+        counts = {}
+        for e in list(self) + self.links:
+            if e.kind.startswith("link"):
+                word = e.kind.split()[1]
+                counts[word] = counts.get(word, 0) + 1
+        if not counts:
+            return None
+        order = ("copied", "recorded", "broken")
+        return "links: %s (policy: %s)" % (
+            ", ".join("%d %s" % (counts[w], w) for w in order if w in counts), self.policy)
+
+
+def _inside(path, root):
+    return path == root or path.startswith(root.rstrip(os.sep) + os.sep)
+
+
+def scan_payload(src, progress=True, links="default"):
+    """Walk ``src`` and hash every regular file; returns a Payload.
+
+    Symbolic links follow the links policy (docs/smart-archive-format.md, "Links"), and every
+    link is noted in the listing whatever happens to it:
+    - a link to a file inside ``src`` is copied: the target's bytes under the link's name;
+    - a link to a folder inside ``src`` is recorded only (``copy``: its files are copied too);
+    - a link to anything outside ``src`` is refused (``record``: recorded; ``copy``: copied);
+    - a broken link is recorded and warned about; copying a link that loops is an error.
+    Devices, sockets and pipes are refused.
+    """
+    if links not in LINK_POLICIES:
+        raise ValueError("unknown links policy %r" % links)
+    root = os.path.realpath(src)
+    files, recorded, refused, special, loops = [], [], [], [], []
+
+    def link_entry(rel, full, kind, target):
+        st = os.lstat(full)
+        return Entry(rel, 0, st.st_mtime, kind=kind, link=target)
+
+    def walk(disk, rel, ancestors, via_link):
+        """disk: the folder to read (may be reached through links); rel: its path in data/."""
+        try:
+            names = sorted(os.listdir(disk))
+        except OSError as err:
+            raise ValueError("cannot read %s: %s" % (disk, err))
+        for name in names:
+            full = os.path.join(disk, name)
+            r = rel + "/" + name if rel else name
+            if not os.path.islink(full):
+                st = os.lstat(full)
+                if stat.S_ISDIR(st.st_mode):
+                    walk(full, r, ancestors | {os.path.realpath(full)}, via_link)
+                elif stat.S_ISREG(st.st_mode):
+                    files.append((r, full, via_link))
+                else:
+                    special.append(full)
+                continue
+            target = os.readlink(full)
+            real = os.path.realpath(full)
+            if not os.path.exists(full):
+                recorded.append(link_entry(r, full, "link broken", target))
+                print("Warning: broken link %s -> %s (recorded in the listing, not archived)"
+                      % (r, target), file=sys.stderr)
+                continue
+            inside = _inside(real, root)
+            if not inside and links == "default":
+                refused.append("%s -> %s" % (r, target))
+                continue
+            if os.path.isdir(real):
+                if links == "copy" and any(_inside(a, real) for a in ancestors):
+                    loops.append("%s -> %s" % (r, target))   # following it would never end
+                elif links == "copy":
+                    recorded.append(link_entry(r, full, "link copied folder", target))
+                    walk(full, r, ancestors | {real}, True)
+                else:
+                    recorded.append(link_entry(r, full, "link recorded folder" if inside
+                                               else "link recorded external", target))
+            elif os.path.isfile(real):
+                if not inside and links == "record":
+                    recorded.append(link_entry(r, full, "link recorded external", target))
+                else:
+                    files.append((r, full, target))
+            else:
+                special.append(full)
+
+    walk(root, "", {root}, None)   # via: None, a file link's target, or True inside a copied folder
+    rels = [r for r, _, _ in files] + [e.path for e in recorded]
+    ambiguous = [r for r in rels if AMBIGUOUS_RE.search(r)]
     if ambiguous:
         raise ValueError(
             "file names containing line breaks or %0A / %0D / %25 cannot be listed\n"
             "unambiguously in BagIt manifests; please rename:\n  " + "\n  ".join(ambiguous[:20])
         )
-    if symlinks:
+    if special:
+        raise ValueError("only files, folders and links can be archived; please remove:\n  "
+                         + "\n  ".join(special[:20]))
+    if loops:
+        raise ValueError("links that loop back to a folder containing them:\n  " + "\n  ".join(loops[:20]))
+    if refused:
         raise ValueError(
-            "symlinks are not supported in the payload (resolve or remove them):\n  "
-            + "\n  ".join(symlinks[:20])
-        )
+            "links pointing outside the folder (use --links record to note them in the listing,\n"
+            "or --links copy to archive what they point to):\n  " + "\n  ".join(refused[:20]))
 
-    total = sum(os.path.getsize(f) for f in files)
+    total = sum(os.path.getsize(full) for _, full, _ in files)
     done = 0
     entries = []
-    for n, full in enumerate(files, 1):
+    for n, (rel, full, via) in enumerate(files, 1):
         st = os.stat(full)
-        rel = os.path.relpath(full, src).replace(os.sep, "/")
-        entries.append(Entry(rel, st.st_size, st.st_mtime, hash_file(full)))
+        kind = "file"
+        if isinstance(via, str):
+            kind = "link copied"
+        if st.st_mode & 0o111:
+            kind += " executable"
+        e = Entry(rel, st.st_size, st.st_mtime, hash_file(full), kind=kind)
+        if via is not None:   # a file link, or a file inside a copied folder link
+            e.source = os.path.realpath(full)
+            e.link = via if isinstance(via, str) else ""
+        entries.append(e)
         done += st.st_size
         if progress and sys.stderr.isatty():
             pct = 100 * done / total if total else 100
             print("\rHashing %d/%d files (%.0f%%)" % (n, len(files), pct), end="", file=sys.stderr)
     if progress and sys.stderr.isatty():
         print(file=sys.stderr)
-    return entries
+    entries.sort(key=lambda e: e.path.encode("utf-8"))
+    return Payload(entries, sorted(recorded, key=lambda e: e.path.encode("utf-8")), links)
 
 
 def payload_oxum(entries):

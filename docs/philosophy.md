@@ -165,7 +165,8 @@ In practice:
   folder leaves every file exactly as it was.
 - **Everything it writes must survive being copied anywhere:** between Windows,
   macOS and Linux, onto exFAT or NTFS drives and NAS shares. So no symlinks or hard
-  links, plain UTF-8 text read with any line endings, portable file names, nothing
+  links (the owner's links are noted in the listing, as git notes them in its tree, and the
+  files they point to copied: see "Links" in the format), plain UTF-8 text read with any line endings, portable file names, nothing
   that depends on permissions, and indexes that can always be rebuilt. (Lesson
   from git-annex, whose symlink trees break when moved between operating systems.)
 - **Storage managers stay welcome on the everyday tier** (ZFS, restic, even

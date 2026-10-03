@@ -350,6 +350,21 @@ recognise it the same way: a `catalog.rec` at the bag's root.
 - If one volume is ever kept in two renditions (an .iso for the shelf, a .tar for the NAS), it is
   one volume with several Bindings; its identity is the payload manifest, not the whole image.
 
+## Decision (2026-10-03): links are noted, never written (done)
+
+- Discs hold files and folders only (BagIt and the copy-anywhere rule), but a folder like a git
+  clone has links. As git does, the link is kept as a **description**: every link gets a row in
+  `listing.tsv` (listing version 2: kind, link target), and the policy applied is logged as an
+  `ingestion` event, the first entry of the archivist log.
+- Policy (`arv make --links default|record|copy`): links to files inside the folder are copied
+  (the file under the link's name); links to folders inside are noted; links outside the folder
+  are refused unless the owner chooses `record` or `copy`; broken links are noted with a warning;
+  copying a folder link that loops is refused. Devices, sockets and pipes are refused.
+- The execute bit survives (listing kind `file executable`, and on the disc, readable and
+  executable by all), so a cloned project's scripts run from the mounted disc.
+- Next: the full archivist log (appraisals: why something was kept or left out, for whom, how
+  important, when to review), extending Event records.
+
 ## Direction: a chain of small programs, each carried on every disc (2026-10-01)
 
 *Revised 2026-10-03: the steps stay, but as libraries linked into one `arv` program rather than
