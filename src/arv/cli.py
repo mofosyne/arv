@@ -150,9 +150,22 @@ SEARCH
   Or plain text tools: grep -ri PATTERN catalog/volumes/*/listing.tsv
 
 VERIFY (detect damage)
-  From the root of the mounted disc, either of:
+  From the root of the mounted disc, any of (arvc: see RESTORE):
     sha256sum -c manifest-sha256.txt
     python3 tools/bagit.py --validate .
+    ./arvc verify .
+
+RESTORE (copy the files back)
+  Copying data/ anywhere is enough for most files. Symbolic links in the
+  original folder, execute bits and dates are in the listing,
+  catalog/volumes/*/listing.tsv; the reader in tools/ brings them back too,
+  checking every file as it copies. Build it with any C compiler:
+    cc -O2 -o arvc tools/{repo}/src/arvc/*.c
+    ./arvc verify .                    (or: ./arvc restore . ~/restored)
+  Without a compiler, after copying data/ to DEST, recreate the links with:
+    awk -F'\\t' '$3 ~ /^link (recorded|broken)/ {{print $4 "\\t" $5}}' \\
+      catalog/volumes/*/listing.tsv | while IFS="$(printf '\\t')" read -r t p
+      do ln -s "$t" "DEST/$p"; done
 
 REPAIR (fix damage)
   Use dvdisaster: https://github.com/teaching-droid/dvdisaster-light or

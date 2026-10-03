@@ -91,6 +91,13 @@ class UdfWriteTest(unittest.TestCase):
             self.assertEqual(udf_permissions(iso, "data/scripts/exampleprog.sh"), 0x14A5)   # r-x for all
             self.assertEqual(udf_permissions(iso, "data/README.md"), 0x1084)                # r-- for all
 
+    def test_reader_in_c(self):
+        """arvc (the C port's reader) verifies and restores a disc made by arv: links included."""
+        proc = subprocess.run(["make", "-s", "-C", os.path.join(REPO, "src", "arvc"), "check"],
+                              capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("all checks passed", proc.stdout)
+
     def test_writer_checks(self):
         proc = subprocess.run(["make", "-s", "-C", os.path.join(REPO, "src", "udfwrite"), "check"],
                               capture_output=True, text=True)

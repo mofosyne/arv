@@ -264,6 +264,12 @@ libraries together, so arv is one repository and one program, shipped on every d
   stays, the backend becomes a localhost-only HTTP server with a session token and about ten JSON
   endpoints. Until then the Python GUI drives the C binary (it already runs every action as an
   `arv` subprocess).
+- **Started (2026-10-03): the reader first.** `src/arvc/`: `info`, `verify`, `ls` and `restore`
+  (recfile reader, SHA-256, listing version 2, links), C99 + POSIX, no libraries, buildable from
+  a disc's `tools/` with one `cc` line (README.txt on every disc says how). Reading is what must
+  still work in decades and what changes least; the writer and the catalogue commands follow
+  once the burn test has settled the format. Its check makes a disc with the Python arv and
+  restores it: `git status` in the restored clone must be clean.
 - **Burn test discs first.** Before the port goes far, burn a few real test discs with today's
   Python arv, read them back on other machines, scratch one and repair it (#5, #4). What they teach
   goes into the C version instead of being found after it.

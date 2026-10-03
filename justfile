@@ -9,7 +9,7 @@ default:
 arv *args:
     ./arv {{args}}
 
-# Build src/udfmake, the UDF 2.50 image builder (needs a C compiler)
+# Build the C programs: udfmake, udfwrite and arvc (needs a C compiler)
 build:
     make
 
@@ -50,7 +50,12 @@ netbsd-repro:
 udfwrite-check:
     make -C src/udfwrite check
 
+# Check arvc, the C reader, against a disc made by arv (src/arvc/build/check/)
+arvc-check:
+    make -C src/arvc check
+
 # Remove build output
 clean:
     make -C src/udfmake clean
     make -C src/udfwrite clean
+    make -C src/arvc clean

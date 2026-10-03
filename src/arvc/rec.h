@@ -1,0 +1,35 @@
+/* Reading GNU recutils recfiles, as the arv catalogue writes them (docs/smart-archive-format.md):
+ * "Name: value" fields, "+" continuation lines, "#" comments, records separated by blank lines,
+ * and %rec descriptors that give the records after them their type. */
+#ifndef ARV_REC_H
+#define ARV_REC_H
+
+#include <stddef.h>
+
+typedef struct {
+    char *name, *value;
+} rec_field;
+
+typedef struct {
+    const char *type;       /* from the last %rec descriptor before it; NULL if none */
+    int descriptor;         /* a %rec descriptor itself */
+    rec_field *fields;
+    size_t nfields;
+} rec_record;
+
+typedef struct {
+    rec_record *records;
+    size_t nrecords;
+} rec_file;
+
+/* Reads a recfile; returns 0, or -1 with errno set (file errors) or EINVAL (a line that is
+ * not a field, with *bad_line set to its number). */
+int rec_read(const char *path, rec_file *out, int *bad_line);
+void rec_free(rec_file *f);
+
+/* The first value of a field, or NULL. */
+const char *rec_get(const rec_record *r, const char *name);
+/* The first record of a type (not a descriptor), or NULL. */
+const rec_record *rec_first(const rec_file *f, const char *type);
+
+#endif

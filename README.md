@@ -59,6 +59,7 @@ Each layer does its own job:
 |---|---|
 | `arv` | The command: runs `src/arv/` from a checkout, or from `tools/arv/` on any disc |
 | `src/arv/` | The tool: a Python package, standard library only |
+| `src/arvc/` | arv's reader in C (`info`, `verify`, `ls`, `restore`): the first part of the C port, [src/arvc/README.md](src/arvc/README.md) |
 | `src/udfwrite/` | arv's own UDF 2.50 writer (library and program), the default: [docs/archival-udf.md](docs/archival-udf.md) |
 | `src/udfmake/` | NetBSD's `makefs -t udf` as a C library and program, the reference UDF 2.50 writer; `upstream/` has the draft NetBSD bug report, patches and reproduction |
 | `docs/` | For users and implementers: workflow, shelving, architecture, philosophy, the disc format, and the website |
@@ -104,8 +105,8 @@ arv --help
 ```
 
 `make install` copies the last commit (exactly the tree every disc carries in `tools/`) to
-`PREFIX/share/arv`, and puts `arv`, `udfwrite` and `udfmake` in `PREFIX/bin`. Without installing,
-run `make` once in a checkout (it builds `udfwrite` and `udfmake`), then `./arv` does the same.
+`PREFIX/share/arv`, and puts `arv`, `udfwrite`, `udfmake` and `arvc` in `PREFIX/bin`. Without
+installing, run `make` once in a checkout (it builds the C programs), then `./arv` does the same.
 
 ### What it needs
 
@@ -121,8 +122,14 @@ programs, which it finds on `PATH`:
 | `sf` (Siegfried), `ffmpeg`, a local LLM | optional extras (format ids, video frames, descriptions) | install if you want them |
 
 `arv make` stops with a clear message if a program it needs is missing. Reading a disc later
-needs none of these: any computer can open it, and `README.txt` on the disc explains checking
-and repair (repair needs dvdisaster).
+needs none of these: any computer can open it, and `README.txt` on the disc explains checking,
+restoring and repair (repair needs dvdisaster). `arvc`, the reader in C, verifies a disc and
+restores its folder exactly, symbolic links and execute bits included:
+
+```sh
+arvc verify /media/cdrom                 # every file against its checksum
+arvc restore /media/cdrom ~/restored     # copy back, checking each file; links recreated
+```
 
 ### What `arv make` creates
 
