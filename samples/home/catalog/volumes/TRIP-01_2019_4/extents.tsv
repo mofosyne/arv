@@ -1,0 +1,171 @@
+# arv extents 1	start sector	size (bytes)	path
+704	2493	README.txt
+706	282	bag-info.txt
+707	54	bagit.txt
+708	4070	catalog/archive.rec
+710	934	catalog/volumes/TRIP-01_2019_4/listing.tsv
+711	1581	catalog/volumes/TRIP-01_2019_4/manifest.sha256
+712	274	catalog/volumes/TRIP-01_2019_4/tags.tsv
+713	3743	catalog.rec
+715	632	data/day1 Fushimi Inari/IMG_0100.png
+716	673	data/day1 Fushimi Inari/IMG_0101.png
+717	655	data/day1 Fushimi Inari/IMG_0102.png
+718	551	data/day1 Gion/IMG_0110.png
+719	552	data/day1 Gion/IMG_0111.png
+720	551	data/day1 Gion/IMG_0112.png
+721	553	data/day2 Arashiyama/IMG_0210.png
+722	562	data/day2 Arashiyama/IMG_0211.png
+723	553	data/day2 Arashiyama/IMG_0212.png
+724	702	data/day2 Kinkaku-ji/IMG_0200.png
+725	663	data/day2 Kinkaku-ji/IMG_0201.png
+726	664	data/day2 Kinkaku-ji/IMG_0202.png
+727	678	data/day3 Kiyomizu-dera/IMG_0300.png
+728	667	data/day3 Kiyomizu-dera/IMG_0301.png
+729	640	data/day3 Kiyomizu-dera/IMG_0302.png
+730	147	data/notes.txt
+731	5417	index.html
+734	1581	manifest-sha256.txt
+735	2605	manifest-sha512.txt
+737	15507	tagmanifest-sha256.txt
+745	25235	tagmanifest-sha512.txt
+758	141	tools/arv/.gitattributes
+759	610	tools/arv/.github/ISSUE_TEMPLATE/feedback.md
+760	786	tools/arv/.github/workflows/pages.yml
+761	96	tools/arv/.gitignore
+762	35149	tools/arv/LICENSE
+780	2102	tools/arv/Makefile
+782	25471	tools/arv/README.md
+795	268	tools/arv/arv
+796	0	tools/arv/docs/.nojekyll
+796	7799	tools/arv/docs/architecture.md
+800	8492	tools/arv/docs/archival-udf.md
+805	10231	tools/arv/docs/img/architecture-svg.py
+810	22912	tools/arv/docs/img/architecture.svg
+822	9059	tools/arv/docs/img/shelving-svg.py
+827	27675	tools/arv/docs/img/shelving.svg
+841	7819	tools/arv/docs/index.html
+845	10108	tools/arv/docs/philosophy.md
+850	8626	tools/arv/docs/shelving.md
+855	24146	tools/arv/docs/smart-archive-format.md
+867	17182	tools/arv/docs/workflow.md
+876	1684	tools/arv/justfile
+877	14328	tools/arv/research/metadata-standards.md
+884	5564	tools/arv/research/organising.md
+887	36568	tools/arv/research/plan.md
+905	45328	tools/arv/research/research-notes.md
+928	2144	tools/arv/research/rs03/build-tools.sh
+930	17514	tools/arv/research/rs03/experiments.py
+939	99	tools/arv/samples/.gitignore
+940	4070	tools/arv/samples/README.md
+942	8104	tools/arv/samples/gen_sources.py
+946	4989	tools/arv/samples/make-samples.sh
+949	4968	tools/arv/scripts/create-archive-iso.sh
+952	4333	tools/arv/scripts/create-archive-udf.sh
+955	221	tools/arv/src/arv/__init__.py
+956	52	tools/arv/src/arv/__main__.py
+957	4810	tools/arv/src/arv/bag.py
+960	29559	tools/arv/src/arv/catalog.py
+975	62394	tools/arv/src/arv/cli.py
+1006	6838	tools/arv/src/arv/default_sets.rec
+1010	4444	tools/arv/src/arv/default_tags.rec
+1013	12768	tools/arv/src/arv/describe.py
+1020	8134	tools/arv/src/arv/discid.py
+1024	2576	tools/arv/src/arv/formats.py
+1026	26320	tools/arv/src/arv/gui.html
+1039	13955	tools/arv/src/arv/gui.py
+1046	5924	tools/arv/src/arv/homes.py
+1049	6020	tools/arv/src/arv/html.py
+1052	14352	tools/arv/src/arv/image.py
+1060	2605	tools/arv/src/arv/index.py
+1062	1097	tools/arv/src/arv/listing.py
+1063	13643	tools/arv/src/arv/llm.py
+1070	26861	tools/arv/src/arv/make.py
+1084	2197	tools/arv/src/arv/media.py
+1086	6832	tools/arv/src/arv/models.py
+1090	4507	tools/arv/src/arv/names.py
+1093	3677	tools/arv/src/arv/recfile.py
+1095	5070	tools/arv/src/arv/rocrate.py
+1098	8303	tools/arv/src/arv/sets.py
+1103	19417	tools/arv/src/arv/tagger.py
+1113	0	tools/arv/src/arv/vendor/__init__.py
+1113	54934	tools/arv/src/arv/vendor/bagit.py
+1140	8849	tools/arv/src/arv/vision.py
+1145	16	tools/arv/src/udfmake/.gitignore
+1146	2771	tools/arv/src/udfmake/Makefile
+1148	6902	tools/arv/src/udfmake/README.md
+1152	1052	tools/arv/src/udfmake/check.sh
+1153	4153	tools/arv/src/udfmake/compat/compat.c
+1156	80	tools/arv/src/udfmake/compat/machine/bswap.h
+1157	3227	tools/arv/src/udfmake/compat/nbtool_config.h
+1159	80	tools/arv/src/udfmake/compat/sys/bswap.h
+1160	272	tools/arv/src/udfmake/compat/sys/cdefs.h
+1161	149	tools/arv/src/udfmake/compat/sys/cdio.h
+1162	532	tools/arv/src/udfmake/compat/sys/endian.h
+1163	85	tools/arv/src/udfmake/compat/sys/null.h
+1164	664	tools/arv/src/udfmake/compat/sys/queue.h
+1165	877	tools/arv/src/udfmake/compat/util.h
+1166	5663	tools/arv/src/udfmake/netbsd/sbin/fsck/partutil.c
+1169	1892	tools/arv/src/udfmake/netbsd/sbin/fsck/partutil.h
+1170	1568	tools/arv/src/udfmake/netbsd/sbin/newfs_udf/newfs_udf.h
+1171	135311	tools/arv/src/udfmake/netbsd/sbin/newfs_udf/udf_core.c
+1238	14238	tools/arv/src/udfmake/netbsd/sbin/newfs_udf/udf_core.h
+1245	5442	tools/arv/src/udfmake/netbsd/sbin/newfs_udf/unicode.h
+1248	22311	tools/arv/src/udfmake/netbsd/sys/fs/udf/ecma167-udf.h
+1259	2196	tools/arv/src/udfmake/netbsd/sys/fs/udf/udf_bswap.h
+1261	2368	tools/arv/src/udfmake/netbsd/sys/fs/udf/udf_mount.h
+1263	15001	tools/arv/src/udfmake/netbsd/sys/fs/udf/udf_osta.c
+1271	959	tools/arv/src/udfmake/netbsd/sys/fs/udf/udf_osta.h
+1272	22568	tools/arv/src/udfmake/netbsd/sys/sys/queue.h
+1284	13198	tools/arv/src/udfmake/netbsd/usr.sbin/makefs/makefs.c
+1291	10061	tools/arv/src/udfmake/netbsd/usr.sbin/makefs/makefs.h
+1296	5808	tools/arv/src/udfmake/netbsd/usr.sbin/makefs/udf/cdio_mmc_structs.h
+1299	34839	tools/arv/src/udfmake/netbsd/usr.sbin/makefs/udf.c
+1317	22883	tools/arv/src/udfmake/netbsd/usr.sbin/makefs/walk.c
+1329	5833	tools/arv/src/udfmake/netbsd/usr.sbin/mtree/mtree.h
+1332	90	tools/arv/src/udfmake/stubs/cd9660.h
+1333	954	tools/arv/src/udfmake/stubs/mtree_stubs.c
+1334	681	tools/arv/src/udfmake/stubs/other_fs.c
+1335	990	tools/arv/src/udfmake/udfmake.c
+1336	706	tools/arv/src/udfmake/udfmake.h
+1337	158	tools/arv/src/udfmake/udfmake_cli.c
+1338	7	tools/arv/src/udfmake/upstream/.gitignore
+1339	11340	tools/arv/src/udfmake/upstream/BUG-REPORT.md
+1345	1386	tools/arv/src/udfmake/upstream/README.md
+1346	1187	tools/arv/src/udfmake/upstream/patches/01-udf_copy_file-padding-overread.patch
+1347	902	tools/arv/src/udfmake/upstream/patches/02-udf_set_regid-strcpy-overrun.patch
+1348	926	tools/arv/src/udfmake/upstream/patches/03-unix_to_udf_name-l_fi-overflow.patch
+1349	1918	tools/arv/src/udfmake/upstream/repro/padding.py
+1350	6435	tools/arv/src/udfmake/upstream/repro/repro.sh
+1354	633	tools/arv/src/udfmake/wasi/run.mjs
+1355	213	tools/arv/src/udfmake/wasi/udfmake
+1356	7	tools/arv/src/udfwrite/.gitignore
+1357	688	tools/arv/src/udfwrite/Makefile
+1358	3044	tools/arv/src/udfwrite/README.md
+1360	4581	tools/arv/src/udfwrite/check.sh
+1363	27178	tools/arv/src/udfwrite/udfwrite.c
+1377	2797	tools/arv/src/udfwrite/udfwrite.h
+1379	5509	tools/arv/src/udfwrite/udfwrite_cli.c
+1382	19	tools/arv/tests/fixtures/.gitignore
+1383	1920	tools/arv/tests/fixtures/README.md
+1384	209	tools/arv/tests/fixtures/check-chars.tsv
+1385	1141	tools/arv/tests/fixtures/coverage.tsv
+1386	238	tools/arv/tests/fixtures/covers.tsv
+1387	641	tools/arv/tests/fixtures/disc-id-compose.tsv
+1388	2375	tools/arv/tests/fixtures/disc-id-parse.tsv
+1390	9618	tools/arv/tests/fixtures/generate.py
+1395	1979	tools/arv/tests/fixtures/labels.tsv
+1396	356	tools/arv/tests/fixtures/match-rules.tsv
+1397	5243	tools/arv/tests/fixtures/names.tsv
+1400	316	tools/arv/tests/fixtures/recfile/multiline.expected.tsv
+1401	195	tools/arv/tests/fixtures/recfile/multiline.rec
+1402	236	tools/arv/tests/fixtures/recfile/types.expected.tsv
+1403	92	tools/arv/tests/fixtures/recfile/types.rec
+1404	404	tools/arv/tests/fixtures/tags.tsv
+1405	1474	tools/arv/tests/fixtures/tsv.py
+1406	282	tools/arv/tests/fixtures/vocab-paths.tsv
+1407	354	tools/arv/tests/fixtures/vocab-words.tsv
+1408	649	tools/arv/tests/fixtures/vocab.rec
+1409	2132	tools/arv/tests/smoke-test.sh
+1411	79227	tools/arv/tests/test_arv.py
+1450	4637	tools/arv/tests/test_fixtures.py
+1453	54934	tools/bagit.py
