@@ -15,7 +15,7 @@
 %type: Access enum public private sealed
 
 Id: TRIP-01_2019_4
-Uuid: e4342cd1-af86-49f4-8381-0df82fda6a44
+Uuid: 4a49ba4c-178a-48d9-ba0f-0920345cbdee
 IdScheme: set-seq-coverage/1
 Label: TRIP-01_2019_4 Kyoto July 2019
 Title: Kyoto, July 2019
@@ -33,12 +33,12 @@ Location: BOX1
 Access: public
 Files: 16
 Bytes: 9443
-Software: arv@547fe6d10937
+Software: arv@c2dad0c47dd5
 Copies: 2
 Location: OFFSITE
 
 Id: PROJ-01_2020-2023_L
-Uuid: f1665e43-bd17-4f2a-b311-510b3706bec6
+Uuid: 0d16172a-432f-4418-a2a9-b19e7968738d
 IdScheme: set-seq-coverage/1
 Label: PROJ-01_2020-2023_L Weather station project
 Title: Weather station project
@@ -55,14 +55,14 @@ Creator: Sample_Person
 Description: ESP32 weather station: firmware, KiCad board, gerbers and the git repository.
 Location: BOX1
 Access: private
-Files: 51
-Bytes: 31444
-Software: arv@547fe6d10937
+Files: 56
+Bytes: 32142
+Software: arv@c2dad0c47dd5
 Copies: 1
 Note: Board rev B; rev A gerbers were never ordered.
 
 Id: TAXES-01_2019-2020_I
-Uuid: 976d60b0-0ff9-4f78-8781-18fd11a44cd1
+Uuid: 3c77d9c1-bcf2-4dcc-a503-b79010472357
 IdScheme: set-seq-coverage/1
 Label: TAXES-01_2019-2020_I Tax return 2019
 Title: Tax return 2019
@@ -77,11 +77,11 @@ Location: SAFE
 Access: sealed
 Files: 5
 Bytes: 3196
-Software: arv@547fe6d10937
+Software: arv@c2dad0c47dd5
 Copies: 1
 
 Id: SCAN-01_1995-2008_D
-Uuid: fb2287e3-854a-4203-a577-bc8895230c79
+Uuid: 6866f641-384f-43e4-971e-c18e609b37c4
 IdScheme: set-seq-coverage/1
 Label: SCAN-01_1995-2008_D Letters 1995-2008 scanned
 Title: Letters 1995-2008, scanned
@@ -100,11 +100,11 @@ Location: BOX1
 Access: private
 Files: 31
 Bytes: 3105415
-Software: arv@547fe6d10937
+Software: arv@c2dad0c47dd5
 Copies: 1
 
 Id: SCAN-02_1995-2008_B
-Uuid: 678ef7a4-33c0-415a-8c56-6fbb1178acc0
+Uuid: c1613f99-53e4-4424-99ef-5c0d92f22a68
 IdScheme: set-seq-coverage/1
 Label: SCAN-02_1995-2008_B Letters 1995-2008 scanned
 Title: Letters 1995-2008, scanned
@@ -123,11 +123,11 @@ Location: BOX1
 Access: private
 Files: 25
 Bytes: 2504739
-Software: arv@547fe6d10937
+Software: arv@c2dad0c47dd5
 Copies: 1
 
 Id: FAMILY-01_2020-2021_K
-Uuid: 4e48484d-b236-464d-94c4-924298529de5
+Uuid: 3f1c2f6b-f681-4651-8be8-cce2411555cb
 IdScheme: set-seq-coverage/1
 Label: FAMILY-01_2020-2021_K Family pho
 Title: Family photos 2020-2021
@@ -142,7 +142,7 @@ Location: OFFSITE
 Access: private
 Files: 16
 Bytes: 8828
-Software: arv@547fe6d10937
+Software: arv@c2dad0c47dd5
 Copies: 1
 
 %rec: Binding
@@ -276,7 +276,7 @@ Disc: TRIP-01_2019_4
 Type: message digest calculation
 Date: 2026-10-03
 Outcome: success
-Agent: arv@547fe6d10937
+Agent: arv@c2dad0c47dd5
 Note: sha256 and sha512 manifests of 16 files
 
 Disc: TRIP-01_2019_4
@@ -290,7 +290,7 @@ Disc: TRIP-01_2019_4
 Type: creation
 Date: 2026-10-03
 Outcome: success
-Agent: arv@547fe6d10937
+Agent: arv@c2dad0c47dd5
 Note: image TRIP-01_2019_4.iso, 2066 sectors; RS03: 4 MiB data, 4 MiB ecc (139 roots; 119.8% redundancy), 0 MiB padding.
 
 Disc: TRIP-01_2019_4
@@ -304,8 +304,15 @@ Disc: PROJ-01_2020-2023_L
 Type: message digest calculation
 Date: 2026-10-03
 Outcome: success
-Agent: arv@547fe6d10937
-Note: sha256 and sha512 manifests of 51 files
+Agent: arv@c2dad0c47dd5
+Note: sha256 and sha512 manifests of 56 files
+
+Disc: PROJ-01_2020-2023_L
+Type: ingestion
+Date: 2026-10-03
+Outcome: success
+Agent: arv@c2dad0c47dd5
+Note: links: 1 copied, 1 recorded (policy: default)
 
 Disc: PROJ-01_2020-2023_L
 Type: metadata modification
@@ -318,7 +325,7 @@ Disc: PROJ-01_2020-2023_L
 Type: creation
 Date: 2026-10-03
 Outcome: success
-Agent: arv@547fe6d10937
+Agent: arv@c2dad0c47dd5
 Note: image PROJ-01_2020-2023_L.iso, 2322 sectors; RS03: 4 MiB data, 4 MiB ecc (124 roots; 94.7% redundancy), 0 MiB padding.
 
 Disc: PROJ-01_2020-2023_L
@@ -332,14 +339,14 @@ Disc: TAXES-01_2019-2020_I
 Type: message digest calculation
 Date: 2026-10-03
 Outcome: success
-Agent: arv@547fe6d10937
+Agent: arv@c2dad0c47dd5
 Note: sha256 and sha512 manifests of 5 files
 
 Disc: TAXES-01_2019-2020_I
 Type: creation
 Date: 2026-10-03
 Outcome: success
-Agent: arv@547fe6d10937
+Agent: arv@c2dad0c47dd5
 Note: image TAXES-01_2019-2020_I.udfmake.iso, 2560 sectors; RS03: 5 MiB data, 3 MiB ecc (111 roots; 77.1% redundancy), 0 MiB padding.
 
 Disc: TAXES-01_2019-2020_I
@@ -353,14 +360,14 @@ Disc: SCAN-01_1995-2008_D
 Type: message digest calculation
 Date: 2026-10-03
 Outcome: success
-Agent: arv@547fe6d10937
+Agent: arv@c2dad0c47dd5
 Note: sha256 and sha512 manifests of 31 files
 
 Disc: SCAN-01_1995-2008_D
 Type: creation
 Date: 2026-10-03
 Outcome: success
-Agent: arv@547fe6d10937
+Agent: arv@c2dad0c47dd5
 Note: image SCAN-01_1995-2008_D.iso, 3666 sectors; RS03: 7 MiB data, 1 MiB ecc (50 roots; 24.4% redundancy), 0 MiB padding.
 
 Disc: SCAN-01_1995-2008_D
@@ -374,15 +381,15 @@ Disc: SCAN-02_1995-2008_B
 Type: message digest calculation
 Date: 2026-10-03
 Outcome: success
-Agent: arv@547fe6d10937
+Agent: arv@c2dad0c47dd5
 Note: sha256 and sha512 manifests of 25 files
 
 Disc: SCAN-02_1995-2008_B
 Type: creation
 Date: 2026-10-03
 Outcome: success
-Agent: arv@547fe6d10937
-Note: image SCAN-02_1995-2008_B.iso, 3346 sectors; RS03: 6 MiB data, 2 MiB ecc (68 roots; 36.4% redundancy).
+Agent: arv@c2dad0c47dd5
+Note: image SCAN-02_1995-2008_B.iso, 3378 sectors; RS03: 6 MiB data, 2 MiB ecc (66 roots; 34.9% redundancy), 0 MiB padding.
 
 Disc: SCAN-02_1995-2008_B
 Type: fixity check
@@ -395,7 +402,7 @@ Disc: FAMILY-01_2020-2021_K
 Type: message digest calculation
 Date: 2026-10-03
 Outcome: success
-Agent: arv@547fe6d10937
+Agent: arv@c2dad0c47dd5
 Note: sha256 and sha512 manifests of 16 files
 
 Disc: FAMILY-01_2020-2021_K
@@ -409,8 +416,8 @@ Disc: FAMILY-01_2020-2021_K
 Type: creation
 Date: 2026-10-03
 Outcome: success
-Agent: arv@547fe6d10937
-Note: image FAMILY-01_2020-2021_K.hybrid.iso, 1632 sectors; RS03: 3 MiB data, 5 MiB ecc (163 roots; 177.2% redundancy), 0 MiB padding.
+Agent: arv@c2dad0c47dd5
+Note: image FAMILY-01_2020-2021_K.hybrid.iso, 1643 sectors; RS03: 3 MiB data, 5 MiB ecc (162 roots; 174.2% redundancy), 0 MiB padding.
 
 Disc: FAMILY-01_2020-2021_K
 Type: fixity check
@@ -483,9 +490,9 @@ Agent: dvdisaster
 Note: image test with dvdisaster -t
 + - data md5sum      : none available
 + Data integrity:
-+ - medium sectors   : 4590 total / 1632 data
++ - medium sectors   : 4590 total / 1643 data
 + - good image/file  : all sectors present
-+ - data md5sum      : fa01b4e1790b69f7269c382762f554d7
++ - data md5sum      : 74cb4ce4aa68e6829f47e8715ff65d01
 + - Ecc block test   : pass
 
 Disc: PROJ-01_2020-2023_L
@@ -498,7 +505,7 @@ Note: image test with dvdisaster -t
 + Data integrity:
 + - medium sectors   : 4590 total / 2322 data
 + - good image/file  : all sectors present
-+ - data md5sum      : 762cf97132d06bd40ff42d720d5e3388
++ - data md5sum      : 5f9224ef66483f8af61d62e21420cebb
 + - Ecc block test   : pass
 
 Disc: SCAN-01_1995-2008_D
@@ -511,7 +518,7 @@ Note: image test with dvdisaster -t
 + Data integrity:
 + - medium sectors   : 4590 total / 3666 data
 + - good image/file  : all sectors present
-+ - data md5sum      : 326103bec2a0eba4de55d45e6fad8702
++ - data md5sum      : f30869b62d1b8ec69d8c6ad36b34cafa
 + - Ecc block test   : pass
 
 Disc: SCAN-02_1995-2008_B
@@ -522,9 +529,9 @@ Agent: dvdisaster
 Note: image test with dvdisaster -t
 + - data md5sum      : none available
 + Data integrity:
-+ - medium sectors   : 4590 total / 3346 data
++ - medium sectors   : 4590 total / 3378 data
 + - good image/file  : all sectors present
-+ - data md5sum      : c532c2fc970b2c19e082b66bc083030a
++ - data md5sum      : 29e90f40b5fe6d8a3782bafb2e0d82d4
 + - Ecc block test   : pass
 
 Disc: TAXES-01_2019-2020_I
@@ -537,7 +544,7 @@ Note: image test with dvdisaster -t
 + Data integrity:
 + - medium sectors   : 4590 total / 2560 data
 + - good image/file  : all sectors present
-+ - data md5sum      : 8f5ed33a70cd9ac19f0ff198e4b69587
++ - data md5sum      : ef9a9fdecde64ee7e69d7a6596e9a473
 + - Ecc block test   : pass
 
 Disc: TRIP-01_2019_4
@@ -550,5 +557,5 @@ Note: image test with dvdisaster -t
 + Data integrity:
 + - medium sectors   : 4590 total / 2066 data
 + - good image/file  : all sectors present
-+ - data md5sum      : 24ad66b4ec70b50d70c8ab296ec71228
++ - data md5sum      : 4d157fb803565541680c8ccdd1a8b2e5
 + - Ecc block test   : pass
