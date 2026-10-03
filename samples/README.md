@@ -15,7 +15,7 @@ real personal data).
 | `FAMILY-01_2020-2021_K` | the one **hybrid** image (`--filesystem hybrid`: ISO 9660 + UDF 1.02, so `FAMILY-01_2020-2021_K.hybrid.iso`); the others are UDF 2.50, the default. Made last, so it carries the whole catalogue |
 
 `home/` is the catalogue these were made into, as `archive` keeps it (without the
-disposable SQLite index), including locations, burned copies and notes recorded
+disposable SQLite index), including locations, burned copies, notes and appraisals (the archivist log) recorded
 after the discs were made.
 
 ## Try it

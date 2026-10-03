@@ -89,6 +89,12 @@ for d in $(a list | cut -f1); do
 done
 a burned "$(a list --in TRIP | cut -f1)" --copies 1 --location OFFSITE --note "second copy for the parents"
 a note "$(a list --in PROJ | cut -f1)" "Board rev B; rev A gerbers were never ordered."
+trip=$(a list --in TRIP | cut -f1)   # the archivist log: how much it matters, to whom, and why
+a appraise "$trip" --importance "essential for self" --importance "important for family" \
+    --basis "the only photos of the trip" --review 2031-10-01 >/dev/null
+a appraise "$trip:day3 Kiyomizu-dera/" --importance "useful for family" --basis "mostly duplicates of day 2" >/dev/null
+a appraise "set:PROJ" --importance "important for self" --importance "useful for public" \
+    --basis "hardware designs: someone may want to rebuild one" >/dev/null
 
 echo "== check every image with dvdisaster"
 for iso in "$discs"/*.iso; do
