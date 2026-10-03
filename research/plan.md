@@ -307,6 +307,11 @@ place every structure deliberately for damage resistance.
 - **Checking it:** the Linux kernel mounts it; udftools (`udfinfo`, `udfdump`) and 7-Zip parse it;
   extracted files match the manifest; images compare against udfmake's for the same folder; then
   Windows, macOS and a real burn. `src/udfmake/` stays as the reference and for upstream fixes.
+- **A restricted writer was the right call for robustness** (2026-10-03): makefs leaves the mirror
+  as a to-do (`/* XXX no support for metadata mirroring yet */`, shared with rewritable formats),
+  while ours writes a real one, and the Linux kernel mounts through it with the main metadata
+  destroyed. To do: offer NetBSD a patch giving makefs a real mirror for read-only images (#7),
+  after the three bug reports (#6).
 - **No UDF reader of our own.** Reading is the operating system's job, and Blu-ray video keeps
   readers around.
 
