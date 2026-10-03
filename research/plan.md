@@ -292,6 +292,15 @@ udfw_add_file(w, "data/photos/IMG_0001.JPG", size, mtime, read_cb, file_ctx);
 udfw_close(w, &stats);             /* finishes the image; stats.extents lists where each file is */
 ```
 
+**It reads too.** Over 10 to 20 years the OS may not mount UDF 2.50 (optical support is fading,
+and mounting needs a kernel driver and usually root, which containers, phones, locked-down
+machines and WebAssembly lack), and a damaged image is exactly when an OS driver gives up. So the
+library also reads its own subset: list, extract and check files from an image or a raw read of a
+damaged disc, falling back to the metadata mirror and then to `extents.tsv`. It reads only what it
+writes, which keeps it small, and each side tests the other. The last resort needs no UDF code at
+all: `extents.tsv` plus the manifest let anyone cut a file out with `dd` and check it with
+`sha256sum`. (Issue #12, the userspace reader, becomes this.)
+
 Licence to decide when it is split out: BSD-2-Clause (recommended: matches the NetBSD code it
 learns from, and lets any program embed it) or GPL-3.0 like the rest of arv.
 
