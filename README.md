@@ -67,7 +67,7 @@ Each layer does its own job:
 | `scripts/` | The original shell scripts, before ARV (see [Without arv](#without-arv-the-original-scripts)) |
 | `justfile`, `Makefile` | `just` lists everyday commands (test, install, samples, site preview); `make` alone builds and installs |
 
-`samples/` has eight small sample discs made with the full workflow (56 MB, with
+`samples/` has eight small sample discs made with the full workflow (58 MB, with
 RS03 error correction) and their catalogue: try `./arv --home samples/home list`.
 
 `research/plan.md` has the disc layout, phased plan and open decisions.
