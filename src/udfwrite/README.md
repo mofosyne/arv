@@ -44,6 +44,11 @@ From arv: `arv make FOLDER --udf-writer udfwrite` (the image is named `<disc-id>
 
 Linux (as root): `mount -o loop,ro build/check/test.iso /mnt && diff -r build/check/src /mnt; umount /mnt`.
 Windows: right-click the image, *Mount*, compare the files. macOS: `hdiutil attach -readonly
-build/check/test.iso`, compare, `hdiutil detach`. Findings so far, in this repository's container:
-udftools reads the damaged-anchor image (it uses the second anchor) but not the damaged-metadata
-one; 7-Zip reads neither (it uses only sector 256, and not the mirror).
+build/check/test.iso`, compare, `hdiutil detach`. Findings so far:
+
+| Reader | `test.iso` | metadata destroyed | anchor 256 destroyed |
+|---|---|---|---|
+| Linux kernel (loop mount, 2026-10-03) | identical | **identical: falls back to the mirror** ("metadata inode efe not found", then mounts) | identical: uses the end anchors |
+| udftools (`udfinfo`) | no warnings | fails (doesn't use the mirror) | reads it (uses the second anchor) |
+| 7-Zip 23.01 | identical | fails (doesn't use the mirror) | fails (reads sector 256 only) |
+| Windows, macOS | to test | to test | to test |

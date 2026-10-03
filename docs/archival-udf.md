@@ -85,7 +85,9 @@ error correction, and the two end anchors sit mid-disc where no reader looks. `u
 finished image reports: *"Second and third Anchor Volume Descriptor Pointer not found"*.
 
 The disc still reads, because readers find the anchor at 256, and sector 256 is inside the area
-RS03 protects. But the anchor itself loses its redundancy. Moving the end anchors to the end of
+RS03 protects. (Before RS03 is added, with sector 256 destroyed, the Linux kernel and udftools
+find the volume through the end anchors; 7-Zip does not. And with the main metadata destroyed,
+the Linux kernel mounts through the mirror: tested 2026-10-03, see `src/udfwrite/README.md`.) But the anchor itself loses its redundancy. Moving the end anchors to the end of
 the medium would put them inside RS03's area, which would break byte compatibility with
 dvdisaster, so that is not an option. To do: test readers (Linux, Windows, macOS) with sector 256
 damaged and RS03 not yet applied, to know what the anchor at 256 alone is worth.
