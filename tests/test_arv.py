@@ -5,6 +5,7 @@ and only runs with ARCHIVE_TEST_ECC=1 (it takes several minutes).
 """
 
 import contextlib
+import datetime
 import io
 import json
 import os
@@ -17,7 +18,7 @@ import unittest
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "src"))
 
-from arv import bag, catalog, cli, image, listing, make, media, recfile  # noqa: E402
+from arv import appraisal, bag, catalog, cli, image, listing, make, media, recfile  # noqa: E402
 
 HAVE_IMAGE_TOOLS = all(shutil.which(t) for t in ("genisoimage", "7z"))
 
@@ -327,6 +328,78 @@ class LinksTest(unittest.TestCase):
             # refused without a policy when a link leaves the folder
             os.symlink(home, os.path.join(src, "out"))
             code, o = run_cli("--home", home, "make", "-y", "--no-ecc", "--set", "CODE", "--output-dir", d, src)
+            self.assertNotEqual(code, 0)
+
+
+class AppraisalTest(unittest.TestCase):
+    def test_reads_as_english(self):
+        a = appraisal.new_appraisal("TRIP-01_2019_4:day1/", ["essential for self", "Useful for Public"],
+                                    "the only photos of that day", "2031-01-01", agent="human:test")
+        self.assertEqual(a.get_all("Importance"), ["essential for self", "useful for public"])
+        self.assertEqual(appraisal.importance(a), {"self": "essential", "public": "useful"})
+        self.assertEqual(appraisal.overall(a), "essential")
+        self.assertEqual(a.get("Authorship"), "human")
+        for bad in ("essential", "vital for self", "essential for my family", ""):
+            with self.assertRaises(appraisal.AppraisalError):
+                appraisal.parse_importance(bad)
+
+    def test_only_a_person_marks_something_incidental(self):
+        for how in ("automatic", "suggested"):
+            with self.assertRaisesRegex(appraisal.AppraisalError, "only a person"):
+                appraisal.new_appraisal("X", ["incidental for self"], agent="llm:m", authorship=how)
+        appraisal.new_appraisal("X", ["useful for public"], agent="llm:m", authorship="suggested")
+        appraisal.new_appraisal("X", ["incidental for self"], agent="human:test")
+
+    def test_review_dates(self):
+        today = datetime.date(2026, 10, 3)
+        self.assertEqual(appraisal.review_date("5y", today), "2031-10-03")
+        self.assertEqual(appraisal.review_date("18m", today), "2028-04-03")
+        self.assertEqual(appraisal.review_date("2030-01-31"), "2030-01-31")
+
+    def test_cascade_and_standing(self):
+        cat = catalog.Catalog()
+        cat.discs = [recfile.Record("Disc", [("Id", "TRIP-01_2019_4"), ("Set", "TRIP")])]
+        new = appraisal.new_appraisal
+        cat.appraisals = [
+            new("set:TRIP", ["important for family"], agent="human:test", date="2026-01-01"),
+            new("TRIP-01_2019_4:day1/", ["essential for self"], agent="human:test", date="2026-01-01"),
+            # a model's later suggestion does not override a person's appraisal
+            new("TRIP-01_2019_4:day1/", ["useful for self"], agent="llm:m", authorship="suggested",
+                date="2026-05-01"),
+        ]
+        a, source = appraisal.effective(cat, "TRIP-01_2019_4:day1/IMG_1.JPG")
+        self.assertEqual((appraisal.importance(a), source), ({"self": "essential"}, "TRIP-01_2019_4:day1/"))
+        a, source = appraisal.effective(cat, "TRIP-01_2019_4:day2/x.jpg")
+        self.assertEqual(source, "set:TRIP")
+        # a newer appraisal by a person replaces the older one
+        cat.appraisals.append(new("TRIP-01_2019_4:day1/", ["useful for self"], agent="human:test", date="2026-06-01"))
+        self.assertEqual(appraisal.importance(appraisal.current(cat, "TRIP-01_2019_4:day1/")), {"self": "useful"})
+
+    def test_cli_appraise_and_make(self):
+        if not HAVE_IMAGE_TOOLS:
+            self.skipTest("needs the image tools")
+        with tempfile.TemporaryDirectory() as d:
+            home, src = os.path.join(d, "home"), os.path.join(d, "src")
+            write(os.path.join(src, "day1", "a.txt"), "a", 2019)
+            code, o = run_cli("--home", home, "make", "-y", "--no-ecc", "--set", "TRIP", "--output-dir", d,
+                              "--importance", "essential for self", "--basis", "first trip", "--review", "2020-01-01",
+                              src)
+            self.assertEqual(code, 0, o)
+            disc_id, iso = o.split("\t")[:2]
+            x = os.path.join(d, "x")
+            subprocess.run(["7z", "x", "-o" + x, iso], check=True, stdout=subprocess.DEVNULL)
+            own = catalog.Catalog(recfile.read(os.path.join(x, "catalog.rec")))
+            self.assertEqual(own.appraisals[0].get_all("Importance"), ["essential for self"])   # on the disc too
+            code, o = run_cli("--home", home, "appraise", disc_id + ":day1/", "--importance", "important for family")
+            self.assertEqual(code, 0, o)
+            code, o = run_cli("--home", home, "appraise", disc_id + ":day1/a.txt")
+            self.assertIn("important for family", o)
+            self.assertIn("(from %s:day1/)" % disc_id, o)
+            code, o = run_cli("--home", home, "appraise", "--due")
+            self.assertIn(disc_id + "\treview 2020-01-01", o)
+            code, _ = run_cli("--home", home, "appraise", disc_id + ":nope/", "--importance", "useful for self")
+            self.assertNotEqual(code, 0)
+            code, _ = run_cli("--home", home, "appraise", disc_id, "--importance", "vital")
             self.assertNotEqual(code, 0)
 
 
@@ -652,7 +725,7 @@ class MakeTest(unittest.TestCase):
         self.assertEqual([e.get("Type") for e in on_disc.events], ["message digest calculation"])
         # Entry point for other tools: first real record says what this is and where things are
         archive = [r for r in records if r.type == "Archive" and not r.is_descriptor][0]
-        self.assertEqual((archive.get("Format"), archive.get("Version")), ("smart-archive", "0.3"))
+        self.assertEqual((archive.get("Format"), archive.get("Version")), ("smart-archive", "0.4"))
         self.assertEqual(archive.get("Uuid"), on_disc.disc(disc_id).get("Uuid"))
         self.assertEqual(len(archive.get("Uuid")), 36)
         for field in ("Manifest", "Listing", "Snapshot", "Viewer"):
@@ -1264,7 +1337,8 @@ class LLMTest(unittest.TestCase):
         self.assertEqual(disc.get_all("Subject"), ["travel"])
         self.assertEqual(disc.get_all("Note"), ["Q: Who?\nA: Us"])
         event = [e for e in cat.events if e.get("Type") == "metadata modification"][-1]
-        self.assertEqual(event.get("Agent"), "llm:test + owner review")
+        self.assertEqual(event.get_all("Agent"), ["llm:test", catalog.person()])
+        self.assertEqual(event.get("Authorship"), "accepted")   # applying a saved draft accepts it
         self.assertIn("TAG", run_cli("--home", home, "find", "travel")[1])
 
     def test_make_llm_requires_terminal(self):
@@ -1443,7 +1517,7 @@ class TagTest(unittest.TestCase):
         with open(draft, encoding="utf-8") as f:
             d = json.load(f)
         self.assertEqual(d["folder_tags"]["scripts"][0], "code")
-        self.assertIn("(unreviewed)", d["agent"])
+        self.assertEqual(d["authorship"], "suggested")              # no terminal: nobody reviewed it
         if not HAVE_IMAGE_TOOLS:
             return
         code, out = run_cli("--home", self.home, "make", "-y", "--no-ecc", "--draft", draft,
@@ -1455,7 +1529,11 @@ class TagTest(unittest.TestCase):
         code, _ = run_cli("--home", self.home, "tag", disc_id, "--apply", *opts)
         self.assertEqual(code, 0)
         events = catalog.Home(self.home).load().events_for(disc_id)
-        self.assertIn("embeddings:test-model (unreviewed)", [e.get("Agent") for e in events])
+        modified = [(e.get("Authorship"), e.get_all("Agent")) for e in events if e.get("Type") == "metadata modification"]
+        self.assertEqual(modified, [
+            ("accepted", ["embeddings:test-model", catalog.person()]),   # make --draft: a person chose the draft
+            ("suggested", ["embeddings:test-model"]),                    # tag --apply without a terminal
+        ])
 
     def test_rules_only_and_aliases_in_review(self):
         from arv import catalog as cat_mod, tagger
@@ -1472,7 +1550,7 @@ class TagTest(unittest.TestCase):
         self.assertEqual(code, 0)
         result = json.loads(out)
         self.assertEqual(result["folder_tags"], {"board": ["electronics"]})
-        self.assertEqual(result["agent"], "match rules (unreviewed)")
+        self.assertEqual((result["agent"], result["authorship"]), ("match rules", "automatic"))
 
     def test_embeddings_api_engine(self):
         from arv import catalog, tagger

@@ -36,7 +36,7 @@ import sys
 import tarfile
 import textwrap
 
-from . import NAME, bag, catalog, homes, describe, discid, image, index, llm, make, media, models, names, recfile, sets, tagger
+from . import NAME, appraisal, bag, catalog, homes, describe, discid, image, index, llm, make, media, models, names, recfile, sets, tagger
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # src/arv/ -> repository
 REPO_NAME = NAME
@@ -257,6 +257,16 @@ def cmd_make(args):
                          % os.path.join(REPO_ROOT, "src", "udfmake"))
     if args.output and args.output_dir:
         raise SystemExit("Error: use either --output or --output-dir")
+    args.review_date = None
+    try:   # check the appraisal before the long work starts
+        if args.review:
+            args.review_date = appraisal.review_date(args.review)
+        if args.importance or args.basis:
+            appraisal.new_appraisal("X", args.importance or [], args.basis, args.review_date)
+        elif args.review:
+            raise appraisal.AppraisalError("--review needs --importance or --basis")
+    except appraisal.AppraisalError as err:
+        raise SystemExit("Error: %s" % err)
     interactive = sys.stdin.isatty() and not args.yes
     home = catalog.Home(args.home)
     cat = home.load()
@@ -272,10 +282,16 @@ def cmd_make(args):
 
     draft = {}
     if args.draft:
-        draft = describe.load_draft(args.draft)
+        draft = describe.accept_draft(describe.load_draft(args.draft))
     elif args.llm:
         draft = describe.make_draft(args, src, entries, interactive)
     if draft:
+        # a model's draft whose fields the command line replaces has been edited by a person
+        overrides = [(args.title, draft["title"]), (args.description, draft["description"]),
+                     (args.subject, draft["subjects"] or None)]
+        if draft.get("authorship") in ("suggested", "accepted") and \
+                any(given is not None and given != drafted for given, drafted in overrides):
+            draft["authorship"] = "edited"
         # the draft fills the fields the command line leaves empty; no prompts for those
         args.title = args.title or draft["title"]
         args.description = args.description or draft["description"]
@@ -338,6 +354,7 @@ def cmd_make(args):
         "folder_tags": draft.get("folder_tags") or {},
         "folder_captions": draft.get("folder_captions") or {},
         "draft_agent": draft.get("agent"),
+        "draft_authorship": draft.get("authorship"),
     }
     version, is_git = software_version()
     maker = make.Maker(args, meta, entries, src, home, cat, version, is_git, stage_tools, write_readme)
@@ -550,6 +567,74 @@ def _listing_paths(home, disc_id):
         return None
     from .listing import read_listing
     return [rel for _, _, rel in read_listing(path)]
+
+
+def cmd_appraise(args):
+    """The archivist log: record how much something matters, to whom and why; or show it."""
+    home = catalog.Home(args.home)
+    cat = home.load()
+    if args.due is not None or not args.target:
+        rows = appraisal.due(cat, args.due or None)
+        for a in rows:
+            print("%s\treview %s\t%s" % (a.get("Target"), a.get("Review"), "; ".join(a.get_all("Importance"))))
+        if not rows:
+            log("No appraisals due for review%s." % (" by " + args.due if args.due else ""))
+        return 0
+    target = args.target.strip()
+    check_target(home, cat, target)
+    if not (args.importance or args.basis):
+        a, source = appraisal.effective(cat, target)
+        if a is None:
+            print("%s: not appraised" % target)
+            return 0
+        print("%s%s" % (target, "" if source == target else "  (from %s)" % source))
+        for i in a.get_all("Importance"):
+            print("  " + i)
+        for key in ("Basis", "Review", "Date", "Authorship"):
+            if a.get(key):
+                print("  %s: %s" % (key, a.get(key)))
+        print("  Agent: %s" % ", ".join(a.get_all("Agent")))
+        earlier = [x for x in cat.appraisals if x.get("Target") == target and x is not a]
+        if earlier:
+            print("  (%d earlier appraisal%s of this target in the log)" % (len(earlier), "" if len(earlier) == 1 else "s"))
+        return 0
+    try:
+        review = appraisal.review_date(args.review) if args.review else None
+        record = appraisal.new_appraisal(target, args.importance or [], args.basis, review)
+    except appraisal.AppraisalError as err:
+        raise SystemExit("Error: %s" % err)
+    cat.appraisals.append(record)
+    home.save(cat)
+    print("%s: %s" % (target, "; ".join(record.get_all("Importance")) or record.get("Basis")))
+    return 0
+
+
+def check_target(home, cat, target):
+    """An appraisal target must name something the catalogue knows."""
+    if target.startswith("collection:"):
+        if not cat.collection(target.split(":", 1)[1]):
+            raise SystemExit("Error: no collection %s" % target.split(":", 1)[1])
+        return
+    if target.startswith("set:"):
+        code = target.split(":", 1)[1]
+        if not any(d.get("Set") == code for d in cat.discs):
+            try:
+                known = sets.load(home).resolve(code)
+            except Exception:
+                known = None
+            if not known:
+                raise SystemExit("Error: no set %s (no disc has it, and the vocabulary does not know it)" % code)
+        return
+    disc_id, path, is_folder = catalog.parse_item(target)
+    if not cat.disc(disc_id):
+        raise SystemExit("Error: no disc %s in %s (targets: DISC-ID, DISC-ID:folder/, DISC-ID:folder/file, "
+                         "set:CODE, collection:CODE)" % (disc_id, home.rec_path))
+    paths = _listing_paths(home, disc_id) if path else None
+    if paths is not None:
+        found = any(p.startswith(path) for p in paths) if is_folder else path in paths
+        if not found:
+            raise SystemExit("Error: %s is not on %s%s" % (path, disc_id,
+                             " (folders end with /)" if not is_folder and any(p.startswith(path + "/") for p in paths) else ""))
 
 
 def cmd_collection(args):
@@ -784,7 +869,7 @@ def cmd_burned(args):
         note += ", kept at " + cat.location_path(place(cat, args.location))
     if args.note:
         note += "; " + args.note
-    cat.events.append(catalog.new_event(args.disc_id, "replication", "success", "manual", note))
+    cat.events.append(catalog.new_event(args.disc_id, "replication", "success", catalog.person(), note))
     home.save(cat)
     print("%s: %s copies recorded" % (args.disc_id, disc.get("Copies")))
     return 0
@@ -1051,6 +1136,11 @@ def build_parser():
                         "name), links to folders inside it are only noted, links outside it are refused; "
                         "record: also note links outside it; copy: also copy what folder links and links "
                         "outside it point to. Broken links are noted and skipped; loops are refused")
+    m.add_argument("--importance", action="append", metavar="'LEVEL for AUDIENCE'",
+                   help="appraise the disc (archivist log): e.g. 'essential for self'; repeat for each "
+                        "audience. Levels: essential, important, useful, incidental")
+    m.add_argument("--basis", help="why it matters (with --importance)")
+    m.add_argument("--review", help="when to look at the appraisal again: YYYY-MM-DD, or 5y, 18m")
     m.add_argument("--ignore-names", action="store_true",
                    help="don't list names that Windows/macOS will see shortened or changed (see 'arv names')")
     m.add_argument("--medium", choices=["auto"] + list(media.MEDIA), default="bd25",
@@ -1136,6 +1226,20 @@ def build_parser():
     lo.add_argument("--description")
     lo.add_argument("-v", "--verbose", action="store_true", help="list: show the discs at each place")
     lo.set_defaults(func=cmd_location)
+
+    ap = sub.add_parser("appraise", help="the archivist log: how much a disc, folder, file, set or "
+                                          "collection matters, to whom, and why")
+    ap.add_argument("target", nargs="?",
+                    help="DISC-ID, DISC-ID:folder/, DISC-ID:folder/file, set:CODE or collection:CODE; "
+                         "without --importance or --basis, shows the appraisal in force")
+    ap.add_argument("--importance", action="append", metavar="'LEVEL for AUDIENCE'",
+                    help="e.g. 'essential for self', 'important for family'; repeat per audience. "
+                         "Levels: essential, important, useful, incidental")
+    ap.add_argument("--basis", help="why: what makes it matter, or not")
+    ap.add_argument("--review", help="when to look again: YYYY-MM-DD, or 5y, 18m from today")
+    ap.add_argument("--due", nargs="?", const="", metavar="DATE",
+                    help="list appraisals whose review date has come (by today, or by DATE)")
+    ap.set_defaults(func=cmd_appraise)
 
     co = sub.add_parser("collection", help="virtual folders of discs, folders and files across discs")
     co.add_argument("action", choices=["list", "show", "add", "put", "drop", "move"])

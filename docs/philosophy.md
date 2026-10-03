@@ -79,6 +79,12 @@ some of this:
 - **sets, categories and tags** say what something is;
 - **collections** gather what belongs together across discs.
 
+**The archivist log** records it: an appraisal says how much something matters, for whom,
+and why, in words that read as English (`essential for self`, `important for family`), with a
+date to review it (`arv appraise`; format: "Appraisals"). Every record says whether a person,
+software following rules, or a model made it, and whether a person reviewed a model's
+suggestion. A model may suggest; only a person can decide that something can be left out.
+
 **Direction: an archive organiser.** From the everyday storage, propose what is
 worth a disc: rank folders by importance and audience (rules, tags, and
 optionally a local model), leave out what is already archived (by hash), and

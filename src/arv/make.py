@@ -15,7 +15,7 @@ import tempfile
 import uuid
 from dataclasses import dataclass, field
 
-from . import URL, bag, catalog, discid, formats, html, image, index, listing, media, recfile, rocrate
+from . import URL, appraisal, bag, catalog, discid, formats, html, image, index, listing, media, recfile, rocrate
 
 
 
@@ -50,6 +50,7 @@ class Plan:
     extents: str = ""    # udfwrite: where each file starts in the image, for the home catalogue
     label: str = ""      # volume label: the disc id, then as much of the title as fits
     events: list = field(default_factory=list)
+    appraisals: list = field(default_factory=list)   # --importance / --basis: the archivist log
     extras: list = field(default_factory=list)  # [(Entry, source path)] added to data/, e.g. RO-Crate files
     links: list = field(default_factory=list)   # links only noted in this disc's listing (bag.Payload.links)
 
@@ -172,10 +173,16 @@ class Maker:
                     disc_id, "ingestion", "success",
                     catalog.person() if getattr(self.args, "links", None) else self.version, summary))
             if self.meta.get("draft_agent"):
+                how = self.meta.get("draft_authorship") or (
+                    "suggested" if catalog.is_model(self.meta["draft_agent"]) else "human")
                 plan.events.append(catalog.new_event(
-                    disc_id, "metadata modification", "success", "%s + owner review" % self.meta["draft_agent"],
+                    disc_id, "metadata modification", "success",
+                    catalog.reviewed_agents(self.meta["draft_agent"], how),
                     "title, description, subjects and folder tags taken from a draft (made by: %s)"
-                    % self.meta["draft_agent"]))
+                    % self.meta["draft_agent"], authorship=how))
+            if getattr(self.args, "importance", None) or getattr(self.args, "basis", None):
+                plan.appraisals = [appraisal.new_appraisal(
+                    disc_id, self.args.importance or [], self.args.basis, self.args.review_date)]
             if self.formats:
                 header, rows = self.formats
                 unknown = sum(1 for e in entries if (rows.get(e.path) or {}).get("puid", "UNKNOWN") == "UNKNOWN")
@@ -355,6 +362,7 @@ class Maker:
         snapshot.discs += [p.record for p in batch_plans]
         snapshot.bindings += [p.binding for p in batch_plans]
         snapshot.events += [e for p in batch_plans for e in p.events]
+        snapshot.appraisals += [x for p in batch_plans for x in p.appraisals]
         snapshot.locations = (list(self.cat.locations) if a.snapshot == "full"
                               else self.cat.locations_for(snapshot.discs))
         # virtual folders, limited to the discs this snapshot carries (no paths on sealed discs)
@@ -364,6 +372,8 @@ class Maker:
             carried = {"location:" + l.get("Code") for l in snapshot.locations}
             carried |= {"collection:" + c.get("Code") for c in snapshot.collections}
             snapshot.events += [e for e in self.cat.events if e.get("Object") in carried]
+            carried |= {"set:" + d.get("Set") for d in snapshot.discs if d.get("Set")}
+            snapshot.appraisals += [x for x in self.cat.appraisals if x.get("Target") in carried]
         files = {d.get("Id"): self.home.disc_files(d.get("Id")) for d in prior
                  if catalog.access(d) != "sealed"}
         files.update({p.disc_id: batch[p.disc_id] for p in batch_plans})
@@ -380,6 +390,7 @@ class Maker:
         # then this disc's own Disc and Event records. Written last so it can point to every file.
         own = catalog.Catalog()
         own.discs, own.bindings, own.events = [plan.record], [plan.binding], list(plan.events)
+        own.appraisals = list(plan.appraisals)
         own.locations = self.cat.locations_for(own.discs)
         recfile.write(os.path.join(stage, "catalog.rec"),
                       catalog.archive_records(plan.record, stage) + own.records())
@@ -521,6 +532,7 @@ class Maker:
                 self.cat.discs.append(plan.record)
                 self.cat.bindings.append(plan.binding)
                 self.cat.events.extend(plan.events)
+                self.cat.appraisals.extend(plan.appraisals)
                 self.home.store_disc_files(plan.disc_id, {
                     kind: catalog.volume_file(os.path.join(plan.stage, "catalog"), kind, plan.disc_id)
                     for kind in catalog.DISC_FILE_KINDS})

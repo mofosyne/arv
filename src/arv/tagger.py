@@ -327,6 +327,12 @@ def review(suggestions, interactive, ask=input, vocab=None):
     return {f: fix(t) for f, t in accepted.items()}
 
 
+def weakest(a, b):
+    """Authorship of a draft merged from two: the least reviewed part decides."""
+    order = ("suggested", "automatic", "accepted", "edited", "human")
+    return min(a, b, key=lambda x: order.index(x) if x in order else 0)
+
+
 def run(args):
     """`arv tag <folder|disc-id>`"""
     import sys
@@ -372,21 +378,29 @@ def run(args):
 
     interactive = sys.stdin.isatty()
     accepted = review(suggestions, interactive, vocab=vocab)
-    reviewed = interactive
+    if not interactive:
+        how = "suggested"
+    else:
+        offered = review(suggestions, False, vocab=vocab)
+        how = "accepted" if accepted == offered else "edited"
     if interactive and tagger:
         tagger.remember(texts, accepted)
     engine = tagger.agent if tagger else "match rules"
     if tagger and vocab.rules:
         engine = "match rules + " + engine
-    agent = "%s%s" % (engine, " + owner review" if reviewed else " (unreviewed)")
+    if not tagger:
+        how = "automatic" if how == "suggested" else how   # rules alone are software, not a model
+        how = "human" if how == "edited" else how
+    agent = engine
 
     if args.save:
-        draft = {"folder_tags": {f: t for f, t in accepted.items() if t}, "agent": agent}
+        draft = {"folder_tags": {f: t for f, t in accepted.items() if t}, "agent": agent, "authorship": how}
         if os.path.exists(args.save):  # merge into an existing draft (e.g. from `arv describe`)
             with open(args.save, encoding="utf-8") as f:
                 old = json.load(f)
             old.setdefault("folder_tags", {}).update(draft["folder_tags"])
             old["agent"] = "%s; %s" % (old.get("agent", "draft"), agent)
+            old["authorship"] = weakest(old.get("authorship") or "suggested", how)
             draft = old
         with open(args.save, "w", encoding="utf-8") as f:
             json.dump(draft, f, ensure_ascii=False, indent=2)
@@ -394,13 +408,14 @@ def run(args):
         _log("Saved to %s (use: arv make --draft %s ...)" % (args.save, args.save))
     elif disc and (args.apply or interactive):
         merge_into_tags_file(home, disc.get("Id"), accepted)
-        cat.events.append(catalog.new_event(disc.get("Id"), "metadata modification", "success", agent,
+        cat.events.append(catalog.new_event(disc.get("Id"), "metadata modification", "success",
+                                            catalog.reviewed_agents(agent, how),
                                             "folder tags for %d folders from the tag vocabulary"
-                                            % sum(1 for t in accepted.values() if t)))
+                                            % sum(1 for t in accepted.values() if t), authorship=how))
         home.save(cat)
         _log("Updated tags of %s." % disc.get("Id"))
     else:
-        print(json.dumps({"folder_tags": accepted, "agent": agent}, ensure_ascii=False, indent=2))
+        print(json.dumps({"folder_tags": accepted, "agent": agent, "authorship": how}, ensure_ascii=False, indent=2))
     return 0
 
 

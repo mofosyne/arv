@@ -4,7 +4,7 @@ Home layout (the working copy: a .arv folder, found as described in homes.py):
 
     config/         what you set up: sets.rec (vocabulary), tags.rec (tag vocabulary)
     catalog/        the catalogue, laid out exactly like catalog/ on every disc:
-      archive.rec                       Disc / Event / Location / Collection records
+      archive.rec                       Disc / Binding / Location / Collection / Event / Appraisal records
       volumes/<disc-id>/manifest.sha256 that disc's manifest-sha256.txt
       volumes/<disc-id>/listing.tsv     size, modification time and path of each file
       volumes/<disc-id>/formats.csv     PRONOM format of each file (when Siegfried is installed)
@@ -91,9 +91,34 @@ DESCRIPTORS = [
             ("%doc", "Preservation actions and metadata changes, appended and never edited. Type uses\n"
                      "the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType\n"
                      "Disc names the disc; a change to a location or a collection names it in Object\n"
-                     "(location:CODE, collection:CODE) instead. Agent is software, or human:LOGIN."),
+                     "(location:CODE, collection:CODE) instead. Agent (one or more) is software\n"
+                     "(arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).\n"
+                     "Authorship says how people and machines shared the work: automatic (software\n"
+                     "following rules), suggested (a model, not reviewed), accepted (a model's suggestion\n"
+                     "a person kept as it was), edited (one a person changed), human (a person alone)."),
             ("%mandatory", "Type Date Outcome"),
             ("%type", "Outcome enum success failure warning"),
+            ("%type", "Authorship enum automatic suggested accepted edited human"),
+        ],
+    ),
+    recfile.Record(
+        "Appraisal",
+        [
+            ("%rec", "Appraisal"),
+            ("%doc", "The archivist log: how much something matters, to whom, and why. Appended and\n"
+                     "never edited; the newest appraisal of a target replaces earlier ones, and one a\n"
+                     "person made or reviewed outranks a machine's. Target is DISC-ID, DISC-ID:folder/,\n"
+                     "DISC-ID:folder/file (relative to data/), set:CODE or collection:CODE; a target\n"
+                     "without an appraisal takes the nearest one above it (file, folder, disc, set).\n"
+                     "Importance is '<level> for <audience>', one per audience; levels, most first:\n"
+                     "essential (must survive: several copies, one elsewhere), important (on disc),\n"
+                     "useful (on disc if there is room), incidental (everyday storage is enough).\n"
+                     "Only a person can mark something incidental. Basis says why; Review is when to\n"
+                     "look again. Authorship and Agent as in Event."),
+            ("%mandatory", "Target Date Authorship"),
+            ("%type", "Date date"),
+            ("%type", "Review date"),
+            ("%type", "Authorship enum automatic suggested accepted edited human"),
         ],
     ),
 ]
@@ -176,6 +201,7 @@ class Catalog:
         self.locations = []
         self.collections = []
         self.events = []
+        self.appraisals = []
         for r in records or []:
             if r.is_descriptor:
                 continue
@@ -189,10 +215,12 @@ class Catalog:
                 self.collections.append(r)
             elif r.type == "Event":
                 self.events.append(r)
+            elif r.type == "Appraisal":
+                self.appraisals.append(r)
 
     def records(self):
         """Records in file order: each type's descriptor is followed by its records."""
-        disc_desc, binding_desc, location_desc, collection_desc, event_desc = DESCRIPTORS
+        disc_desc, binding_desc, location_desc, collection_desc, event_desc, appraisal_desc = DESCRIPTORS
         out = [disc_desc] + self.discs
         if self.bindings:
             out += [binding_desc] + self.bindings
@@ -200,7 +228,10 @@ class Catalog:
             out += [location_desc] + self.locations
         if self.collections:
             out += [collection_desc] + self.collections
-        return out + [event_desc] + self.events
+        out += [event_desc] + self.events
+        if self.appraisals:
+            out += [appraisal_desc] + self.appraisals
+        return out
 
     # ------------------------------------------------------------ bindings
 
@@ -309,6 +340,10 @@ class Catalog:
     def events_for(self, disc_id):
         return [e for e in self.events if e.get("Disc") == disc_id]
 
+    def appraisals_for_discs(self, disc_ids):
+        """Appraisals of these discs and of paths on them (not of sets or collections)."""
+        return [a for a in self.appraisals if target_disc(a.get("Target")) in disc_ids]
+
     def next_number(self, set_name):
         """Next unused sequence number in a set (numbers are never reused)."""
         from . import discid
@@ -328,6 +363,7 @@ class Catalog:
         c.discs = [d for d in self.discs if d.get("Id") in disc_ids]
         c.bindings = [b for b in self.bindings if b.get("Volume") in disc_ids]
         c.events = [e for e in self.events if e.get("Disc") in disc_ids]
+        c.appraisals = self.appraisals_for_discs(disc_ids)
         c.locations = self.locations_for(c.discs)
         c.collections = self.collections_for(disc_ids, self.sealed_ids())
         return c
@@ -342,6 +378,7 @@ class Catalog:
         c.discs = [sealed_view(d) if d.get("Id") in sealed else d for d in self.discs]
         c.bindings = list(self.bindings)  # how a disc is stored says nothing about what is on it
         c.events = [e for e in self.events if e.get("Disc") not in sealed]
+        c.appraisals = [a for a in self.appraisals if target_disc(a.get("Target")) not in sealed]
         c.locations = list(self.locations)
         c.collections = self.collections_for({d.get("Id") for d in self.discs}, sealed)
         return c
@@ -451,17 +488,67 @@ class Home:
                 shutil.copyfile(src, dest)
 
 
-def new_event(disc_id, type_, outcome, agent, note=None, date=None, obj=None):
+AUTHORSHIP = ("automatic", "suggested", "accepted", "edited", "human")
+MODEL_AGENTS = ("llm:", "embeddings:", "vision:")
+
+
+def is_model(agent):
+    """A model's judgement (not software following rules): its agent names llm:, embeddings:..."""
+    return any(p in (agent or "") for p in MODEL_AGENTS)
+
+
+def default_authorship(agents):
+    if any(is_model(a) for a in agents):
+        return "suggested"    # never claim a review that was not recorded
+    if any((a or "").startswith("human:") for a in agents):
+        return "human"
+    return "automatic"
+
+
+def authorship(record):
+    """A record's Authorship; for events written before it existed, read from the Agent text."""
+    value = record.get("Authorship")
+    if value in AUTHORSHIP:
+        return value
+    agents = record.get_all("Agent")
+    text = " ".join(agents)
+    if "(unreviewed)" in text:
+        return "suggested"
+    if "+ owner review" in text:
+        return "accepted"     # format 0.3: reviewed, whether it was changed was not recorded
+    return default_authorship(agents)
+
+
+def reviewed_agents(agent, how):
+    """Agents of work a model suggested and a person then saw (accepted / edited): both of them."""
+    agents = [agent] if isinstance(agent, str) else list(agent)
+    if how in ("accepted", "edited") and not any(a.startswith("human:") for a in agents):
+        agents.append(person())
+    return agents
+
+
+def new_event(disc_id, type_, outcome, agent, note=None, date=None, obj=None, authorship=None):
+    """agent: one name or a list (e.g. a model and the person who reviewed its suggestion)."""
+    agents = [agent] if isinstance(agent, str) else list(agent)
     r = recfile.Record("Event", [("Disc", disc_id)] if disc_id else [("Object", obj)])
     r.fields += [
         ("Type", type_),
         ("Date", date or today()),
         ("Outcome", outcome),
-        ("Agent", agent),
+        ("Authorship", authorship or default_authorship(agents)),
     ]
+    r.fields += [("Agent", a) for a in agents]
     if note:
         r.add("Note", note)
     return r
+
+
+def target_disc(target):
+    """The disc an appraisal Target is on, or None for set:CODE / collection:CODE."""
+    target = target or ""
+    if target.startswith(("set:", "collection:")):
+        return None
+    return parse_item(target)[0]
 
 
 def person():
@@ -479,7 +566,8 @@ def metadata_change(cat, note, disc_id=None, obj=None):
 
 
 FORMAT_NAME = "smart-archive"
-FORMAT_VERSION = "0.3"  # 0.2: per-volume index files in catalog/volumes/<disc-id>/; 0.3: Binding records
+FORMAT_VERSION = "0.4"  # 0.2: per-volume index files in catalog/volumes/<disc-id>/; 0.3: Binding records;
+                        # 0.4: Authorship, Appraisal records, listing 2
 
 ARCHIVE_DESCRIPTOR = recfile.Record("Archive", [
     ("%rec", "Archive"),
@@ -586,6 +674,11 @@ def merge(home_catalog, other, prefer_other=False):
             home_catalog.events.append(e)
             known.add(_event_key(e))
             events += 1
+    known = {_event_key(a) for a in home_catalog.appraisals}
+    for a in other.appraisals:      # appended records, like events: union
+        if _event_key(a) not in known:
+            home_catalog.appraisals.append(a)
+            known.add(_event_key(a))
     return added, updated, events
 
 

@@ -117,7 +117,10 @@ def review(suggestion, answers, current=None):
     captions = suggestion.get("folder_captions") or {}
     if tags and ask("Keep the %d folder tags%s? [Y/n] " % (len(tags), " and image captions" if captions else "")).lower().startswith("n"):
         tags, captions = {}, {}
+    kept = (title == suggestion["title"] and description == suggestion["description"]
+            and subjects == ", ".join(suggestion["subjects"]) and tags == (suggestion.get("folder_tags") or {}))
     return {
+        "authorship": "accepted" if kept else "edited",
         "folder_captions": captions,
         "title": title,
         "description": description,
@@ -139,6 +142,13 @@ def save_draft(path, draft, agent):
         f.write("\n")
 
 
+def accept_draft(draft):
+    """A person who applies a saved draft (a file they can read and edit) accepts what it suggests."""
+    if draft.get("authorship") == "suggested":
+        draft["authorship"] = "accepted"
+    return draft
+
+
 def load_draft(path):
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
@@ -150,6 +160,9 @@ def load_draft(path):
         "folder_tags": {k: list(v) for k, v in (data.get("folder_tags") or {}).items()},
         "folder_captions": dict(data.get("folder_captions") or {}),
         "agent": data.get("agent") or "draft",
+        # drafts from before Authorship existed: a model's is taken as unreviewed
+        "authorship": data.get("authorship") if data.get("authorship") in catalog.AUTHORSHIP
+        else ("suggested" if catalog.is_model(data.get("agent")) else "human"),
     }
 
 
@@ -212,11 +225,18 @@ def apply_to_disc(home, cat, disc, draft, agent):
         catalog.write_tags(path, draft.get("folder_tags") or {}, draft.get("folder_captions"))
         changed.append("folder tags")
     if changed:
+        how = draft.get("authorship") or catalog.default_authorship([agent])
         cat.events.append(catalog.new_event(
-            disc.get("Id"), "metadata modification", "success", "%s + owner review" % agent,
-            "updated %s (suggested by a local LLM, reviewed by the owner)" % ", ".join(changed)))
+            disc.get("Id"), "metadata modification", "success", catalog.reviewed_agents(agent, how),
+            "updated %s (%s)" % (", ".join(changed), DRAFT_NOTES.get(how, how)), authorship=how))
         home.save(cat)
     return changed
+
+
+DRAFT_NOTES = {"suggested": "suggested by a model, not reviewed",
+               "accepted": "suggested by a model, accepted by a person",
+               "edited": "suggested by a model, changed by a person",
+               "human": "written by a person"}
 
 
 def run(args):
@@ -228,7 +248,7 @@ def run(args):
         # No LLM involved: apply a saved (possibly hand-edited) draft to a disc
         if not disc:
             raise SystemExit("Error: --apply needs a disc id from the catalogue, not %r" % args.target)
-        draft = load_draft(args.apply)
+        draft = accept_draft(load_draft(args.apply))
         changed = apply_to_disc(home, cat, disc, draft, draft["agent"])
         print("%s: updated %s" % (disc.get("Id"), ", ".join(changed) or "nothing"))
         return 0
@@ -268,7 +288,7 @@ def run(args):
     if interactive:
         draft = review(suggestion, answers, current)
     else:
-        draft = dict(suggestion, notes=qa_notes(answers))
+        draft = dict(suggestion, notes=qa_notes(answers), authorship="suggested")
         if not args.save:
             print(json.dumps(draft, ensure_ascii=False, indent=2))
             return 0

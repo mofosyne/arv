@@ -22,6 +22,8 @@ from . import catalog, describe, index, llm, vision
 DISC_FIELDS = ("Id", "Part", "Title", "Set", "Category", "Path", "Coverage", "Date", "Location", "Description", "Subject", "Note", "Files", "Copies")
 
 
+DRAFT_FIELDS = ("title", "description", "subjects", "folder_tags")
+
 def disc_summary(disc):
     out = {}
     for name in DISC_FIELDS:
@@ -168,7 +170,17 @@ class App:
         result = describe.with_vision(result, seen)
         result["seen"] = seen  # sent back on refine so images are only analysed once
         result["agent"] = client.agent
+        self.last_suggestion = {k: result.get(k) for k in DRAFT_FIELDS}
         return result
+
+    def draft_authorship(self, draft):
+        """accepted when the person sent back the model's last suggestion unchanged, else edited."""
+        if not catalog.is_model(draft.get("agent") or "llm"):
+            return "human"
+        last = getattr(self, "last_suggestion", None)
+        sent = {k: draft.get(k) for k in DRAFT_FIELDS}
+        norm = lambda d: {k: v or None for k, v in d.items()}
+        return "accepted" if last is not None and norm(last) == norm(sent) else "edited"
 
     def write_draft(self, draft):
         folder = self.home.drafts_dir
@@ -178,7 +190,8 @@ class App:
             "title": draft.get("title"), "description": draft.get("description"),
             "subjects": draft.get("subjects") or [], "notes": draft.get("notes") or [],
             "folder_tags": draft.get("folder_tags") or {},
-            "folder_captions": draft.get("folder_captions") or {}}, draft.get("agent") or "llm")
+            "folder_captions": draft.get("folder_captions") or {},
+            "authorship": self.draft_authorship(draft)}, draft.get("agent") or "llm")
         return path
 
     def post_make(self, body):

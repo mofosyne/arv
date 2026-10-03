@@ -73,7 +73,7 @@ RS03 error correction) and their catalogue: try `./arv --home samples/home list`
 
 `research/plan.md` has the disc layout, phased plan and open decisions.
 
-`docs/smart-archive-format.md` specifies the on-disc catalogue format (draft 0.3) so other
+`docs/smart-archive-format.md` specifies the on-disc catalogue format (draft 0.4) so other
 cataloguing programs (e.g. Katalog) can read a disc and prefill their database without scanning it.
 
 `research/metadata-standards.md` surveys archival metadata standards (Dublin Core,
@@ -191,6 +191,10 @@ arv make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs
 arv make ./my-git-clone --links record   # links: file links copied, the rest noted in the listing
 #   (default: links leaving the folder are refused; copy: copy what every link points to)
 arv make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03
+arv make ./Kyoto --importance "essential for self" --importance "important for family" --basis "first trip together"
+arv appraise TRIP-01_2019_4:day1/ --importance "essential for family" --review 5y   # the archivist log
+arv appraise TRIP-01_2019_4:day1/IMG_0001.JPG   # the appraisal in force (inherited from day1/)
+arv appraise --due                              # appraisals due for review
 arv find IMG_2019            # which disc holds it, and where the disc is
 arv list --covers 2019-07-15    # discs whose date range includes that day (or 2019, 2019-07)
 arv sets -v                     # the vocabulary tree with disc counts, aliases and match rules

@@ -1,4 +1,4 @@
-# Smart archive disc format (draft 0.3)
+# Smart archive disc format (draft 0.4)
 
 A disc (or any folder, image or drive) that **describes itself**: what it is,
 what is on it, what each file is, how to verify it, and what other discs of the
@@ -68,7 +68,7 @@ first `Archive` record has `Format: smart-archive`**:
 %mandatory: Format Version Disc Uuid
 
 Format: smart-archive
-Version: 0.3
+Version: 0.4
 Disc: 2020-2025_PROJECTS_01
 Uuid: 4f1c2a9e-7b3d-4c55-9e2a-1d0b6f8c3a71
 Manifest: manifest-sha256.txt
@@ -87,14 +87,14 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 
 | Path | Shape | Contents |
 |---|---|---|
-| `catalog.rec` | recfile | `Archive` entry record, then this disc's `Disc` and `Binding` records, the `Location` records it refers to, and its `Event` records |
+| `catalog.rec` | recfile | `Archive` entry record, then this disc's `Disc` and `Binding` records, the `Location` records it refers to, its `Event` records and its `Appraisal` records |
 | `bagit.txt`, `bag-info.txt` | BagIt | Bag declaration; `External-Identifier` = disc Id, `External-Description` = title and description, `Bag-Group-Identifier` = set and `Bag-Count` for multi-disc sets, `Payload-Oxum`, and `Bag-Software-Agent` = `arv@<commit> <https://github.com/mofosyne/arv>` |
 | `manifest-sha256.txt`, `manifest-sha512.txt` | BagIt manifest | `<hash>  data/<path>`, one per payload file (`sha256sum -c` compatible) |
 | `catalog/volumes/<id>/listing.tsv` | TSV | Size, modification time and path of every payload file |
 | `catalog/volumes/<id>/tags.tsv` | TSV | Folder tags and optional image captions |
 | `catalog/volumes/<id>/formats.csv` | CSV | PRONOM format identification per file (optional) |
 | `catalog/volumes/<id>/manifest.sha256` | BagIt manifest | Copy of the disc's `manifest-sha256.txt` |
-| `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Binding`, `Location` and `Event` records (limited by [Access](#access)) |
+| `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Binding`, `Location`, `Event` and `Appraisal` records (limited by [Access](#access)) |
 | `catalog/volumes/<other-id>/` | as above | The same per-volume index files for the other discs in the snapshot: one folder per volume, as LTFS keeps one index per tape |
 | `index.html` | HTML | Offline viewer (for people; readers can ignore) |
 | `data/` | files | The payload, untouched |
@@ -315,9 +315,27 @@ record keeps full precision.
 
 `Disc` (or, for a change to a place or a collection, `Object`: `location:CODE`,
 `collection:CODE`), `Type` (PREMIS event type: `message digest calculation`, `creation`,
-`fixity check`, `format identification`, `metadata modification`,
-`replication`), `Date`, `Outcome` (`success` / `failure` / `warning`), `Agent`
-(software, `human:LOGIN` for a hand edit, or `llm:<model> + owner review`), optional `Note`.
+`fixity check`, `format identification`, `metadata modification`, `ingestion`,
+`replication`), `Date`, `Outcome` (`success` / `failure` / `warning`), `Authorship`,
+one or more `Agent`, optional `Note`.
+
+**Agents** name who did it: software (`arv@COMMIT`, `dvdisaster`), a model (`llm:MODEL`,
+`embeddings:MODEL`) or a person (`human:LOGIN`). **Authorship** says how people and machines
+shared the work, so a reader can always tell a judgement from a computation, and a model's
+guess from a person's decision:
+
+| Authorship | Meaning | Agents |
+|---|---|---|
+| `automatic` | software following rules: repeatable, anyone can re-run it | the software |
+| `suggested` | a model's output that no person reviewed | the model |
+| `accepted` | a model's suggestion a person reviewed and kept as it was | the model, the person |
+| `edited` | a model's suggestion a person changed | the model, the person |
+| `human` | a person, without a machine's suggestion | the person |
+
+Applying a saved draft (a file the person can read and edit) counts as accepting it. Format
+0.3 had no `Authorship`: there a model's agent ended in `+ owner review` (read as `accepted`;
+whether it was changed was not recorded) or `(unreviewed)` (`suggested`). These map onto
+IPTC's digital source types and PREMIS agent roles when the archive is handed on.
 
 Events are appended, never edited. **Every change to the catalogue leaves one:** a note, an
 access level, where a disc is kept, a place or a collection added, moved or renamed
@@ -325,6 +343,51 @@ access level, where a disc is kept, a place or a collection added, moved or rena
 Collection events give counts, never item paths, so they reveal nothing about sealed discs.
 A disc's events follow its access level; events with an `Object` go only into full
 snapshots, for the places and collections that snapshot carries.
+
+### `Appraisal` records (recfile): the archivist log
+
+How much something matters, **to whom**, and **why**, written to read as English:
+
+```
+%rec: Appraisal
+
+Target: TRIP-01_2019_4:day1 Fushimi Inari/
+Importance: essential for self
+Importance: important for family
+Basis: the only photos of that day
+Date: 2026-10-03
+Authorship: human
+Agent: human:LOGIN
+Review: 2031-10-03
+```
+
+- **Target**: `DISC-ID`, `DISC-ID:folder/`, `DISC-ID:folder/file` (relative to `data/`, as in
+  collections), `set:CODE` or `collection:CODE`.
+- **Importance**: `<level> for <audience>`, one per audience. Levels, most first, each tied to
+  what the archive does about it:
+
+  | Level | Meaning |
+  |---|---|
+  | `essential` | must survive: on disc first, two or more copies, one kept elsewhere |
+  | `important` | goes on disc |
+  | `useful` | on disc if there is room; everyday storage is enough otherwise |
+  | `incidental` | everyday storage is enough |
+
+  Audiences are the owner's words (`self`, `family`, `heirs`, `colleagues`, `public`, or a
+  name). Words, not scores: a percentage claims a precision nobody has, and drifts between
+  people, years and models. The overall importance is the highest across audiences; the
+  audiences say which discs to give to whom. Importance is not access: something can be
+  essential for heirs and sealed until then.
+- **Basis**: why. **Review**: when to look again (`arv appraise --due`).
+- **Authorship** and **Agent** as for events. **Only a person can mark something
+  `incidental`**: keeping can be automatic, leaving something out needs a person.
+
+Appraisals are appended, never edited. For a target, the newest appraisal wins among those of
+the highest standing: a person's (`human`, `accepted`, `edited`), then software's
+(`automatic`), then a model's unreviewed suggestion. A target with none takes the nearest
+appraisal above it: file, folder, disc, then the disc's set. A disc carries its own
+appraisals in `catalog.rec`; other discs carry them as they carry its events (none for
+sealed discs), and full snapshots also carry those of the sets and collections they hold.
 
 ### Listing TSV
 
@@ -494,8 +557,9 @@ and set/part numbering beyond a virtual-device parent.
 
 ## Versioning
 
-- `Version: 0.3` is a draft; field names may still change before `1.0`. 0.2 grouped
-  per-volume files by volume; 0.3 moved the medium's fields into `Binding`.
+- `Version: 0.4` is a draft; field names may still change before `1.0`. 0.2 grouped
+  per-volume files by volume; 0.3 moved the medium's fields into `Binding`; 0.4 added
+  `Authorship` to events, `Appraisal` records and listing version 2 (links, executables).
 - Minor versions only add optional fields or files. A major version bump means
   a reader must not assume the old layout.
 - Listing and tags files carry their own header version (`arv listing 2`; readers also
