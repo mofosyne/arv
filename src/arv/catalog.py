@@ -113,7 +113,8 @@ def volume_file(catalog_dir, kind, disc_id):
     """Path of one of a volume's index files inside a catalog/ folder (home or disc)."""
     return os.path.join(catalog_dir, "volumes", disc_id, DISC_FILE_KINDS[kind])
 
-ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
+# No dots: in file names everything before the first dot is the id (TRIP-01_2019_4.noecc.iso)
+ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 LOCATION_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{0,23}$")
 COLLECTION_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{0,31}$")
 

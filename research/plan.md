@@ -240,6 +240,21 @@ Extents: volumes/TRIP-01_2019_4/extents.tsv   (planned, optional: path, start, l
       table-of-contents export via afslib (GPLv3, it can write) or an `afs` binding. Piql's
       ingest (PiqlConnect) runs Archivematica, which accepts our BagIt bags directly.
 
+## Decision (2026-10-03): presets, added only when someone needs one
+
+- A volume is made from one **preset** picked by name, with sane defaults: today only the
+  Blu-ray sizes (`--medium bd25 | bd50 | bd100 | bd128`). Other presets are added **only when
+  someone needs one** (an issue asking for it), not ahead of time. Candidates discussed:
+  `file` (uncompressed tar, no RS03, for NAS on ZFS/Btrfs), `file-ecc` (tar plus an RS03 sidecar;
+  needs a test that dvdisaster's .ecc mode works on a tar), `share` (store-only zip). Never
+  compressed; every volume keeps `data/`, the catalogue, `README.txt` and `tools/` inside.
+- **File names mark deviations** from the preset's defaults with an infix before the extension,
+  from a short fixed vocabulary: `TRIP-01_2019_4.noecc.iso` (done: `--no-ecc`). Normal use has
+  none. The name is a hint for people; the Binding inside the volume is the truth.
+- Disc ids never contain a dot (done), so everything before the first dot is the id.
+- If one volume is ever kept in two renditions (an .iso for the shelf, a .tar for the NAS), it is
+  one volume with several Bindings; its identity is the payload manifest, not the whole image.
+
 ## Direction: a chain of small programs, each carried on every disc (2026-10-01)
 
 The end state is a series of programs run in order, every one of them on every disc, so a

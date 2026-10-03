@@ -22,6 +22,14 @@ def log(msg):
     print(msg, file=sys.stderr)
 
 
+def image_name(disc_id, args):
+    """<disc-id>[.<deviation>...].iso: an infix names each way the image differs from the
+    preset's defaults, so an unprotected image is obvious in any file listing. The name is
+    only a hint: the Binding in the image's catalog.rec is what it is."""
+    infix = [".noecc"] if args.no_ecc else []
+    return disc_id + "".join(infix) + ".iso"
+
+
 @dataclass
 class Plan:
     entries: list
@@ -133,14 +141,14 @@ class Maker:
             except discid.IdError as err:
                 raise SystemExit("Error: %s" % err)
             if not catalog.ID_RE.match(disc_id) or len(disc_id) > image.MAX_VOLID_LEN:
-                raise SystemExit("Error: invalid disc id %r (letters, digits, _ . -; at most %d characters)"
+                raise SystemExit("Error: invalid disc id %r (letters, digits, _ and -; at most %d characters)"
                                  % (disc_id, image.MAX_VOLID_LEN))
             if self.cat.disc(disc_id):
                 raise SystemExit("Error: disc id %s already exists in %s" % (disc_id, self.home.rec_path))
             if self.args.output and n == 1:
                 out = os.path.abspath(self.args.output)
             else:
-                out = os.path.join(os.path.abspath(self.args.output_dir or "."), disc_id + ".iso")
+                out = os.path.join(os.path.abspath(self.args.output_dir or "."), image_name(disc_id, self.args))
             if os.path.exists(out):
                 raise SystemExit("Error: %s already exists" % out)
             plan = Plan(entries=entries, disc_id=disc_id, part=i + 1, parts=n, out=out, sequence=first + i)

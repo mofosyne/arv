@@ -318,6 +318,7 @@ class SplitTest(unittest.TestCase):
         budget = media.data_budget(5000, 20)
         seen = []
         for n, (disc_id, iso, _) in enumerate(lines, 1):
+            self.assertEqual(os.path.basename(iso), disc_id + ".noecc.iso")   # unprotected, and it says so
             self.assertLessEqual(os.path.getsize(iso) // 2048, budget)
             dest = os.path.join(self.tmp, "x", disc_id)
             subprocess.run(["7z", "x", "-o" + dest, iso], check=True, stdout=subprocess.DEVNULL)
@@ -332,6 +333,11 @@ class SplitTest(unittest.TestCase):
             for root, _, names in os.walk(os.path.join(dest, "data")):
                 seen += [os.path.relpath(os.path.join(root, x), os.path.join(dest, "data")) for x in names]
         self.assertEqual(sorted(seen), sorted(e.path for e in bag.scan_payload(self.src, progress=False)))
+
+    def test_disc_ids_have_no_dots(self):
+        code, _ = run_cli("--home", self.home, "make", "-y", "--no-ecc", "--id", "MY.DISC",
+                          "--output-dir", os.path.join(self.tmp, "out"), self.src)
+        self.assertNotEqual(code, 0)
 
     def test_too_big_without_split(self):
         code, out = self.make()
