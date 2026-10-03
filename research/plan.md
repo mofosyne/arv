@@ -101,7 +101,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
       metadata partition, two upstream bugs fixed).
 - [ ] Confirm `src/udfmake/upstream/BUG-REPORT.md` by hand, then send it to NetBSD.
 - [ ] Metadata mirror duplication in udfmake (upstream lacks it).
-- [x] `arv make --filesystem udf250` using it (default stays the ISO9660 + UDF 1.02 hybrid).
+- [x] `arv make --filesystem udf250` using it (the default since 2026-10-03).
 - [ ] Test the images with a Linux kernel mount, Windows and macOS.
 - [ ] Standalone RS03 library (see below). Needs the licence decision first.
 
@@ -144,7 +144,9 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - Disc ids: superseded the 2026-09-29 entry. Scheme `set-seq-coverage/1`
   (`PHOTO-07_2015-2024_Q`), derived from the record's Set, Sequence and Coverage.
 - UDF 2.50: available through `src/udfmake` (NetBSD makefs as a C library and program). The
-  hybrid ISO9660 + UDF 1.02 image stays the default.
+  hybrid ISO9660 + UDF 1.02 image stays the default. *Superseded 2026-10-03: UDF 2.50 is the
+  default (the Blu-ray standard, long Unicode names, no genisoimage needed); `--filesystem hybrid`
+  stays for very old systems and is named `<id>.hybrid.iso`.*
 
 ## Optional: local LLM metadata help (done)
 

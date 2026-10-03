@@ -434,10 +434,10 @@ medium needs a new kind of Binding, not a new format.
 %mandatory: Volume Container Protection
 
 Volume: TRIP-01_2019_4
-Container: iso9660+udf-1.02
+Container: udf-2.50
 Protection: rs03
 Media: M-DISC BD-R 25GB
-Filesystem: ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge
+Filesystem: UDF 2.50, BD-ROM layout with metadata partition (NetBSD makefs via udfmake)
 Ecc: dvdisaster RS03 augmented image, BD-R 25GB (12219392 sectors), minimum 20% redundancy
 MediumSectors: 12219392
 ```

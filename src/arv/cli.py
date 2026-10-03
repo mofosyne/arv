@@ -341,8 +341,8 @@ def check_names(paths, filesystem, ignore_warnings=False):
     issues = names.check(paths, filesystem)
     errors = [i for i in issues if i[1] == "error"]
     if errors:
-        raise SystemExit("Error: %d file name(s) cannot be stored in a %s image (rename them, or use the "
-                         "default hybrid image, which keeps them exactly for Linux):\n%s"
+        raise SystemExit("Error: %d file name(s) cannot be stored in a %s image (rename them, or use "
+                         "--filesystem hybrid, which keeps them exactly for Linux):\n%s"
                          % (len(errors), filesystem, "\n".join(names.report(errors))))
     if issues and not ignore_warnings:
         log("Note: %d file name(s) will look different on Windows/macOS (the manifests and Linux keep "
@@ -1027,9 +1027,10 @@ def build_parser():
                    help="what other discs' catalogues may show of this one: public (also discs given to "
                         "others), private (your own discs; default), sealed (only its id and location)")
     m.add_argument("--rights")
-    m.add_argument("--filesystem", choices=list(image.FILESYSTEMS), default="hybrid",
-                   help="hybrid (default): ISO9660 + Joliet + UDF 1.02, readable almost anywhere; "
-                        "udf250: UDF 2.50 with a metadata partition, as Blu-ray uses (needs src/udfmake)")
+    m.add_argument("--filesystem", choices=list(image.FILESYSTEMS), default="udf250",
+                   help="udf250 (default): UDF 2.50 with a metadata partition, as Blu-ray uses (built by "
+                        "src/udfmake); hybrid: ISO9660 + Rock Ridge + Joliet + UDF 1.02 (needs genisoimage), "
+                        "named <id>.hybrid.iso")
     m.add_argument("--udfmake", help="path to the udfmake program (default: PATH, then src/udfmake/build)")
     m.add_argument("--ignore-names", action="store_true",
                    help="don't list names that Windows/macOS will see shortened or changed (see 'arv names')")

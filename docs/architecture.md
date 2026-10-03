@@ -14,7 +14,7 @@ project works this way: [philosophy.md](philosophy.md). Every field and file in 
 |---|---|---|---|---|
 | 1 | **Content** | The files, untouched, and a hash of each | `data/`, `manifest-sha256.txt`, `manifest-sha512.txt`, `bagit.txt`, `bag-info.txt` (a BagIt bag, RFC 8493) | no |
 | 2 | **Description** | What the files are, and the whole archive they belong to | `catalog.rec`, `catalog/archive.rec`, `catalog/volumes/<id>/`, `README.txt`, `index.html`, `tools/`, `tagmanifest-sha256.txt` | no |
-| 3 | **Container** | How one volume is laid out on its medium | hybrid ISO 9660 + Rock Ridge + Joliet with a UDF 1.02 bridge (default), or UDF 2.50 | **yes** |
+| 3 | **Container** | How one volume is laid out on its medium | UDF 2.50, the Blu-ray standard (default), or a hybrid ISO 9660 + Rock Ridge + Joliet image with a UDF 1.02 bridge | **yes** |
 | 4 | **Protection** | Repair for that medium | dvdisaster RS03 data appended after the filesystem | **yes** |
 | | *Medium* | The physical thing | M-DISC BD-R, two or more identical copies kept apart | **it is the medium** |
 
@@ -31,8 +31,9 @@ record (`catalog.rec`) and a snapshot of the **whole** archive's catalogue at th
 made it and `README.txt`, which says how to check, repair and search the disc. The BagIt tag
 manifest (`tagmanifest-sha256.txt`) holds a hash of every one of these files.
 
-**Container.** Today a disc image: the hybrid image is readable almost anywhere; UDF 2.50 is
-the layout Blu-ray players and recorders expect. Both hold the same files.
+**Container.** Today a disc image: UDF 2.50, the layout Blu-ray players and recorders expect,
+which current Windows, macOS and Linux read; or, for very old systems, a hybrid image with an
+extra ISO 9660 tree. Both hold the same files.
 
 **Protection.** dvdisaster's RS03 adds Reed-Solomon error correction over the whole image,
 filesystem included, sized so the image fills the medium with at least 20% redundancy. A
@@ -55,10 +56,10 @@ catalogue, saying how that volume is stored.
 
 ```rec
 Volume: TRIP-01_2019_4
-Container: iso9660+udf-1.02
+Container: udf-2.50
 Protection: rs03
 Media: M-DISC BD-R 25GB
-Filesystem: ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge
+Filesystem: UDF 2.50, BD-ROM layout with metadata partition (NetBSD makefs via udfmake)
 Ecc: dvdisaster RS03 augmented image, BD-R 25GB (12219392 sectors), minimum 20% redundancy
 MediumSectors: 12219392
 ```
@@ -77,7 +78,7 @@ plain files, so any one of them can be replaced (plan.md, "a chain of small prog
 | 2. Write the bag: manifests and `bag-info.txt`. The source folder is never changed; it is grafted into the image as `data/` | content | `arv` |
 | 3. Describe: set, title, tags, access level; optionally suggestions from a local model | description | `arv` |
 | 4. Snapshot the whole catalogue onto the disc; add `tools/`, `README.txt`, `index.html`, the tag manifests | description | `arv` |
-| 5. Build the image | container | `genisoimage` (hybrid), or `udfmake` (UDF 2.50, from NetBSD's makefs) |
+| 5. Build the image | container | `udfmake` (UDF 2.50, from NetBSD's makefs), or `genisoimage` (hybrid) |
 | 6. Add RS03, sized to the medium | protection | dvdisaster Light (or the speed47 fork; byte-identical output) |
 | 7. Verify the finished image | protection | `dvdisaster -t` |
 | 8. Burn two or more copies, keep them in different places, record it | medium | any burner; `arv burned` |
@@ -95,7 +96,7 @@ anyway, in `tools/`.
 |---|---|---|
 | 1. Read the disc to an image. With two damaged copies, read copy B into copy A's image: only the missing sectors are read | medium | `dvdisaster -r` (`--ignore-iso-size` if the RS03 header itself is unreadable) |
 | 2. Repair the image | protection | `dvdisaster -f` |
-| 3. Open it | container | mount it, or 7-Zip; any OS reads the hybrid image |
+| 3. Open it | container | mount it, or 7-Zip; current Windows, macOS and Linux read UDF 2.50 |
 | 4. Understand it and find things | description | `README.txt`, `index.html`, `grep` in `catalog/`, or `arv find` |
 | 5. Check every file | content | `sha256sum -c manifest-sha256.txt`, or `tools/bagit.py --validate` |
 

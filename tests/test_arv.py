@@ -179,6 +179,15 @@ class HomeLayoutTest(unittest.TestCase):
             self.assertEqual(catalog.Home(disc_catalog).catalog_dir, disc_catalog)
 
 
+class ImageNameTest(unittest.TestCase):
+    def test_infix_names_each_deviation_from_the_defaults(self):
+        from types import SimpleNamespace as A
+        cases = [("udf250", False, "TRIP-01_2019_4.iso"), ("udf250", True, "TRIP-01_2019_4.noecc.iso"),
+                 ("hybrid", False, "TRIP-01_2019_4.hybrid.iso"), ("hybrid", True, "TRIP-01_2019_4.hybrid.noecc.iso")]
+        for fs, no_ecc, name in cases:
+            self.assertEqual(make.image_name("TRIP-01_2019_4", A(filesystem=fs, no_ecc=no_ecc)), name)
+
+
 class HomeDiscoveryTest(unittest.TestCase):
     def test_arv_folder_pointer_disc_root_and_machine_config(self):
         from arv import homes
@@ -724,12 +733,13 @@ class MakeTest(unittest.TestCase):
         src = os.path.join(self.tmp, "Names")
         write(os.path.join(src, "日本語の名前.txt"), "x", 2020)
         write(os.path.join(src, "ünïcode.txt"), "x", 2020)
-        _, _ = self.make(src, "--set", "MISC")
-        iso = os.path.join(self.tmp, "disc%d.iso" % self.count)
-        for handler in ("-tIso", "-tUdf"):            # 7-Zip's ISO reader uses the Joliet names
-            listing = subprocess.run(["7z", "l", handler, "-slt", iso], capture_output=True, text=True).stdout
-            self.assertIn("data/日本語の名前.txt", listing, handler)
-            self.assertIn("data/ünïcode.txt", listing, handler)
+        for fs, handlers in (("udf250", ("-tUdf",)), ("hybrid", ("-tIso", "-tUdf"))):
+            _, _ = self.make(src, "--set", "MISC", "--filesystem", fs)
+            iso = os.path.join(self.tmp, "disc%d.iso" % self.count)
+            for handler in handlers:                  # 7-Zip's ISO reader uses the Joliet names
+                listing = subprocess.run(["7z", "l", handler, "-slt", iso], capture_output=True, text=True).stdout
+                self.assertIn("data/日本語の名前.txt", listing, (fs, handler))
+                self.assertIn("data/ünïcode.txt", listing, (fs, handler))
 
     def test_names_that_udf_cannot_hold_stop_make(self):
         src = os.path.join(self.tmp, "Long")

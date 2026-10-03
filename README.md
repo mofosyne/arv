@@ -28,7 +28,7 @@ How a disc is built, in one picture: [docs/architecture.md](docs/architecture.md
 ## Disc layout
 
 ```
-<disc root>                  filesystem: ISO9660 (Rock Ridge + Joliet) + UDF 1.02 (default), or UDF 2.50
+<disc root>                  filesystem: UDF 2.50 (default), or ISO9660 (Rock Ridge + Joliet) + UDF 1.02 (hybrid)
 ├── bagit.txt                BagIt signature (RFC 8493)
 ├── bag-info.txt             Bagging-Date, Bag-Group-Identifier, Bag-Count "n of N", Payload-Oxum
 ├── manifest-sha256.txt      per-file checksums (`sha256sum -c` compatible)
@@ -96,15 +96,15 @@ or the [speed47 fork](https://github.com/speed47/dvdisaster), for BD-sized image
 ### Install (Linux)
 
 ```sh
-sudo apt install python3 genisoimage build-essential    # Debian/Ubuntu
+sudo apt install python3 build-essential    # Debian/Ubuntu (genisoimage too, for --filesystem hybrid)
 # dvdisaster Light: build it from https://github.com/teaching-droid/dvdisaster-light
 make install PREFIX=~/.local     # or: sudo make install   (/usr/local)
 arv --help
 ```
 
 `make install` copies the last commit (exactly the tree every disc carries in `tools/`) to
-`PREFIX/share/arv`, and puts `arv` and `udfmake` in `PREFIX/bin`. Without installing, `./arv`
-in a checkout does the same.
+`PREFIX/share/arv`, and puts `arv` and `udfmake` in `PREFIX/bin`. Without installing, run `make`
+once in a checkout (it builds `udfmake`), then `./arv` does the same.
 
 ### What it needs
 
@@ -113,8 +113,8 @@ programs, which it finds on `PATH`:
 
 | Program | Needed for | Where it comes from |
 |---|---|---|
-| `genisoimage` | the default hybrid image | your distribution (`apt install genisoimage`) |
-| `udfmake` | `--filesystem udf250` only | this repository: built and installed by `make install` |
+| `udfmake` | the default UDF 2.50 image | this repository: built by `make`, installed by `make install` (needs a C compiler) |
+| `genisoimage` | `--filesystem hybrid` only | your distribution (`apt install genisoimage`) |
 | `dvdisaster` | RS03 error correction (skip with `--no-ecc`, for testing) | **not bundled:** build [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the [speed47 fork](https://github.com/speed47/dvdisaster)); the distro 0.79.10 package works but pads only to the smallest standard size |
 | `sf` (Siegfried), `ffmpeg`, a local LLM | optional extras (format ids, video frames, descriptions) | install if you want them |
 
@@ -179,7 +179,7 @@ arv make ./2025-01-13_Projects_2020_-_2025 --location BOX3
 #  -> prompts for set (PROJ, from the folder name), categories (CODE, ELEC: from the files), title, ...
 #  -> PROJ-01_2020-2025_K.iso  (bag + catalogue + index.html + tools/ + RS03 ECC, verified)
 arv make ./Diaries --access sealed      # other discs' catalogues show only its id and location
-arv make ./Photos --filesystem udf250   # UDF 2.50 image (Blu-ray style) instead of the hybrid ISO; needs src/udfmake
+arv make ./Photos --filesystem hybrid   # ISO 9660 + UDF 1.02 hybrid instead of UDF 2.50 (very old systems; needs genisoimage)
 arv names ./Photos                      # names each image type would shorten or change on Windows/macOS
 # volume label: the disc id, then the title as far as it fits (32 bytes hybrid, 126 characters UDF 2.50);
 # --label TEXT to choose the text, --label '' for the id alone
@@ -234,10 +234,11 @@ searches every disc in its snapshot with nothing but Python.
   `data/ro-crate-metadata.json` (RO-Crate 1.2, passes the validator's required checks).
 - The source folder is never modified: tag files are staged separately and the
   folder is grafted into the image as `data/`.
-- `--filesystem` picks the image: `hybrid` (default: ISO9660 + Rock Ridge + Joliet with a
-  UDF 1.02 bridge, readable almost anywhere) or `udf250` (UDF 2.50 with a metadata partition,
-  built by [`src/udfmake`](src/udfmake/), NetBSD's makefs as a C library and program; run
-  `make -C src/udfmake` once). Both carry the same files, catalogue and RS03 data.
+- `--filesystem` picks the image: `udf250` (default: UDF 2.50 with a metadata partition, the
+  Blu-ray standard, built by [`src/udfmake`](src/udfmake/), NetBSD's makefs as a C library and
+  program) or `hybrid` (ISO9660 + Rock Ridge + Joliet with a UDF 1.02 bridge, for very old
+  systems; needs `genisoimage`; the file is named `<disc-id>.hybrid.iso`). Both carry the same
+  files, catalogue and RS03 data.
 - Disc ids look like `PHOTOS-07_2015-2024_Q`: set, number, coverage and a check character
   that catches typos. They are derived from the record's `Set`, `Sequence` and `Coverage`
   (EDTF: `2019`, `2015/2024`, `199X`, `1995~`) and used as the volume label. `arv id <ID>`

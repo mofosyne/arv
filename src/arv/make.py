@@ -26,7 +26,8 @@ def image_name(disc_id, args):
     """<disc-id>[.<deviation>...].iso: an infix names each way the image differs from the
     preset's defaults, so an unprotected image is obvious in any file listing. The name is
     only a hint: the Binding in the image's catalog.rec is what it is."""
-    infix = [".noecc"] if args.no_ecc else []
+    infix = [".hybrid"] if (getattr(args, "filesystem", None) or "udf250") == "hybrid" else []
+    infix += [".noecc"] if args.no_ecc else []
     return disc_id + "".join(infix) + ".iso"
 
 
@@ -96,7 +97,7 @@ class Maker:
         self.workdir = None
         self.plans = []
         self.formats = None  # (header, {path: row}) from Siegfried
-        self.filesystem = getattr(args, "filesystem", None) or "hybrid"
+        self.filesystem = getattr(args, "filesystem", None) or "udf250"
 
     # ------------------------------------------------------------ planning
 

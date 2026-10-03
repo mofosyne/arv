@@ -68,9 +68,9 @@ poorly; worth it only for a subset you want watched file by file.
 |---|---|---|
 | Python 3 | everything (standard library only) | usually installed |
 | `arv` | the tool | `make install PREFIX=~/.local` in this repository (or run `./arv` from it); `make uninstall PREFIX=~/.local` removes it and leaves your catalogues alone |
-| `genisoimage` | the default hybrid image | `apt install genisoimage` |
 | `dvdisaster` | RS03 error correction | [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) or the [speed47 fork](https://github.com/speed47/dvdisaster) fill a whole BD (byte-identical results); the stock 0.79.10 build works but pads to the smallest standard size |
-| `udfmake` | only for `--filesystem udf250` | installed by `make install` (a C compiler; nothing else) |
+| `udfmake` | the default UDF 2.50 image | built by `make`, installed by `make install` (a C compiler; nothing else) |
+| `genisoimage` | only for `--filesystem hybrid` | `apt install genisoimage` |
 | optional | format IDs, tagging, descriptions | Siegfried (`sf`); `arv models fetch` for `arv tag`; a local LLM server for `arv describe` |
 
 The **home catalogue** is a `.arv` folder at the root of the tree it describes, for example
@@ -124,7 +124,7 @@ project, a year of paperwork.
 
 ```sh
 arv make FOLDER --location HOME-PRV-2026 [--set trip] [--category scan] [--access private]
-                    [--medium bd25|bd100] [--filesystem hybrid|udf250] [--split] [--draft d.json]
+                    [--medium bd25|bd100] [--filesystem udf250|hybrid] [--split] [--draft d.json]
 ```
 
 The choices that matter:
@@ -133,7 +133,7 @@ The choices that matter:
 |---|---|---|
 | `--set` / `--category` | guessed from the folder name and the files (vocabulary aliases and match rules) | the guess is wrong; `arv sets -v` shows the vocabulary |
 | `--medium` | `bd25` (about 20 GB of data at 20% RS03) | `bd100` for BDXL M-DISC |
-| `--filesystem` | `hybrid`: readable almost anywhere, ISO 9660 fallback | `udf250`: longer names on Windows/macOS, Blu-ray style (no metadata mirror yet) |
+| `--filesystem` | `udf250`: the Blu-ray standard; names up to 254 characters everywhere (no metadata mirror yet) | `hybrid`: an extra ISO 9660 tree for very old systems; shorter names on Windows/macOS; named `<id>.hybrid.iso` |
 | `--access` | `private`: your own discs' catalogues only | `public` to appear on discs you give away; `sealed` so other discs carry only its id and location |
 | `--snapshot` | `full`: every disc carries the whole catalogue | `set` for a disc given to someone else (public discs of that set only) |
 | `--split` | off: stop if it doesn't fit | the folder needs several discs (`Bag-Count: n of N`) |
@@ -150,8 +150,8 @@ The choices that matter:
 3. **Plan.** It gives the disc an id derived from Set, Sequence and Coverage,
    plus a check character (`TRIP-01_2019_4`). It then fits the files onto the
    medium at the minimum RS03 redundancy, splitting across discs with `--split`.
-   Sizes are exact: `genisoimage -print-size` for hybrid, and for UDF a real
-   image is built and kept.
+   Sizes are exact: for UDF a real image is built and kept, and
+   `genisoimage -print-size` measures a hybrid one.
 4. **Stage each disc** in a work folder:
    - BagIt files (`bagit.txt`, `bag-info.txt`, manifests, tag manifests);
    - `catalog.rec`: this disc's record, its locations and events, starting with the `Archive` entry record for other software;
@@ -160,8 +160,8 @@ The choices that matter:
    - `README.txt`: recovery instructions in plain text;
    - `tools/`: this repository at its last commit, plus `bagit.py`.
 5. **Build the image.** The folder is grafted in as `data/` and never copied.
-   The hybrid image uses `genisoimage`; UDF 2.50 uses `udfmake`, fed one folder
-   of symlinks.
+   UDF 2.50 uses `udfmake`, fed one folder of symlinks; the hybrid image uses
+   `genisoimage`.
 6. **Protect.** dvdisaster adds RS03 error correction in the space left on the
    medium, then `dvdisaster -t` verifies the result.
 7. **Record.** The disc record and its events (PREMIS types: message digest

@@ -73,8 +73,8 @@ echo "== 4. Scanned letters: SCAN plus the LETTERS category, split over several 
 a make $common --set scan --category letters --location BOX1 --split --title "Letters 1995-2008, scanned" \
     --description "Scans of letters kept since 1995." "$src/Scans_letters"
 
-echo "== 5. Family photos as a UDF 2.50 image; made last, so it carries the whole catalogue"
-a make $common --set family --location OFFSITE --filesystem udf250 \
+echo "== 5. Family photos as a hybrid ISO 9660 + UDF 1.02 image; made last, so it carries the whole catalogue"
+a make $common --set family --location OFFSITE --filesystem hybrid \
     --draft "$(draft family '{"title": "Family photos 2020-2021",
       "description": "Birthdays, the garden, the beach and Christmas.",
       "agent": "sample script (hand-written)",

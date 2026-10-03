@@ -121,8 +121,8 @@ text(bx + bw / 2, by + 16, "Media  Filesystem  Ecc  MediumSectors", 11.5, anchor
 text(bx + bw / 2, by + 33, "the only place the medium is named", 11, fill=MUTED, anchor="middle", italic=True)
 
 band(*Y["container"], "container", "3", "CONTAINER", [
-    ("hybrid (default)", "ISO 9660 + Rock Ridge + Joliet, UDF 1.02 bridge"),
-    ("udf250", "UDF 2.50, Blu-ray layout (src/udfmake)"),
+    ("udf250 (default)", "UDF 2.50, the Blu-ray layout (src/udfmake)"),
+    ("hybrid", "ISO 9660 + Rock Ridge + Joliet, UDF 1.02 bridge"),
 ], "depends on the medium")
 chips(X0 + 14, Y["container"][0] + 76, "other bindings later:", ["LTFS", "exFAT", "tar", "Piql AFS"],
       COL["container"][1])

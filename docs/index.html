@@ -96,10 +96,11 @@ cd arv
 <p>The disc images are in <code>samples/discs/</code>: open one with your file manager or 7-Zip and
 read its <code>README.txt</code>.</p>
 
-<p><strong>2. Make a test image of a small folder</strong> (needs <code>genisoimage</code>).
-<code>--no-ecc</code> skips error correction, so you don't need dvdisaster yet; a separate
-<code>--home</code> keeps the trial apart from anything real.</p>
-<pre><code>sudo apt install genisoimage
+<p><strong>2. Make a test image of a small folder</strong> (needs a C compiler: <code>make</code>
+builds the UDF 2.50 image writer). <code>--no-ecc</code> skips error correction, so you don't
+need dvdisaster yet, and the image is named <code>&lt;disc-id&gt;.noecc.iso</code> to say so; a
+separate <code>--home</code> keeps the trial apart from anything real.</p>
+<pre><code>make
 ./arv --home /tmp/arv-try make ~/some/small/folder --no-ecc --output-dir /tmp
 ./arv --home /tmp/arv-try list</code></pre>
 

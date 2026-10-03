@@ -12,7 +12,7 @@ real personal data).
 | `PROJ-01_2020-2023_L` | `--set project` resolves to **PROJ** through its alias; the vocabulary's `Match` rules added **CODE** and **ELEC** from the files (C sources, KiCad board, gerbers, a git repository) |
 | `TAXES-01_2019-2020_I` | **sealed**: later discs carry only its id, dates and location, never its title or file list; kept in the fire safe |
 | `SCAN-01…03_1995-2008` | `--set scan --category letters` (under both MEMORIES and RECORDS), **split** over three discs (`Bag-Count: n of 3`) |
-| `FAMILY-01_2020-2021_K` | a **UDF 2.50** image (`--filesystem udf250`, built by `src/udfmake`); made last, so it carries the whole catalogue |
+| `FAMILY-01_2020-2021_K` | the one **hybrid** image (`--filesystem hybrid`: ISO 9660 + UDF 1.02, so `FAMILY-01_2020-2021_K.hybrid.iso`); the others are UDF 2.50, the default. Made last, so it carries the whole catalogue |
 
 `home/` is the catalogue these were made into, as `archive` keeps it (without the
 disposable SQLite index), including locations, burned copies and notes recorded
@@ -29,7 +29,7 @@ after the discs were made.
 ./arv --home samples/home list --covers 2019-07-15
 ./arv --home samples/home keywords TRIP-01_2019_4
 
-7z x -oFAMILY samples/discs/FAMILY-01_2020-2021_K.iso   # or mount it (Linux: mount -o loop,ro)
+7z x -oFAMILY samples/discs/FAMILY-01_2020-2021_K.hybrid.iso   # or mount it (Linux: mount -o loop,ro)
 (cd FAMILY && python3 tools/arv/arv --home catalog find Kyoto)   # search every disc from this one
 (cd FAMILY && sha256sum -c manifest-sha256.txt)          # verify
 ```
@@ -53,7 +53,7 @@ repaired back to a byte-identical image.
 - Redundancy varies from 21% to 116%. RS03 fills whatever the 6.5 MB medium leaves
   after the data, and small discs leave a lot. A real 25 GB disc gets at least
   `--min-redundancy` (default 20%).
-- The UDF 2.50 image is larger than the hybrid ones for the same amount of data.
+- The UDF 2.50 images are larger than the hybrid one for the same amount of data.
   UDF 2.50 adds about 1.5–2 MB of fixed overhead (metadata partition and
   allocation tables), which doesn't matter on a real disc.
 - The `Date` fields are the day these were made; coverage comes from the file dates.
