@@ -28,7 +28,8 @@ def image_name(disc_id, args):
     preset's defaults, so an unprotected image is obvious in any file listing. The name is
     only a hint: the Binding in the image's catalog.rec is what it is."""
     infix = [".hybrid"] if (getattr(args, "filesystem", None) or "udf250") == "hybrid" else []
-    infix += [".udfwrite"] if getattr(args, "udf_writer", None) == "udfwrite" else []
+    infix += [".udfmake"] if (getattr(args, "filesystem", None) or "udf250") == "udf250" and \
+        getattr(args, "udf_writer", None) == "udfmake" else []
     infix += [".noecc"] if args.no_ecc else []
     return disc_id + "".join(infix) + ".iso"
 
@@ -244,8 +245,8 @@ class Maker:
             ("Container", image.CONTAINERS[self.filesystem]),
             ("Protection", "none" if a.no_ecc else "rs03"),
             ("Media", a.media or ("M-DISC " + (self.medium_label if self.capacity else "BD-R"))),
-            ("Filesystem", image.UDFWRITE_FILESYSTEM if (self.filesystem == "udf250" and
-                                                         getattr(a, "udf_writer", None) == "udfwrite")
+            ("Filesystem", image.UDFMAKE_FILESYSTEM if (self.filesystem == "udf250" and
+                                                        getattr(a, "udf_writer", None) == "udfmake")
                            else image.FILESYSTEMS[self.filesystem]),
             ("Ecc", ecc),
         ])
@@ -413,7 +414,7 @@ class Maker:
     def measure(self, plan):
         """Exact image size in sectors. genisoimage can print it; for UDF the image is
         built (in the work directory) and kept for build()."""
-        if self.filesystem == "udf250" and getattr(self.args, "udf_writer", None) == "udfwrite":
+        if self.filesystem == "udf250" and getattr(self.args, "udf_writer", None) != "udfmake":
             plan.prebuilt = plan.stage + ".udf"
             plan.extents = plan.stage + ".extents.tsv"
             created = datetime.datetime.strptime(plan.record.get("Date"), "%Y-%m-%d").replace(

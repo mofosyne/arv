@@ -312,6 +312,9 @@ place every structure deliberately for damage resistance.
   while ours writes a real one, and the Linux kernel mounts through it with the main metadata
   destroyed. To do: offer NetBSD a patch giving makefs a real mirror for read-only images (#7),
   after the three bug reports (#6).
+- **udfwrite is the default writer** (2026-10-03), after Linux mounted all three test images
+  (clean, metadata destroyed, anchor 256 destroyed). Windows and macOS are checked as part of the
+  first real burn (#5). `--udf-writer udfmake` keeps the reference writer available.
 - **No UDF reader of our own.** Reading is the operating system's job, and Blu-ray video keeps
   readers around.
 

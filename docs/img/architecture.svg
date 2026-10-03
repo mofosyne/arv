@@ -44,7 +44,7 @@
 <text x='298' y='542' font-size='14' font-weight='bold' fill='#8a5a1f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>3  CONTAINER</text>
 <text x='944' y='542' font-size='11' font-weight='normal' fill='#8a5a1f' text-anchor='end' font-style='italic' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>depends on the medium</text>
 <text x='298' y='566' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>udf250 (default)</text>
-<text x='522' y='566' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>UDF 2.50, the Blu-ray layout (src/udfmake)</text>
+<text x='522' y='566' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>UDF 2.50, the Blu-ray layout, real mirror (src/udfwrite)</text>
 <text x='298' y='584' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>hybrid</text>
 <text x='522' y='584' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>ISO 9660 + Rock Ridge + Joliet, UDF 1.02 bridge</text>
 <text x='298' y='610' font-size='11' font-weight='normal' fill='#8a5a1f' text-anchor='start' font-style='italic' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>other bindings later:</text>
@@ -107,7 +107,7 @@
 <text x='30' y='343' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>detail; add tools/ and README</text>
 <rect x='20' y='524' width='236' height='44' rx='6' fill='#ffffff' stroke='#8a5a1f' stroke-width='1.2'/>
 <text x='30' y='543' font-size='11' font-weight='bold' fill='#8a5a1f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>5 build the image</text>
-<text x='30' y='559' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>genisoimage, or udfmake</text>
+<text x='30' y='559' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>udfwrite, or genisoimage</text>
 <rect x='20' y='638' width='236' height='44' rx='6' fill='#ffffff' stroke='#8a3a2f' stroke-width='1.2'/>
 <text x='30' y='657' font-size='11' font-weight='bold' fill='#8a3a2f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>6 add RS03</text>
 <text x='30' y='673' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>dvdisaster Light</text>

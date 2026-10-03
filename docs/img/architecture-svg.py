@@ -121,7 +121,7 @@ text(bx + bw / 2, by + 16, "Media  Filesystem  Ecc  MediumSectors", 11.5, anchor
 text(bx + bw / 2, by + 33, "the only place the medium is named", 11, fill=MUTED, anchor="middle", italic=True)
 
 band(*Y["container"], "container", "3", "CONTAINER", [
-    ("udf250 (default)", "UDF 2.50, the Blu-ray layout (src/udfmake)"),
+    ("udf250 (default)", "UDF 2.50, the Blu-ray layout, real mirror (src/udfwrite)"),
     ("hybrid", "ISO 9660 + Rock Ridge + Joliet, UDF 1.02 bridge"),
 ], "depends on the medium")
 chips(X0 + 14, Y["container"][0] + 76, "other bindings later:", ["LTFS", "exFAT", "tar", "Piql AFS"],
@@ -162,7 +162,7 @@ step(LX, 170, LW, "content", ["2 bag it (BagIt)", "the folder itself is never ch
 step(LX, 238, LW, "description", ["3 describe", "set, title, tags, access level"])
 step(LX, 292, LW, "description", ["4 snapshot the catalogue", "every disc so far, minus sealed",
                                   "detail; add tools/ and README"])
-step(LX, 524, LW, "container", ["5 build the image", "genisoimage, or udfmake"])
+step(LX, 524, LW, "container", ["5 build the image", "udfwrite, or genisoimage"])
 step(LX, 638, LW, "protection", ["6 add RS03", "dvdisaster Light"])
 step(LX, 692, LW, "protection", ["7 verify the image", "dvdisaster -t"])
 step(LX, 780, LW, "medium", ["8 burn two or more copies", "keep them apart; arv burned"])

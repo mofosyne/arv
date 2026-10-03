@@ -57,8 +57,8 @@ a make $common --set trip --location BOX1 --access public \
                       "day2 Arashiyama": ["place:arashiyama", "nature"], "day3 Kiyomizu-dera": ["place:kiyomizu-dera"]}}')" \
     "$src/2019-07_Kyoto_trip"
 
-echo "== 2. Weather station: the alias 'project' -> PROJ; Match rules add CODE and ELEC; arv's own UDF writer"
-a make $common --set project --location BOX1 --udf-writer udfwrite \
+echo "== 2. Weather station: the alias 'project' -> PROJ; Match rules add CODE and ELEC"
+a make $common --set project --location BOX1 \
     --draft "$(draft proj '{"title": "Weather station project",
       "description": "ESP32 weather station: firmware, KiCad board, gerbers and the git repository.",
       "agent": "sample script (hand-written)",
@@ -67,7 +67,7 @@ a make $common --set project --location BOX1 --udf-writer udfwrite \
     "$src/Projects_weather_station"
 
 echo "== 3. Taxes 2019: sealed (other discs show only its id and location)"
-a make $common --set taxes --location SAFE --access sealed --title "Tax return 2019" \
+a make $common --set taxes --location SAFE --access sealed --udf-writer udfmake --title "Tax return 2019" \
     --description "Tax return and quarterly receipts for 2019." "$src/Taxes_2019"
 
 echo "== 4. Scanned letters: SCAN plus the LETTERS category, split over several discs"

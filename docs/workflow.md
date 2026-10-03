@@ -69,7 +69,7 @@ poorly; worth it only for a subset you want watched file by file.
 | Python 3 | everything (standard library only) | usually installed |
 | `arv` | the tool | `make install PREFIX=~/.local` in this repository (or run `./arv` from it); `make uninstall PREFIX=~/.local` removes it and leaves your catalogues alone |
 | `dvdisaster` | RS03 error correction | [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) or the [speed47 fork](https://github.com/speed47/dvdisaster) fill a whole BD (byte-identical results); the stock 0.79.10 build works but pads to the smallest standard size |
-| `udfmake` | the default UDF 2.50 image | built by `make`, installed by `make install` (a C compiler; nothing else) |
+| `udfwrite` | the default UDF 2.50 image | built by `make`, installed by `make install` (a C compiler; nothing else) |
 | `genisoimage` | only for `--filesystem hybrid` | `apt install genisoimage` |
 | optional | format IDs, tagging, descriptions | Siegfried (`sf`); `arv models fetch` for `arv tag`; a local LLM server for `arv describe` |
 
@@ -160,8 +160,8 @@ The choices that matter:
    - `README.txt`: recovery instructions in plain text;
    - `tools/`: this repository at its last commit, plus `bagit.py`.
 5. **Build the image.** The folder is grafted in as `data/` and never copied.
-   UDF 2.50 uses `udfmake`, fed one folder of symlinks; the hybrid image uses
-   `genisoimage`.
+   UDF 2.50 uses `udfwrite` (or `udfmake` with `--udf-writer udfmake`), fed one
+   folder of symlinks; the hybrid image uses `genisoimage`.
 6. **Protect.** dvdisaster adds RS03 error correction in the space left on the
    medium, then `dvdisaster -t` verifies the result.
 7. **Record.** The disc record and its events (PREMIS types: message digest
@@ -241,11 +241,12 @@ src/arv/                   the workflow, Python standard library only
   cli.py                   commands
   make.py                  the make pipeline (plan, stage, build, protect)
   bag.py  catalog.py  recfile.py  discid.py  sets.py  names.py   formats and rules
-  image.py                 genisoimage / udfmake / dvdisaster
+  image.py                 udfwrite / udfmake / genisoimage / dvdisaster
   html.py  listing.py  gui.py   viewer, file listings, the local web UI
   tagger.py  describe.py  llm.py  vision.py  models.py            optional AI helpers (local only)
   default_sets.rec  default_tags.rec                              starting vocabularies
-src/udfmake/               UDF 2.50 image builder in C: NetBSD makefs, extracted (our copy)
+src/udfwrite/              arv's own UDF 2.50 writer in C (library and program), the default
+src/udfmake/               the reference UDF 2.50 writer in C: NetBSD makefs, extracted (our copy)
 src/udfmake/upstream/      upstream reference: draft bug report, one patch per bug, reproduction
 samples/                   eight small sample discs and their catalogue; the scripts that make them
 tests/                     unit and integration tests
@@ -258,14 +259,14 @@ justfile, Makefile         everyday commands (just), build and install (make)
 
 The layers, from most to least durable:
 1. **Formats:** BagIt, recfiles, TSV, EDTF, and [the spec](smart-archive-format.md). They outlive any code.
-2. **C tools:** `udfmake`, and later an RS03 library. Low-level, reused as they are.
+2. **C tools:** `udfwrite` and `udfmake`, and later an RS03 library. Low-level, reused as they are.
 3. **Python workflow:** it can change freely while the workflow settles, and may be ported to C later ([plan.md](../research/plan.md), decisions 2026-09-30).
 
 ## 8. Developer flows
 
 - **Tests:** `python3 -m unittest discover -s tests`. Add `ARCHIVE_TEST_ECC=1` to include dvdisaster.
 - **Fixtures:** after an intended behaviour change, run `python3 tests/fixtures/generate.py`, then read `git diff tests/fixtures` before committing ([README](../tests/fixtures/README.md)).
-- **Sample discs:** `samples/make-samples.sh` (needs dvdisaster Light or the speed47 fork, and `src/udfmake`) replaces `samples/discs` and `samples/home`.
+- **Sample discs:** `samples/make-samples.sh` (needs dvdisaster Light or the speed47 fork; builds `src/udfwrite` and `src/udfmake`) replaces `samples/discs` and `samples/home`.
 - **udfmake:**
   - `make -C src/udfmake check` (also `asan`, `static`);
   - changes to NetBSD's code go in `src/udfmake/netbsd/`, and each also gets a patch in `src/udfmake/upstream/patches/`;

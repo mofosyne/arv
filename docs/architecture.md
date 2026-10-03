@@ -59,7 +59,7 @@ Volume: TRIP-01_2019_4
 Container: udf-2.50
 Protection: rs03
 Media: M-DISC BD-R 25GB
-Filesystem: UDF 2.50, BD-ROM layout with metadata partition (NetBSD makefs via udfmake)
+Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: dvdisaster RS03 augmented image, BD-R 25GB (12219392 sectors), minimum 20% redundancy
 MediumSectors: 12219392
 ```
@@ -78,7 +78,7 @@ plain files, so any one of them can be replaced (plan.md, "a chain of small prog
 | 2. Write the bag: manifests and `bag-info.txt`. The source folder is never changed; it is grafted into the image as `data/` | content | `arv` |
 | 3. Describe: set, title, tags, access level; optionally suggestions from a local model | description | `arv` |
 | 4. Snapshot the whole catalogue onto the disc; add `tools/`, `README.txt`, `index.html`, the tag manifests | description | `arv` |
-| 5. Build the image | container | `udfmake` (UDF 2.50, from NetBSD's makefs), or `genisoimage` (hybrid) |
+| 5. Build the image | container | `udfwrite` (UDF 2.50, arv's own writer; `udfmake`, NetBSD's makefs, as the reference), or `genisoimage` (hybrid) |
 | 6. Add RS03, sized to the medium | protection | dvdisaster Light (or the speed47 fork; byte-identical output) |
 | 7. Verify the finished image | protection | `dvdisaster -t` |
 | 8. Burn two or more copies, keep them in different places, record it | medium | any burner; `arv burned` |

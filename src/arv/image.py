@@ -109,7 +109,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 CONTAINERS = {"hybrid": "iso9660+udf-1.02", "udf250": "udf-2.50"}  # Binding Container tokens
 FILESYSTEMS = {
     "hybrid": "ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge",
-    "udf250": "UDF 2.50, BD-ROM layout with metadata partition (NetBSD makefs via udfmake)",
+    "udf250": "UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)",
 }
 UDF_OPTIONS = "T=bdrom,v=2.50,V=2.50"
 
@@ -182,7 +182,7 @@ def build_udf(stage, out, volume_id, payload_dir=None, payload_files=None, udfma
 
 # ---------------------------------------------------------------- UDF 2.50 (src/udfwrite)
 
-UDFWRITE_FILESYSTEM = "UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)"
+UDFMAKE_FILESYSTEM = "UDF 2.50, BD-ROM layout with metadata partition (NetBSD makefs via udfmake)"
 
 
 def find_udfwrite(explicit=None):

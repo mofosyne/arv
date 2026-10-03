@@ -1,5 +1,10 @@
 # udfmake: UDF image builder (C library)
 
+**arv's default UDF writer is now [`src/udfwrite`](../udfwrite/)** (a restricted writer with a real
+metadata mirror, [docs/archival-udf.md](../../docs/archival-udf.md)). udfmake stays as the
+reference to compare against (`arv make --udf-writer udfmake`) and as the home of the fixes we
+offer upstream to NetBSD.
+
 Builds UDF images, including Blu-ray **UDF 2.50** with a metadata partition, from
 a folder on Linux. It is NetBSD's `makefs -t udf`, extracted and made into a
 library. This is **our modified copy**; the upstream reference and the bug

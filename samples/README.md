@@ -9,8 +9,8 @@ real personal data).
 | Disc | What it shows |
 |---|---|
 | `TRIP-01_2019_4` | `--set trip`, namespaced folder tags (`place:kyoto`, `event:kyoto-2019`); **public**; kept in Box 1, a second copy at the parents' |
-| `PROJ-01_2020-2023_L` | `--set project` resolves to **PROJ** through its alias; the vocabulary's `Match` rules added **CODE** and **ELEC** from the files (C sources, KiCad board, gerbers, a git repository). Written by **arv's own UDF writer** (`--udf-writer udfwrite`, experimental), so `PROJ-01_2020-2023_L.udfwrite.iso` |
-| `TAXES-01_2019-2020_I` | **sealed**: later discs carry only its id, dates and location, never its title or file list; kept in the fire safe |
+| `PROJ-01_2020-2023_L` | `--set project` resolves to **PROJ** through its alias; the vocabulary's `Match` rules added **CODE** and **ELEC** from the files (C sources, KiCad board, gerbers, a git repository). |
+| `TAXES-01_2019-2020_I` | **sealed**: later discs carry only its id, dates and location, never its title or file list; kept in the fire safe. Written by the reference UDF writer (`--udf-writer udfmake`, NetBSD makefs), so `TAXES-01_2019-2020_I.udfmake.iso`; the other UDF discs come from arv's own writer, the default |
 | `SCAN-01…04_1995-2008` | `--set scan --category letters` (under both MEMORIES and RECORDS), **split** over four discs (`Bag-Count: n of 4`) |
 | `FAMILY-01_2020-2021_K` | the one **hybrid** image (`--filesystem hybrid`: ISO 9660 + UDF 1.02, so `FAMILY-01_2020-2021_K.hybrid.iso`); the others are UDF 2.50, the default. Made last, so it carries the whole catalogue |
 
@@ -61,7 +61,7 @@ repaired back to a byte-identical image.
 ## Remake
 
 ```sh
-make -C src/udfmake                  # once
+make                                 # once: builds src/udfwrite and src/udfmake
 samples/make-samples.sh              # needs genisoimage, git and dvdisaster Light or speed47 on PATH
 ```
 

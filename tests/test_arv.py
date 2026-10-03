@@ -53,12 +53,12 @@ class UdfWriteTest(unittest.TestCase):
             write(os.path.join(two, "b.txt"), "b", 2021)
             out = []
             for src in (one, two):
-                code, o = run_cli("--home", home, "make", "-y", "--no-ecc", "--set", "TRIP", "--udf-writer",
-                                  "udfwrite", "--output-dir", d, src)
+                code, o = run_cli("--home", home, "make", "-y", "--no-ecc", "--set", "TRIP",
+                                  "--output-dir", d, src)
                 self.assertEqual(code, 0, o)
                 out.append(o.split("\t"))
             first_id, first_iso = out[0][0], out[0][1]
-            self.assertTrue(first_iso.endswith(first_id + ".udfwrite.noecc.iso"))
+            self.assertTrue(first_iso.endswith(first_id + ".noecc.iso"))          # the default writer: no infix
             x = os.path.join(d, "x")
             subprocess.run(["7z", "x", "-o" + x, first_iso], check=True, stdout=subprocess.DEVNULL)
             with open(os.path.join(x, "data", "sub", "ünïcode.txt")) as f:
@@ -76,6 +76,18 @@ class UdfWriteTest(unittest.TestCase):
             subprocess.run(["7z", "x", "-o" + y, out[1][1]], check=True, stdout=subprocess.DEVNULL)
             self.assertTrue(os.path.exists(catalog.volume_file(os.path.join(y, "catalog"), "extents", first_id)))
             self.assertFalse(os.path.exists(catalog.volume_file(os.path.join(y, "catalog"), "extents", out[1][0])))
+
+    @unittest.skipUnless(udfmake_available(), "udfmake not available")
+    def test_udfmake_stays_available_as_the_reference(self):
+        with tempfile.TemporaryDirectory() as d:
+            write(os.path.join(d, "src", "a.txt"), "a", 2020)
+            code, o = run_cli("--home", os.path.join(d, "home"), "make", "-y", "--no-ecc", "--set", "TRIP",
+                              "--udf-writer", "udfmake", "--output-dir", d, os.path.join(d, "src"))
+            self.assertEqual(code, 0, o)
+            disc_id, iso = o.split("\t")[:2]
+            self.assertTrue(iso.endswith(disc_id + ".udfmake.noecc.iso"))
+            binding = catalog.Home(os.path.join(d, "home")).load().binding(disc_id)
+            self.assertEqual(binding.get("Filesystem"), image.UDFMAKE_FILESYSTEM)
 
 
 from arv import discid  # noqa: E402
@@ -231,6 +243,8 @@ class HomeLayoutTest(unittest.TestCase):
 class ImageNameTest(unittest.TestCase):
     def test_infix_names_each_deviation_from_the_defaults(self):
         from types import SimpleNamespace as A
+        self.assertEqual(make.image_name("TRIP-01_2019_4", A(filesystem="udf250", no_ecc=False, udf_writer="udfmake")),
+                         "TRIP-01_2019_4.udfmake.iso")
         cases = [("udf250", False, "TRIP-01_2019_4.iso"), ("udf250", True, "TRIP-01_2019_4.noecc.iso"),
                  ("hybrid", False, "TRIP-01_2019_4.hybrid.iso"), ("hybrid", True, "TRIP-01_2019_4.hybrid.noecc.iso")]
         for fs, no_ecc, name in cases:
@@ -407,8 +421,8 @@ class SplitTest(unittest.TestCase):
         self.check_split(out)
 
     def test_split_udf250(self):
-        if not udfmake_available():
-            self.skipTest("udfmake (src/udfmake) and 7z required")
+        if not udfwrite_available():
+            self.skipTest("udfwrite (src/udfwrite) and 7z required")
         code, out = self.make("--split", "--filesystem", "udf250")
         self.assertEqual(code, 0, out)
         self.check_split(out)
@@ -866,11 +880,11 @@ class MakeTest(unittest.TestCase):
 
 
 class Udf250Test(unittest.TestCase):
-    """--filesystem udf250: the same disc contents, as a UDF 2.50 image built by src/udfmake."""
+    """--filesystem udf250 (the default): the same disc contents, as a UDF 2.50 image (src/udfwrite)."""
 
     def setUp(self):
-        if not udfmake_available():
-            self.skipTest("udfmake (src/udfmake) and 7z required")
+        if not udfwrite_available():
+            self.skipTest("udfwrite (src/udfwrite) and 7z required")
         self.tmp = tempfile.mkdtemp()
         self.home = os.path.join(self.tmp, "home")
         self.src = os.path.join(self.tmp, "Projects")

@@ -437,7 +437,7 @@ Volume: TRIP-01_2019_4
 Container: udf-2.50
 Protection: rs03
 Media: M-DISC BD-R 25GB
-Filesystem: UDF 2.50, BD-ROM layout with metadata partition (NetBSD makefs via udfmake)
+Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: dvdisaster RS03 augmented image, BD-R 25GB (12219392 sectors), minimum 20% redundancy
 MediumSectors: 12219392
 ```

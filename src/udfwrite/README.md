@@ -1,10 +1,10 @@
 # udfwrite: closed, read-only UDF 2.50 images for archives
 
-**Experimental.** arv's own UDF writer, implementing [docs/archival-udf.md](../../docs/archival-udf.md):
+**The default UDF writer of arv** (since 2026-10-03), implementing [docs/archival-udf.md](../../docs/archival-udf.md):
 a metadata partition with a **real mirror**, every file in **one contiguous run** in a fixed order,
 and nothing taken from the clock or the machine, so the same folder gives the **same bytes**.
-`src/udfmake/` (NetBSD makefs) stays the default and the reference until readers have been
-tested (issue #18).
+`src/udfmake/` (NetBSD makefs) stays as the reference (`arv make --udf-writer udfmake`). Linux
+reads all test images; Windows and macOS are checked with the first real burn (issues #18, #5).
 
 A library with no dependencies beyond the C library (`udfwrite.h`, `udfwrite.c`): the caller
 adds folders and files, supplies file bytes through a read callback and receives the image
@@ -21,7 +21,7 @@ build/udfwrite -V TRIP-01_2019_4 -L "TRIP-01_2019_4 Kyoto" -S 0123456789abcdef -
 `-t` recording time (seconds since 1970, UTC), `-x` where each file starts (Binding data, kept
 off the disc). Symbolic links are followed; anything that is not a file or folder is refused.
 
-From arv: `arv make FOLDER --udf-writer udfwrite` (the image is named `<disc-id>.udfwrite.iso`).
+From arv: `arv make FOLDER` uses it by default.
 
 ## What `make check` checks
 
