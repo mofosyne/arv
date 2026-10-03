@@ -1,2 +1,2 @@
-# the sample images are committed on purpose (the repository ignores *.iso elsewhere)
-!discs/*.iso
+# Disc images: assets of the "samples" release, not git (samples/fetch-discs.sh)
+discs/
