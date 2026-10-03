@@ -37,8 +37,59 @@ def udfwrite_available():
     return image.find_udfwrite() is not None and shutil.which("7z") is not None
 
 
+def udf_permissions(iso, path):
+    """UDF permission bits of `path` in a UDF 2.50 image with a metadata partition (ECMA-167),
+    read straight from the image: partition descriptor, metadata file, file set, directories."""
+    import struct
+    with open(iso, "rb") as f:
+        img = f.read()
+    sector = lambda n: img[n * 2048:(n + 1) * 2048]
+    avdp = sector(256)
+    vds = struct.unpack_from("<I", avdp, 20)[0]
+    part = next(struct.unpack_from("<I", sector(vds + i), 188)[0] for i in range(16)
+                if struct.unpack_from("<H", sector(vds + i), 0)[0] == 5)
+    meta_fe = sector(part)                                  # metadata file entry: partition block 0
+    l_ea = struct.unpack_from("<I", meta_fe, 208)[0]
+    meta = part + struct.unpack_from("<I", meta_fe, 216 + l_ea + 4)[0]
+    entry = lambda lbn: sector(meta + lbn)
+    lbn = struct.unpack_from("<I", entry(0), 404)[0]        # file set descriptor -> root
+    for name in path.split("/"):
+        e = entry(lbn)
+        l_ea = struct.unpack_from("<I", e, 208)[0]
+        dlen, dpos = struct.unpack_from("<II", e, 216 + l_ea)
+        fids = img[(meta + dpos) * 2048:(meta + dpos) * 2048 + dlen]
+        off, found = 0, None
+        while off < len(fids):
+            lfi, child, liu = fids[off + 19], struct.unpack_from("<I", fids, off + 24)[0], \
+                struct.unpack_from("<H", fids, off + 36)[0]
+            raw = fids[off + 38 + liu:off + 38 + liu + lfi]
+            if raw:
+                text = raw[1:].decode("latin-1") if raw[0] == 8 else raw[1:].decode("utf-16-be")
+                if text == name:
+                    found = child
+            off += (38 + liu + lfi + 3) & ~3
+        if found is None:
+            raise KeyError(path)
+        lbn = found
+    return struct.unpack_from("<I", entry(lbn), 44)[0]
+
+
 @unittest.skipUnless(udfwrite_available(), "udfwrite or 7z not available")
 class UdfWriteTest(unittest.TestCase):
+    def test_executable_scripts_stay_executable(self):
+        """A script with chmod +x in the source can be run straight from the mounted disc."""
+        with tempfile.TemporaryDirectory() as d:
+            repo = os.path.join(d, "repo")
+            write(os.path.join(repo, "scripts", "exampleprog.sh"), "#!/bin/sh\necho hi\n", 2020)
+            os.chmod(os.path.join(repo, "scripts", "exampleprog.sh"), 0o744)   # owner-only +x is enough
+            write(os.path.join(repo, "README.md"), "doc", 2020)
+            code, o = run_cli("--home", os.path.join(d, "home"), "make", "-y", "--no-ecc", "--set", "CODE",
+                              "--output-dir", d, repo)
+            self.assertEqual(code, 0, o)
+            iso = o.split("\t")[1]
+            self.assertEqual(udf_permissions(iso, "data/scripts/exampleprog.sh"), 0x14A5)   # r-x for all
+            self.assertEqual(udf_permissions(iso, "data/README.md"), 0x1084)                # r-- for all
+
     def test_writer_checks(self):
         proc = subprocess.run(["make", "-s", "-C", os.path.join(REPO, "src", "udfwrite"), "check"],
                               capture_output=True, text=True)

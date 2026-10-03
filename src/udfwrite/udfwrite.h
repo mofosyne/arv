@@ -9,7 +9,7 @@
  *
  *     udfw *w = udfw_new(&(udfw_options){ .volume_id = "TRIP-01_2019_4", ... });
  *     udfw_add_dir(w, "data", mtime);
- *     udfw_add_file(w, "data/IMG_0001.JPG", size, mtime, read_cb, file);
+ *     udfw_add_file(w, "data/IMG_0001.JPG", size, mtime, 0644, read_cb, file);
  *     udfw_write(w, write_cb, out, extent_cb, list);    // lays out and writes the whole image
  *     udfw_free(w);
  */
@@ -43,7 +43,10 @@ udfw *udfw_new(const udfw_options *opt);
  * volume's time. Names may not be empty, ".", "..", or longer than UDF allows (255 bytes once
  * encoded). Returns 0, or -1 (see udfw_error). */
 int udfw_add_dir(udfw *w, const char *path, int64_t mtime);
-int udfw_add_file(udfw *w, const char *path, uint64_t size, int64_t mtime,
+/* `mode` is the source's POSIX mode; only the execute bits matter: a file with any of them is
+ * executable by everyone on the image (as genisoimage -r does). Everything is readable by all and
+ * writable by none. */
+int udfw_add_file(udfw *w, const char *path, uint64_t size, int64_t mtime, unsigned mode,
                   udfw_read_fn read, void *file_ctx);
 
 /* Lays out and writes the whole image. `extents` (may be NULL) is called once per file. */

@@ -31,6 +31,8 @@ open("src/a/b/c/deep.txt", "w").write("deep\n")
 open("src/sub dir/100% ünïcode.txt", "w", encoding="utf-8").write("ü\n")
 open("src/日本語の名前.txt", "w", encoding="utf-8").write("jp\n")
 open("src/photo 😀.txt", "w", encoding="utf-8").write("emoji\n")
+open("src/run-me.sh", "w").write("#!/bin/sh\necho it runs from the disc\n")
+import os; os.chmod("src/run-me.sh", 0o755)
 for i in range(1, 121):
     open(f"src/a/file-with-a-fairly-long-name-number-{i}.txt", "w").write(f"{i}\n")
 EOF
@@ -80,15 +82,34 @@ damaged = bytearray(img)
 damaged[256 * 2048:257 * 2048] = bytes(2048)
 open("test.damaged-anchor256.iso", "wb").write(damaged)
 print("ok: wrote test.damaged-metadata.iso and test.damaged-anchor256.iso")
+# permissions: an executable source file is executable by everyone; others are only readable
+meta = P + mp
+fsd = img[meta * 2048:(meta + 1) * 2048]
+root = struct.unpack_from("<I", fsd, 404)[0]
+def entry(lbn):
+    return img[(meta + lbn) * 2048:(meta + lbn + 1) * 2048]
+r = entry(root)
+l_ea = struct.unpack_from("<I", r, 208)[0]
+dlen, dpos = struct.unpack_from("<II", r, 216 + l_ea)
+fids = img[(meta + dpos) * 2048:(meta + dpos) * 2048 + dlen]
+perms, off = {}, 0
+while off < len(fids):
+    lfi, lbn, liu = fids[off + 19], struct.unpack_from("<I", fids, off + 24)[0], struct.unpack_from("<H", fids, off + 36)[0]
+    name = fids[off + 38 + liu + 1:off + 38 + liu + lfi].decode("latin-1") if lfi and fids[off + 38 + liu] == 8 else ""
+    perms[name] = struct.unpack_from("<I", entry(lbn), 44)[0]
+    off += (38 + liu + lfi + 3) & ~3
+if perms.get("run-me.sh") != 0x14A5 or perms.get("empty.txt") != 0x1084:
+    sys.exit("FAILED: permissions %r" % {k: hex(v) for k, v in perms.items() if k in ("run-me.sh", "empty.txt")})
+print("ok: run-me.sh is executable by everyone (r-x r-x r-x); other files read-only (r-- r-- r--)")
 EOF
 
 if command -v udfinfo >/dev/null; then
     info=$(udfinfo test.iso 2>&1)
     echo "$info" | grep -qi warning && no "udfinfo warns: $info"
-    for want in udfrev=2.50 integrity=closed accesstype=readonly numfiles=126 numdirs=6; do
+    for want in udfrev=2.50 integrity=closed accesstype=readonly numfiles=127 numdirs=6; do
         echo "$info" | grep -q "^$want$" || no "udfinfo: expected $want"
     done
-    ok "udfinfo: UDF 2.50, closed, read-only, 126 files, 6 folders, no warnings"
+    ok "udfinfo: UDF 2.50, closed, read-only, 127 files, 6 folders, no warnings"
 fi
 if command -v udfdump >/dev/null; then
     udfdump -b 2048 -S test.iso 2>/dev/null | grep -q "Metadata is duplicated on disc" \

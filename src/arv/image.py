@@ -61,7 +61,8 @@ def _genisoimage(stage, volume_id, payload_dir=None, payload_files=None, extra=(
         "genisoimage", "-quiet",
         "-input-charset", "utf-8",   # source names are UTF-8; the default (locale or ISO-8859-1)
                                      # garbles every non-ASCII name in the Joliet and UDF trees
-        "-udf", "-R", "-J", "-joliet-long",
+        "-udf", "-r", "-J", "-joliet-long",    # -r: Rock Ridge with sane modes: readable by all,
+                                               # executable by all if it was; no owner ids or write bits
         "-allow-lowercase", "-allow-multidot", "-allow-limited-size",
         "-iso-level", "3",
         "-V", volume_id,

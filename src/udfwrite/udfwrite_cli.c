@@ -93,7 +93,7 @@ static void walk(udfw *w, const char *dir, const char *rel)
                 if (!(sources = realloc(sources, capsources * sizeof *sources))) die("out of memory");
             }
             sources[nsources] = disk;
-            if (udfw_add_file(w, path, (uint64_t)st.st_size, (int64_t)st.st_mtime, read_file,
+            if (udfw_add_file(w, path, (uint64_t)st.st_size, (int64_t)st.st_mtime, (unsigned)st.st_mode, read_file,
                               (void *)(uintptr_t)nsources))
                 die(udfw_error(w));
             nsources++;

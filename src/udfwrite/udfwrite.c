@@ -47,6 +47,7 @@ struct node {
     node **kids;
     size_t nkids, capkids;
     int is_dir;
+    int executable;             /* the source had an execute bit */
     uint64_t size;              /* file bytes, or directory FID bytes */
     int64_t mtime;
     udfw_read_fn read;
@@ -299,7 +300,7 @@ static node *walk(udfw *w, const char *path, const char **leaf, size_t *leaf_len
     }
 }
 
-static int add(udfw *w, const char *path, int is_dir, uint64_t size, int64_t mtime,
+static int add(udfw *w, const char *path, int is_dir, uint64_t size, int64_t mtime, unsigned mode,
                udfw_read_fn read, void *file_ctx)
 {
     const char *leaf;
@@ -319,20 +320,21 @@ static int add(udfw *w, const char *path, int is_dir, uint64_t size, int64_t mti
         return fail(w, "%s: name is not valid UTF-8 or longer than UDF allows (255 bytes)", path);
     }
     n->size = size; n->mtime = mtime; n->read = read; n->file_ctx = file_ctx;
+    n->executable = (mode & 0111) != 0;
     if (add_kid(w, dir, n)) { free_node(n); return -1; }
     return 0;
 }
 
 int udfw_add_dir(udfw *w, const char *path, int64_t mtime)
 {
-    return add(w, path, 1, 0, mtime, NULL, NULL);
+    return add(w, path, 1, 0, mtime, 0755, NULL, NULL);
 }
 
-int udfw_add_file(udfw *w, const char *path, uint64_t size, int64_t mtime,
+int udfw_add_file(udfw *w, const char *path, uint64_t size, int64_t mtime, unsigned mode,
                   udfw_read_fn read, void *file_ctx)
 {
     if (!read && size) return fail(w, "%s: no read function", path);
-    return add(w, path, 0, size, mtime, read, file_ctx);
+    return add(w, path, 0, size, mtime, mode, read, file_ctx);
 }
 
 udfw *udfw_new(const udfw_options *opt)
@@ -440,7 +442,10 @@ static void efe(udfw *w, uint8_t *d, const node *n, int type, uint32_t location)
 {
     uint64_t size = n ? n->size : (uint64_t)w->meta_blocks * SECTOR;
     int64_t t = n ? n->mtime : w->opt.time;
-    uint32_t perm = (n && n->is_dir) ? 0x14A5 : 0x1084;  /* read (and search) for all */
+    /* UDF permissions (ECMA-167 4/14.9.5): read for owner, group and other; execute (search) too
+     * for folders and for files that were executable. Other's bits matter most: on a mounted
+     * disc the owner is unknown, so readers are "other". */
+    uint32_t perm = (n && (n->is_dir || n->executable)) ? 0x14A5 : 0x1084;
     uint8_t *ad = d + EFE_BASE;
     uint32_t lad = 0;
     uint16_t ad_type;
