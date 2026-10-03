@@ -242,6 +242,48 @@ Extents: volumes/TRIP-01_2019_4/extents.tsv   (planned, optional: path, start, l
       table-of-contents export via afslib (GPLv3, it can write) or an `afs` binding. Piql's
       ingest (PiqlConnect) runs Archivematica, which accepts our BagIt bags directly.
 
+## Direction (2026-10-03): arv in C, as an Actually Portable Executable
+
+The workflow has settled enough to port. Target: one `arv.com` built with Cosmopolitan, which runs
+on Linux, macOS, Windows and the BSDs (x86-64 and ARM64), carried on every disc in `tools/` next to
+its source. Python stays as the reference implementation until the C version matches it.
+
+- **One binary, libraries linked in:** the UDF 2.50 writer (udfmake, later our own subset) and
+  dvdisaster Light's RS03 code (vendored, pinned, GPLv3 like us) are linked, not run as programs.
+- **The contract:** `tests/fixtures/` (language-neutral TSV cases) must pass in C; then whole
+  images made by both versions are compared byte for byte (with ids and dates fixed).
+- **Order:** (1) format pieces: recfile, disc ids, names, listing, catalogue; (2) BagIt and
+  SHA-256/512 (public-domain code); (3) `arv make` with UDF and RS03 linked; (4) `check`, `find`,
+  `rebuild` and the other commands; (5) the GUI server.
+- **The GUI:** `gui.html` (HTML and JavaScript) stays. Only the backend moves: a localhost-only
+  HTTP/1.1 server with a session token, about ten small JSON endpoints, and jobs that run `arv`
+  commands. The page is embedded in the binary (APE's zip, or a C array). Until step 5 the Python
+  GUI drives the C binary, since it already runs every action as an `arv` subprocess.
+- **recfile:** our own small parser (as in Python), not recutils' `librec`; tests keep checking
+  the output with `recfix`/`recsel` when recutils is installed.
+- **Risks to test early:** reading damaged discs needs dvdisaster's OS-specific SCSI code, which
+  may not work inside an APE binary on Windows or macOS (repairing an image is pure computation
+  and is fine). The optional AI helpers (local LLM, vision, embeddings) stay Python, or come last.
+
+## Design (2026-10-03): a minimal UDF 2.50 writer for archive volumes
+
+NetBSD's makefs is a general UDF writer; we need a small, closed, read-only subset. `src/udfmake/`
+stays as the reference, the fallback, and the place for upstream fixes.
+
+| Keep | Drop |
+|---|---|
+| UDF 2.50, 2048-byte sectors, one partition plus a metadata partition **with a real mirror** (udfmake's mirror points at the same blocks) | rewritable and multi-session media: sparing, VAT, free-space bitmaps for later writes |
+| a closed, read-only volume | symlinks, hard links, devices, extended attributes, named streams, ACLs |
+| regular files and folders; names in OSTA compressed Unicode up to 255 bytes, refused if they don't fit | owner, group and permissions beyond the defaults |
+| each file in one contiguous run of sectors (split only at the 1 GiB extent limit), in a fixed order | fragmented or out-of-order placement |
+| timestamps from the files, identifiers from the disc's UUID | anything random or clock-based |
+
+What it buys: reproducible images (same folder and record, same bytes), `extents.tsv` for free
+(where each file starts, for recovery from a raw image), and a writer small enough to audit.
+Steps: write the subset as a spec; write it in C; compare against udfmake (same files out, both
+pass udftools' `udfinfo`/`udfdump`); test with 7-Zip, the Linux kernel, Windows and macOS and a
+real burn; only then make it the default. The Binding stays `Container: udf-2.50`.
+
 ## Decision (2026-10-03): presets, added only when someone needs one
 
 - A volume is made from one **preset** picked by name, with sane defaults: today only the
