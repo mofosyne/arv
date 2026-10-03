@@ -15,7 +15,7 @@
 %type: Access enum public private sealed
 
 Id: TRIP-01_2019_4
-Uuid: b106fff6-6956-4c7f-99d3-4feee508d9e0
+Uuid: 678b98a1-0673-477c-84fc-cdb6c7e87d26
 IdScheme: set-seq-coverage/1
 Label: TRIP-01_2019_4 Kyoto July 2019
 Title: Kyoto, July 2019
@@ -33,12 +33,12 @@ Location: BOX1
 Access: public
 Files: 16
 Bytes: 9443
-Software: arv@92cb436412eb
+Software: arv@fb031ef204ec
 Copies: 2
 Location: OFFSITE
 
 Id: PROJ-01_2020-2023_L
-Uuid: 97f51ff4-5c1b-404d-aa7d-d9d3c157db73
+Uuid: 4242973a-e4ad-43ee-b939-45dca4077703
 IdScheme: set-seq-coverage/1
 Label: PROJ-01_2020-2023_L Weather station project
 Title: Weather station project
@@ -57,12 +57,12 @@ Location: BOX1
 Access: private
 Files: 56
 Bytes: 32142
-Software: arv@92cb436412eb
+Software: arv@fb031ef204ec
 Copies: 1
 Note: Board rev B; rev A gerbers were never ordered.
 
 Id: TAXES-01_2019-2020_I
-Uuid: 513d99a8-01e2-42d6-bf84-8425c399a4f6
+Uuid: 26df7621-aea0-4cb5-a92c-17bf1f31814e
 IdScheme: set-seq-coverage/1
 Label: TAXES-01_2019-2020_I Tax return 2019
 Title: Tax return 2019
@@ -77,11 +77,11 @@ Location: SAFE
 Access: sealed
 Files: 5
 Bytes: 3196
-Software: arv@92cb436412eb
+Software: arv@fb031ef204ec
 Copies: 1
 
 Id: SCAN-01_1995-2008_D
-Uuid: b8e51df8-6947-4503-88b2-654ca14d404a
+Uuid: 857baa7a-4952-45da-9780-73467b627932
 IdScheme: set-seq-coverage/1
 Label: SCAN-01_1995-2008_D Letters 1995-2008 scanned
 Title: Letters 1995-2008, scanned
@@ -100,11 +100,11 @@ Location: BOX1
 Access: private
 Files: 30
 Bytes: 3005227
-Software: arv@92cb436412eb
+Software: arv@fb031ef204ec
 Copies: 1
 
 Id: SCAN-02_1995-2008_B
-Uuid: d88be8e0-1679-4286-b6f5-b12b586d5f39
+Uuid: b8011838-4bf5-462a-9446-24b639b125b1
 IdScheme: set-seq-coverage/1
 Label: SCAN-02_1995-2008_B Letters 1995-2008 scanned
 Title: Letters 1995-2008, scanned
@@ -123,11 +123,11 @@ Location: BOX1
 Access: private
 Files: 26
 Bytes: 2604927
-Software: arv@92cb436412eb
+Software: arv@fb031ef204ec
 Copies: 1
 
 Id: FAMILY-01_2020-2021_K
-Uuid: 08350511-e4a2-45b9-8f8e-94ce4c701e1e
+Uuid: c38be38e-8ad5-4f28-a53a-27336036a311
 IdScheme: set-seq-coverage/1
 Label: FAMILY-01_2020-2021_K Family pho
 Title: Family photos 2020-2021
@@ -142,7 +142,7 @@ Location: OFFSITE
 Access: private
 Files: 16
 Bytes: 8828
-Software: arv@92cb436412eb
+Software: arv@fb031ef204ec
 Copies: 1
 
 %rec: Binding
@@ -287,7 +287,7 @@ Type: message digest calculation
 Date: 2026-10-03
 Outcome: success
 Authorship: automatic
-Agent: arv@92cb436412eb
+Agent: arv@fb031ef204ec
 Note: sha256 and sha512 manifests of 16 files
 
 Disc: TRIP-01_2019_4
@@ -303,7 +303,7 @@ Type: creation
 Date: 2026-10-03
 Outcome: success
 Authorship: automatic
-Agent: arv@92cb436412eb
+Agent: arv@fb031ef204ec
 Note: image TRIP-01_2019_4.iso, 2098 sectors; RS03: 4 MiB data, 4 MiB ecc (137 roots; 116.1% redundancy), 0 MiB padding.
 
 Disc: TRIP-01_2019_4
@@ -319,7 +319,7 @@ Type: message digest calculation
 Date: 2026-10-03
 Outcome: success
 Authorship: automatic
-Agent: arv@92cb436412eb
+Agent: arv@fb031ef204ec
 Note: sha256 and sha512 manifests of 56 files
 
 Disc: PROJ-01_2020-2023_L
@@ -327,7 +327,7 @@ Type: ingestion
 Date: 2026-10-03
 Outcome: success
 Authorship: automatic
-Agent: arv@92cb436412eb
+Agent: arv@fb031ef204ec
 Note: links: 1 copied, 1 recorded (policy: default)
 
 Disc: PROJ-01_2020-2023_L
@@ -343,7 +343,7 @@ Type: creation
 Date: 2026-10-03
 Outcome: success
 Authorship: automatic
-Agent: arv@92cb436412eb
+Agent: arv@fb031ef204ec
 Note: image PROJ-01_2020-2023_L.iso, 2354 sectors; RS03: 4 MiB data, 4 MiB ecc (123 roots; 93.2% redundancy), 0 MiB padding.
 
 Disc: PROJ-01_2020-2023_L
@@ -359,7 +359,7 @@ Type: message digest calculation
 Date: 2026-10-03
 Outcome: success
 Authorship: automatic
-Agent: arv@92cb436412eb
+Agent: arv@fb031ef204ec
 Note: sha256 and sha512 manifests of 5 files
 
 Disc: TAXES-01_2019-2020_I
@@ -367,7 +367,7 @@ Type: creation
 Date: 2026-10-03
 Outcome: success
 Authorship: automatic
-Agent: arv@92cb436412eb
+Agent: arv@fb031ef204ec
 Note: image TAXES-01_2019-2020_I.udfmake.iso, 2592 sectors; RS03: 5 MiB data, 3 MiB ecc (109 roots; 74.7% redundancy), 0 MiB padding.
 
 Disc: TAXES-01_2019-2020_I
@@ -383,7 +383,7 @@ Type: message digest calculation
 Date: 2026-10-03
 Outcome: success
 Authorship: automatic
-Agent: arv@92cb436412eb
+Agent: arv@fb031ef204ec
 Note: sha256 and sha512 manifests of 30 files
 
 Disc: SCAN-01_1995-2008_D
@@ -391,7 +391,7 @@ Type: creation
 Date: 2026-10-03
 Outcome: success
 Authorship: automatic
-Agent: arv@92cb436412eb
+Agent: arv@fb031ef204ec
 Note: image SCAN-01_1995-2008_D.iso, 3634 sectors; RS03: 7 MiB data, 1 MiB ecc (52 roots; 25.6% redundancy).
 
 Disc: SCAN-01_1995-2008_D
@@ -407,7 +407,7 @@ Type: message digest calculation
 Date: 2026-10-03
 Outcome: success
 Authorship: automatic
-Agent: arv@92cb436412eb
+Agent: arv@fb031ef204ec
 Note: sha256 and sha512 manifests of 26 files
 
 Disc: SCAN-02_1995-2008_B
@@ -415,7 +415,7 @@ Type: creation
 Date: 2026-10-03
 Outcome: success
 Authorship: automatic
-Agent: arv@92cb436412eb
+Agent: arv@fb031ef204ec
 Note: image SCAN-02_1995-2008_B.iso, 3442 sectors; RS03: 6 MiB data, 2 MiB ecc (62 roots; 32.1% redundancy), 0 MiB padding.
 
 Disc: SCAN-02_1995-2008_B
@@ -431,7 +431,7 @@ Type: message digest calculation
 Date: 2026-10-03
 Outcome: success
 Authorship: automatic
-Agent: arv@92cb436412eb
+Agent: arv@fb031ef204ec
 Note: sha256 and sha512 manifests of 16 files
 
 Disc: FAMILY-01_2020-2021_K
@@ -447,7 +447,7 @@ Type: creation
 Date: 2026-10-03
 Outcome: success
 Authorship: automatic
-Agent: arv@92cb436412eb
+Agent: arv@fb031ef204ec
 Note: image FAMILY-01_2020-2021_K.hybrid.iso, 1661 sectors; RS03: 3 MiB data, 5 MiB ecc (161 roots; 171.3% redundancy), 0 MiB padding.
 
 Disc: FAMILY-01_2020-2021_K
@@ -533,7 +533,7 @@ Note: image test with dvdisaster -t
 + Data integrity:
 + - medium sectors   : 4590 total / 1661 data
 + - good image/file  : all sectors present
-+ - data md5sum      : 47c7495fa278670a6cd4f6c8b3cbd77e
++ - data md5sum      : 227e81fbc12033d231834a200d885716
 + - Ecc block test   : pass
 
 Disc: PROJ-01_2020-2023_L
@@ -547,7 +547,7 @@ Note: image test with dvdisaster -t
 + Data integrity:
 + - medium sectors   : 4590 total / 2354 data
 + - good image/file  : all sectors present
-+ - data md5sum      : e369b9750ff0f25ad2053f04c87b3e32
++ - data md5sum      : cf416d9af61033c1962c1ad9ee87a836
 + - Ecc block test   : pass
 
 Disc: SCAN-01_1995-2008_D
@@ -561,7 +561,7 @@ Note: image test with dvdisaster -t
 + Data integrity:
 + - medium sectors   : 4590 total / 3634 data
 + - good image/file  : all sectors present
-+ - data md5sum      : 77ab9bda9d2c1d809bd3b875c41e8456
++ - data md5sum      : c25bf6dc3b57922af6f56a94b32f987a
 + - Ecc block test   : pass
 
 Disc: SCAN-02_1995-2008_B
@@ -575,7 +575,7 @@ Note: image test with dvdisaster -t
 + Data integrity:
 + - medium sectors   : 4590 total / 3442 data
 + - good image/file  : all sectors present
-+ - data md5sum      : 4d0768c1b3aff816dbc8c005d96bdc4b
++ - data md5sum      : eb722c48067aa746c76c395d0abfb847
 + - Ecc block test   : pass
 
 Disc: TAXES-01_2019-2020_I
@@ -589,7 +589,7 @@ Note: image test with dvdisaster -t
 + Data integrity:
 + - medium sectors   : 4590 total / 2592 data
 + - good image/file  : all sectors present
-+ - data md5sum      : d8cb175d86e36632d1f9d428e9928d21
++ - data md5sum      : 5ecd665cb3a608483affbf37c6fa61ca
 + - Ecc block test   : pass
 
 Disc: TRIP-01_2019_4
@@ -603,5 +603,45 @@ Note: image test with dvdisaster -t
 + Data integrity:
 + - medium sectors   : 4590 total / 2098 data
 + - good image/file  : all sectors present
-+ - data md5sum      : c4dd25197942be09f7ea7adeca27b3fb
++ - data md5sum      : 79bd42fd3abef62e82791306fd28a730
 + - Ecc block test   : pass
+
+%rec: Appraisal
+%doc: The archivist log: how much something matters, to whom, and why. Appended and
++ never edited; the newest appraisal of a target replaces earlier ones, and one a
++ person made or reviewed outranks a machine's. Target is DISC-ID, DISC-ID:folder/,
++ DISC-ID:folder/file (relative to data/), set:CODE or collection:CODE; a target
++ without an appraisal takes the nearest one above it (file, folder, disc, set).
++ Importance is '<level> for <audience>', one per audience; levels, most first:
++ essential (must survive: several copies, one elsewhere), important (on disc),
++ useful (on disc if there is room), incidental (everyday storage is enough).
++ Only a person can mark something incidental. Basis says why; Review is when to
++ look again. Authorship and Agent as in Event.
+%mandatory: Target Date Authorship
+%type: Date date
+%type: Review date
+%type: Authorship enum automatic suggested accepted edited human
+
+Target: TRIP-01_2019_4
+Importance: essential for self
+Importance: important for family
+Basis: the only photos of the trip
+Date: 2026-10-03
+Authorship: human
+Agent: human:root
+Review: 2031-10-01
+
+Target: TRIP-01_2019_4:day3 Kiyomizu-dera/
+Importance: useful for family
+Basis: mostly duplicates of day 2
+Date: 2026-10-03
+Authorship: human
+Agent: human:root
+
+Target: set:PROJ
+Importance: important for self
+Importance: useful for public
+Basis: hardware designs: someone may want to rebuild one
+Date: 2026-10-03
+Authorship: human
+Agent: human:root

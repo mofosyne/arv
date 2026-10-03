@@ -100,9 +100,9 @@
 1100	2144	tools/arv/research/rs03/build-tools.sh
 1102	17514	tools/arv/research/rs03/experiments.py
 1111	99	tools/arv/samples/.gitignore
-1112	4331	tools/arv/samples/README.md
+1112	4363	tools/arv/samples/README.md
 1115	8832	tools/arv/samples/gen_sources.py
-1120	4989	tools/arv/samples/make-samples.sh
+1120	5535	tools/arv/samples/make-samples.sh
 1123	4968	tools/arv/scripts/create-archive-iso.sh
 1126	4333	tools/arv/scripts/create-archive-udf.sh
 1129	221	tools/arv/src/arv/__init__.py
