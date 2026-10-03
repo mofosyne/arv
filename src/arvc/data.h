@@ -5,5 +5,6 @@
 extern const char DATA_DESCRIPTORS[];   /* descriptors.rec: the catalogue's record descriptors */
 extern const char DATA_README[];        /* readme.txt: README.txt on every disc (str.format style) */
 extern const char DATA_DEFAULT_SETS[];  /* default_sets.rec: the starting set vocabulary */
+extern const char DATA_INDEX_CSS[];     /* index.css: the style of index.html on every disc */
 
 #endif

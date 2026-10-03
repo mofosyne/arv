@@ -4,12 +4,13 @@
  *
  *   fixtures DIR        prints each failing case; exit 0 when all pass
  */
-#define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 700
 #include "../discid.h"
 #include "../edtf.h"
 #include "../rec.h"
 #include "../sha512.h"
 #include "../vocab.h"
+#include "../arvc.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -174,6 +175,28 @@ static void match_case(char **c, int n)
     expect("match rule", c[0], vocab_path_matches(c[0], c[1]) ? "yes" : "no", c[2]);
 }
 
+/* filesystem, file name, result (ok, warning, error: the worst issue) */
+static void names_case(char **c, int n)
+{
+    name_issues x = { 0 };
+    char *one[1] = { c[1] };
+    if (n < 3) return;
+    names_check(one, 1, !strcmp(c[0], "udf250"), &x);
+    const char *got = "ok";
+    for (size_t i = 0; i < x.n; i++) got = x.v[i].error ? "error" : !strcmp(got, "error") ? got : "warning";
+    names_free(&x);
+    expect("names", c[1], got, c[2]);
+}
+
+/* disc id, text, filesystem, volume label */
+static void label_case(char **c, int n)
+{
+    if (n < 4) return;
+    char *got = volume_label(c[0], c[1], !strcmp(c[2], "udf250"));
+    expect("label", c[1], got, c[3]);
+    free(got);
+}
+
 /* record, type, field, value: every field in file order */
 static rec_file rec;
 static size_t rec_index, field_index;
@@ -276,6 +299,8 @@ int main(int argc, char **argv)
         vocab_free(&fixture_vocab);
     }
     each_case(argv[1], "match-rules.tsv", match_case);
+    each_case(argv[1], "names.tsv", names_case);
+    each_case(argv[1], "labels.tsv", label_case);
     check_recfile(argv[1], "multiline");
     check_recfile(argv[1], "types");
     printf("%d fixture cases, %d failed\n", cases, failures);

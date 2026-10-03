@@ -1,5 +1,5 @@
 /* Reading a disc: manifests, the listing, and the commands info, verify, ls, restore. */
-#define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 700
 #include "arvc.h"
 
 #include <ctype.h>
@@ -54,7 +54,7 @@ int read_manifest(const char *file, manifest *m)
     }
     free(line);
     fclose(fp);
-    qsort(m->e, m->n, sizeof *m->e, by_path);
+    if (m->n) qsort(m->e, m->n, sizeof *m->e, by_path);
     return 0;
 }
 
@@ -102,7 +102,7 @@ int hash_file(const char *path, char hex[65], int out_fd, uint64_t *bytes)
 /* ------------------------------------------------------------------ the disc */
 
 
-void open_disc(const char *root, disc *d)
+void open_disc(const char *root, ondisc *d)
 {
     int bad = 0;
     char *path = join(root, "catalog.rec");
@@ -122,7 +122,7 @@ void open_disc(const char *root, disc *d)
     if (!d->disc || !(d->id = rec_get(d->disc, "Id"))) die("%s/catalog.rec has no Disc record with an Id", root);
 }
 
-char *volume_file(const disc *d, const char *name)
+char *volume_file(const ondisc *d, const char *name)
 {
     char *dir = join(d->root, "catalog/volumes"), *vol = join(dir, d->id), *p = join(vol, name);
     free(dir);
@@ -237,7 +237,7 @@ void print_record(const rec_record *r)
 
 int cmd_info(int argc, char **argv)
 {
-    disc d;
+    ondisc d;
     if (argc != 1) return 2;
     open_disc(argv[0], &d);
     print_record(d.disc);
@@ -309,7 +309,7 @@ void find_extra(const char *root, const char *rel, const manifest *m, tally *t)
 int cmd_verify(int argc, char **argv)
 {
     tally t = { 0 };
-    disc d;
+    ondisc d;
     manifest payload, tags;
     if (argc == 2 && !strcmp(argv[0], "-v")) { t.verbose = 1; argc--; argv++; }
     if (argc != 1) return 2;
@@ -343,7 +343,7 @@ int cmd_verify(int argc, char **argv)
 
 int cmd_ls(int argc, char **argv)
 {
-    disc d;
+    ondisc d;
     listing l;
     if (argc != 1) return 2;
     open_disc(argv[0], &d);
@@ -440,7 +440,7 @@ int cmd_restore(int argc, char **argv)
     int links = 1;
     if (argc >= 1 && !strcmp(argv[0], "--no-links")) { links = 0; argc--; argv++; }
     if (argc != 2) return 2;
-    disc d;
+    ondisc d;
     manifest m;
     listing l = { 0 };
     const char *dest = argv[1];

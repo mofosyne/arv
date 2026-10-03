@@ -39,7 +39,7 @@ RESTORE (copy the files back)
   original folder, execute bits and dates are in the listing,
   catalog/volumes/*/listing.tsv; the reader in tools/ brings them back too,
   checking every file as it copies. Build it with any C compiler:
-    cc -O2 -o arvc tools/{repo}/src/arvc/*.c
+    cc -O2 -o arvc tools/{repo}/src/arvc/*.c tools/{repo}/src/udfwrite/udfwrite.c
     ./arvc verify .                    (or: ./arvc restore . ~/restored)
   Without a compiler, after copying data/ to DEST, recreate the links with:
     awk -F'\t' '$3 ~ /^link (recorded|broken)/ {{print $4 "\t" $5}}' \

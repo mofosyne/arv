@@ -4,18 +4,18 @@ CFLAGS  ?= -O2
 WARN     = -std=c99 -Wall -Wextra -Wpedantic -Wshadow
 BUILD    = build
 LIB      = $(BUILD)/rec.o $(BUILD)/sha256.o $(BUILD)/sha512.o $(BUILD)/edtf.o $(BUILD)/discid.o $(BUILD)/vocab.o $(BUILD)/data.o
-OBJS     = $(BUILD)/arvc.o $(BUILD)/util.o $(BUILD)/disc.o $(BUILD)/catalogue.o $(LIB)
+OBJS     = $(BUILD)/arvc.o $(BUILD)/util.o $(BUILD)/disc.o $(BUILD)/catalogue.o $(BUILD)/names.o $(BUILD)/home.o $(BUILD)/archive.o $(BUILD)/bag.o $(BUILD)/html.o $(BUILD)/make.o $(BUILD)/udfwrite.o $(LIB)
 
 DATA     = DATA_DESCRIPTORS=../arv/descriptors.rec DATA_README=../arv/readme.txt \
-           DATA_DEFAULT_SETS=../arv/default_sets.rec
+           DATA_DEFAULT_SETS=../arv/default_sets.rec DATA_INDEX_CSS=../arv/index.css
 
 all: $(BUILD)/arvc $(BUILD)/fixtures
 
 $(BUILD)/arvc: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJS)
 
-$(BUILD)/fixtures: dev/fixtures.c $(LIB)
-	$(CC) $(CFLAGS) $(WARN) $(LDFLAGS) -o $@ dev/fixtures.c $(LIB)
+$(BUILD)/fixtures: dev/fixtures.c $(LIB) $(BUILD)/names.o $(BUILD)/util.o
+	$(CC) $(CFLAGS) $(WARN) $(LDFLAGS) -o $@ dev/fixtures.c $(LIB) $(BUILD)/names.o $(BUILD)/util.o
 
 $(BUILD)/embed: dev/embed.c
 	@mkdir -p $(BUILD)
@@ -28,6 +28,10 @@ data: $(BUILD)/embed
 data-check: $(BUILD)/embed
 	@$(BUILD)/embed $(BUILD)/data.c $(DATA)
 	@cmp -s data.c $(BUILD)/data.c || { echo "data.c is out of date: run make -C src/arvc data"; exit 1; }
+
+$(BUILD)/udfwrite.o: ../udfwrite/udfwrite.c ../udfwrite/udfwrite.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(WARN) -D_POSIX_C_SOURCE=200809L -c -o $@ ../udfwrite/udfwrite.c
 
 $(BUILD)/%.o: %.c arvc.h rec.h sha256.h sha512.h edtf.h discid.h data.h vocab.h
 	@mkdir -p $(BUILD)

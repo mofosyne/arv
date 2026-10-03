@@ -1,5 +1,5 @@
 /* The set vocabulary (see vocab.h). */
-#define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 700
 #include "vocab.h"
 #include "rec.h"
 
@@ -225,7 +225,7 @@ const char *vocab_guess(const vocab *v, const char *text)
     {   /* codes, longest first: the word starts with one, or one starts with the word */
         const char *(*order)[2] = must(malloc((v->n + 1) * sizeof *order));
         for (size_t i = 0; i < v->n; i++) { order[i][0] = v->e[i].code; order[i][1] = (const char *)(size_t)(i + 1); }
-        qsort(order, v->n, sizeof *order, by_length_desc);
+        if (v->n) qsort(order, v->n, sizeof *order, by_length_desc);
         for (size_t i = 0; i < v->n && !found; i++) {
             const char *c = order[i][0];
             if (!strncmp(key, c, strlen(c)) || (klen >= 3 && !strncmp(c, key, klen))) found = c;
@@ -237,7 +237,7 @@ const char *vocab_guess(const vocab *v, const char *text)
         size_t n = v->alias_keys.n;
         const char *(*order)[2] = must(malloc((n + 1) * sizeof *order));
         for (size_t i = 0; i < n; i++) { order[i][0] = v->alias_keys.v[i]; order[i][1] = (const char *)(size_t)(i + 1); }
-        qsort(order, n, sizeof *order, by_length_desc);
+        if (n) qsort(order, n, sizeof *order, by_length_desc);
         for (size_t i = 0; i < n && !found; i++)
             if (strlen(order[i][0]) >= 4 && !strncmp(key, order[i][0], strlen(order[i][0]))) found = alias(v, order[i][0]);
         free(order);
@@ -294,7 +294,7 @@ static void paths_into(const vocab *v, const char *code, strlist *out, int depth
 void vocab_paths(const vocab *v, const char *code, strlist *out)
 {
     paths_into(v, code, out, 0);
-    qsort(out->v, out->n, sizeof *out->v, by_string);
+    if (out->n) qsort(out->v, out->n, sizeof *out->v, by_string);
 }
 
 int vocab_is_ancestor(const vocab *v, const char *above, const char *code)
@@ -383,7 +383,7 @@ void vocab_rule_suggestions(const vocab *v, char *const *paths, size_t n, strlis
             t[nt++].count = count;
         }
     }
-    qsort(t, nt, sizeof *t, by_count);
+    if (nt) qsort(t, nt, sizeof *t, by_count);
     for (size_t i = 0; i < nt; i++) {       /* keep the most specific: drop codes above another */
         int above = 0;
         for (size_t j = 0; j < nt && !above; j++) above = vocab_is_ancestor(v, t[i].code, t[j].code);

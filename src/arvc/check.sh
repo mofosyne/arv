@@ -49,6 +49,50 @@ grep -q "FAILED   data/docs/guide.md" out.txt && ok "verify finds a damaged file
 if "$tool" restore bad out-bad >out.txt; then no "restore missed damage"; fi
 [ -f out-bad/README.md ] && [ ! -L out-bad/README.md ] \
     && ok "restore keeps a link's copy when its target is damaged" || no "copy of a damaged target"
+# arvc make writes the same disc as the Python arv: two discs into a fresh home each (the second
+# carries the first in its catalogue snapshot), every file compared (UUIDs and versions aside)
+mkdir -p second/letters
+echo "dear diary" > second/letters/2001-05-01.txt
+touch -d '2001-05-01 12:00' second/letters/2001-05-01.txt
+for who in py c; do
+    mkdir -p "$who-home" "$who-out"
+    for folder in src second; do
+        if [ $who = py ]; then
+            python3 "$repo/arv" --home "$who-home" make -y --no-ecc --formats no --set CODE --location BOX1 \
+                --importance "essential for self" --output-dir "$who-out" $folder >/dev/null 2>&1 || no "python make $folder"
+        else
+            "$tool" make -C "$who-home" --no-ecc --set CODE --location BOX1 --importance "essential for self" \
+                --output-dir "$who-out" $folder >/dev/null 2>&1 || no "arvc make $folder"
+        fi
+    done
+done
+norm='s/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/UUID/g; s/arvc?@[0-9a-f]{12}(\+uncommitted)?/SW/g'
+compared=0
+for iso in py-out/*.iso; do
+    name=$(basename "$iso")
+    [ -f "c-out/$name" ] || no "arvc made no $name"
+    rm -rf x-py x-c
+    7z x -ox-py "$iso" >/dev/null && 7z x -ox-c "c-out/$name" >/dev/null
+    [ "$(cd x-py && find . | sort)" = "$(cd x-c && find . | sort)" ] || no "$name: different files"
+    # tag manifests hash the files that differ; extents.tsv (where each file starts in an earlier
+    # image) differs because "arvc@" is a byte longer than "arv@", which moves later files
+    for f in $(cd x-py && find . -type f -not -name 'tagmanifest-*' -not -name extents.tsv | sort); do
+        cmp -s "x-py/$f" "x-c/$f" && continue
+        [ "$(sed -E "$norm" "x-py/$f")" = "$(sed -E "$norm" "x-c/$f")" ] || no "$name: $f differs from python's"
+    done
+    python3 x-c/tools/bagit.py --validate x-c >/dev/null 2>&1 || no "$name: bagit.py says the arvc disc is not valid"
+    compared=$((compared + 1))
+done
+[ "$(sed -E "$norm" py-home/catalog/archive.rec)" = "$(sed -E "$norm" c-home/catalog/archive.rec)" ] \
+    || no "home catalogues differ"
+python3 "$repo/arv" --home c-home list >/dev/null || no "python cannot read the home arvc made"
+ok "arvc make: $compared discs written as python writes them (bagit-valid; the home catalogue too)"
+if command -v dvdisaster >/dev/null && dvdisaster --help 2>&1 | grep -q no-bdr-defect-management; then
+    "$tool" make -C ecc-home --set CODE --medium-sectors 4800 --output-dir ecc-out src >/dev/null 2>&1 || no "arvc make with RS03"
+    grep -q "RS03: " ecc-home/catalog/archive.rec && grep -q "Type: fixity check" ecc-home/catalog/archive.rec \
+        && ok "arvc make with RS03 error correction: image tested by dvdisaster" || no "RS03 events"
+fi
+
 # find and list give the same lines as the Python arv, on the sample catalogue
 same=0
 for q in kyoto IMG '*.png' 'place:*' BOX 2019 nothing-matches; do

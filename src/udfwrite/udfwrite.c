@@ -289,7 +289,14 @@ static node *walk(udfw *w, const char *path, const char **leaf, size_t *leaf_len
         node *next = find_kid(dir, p, len);
         if (!next) {
             next = new_node(dir, p, len, 1);
-            if (!next || add_kid(w, dir, next)) { fail(w, "out of memory"); return NULL; }
+            if (!next) { fail(w, "out of memory"); return NULL; }
+            next->ident_len = cs0(next->name, next->ident, 255);    /* a folder made as a parent needs its name too */
+            if (next->ident_len < 0) {
+                free_node(next);
+                fail(w, "%s: name is not valid UTF-8 or longer than UDF allows (255 bytes)", path);
+                return NULL;
+            }
+            if (add_kid(w, dir, next)) { free_node(next); fail(w, "out of memory"); return NULL; }
             next->mtime = w->opt.time;
         } else if (!next->is_dir) {
             fail(w, "%s: %s is a file, not a folder", path, next->path);

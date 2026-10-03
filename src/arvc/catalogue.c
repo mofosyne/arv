@@ -1,5 +1,5 @@
 /* Reading a catalogue: find, list, id. */
-#define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 700
 #include "arvc.h"
 
 #include <ctype.h>
@@ -43,33 +43,16 @@ char *catalogue_in(const char *path)
 int find_catalogue(const char *given, catalogue *c, int required)
 {
     int bad = 0;
-    const char *env = getenv("ARV_HOME");
-    c->dir = NULL;
-    if (given) {
-        if (!(c->dir = catalogue_in(given))) die("%s: no catalogue here (archive.rec or catalog/archive.rec)", given);
-    } else if (env && *env) {
-        if (!(c->dir = catalogue_in(env))) die("$ARV_HOME=%s: no catalogue there", env);
-    } else {
-        char *here = getcwd(NULL, 4096);
-        while (here && !c->dir) {
-            char *home = join(here, ".arv");
-            c->dir = catalogue_in(home);
-            free(home);
-            if (!c->dir && is_file(here, "catalog.rec")) c->dir = catalogue_in(here);   /* a disc root */
-            char *slash = strrchr(here, '/');
-            if (c->dir || !slash || slash == here) break;
-            *slash = 0;
-        }
-        free(here);
-        if (!c->dir) {
-            if (!required) {
-                memset(&c->rec, 0, sizeof c->rec);
-                return -1;
-            }
-            die("%s", "no catalogue found: give -C (a disc root, its catalog/ folder, or a home)");
-        }
-    }
+    arv_home h;
+    home_find(&h, given, NULL);
+    c->dir = h.catalog_dir;
     char *path = join(c->dir, "archive.rec");
+    if (!is_file(c->dir, "archive.rec")) {      /* an empty home, as the Python arv reads it */
+        memset(&c->rec, 0, sizeof c->rec);
+        free(path);
+        (void)required;
+        return -1;
+    }
     if (rec_read(path, &c->rec, &bad)) {
         fprintf(stderr, "arvc: cannot read %s%s\n", path, errno == EINVAL ? " (a line is not a field)" : "");
         exit(2);
@@ -90,12 +73,16 @@ int is_type(const rec_record *r, const char *type)
 
 const rec_record *location(const catalogue *c, const char *code)
 {
-    for (size_t i = 0; code && i < c->rec.nrecords; i++)
+    if (!code) return NULL;
+    char *want = upper_trim(code);
+    const rec_record *found = NULL;
+    for (size_t i = 0; !found && i < c->rec.nrecords; i++)
         if (is_type(&c->rec.records[i], "Location")) {
             const char *k = rec_get(&c->rec.records[i], "Code");
-            if (k && !strcmp(k, code)) return &c->rec.records[i];
+            if (k && !strcmp(k, want)) found = &c->rec.records[i];
         }
-    return NULL;
+    free(want);
+    return found;
 }
 
 /* "Home / Study / Box 3" for a Location code; free text as it is. Appends to out. */

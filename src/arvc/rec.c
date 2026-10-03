@@ -1,5 +1,5 @@
 /* Reading recfiles (see rec.h). */
-#define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 700
 #include "rec.h"
 
 #include <ctype.h>

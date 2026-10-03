@@ -20,7 +20,7 @@
  * DISC is the root of a mounted disc or an extracted image (the folder with catalog.rec). Needs
  * only C99 and POSIX: the same reading can be done by hand with sha256sum, cat and ln.
  */
-#define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 700
 #include "arvc.h"
 
 #include <ctype.h>
@@ -41,7 +41,10 @@
 
 static void usage(void)
 {
-    fputs("usage: arvc info DISC\n"
+    fputs("usage: arvc init [FOLDER]\n"
+          "       arvc make [-C HOME] [--set CODE] [--title T] [--no-ecc] [--output-dir DIR] ... FOLDER\n"
+          "              (arvc make --help lists every option)\n"
+          "       arvc info DISC\n"
           "       arvc verify [-v] DISC\n"
           "       arvc ls DISC\n"
           "       arvc restore [--no-links] DISC DEST\n"
@@ -60,7 +63,8 @@ int main(int argc, char **argv)
         const char *name;
         int (*fn)(int, char **);
     } cmds[] = { { "info", cmd_info }, { "verify", cmd_verify }, { "ls", cmd_ls }, { "restore", cmd_restore },
-                 { "find", cmd_find }, { "list", cmd_list }, { "id", cmd_id } };
+                 { "find", cmd_find }, { "list", cmd_list }, { "id", cmd_id },
+                 { "init", cmd_init }, { "make", cmd_make } };
     if (argc >= 2 && (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-V"))) {
         puts(VERSION);
         return 0;

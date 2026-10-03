@@ -5,31 +5,12 @@ of truth.
 """
 
 import html
+import os
 import urllib.parse
 
-CSS = """
-:root { --bg:#fdfdfc; --fg:#1d1d1b; --muted:#6b6b66; --line:#e2e1dc; --accent:#1f5fa8; --panel:#f4f3ef; }
-@media (prefers-color-scheme: dark) {
-  :root { --bg:#161615; --fg:#e8e7e3; --muted:#9a9993; --line:#2e2d2a; --accent:#7fb0ea; --panel:#1f1f1d; }
-}
-* { box-sizing: border-box; }
-body { margin:0; background:var(--bg); color:var(--fg);
-       font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-main { max-width:960px; margin:0 auto; padding:24px 16px 64px; }
-h1 { font-size:1.6rem; margin:0 0 4px; }
-h2 { font-size:1.1rem; margin:32px 0 8px; border-bottom:1px solid var(--line); padding-bottom:4px; }
-.id { color:var(--muted); font-family:ui-monospace, monospace; }
-a { color:var(--accent); }
-table { border-collapse:collapse; width:100%; }
-th, td { text-align:left; padding:4px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
-th { color:var(--muted); font-weight:600; white-space:nowrap; width:1%; }
-.note { background:var(--panel); padding:8px 12px; border-radius:6px; margin:6px 0; white-space:pre-wrap; }
-.tree, .tree ul { list-style:none; margin:0; padding-left:18px; }
-.tree { padding-left:0; font-family:ui-monospace, monospace; font-size:13px; }
-.tree summary { cursor:pointer; }
-.size { color:var(--muted); margin-left:8px; }
-.scroll { overflow-x:auto; }
-"""
+# shared with the C port (src/arvc), which compiles it in
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.css"), encoding="utf-8") as _f:
+    CSS = _f.read()
 
 
 def human_size(n):
