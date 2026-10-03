@@ -242,91 +242,90 @@ Extents: volumes/TRIP-01_2019_4/extents.tsv   (planned, optional: path, start, l
       table-of-contents export via afslib (GPLv3, it can write) or an `afs` binding. Piql's
       ingest (PiqlConnect) runs Archivematica, which accepts our BagIt bags directly.
 
-## Direction (2026-10-03): arv in C, as an Actually Portable Executable
+## Decisions (2026-10-03, revised): one codebase, an archival disc writer, a binding per medium
 
-The workflow has settled enough to port. Target: one `arv.com` built with Cosmopolitan, which runs
-on Linux, macOS, Windows and the BSDs (x86-64 and ARM64), carried on every disc in `tools/` next to
-its source. Python stays as the reference implementation until the C version matches it.
+Agreed after pushing back on "UDF for every medium". Supersedes the first drafts of the C port
+and the minimal UDF writer.
 
-- **One binary, libraries linked in:** the UDF 2.50 writer (udfmake, later our own subset) and
-  dvdisaster Light's RS03 code (vendored, pinned, GPLv3 like us) are linked, not run as programs.
-- **The contract:** `tests/fixtures/` (language-neutral TSV cases) must pass in C; then whole
-  images made by both versions are compared byte for byte (with ids and dates fixed).
-- **Order:** (1) format pieces: recfile, disc ids, names, listing, catalogue; (2) BagIt and
-  SHA-256/512 (public-domain code); (3) `arv make` with UDF and RS03 linked; (4) `check`, `find`,
-  `rebuild` and the other commands; (5) the GUI server.
-- **The GUI:** `gui.html` (HTML and JavaScript) stays. Only the backend moves: a localhost-only
-  HTTP/1.1 server with a session token, about ten small JSON endpoints, and jobs that run `arv`
-  commands. The page is embedded in the binary (APE's zip, or a C array). Until step 5 the Python
-  GUI drives the C binary, since it already runs every action as an `arv` subprocess.
-- **recfile:** our own small parser (as in Python), not recutils' `librec`; tests keep checking
-  the output with `recfix`/`recsel` when recutils is installed.
-- **Risks to test early:** reading damaged discs needs dvdisaster's OS-specific SCSI code, which
-  may not work inside an APE binary on Windows or macOS (repairing an image is pure computation
-  and is fine). The optional AI helpers (local LLM, vision, embeddings) stay Python, or come last.
+**Reuse, at the right level.** "Don't redo a solved problem" applies to whole programs: if an
+arv-like program already did 90% of this, we would join it and argue for the other 10%. It does
+not mean calling other people's programs at run time: that breaks the self-contained, long-term
+goal. arv owns its parts, built from source in this repository.
 
-## Design (2026-10-03): a minimal UDF 2.50 writer for archive volumes
+**One codebase in C, as an Actually Portable Executable.** The point of C is to bring the C
+libraries together, so arv is one repository and one program, shipped on every disc. One
+`arv.com` (Cosmopolitan) runs on Linux, macOS, Windows and the BSDs, next to its source in
+`tools/`.
+- The contract: `tests/fixtures/` (language-neutral TSV cases) pass in C, then whole images from
+  both versions compare byte for byte (ids and dates fixed). Python stays the reference until then.
+- Order: (1) format pieces: recfile (our own small parser, checked with `recfix`/`recsel`), disc
+  ids, names, listing, catalogue; (2) BagIt and SHA-256/512; (3) `arv make` with the archival disc
+  writer linked in; (4) `check`, `find`, `rebuild` and the rest; (5) the GUI server: `gui.html`
+  stays, the backend becomes a localhost-only HTTP server with a session token and about ten JSON
+  endpoints. Until then the Python GUI drives the C binary (it already runs every action as an
+  `arv` subprocess).
+- **Burn test discs first.** Before the port goes far, burn a few real test discs with today's
+  Python arv, read them back on other machines, scratch one and repair it (#5, #4). What they teach
+  goes into the C version instead of being found after it.
+- Risks to test early: reading damaged discs needs dvdisaster's OS-specific drive code, which may
+  not work inside an APE binary on Windows or macOS (repairing an image is pure computation). The
+  optional AI helpers stay Python, or come last.
 
-NetBSD's makefs is a general UDF writer; we need a small, closed, read-only subset. `src/udfmake/`
-stays as the reference, the fallback, and the place for upstream fixes.
+**An archival disc writer: one library, UDF and RS03 together.** A disc is written once, whole and
+closed, never appended to: that is what "every disc stands alone" means, and it lets the writer
+place every structure deliberately for damage resistance.
+- **Two modules, one seam.** A UDF 2.50 container writer and an RS03 encoder in one library
+  (working name `libarvdisc`), separable as the four layers require, so another medium can reuse
+  or replace either half.
+- **RS03 stays dvdisaster's format, written by dvdisaster's code** (a pinned copy of dvdisaster
+  Light's source in this repository, built by us: "vendored"). In 20 years someone must be able to
+  repair our disc with dvdisaster even if arv is gone. GPLv3, like arv; the UDF module can still be
+  published separately under BSD-2-Clause if wanted.
+- **The UDF subset:** 2048-byte sectors; one partition plus a metadata partition with a *real*
+  mirror (udfmake's points at the same blocks); a closed, read-only volume; regular files and
+  folders only (no links, devices, extended attributes or named streams); names in OSTA
+  compressed Unicode up to 255 bytes, refused if they don't fit; each file in one contiguous run
+  (split only at the 1 GiB extent limit) in a fixed order; timestamps from the files, identifiers
+  from the disc's UUID, so the same folder and record give the same bytes.
+- **`extents.tsv` comes for free.** The writer plans the whole layout before writing a byte (it
+  knows every file's size), so every file's start sector is decided in advance. `extents.tsv` is
+  itself in the image, so it uses fixed-width numbers: its size depends only on the paths, not on
+  the offsets. (With udfmake, it would have to be read back out of the finished image.)
+- **RS03 reads the laid-out image:** each codeword takes bytes from across the whole image, so the
+  encoder runs over the image after the filesystem is laid out, as dvdisaster does; inside the
+  library, not as a second program.
+- **Checking it:** the Linux kernel mounts it; udftools (`udfinfo`, `udfdump`) and 7-Zip parse it;
+  extracted files match the manifest; images compare against udfmake's for the same folder; then
+  Windows, macOS and a real burn. `src/udfmake/` stays as the reference and for upstream fixes.
+- **No general UDF reader.** Reading is the operating system's job, and Blu-ray video keeps readers
+  around. The last resort needs no UDF code: `extents.tsv` plus the manifest, `dd` and `sha256sum`,
+  documented in `README.txt`.
 
-| Keep | Drop |
-|---|---|
-| UDF 2.50, 2048-byte sectors, one partition plus a metadata partition **with a real mirror** (udfmake's mirror points at the same blocks) | rewritable and multi-session media: sparing, VAT, free-space bitmaps for later writes |
-| a closed, read-only volume | symlinks, hard links, devices, extended attributes, named streams, ACLs |
-| regular files and folders; names in OSTA compressed Unicode up to 255 bytes, refused if they don't fit | owner, group and permissions beyond the defaults |
-| each file in one contiguous run of sectors (split only at the 1 GiB extent limit), in a fixed order | fragmented or out-of-order placement |
-| timestamps from the files, identifiers from the disc's UUID | anything random or clock-based |
+**A binding per medium; the bag never depends on it.** The bag (layers 1 and 2) is the archive; how
+it sits on each medium is a binding, and a future medium (something like Project Silica) gets a new
+binding, not a new format. The spec states, for each binding, where the bag sits, so arv and Katalog
+recognise it the same way: a `catalog.rec` at the bag's root.
 
-**A library others can use**, not just part of arv: its own folder (`src/udfwrite/`, a `.c`/`.h`
-pair plus a tiny CLI), no dependencies beyond the C library, and no file system access of its own:
-the caller lists folders and files and supplies each file's bytes through a read callback, and the
-library hands back sectors through a write callback. That keeps it usable from files, pipes, other
-programs and WebAssembly. Sketch:
+| Binding | Medium | The bag sits | Notes |
+|---|---|---|---|
+| UDF 2.50 image (default on optical) | Blu-ray: presets `bd25`, `bd50`, `bd100`, `bd128` set the capacity and so the space RS03 fills | at the image root | written once, closed; mounts read-only |
+| folder | NAS, USB, any drive with a normal filesystem | in a folder named after the disc id | files directly usable; mark read-only; the manifest detects any change |
+| zip (when asked for) | NAS or cloud when the archive should behave as one sealed object | at the zip root | store mode by default (compression opt-in; ZFS lz4 already compresses transparently); zip64; UTF-8 names |
 
-```c
-udfw *w = udfw_open(&(udfw_options){ .volume_id = "TRIP-01_2019_4", .uuid = ...,
-                                      .write = sink, .ctx = out });
-udfw_add_dir(w, "data/photos", mtime);
-udfw_add_file(w, "data/photos/IMG_0001.JPG", size, mtime, read_cb, file_ctx);
-udfw_close(w, &stats);             /* finishes the image; stats.extents lists where each file is */
-```
-
-**It reads too.** Over 10 to 20 years the OS may not mount UDF 2.50 (optical support is fading,
-and mounting needs a kernel driver and usually root, which containers, phones, locked-down
-machines and WebAssembly lack), and a damaged image is exactly when an OS driver gives up. So the
-library also reads its own subset: list, extract and check files from an image or a raw read of a
-damaged disc, falling back to the metadata mirror and then to `extents.tsv`. It reads only what it
-writes, which keeps it small, and each side tests the other. The last resort needs no UDF code at
-all: `extents.tsv` plus the manifest let anyone cut a file out with `dd` and check it with
-`sha256sum`. (Issue #12, the userspace reader, becomes this.)
-
-**UDF becomes the default container for every medium**, not just Blu-ray: an image mounts on
-current systems, our reader opens it where they can't, and contiguous files plus `extents.tsv`
-survive damage. That likely replaces the `file` (tar) and `share` (zip) preset ideas: a
-`.noecc.iso` on a self-healing NAS does the same job. Two guards: UDF is the default *container*,
-not the format (layers 1 and 2 never depend on it; the Binding names it), and one container
-everywhere is a monoculture, so keep udfmake as an independent reference, test with outside
-readers, and rely on the BagIt manifests and `extents.tsv` as checks and fallback. The bag as a
-plain folder (no container) remains the simplest form for a NAS if anyone asks for it.
-
-Licence to decide when it is split out: BSD-2-Clause (recommended: matches the NetBSD code it
-learns from, and lets any program embed it) or GPL-3.0 like the rest of arv.
-
-What it buys: reproducible images (same folder and record, same bytes), `extents.tsv` for free
-(where each file starts, for recovery from a raw image), and a writer small enough to audit.
-Steps: write the subset as a spec; write it in C; compare against udfmake (same files out, both
-pass udftools' `udfinfo`/`udfdump`); test with 7-Zip, the Linux kernel, Windows and macOS and a
-real burn; only then make it the default. The Binding stays `Container: udf-2.50`.
+- **Accidental changes** are caught by the BagIt manifest whatever the binding (`arv check`,
+  `sha256sum -c`); ZFS snapshots make them reversible. Read-only images and one-object zips also
+  make them less likely.
+- **Not `.iso.gz`:** gzip is one stream over the whole image, so there is no random access (one file
+  means decompressing everything before it) and one bad byte destroys everything after it. Zip
+  compresses each file on its own.
 
 ## Decision (2026-10-03): presets, added only when someone needs one
 
 - A volume is made from one **preset** picked by name, with sane defaults: today only the
   Blu-ray sizes (`--medium bd25 | bd50 | bd100 | bd128`). Other presets are added **only when
-  someone needs one** (an issue asking for it), not ahead of time. Candidates discussed:
-  `file` (uncompressed tar, no RS03, for NAS on ZFS/Btrfs), `file-ecc` (tar plus an RS03 sidecar;
-  needs a test that dvdisaster's .ecc mode works on a tar), `share` (store-only zip). Never
-  compressed; every volume keeps `data/`, the catalogue, `README.txt` and `tools/` inside.
+  someone needs one** (an issue asking for it), not ahead of time. Next candidates: `folder` and
+  `zip` (see the bindings table above). Every volume keeps `data/`, the catalogue, `README.txt`
+  and `tools/` inside.
 - **File names mark deviations** from the preset's defaults with an infix before the extension,
   from a short fixed vocabulary: `TRIP-01_2019_4.noecc.iso` (done: `--no-ecc`). Normal use has
   none. The name is a hint for people; the Binding inside the volume is the truth.
@@ -335,6 +334,9 @@ real burn; only then make it the default. The Binding stays `Container: udf-2.50
   one volume with several Bindings; its identity is the payload manifest, not the whole image.
 
 ## Direction: a chain of small programs, each carried on every disc (2026-10-01)
+
+*Revised 2026-10-03: the steps stay, but as libraries linked into one `arv` program rather than
+separate programs run in order (see "one codebase" above); the reasons below for each step hold.*
 
 The end state is a series of programs run in order, every one of them on every disc, so a
 disc can be read, checked, repaired and searched with what is on it. Each program is small,
