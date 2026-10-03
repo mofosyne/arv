@@ -5,10 +5,11 @@
  *   fixtures DIR        prints each failing case; exit 0 when all pass
  */
 #define _POSIX_C_SOURCE 200809L
-#include "discid.h"
-#include "edtf.h"
-#include "rec.h"
-#include "sha512.h"
+#include "../discid.h"
+#include "../edtf.h"
+#include "../rec.h"
+#include "../sha512.h"
+#include "../vocab.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -142,6 +143,37 @@ static void parse_case(char **c, int n)
     expect("parse", c[0], got, want);
 }
 
+static vocab fixture_vocab;
+
+/* code, paths (space separated) */
+static void vocab_paths_case(char **c, int n)
+{
+    strlist p = { 0 };
+    char got[1024] = "";
+    vocab_paths(&fixture_vocab, c[0], &p);
+    for (size_t i = 0; i < p.n; i++) {
+        if (i) strcat(got, " ");
+        strcat(got, p.v[i]);
+    }
+    strlist_free(&p);
+    expect("vocab paths", c[0], got, n > 1 ? c[1] : "");
+}
+
+/* word, resolve, guess */
+static void vocab_words_case(char **c, int n)
+{
+    const char *r = vocab_resolve(&fixture_vocab, c[0]), *g = vocab_guess(&fixture_vocab, c[0]);
+    expect("vocab resolve", c[0], r ? r : "", n > 1 ? c[1] : "");
+    expect("vocab guess", c[0], g ? g : "", n > 2 ? c[2] : "");
+}
+
+/* pattern, path, matches */
+static void match_case(char **c, int n)
+{
+    if (n < 3) return;
+    expect("match rule", c[0], vocab_path_matches(c[0], c[1]) ? "yes" : "no", c[2]);
+}
+
 /* record, type, field, value: every field in file order */
 static rec_file rec;
 static size_t rec_index, field_index;
@@ -233,6 +265,17 @@ int main(int argc, char **argv)
     each_case(argv[1], "check-chars.tsv", check_char_case);
     each_case(argv[1], "disc-id-compose.tsv", compose_case);
     each_case(argv[1], "disc-id-parse.tsv", parse_case);
+    char path[4096], err[256];
+    snprintf(path, sizeof path, "%s/vocab.rec", argv[1]);
+    if (vocab_load(&fixture_vocab, path, NULL, err, sizeof err)) {
+        printf("FAIL %s\n", err);
+        failures++;
+    } else {
+        each_case(argv[1], "vocab-paths.tsv", vocab_paths_case);
+        each_case(argv[1], "vocab-words.tsv", vocab_words_case);
+        vocab_free(&fixture_vocab);
+    }
+    each_case(argv[1], "match-rules.tsv", match_case);
     check_recfile(argv[1], "multiline");
     check_recfile(argv[1], "types");
     printf("%d fixture cases, %d failed\n", cases, failures);

@@ -26,102 +26,10 @@ import shutil
 
 from . import homes, recfile
 
-DESCRIPTORS = [
-    recfile.Record(
-        "Disc",
-        [
-            ("%rec", "Disc"),
-            ("%doc", "One record per physical disc image (an OAIS AIP). Field names follow\n"
-                     "Dublin Core terms where one fits: Title, Creator, Date, Description,\n"
-                     "Subject, Coverage, Rights. Uuid is the machine identity of the image\n"
-                     "(copies burned from one image share it); Id is for people and is\n"
-                     "derived from Set, Sequence and Coverage (EDTF) under IdScheme, so it\n"
-                     "can always be regenerated and checked (see docs/smart-archive-format.md)."),
-            ("%key", "Id"),
-            ("%mandatory", "Id Title Date"),
-            ("%type", "Uuid uuid"),
-            ("%type", "Sequence int"),
-            ("%type", "Date date"),
-            ("%type", "Files int"),
-            ("%type", "Bytes int"),
-            ("%type", "Access enum public private sealed"),
-        ],
-    ),
-    recfile.Record(
-        "Binding",
-        [
-            ("%rec", "Binding"),
-            ("%doc", "How one volume is stored on its medium: the container (filesystem) and the\n"
-                     "protection (error correction) it was made with. These change with the medium;\n"
-                     "the files and the rest of the catalogue do not (research/plan.md, four layers).\n"
-                     "Container: iso9660+udf-1.02, udf-2.50 (later perhaps ltfs, exfat, tar, afs).\n"
-                     "Protection: rs03 or none. Media, Filesystem and Ecc describe them for people\n"
-                     "(format 0.2 and earlier kept those three in the Disc record)."),
-            ("%key", "Volume"),
-            ("%mandatory", "Volume Container Protection"),
-            ("%type", "MediumSectors int"),
-        ],
-    ),
-    recfile.Record(
-        "Location",
-        [
-            ("%rec", "Location"),
-            ("%doc", "Places where discs are kept: site, room, shelf, box. Parent makes a tree,\n"
-                     "so moving a box moves every disc in it. A Disc's Location field (one per\n"
-                     "place its copies are kept) names a Code here, or is free text."),
-            ("%key", "Code"),
-            ("%mandatory", "Code Name"),
-        ],
-    ),
-    recfile.Record(
-        "Collection",
-        [
-            ("%rec", "Collection"),
-            ("%doc", "Virtual folders across discs. Item is DISC-ID (a whole disc), DISC-ID:folder/\n"
-                     "or DISC-ID:folder/file (paths relative to the disc's data/). Parent nests\n"
-                     "collections. Snapshots on other discs carry only items they may show."),
-            ("%key", "Code"),
-            ("%mandatory", "Code Name"),
-        ],
-    ),
-    recfile.Record(
-        "Event",
-        [
-            ("%rec", "Event"),
-            ("%doc", "Preservation actions and metadata changes, appended and never edited. Type uses\n"
-                     "the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType\n"
-                     "Disc names the disc; a change to a location or a collection names it in Object\n"
-                     "(location:CODE, collection:CODE) instead. Agent (one or more) is software\n"
-                     "(arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).\n"
-                     "Authorship says how people and machines shared the work: automatic (software\n"
-                     "following rules), suggested (a model, not reviewed), accepted (a model's suggestion\n"
-                     "a person kept as it was), edited (one a person changed), human (a person alone)."),
-            ("%mandatory", "Type Date Outcome"),
-            ("%type", "Outcome enum success failure warning"),
-            ("%type", "Authorship enum automatic suggested accepted edited human"),
-        ],
-    ),
-    recfile.Record(
-        "Appraisal",
-        [
-            ("%rec", "Appraisal"),
-            ("%doc", "The archivist log: how much something matters, to whom, and why. Appended and\n"
-                     "never edited; the newest appraisal of a target replaces earlier ones, and one a\n"
-                     "person made or reviewed outranks a machine's. Target is DISC-ID, DISC-ID:folder/,\n"
-                     "DISC-ID:folder/file (relative to data/), set:CODE or collection:CODE; a target\n"
-                     "without an appraisal takes the nearest one above it (file, folder, disc, set).\n"
-                     "Importance is '<level> for <audience>', one per audience; levels, most first:\n"
-                     "essential (must survive: several copies, one elsewhere), important (on disc),\n"
-                     "useful (on disc if there is room), incidental (everyday storage is enough).\n"
-                     "Only a person can mark something incidental. Basis says why; Review is when to\n"
-                     "look again. Authorship and Agent as in Event."),
-            ("%mandatory", "Target Date Authorship"),
-            ("%type", "Date date"),
-            ("%type", "Review date"),
-            ("%type", "Authorship enum automatic suggested accepted edited human"),
-        ],
-    ),
-]
+# The record descriptors (Disc, Binding, Location, Collection, Event, Appraisal, then the Archive
+# and Snapshot records on discs) live in descriptors.rec, shared with the C port (src/arvc).
+_ALL_DESCRIPTORS = recfile.read(os.path.join(os.path.dirname(os.path.abspath(__file__)), "descriptors.rec"))
+DESCRIPTORS = _ALL_DESCRIPTORS[:6]
 
 # Per-disc files kept at home and in each disc's catalog/ snapshot: folder -> extension
 DISC_FILE_KINDS = {
@@ -569,13 +477,7 @@ FORMAT_NAME = "smart-archive"
 FORMAT_VERSION = "0.4"  # 0.2: per-volume index files in catalog/volumes/<disc-id>/; 0.3: Binding records;
                         # 0.4: Authorship, Appraisal records, listing 2
 
-ARCHIVE_DESCRIPTOR = recfile.Record("Archive", [
-    ("%rec", "Archive"),
-    ("%doc", "Entry point of a smart-archive disc: which format and version this is, which disc,\n"
-             "and where its other catalogue files are (paths relative to the disc root).\n"
-             "Specification: tools/arv/docs/smart-archive-format.md"),
-    ("%mandatory", "Format Version Disc Uuid"),
-])
+ARCHIVE_DESCRIPTOR = _ALL_DESCRIPTORS[6]
 
 # (Archive field, path pattern on disc); a field is written only when the file exists
 ARCHIVE_POINTERS = [
@@ -600,11 +502,7 @@ def archive_records(disc, root):
     return [ARCHIVE_DESCRIPTOR, r]
 
 
-SNAPSHOT_DESCRIPTOR = recfile.Record("Snapshot", [
-    ("%rec", "Snapshot"),
-    ("%doc", "When this catalogue snapshot was taken and what it covers. The home\n"
-             "archive.rec stays authoritative for anything recorded after this date."),
-])
+SNAPSHOT_DESCRIPTOR = _ALL_DESCRIPTORS[7]
 
 
 def write_snapshot(dest, catalog, disc_files, scope):

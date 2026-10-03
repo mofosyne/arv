@@ -21,24 +21,44 @@ static char *dup_n(const char *s, size_t n)
 static int is_name_start(int c) { return isalpha(c) || c == '%'; }
 static int is_name_char(int c) { return isalnum(c) || c == '_'; }
 
-int rec_read(const char *path, rec_file *out, int *bad_line)
+/* the next line of text (without its line ending) in *line; returns 0 at the end */
+static int next_line(const char **text, char **line, size_t *cap, ssize_t *len)
 {
-    FILE *fp = fopen(path, "rb");
+    const char *s = *text, *e;
+    if (!*s) return 0;
+    e = strchr(s, '\n');
+    size_t n = e ? (size_t)(e - s) : strlen(s);
+    if (n + 1 > *cap) {
+        char *grown = realloc(*line, n + 1);
+        if (!grown) return -1;
+        *line = grown;
+        *cap = n + 1;
+    }
+    memcpy(*line, s, n);
+    (*line)[n] = 0;
+    *len = (ssize_t)n;
+    *text = e ? e + 1 : s + n;
+    return 1;
+}
+
+int rec_parse(const char *text, rec_file *out, int *bad_line)
+{
     char *line = NULL;
-    size_t cap = 0, rcap = 0, fcap = 0;
-    ssize_t len;
+    size_t cap = 0, fcap = 0;
+    ssize_t len = 0;
     int lineno = 0, err = 0;
     rec_record cur = { 0 };
     const char *cur_type = NULL;
+    size_t rcap = 0;
 
     memset(out, 0, sizeof *out);
-    if (!fp) return -1;
     for (;;) {
-        len = getline(&line, &cap, fp);
-        int end = len < 0;
+        int got = next_line(&text, &line, &cap, &len);
+        if (got < 0) { err = ENOMEM; break; }
+        int end = !got;
         if (!end) {
             lineno++;
-            while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) line[--len] = 0;
+            while (len > 0 && line[len - 1] == '\r') line[--len] = 0;
         }
         if (end || len == 0 || strspn(line, " \t") == (size_t)len) {   /* blank: the record ends */
             if (cur.nfields) {
@@ -75,10 +95,11 @@ int rec_read(const char *path, rec_file *out, int *bad_line)
         while (len > 0 && line[len - 1] == '\\') {             /* a trailing \ joins the next line */
             char *next = NULL;
             size_t ncap = 0;
-            ssize_t nlen = getline(&next, &ncap, fp);
-            if (nlen < 0) { free(next); break; }
+            ssize_t nlen = 0;
+            int more = next_line(&text, &next, &ncap, &nlen);
+            if (more <= 0) { free(next); break; }
             lineno++;
-            while (nlen > 0 && (next[nlen - 1] == '\n' || next[nlen - 1] == '\r')) next[--nlen] = 0;
+            while (nlen > 0 && next[nlen - 1] == '\r') next[--nlen] = 0;
             if ((size_t)(len + nlen + 1) > cap) {
                 char *grown = realloc(line, (size_t)(len + nlen + 1));
                 if (!grown) { free(next); err = ENOMEM; break; }
@@ -113,7 +134,6 @@ int rec_read(const char *path, rec_file *out, int *bad_line)
         cur.nfields++;
     }
     free(line);
-    fclose(fp);
     if (err) {
         for (size_t i = 0; i < cur.nfields; i++) {
             free(cur.fields[i].name);
@@ -125,6 +145,34 @@ int rec_read(const char *path, rec_file *out, int *bad_line)
         return -1;
     }
     return 0;
+}
+
+int rec_read(const char *path, rec_file *out, int *bad_line)
+{
+    FILE *fp = fopen(path, "rb");
+    char *text = NULL;
+    size_t len = 0, n;
+    char buf[65536];
+    memset(out, 0, sizeof *out);
+    if (!fp) return -1;
+    while ((n = fread(buf, 1, sizeof buf, fp)) > 0) {
+        char *grown = realloc(text, len + n + 1);
+        if (!grown) { free(text); fclose(fp); errno = ENOMEM; return -1; }
+        text = grown;
+        memcpy(text + len, buf, n);
+        len += n;
+    }
+    int rerr = ferror(fp);
+    fclose(fp);
+    if (rerr) { free(text); errno = EIO; return -1; }
+    if (!text) text = calloc(1, 1);
+    else text[len] = 0;
+    if (memchr(text, 0, len)) { free(text); if (bad_line) *bad_line = 0; errno = EINVAL; return -1; }
+    int rc = rec_parse(text, out, bad_line);
+    int e = errno;
+    free(text);
+    errno = e;
+    return rc;
 }
 
 void rec_free(rec_file *f)

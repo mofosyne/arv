@@ -3,26 +3,41 @@ CC      ?= cc
 CFLAGS  ?= -O2
 WARN     = -std=c99 -Wall -Wextra -Wpedantic -Wshadow
 BUILD    = build
-LIB      = $(BUILD)/rec.o $(BUILD)/sha256.o $(BUILD)/sha512.o $(BUILD)/edtf.o $(BUILD)/discid.o
+LIB      = $(BUILD)/rec.o $(BUILD)/sha256.o $(BUILD)/sha512.o $(BUILD)/edtf.o $(BUILD)/discid.o $(BUILD)/vocab.o $(BUILD)/data.o
 OBJS     = $(BUILD)/arvc.o $(BUILD)/util.o $(BUILD)/disc.o $(BUILD)/catalogue.o $(LIB)
+
+DATA     = DATA_DESCRIPTORS=../arv/descriptors.rec DATA_README=../arv/readme.txt \
+           DATA_DEFAULT_SETS=../arv/default_sets.rec
 
 all: $(BUILD)/arvc $(BUILD)/fixtures
 
 $(BUILD)/arvc: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJS)
 
-$(BUILD)/fixtures: $(BUILD)/fixtures.o $(LIB)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(BUILD)/fixtures.o $(LIB)
+$(BUILD)/fixtures: dev/fixtures.c $(LIB)
+	$(CC) $(CFLAGS) $(WARN) $(LDFLAGS) -o $@ dev/fixtures.c $(LIB)
 
-$(BUILD)/%.o: %.c arvc.h rec.h sha256.h sha512.h edtf.h discid.h
+$(BUILD)/embed: dev/embed.c
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(WARN) -o $@ dev/embed.c
+
+# data.c is committed (one-cc-line builds need it); regenerate after editing the shared files
+data: $(BUILD)/embed
+	$(BUILD)/embed data.c $(DATA)
+
+data-check: $(BUILD)/embed
+	@$(BUILD)/embed $(BUILD)/data.c $(DATA)
+	@cmp -s data.c $(BUILD)/data.c || { echo "data.c is out of date: run make -C src/arvc data"; exit 1; }
+
+$(BUILD)/%.o: %.c arvc.h rec.h sha256.h sha512.h edtf.h discid.h data.h vocab.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(WARN) -c -o $@ $<
 
-check: all
+check: all data-check
 	$(BUILD)/fixtures ../../tests/fixtures
 	sh check.sh $(BUILD)/arvc
 
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all check clean
+.PHONY: all check clean data data-check

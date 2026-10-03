@@ -25,6 +25,8 @@ typedef struct {
 /* Reads a recfile; returns 0, or -1 with errno set (file errors) or EINVAL (a line that is
  * not a field, with *bad_line set to its number). */
 int rec_read(const char *path, rec_file *out, int *bad_line);
+/* The same from text in memory. */
+int rec_parse(const char *text, rec_file *out, int *bad_line);
 void rec_free(rec_file *f);
 
 /* Building records. A new record's type must outlive it (a string literal, or a descriptor's). */
