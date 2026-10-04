@@ -113,7 +113,7 @@ arv --help
 runs what has been ported to C, which is the whole make, record, verify cycle and the catalogue
 commands, and hands everything else to the Python arv unchanged:
 - the AI helpers (`describe`, `tag`, `models`) and `gui`;
-- `arv make` with drafts, `--llm`, `--ro-crate` or `--tools-history`, and an interactive
+- `arv make` with drafts, `--llm` or `--ro-crate`, and an interactive
   `arv make` in a terminal without `-y`, which asks its questions;
 - `--help`.
 

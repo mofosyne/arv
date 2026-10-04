@@ -39,11 +39,11 @@ static void say(const char *fmt, const char *arg)
 typedef struct {
     const char *source, *home, *output, *output_dir, *id, *set, *coverage, *title, *label, *description;
     const char *creator, *location, *access, *rights, *links, *medium, *media, *snapshot, *tools;
-    const char *basis, *review, *formats, *sf_home;
+    const char *basis, *review, *formats, *sf_home, *extra_tools;
     strlist categories, subjects, notes, importance;
     long medium_sectors;
     double min_redundancy;
-    int no_rules, no_ecc, no_verify, no_defect_management, keep_stage, ignore_names, label_given, redundancy_given, split;
+    int no_rules, no_ecc, no_verify, no_defect_management, keep_stage, ignore_names, label_given, redundancy_given, split, tools_history;
 } options;
 
 static const char HELP[] =
@@ -70,12 +70,14 @@ static const char HELP[] =
     "  --media TEXT           media description (default: M-DISC <medium>)\n"
     "  --snapshot full|set|disc  the catalogue the disc carries (default: full)\n"
     "  --tools DIR            arv's source for tools/ (default: found next to this program)\n"
+    "  --tools-history        also arv's whole git history in tools/ (a git bundle)\n"
+    "  --extra-tools DIR      a folder copied to tools/extra/ (dvdisaster binaries, say)\n"
     "  --split                spread the folder over as many discs as needed\n"
     "  --formats auto|yes|no  PRONOM format ids with Siegfried (auto: when sf is on PATH)\n"
     "  --sf-home DIR          Siegfried signature folder (sf -home)\n"
     "  --no-ecc, --no-verify  skip RS03, or skip dvdisaster -t afterwards\n"
     "  --ignore-names, --keep-stage\n"
-    "Not here (use the Python arv): drafts and AI help, --ro-crate, --tools-history.\n";
+    "Not here (use the Python arv): drafts and AI help, --ro-crate.\n";
 
 static int parse_options(int argc, char **argv, options *o)
 {
@@ -102,6 +104,7 @@ static int parse_options(int argc, char **argv, options *o)
         if (!strcmp(a, "--keep-stage")) { o->keep_stage = 1; continue; }
         if (!strcmp(a, "--ignore-names")) { o->ignore_names = 1; continue; }
         if (!strcmp(a, "--split")) { o->split = 1; continue; }
+        if (!strcmp(a, "--tools-history")) { o->tools_history = 1; continue; }
         if (!strcmp(a, "-y") || !strcmp(a, "--yes")) continue;      /* arvc never asks */
         if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             fputs(HELP, stdout);
@@ -131,6 +134,7 @@ static int parse_options(int argc, char **argv, options *o)
         else if (!strcmp(a, "--review")) str = &o->review;
         else if (!strcmp(a, "--formats")) str = &o->formats;
         else if (!strcmp(a, "--sf-home")) str = &o->sf_home;
+        else if (!strcmp(a, "--extra-tools")) str = &o->extra_tools;
         else if (!strcmp(a, "--category")) list = &o->categories;
         else if (!strcmp(a, "--subject")) list = &o->subjects;
         else if (!strcmp(a, "--note")) list = &o->notes;
@@ -305,7 +309,9 @@ static char *software_version(const char *source, int *is_git)
     return xstrdup("arvc@unknown");
 }
 
-static void stage_tools(const char *tools, const char *source, int is_git, const char *workdir)
+/* arv's last commit (and with history, a git bundle of every branch), bagit.py and any extra tools
+ * (cli.stage_tools) */
+static void stage_tools(const char *tools, const char *source, int is_git, const char *workdir, const options *o)
 {
     char *tree = join(tools, "arv");
     if (mkdirs(tree)) die("cannot create %s", tree);
@@ -329,6 +335,24 @@ static void stage_tools(const char *tools, const char *source, int is_git, const
         if (!access(from, F_OK)) copy_file(from, to);
         free(from);
         free(to);
+    }
+    if (source && is_git && o->tools_history) {
+        char *bundle = join(tools, "arv.bundle"), *out = NULL;
+        char *a[] = { "git", "-C", (char *)source, "bundle", "create", bundle, "--all", NULL };
+        if (run(a, &out)) {
+            char *e = out + strlen(out);
+            while (e > out && (e[-1] == '\n' || e[-1] == ' ')) *--e = 0;
+            fprintf(stderr, "Warning: git bundle failed, disc gets the plain tree only:\n%s\n", out);
+            unlink(bundle);
+        }
+        free(out);
+        free(bundle);
+    }
+    if (o->extra_tools) {
+        char *extra = join(tools, "extra");
+        if (mkdirs(extra)) die("cannot create %s", extra);
+        copy_tree(o->extra_tools, extra, NULL);
+        free(extra);
     }
     free(tree);
 }
@@ -650,7 +674,7 @@ static size_t initial_bins(maker *mk, size_t **counts)
         return 1;
     }
     char *probe = join(mk->workdir, "tools-probe");
-    stage_tools(probe, mk->source, mk->is_git, mk->workdir);
+    stage_tools(probe, mk->source, mk->is_git, mk->workdir, mk->o);
     long reserve = dir_sectors(probe) + snapshot_estimate(mk) + mk->budget / 200 + (1024 < mk->budget / 20 ? 1024 : mk->budget / 20);
     remove_tree(probe);
     free(probe);
@@ -944,7 +968,7 @@ static void stage_plan(maker *mk, size_t idx)
 
     /* tools/, README.txt, index.html */
     char *tools = join(p->stage, "tools");
-    stage_tools(tools, mk->source, mk->is_git, mk->workdir);
+    stage_tools(tools, mk->source, mk->is_git, mk->workdir, o);
     free(tools);
     {
         long image_sectors = !o->no_ecc && mk->capacity && dvdisaster_sets_medium_size() ? mk->capacity / GF_FIELDMAX * GF_FIELDMAX : 0;
@@ -973,7 +997,8 @@ static void stage_plan(maker *mk, size_t idx)
         const char *names[] = { "plain", "size_check", "title", "underline", "id", "set", "part", "date", "files",
                                 "bytes", "software", "other_discs", "catalog_lines", "repo", "bundle_line", NULL };
         const char *values[] = { plain.s, size_check.s, mk->title, underline.s ? underline.s : "", p->disc_id, mk->set_code,
-                                 part, mk->today, nfiles, nbytes, mk->software, other, cat_lines, "arv", "" };
+                                 part, mk->today, nfiles, nbytes, mk->software, other, cat_lines, "arv",
+                                 o->tools_history ? "  tools/arv.bundle     the same with full history: git clone <bundle>\n" : "" };
         char *text = format(DATA_README, names, values), *path = join(p->stage, "README.txt");
         write_text(path, text);
         free(path); free(text); free(other); free(part); free(nfiles); free(nbytes);

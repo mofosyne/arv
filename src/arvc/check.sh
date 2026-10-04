@@ -100,6 +100,25 @@ if command -v dvdisaster >/dev/null && dvdisaster --help 2>&1 | grep -q no-bdr-d
         && ok "arvc make with RS03 error correction: image tested by dvdisaster" || no "RS03 events"
 fi
 
+# --tools-history and --extra-tools: the same tools/ (bundle included) and README.txt
+mkdir -p hist-src hist-extra/bin
+echo a > hist-src/a.txt
+echo x > hist-extra/bin/tool
+python3 "$repo/arv" --home hist-py make -y --no-ecc --formats no --set CODE --tools-history --extra-tools hist-extra \
+    --output-dir hist-py-out hist-src >/dev/null 2>&1 || no "python make --tools-history"
+"$tool" make -C hist-c --no-ecc --formats no --set CODE --tools-history --extra-tools hist-extra \
+    --output-dir hist-c-out hist-src >/dev/null 2>&1 || no "arvc make --tools-history"
+rm -rf x-py x-c
+7z x -ox-py hist-py-out/*.iso >/dev/null && 7z x -ox-c hist-c-out/*.iso >/dev/null
+[ "$(cd x-py && find . | sort)" = "$(cd x-c && find . | sort)" ] || no "--tools-history: different files"
+[ -f x-c/tools/extra/bin/tool ] || no "--extra-tools: no tools/extra/"
+[ "$(sed -E "$norm" x-py/README.txt)" = "$(sed -E "$norm" x-c/README.txt)" ] || no "--tools-history: README.txt differs"
+if [ -f x-py/tools/arv.bundle ]; then
+    [ "$(git bundle list-heads x-py/tools/arv.bundle)" = "$(git bundle list-heads x-c/tools/arv.bundle)" ] \
+        || no "--tools-history: the bundles hold different branches"
+fi
+ok "--tools-history and --extra-tools: tools/ (git bundle, extra/) and README.txt as python's"
+
 # --split: the same discs, the same files on each, and the same rebalancing as the Python arv
 mkdir -p big/letters
 python3 -c "

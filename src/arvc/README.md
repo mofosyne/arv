@@ -58,7 +58,7 @@ archived or the current folder up, the machine config (`~/.config/arv/homes.rec`
 
 | | arvc | Python arv only |
 |---|---|---|
-| Making | UDF 2.50 discs, one or (`--split`) as many as the folder needs: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), Siegfried format ids (`formats.csv`), RS03 | drafts and the local AI helpers (`--llm`, `describe`, `tag`), `--ro-crate`, `--tools-history` |
+| Making | UDF 2.50 discs, one or (`--split`) as many as the folder needs: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), Siegfried format ids (`formats.csv`), `--tools-history`, `--extra-tools`, RS03 | drafts and the local AI helpers (`--llm`, `describe`, `tag`), `--ro-crate` |
 | Recording | `init` (with named homes and pointers; `--archive NAME`), `burned`, `check`, `note`, `locate`, `access`, `location`, `collection`, `appraise`, `rebuild` | `gui` |
 | Looking | `sets`, `names`, `where`, `tags`, `keywords` | `describe`, `tag`, `models` (AI helpers) |
 | Reading | `find`, `list`, `id`, `info`, `verify`, `ls`, `restore` | (`restore` is C only) |
