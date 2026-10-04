@@ -136,14 +136,15 @@ def main(dest):
         pdf(os.path.join(taxes, "receipts", "receipts-2019-%02d.pdf" % m),
             ["Receipts, quarter starting %02d/2019 (sample)" % m], (2019, m + 2, 28, 12, 0))
 
-    # 4. Scanned letters, 1995-2005: big enough to need two sample discs
+    # 4. Scanned letters, 1995-2008: big enough to need several sample discs (about four, since
+    # tools/ takes most of each tiny disc)
     scans = os.path.join(dest, "Scans_letters")
     for year in range(1995, 2009):
         for n in range(4):
             noise = random.Random(year * 10 + n)
-            png(os.path.join(scans, str(year), "letter-%d-%d.png" % (year, n + 1)), 300, 400,
+            png(os.path.join(scans, str(year), "letter-%d-%d.png" % (year, n + 1)), 180, 240,
                 lambda x, y, r=noise: (lambda g: (g, g, g - 10 if g > 10 else 0))(
-                    235 - (60 if (y % 18 < 2 and 30 < x < 270 and y > 40) else 0) - r.randint(0, 25)),
+                    235 - (60 if (y % 11 < 2 and 18 < x < 162 and y > 24) else 0) - r.randint(0, 25)),
                 (year, 6, 1, 12, 0))
 
     # 5. Family photos 2020-2021
