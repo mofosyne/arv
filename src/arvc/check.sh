@@ -142,6 +142,26 @@ stamp='s/\t20[0-9-]+T[0-9:]+Z\t(file\t-\tro-crate)/\tT\t\1/'      # the crate fi
 python3 x-c/tools/bagit.py --validate x-c >/dev/null 2>&1 || no "--ro-crate: the arvc disc is not a valid bag"
 ok "--ro-crate: ro-crate-metadata.json and the preview as python writes them (bagit-valid)"
 
+# an interactive make (a terminal, no -y): the same questions, and the same catalogue from the same
+# answers; then the defaults, with end of input at every question
+mkdir -p pty/Projects_x/fw
+echo 'int main(void){return 0;}' > pty/Projects_x/fw/main.c
+printf 'project\nelec, code ,\nMy title\n\nSam\n\na, b\nhello\n' > pty/answers1
+for i in 1 2 3 4 5 6 7 8; do printf '^D\n'; done > pty/answers2
+questions='(Set code|Extra categories|Title|Description|Creator|Physical location|Subjects|Note)[^:]*: '
+for k in 1 2; do
+    for who in py c; do
+        if [ $who = py ]; then cmd="python3 $repo/arv"; else cmd=$tool; fi
+        # shellcheck disable=SC2086
+        (cd pty && timeout 120 python3 "$here/dev/pty-run.py" answers$k $cmd --home h-$who-$k make --no-ecc --formats no \
+            --output-dir o-$who-$k Projects_x > $who-$k.out) || no "$who: interactive make $k"
+    done
+    [ "$(grep -oE "$questions" pty/py-$k.out)" = "$(grep -oE "$questions" pty/c-$k.out)" ] || no "interactive make $k: other questions"
+    [ "$(sed -E "$norm" pty/h-py-$k/catalog/archive.rec)" = "$(sed -E "$norm" pty/h-c-$k/catalog/archive.rec)" ] \
+        || no "interactive make $k: the catalogues differ"
+done
+ok "interactive make: the same 8 questions and, from the same answers (or none), the same catalogue"
+
 # --split: the same discs, the same files on each, and the same rebalancing as the Python arv
 mkdir -p big/letters
 python3 -c "

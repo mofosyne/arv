@@ -108,7 +108,6 @@ static int needs_python(int argc, char **argv)
                                                "--vision-max", NULL };
     for (int k = 0; python_only[k]; k++)
         if (has_arg(argc, argv, python_only[k])) return 1;
-    if (isatty(0) && !has_arg(argc, argv, "-y") && !has_arg(argc, argv, "--yes")) return 1;   /* it asks */
     return 0;
 }
 

@@ -216,6 +216,12 @@ void scan_payload(const char *src, const char *policy, entries *files, entries *
         fail_list("links pointing outside the folder (use --links record to note them in the listing,\n"
                   "or --links copy to archive what they point to):", &s.refused);
 
+    uint64_t total = 0, done = 0;
+    int progress = isatty(2);            /* "Hashing n/N files (p%)" on a terminal, as bag.scan_payload */
+    for (size_t i = 0; i < s.files.n; i++) {
+        struct stat st;
+        if (!stat(s.files.v[i].source, &st)) total += (uint64_t)st.st_size;
+    }
     for (size_t i = 0; i < s.files.n; i++) {
         entry *e = &s.files.v[i];
         struct stat st;
@@ -226,7 +232,11 @@ void scan_payload(const char *src, const char *policy, entries *files, entries *
         e->kind = xprintf("%s%s", e->link ? "link copied" : "file", exec ? " executable" : "");
         if (!e->link) e->link = xstrdup("");
         hash_both(e->source, e->sha256, e->sha512);
+        done += e->size;
+        if (progress) fprintf(stderr, "\rHashing %zu/%zu files (%.0f%%)", i + 1, s.files.n,
+                              total ? 100.0 * (double)done / (double)total : 100.0);
     }
+    if (progress) fputc('\n', stderr);
     if (s.files.n) qsort(s.files.v, s.files.n, sizeof *s.files.v, by_entry_path);
     if (s.noted.n) qsort(s.noted.v, s.noted.n, sizeof *s.noted.v, by_entry_path);
     *files = s.files;

@@ -43,12 +43,13 @@ typedef struct {
     strlist categories, subjects, notes, importance;
     long medium_sectors;
     double min_redundancy;
-    int no_rules, no_ecc, no_verify, no_defect_management, keep_stage, ignore_names, label_given, redundancy_given, split, tools_history, ro_crate;
+    int no_rules, no_ecc, no_verify, no_defect_management, keep_stage, ignore_names, label_given, redundancy_given, split, tools_history, ro_crate, yes;
 } options;
 
 static const char HELP[] =
     "usage: arvc make [options] FOLDER\n"
-    "Makes one archive disc image of FOLDER and records it in the home catalogue (no prompts).\n"
+    "Makes archive disc images of FOLDER and records them in the home catalogue.\n"
+    "  -y, --yes              ask nothing (in a terminal, make asks what the options leave open)\n"
     "  -C, --home HOME        the home (default: $ARV_HOME, a .arv above FOLDER or here, ...)\n"
     "  -o, --output PATH      the image (default: <disc-id>.iso in --output-dir)\n"
     "  --output-dir DIR       where the image goes (default: the current folder)\n"
@@ -107,7 +108,7 @@ static int parse_options(int argc, char **argv, options *o)
         if (!strcmp(a, "--split")) { o->split = 1; continue; }
         if (!strcmp(a, "--tools-history")) { o->tools_history = 1; continue; }
         if (!strcmp(a, "--ro-crate")) { o->ro_crate = 1; continue; }
-        if (!strcmp(a, "-y") || !strcmp(a, "--yes")) continue;      /* arvc never asks */
+        if (!strcmp(a, "-y") || !strcmp(a, "--yes")) { o->yes = 1; continue; }
         if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             fputs(HELP, stdout);
             exit(0);
@@ -165,6 +166,61 @@ static int parse_options(int argc, char **argv, options *o)
         }
     }
     return 0;
+}
+
+/* ------------------------------------------------------------------ questions (cli.ask) */
+
+static int interactive;         /* a terminal, and no -y */
+
+/* asks on the terminal; the answer, else the default (NULL when there is none) */
+static char *ask(const char *prompt, const char *dflt)
+{
+    if (!interactive) return dflt ? xstrdup(dflt) : NULL;
+    printf("%s%s%s%s: ", prompt, dflt && *dflt ? " [" : "", dflt && *dflt ? dflt : "", dflt && *dflt ? "]" : "");
+    fflush(stdout);
+    char *line = NULL;
+    size_t cap = 0;
+    ssize_t n = getline(&line, &cap, stdin);
+    if (n < 0) {
+        free(line);
+        line = NULL;
+    }
+    char *a = line ? line : NULL, *e;
+    if (a) {
+        while (*a == ' ' || *a == '\t') a++;
+        e = a + strlen(a);
+        while (e > a && (e[-1] == '\n' || e[-1] == '\r' || e[-1] == ' ' || e[-1] == '\t')) *--e = 0;
+    }
+    char *out = a && *a ? xstrdup(a) : dflt && *dflt ? xstrdup(dflt) : NULL;
+    free(line);
+    return out;
+}
+
+/* the non-blank parts of "a, b ,c" between commas; strip: without their spaces (Python keeps them for
+ * categories, which pick_code trims) */
+static void split_commas(const char *text, strlist *out, int strip)
+{
+    if (!text) return;
+    char *copy = xstrdup(text), *p = copy;
+    for (;;) {
+        char *comma = strchr(p, ',');
+        if (comma) *comma = 0;
+        char *a = p, *e = p + strlen(p);
+        while (*a == ' ' || *a == '\t') a++;
+        while (e > a && (e[-1] == ' ' || e[-1] == '\t')) e--;
+        if (e > a) {
+            if (strip) {
+                char *one = xprintf("%.*s", (int)(e - a), a);
+                strlist_add(out, one);
+                free(one);
+            } else {
+                strlist_add(out, p);
+            }
+        }
+        if (!comma) break;
+        p = comma + 1;
+    }
+    free(copy);
 }
 
 /* ------------------------------------------------------------------ media (src/arv/media.py) */
@@ -1309,6 +1365,7 @@ int cmd_make(int argc, char **argv)
 {
     options o;
     if (parse_options(argc, argv, &o)) return 2;
+    interactive = isatty(0) && !o.yes;
     char *src = realpath(o.source, NULL);
     struct stat st;
     if (!src || stat(src, &st) || !S_ISDIR(st.st_mode)) die("%s is not a directory", o.source);
@@ -1388,8 +1445,9 @@ int cmd_make(int argc, char **argv)
         if (!o.no_rules) vocab_rule_suggestions(&v, paths, files.n, &rules);
         char *default_set, *default_title = folder_default_title(src, &default_set);
         const char *guessed = vocab_guess(&v, default_set);
-        const char *set_text = o.set ? o.set : guessed ? guessed : rules.n ? rules.v[0] : default_set;
-        char *set_code = pick_code(&v, set_text);
+        const char *set_default = guessed ? guessed : rules.n ? rules.v[0] : default_set;
+        char *set_asked = o.set && *o.set ? NULL : ask("Set code (see 'arv sets')", set_default);
+        char *set_code = pick_code(&v, o.set && *o.set ? o.set : set_asked ? set_asked : "");
         strlist categories = { 0 }, typed = { 0 };
         if (o.categories.n) {
             for (size_t i = 0; i < o.categories.n; i++) strlist_add(&typed, o.categories.v[i]);
@@ -1397,7 +1455,15 @@ int cmd_make(int argc, char **argv)
             for (size_t i = 0; i < rules.n && typed.n < 3; i++)
                 if (strcmp(rules.v[i], set_code) && !vocab_is_ancestor(&v, rules.v[i], set_code))
                     strlist_add(&typed, rules.v[i]);
-            if (typed.n) {
+            if (interactive) {
+                sbuf l = { 0 };
+                for (size_t i = 0; i < typed.n; i++) sb_printf(&l, "%s%s", i ? ", " : "", typed.v[i]);
+                char *answer = ask("Extra categories, comma separated (optional)", l.s);
+                strlist_free(&typed);
+                split_commas(answer, &typed, 0);
+                free(answer);
+                free(l.s);
+            } else if (typed.n) {
                 sbuf l = { 0 };
                 for (size_t i = 0; i < typed.n; i++) sb_printf(&l, "%s%s", i ? ", " : "", typed.v[i]);
                 fprintf(stderr, "Categories from Match rules in %s: %s (--category to choose, --no-rules to skip)\n",
@@ -1436,6 +1502,24 @@ int cmd_make(int argc, char **argv)
             for (size_t i = 0; i < all_paths.n; i++) sb_printf(&l, "%s%s", i ? ", " : "", all_paths.v[i]);
             fprintf(stderr, "Classified as: %s\n", l.s);
             free(l.s);
+        }
+
+        /* the questions after classifying (cli.cmd_make's meta), when asking */
+        if (interactive) {
+            if (!o.title || !*o.title) o.title = ask("Title", default_title);
+            if (!o.description || !*o.description) o.description = ask("Description (optional)", NULL);
+            if (!o.creator || !*o.creator) o.creator = ask("Creator", getenv("USER"));
+            if (!o.location || !*o.location) o.location = ask("Physical location (optional; see 'arv location list')", NULL);
+            if (!o.subjects.n) {
+                char *answer = ask("Subjects, comma separated (optional)", NULL);
+                split_commas(answer, &o.subjects, 1);
+                free(answer);
+            }
+            if (!o.notes.n) {
+                char *answer = ask("Note (optional)", NULL);
+                if (answer) strlist_add(&o.notes, answer);
+                free(answer);
+            }
         }
 
         /* --------------------------------------------------------------- the plan */

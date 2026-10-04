@@ -12,8 +12,7 @@ cc -O2 -o arvc tools/arv/src/arvc/*.c tools/arv/src/udfwrite/udfwrite.c
 ```
 
 Called as `arv` (the installed link), it hands to the Python arv (`share/arv/arv`, or `arv-py`)
-any command or option it does not have, an interactive `make` in a terminal without `-y` (the
-Python one asks its questions), and `--help`. Called as `arvc`, it never hands over. The Python arv stays the
+any command or option it does not have (the AI helpers, drafts, `gui`) and `--help`. Called as `arvc`, it never hands over. The Python arv stays the
 reference until everything is ported, and `make check` holds the two to the same output.
 
 ## Commands
@@ -21,8 +20,8 @@ reference until everything is ported, and `make check` holds the two to the same
 ```
 arvc init [FOLDER] [--pointer HOME] [--name NAME [--default]]
                                         a .arv home in FOLDER, or a pointer to one; registered by name
-arvc make [options] FOLDER              one disc image, recorded in the home (no prompts;
-                                        arvc make --help lists the options)
+arvc make [options] FOLDER              disc images, recorded in the home (in a terminal it asks
+                                        what the options leave open; -y does not; --help lists them)
 arvc burned DISC-ID [--copies N] [--location PLACE] [--media-id ID] [--note TEXT]
 arvc check (--image FILE | --device DRIVE) [DISC-ID]   dvdisaster fixity check, logged
 arvc note DISC-ID TEXT
