@@ -8,8 +8,8 @@ set -eu
 tool=$(cd "$(dirname "$1")" && pwd)/$(basename "$1")
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/../.." && pwd)
-arv=$repo/src/arvc/build/arvc
-ptyrun=$repo/src/arvc/build/ptyrun
+arv=$repo/src/arv/build/arv
+ptyrun=$repo/src/arv/build/ptyrun
 fake=$here/build/fake-llm
 embedder=$repo/dev-tools/fake-llama-embedding
 dir=$here/build/check

@@ -59,12 +59,13 @@ Each layer does its own job:
 
 | Path | What |
 |---|---|
-| `src/arvc/` | **arv**, a C program (C99 and POSIX, no libraries): every command, from making a disc to restoring one: [src/arvc/README.md](src/arvc/README.md) |
+| `src/arv/` | **arv**, a C program (C99 and POSIX, no libraries): every command, from making a disc to restoring one: [src/arv/README.md](src/arv/README.md) |
 | `src/udfwrite/` | arv's UDF 2.50 writer (library, built into arv, and a program): [docs/spec/archival-udf.md](docs/spec/archival-udf.md) |
 | `src/rs03/` | dvdisaster's RS03 error correction: add, test, repair (library, built into arv, and a program): [docs/spec/rs03-format.md](docs/spec/rs03-format.md) |
 | `src/bagit/` | BagIt (RFC 8493) checking and the digests (library, built into arv, and a `bagit` program for any bag) |
-| `src/arv/` | the optional add-on in Python (standard library only): the local AI helpers (`describe`, `tag`, `models`) and `gui` |
-| `arv` | the launcher in a checkout (and `tools/arv/arv` on a disc): the add-on's commands in Python, every other one in the C arv |
+| `src/arv-assist/` | **arv-assist**, optional, in C: the local AI helpers (`arv describe`, `arv tag`, `arv models`), against local models only |
+| `src/arv-gui/` | **arv-gui**, optional, in Python (standard library only): `arv gui`, the interface in your web browser; it runs arv for every action |
+| `arv` | runs `src/arv/build/arv` in a checkout (and `tools/arv/arv` on a disc), building it with `make` first if needed |
 | `docs/` | For users: workflow, burning, shelving, architecture, philosophy, and the website |
 | `docs/spec/` | For implementers, and on every disc: the disc format, the UDF profile, the RS03 error correction |
 | `research/` | Why, and what next: research notes, the standards survey, organising lessons, the plan, RS03 experiments |
@@ -100,8 +101,9 @@ and how BagIt and recfiles split the work.
 ## The `arv` tool
 
 `arv` (Archive, Record, Verify; also Norwegian for "inheritance") is a C program: C99 and POSIX,
-no libraries, built from any disc's `tools/` with one `cc` line. An optional add-on in Python
-(standard library only) has the local AI helpers and a web interface. arv adds dvdisaster's RS03
+no libraries, built from any disc's `tools/` with one `cc` line. Two optional programs sit beside
+it: arv-assist (C) has the local AI helpers, and arv-gui (Python, standard library only) the
+interface in your web browser; arv runs them for `describe`, `tag`, `models` and `gui`. arv adds dvdisaster's RS03
 error correction itself ([src/rs03](src/rs03/): byte for byte what dvdisaster writes), and
 tests and repairs it, so making, checking and repairing discs needs nothing else. Reading a
 damaged disc into an image is for GNU ddrescue or
@@ -111,7 +113,7 @@ damaged disc into an image is for GNU ddrescue or
 ### Install (Linux)
 
 ```sh
-sudo apt install build-essential p7zip-full   # Debian/Ubuntu (python3 too, for the optional add-on)
+sudo apt install build-essential p7zip-full   # Debian/Ubuntu (python3 too, for arv gui)
 # for reading damaged discs: gddrescue, or dvdisaster Light (https://github.com/teaching-droid/dvdisaster-light)
 make install PREFIX=~/.local     # or: sudo make install   (/usr/local)
 arv --help
@@ -125,18 +127,18 @@ and ARM64) with [cosmocc](https://cosmo.zip/pub/cosmocc/) before installing:
 which builds with one `cc` line.
 
 `make install` copies the last commit (exactly the tree every disc carries in `tools/`) to
-`PREFIX/share/arv` (with `arv.com` when it was built), and puts `arv`, `arv-py`, `arvc` and
-`udfwrite` in `PREFIX/bin`.
+`PREFIX/share/arv` (with `arv.com` when it was built), and puts `arv`, `arv-assist`, `arv-gui`,
+`udfwrite` and `bagit` in `PREFIX/bin`.
 
-**The installed `arv` is the C program** (`arvc`, [src/arvc/README.md](src/arvc/README.md)). It
-hands only the add-on's commands to Python: the local AI helpers (`describe`, `tag`, `models`),
-which write drafts that `arv make --draft` takes, and `gui`. `arv-py` is the add-on alone;
-`arvc` is the C program that never hands over. In a checkout, run `make` once, then `./arv` works
-the same way.
+**`arv` does everything itself** ([src/arv/README.md](src/arv/README.md)) except four optional
+commands: `arv describe`, `arv tag` and `arv models` run arv-assist
+([src/arv-assist/README.md](src/arv-assist/README.md)), whose drafts `arv make --draft` takes, and
+`arv gui` runs arv-gui ([src/arv-gui/README.md](src/arv-gui/README.md)). In a checkout, `./arv`
+works the same way (it runs `make` first when nothing is built).
 
-The C arv was ported from a Python one, which was the reference until every command was ported
-and gave the same discs, catalogues and output; what it did is frozen in
-[tests/reference/](tests/reference/), and `make check` holds the C arv to it.
+arv was ported to C from a Python one, which was the reference until every command was ported and
+gave the same discs, catalogues and output; what it did is frozen in
+[tests/reference/](tests/reference/), and `make check` holds arv to it.
 
 ### What it needs
 
@@ -146,7 +148,7 @@ which it finds on `PATH`:
 | Program | Needed for | Where it comes from |
 |---|---|---|
 | `git`, `tar` | copying arv's last commit into each disc's `tools/` (in a checkout; an installed arv copies `PREFIX/share/arv`) | your distribution |
-| `python3` | only the optional add-on: `describe`, `tag`, `models`, `gui` | your distribution |
+| `python3` | only `arv gui` (arv-gui) | your distribution |
 | `dvdisaster` or `ddrescue` | only reading a damaged disc into an image (see its `README.txt`); arv adds, tests and repairs RS03 itself, and checks a burned disc against its image hash | **not bundled:** build [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the [speed47 fork](https://github.com/speed47/dvdisaster)); any version can repair arv's discs |
 | `sf` (Siegfried), `ffmpeg`, a local LLM | optional extras (format ids, video frames, descriptions) | install if you want them |
 
@@ -187,7 +189,7 @@ image holds the files under `data/` plus everything in [Disc layout](#disc-layou
 make uninstall PREFIX=~/.local   # or: sudo make uninstall   (use the PREFIX you installed with)
 ```
 
-This removes `PREFIX/share/arv` and `PREFIX/bin/arv`, `arv-py`, `arvc` and `udfwrite`, and nothing else. Your
+This removes `PREFIX/share/arv` and `PREFIX/bin/arv`, `arv-assist`, `arv-gui`, `udfwrite` and `bagit`, and nothing else. Your
 catalogues are yours and stay where they are: each `.arv` folder (or `~/.local/share/arv`)
 and the list of homes in `~/.config/arv/`. Delete those yourself only if you no longer want
 the catalogue; every disc also carries a copy of it.
@@ -269,7 +271,7 @@ On the disc, `index.html` browses the disc without JavaScript. Searching across
 discs is the job of catalogue software (such as Katalog) reading the catalogue,
 or of this tool, which is on every disc: from the disc's root,
 `tools/arv.com find PATTERN` (copied off the disc first, on systems that will not run programs
-from it), or `arvc find PATTERN` built from `tools/arv/` with one `cc` line, searches every disc
+from it), or `arv find PATTERN` built from `tools/arv/` with one `cc` line, searches every disc
 in its snapshot.
 
 - `--medium` (default `bd25`; also `bd50`, `bd100`, `bd128`, `auto`) sets the disc the image
@@ -319,14 +321,15 @@ in its snapshot.
 - Each disc carries a snapshot of the committed `HEAD` of this repo (not its history;
   `--tools-history` adds a git bundle), so commit before burning (uncommitted changes
   are flagged in the `Software` field).
-- Tests: `make check`: the C arv against the reference outputs, a real disc, RS03 and Siegfried
-  when they are installed (`make -C src/arvc check`), then the add-on's tests.
+- Tests: `make check`: bagit and RS03 (each with its referee when installed), arv against the
+  reference outputs, a real disc and Siegfried when installed (`make -C src/arv check`),
+  arv-assist against a fake model server, then arv-gui's tests (python3).
 
 ## Optional: built-in tagging (`arv tag`)
 
 Consistent folder tags from your own tag vocabulary, using a 37 MB embedding
 model (bge-small-en-v1.5, MIT) run by llama.cpp's `llama-embedding` program as a
-subprocess: no server, no API, no Python packages.
+subprocess: no server, no API, no packages.
 
 ```sh
 ./arv models fetch            # pinned download, SHA-256 checked, into <home>/cache/models/
@@ -336,7 +339,7 @@ subprocess: no server, no API, no Python packages.
 ./arv tag 2018-2022_PERSONAL_01                     # re-tag a disc already in the catalogue
 ```
 
-- The vocabulary is `<home>/config/tags.rec` (created from `src/arv/default_tags.rec`); edit
+- The vocabulary is `<home>/config/tags.rec` (created from `src/arv/data/default_tags.rec`); edit
   the descriptions freely. Describe *content*, not the medium ("cats, dogs", not "photos of").
 - Tags may have `Alias` words (typing `holiday` in review stores `travel`) and `Match` globs
   that tag folders without the model: `arv tag FOLDER --rules-only` needs no download.
@@ -362,7 +365,7 @@ A local model can draft the title, description, subjects and **folder tags**, an
 ask you specific questions ("Who is in the Kyoto photos?"). Nothing is written
 until you accept it, your answers are kept verbatim as notes, and each accepted
 change is logged as a PREMIS `metadata modification` event naming the model.
-This is the optional add-on (Python, standard library only): everything works without it.
+This is arv-assist (`src/arv-assist`, optional, in C): everything works without it.
 
 ```sh
 ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM Studio, vLLM

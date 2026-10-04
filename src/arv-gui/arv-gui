@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+"""arv-gui: arv's graphical interface in your web browser. arv runs it for `arv gui`; it runs arv
+(and arv-assist) for every action. Python 3, standard library only."""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from arvgui.gui import main  # noqa: E402
+
+sys.exit(main())

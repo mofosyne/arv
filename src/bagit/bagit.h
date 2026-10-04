@@ -1,6 +1,6 @@
 /*
  * bagit: BagIt bags (RFC 8493) checked, and the digests they use, in C99 and POSIX with no
- * libraries. Used by arv (src/arvc) for its own discs, and by the bagit program for any bag.
+ * libraries. Used by arv (src/arv) for its own discs, and by the bagit program for any bag.
  */
 #ifndef BAGIT_H
 #define BAGIT_H

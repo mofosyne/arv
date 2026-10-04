@@ -15,8 +15,8 @@ only add fields.
       against the image hash; Linux, Windows and macOS open the disc and run `tools/arv.com`;
       a damaged copy read with ddrescue is repaired to the very image.
 - [ ] The RS03 weak spot (issue #4) is measured on a full-size BD-R image.
-- [ ] `FORMAT_VERSION` becomes `1.0` (src/arvc/make.c), `VERSION` becomes `arvc 1.0`
-      (src/arvc/arvc.h), the samples are remade and published, and the commit is tagged `v1.0`.
+- [ ] `FORMAT_VERSION` becomes `1.0` (src/arv/make.c), `VERSION` becomes `arv 1.0`
+      (src/arv/arv.h), the samples are remade and published, and the commit is tagged `v1.0`.
 
 ## Unreleased (format 0.4), October 2026
 
@@ -50,10 +50,13 @@ What 1.0 is planned to be, as of now. Format 0.4 is what every disc made today c
   repairing it with the arv on the disc.
 
 **The program**
-- arv is a C99 program with no libraries (src/arvc). It was ported from the Python arv one
+- arv is a C99 program with no libraries (src/arv). It was ported from the Python arv one
   command at a time and held to the same outputs (tests/reference), and the Python core was
-  then removed. The optional add-on (local AI descriptions and tags, a web interface) stays
-  in Python.
+  then removed. The optional local AI helpers (`describe`, `tag`, `models`) are arv-assist, in C
+  too (src/arv-assist); only the optional web interface, arv-gui (src/arv-gui), is in Python.
+  `make` builds everything; arv runs the two helpers for their commands.
+- arv's own BagIt validator and digests (src/bagit; also a `bagit` program for any bag), checked
+  against the Library of Congress's bagit.py; the disc no longer carries `tools/bagit.py`.
 
 ## Earlier formats
 

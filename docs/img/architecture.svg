@@ -135,7 +135,7 @@
 <text x='994' y='289' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>arv find, or grep catalog/</text>
 <rect x='984' y='116' width='236' height='44' rx='6' fill='#ffffff' stroke='#2f6b34' stroke-width='1.2'/>
 <text x='994' y='135' font-size='11' font-weight='bold' fill='#2f6b34' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>5 check every file</text>
-<text x='994' y='151' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>sha256sum -c, or bagit.py</text>
+<text x='994' y='151' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>sha256sum -c, or arv verify</text>
 <text x='620.0' y='960' font-size='13' font-weight='normal' fill='#1f2328' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>Every disc stands alone: any one disc, on any computer, holds its files, the whole catalogue,</text>
 <text x='620.0' y='980' font-size='13' font-weight='normal' fill='#1f2328' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>the source of its tools and the steps to repair it.</text>
 <text x='620.0' y='1012' font-size='10.5' font-weight='normal' fill='#57606a' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>Drawn by dev-tools/architecture-svg.py</text>

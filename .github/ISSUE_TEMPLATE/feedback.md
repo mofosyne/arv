@@ -13,7 +13,7 @@ What worked, what didn't, and anything that confused you. For errors, paste the 
 
 **Your setup**
 - OS and version:
-- Python version (`python3 --version`):
+- arv version (`arv --version`):
 - dvdisaster build, if used (Light, speed47 fork, distro package):
 - Burner and media, if you burned a disc:
 

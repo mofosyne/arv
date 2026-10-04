@@ -1,17 +1,17 @@
 #!/bin/sh
 # The reference scenarios: every command arv has, run in a fixed setting, their output and the
-# files they write kept, normalised, in OUT. src/arvc/check.sh runs them and compares OUT with
+# files they write kept, normalised, in OUT. src/arv/check.sh runs them and compares OUT with
 # expected/ (first written by the Python arv, which the C arv was ported from); generate.sh
 # rewrites expected/ after a change made on purpose.
 #
 #   sh tests/reference/scenarios.sh OUT ARV-COMMAND...
-#   e.g. sh tests/reference/scenarios.sh /tmp/ref src/arvc/build/arvc
+#   e.g. sh tests/reference/scenarios.sh /tmp/ref src/arv/build/arv
 #
 # Fixed: the clock (SOURCE_DATE_EPOCH), the time zone, the user, the machine config, the file
 # dates of every input, and tools/ (ARV_SOURCE: a small stand-in tree, and ARV_APE: a stand-in
 # arv.com, so discs do not change with every commit). Not covered here: RS03 (dvdisaster), Siegfried and git checkouts as
-# tools/, whose output depends on the machine; check.sh tests those of arvc directly.
-# Needs src/arvc/build/ptyrun (make -C src/arvc).
+# tools/, whose output depends on the machine; check.sh tests those of arv directly.
+# Needs src/arv/build/ptyrun (make -C src/arv).
 set -eu
 [ $# -ge 2 ] || { echo "usage: scenarios.sh OUT ARV-COMMAND..." >&2; exit 2; }
 here=$(cd "$(dirname "$0")" && pwd)
@@ -26,8 +26,8 @@ for word in "$@"; do        # the command's words; paths made absolute (the scen
     case $word in */*) [ -e "$word" ] && word=$(cd "$(dirname "$word")" && pwd)/$(basename "$word") ;; esac
     if [ -z "$ARV0" ]; then ARV0=$word; else ARVARGS="$ARVARGS $word"; fi
 done
-ptyrun=$repo/src/arvc/build/ptyrun
-[ -x "$ptyrun" ] || { echo "scenarios.sh: build src/arvc first (make -C src/arvc)" >&2; exit 1; }
+ptyrun=$repo/src/arv/build/ptyrun
+[ -x "$ptyrun" ] || { echo "scenarios.sh: build src/arv first (make -C src/arv)" >&2; exit 1; }
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -52,13 +52,13 @@ log() {   # log FILE ARGS...: "$ ARGS", the output (stdout and stderr) and the e
     echo "rc=$rc" >> "$f"
 }
 
-# the normalised copy of a text file: this run's folder, UUIDs, the software name (arv@ or arvc@),
+# the normalised copy of a text file: this run's folder, UUIDs, the software name (arv@ or arv@),
 # temporary names, the time stamps of files written while making (the RO-Crate files), and image
 # hashes (an image holds its archive's UUID)
 norm() {
     sed -E -e "s#$root#ROOT#g" -e "s#$repo#REPO#g" \
         -e 's/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/UUID/g' \
-        -e 's/arvc?@reference/SW/g' -e 's/^(ImageSha256: ).*/\1SHA256/' \
+        -e 's/arv?@reference/SW/g' -e 's/^(ImageSha256: ).*/\1SHA256/' \
         -e 's/(stage-[A-Za-z0-9_-]+-)[A-Za-z0-9_]{6,8}/\1XXXXXX/g' \
         -e 's/\.archive-make-[A-Za-z0-9_]{6,8}/.archive-make-XXXXXX/g' \
         -e 's/\t20[0-9-]+T[0-9:]+Z\t(file\t-\tro-crate)/\tTIME\t\1/' "$1"
@@ -93,10 +93,10 @@ keep_home() {   # keep_home HOME DEST: the catalogue and file lists (extents asi
 stamp() { touch -h -d "@$1" "$2"; }
 
 # tools/: a small stand-in for arv's source, the same for both
-mkdir -p arv-source/src/arv/vendor
+mkdir -p arv-source/src/arv
 echo "arv@reference" > arv-source/VERSION
 printf 'arv (reference stand-in for tools/)\n' > arv-source/README.md
-printf '# bagit.py stand-in\n' > arv-source/src/arv/vendor/bagit.py
+printf '/* arv.c stand-in */\n' > arv-source/src/arv/arv.c
 printf 'arv.com stand-in\n' > arv.com         # tools/arv.com: the Actually Portable Executable
 
 # ------------------------------------------------------------------ make: two discs into one home
@@ -271,7 +271,7 @@ log tags.out --home tags tags
 log tags.out --home tags tags --namespace place
 log tags.out --home tags tags --namespace ""
 log tags.out --home tags tags --namespace nope
-log tags.out --home tags tags --vocab "$repo/src/arv/default_tags.rec"
+log tags.out --home tags tags --vocab "$repo/src/arv/data/default_tags.rec"
 for d in $(a --home tags list | cut -f1) NOPE-01_2000_X; do
     for f in tsv exiftool; do log tags.out --home tags keywords "$d" --format $f; done
 done

@@ -478,8 +478,13 @@ static int print_error(const char *msg)
 int assist_llm_status(int argc, char **argv)
 {
     llm_opts o = { 0 };
-    for (int i = 0; i < argc; i++)
+    for (int i = 0; i < argc; i++) {
+        if (!strcmp(argv[i], "--home") && i + 1 < argc) {       /* given by main(); not needed here */
+            i++;
+            continue;
+        }
         if (!llm_option(argc, argv, &i, &o)) return 2;
+    }
     llm_client c;
     char *err = NULL;
     jv *d = jobj();

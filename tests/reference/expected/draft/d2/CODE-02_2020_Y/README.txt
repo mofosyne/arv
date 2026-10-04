@@ -25,14 +25,14 @@ SEARCH
   Catalogue software that reads this format can search every disc (the
   spec: tools/arv/docs/spec/smart-archive-format.md).
   From the root of the mounted disc, with the reader (see RESTORE):
-    ./arvc find PATTERN                (every disc in this disc's catalogue)
-    ./arvc list
+    ./arv find PATTERN                 (every disc in this disc's catalogue)
+    ./arv list
   Or plain text tools: grep -ri PATTERN catalog/volumes/*/listing.tsv
 
 VERIFY (detect damage)
   From the root of the mounted disc, either of:
     sha256sum -c manifest-sha256.txt   (any Unix-like system; nothing else)
-    ./arvc verify .                    (arvc: see RESTORE; checks it as a BagIt
+    ./arv verify .                     (arv: see RESTORE; checks it as a BagIt
                                         bag: every manifest, every file, no
                                         file too many or missing)
 
@@ -46,9 +46,9 @@ RESTORE (copy the files back)
     ~/arv.com verify .                 (or: ~/arv.com restore . ~/restored)
   If a Linux shell will not start it: sh ~/arv.com verify .
   Build it with any C compiler:
-    cc -O2 -pthread -o arvc tools/arv/src/arvc/*.c tools/arv/src/bagit/bagit.c \
+    cc -O2 -pthread -o arv tools/arv/src/arv/*.c tools/arv/src/bagit/bagit.c \
       tools/arv/src/udfwrite/udfwrite.c tools/arv/src/rs03/rs03.c
-    ./arvc verify .                    (or: ./arvc restore . ~/restored)
+    ./arv verify .                     (or: ./arv restore . ~/restored)
   Without a compiler, after copying data/ to DEST, recreate the links with:
     awk -F'\t' '$3 ~ /^link (recorded|broken)/ {print $4 "\t" $5}' \
       catalog/volumes/*/listing.tsv | while IFS="$(printf '\t')" read -r t p
@@ -62,9 +62,9 @@ REPAIR (fix damage)
          https://github.com/teaching-droid/dvdisaster-light: add --rescue)
      The image is larger than the filesystem. If dvdisaster does not mention
      RS03 error correction while reading, read again with --ignore-iso-size.
-  2. Repair, then check, with the reader in tools/ (arvc or arv.com: see
+  2. Repair, then check, with the reader in tools/ (arv or arv.com: see
      RESTORE); it needs nothing else:
-       ./arvc check --image disc.iso --repair
+       ./arv check --image disc.iso --repair
      or with dvdisaster: dvdisaster -i disc.iso -f
      If arv cannot repair it, it prints the dvdisaster Light commands to
      paste: dvdisaster looks harder for the error correction's layout.

@@ -5,7 +5,7 @@
 #   samples/make-samples.sh [OUTPUT_DIR]      (default: samples/)
 #
 # Needs: a C compiler (arv is built here with make if missing), python3 (to generate the
-# sample sources) and git. Build src/arvc/build/arv.com first (make ape) so the discs carry
+# sample sources) and git. Build src/arv/build/arv.com first (make ape) so the discs carry
 # it in tools/, as real ones do.
 # The discs use a custom 6800-sector "medium" (13.3 MB) so they stay small; real discs use
 # --medium bd25 (the default) or bd100.
@@ -26,8 +26,8 @@ python3 "$here/gen_sources.py" "$src"
 home=$work/home
 discs=$work/discs
 mkdir -p "$discs"
-[ -x "$repo/src/arvc/build/arvc" ] || make -s -C "$repo/src/arvc"
-a() { "$repo/src/arvc/build/arvc" --home "$home" "$@"; }
+[ -x "$repo/src/arv/build/arv" ] || make -s -C "$repo/src/arv"
+a() { "$repo/src/arv/build/arv" --home "$home" "$@"; }
 common="-y --medium-sectors 6800 --output-dir $discs --creator Sample_Person --formats no"
 
 draft() {  # draft NAME JSON: a hand-written metadata draft

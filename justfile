@@ -9,11 +9,11 @@ default:
 arv *args:
     ./arv {{args}}
 
-# Build the C programs: udfwrite and arvc (needs a C compiler)
+# Build arv and its parts: bagit, rs03, udfwrite, arv-assist (needs a C compiler)
 build:
     make
 
-# Run the tests: the C arv against the reference outputs, then the Python add-on (AI helpers, gui)
+# Run the tests: bagit, rs03, arv against the reference outputs, arv-assist, then arv-gui (python3)
 test:
     make check
 
@@ -58,12 +58,19 @@ netbsd-repro:
 udfwrite-check:
     make -C src/udfwrite check
 
-# Check the C arv alone: reference outputs, a real disc, RS03 and Siegfried when present
-arvc-check:
-    make -C src/arvc check
+# Check arv alone: reference outputs, a real disc, dvdisaster Light and Siegfried when present
+arv-check:
+    make -C src/arv check
+
+# Check arv-assist (the local AI helpers) against a fake model server
+assist-check:
+    make -C src/arv-assist check
 
 # Remove build output
 clean:
     make -C upstream/netbsd-makefs clean
+    make -C src/bagit clean
+    make -C src/rs03 clean
     make -C src/udfwrite clean
-    make -C src/arvc clean
+    make -C src/arv clean
+    make -C src/arv-assist clean

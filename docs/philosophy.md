@@ -101,9 +101,9 @@ proposes.
   It never removes a duplicate itself: each disc must still stand alone.
 - **No extra layers that need their own repair.** No PAR2; if encryption comes,
   it sits on top of RS03, and the simplest option wins.
-- **Long bets only:** plain text (recfiles, TSV), BagIt, UDF, and tools that run
-  on Python 3 or as WebAssembly. Every disc carries the source of the tools that
-  made it.
+- **Long bets only:** plain text (recfiles, TSV), BagIt, UDF, and tools in C99 and
+  POSIX with no libraries, built with one `cc` line or carried ready to run as one
+  portable executable. Every disc carries the source of the tools that made it.
 
 ## Two orders: the shelf and the catalogue (principle 2)
 

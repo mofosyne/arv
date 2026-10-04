@@ -9,16 +9,16 @@
 # reviewed change.
 #
 #   sh tests/reference/generate.sh
-# Needs src/arvc built (make -C src/arvc).
+# Needs src/arv built (make -C src/arv).
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/../.." && pwd)
-arvc=$repo/src/arvc/build/arvc
-fixtures=$repo/src/arvc/build/fixtures
-[ -x "$arvc" ] && [ -x "$fixtures" ] || { echo "generate.sh: build src/arvc first (make -C src/arvc)" >&2; exit 1; }
+arv=$repo/src/arv/build/arv
+fixtures=$repo/src/arv/build/fixtures
+[ -x "$arv" ] && [ -x "$fixtures" ] || { echo "generate.sh: build src/arv first (make -C src/arv)" >&2; exit 1; }
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-sh "$here/scenarios.sh" "$tmp/expected" "$arvc"
+sh "$here/scenarios.sh" "$tmp/expected" "$arv"
 mkdir -p "$tmp/expected/recfile"
 for f in "$repo"/tests/fixtures/recfile/*.rec "$here/home/catalog/archive.rec"; do
     name=$(basename "$f")

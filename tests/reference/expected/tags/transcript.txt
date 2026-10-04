@@ -49,7 +49,7 @@ rc=0
 $ --home tags tags --namespace nope
 nope:
 rc=0
-$ --home tags tags --vocab REPO/src/arv/default_tags.rec
+$ --home tags tags --vocab REPO/src/arv/data/default_tags.rec
 (no namespace)
   Holiday                      1 folder on 1 disc   (alias of travel)
   Zzz                          1 folder on 1 disc   (alias of zzz)

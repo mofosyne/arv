@@ -1,4 +1,4 @@
-# Catalogue-editing commands that check.sh runs with the Python arv and with arvc, on copies
+# Catalogue-editing commands that check.sh runs with the Python arv and with arv, on copies
 # of samples/home: output, exit codes and the catalogue afterwards must be the same.
 location list
 location list -v

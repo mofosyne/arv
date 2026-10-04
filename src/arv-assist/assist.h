@@ -1,13 +1,13 @@
 /*
  * arv-assist: arv's optional local-AI helpers (arv describe, arv tag, arv models), in C99 and
- * POSIX. It links arv's own modules (src/arvc) for the catalogue, drafts and tags. Nothing here is
+ * POSIX. It links arv's own modules (src/arv) for the catalogue, drafts and tags. Nothing here is
  * needed to make, read, check or repair a disc; everything runs against local models only, unless
  * a remote server is explicitly allowed.
  */
 #ifndef ASSIST_H
 #define ASSIST_H
 
-#include "../arvc/arvc.h"
+#include "../arv/arv.h"
 
 #include <stdint.h>
 #include <time.h>

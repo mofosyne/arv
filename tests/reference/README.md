@@ -1,7 +1,7 @@
 # Reference outputs: arv's behaviour, frozen
 
 The Python arv was the reference while arv was ported to C. These files keep what it did, and
-every one of them was the same from both, so the C arv (`src/arvc`) is held to it; the Python core
+every one of them was the same from both, so the C arv (`src/arv`) is held to it; the Python core
 has since been removed, and the reference outlives it.
 
 | | |
@@ -16,18 +16,18 @@ The setting is fixed so the outputs are the same on every machine and every day:
 `SOURCE_DATE_EPOCH` (today's date, which both arvs honour), `TZ=UTC`, the user name, an empty
 machine config, the dates of every input file, and `ARV_SOURCE`, a small stand-in for arv's own
 source in `tools/`, so the discs do not change with every commit. What is left to normalise: the
-folder the scenarios ran in, UUIDs, `arv@`/`arvc@`, temporary folder names, and the time the
+folder the scenarios ran in, UUIDs, `arv@`/`arv@`, temporary folder names, and the time the
 RO-Crate files were written. Tag manifests, `extents.tsv` and the contents of `tools/` are not
 kept (they hash or place the files that differ by the software name).
 
 Not covered here, because the result depends on the machine: RS03 (dvdisaster), Siegfried, and a
-git checkout as `tools/`. `src/arvc/check.sh` tests those with arvc directly, along with a real
+git checkout as `tools/`. `src/arv/check.sh` tests those with arv directly, along with a real
 image read back with 7z, restored and damaged.
 
 ## Use
 
 ```sh
-make -C src/arvc check            # arv against expected/ (and the rest of its checks)
+make -C src/arv check            # arv against expected/ (and the rest of its checks)
 sh tests/reference/generate.sh    # after an intended change: rewrite expected/ (just bless)
 git diff tests/reference/expected # read it before committing: it is the record of what changed
 ```

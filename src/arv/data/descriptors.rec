@@ -1,0 +1,83 @@
+# Record descriptors of the arv catalogue (GNU recutils), in the order the records are
+# written. Read by src/arv/catalog.py and compiled into src/arv: one definition for both.
+# Specification: docs/spec/smart-archive-format.md
+
+%rec: Disc
+%doc: One record per physical disc image (an OAIS AIP). Field names follow
++ Dublin Core terms where one fits: Title, Creator, Date, Description,
++ Subject, Coverage, Rights. Uuid is the machine identity of the image
++ (copies burned from one image share it); Id is for people and is
++ derived from Set, Sequence and Coverage (EDTF) under IdScheme, so it
++ can always be regenerated and checked (see docs/spec/smart-archive-format.md).
+%key: Id
+%mandatory: Id Title Date
+%type: Uuid uuid
+%type: Sequence int
+%type: Date date
+%type: Files int
+%type: Bytes int
+%type: Access enum public private sealed
+
+%rec: Binding
+%doc: How one volume is stored on its medium: the container (filesystem) and the
++ protection (error correction) it was made with. These change with the medium;
++ the files and the rest of the catalogue do not (research/plan.md, four layers).
++ Container: iso9660+udf-1.02, udf-2.50 (later perhaps ltfs, exfat, tar, afs).
++ Protection: rs03 or none. Media, Filesystem and Ecc describe them for people
++ (format 0.2 and earlier kept those three in the Disc record).
+%key: Volume
+%mandatory: Volume Container Protection
+%type: MediumSectors int
+
+%rec: Location
+%doc: Places where discs are kept: site, room, shelf, box. Parent makes a tree,
++ so moving a box moves every disc in it. A Disc's Location field (one per
++ place its copies are kept) names a Code here, or is free text.
+%key: Code
+%mandatory: Code Name
+
+%rec: Collection
+%doc: Virtual folders across discs. Item is DISC-ID (a whole disc), DISC-ID:folder/
++ or DISC-ID:folder/file (paths relative to the disc's data/). Parent nests
++ collections. Snapshots on other discs carry only items they may show.
+%key: Code
+%mandatory: Code Name
+
+%rec: Event
+%doc: Preservation actions and metadata changes, appended and never edited. Type uses
++ the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
++ Disc names the disc; a change to a location or a collection names it in Object
++ (location:CODE, collection:CODE) instead. Agent (one or more) is software
++ (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
++ Authorship says how people and machines shared the work: automatic (software
++ following rules), suggested (a model, not reviewed), accepted (a model's suggestion
++ a person kept as it was), edited (one a person changed), human (a person alone).
+%mandatory: Type Date Outcome
+%type: Outcome enum success failure warning
+%type: Authorship enum automatic suggested accepted edited human
+
+%rec: Appraisal
+%doc: The archivist log: how much something matters, to whom, and why. Appended and
++ never edited; the newest appraisal of a target replaces earlier ones, and one a
++ person made or reviewed outranks a machine's. Target is DISC-ID, DISC-ID:folder/,
++ DISC-ID:folder/file (relative to data/), set:CODE or collection:CODE; a target
++ without an appraisal takes the nearest one above it (file, folder, disc, set).
++ Importance is '<level> for <audience>', one per audience; levels, most first:
++ essential (must survive: several copies, one elsewhere), important (on disc),
++ useful (on disc if there is room), incidental (everyday storage is enough).
++ Only a person can mark something incidental. Basis says why; Review is when to
++ look again. Authorship and Agent as in Event.
+%mandatory: Target Date Authorship
+%type: Date date
+%type: Review date
+%type: Authorship enum automatic suggested accepted edited human
+
+%rec: Archive
+%doc: Entry point of a smart-archive disc: which format and version this is, which disc,
++ and where its other catalogue files are (paths relative to the disc root).
++ Specification: tools/arv/docs/spec/smart-archive-format.md
+%mandatory: Format Version Disc Uuid
+
+%rec: Snapshot
+%doc: When this catalogue snapshot was taken and what it covers. The home
++ archive.rec stays authoritative for anything recorded after this date.

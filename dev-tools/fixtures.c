@@ -1,16 +1,16 @@
 /*
- * Checks arvc's C code against tests/fixtures/ (the language-neutral contract the Python
+ * Checks arv's C code against tests/fixtures/ (the language-neutral contract the Python
  * implementation passes too): recfile/, coverage.tsv, covers.tsv.
  *
  *   fixtures DIR        prints each failing case; exit 0 when all pass
  */
 #define _XOPEN_SOURCE 700
-#include "../src/arvc/discid.h"
-#include "../src/arvc/edtf.h"
-#include "../src/arvc/rec.h"
+#include "../src/arv/discid.h"
+#include "../src/arv/edtf.h"
+#include "../src/arv/rec.h"
 #include "../src/bagit/bagit.h"
-#include "../src/arvc/vocab.h"
-#include "../src/arvc/arvc.h"
+#include "../src/arv/vocab.h"
+#include "../src/arv/arv.h"
 
 #include <stdio.h>
 #include <stdlib.h>

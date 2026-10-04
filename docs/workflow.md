@@ -67,7 +67,7 @@ poorly; worth it only for a subset you want watched file by file.
 | Need | For | How |
 |---|---|---|
 | a C compiler | building arv (`make`) | usually installed (`build-essential`) |
-| Python 3 | only the optional add-on: `arv describe`, `arv tag`, `arv gui` | usually installed |
+| Python 3 | only `arv gui` (arv-gui, optional) | usually installed |
 | `arv` | the tool | `make install PREFIX=~/.local` in this repository (or run `./arv` from it); `make uninstall PREFIX=~/.local` removes it and leaves your catalogues alone |
 | `dvdisaster` | RS03 error correction | [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) or the [speed47 fork](https://github.com/speed47/dvdisaster) fill a whole BD (byte-identical results); the stock 0.79.10 build works but pads to the smallest standard size |
 | `udfwrite` | the UDF 2.50 image (built into the C arv) | built by `make`, installed by `make install` (a C compiler; nothing else) |
@@ -212,7 +212,7 @@ arv location list -v
 | Everything under a category or a place | `arv list --in MEMORIES`, `arv list --at OFFSITE` |
 | Which tags do I use? | `arv tags`; `arv find place:kyoto` |
 | Group things across discs | `arv collection add BEST --name "Best of" DISC:folder/ DISC:file`, `arv collection show BEST`: virtual folders; other software can show them as a tree ([spec](spec/smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)) |
-| Without this tool installed? | every disc carries it: `tools/arv.com find PATTERN` (or `arvc` built from `tools/arv/` with one `cc` line) from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
+| Without this tool installed? | every disc carries it: `tools/arv.com find PATTERN` (or `arv` built from `tools/arv/` with one `cc` line) from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
 | Changes after burning | `arv note`, `arv locate`, `arv access` (home catalogue; later discs carry them) |
 
 **Check discs every few years** with `arv check --device /dev/sr0` (it reads the disc back
@@ -241,42 +241,45 @@ read or repaired.
 ## 7. How the repository fits together
 
 ```
-src/arvc/                  arv: the C program (C99 and POSIX, no libraries)
-  arvc.c                   the commands; hands describe, tag, models and gui to the add-on
+src/arv/                  arv: the C program (C99 and POSIX, no libraries)
+  arv.c                   the commands; runs arv-assist for describe, tag, models and arv-gui for gui
   make.c  bag.c  html.c  rocrate.c  formats.c   making discs (plan, stage, build, protect)
   record.c  edit.c  tags.c  catalogue.c  disc.c  recording, editing, queries, reading a disc
   archive.c  home.c  rec.c  json.c  vocab.c  discid.c  edtf.c   the catalogue and its rules
-  data.c                   the shared data files below, embedded (make -C src/arvc data)
-src/arv/                   the optional add-on, Python standard library only
-  tagger.py  describe.py  llm.py  vision.py  models.py   local AI helpers: they write drafts
-  gui.py                   the local web UI (runs arv for every action)
-  catalog.py  recfile.py  homes.py  sets.py  ...          reading the home for them
-  descriptors.rec  readme.txt  index.css  default_sets.rec  default_tags.rec   shared data files
-arv                        the launcher: the add-on's commands in Python, the rest in the C arv
+  data/                    descriptors.rec  readme.txt  index.css  default_sets.rec  default_tags.rec
+  data.c                   data/, embedded (make -C src/arv data)
+src/arv-assist/            optional, C: the local AI helpers (describe, tag, models); they write drafts
+src/arv-gui/               optional, Python standard library only: the local web UI (runs arv for every action)
+arv                        runs src/arv/build/arv in a checkout (make first if needed)
+src/bagit/                 BagIt checking and digests in C (library, built into arv, and program)
+src/rs03/                  RS03 error correction in C (library, built into arv, and program)
 src/udfwrite/              arv's UDF 2.50 writer in C (library, built into arv, and program)
 samples/                   eight small sample discs and their catalogue; the scripts that make them
 tests/reference/           what every command prints and writes, frozen (the C arv is held to it)
 tests/fixtures/            language-neutral cases (TSV): disc ids, dates, tags, names, recfiles
-tests/test_addon.py        the add-on's tests (with the C arv for the rest)
-docs/                      this file, the format spec, architecture, philosophy, the website
+tests/test_gui.py          arv-gui's tests (with arv and arv-assist)
+docs/                      this file, burning, architecture, philosophy, the website
+docs/spec/                 the disc format, the UDF profile, RS03
+dev-tools/                 not part of arv: test helpers, the spec cross-check, diagram generators
 research/                  research notes, standards survey, plan and decisions, RS03 experiments
-upstream/                  not part of arv: drafts for other projects (NetBSD makefs fixes, dvdisaster Light)
+upstream/                  not part of arv: drafts for other projects (NetBSD makefs fixes, dvdisaster Light), bagit-python
 scripts/                   the original shell scripts, before arv
 justfile, Makefile         everyday commands (just), build and install (make)
 ```
 
 The layers, from most to least durable:
 1. **Formats:** BagIt, recfiles, TSV, EDTF, and [the spec](spec/smart-archive-format.md). They outlive any code.
-2. **The C arv** and `udfwrite`: C99 and POSIX, built from any disc with one `cc` line, or carried
+2. **arv** (with bagit, rs03 and udfwrite built in): C99 and POSIX, built from any disc with one `cc` line, or carried
    ready to run as `tools/arv.com`. It was ported from a Python arv, command by command, against
    the same outputs ([plan.md](../research/plan.md), decisions 2026-09-30 and 2026-10-04).
-3. **The Python add-on:** local AI helpers and the web UI. Optional; nothing on a disc needs it.
+3. **The optional helpers:** arv-assist (C: local AI helpers) and arv-gui (Python: the web UI).
+   Nothing on a disc needs them.
 
 ## 8. Developer flows
 
-- **Tests:** `make check`: the C arv (`make -C src/arvc check`; with dvdisaster Light and Siegfried on PATH their checks run too; `make -C src/rs03 check` compares the RS03 encoder with dvdisaster Light; `make -C src/arvc check-ape` with arv.com), then the add-on (`python3 -m unittest discover -s tests`).
+- **Tests:** `make check`: bagit (`make -C src/bagit check`, against bagit.py when python3 is there), RS03 (`make -C src/rs03 check`: the test vectors, and dvdisaster Light when on PATH), arv (`make -C src/arv check`; with dvdisaster Light and Siegfried on PATH their checks run too; `make -C src/arv check-ape` with arv.com), arv-assist (`make -C src/arv-assist check`, against a fake model server), then arv-gui (`python3 -m unittest discover -s tests`).
 - **Fixtures:** edited by hand, with the expected value worked out ([README](../tests/fixtures/README.md)).
-- **Reference outputs:** `make -C src/arvc check` holds the C arv to [tests/reference/expected](../tests/reference/), what every command printed and wrote (first by the Python arv, the same by both); after an intended change, `sh tests/reference/generate.sh` (or `just bless`) and read `git diff tests/reference/expected`.
+- **Reference outputs:** `make -C src/arv check` holds arv to [tests/reference/expected](../tests/reference/), what every command printed and wrote (first by the Python arv, the same by both); after an intended change, `sh tests/reference/generate.sh` (or `just bless`) and read `git diff tests/reference/expected`.
 - **Sample discs:** `samples/make-samples.sh` (builds arv, and with `make ape` first the discs carry arv.com) replaces `samples/discs` and `samples/home`; the images are not in git, `samples/publish-discs.sh` publishes them as the `samples` release and `samples/fetch-discs.sh` downloads them.
 - **Upstream work** (`upstream/`, not part of arv, not built by `make`):
   - NetBSD makefs: `make -C upstream/netbsd-makefs check` (also `asan`, `static`); changes to NetBSD's code go in `upstream/netbsd-makefs/netbsd/`, and each also gets a patch in `upstream/netbsd-makefs/patches/`; `upstream/netbsd-makefs/repro/repro.sh` (`just netbsd-repro`) shows each patch against unmodified upstream;

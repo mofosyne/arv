@@ -3,7 +3,7 @@
  *
  *   embed OUT.c NAME=FILE...
  *
- * data.c is generated but committed, so arvc builds with one cc line from a disc's tools/;
+ * data.c is generated but committed, so arv builds with one cc line from a disc's tools/;
  * make check fails if it is out of date.
  */
 #include <stdio.h>

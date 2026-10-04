@@ -100,9 +100,8 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 | `catalog/volumes/<other-id>/` | as above | The same per-volume index files for the other discs in the snapshot: one folder per volume, as LTFS keeps one index per tape |
 | `index.html` | HTML | Offline viewer (for people; readers can ignore) |
 | `README.txt` | text | How to browse, search, verify, restore and repair the disc, for people |
-| `tools/arv/` | files | The source of the software that made the disc (C and Python), with this spec |
+| `tools/arv/` | files | The source of the software that made the disc (C; its optional web interface in Python), with this spec |
 | `tools/arv.com` | program | That software as one Actually Portable Executable (Cosmopolitan): runs as is on Linux, macOS, Windows and the BSDs, x86-64 and ARM64. Optional: present when it was built where the disc was made |
-| `tools/bagit.py` | Python | The BagIt validator |
 | `data/` | files | The payload, untouched |
 
 Version 0.1 (samples only, never burned) kept these files by kind instead: `catalog/manifests/<id>.sha256`,
@@ -192,7 +191,7 @@ BACKUPS  Backups and exports
   EMAIL    Email and messages
 ```
 
-(abridged; the default is `src/arv/default_sets.rec`, a recfile with
+(abridged; the default is `src/arv/data/default_sets.rec`, a recfile with
 `Code`, `Name`, `Description`, repeatable `Parent`, optional `Order`, and the
 optional fields below.)
 

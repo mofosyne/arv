@@ -175,7 +175,7 @@ step(RX, 638, RW, "protection", ["2 repair the image", "arv check --repair, or d
 step(RX, 524, RW, "container", ["3 open it", "mount, or 7-Zip: no tool of ours"])
 step(RX, 238, RW, "description", ["4 understand and search", "README.txt, index.html;",
                                   "arv find, or grep catalog/"])
-step(RX, 116, RW, "content", ["5 check every file", "sha256sum -c, or bagit.py"])
+step(RX, 116, RW, "content", ["5 check every file", "sha256sum -c, or arv verify"])
 
 # ---------------------------------------------------------------- footer
 text(W / 2, 960, "Every disc stands alone: any one disc, on any computer, holds its files, the whole catalogue,",
