@@ -15,7 +15,7 @@
 %type: Access enum public private sealed
 
 Id: TRIP-01_2019_4
-Uuid: 6a5bb276-d813-4d2e-a561-a56dbe75627f
+Uuid: cc584465-f40a-466f-9601-d3f709458baf
 IdScheme: set-seq-coverage/1
 Label: TRIP-01_2019_4 Kyoto July 2019
 Title: Kyoto, July 2019
@@ -23,7 +23,7 @@ Set: TRIP
 Path: MEMORIES/PHOTO/TRIP
 Sequence: 1
 Coverage: 2019
-Date: 2026-10-03
+Date: 2026-10-04
 Creator: Sample_Person
 Description: Three days in Kyoto: shrines, temples and the bamboo grove.
 Subject: travel
@@ -33,12 +33,12 @@ Location: BOX1
 Access: public
 Files: 16
 Bytes: 9443
-Software: arv@8d2e13bdc1c5
+Software: arv@e8c6358ab75d
 Copies: 2
 Location: OFFSITE
 
 Id: PROJ-01_2020-2023_L
-Uuid: 69f914c3-3228-4a8c-a2cd-45d3697ed0f0
+Uuid: 69a1c37f-cbea-4c95-bf44-4888fe3e810c
 IdScheme: set-seq-coverage/1
 Label: PROJ-01_2020-2023_L Weather station project
 Title: Weather station project
@@ -50,19 +50,19 @@ Path: PROJECTS/CODE
 Path: PROJECTS/ELEC
 Sequence: 1
 Coverage: 2020/2023
-Date: 2026-10-03
+Date: 2026-10-04
 Creator: Sample_Person
 Description: ESP32 weather station: firmware, KiCad board, gerbers and the git repository.
 Location: BOX1
 Access: private
 Files: 56
 Bytes: 32142
-Software: arv@8d2e13bdc1c5
+Software: arv@e8c6358ab75d
 Copies: 1
 Note: Board rev B; rev A gerbers were never ordered.
 
 Id: TAXES-01_2019-2020_I
-Uuid: 9488e83d-ab67-4445-8fa0-ef78381e0175
+Uuid: 104053c7-8a46-4457-b1fb-cdb0c99b609d
 IdScheme: set-seq-coverage/1
 Label: TAXES-01_2019-2020_I Tax return 2019
 Title: Tax return 2019
@@ -70,18 +70,18 @@ Set: TAXES
 Path: RECORDS/FINANCE/TAXES
 Sequence: 1
 Coverage: 2019/2020
-Date: 2026-10-03
+Date: 2026-10-04
 Creator: Sample_Person
 Description: Tax return and quarterly receipts for 2019.
 Location: SAFE
 Access: sealed
 Files: 5
 Bytes: 3196
-Software: arv@8d2e13bdc1c5
+Software: arv@e8c6358ab75d
 Copies: 1
 
 Id: SCAN-01_1995-2008_D
-Uuid: 244696ca-7977-44a1-93a1-603759e58316
+Uuid: ac18782e-52f2-4d60-bf5b-12a08f877683
 IdScheme: set-seq-coverage/1
 Label: SCAN-01_1995-2008_D Letters 1995-2008 scanned
 Title: Letters 1995-2008, scanned
@@ -92,19 +92,19 @@ Path: RECORDS/SCAN
 Path: RECORDS/LETTERS
 Sequence: 1
 Coverage: 1995/2008
-Date: 2026-10-03
-Part: 1 of 2
+Date: 2026-10-04
+Part: 1 of 3
 Creator: Sample_Person
 Description: Scans of letters kept since 1995.
 Location: BOX1
 Access: private
-Files: 29
-Bytes: 2905105
-Software: arv@8d2e13bdc1c5
+Files: 25
+Bytes: 2504433
+Software: arv@e8c6358ab75d
 Copies: 1
 
 Id: SCAN-02_1995-2008_B
-Uuid: 02f911f4-c83d-40e6-9945-7b3931b7eadc
+Uuid: e0f4723b-7f8f-452f-837c-f7c551214a2c
 IdScheme: set-seq-coverage/1
 Label: SCAN-02_1995-2008_B Letters 1995-2008 scanned
 Title: Letters 1995-2008, scanned
@@ -115,34 +115,57 @@ Path: RECORDS/SCAN
 Path: RECORDS/LETTERS
 Sequence: 2
 Coverage: 1995/2008
-Date: 2026-10-03
-Part: 2 of 2
+Date: 2026-10-04
+Part: 2 of 3
 Creator: Sample_Person
 Description: Scans of letters kept since 1995.
 Location: BOX1
 Access: private
-Files: 27
-Bytes: 2705049
-Software: arv@8d2e13bdc1c5
+Files: 26
+Bytes: 2604875
+Software: arv@e8c6358ab75d
+Copies: 1
+
+Id: SCAN-03_1995-2008_9
+Uuid: f9367e32-55c5-44fc-af7a-acfc8621fa15
+IdScheme: set-seq-coverage/1
+Label: SCAN-03_1995-2008_9 Letters 1995-2008 scanned
+Title: Letters 1995-2008, scanned
+Set: SCAN
+Category: LETTERS
+Path: MEMORIES/PHOTO/SCAN
+Path: RECORDS/SCAN
+Path: RECORDS/LETTERS
+Sequence: 3
+Coverage: 1995/2008
+Date: 2026-10-04
+Part: 3 of 3
+Creator: Sample_Person
+Description: Scans of letters kept since 1995.
+Location: BOX1
+Access: private
+Files: 5
+Bytes: 500846
+Software: arv@e8c6358ab75d
 Copies: 1
 
 Id: FAMILY-01_2020-2021_K
-Uuid: ddd0bdcd-a02b-4a4c-9b60-db23d90de335
+Uuid: 5199fb32-b7b5-42ee-9d16-1e7b836fdefe
 IdScheme: set-seq-coverage/1
-Label: FAMILY-01_2020-2021_K Family pho
+Label: FAMILY-01_2020-2021_K Family photos 2020-2021
 Title: Family photos 2020-2021
 Set: FAMILY
 Path: MEMORIES/PHOTO/FAMILY
 Sequence: 1
 Coverage: 2020/2021
-Date: 2026-10-03
+Date: 2026-10-04
 Creator: Sample_Person
 Description: Birthdays, the garden, the beach and Christmas.
 Location: OFFSITE
 Access: private
 Files: 16
 Bytes: 8828
-Software: arv@8d2e13bdc1c5
+Software: arv@e8c6358ab75d
 Copies: 1
 
 %rec: Binding
@@ -176,7 +199,7 @@ Volume: TAXES-01_2019-2020_I
 Container: udf-2.50
 Protection: rs03
 Media: M-DISC custom medium
-Filesystem: UDF 2.50, BD-ROM layout with metadata partition (NetBSD makefs via udfmake)
+Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: dvdisaster RS03 augmented image, custom medium (4800 sectors), minimum 20% redundancy
 MediumSectors: 4800
 
@@ -196,11 +219,19 @@ Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (a
 Ecc: dvdisaster RS03 augmented image, custom medium (4800 sectors), minimum 20% redundancy
 MediumSectors: 4800
 
-Volume: FAMILY-01_2020-2021_K
-Container: iso9660+udf-1.02
+Volume: SCAN-03_1995-2008_9
+Container: udf-2.50
 Protection: rs03
 Media: M-DISC custom medium
-Filesystem: ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge
+Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
+Ecc: dvdisaster RS03 augmented image, custom medium (4800 sectors), minimum 20% redundancy
+MediumSectors: 4800
+
+Volume: FAMILY-01_2020-2021_K
+Container: udf-2.50
+Protection: rs03
+Media: M-DISC custom medium
+Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: dvdisaster RS03 augmented image, custom medium (4800 sectors), minimum 20% redundancy
 MediumSectors: 4800
 
@@ -244,7 +275,7 @@ Name: Parents' house
 
 Object: location:HOME
 Type: metadata modification
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: human:root
@@ -252,7 +283,7 @@ Note: created
 
 Object: location:STUDY
 Type: metadata modification
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: human:root
@@ -260,7 +291,7 @@ Note: created in HOME
 
 Object: location:BOX1
 Type: metadata modification
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: human:root
@@ -268,7 +299,7 @@ Note: created in STUDY
 
 Object: location:SAFE
 Type: metadata modification
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: human:root
@@ -276,7 +307,7 @@ Note: created in HOME
 
 Object: location:OFFSITE
 Type: metadata modification
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: human:root
@@ -284,15 +315,15 @@ Note: created
 
 Disc: TRIP-01_2019_4
 Type: message digest calculation
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arv@8d2e13bdc1c5
+Agent: arv@e8c6358ab75d
 Note: sha256 and sha512 manifests of 16 files
 
 Disc: TRIP-01_2019_4
 Type: metadata modification
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: sample script (hand-written)
@@ -300,15 +331,15 @@ Note: title, description, subjects and folder tags taken from a draft (made by: 
 
 Disc: TRIP-01_2019_4
 Type: creation
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arv@8d2e13bdc1c5
-Note: image TRIP-01_2019_4.iso, 2194 sectors; RS03: 4 MiB data, 4 MiB ecc (132 roots; 107.3% redundancy).
+Agent: arv@e8c6358ab75d
+Note: image TRIP-01_2019_4.iso, 2354 sectors; RS03: 4 MiB data, 4 MiB ecc (123 roots; 93.2% redundancy), 0 MiB padding.
 
 Disc: TRIP-01_2019_4
 Type: fixity check
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
 Agent: dvdisaster
@@ -316,23 +347,23 @@ Note: image test after creation
 
 Disc: PROJ-01_2020-2023_L
 Type: message digest calculation
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arv@8d2e13bdc1c5
+Agent: arv@e8c6358ab75d
 Note: sha256 and sha512 manifests of 56 files
 
 Disc: PROJ-01_2020-2023_L
 Type: ingestion
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arv@8d2e13bdc1c5
+Agent: arv@e8c6358ab75d
 Note: links: 1 copied, 1 recorded (policy: default)
 
 Disc: PROJ-01_2020-2023_L
 Type: metadata modification
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: sample script (hand-written)
@@ -340,15 +371,15 @@ Note: title, description, subjects and folder tags taken from a draft (made by: 
 
 Disc: PROJ-01_2020-2023_L
 Type: creation
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arv@8d2e13bdc1c5
-Note: image PROJ-01_2020-2023_L.iso, 2482 sectors; RS03: 4 MiB data, 4 MiB ecc (116 roots; 83.5% redundancy).
+Agent: arv@e8c6358ab75d
+Note: image PROJ-01_2020-2023_L.iso, 2610 sectors; RS03: 5 MiB data, 3 MiB ecc (108 roots; 73.5% redundancy), 0 MiB padding.
 
 Disc: PROJ-01_2020-2023_L
 Type: fixity check
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
 Agent: dvdisaster
@@ -356,23 +387,23 @@ Note: image test after creation
 
 Disc: TAXES-01_2019-2020_I
 Type: message digest calculation
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arv@8d2e13bdc1c5
+Agent: arv@e8c6358ab75d
 Note: sha256 and sha512 manifests of 5 files
 
 Disc: TAXES-01_2019-2020_I
 Type: creation
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arv@8d2e13bdc1c5
-Note: image TAXES-01_2019-2020_I.udfmake.iso, 2656 sectors; RS03: 5 MiB data, 3 MiB ecc (106 roots; 71.1% redundancy), 0 MiB padding.
+Agent: arv@e8c6358ab75d
+Note: image TAXES-01_2019-2020_I.iso, 2354 sectors; RS03: 4 MiB data, 4 MiB ecc (123 roots; 93.2% redundancy), 0 MiB padding.
 
 Disc: TAXES-01_2019-2020_I
 Type: fixity check
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
 Agent: dvdisaster
@@ -380,23 +411,23 @@ Note: image test after creation
 
 Disc: SCAN-01_1995-2008_D
 Type: message digest calculation
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arv@8d2e13bdc1c5
-Note: sha256 and sha512 manifests of 29 files
+Agent: arv@e8c6358ab75d
+Note: sha256 and sha512 manifests of 25 files
 
 Disc: SCAN-01_1995-2008_D
 Type: creation
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arv@8d2e13bdc1c5
-Note: image SCAN-01_1995-2008_D.iso, 3698 sectors; RS03: 7 MiB data, 1 MiB ecc (48 roots; 23.2% redundancy), 0 MiB padding.
+Agent: arv@e8c6358ab75d
+Note: image SCAN-01_1995-2008_D.iso, 3666 sectors; RS03: 7 MiB data, 1 MiB ecc (50 roots; 24.4% redundancy), 0 MiB padding.
 
 Disc: SCAN-01_1995-2008_D
 Type: fixity check
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
 Agent: dvdisaster
@@ -404,23 +435,47 @@ Note: image test after creation
 
 Disc: SCAN-02_1995-2008_B
 Type: message digest calculation
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arv@8d2e13bdc1c5
-Note: sha256 and sha512 manifests of 27 files
+Agent: arv@e8c6358ab75d
+Note: sha256 and sha512 manifests of 26 files
 
 Disc: SCAN-02_1995-2008_B
 Type: creation
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arv@8d2e13bdc1c5
-Note: image SCAN-02_1995-2008_B.iso, 3538 sectors; RS03: 6 MiB data, 2 MiB ecc (57 roots; 28.8% redundancy), 0 MiB padding.
+Agent: arv@e8c6358ab75d
+Note: image SCAN-02_1995-2008_B.iso, 3698 sectors; RS03: 7 MiB data, 1 MiB ecc (48 roots; 23.2% redundancy), 0 MiB padding.
 
 Disc: SCAN-02_1995-2008_B
 Type: fixity check
-Date: 2026-10-03
+Date: 2026-10-04
+Outcome: success
+Authorship: automatic
+Agent: dvdisaster
+Note: image test after creation
+
+Disc: SCAN-03_1995-2008_9
+Type: message digest calculation
+Date: 2026-10-04
+Outcome: success
+Authorship: automatic
+Agent: arv@e8c6358ab75d
+Note: sha256 and sha512 manifests of 5 files
+
+Disc: SCAN-03_1995-2008_9
+Type: creation
+Date: 2026-10-04
+Outcome: success
+Authorship: automatic
+Agent: arv@e8c6358ab75d
+Note: image SCAN-03_1995-2008_9.iso, 2610 sectors; RS03: 5 MiB data, 3 MiB ecc (108 roots; 73.5% redundancy), 0 MiB padding.
+
+Disc: SCAN-03_1995-2008_9
+Type: fixity check
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
 Agent: dvdisaster
@@ -428,15 +483,15 @@ Note: image test after creation
 
 Disc: FAMILY-01_2020-2021_K
 Type: message digest calculation
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arv@8d2e13bdc1c5
+Agent: arv@e8c6358ab75d
 Note: sha256 and sha512 manifests of 16 files
 
 Disc: FAMILY-01_2020-2021_K
 Type: metadata modification
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: sample script (hand-written)
@@ -444,15 +499,15 @@ Note: title, description, subjects and folder tags taken from a draft (made by: 
 
 Disc: FAMILY-01_2020-2021_K
 Type: creation
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arv@8d2e13bdc1c5
-Note: image FAMILY-01_2020-2021_K.hybrid.iso, 1739 sectors; RS03: 3 MiB data, 5 MiB ecc (157 roots; 160.2% redundancy), 0 MiB padding.
+Agent: arv@e8c6358ab75d
+Note: image FAMILY-01_2020-2021_K.iso, 2482 sectors; RS03: 4 MiB data, 4 MiB ecc (116 roots; 83.5% redundancy).
 
 Disc: FAMILY-01_2020-2021_K
 Type: fixity check
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
 Agent: dvdisaster
@@ -460,7 +515,7 @@ Note: image test after creation
 
 Disc: TRIP-01_2019_4
 Type: replication
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: human:root
@@ -468,7 +523,7 @@ Note: burned 1 copy
 
 Disc: PROJ-01_2020-2023_L
 Type: replication
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: human:root
@@ -476,7 +531,7 @@ Note: burned 1 copy
 
 Disc: TAXES-01_2019-2020_I
 Type: replication
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: human:root
@@ -484,7 +539,7 @@ Note: burned 1 copy
 
 Disc: SCAN-01_1995-2008_D
 Type: replication
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: human:root
@@ -492,7 +547,15 @@ Note: burned 1 copy
 
 Disc: SCAN-02_1995-2008_B
 Type: replication
-Date: 2026-10-03
+Date: 2026-10-04
+Outcome: success
+Authorship: human
+Agent: human:root
+Note: burned 1 copy
+
+Disc: SCAN-03_1995-2008_9
+Type: replication
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: human:root
@@ -500,7 +563,7 @@ Note: burned 1 copy
 
 Disc: FAMILY-01_2020-2021_K
 Type: replication
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: human:root
@@ -508,7 +571,7 @@ Note: burned 1 copy
 
 Disc: TRIP-01_2019_4
 Type: replication
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: human:root
@@ -516,7 +579,7 @@ Note: burned 1 copy, kept at Parents' house; second copy for the parents
 
 Disc: PROJ-01_2020-2023_L
 Type: metadata modification
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: human
 Agent: human:root
@@ -524,21 +587,7 @@ Note: Note added: Board rev B; rev A gerbers were never ordered.
 
 Disc: FAMILY-01_2020-2021_K
 Type: fixity check
-Date: 2026-10-03
-Outcome: success
-Authorship: automatic
-Agent: dvdisaster
-Note: image test with dvdisaster -t
-+ - data md5sum      : none available
-+ Data integrity:
-+ - medium sectors   : 4590 total / 1739 data
-+ - good image/file  : all sectors present
-+ - data md5sum      : 3555379f2a4bd6803b5c02b02d632181
-+ - Ecc block test   : pass
-
-Disc: PROJ-01_2020-2023_L
-Type: fixity check
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
 Agent: dvdisaster
@@ -547,12 +596,40 @@ Note: image test with dvdisaster -t
 + Data integrity:
 + - medium sectors   : 4590 total / 2482 data
 + - good image/file  : all sectors present
-+ - data md5sum      : f52c57b93ad45e65ccd1ec20f38e6f28
++ - data md5sum      : b4df68a7ab005514d81087a1eaa5add2
++ - Ecc block test   : pass
+
+Disc: PROJ-01_2020-2023_L
+Type: fixity check
+Date: 2026-10-04
+Outcome: success
+Authorship: automatic
+Agent: dvdisaster
+Note: image test with dvdisaster -t
++ - data md5sum      : none available
++ Data integrity:
++ - medium sectors   : 4590 total / 2610 data
++ - good image/file  : all sectors present
++ - data md5sum      : 20cf433dde5a7caf7ede456ad6526214
 + - Ecc block test   : pass
 
 Disc: SCAN-01_1995-2008_D
 Type: fixity check
-Date: 2026-10-03
+Date: 2026-10-04
+Outcome: success
+Authorship: automatic
+Agent: dvdisaster
+Note: image test with dvdisaster -t
++ - data md5sum      : none available
++ Data integrity:
++ - medium sectors   : 4590 total / 3666 data
++ - good image/file  : all sectors present
++ - data md5sum      : 928d21a004b660d0a20465c9d207123f
++ - Ecc block test   : pass
+
+Disc: SCAN-02_1995-2008_B
+Type: fixity check
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
 Agent: dvdisaster
@@ -561,49 +638,49 @@ Note: image test with dvdisaster -t
 + Data integrity:
 + - medium sectors   : 4590 total / 3698 data
 + - good image/file  : all sectors present
-+ - data md5sum      : b7aff65fe71e7e9a3d8c3819e1ea3be9
++ - data md5sum      : 4c686703ca8c5c547ea6e2e93ca3702e
 + - Ecc block test   : pass
 
-Disc: SCAN-02_1995-2008_B
+Disc: SCAN-03_1995-2008_9
 Type: fixity check
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
 Agent: dvdisaster
 Note: image test with dvdisaster -t
 + - data md5sum      : none available
 + Data integrity:
-+ - medium sectors   : 4590 total / 3538 data
++ - medium sectors   : 4590 total / 2610 data
 + - good image/file  : all sectors present
-+ - data md5sum      : cec2e7545cd6a7fdae6eefaef39757ff
++ - data md5sum      : ce63fd146fe9ba1c4e6947b1ac7a5cbd
 + - Ecc block test   : pass
 
 Disc: TAXES-01_2019-2020_I
 Type: fixity check
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
 Agent: dvdisaster
 Note: image test with dvdisaster -t
 + - data md5sum      : none available
 + Data integrity:
-+ - medium sectors   : 4590 total / 2656 data
++ - medium sectors   : 4590 total / 2354 data
 + - good image/file  : all sectors present
-+ - data md5sum      : 8f037a88465a13528b59713024685f3f
++ - data md5sum      : 93fd4443d28031095fe2ffa664faf738
 + - Ecc block test   : pass
 
 Disc: TRIP-01_2019_4
 Type: fixity check
-Date: 2026-10-03
+Date: 2026-10-04
 Outcome: success
 Authorship: automatic
 Agent: dvdisaster
 Note: image test with dvdisaster -t
 + - data md5sum      : none available
 + Data integrity:
-+ - medium sectors   : 4590 total / 2194 data
++ - medium sectors   : 4590 total / 2354 data
 + - good image/file  : all sectors present
-+ - data md5sum      : 2b5eb2097223b452a500225656bcdaac
++ - data md5sum      : b37275a289d7940e029a67bda058640e
 + - Ecc block test   : pass
 
 %rec: Appraisal
@@ -626,7 +703,7 @@ Target: TRIP-01_2019_4
 Importance: essential for self
 Importance: important for family
 Basis: the only photos of the trip
-Date: 2026-10-03
+Date: 2026-10-04
 Authorship: human
 Agent: human:root
 Review: 2031-10-01
@@ -634,7 +711,7 @@ Review: 2031-10-01
 Target: TRIP-01_2019_4:day3 Kiyomizu-dera/
 Importance: useful for family
 Basis: mostly duplicates of day 2
-Date: 2026-10-03
+Date: 2026-10-04
 Authorship: human
 Agent: human:root
 
@@ -642,6 +719,6 @@ Target: set:PROJ
 Importance: important for self
 Importance: useful for public
 Basis: hardware designs: someone may want to rebuild one
-Date: 2026-10-03
+Date: 2026-10-04
 Authorship: human
 Agent: human:root
