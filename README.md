@@ -62,11 +62,11 @@ Each layer does its own job:
 | `src/udfwrite/` | arv's UDF 2.50 writer (library, built into arv, and a program): [docs/archival-udf.md](docs/archival-udf.md) |
 | `src/arv/` | the optional add-on in Python (standard library only): the local AI helpers (`describe`, `tag`, `models`) and `gui` |
 | `arv` | the launcher in a checkout (and `tools/arv/arv` on a disc): the add-on's commands in Python, every other one in the C arv |
-| `src/udfmake/` | NetBSD's `makefs -t udf` as a C library and program, where arv's UDF work began; kept for the fixes in `upstream/` (draft NetBSD bug report, patches and reproduction), not used to make discs |
 | `docs/` | For users and implementers: workflow, shelving, architecture, philosophy, the disc format, and the website |
 | `research/` | Why, and what next: research notes, the standards survey, organising lessons, the plan, RS03 experiments |
 | `samples/` | The sample discs' catalogue and the script that makes them (the images are release downloads) |
 | `tests/` | Unit and integration tests, and language-neutral fixtures |
+| `upstream/` | Not part of arv: work offered to other projects (NetBSD makefs fixes, the RS03 code for dvdisaster Light), all drafts, not sent: [upstream/README.md](upstream/README.md) |
 | `scripts/` | The original shell scripts, before ARV (see [Without arv](#without-arv-the-original-scripts)) |
 | `justfile`, `Makefile` | `just` lists everyday commands (test, install, samples, site preview); `make` alone builds and installs |
 
@@ -423,7 +423,7 @@ single-threaded.
 - [x] Multi-disc splitting for sets larger than one disc (`Bag-Count: n of N`)
 - [x] `README.txt` and the tool's source on each disc
 - [x] Target medium size, minimum redundancy, defect-management sizes for RS03
-- [x] UDF 2.50 through NetBSD `makefs -t udf` (`src/udfmake`), then arv's own writer (`src/udfwrite`, now the only one)
+- [x] UDF 2.50 through NetBSD `makefs -t udf` (now in `upstream/netbsd-makefs`), then arv's own writer (`src/udfwrite`, now the only one)
 - [x] GUI front end over the CLI (`arv gui`, local web UI, standard library only)
 - [x] `.arv` homes, change events, `Binding` records (format 0.3)
 - [ ] dvdisaster sources (and static binaries) on each disc for self-contained repair
@@ -438,7 +438,7 @@ The detailed plan and the reasons behind each decision: [research/plan.md](resea
 ## Licence
 
 GNU GPL version 3 (GPL-3.0); see [LICENSE](LICENSE). Code from elsewhere keeps its own licence: NetBSD's
-makefs in `src/udfmake/netbsd/` (BSD) and `src/arv/vendor/bagit.py` (CC0).
+makefs in `upstream/netbsd-makefs/netbsd/` (BSD) and `src/arv/vendor/bagit.py` (CC0).
 
 The disc format ([docs/smart-archive-format.md](docs/smart-archive-format.md)) is meant to be
 implemented by anyone, in any program, under any licence: reading and writing these discs

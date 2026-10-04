@@ -250,14 +250,13 @@ src/arv/                   the optional add-on, Python standard library only
   descriptors.rec  readme.txt  index.css  default_sets.rec  default_tags.rec   shared data files
 arv                        the launcher: the add-on's commands in Python, the rest in the C arv
 src/udfwrite/              arv's UDF 2.50 writer in C (library, built into arv, and program)
-src/udfmake/               NetBSD makefs, extracted: where arv's UDF work began; kept for the upstream fixes
-src/udfmake/upstream/      upstream reference: draft bug report, one patch per bug, reproduction
 samples/                   eight small sample discs and their catalogue; the scripts that make them
 tests/reference/           what every command prints and writes, frozen (the C arv is held to it)
 tests/fixtures/            language-neutral cases (TSV): disc ids, dates, tags, names, recfiles
 tests/test_addon.py        the add-on's tests (with the C arv for the rest)
 docs/                      this file, the format spec, architecture, philosophy, the website
 research/                  research notes, standards survey, plan and decisions, RS03 experiments
+upstream/                  not part of arv: drafts for other projects (NetBSD makefs fixes, dvdisaster Light)
 scripts/                   the original shell scripts, before arv
 justfile, Makefile         everyday commands (just), build and install (make)
 ```
@@ -275,8 +274,7 @@ The layers, from most to least durable:
 - **Fixtures:** edited by hand, with the expected value worked out ([README](../tests/fixtures/README.md)).
 - **Reference outputs:** `make -C src/arvc check` holds the C arv to [tests/reference/expected](../tests/reference/), what every command printed and wrote (first by the Python arv, the same by both); after an intended change, `sh tests/reference/generate.sh` (or `just bless`) and read `git diff tests/reference/expected`.
 - **Sample discs:** `samples/make-samples.sh` (builds arv, and with `make ape` first the discs carry arv.com) replaces `samples/discs` and `samples/home`; the images are not in git, `samples/publish-discs.sh` publishes them as the `samples` release and `samples/fetch-discs.sh` downloads them.
-- **udfmake** (upstream work only):
-  - `make -C src/udfmake check` (also `asan`, `static`);
-  - changes to NetBSD's code go in `src/udfmake/netbsd/`, and each also gets a patch in `src/udfmake/upstream/patches/`;
-  - `src/udfmake/upstream/repro/repro.sh` shows each patch against unmodified upstream.
+- **Upstream work** (`upstream/`, not part of arv, not built by `make`):
+  - NetBSD makefs: `make -C upstream/netbsd-makefs check` (also `asan`, `static`); changes to NetBSD's code go in `upstream/netbsd-makefs/netbsd/`, and each also gets a patch in `upstream/netbsd-makefs/patches/`; `upstream/netbsd-makefs/repro/repro.sh` (`just netbsd-repro`) shows each patch against unmodified upstream;
+  - nothing in `upstream/` is sent without a decision to send it; its README says what has been.
 - **Format changes:** update [smart-archive-format.md](smart-archive-format.md) first, and bump its version for anything a reader must know.

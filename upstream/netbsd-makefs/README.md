@@ -1,14 +1,27 @@
-# udfmake: UDF image builder (C library)
+# NetBSD makefs (UDF): udfmake, and fixes for upstream
 
-**arv's default UDF writer is now [`src/udfwrite`](../udfwrite/)** (a restricted writer with a real
-metadata mirror, [docs/archival-udf.md](../../docs/archival-udf.md)). udfmake stays as the
-reference to compare against (`arv make --udf-writer udfmake`) and as the home of the fixes we
-offer upstream to NetBSD.
+**arv does not use this.** arv makes discs with its own writer, [`src/udfwrite`](../../src/udfwrite/)
+(a restricted writer with a real metadata mirror, [docs/archival-udf.md](../../docs/archival-udf.md)).
+arv's UDF work began here. It is kept for the fixes we offer upstream to NetBSD, which are not
+sent yet.
 
-Builds UDF images, including Blu-ray **UDF 2.50** with a metadata partition, from
-a folder on Linux. It is NetBSD's `makefs -t udf`, extracted and made into a
-library. This is **our modified copy**; the upstream reference and the bug
-report are in [`src/udfmake/upstream/`](upstream/).
+udfmake builds UDF images, including Blu-ray **UDF 2.50** with a metadata partition, from a folder
+on Linux. It is NetBSD's `makefs -t udf`, extracted and made into a library. This is **our
+modified copy**. The bug report, patches and reproduction against unmodified upstream are here too:
+
+| File | What |
+|---|---|
+| `BUG-REPORT.md` | **Unconfirmed draft, not sent**: a report for three bugs in upstream `makefs -t udf`, with the exact commit, file revisions and lines |
+| `patches/01-udf_copy_file-padding-overread.patch` | Bug 1: heap bytes written into file padding (`usr.sbin/makefs/udf.c`) |
+| `patches/02-udf_set_regid-strcpy-overrun.patch` | Bug 2: 1-byte `strcpy` overrun (`sbin/newfs_udf/udf_core.c`) |
+| `patches/03-unix_to_udf_name-l_fi-overflow.patch` | Bug 3: over-long names corrupt the image (`sbin/newfs_udf/udf_core.c`) |
+| `repro/repro.sh` | Fetches **unmodified** upstream at the pinned commit, builds it with the glue here, shows each bug, then shows each patch fixes its own bug and only that one |
+| `repro/padding.py` | Test files, and the image check used by `repro.sh` |
+
+Each patch has a short description at the top, is against upstream paths (`patch -p1` in a
+NetBSD src tree), and applies on its own or together with the others in any order. Pinned
+upstream: NetBSD src `477d71b4d1b73a66b61a03b5f6d3dc9212d4f888` (https://github.com/NetBSD/src,
+a mirror of NetBSD CVS; trunk as of 2026-09-30). BSD licence.
 
 ```sh
 sudo apt install build-essential    # a C compiler and C library; nothing else
@@ -51,7 +64,7 @@ The Makefile picks the mode from `uname -s` (override with `HOST_OS=`).
 | Linux, ARM64 (musl) | host | as Linux, musl | compiles and links (`zig cc -target aarch64-linux-musl`); not run |
 | Windows (native) | — | — | does not build (POSIX headers such as `err.h`); use the WebAssembly build |
 | OpenBSD, DragonFly | host | guarded for, untested | untested |
-| WebAssembly (WASI preview 1) | host | as musl, plus the `err(3)`/`warn(3)` family and a `readdir` that always gives `.` (Node's runtime leaves it out) | built and tested (`make wasi`: run with Node's WASI; same speed as native on 800 MB; `arv make --filesystem udf250 --udfmake src/udfmake/wasi/udfmake` end to end) |
+| WebAssembly (WASI preview 1) | host | as musl, plus the `err(3)`/`warn(3)` family and a `readdir` that always gives `.` (Node's runtime leaves it out) | built and tested (`make wasi`: run with Node's WASI; same speed as native on 800 MB; `arv make` end to end, before arv had its own writer) |
 
 Cross-building for a platform with clang, given its headers and libraries in a sysroot directory:
 
@@ -72,11 +85,11 @@ wasi/udfmake -o T=bdrom,v=2.50,V=2.50 image.udf dir   # run it with Node (UDFMAK
 | `stubs/` | ours, all platforms: stand-ins for the filesystems and mtree code that aren't built |
 | `compat/` | ours, non-NetBSD hosts only: the NetBSD libc pieces the host lacks |
 | `udfmake.[ch]`, `udfmake_cli.c`, `Makefile`, `check.sh` | ours: library wrapper, program, build |
+| `BUG-REPORT.md`, `patches/`, `repro/` | ours: what we offer upstream (above) |
 | `wasi/` | ours: runs the WebAssembly build with Node (`run.mjs`, and a `udfmake` wrapper script) |
 
 Every change to NetBSD's code is a bug fix, and each one is also a standalone patch
-against unmodified upstream in
-[`src/udfmake/upstream/patches/`](upstream/patches/).
+against unmodified upstream in [`patches/`](patches/).
 Together the patches are exactly the difference between `netbsd/` and upstream.
 `netbsd/sys/sys/queue.h` is an unmodified addition, used only on hosts without one (musl).
 
@@ -86,7 +99,7 @@ No NetBSD file is edited to build on other systems:
 
 ## Local changes to NetBSD code
 
-Both are described in the [draft bug report, not yet confirmed or sent](upstream/BUG-REPORT.md):
+Both are described in the [draft bug report, not yet confirmed or sent](BUG-REPORT.md):
 
 1. `usr.sbin/makefs/udf.c`, `udf_copy_file`: whole-sector read buffer, and the padding is zeroed (it was an out-of-bounds read into the image).
 2. `sbin/newfs_udf/udf_core.c`, `udf_set_regid`: bounded copy (it was a 1-byte `strcpy` overrun).
@@ -101,9 +114,9 @@ Both are described in the [draft bug report, not yet confirmed or sent](upstream
   mirroring yet`), so there is no second copy of the directory data.
 - UDF only. There is no ISO 9660 bridge, and `-F` (mtree specs) and `-N` are not supported.
 - Characters beyond U+FFFF (emoji) are stored as their UTF-8 bytes read as Latin-1, i.e. a
-  different name. `arv make` refuses such names for UDF 2.50 before calling udfmake.
+  different name. (arv's own writer refuses such names.)
 - Give it **one** source directory. With several, the UDF backend opens every file relative
   to the first one: it ignores `fsnode->root`, which `walk.c` sets for this. The result is
-  "Can't open file" errors and an assertion in `udf_populate_walk`. `arv make` passes a
+  "Can't open file" errors and an assertion in `udf_populate_walk`. arv used to pass a
   single folder of symlinks with `-L` instead. This is upstream behaviour, not yet reported.
 - Tested with 7-Zip read-back and dvdisaster RS03. Not yet tested with a Linux kernel mount, Windows or macOS.

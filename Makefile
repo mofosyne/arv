@@ -16,7 +16,7 @@
 #   $(PREFIX)/bin/arvc         the C program alone (never hands over)
 #
 # Needs at run time: dvdisaster Light (or the speed47 fork) for error correction; python3 only
-# for the optional add-on (the local AI helpers and gui); see README.md, "Install". src/udfmake (NetBSD makefs, kept for the upstream fixes) is not built or installed.
+# for the optional add-on (the local AI helpers and gui); see README.md, "Install". upstream/ (work for other projects) is not built or installed.
 
 PREFIX  ?= /usr/local
 DESTDIR ?=

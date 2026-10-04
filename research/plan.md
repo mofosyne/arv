@@ -99,9 +99,9 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 
 ### Phase 4: extras
 - [x] GUI over the CLI (`arv gui`)
-- [x] NetBSD `makefs -t udf` builds on Linux as a C library: `src/udfmake/` (UDF 2.50,
+- [x] NetBSD `makefs -t udf` builds on Linux as a C library: `src/udfmake/`, now `upstream/netbsd-makefs/` (UDF 2.50,
       metadata partition, two upstream bugs fixed).
-- [ ] Confirm `src/udfmake/upstream/BUG-REPORT.md` by hand, then send it to NetBSD.
+- [ ] Confirm `upstream/netbsd-makefs/BUG-REPORT.md` by hand, then send it to NetBSD.
 - [ ] Metadata mirror duplication in udfmake (upstream lacks it).
 - [x] `arv make --filesystem udf250` using it (the default since 2026-10-03).
 - [ ] Test the images with a Linux kernel mount, Windows and macOS.

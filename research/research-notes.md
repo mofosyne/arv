@@ -29,10 +29,10 @@ dvdisaster 0.79.10, bagit-python 1.9.0).
 - Ways to get real UDF 2.50/2.60 images:
   - NetBSD `makefs -t udf` (options `disctype=bdrom|bdr|...`, `minver`/`maxver`,
     `metaperc`). This is the only open-source "directory → UDF 2.50/2.60 image"
-    builder I found. **Ported (image builder only):** `src/udfmake/` is a C
+    builder I found. **Ported (image builder only):** `src/udfmake/` (now `upstream/netbsd-makefs/`) is a C
     library and self-contained program (C library only; `make static` for one
     binary) built from the NetBSD files plus a small compat layer, with two upstream memory bugs fixed. Draft upstream report and
-    reproduction: `src/udfmake/upstream/`.
+    reproduction: `upstream/netbsd-makefs/`.
     `T=bdrom` gives UDF 2.50 with a metadata partition (7-Zip reads it back
     identical). Missing upstream: the metadata *mirror* is not duplicated.
   - Windows: ImgBurn / IMAPI2 build UDF 2.50/2.60 images.

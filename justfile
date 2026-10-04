@@ -52,7 +52,7 @@ site port="8000":
 
 # Show the three NetBSD makefs bugs and their fixes (fetches upstream NetBSD sources)
 netbsd-repro:
-    sh src/udfmake/upstream/repro/repro.sh
+    sh upstream/netbsd-makefs/repro/repro.sh
 
 # Check arv's own UDF writer and make test images for readers (src/udfwrite/build/check/)
 udfwrite-check:
@@ -64,6 +64,6 @@ arvc-check:
 
 # Remove build output
 clean:
-    make -C src/udfmake clean
+    make -C upstream/netbsd-makefs clean
     make -C src/udfwrite clean
     make -C src/arvc clean

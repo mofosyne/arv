@@ -31,7 +31,7 @@ SPEED47 = os.path.join(T, "speed47", "dvdisaster")
 LIGHT = os.path.join(T, "light", "dvdisaster")
 LCSAS = os.path.join(T, "lcsas-ecc")
 WASM = os.path.join(T, "lcsas-ecc.wasm")
-RUN_WASI = os.path.join(REPO, "src", "udfmake", "wasi", "run.mjs")
+RUN_WASI = os.path.join(REPO, "upstream", "netbsd-makefs", "wasi", "run.mjs")
 HAVE_WASM = os.path.exists(WASM) and shutil.which("node") is not None
 WORK = tempfile.mkdtemp(prefix="rs03-")
 

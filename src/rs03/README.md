@@ -21,7 +21,6 @@ make check                # the checks below
 | `rs03.h`, `rs03.c` | the library: `rs03_layout_for`, `rs03_augment`, `rs03_verify`, `rs03_describe` |
 | `rs03_cli.c` | the program |
 | `check.sh` | the checks |
-| `upstream/` | a draft offer of this code to dvdisaster Light (not sent) |
 
 ## What it covers, and what it does not
 
@@ -33,6 +32,9 @@ make check                # the checks below
   CRC, and every parity sector with the parity the data gives. It counts what is damaged.
 - **Not here:** repair (`-f`) and reading damaged discs from a drive. dvdisaster Light does both
   well; every image this writes is one it can repair.
+
+A draft offer of this code to dvdisaster Light, not sent, is in
+[`upstream/dvdisaster-light/`](../../upstream/dvdisaster-light/offer.md).
 
 ## How it is checked
 
