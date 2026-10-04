@@ -110,8 +110,8 @@ Implications for this project:
   `catalog.rec` fill: any future tool can rebuild an index from the disc itself.
 - They are still worth using as a **convenience front end**. Rebuilding a
   VVV/NeoFinder catalogue from the discs is always possible.
-- The `archive.sqlite` planned here is the same idea as these apps' databases,
-  but it is generated from open, on-disc sources rather than being the only copy.
+- These apps keep a database as the only copy; here the on-disc text files are the
+  catalogue, and searching them directly is fast enough (no database at all).
 
 ## 6. What a personal archive should take from this
 
@@ -181,15 +181,18 @@ Event types to start with (all from the PREMIS vocabulary): `creation`,
 `deaccession` (disc destroyed or discarded), and `metadata modification` for every hand edit
 of the catalogue (Agent `human:LOGIN`; see smart-archive-format.md, Event records).
 
-### Per-file data: plain text on the disc, search in SQLite
+### Per-file data: plain text on the disc, searched as plain text
 
 - Per-file records stay in the BagIt manifests (and optionally a Siegfried
   report `formats.yaml` with PRONOM IDs) as **tag files** on each disc.
 - recutils does not scale to per-file records. Measured: `recsel` needs 28 s
   and 1.85 GB RAM for 1M records, and `recfix` with `%key` is roughly quadratic
   (5k records: 4 s, 20k: 53 s).
-- A home-side `archive.sqlite` is **generated** from the recfiles + manifests
-  for fast "which disc holds X" queries. It is deletable and rebuildable.
+- So per-file data is TSV (manifests and listings), never recfiles. A home-side
+  `archive.sqlite` was first generated from them for fast "which disc holds X"
+  queries; it was **retired** (2026-10-04) once the C port scanned the TSV files
+  directly: 2 million paths in 0.3 s, as fast as Python with the index, with no
+  build step and no 278 MB second copy to keep fresh.
 
 ### Optional export: RO-Crate for autodetection and indexing
 

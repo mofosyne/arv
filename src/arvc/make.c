@@ -1182,10 +1182,6 @@ static int make_discs(maker *mk)
         free(home_vol);
     }
     archive_save(mk->cat, mk->h->rec_path);
-    char *index = join(mk->h->cache_dir, "archive.sqlite");
-    if (!access(index, F_OK))
-        fprintf(stderr, "Note: %s is now out of date; 'arv index' refreshes it (find works without it)\n", index);
-    free(index);
     if (o->keep_stage) fprintf(stderr, "Kept staging directory %s\n", mk->workdir);
     else remove_tree(mk->workdir);
     for (size_t i = 0; i < mk->nplans; i++) printf("%s\t%s\t%s\n", mk->plans[i].disc_id, mk->plans[i].out, mk->title);

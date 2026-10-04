@@ -17,7 +17,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import catalog, describe, index, llm, vision
+from . import catalog, describe, llm, vision
 
 DISC_FIELDS = ("Id", "Part", "Title", "Set", "Category", "Path", "Coverage", "Date", "Location", "Description", "Subject", "Note", "Files", "Copies")
 
@@ -93,10 +93,7 @@ class App:
         if not pattern:
             return {"discs": [], "files": [], "total": 0}
         cat = self.home.load()
-        if index.is_fresh(self.home):
-            disc_hits, file_hits = index.find(self.home, cat, pattern)
-        else:
-            disc_hits, file_hits = catalog.find(self.home, cat, pattern)
+        disc_hits, file_hits = catalog.find(self.home, cat, pattern)
         return {"discs": [disc_summary(d) for d in disc_hits],
                 "files": [{"disc": d.get("Id"), "title": d.get("Title"), "location": cat.where(d), "path": p}
                           for d, p in file_hits[:500]],
@@ -220,7 +217,7 @@ class App:
         return self.start_job(argv).as_dict()
 
     def post_simple(self, body):
-        """note / locate / burned / rebuild / index, run as jobs so errors show like the CLI's."""
+        """note / locate / burned / rebuild, run as jobs so errors show like the CLI's."""
         command = body["command"]
         if command == "note":
             argv = ["note", body["disc_id"], body["text"]]
@@ -232,8 +229,6 @@ class App:
                 argv += ["--media-id", body["media_id"]]
         elif command == "rebuild":
             argv = ["rebuild", body["path"]]
-        elif command == "index":
-            argv = ["index"]
         elif command == "apply_draft":
             argv = ["describe", body["disc_id"], "--apply", self.write_draft(body["draft"])]
         else:

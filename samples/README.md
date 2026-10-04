@@ -22,8 +22,7 @@ real personal data).
 | `SCAN-01…02_1995-2008` | `--set scan --category letters` (under both MEMORIES and RECORDS), **split** over two discs (`Bag-Count: n of 2`) |
 | `FAMILY-01_2020-2021_K` | the one **hybrid** image (`--filesystem hybrid`: ISO 9660 + UDF 1.02, so `FAMILY-01_2020-2021_K.hybrid.iso`); the others are UDF 2.50, the default. Made last, so it carries the whole catalogue |
 
-`home/` is the catalogue these were made into, as `archive` keeps it (without the
-disposable SQLite index), including locations, burned copies, notes and appraisals (the archivist log) recorded
+`home/` is the catalogue these were made into, as arv keeps it, including locations, burned copies, notes and appraisals (the archivist log) recorded
 after the discs were made.
 
 ## Try it

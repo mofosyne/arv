@@ -84,7 +84,9 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - [ ] ~~Snapshot hash chain~~ dropped for integrity (the tagmanifests already cover it); back as a *history* graph, see "Design: discs as nodes in a history graph" (2026-10-02)
 - [ ] Per-copy tracking via the BD-R BCA serial (deferred, low priority)
 - [x] ~~`search.html` across the snapshot~~ (built, then removed 2026-10-01)
-- [x] Generated `archive.sqlite` (`arv index`); `find` uses it when fresh
+- [x] ~~Generated `archive.sqlite` (`arv index`)~~ retired 2026-10-04: in C, scanning the
+      plain-text lists finds a name among 2 million paths in 0.3 s, as fast as Python did with
+      the index, which took 9 s to build and was 83% the size of the catalogue it indexed
 - [x] `arv check --device|--image`: dvdisaster scan/test → `fixity check` Event
 - [x] `arv rebuild <disc>`: merge a disc's catalogue into home (idempotent)
 - [x] `arv burned <id> --copies N`: record manual burns (`replication` Event)
@@ -279,8 +281,8 @@ libraries together, so arv is one repository and one program, shipped on every d
   exit codes and catalogue), and **the installed `arv` became the C program**, handing what is not
   ported (AI helpers, `--split`, hybrid images, interactive `make`, `gui`, `index`, `rebuild`) to
   the Python arv. Then `--split` (make.py's fit: the same estimates, rebalancing and discs) and
-  `rebuild` (catalog.merge). Next: the interactive prompts, `init --pointer/--name`, `index`
-  (needs a SQLite reader, or an index format of our own); the AI helpers stay Python longest.
+  `rebuild` (catalog.merge). Next: the interactive prompts and `init --pointer/--name`; `index` was retired instead
+  of ported (plain text is fast enough); the AI helpers stay Python longest.
 - **Burn test discs first.** Before the port goes far, burn a few real test discs with today's
   Python arv, read them back on other machines, scratch one and repair it (#5, #4). What they teach
   goes into the C version instead of being found after it.

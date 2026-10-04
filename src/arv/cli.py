@@ -15,7 +15,6 @@ Commands:
   burned record that copies were burned
   check  verify a disc or image with dvdisaster and log a fixity-check event
   rebuild merge the catalogue carried on a disc into the home catalogue
-  index  build the SQLite search index
   describe  improve titles, descriptions and tags with a local LLM (optional)
   tag    suggest folder tags from your tag vocabulary (match rules, small built-in model)
   tags   every folder tag in use, grouped by namespace
@@ -36,7 +35,7 @@ import sys
 import tarfile
 import textwrap
 
-from . import NAME, appraisal, bag, catalog, homes, describe, discid, image, index, llm, make, media, models, names, recfile, sets, tagger
+from . import NAME, appraisal, bag, catalog, homes, describe, discid, image, llm, make, media, models, names, recfile, sets, tagger
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # src/arv/ -> repository
 REPO_NAME = NAME
@@ -344,12 +343,7 @@ def cmd_names(args):
 def cmd_find(args):
     home = catalog.Home(args.home)
     cat = home.load()
-    if index.is_fresh(home):
-        disc_hits, file_hits = index.find(home, cat, args.pattern)
-    else:
-        if os.path.exists(home.sqlite_path):
-            log("Note: archive.sqlite is out of date; scanning manifests (run 'arv index' to refresh)")
-        disc_hits, file_hits = catalog.find(home, cat, args.pattern)
+    disc_hits, file_hits = catalog.find(home, cat, args.pattern)
     for d in disc_hits:
         print("DISC  %s  %s  [%s]" % (d.get("Id"), d.get("Title"), cat.where(d) or "location unknown"))
     tag_hits = catalog.find_tags(home, cat, args.pattern)
@@ -849,8 +843,6 @@ def cmd_rebuild(args):
                 shutil.copyfile(src, dest)
                 copied += 1
     home.save(cat)
-    if os.path.exists(home.sqlite_path):
-        index.build(home, cat)
     print("Added %d disc(s)%s, updated %d, %d new event(s), %d file list(s) copied into %s"
           % (len(added), (" (" + ", ".join(added) + ")") if added else "", len(updated), events, copied, home.path))
     return 0
@@ -901,14 +893,6 @@ def cmd_where(args):
         print("homes on this machine (%s):" % homes.config_path())
         for h in homes_list:
             print("  %-12s %s%s" % (h.get("Name"), h.get("Path"), "  (default)" if h.get("Default") == "yes" else ""))
-    return 0
-
-
-def cmd_index(args):
-    home = catalog.Home(args.home)
-    cat = home.load()
-    index.build(home, cat)
-    print("Built %s" % home.sqlite_path)
     return 0
 
 
@@ -1221,9 +1205,6 @@ def build_parser():
     r.add_argument("--prefer-disc", action="store_true",
                    help="overwrite existing home Disc records with the disc's versions")
     r.set_defaults(func=cmd_rebuild)
-
-    i = sub.add_parser("index", help="(re)build the SQLite search index used by find")
-    i.set_defaults(func=cmd_index)
 
     ds = sub.add_parser("describe", help="improve metadata with a local LLM (a folder, or a disc in the catalogue)")
     ds.add_argument("target", help="folder to be archived, or a disc id")

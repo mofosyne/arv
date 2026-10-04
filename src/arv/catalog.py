@@ -10,7 +10,7 @@ Home layout (the working copy: a .arv folder, found as described in homes.py):
       volumes/<disc-id>/formats.csv     PRONOM format of each file (when Siegfried is installed)
       volumes/<disc-id>/tags.tsv        folder tags (optional)
     drafts/         work in progress before `make`
-    cache/          rebuildable: archive.sqlite, models/, runtime/ (marked with CACHEDIR.TAG,
+    cache/          rebuildable: models/, runtime/ (marked with CACHEDIR.TAG,
                     so Borg, restic and GNU tar skip it; .gitignore "*" keeps it out of git)
 
 One folder per volume, as LTFS keeps one index per tape. A disc's catalog/ (read-only) can be
@@ -319,7 +319,6 @@ class Home:
                 self._migrate_flat_layout()
         self.rec_path = os.path.join(self.catalog_dir, "archive.rec")
         self.volumes_dir = os.path.join(self.catalog_dir, "volumes")
-        self.sqlite_path = os.path.join(self.cache_dir, "archive.sqlite")
 
     def _migrate_flat_layout(self):
         """Move a format-0.1 home (archive.rec, manifests/, sets.rec ... at the top) into this layout."""
@@ -345,7 +344,7 @@ class Home:
                 os.replace(old, os.path.join(folder, name))
         old_index = os.path.join(top, "archive.sqlite")
         if os.path.exists(old_index):
-            os.remove(old_index)  # rebuildable; `arv index` makes a new one in cache/
+            os.remove(old_index)  # the retired SQLite index (find scans the plain-text lists)
 
     def ensure(self, folder):
         """Create one of the home's folders; cache/ gets its CACHEDIR.TAG and .gitignore."""

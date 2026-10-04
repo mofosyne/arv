@@ -840,19 +840,6 @@ class MakeTest(unittest.TestCase):
         self.assertEqual(os.listdir(os.path.join(disc, "catalog", "volumes")), [disc_id])
         self.validate(disc)
 
-    def test_index_matches_scan(self):
-        self.make(self.projects)
-        self.make(self.photos, "--set", "PHOTOS")
-        results = {}
-        for pattern in ("ünï", "*.jpg", "readme", "photos"):
-            results[pattern] = run_cli("--home", self.home, "find", pattern)
-        self.assertEqual(run_cli("--home", self.home, "index")[0], 0)
-        for pattern, expected in results.items():
-            self.assertEqual(run_cli("--home", self.home, "find", pattern), expected, pattern)
-        # index is refreshed automatically by make once it exists
-        self.make(self.photos, "--set", "PHOTOS")
-        self.assertEqual(run_cli("--home", self.home, "find", "*.jpg")[1].count("IMG_0001.JPG"), 2)
-
     def test_burned(self):
         disc_id, _ = self.make(self.photos, "--set", "PHOTOS")
         run_cli("--home", self.home, "burned", disc_id, "--copies", "2")

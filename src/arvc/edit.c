@@ -1111,10 +1111,6 @@ int cmd_rebuild(int argc, char **argv)
     }
     if (mkdirs(h.catalog_dir)) die("cannot create %s", h.catalog_dir);
     archive_save(&cat, h.rec_path);
-    char *index = join(h.cache_dir, "archive.sqlite");
-    if (!access(index, F_OK))
-        fprintf(stderr, "Note: %s is now out of date; 'arv index' refreshes it (find works without it)\n", index);
-    free(index);
     sbuf list = { 0 };
     sb_puts(&list, "");
     if (added.n) {

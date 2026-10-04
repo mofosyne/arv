@@ -245,7 +245,6 @@ arv keywords PROJ-01_2020-2025_K --format exiftool > kw.args  # tags as XMP keyw
 arv check --device /dev/sr0                        # scan a disc, log a fixity-check event
 arv check --image 2020-2025_PROJECTS_01.iso
 arv rebuild /media/disc                            # recreate/merge the home catalogue from a disc
-arv index                                          # SQLite index: fast find at millions of files
 arv gui                                            # the same, in your web browser
 ```
 
@@ -408,7 +407,8 @@ single-threaded.
 
 - [x] Single `arv` CLI (Python, stdlib only): bag → catalog.rec → image → ECC → verify; `make install`
 - [x] `catalog.rec` per disc (Dublin Core-named `Disc` fields, PREMIS-typed `Event` records) and the home `archive.rec`
-- [x] `archive.sqlite` search index from the manifests and recfiles (`arv index`)
+- [x] ~~`archive.sqlite` search index (`arv index`)~~ retired: `find` in C scans the plain-text
+      lists as fast as Python searched the index (2 million paths in 0.3 s)
 - [x] PRONOM format IDs via Siegfried (`catalog/volumes/<id>/formats.csv`) and optional RO-Crate (`--ro-crate`)
 - [x] Cumulative catalogue snapshot (`catalog/`) on every disc; access levels decide what it shows
 - [x] `Location` records, short disc ids with a check character, collections across discs

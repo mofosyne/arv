@@ -89,7 +89,7 @@ home is created on first use in `~/.local/share/arv`. It holds:
 - `catalog/`: `archive.rec` (every disc, event and location) and `volumes/<disc-id>/` (each
   disc's manifest, listing, formats and tags), laid out exactly like `catalog/` on a disc;
 - `drafts/`: descriptions in progress;
-- `cache/`: the SQLite index and local models; rebuildable, and marked so backup tools skip it.
+- `cache/`: local models; rebuildable, and marked so backup tools skip it.
 
 Back this folder up. It is small, and every disc also carries a copy of it (see
 [Recover](#6-recover)).
@@ -169,7 +169,7 @@ The choices that matter:
    medium, then `dvdisaster -t` verifies the result.
 7. **Record.** The disc record and its events (PREMIS types: message digest
    calculation, creation, fixity check...) go into the home catalogue, with the
-   manifests, listings and tags. The SQLite index is refreshed.
+   manifests, listings and tags.
 
 Output: `<disc-id>.iso`, ready to burn.
 

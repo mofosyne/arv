@@ -131,8 +131,6 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     <div><label for="r-path">Mounted disc folder</label><input type="text" id="r-path" placeholder="/media/disc"></div>
     <button class="primary" type="submit">Rebuild</button>
   </form>
-  <h2>Search index</h2>
-  <button class="plain" id="index-btn">Rebuild SQLite index</button>
 </section>
 
 <section id="tab-jobs" hidden>
@@ -424,7 +422,6 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     run({ device: $("c-device").value, image: $("c-image").value }, false, "/api/check");
   };
   $("rebuild-form").onsubmit = function (ev) { ev.preventDefault(); run({ command: "rebuild", path: $("r-path").value }); };
-  $("index-btn").onclick = function () { run({ command: "index" }); };
 
   // ---------------------------------------------------------------- jobs
   function run(body, quiet, path) {

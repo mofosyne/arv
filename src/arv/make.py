@@ -15,7 +15,7 @@ import tempfile
 import uuid
 from dataclasses import dataclass, field
 
-from . import URL, appraisal, bag, catalog, discid, formats, html, image, index, listing, media, recfile, rocrate
+from . import URL, appraisal, bag, catalog, discid, formats, html, image, listing, media, recfile, rocrate
 
 
 
@@ -539,8 +539,6 @@ class Maker:
                 if plan.extents:   # kept at home and on later discs, never on this one
                     self.home.store_disc_files(plan.disc_id, {"extents": plan.extents})
             self.home.save(self.cat)
-            if os.path.exists(self.home.sqlite_path):
-                index.build(self.home, self.cat)
         finally:
             if a.keep_stage:
                 log("Kept staging directory %s" % self.workdir)
