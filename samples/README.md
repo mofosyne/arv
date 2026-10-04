@@ -1,8 +1,8 @@
 # Sample discs
 
-Six small disc images made with the full workflow. They are real images with
-RS03 error correction; only the "medium" is a custom 9.4 MB one (4800 sectors)
-instead of a 25 GB BD-R (63 MB in total). The images are **not in git** (they change on
+Eight small disc images made with the full workflow. They are real images with
+RS03 error correction, and carry the ready-to-run reader as tools/arv.com; only the
+"medium" is a custom 13.3 MB one (6800 sectors) instead of a 25 GB BD-R (104 MB in total). The images are **not in git** (they change on
 every rebuild): download them from the [`samples` release](https://github.com/mofosyne/arv/releases/tag/samples)
 into `discs/` with
 
@@ -19,7 +19,7 @@ real personal data).
 | `TRIP-01_2019_4` | `--set trip`, namespaced folder tags (`place:kyoto`, `event:kyoto-2019`); **public**; kept in Box 1, a second copy at the parents' |
 | `PROJ-01_2020-2023_L` | `--set project` resolves to **PROJ** through its alias; the vocabulary's `Match` rules added **CODE** and **ELEC** from the files (C sources, KiCad board, gerbers, a git repository). Like a real clone it has an executable script (`firmware/flash.sh`, runnable from the mounted disc) and two links: `hardware/README.md` (to a file: copied) and `gerbers` (to a folder: only noted), both in its `listing.tsv`, with an `ingestion` event saying so. |
 | `TAXES-01_2019-2020_I` | **sealed**: later discs carry only its id, dates and location, never its title or file list; kept in the fire safe. |
-| `SCAN-01…03_1995-2008` | `--set scan --category letters` (under both MEMORIES and RECORDS), **split** over three discs (`Bag-Count: n of 3`) |
+| `SCAN-01…04_1995-2008` | `--set scan --category letters` (under both MEMORIES and RECORDS), **split** over four discs (`Bag-Count: n of 4`): on these tiny discs, `tools/` takes most of the room |
 | `FAMILY-01_2020-2021_K` | made last, so it carries the whole catalogue |
 
 `home/` is the catalogue these were made into, as arv keeps it, including locations, burned copies, notes and appraisals (the archivist log) recorded
@@ -57,7 +57,7 @@ repaired back to a byte-identical image.
 
 ## Notes
 
-- Redundancy varies from disc to disc. RS03 fills whatever the 9.4 MB medium leaves
+- Redundancy varies from disc to disc. RS03 fills whatever the 13.3 MB medium leaves
   after the data, and small discs leave a lot. A real 25 GB disc gets at least
   `--min-redundancy` (default 20%).
 - UDF 2.50 has a fixed overhead that doesn't matter on a real disc but shows on these

@@ -1,12 +1,14 @@
 #!/bin/sh
-# Make the sample discs: samples/discs/*.iso (about 63 MB in total; not in git, published
+# Make the sample discs: samples/discs/*.iso (about 104 MB in total; not in git, published
 # with samples/publish-discs.sh) and their home catalogue in samples/home (both replaced).
 #
 #   samples/make-samples.sh [OUTPUT_DIR]      (default: samples/)
 #
 # Needs: python3, git, dvdisaster Light or the speed47 fork (the stock 0.79.10 build
-# pads every image to CD size), and src/udfwrite (built here with make if missing). The discs use a custom 4800-sector "medium" (9.4 MB) so they
-# stay small; real discs use --medium bd25 (the default) or bd100.
+# pads every image to CD size), and src/udfwrite (built here with make if missing). Build
+# src/arvc/build/arv.com first (make ape) so the discs carry it in tools/, as real ones do.
+# The discs use a custom 6800-sector "medium" (13.3 MB) so they stay small; real discs use
+# --medium bd25 (the default) or bd100.
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -30,7 +32,7 @@ home=$work/home
 discs=$work/discs
 mkdir -p "$discs"
 a() { python3 "$repo/arv" --home "$home" "$@"; }
-common="-y --medium-sectors 4800 --output-dir $discs --creator Sample_Person --formats no"
+common="-y --medium-sectors 6800 --output-dir $discs --creator Sample_Person --formats no"
 
 draft() {  # draft NAME JSON: a hand-written metadata draft
     printf '%s\n' "$2" > "$work/$1.json"

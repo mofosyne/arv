@@ -70,8 +70,8 @@ Each layer does its own job:
 | `scripts/` | The original shell scripts, before ARV (see [Without arv](#without-arv-the-original-scripts)) |
 | `justfile`, `Makefile` | `just` lists everyday commands (test, install, samples, site preview); `make` alone builds and installs |
 
-`samples/` has the catalogue of seven small sample discs made with the full workflow: try
-`./arv --home samples/home list`. The disc images themselves (63 MB, with RS03 error
+`samples/` has the catalogue of eight small sample discs made with the full workflow: try
+`./arv --home samples/home list`. The disc images themselves (104 MB, with RS03 error
 correction) are in the [`samples` release](https://github.com/mofosyne/arv/releases/tag/samples);
 `samples/fetch-discs.sh` downloads and checks them.
 
