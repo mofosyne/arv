@@ -15,7 +15,7 @@
 %type: Access enum public private sealed
 
 Id: TRIP-01_2019_4
-Uuid: 7bfd8037-4220-4cbe-9f7b-5dc6b720450e
+Uuid: 9706ebae-9873-4e8d-932c-4ecd811833dd
 IdScheme: set-seq-coverage/1
 Label: TRIP-01_2019_4 Kyoto July 2019
 Title: Kyoto, July 2019
@@ -33,12 +33,12 @@ Location: BOX1
 Access: public
 Files: 16
 Bytes: 9443
-Software: arvc@55ffd12c6d58
+Software: arvc@758ab47f08fb
 Copies: 2
 Location: OFFSITE
 
 Id: PROJ-01_2020-2023_L
-Uuid: accbb060-18ba-48e1-945c-708901a2a124
+Uuid: dad42c49-378a-4cf0-8250-174e60ce7794
 IdScheme: set-seq-coverage/1
 Label: PROJ-01_2020-2023_L Weather station project
 Title: Weather station project
@@ -57,12 +57,12 @@ Location: BOX1
 Access: private
 Files: 56
 Bytes: 32142
-Software: arvc@55ffd12c6d58
+Software: arvc@758ab47f08fb
 Copies: 1
 Note: Board rev B; rev A gerbers were never ordered.
 
 Id: TAXES-01_2019-2020_I
-Uuid: f70393c4-9288-40a7-a28d-f56c04c0a740
+Uuid: 9f9543ed-e965-4ad5-83e1-93488ce3d977
 IdScheme: set-seq-coverage/1
 Label: TAXES-01_2019-2020_I Tax return 2019
 Title: Tax return 2019
@@ -77,11 +77,11 @@ Location: SAFE
 Access: sealed
 Files: 5
 Bytes: 3196
-Software: arvc@55ffd12c6d58
+Software: arvc@758ab47f08fb
 Copies: 1
 
 Id: SCAN-01_1995-2008_D
-Uuid: 6bf84d83-fa21-48b4-916f-d89158335505
+Uuid: 905293a4-2aa8-40f0-82e6-59a4bd9a00c7
 IdScheme: set-seq-coverage/1
 Label: SCAN-01_1995-2008_D Letters 1995-2008 scanned
 Title: Letters 1995-2008, scanned
@@ -100,11 +100,11 @@ Location: BOX1
 Access: private
 Files: 14
 Bytes: 522241
-Software: arvc@55ffd12c6d58
+Software: arvc@758ab47f08fb
 Copies: 1
 
 Id: SCAN-02_1995-2008_B
-Uuid: 0a0de15f-8a5e-492f-b461-733d738162ce
+Uuid: 9c3f282a-05ce-407d-927e-451b4c71ced9
 IdScheme: set-seq-coverage/1
 Label: SCAN-02_1995-2008_B Letters 1995-2008 scanned
 Title: Letters 1995-2008, scanned
@@ -121,13 +121,13 @@ Creator: Sample_Person
 Description: Scans of letters kept since 1995.
 Location: BOX1
 Access: private
-Files: 14
-Bytes: 522216
-Software: arvc@55ffd12c6d58
+Files: 12
+Bytes: 447640
+Software: arvc@758ab47f08fb
 Copies: 1
 
 Id: SCAN-03_1995-2008_9
-Uuid: 3b70d0a2-8de8-4b96-875e-94b451e81011
+Uuid: e6f02269-414e-44ad-ae7a-47312ceb30a1
 IdScheme: set-seq-coverage/1
 Label: SCAN-03_1995-2008_9 Letters 1995-2008 scanned
 Title: Letters 1995-2008, scanned
@@ -144,13 +144,13 @@ Creator: Sample_Person
 Description: Scans of letters kept since 1995.
 Location: BOX1
 Access: private
-Files: 16
-Bytes: 596904
-Software: arvc@55ffd12c6d58
+Files: 15
+Bytes: 559563
+Software: arvc@758ab47f08fb
 Copies: 1
 
 Id: SCAN-04_1995-2008_7
-Uuid: 96dcde68-57cb-4b12-b55e-35db5ac1cb2a
+Uuid: a9957e77-2d19-4a96-b539-63230d0caa06
 IdScheme: set-seq-coverage/1
 Label: SCAN-04_1995-2008_7 Letters 1995-2008 scanned
 Title: Letters 1995-2008, scanned
@@ -167,13 +167,13 @@ Creator: Sample_Person
 Description: Scans of letters kept since 1995.
 Location: BOX1
 Access: private
-Files: 12
-Bytes: 447752
-Software: arvc@55ffd12c6d58
+Files: 15
+Bytes: 559669
+Software: arvc@758ab47f08fb
 Copies: 1
 
 Id: FAMILY-01_2020-2021_K
-Uuid: 38ef1a1c-934f-4274-a386-757928dfc787
+Uuid: 010c7ec4-cf4f-4964-a46f-29dafaa81119
 IdScheme: set-seq-coverage/1
 Label: FAMILY-01_2020-2021_K Family photos 2020-2021
 Title: Family photos 2020-2021
@@ -188,7 +188,7 @@ Location: OFFSITE
 Access: private
 Files: 16
 Bytes: 8828
-Software: arvc@55ffd12c6d58
+Software: arvc@758ab47f08fb
 Copies: 1
 
 %rec: Binding
@@ -210,7 +210,7 @@ Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (a
 Ecc: dvdisaster RS03 augmented image, custom medium (6800 sectors), minimum 20% redundancy
 MediumSectors: 6800
 ImageSectors: 6630
-ImageSha256: 2d44cad4e353c2ff33cc5770e81fe87aab95de8c03a25d01f05d03dabb14c8ba
+ImageSha256: 1d83de98993f864a488106a224cd676c773849c22ed80fa69ca91347fbe95bad
 
 Volume: PROJ-01_2020-2023_L
 Container: udf-2.50
@@ -220,7 +220,7 @@ Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (a
 Ecc: dvdisaster RS03 augmented image, custom medium (6800 sectors), minimum 20% redundancy
 MediumSectors: 6800
 ImageSectors: 6630
-ImageSha256: 91346de95a9ee9ec3ca94beb97db05a0574abc6b1849d50952ec3c6c945e50ce
+ImageSha256: ed675abde9105943d8cac0ad8951fdc30f1c99b369f1a9ff7fc1dd81d922dce2
 
 Volume: TAXES-01_2019-2020_I
 Container: udf-2.50
@@ -230,7 +230,7 @@ Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (a
 Ecc: dvdisaster RS03 augmented image, custom medium (6800 sectors), minimum 20% redundancy
 MediumSectors: 6800
 ImageSectors: 6630
-ImageSha256: 30e1f62e19645f226d18a2efaf6e72de5c56c81a1ee7b3eccad1e990d1766a19
+ImageSha256: d481afd3c1c759a184d89a00c163d6f4169f23afae3cfe8b0958f569691f40e4
 
 Volume: SCAN-01_1995-2008_D
 Container: udf-2.50
@@ -240,7 +240,7 @@ Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (a
 Ecc: dvdisaster RS03 augmented image, custom medium (6800 sectors), minimum 20% redundancy
 MediumSectors: 6800
 ImageSectors: 6630
-ImageSha256: 299d5fbc4bf17a2a719535eacb53b33c243658a25899605874cab6e62713cf0e
+ImageSha256: e08124a1e98efc7afa109128e0647d3bcddd12f60ed098eb571206434dbc5665
 
 Volume: SCAN-02_1995-2008_B
 Container: udf-2.50
@@ -250,7 +250,7 @@ Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (a
 Ecc: dvdisaster RS03 augmented image, custom medium (6800 sectors), minimum 20% redundancy
 MediumSectors: 6800
 ImageSectors: 6630
-ImageSha256: a97274338bb85a572b2dab02afa00e9f57a70c10cf42f1d0a005aa8b2e8ccda3
+ImageSha256: 25662bbb24eceac463b56cd88bd075fefcb7c65b9e9d45b4132cf001325227bc
 
 Volume: SCAN-03_1995-2008_9
 Container: udf-2.50
@@ -260,7 +260,7 @@ Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (a
 Ecc: dvdisaster RS03 augmented image, custom medium (6800 sectors), minimum 20% redundancy
 MediumSectors: 6800
 ImageSectors: 6630
-ImageSha256: 4585f30894f4b565d88c0031d61501d5c50a60ce25e30fe835609a077b13630d
+ImageSha256: d09189e1c81ac415a5fee167c778b3eb663f81075f0205eaa948886eeb54ef60
 
 Volume: SCAN-04_1995-2008_7
 Container: udf-2.50
@@ -270,7 +270,7 @@ Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (a
 Ecc: dvdisaster RS03 augmented image, custom medium (6800 sectors), minimum 20% redundancy
 MediumSectors: 6800
 ImageSectors: 6630
-ImageSha256: a7bd7439c21a1cca3497252866ad0e1af17fbe6d99df7152c67c832a3b1f9412
+ImageSha256: 02f0e746b9e423868b9fcd940e4a41e27513262a6f5b4c67f3f9d9c73c2f08dc
 
 Volume: FAMILY-01_2020-2021_K
 Container: udf-2.50
@@ -280,7 +280,7 @@ Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (a
 Ecc: dvdisaster RS03 augmented image, custom medium (6800 sectors), minimum 20% redundancy
 MediumSectors: 6800
 ImageSectors: 6630
-ImageSha256: 5debef11970bdb3ab508c306b4e5b8606f97b1d77530ad142f715c85dd2df0b6
+ImageSha256: d63132f495b075cc5dfa38528c10e5bc9a540cb6e00d137cd6c6c2d071fc48ef
 
 %rec: Location
 %doc: Places where discs are kept: site, room, shelf, box. Parent makes a tree,
@@ -365,7 +365,7 @@ Type: message digest calculation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: sha256 and sha512 manifests of 16 files
 
 Disc: TRIP-01_2019_4
@@ -381,15 +381,15 @@ Type: creation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
-Note: image TRIP-01_2019_4.iso, 5010 sectors; RS03: 9 MiB data, 3 MiB ecc (61 roots; 31.4% redundancy), 0 MiB padding.
+Agent: arvc@758ab47f08fb
+Note: image TRIP-01_2019_4.iso, 5042 sectors; RS03: 9 MiB data, 3 MiB ecc (60 roots; 30.8% redundancy).
 
 Disc: TRIP-01_2019_4
 Type: fixity check
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: image test after creation
 
 Disc: PROJ-01_2020-2023_L
@@ -397,7 +397,7 @@ Type: message digest calculation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: sha256 and sha512 manifests of 56 files
 
 Disc: PROJ-01_2020-2023_L
@@ -405,7 +405,7 @@ Type: ingestion
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: links: 1 copied, 1 recorded (policy: default)
 
 Disc: PROJ-01_2020-2023_L
@@ -421,7 +421,7 @@ Type: creation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: image PROJ-01_2020-2023_L.iso, 5298 sectors; RS03: 10 MiB data, 2 MiB ecc (50 roots; 24.4% redundancy), 0 MiB padding.
 
 Disc: PROJ-01_2020-2023_L
@@ -429,7 +429,7 @@ Type: fixity check
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: image test after creation
 
 Disc: TAXES-01_2019-2020_I
@@ -437,7 +437,7 @@ Type: message digest calculation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: sha256 and sha512 manifests of 5 files
 
 Disc: TAXES-01_2019-2020_I
@@ -445,15 +445,15 @@ Type: creation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
-Note: image TAXES-01_2019-2020_I.iso, 5042 sectors; RS03: 9 MiB data, 3 MiB ecc (60 roots; 30.8% redundancy).
+Agent: arvc@758ab47f08fb
+Note: image TAXES-01_2019-2020_I.iso, 5074 sectors; RS03: 9 MiB data, 2 MiB ecc (58 roots; 29.4% redundancy), 0 MiB padding.
 
 Disc: TAXES-01_2019-2020_I
 Type: fixity check
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: image test after creation
 
 Disc: SCAN-01_1995-2008_D
@@ -461,7 +461,7 @@ Type: message digest calculation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: sha256 and sha512 manifests of 14 files
 
 Disc: SCAN-01_1995-2008_D
@@ -469,7 +469,7 @@ Type: creation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: image SCAN-01_1995-2008_D.iso, 5394 sectors; RS03: 10 MiB data, 2 MiB ecc (46 roots; 22.0% redundancy), 0 MiB padding.
 
 Disc: SCAN-01_1995-2008_D
@@ -477,7 +477,7 @@ Type: fixity check
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: image test after creation
 
 Disc: SCAN-02_1995-2008_B
@@ -485,23 +485,23 @@ Type: message digest calculation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
-Note: sha256 and sha512 manifests of 14 files
+Agent: arvc@758ab47f08fb
+Note: sha256 and sha512 manifests of 12 files
 
 Disc: SCAN-02_1995-2008_B
 Type: creation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
-Note: image SCAN-02_1995-2008_B.iso, 5394 sectors; RS03: 10 MiB data, 2 MiB ecc (46 roots; 22.0% redundancy), 0 MiB padding.
+Agent: arvc@758ab47f08fb
+Note: image SCAN-02_1995-2008_B.iso, 5298 sectors; RS03: 10 MiB data, 2 MiB ecc (50 roots; 24.4% redundancy), 0 MiB padding.
 
 Disc: SCAN-02_1995-2008_B
 Type: fixity check
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: image test after creation
 
 Disc: SCAN-03_1995-2008_9
@@ -509,15 +509,15 @@ Type: message digest calculation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
-Note: sha256 and sha512 manifests of 16 files
+Agent: arvc@758ab47f08fb
+Note: sha256 and sha512 manifests of 15 files
 
 Disc: SCAN-03_1995-2008_9
 Type: creation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: image SCAN-03_1995-2008_9.iso, 5426 sectors; RS03: 10 MiB data, 2 MiB ecc (45 roots; 21.4% redundancy), 0 MiB padding.
 
 Disc: SCAN-03_1995-2008_9
@@ -525,7 +525,7 @@ Type: fixity check
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: image test after creation
 
 Disc: SCAN-04_1995-2008_7
@@ -533,23 +533,23 @@ Type: message digest calculation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
-Note: sha256 and sha512 manifests of 12 files
+Agent: arvc@758ab47f08fb
+Note: sha256 and sha512 manifests of 15 files
 
 Disc: SCAN-04_1995-2008_7
 Type: creation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
-Note: image SCAN-04_1995-2008_7.iso, 5266 sectors; RS03: 10 MiB data, 2 MiB ecc (51 roots; 25.0% redundancy), 0 MiB padding.
+Agent: arvc@758ab47f08fb
+Note: image SCAN-04_1995-2008_7.iso, 5426 sectors; RS03: 10 MiB data, 2 MiB ecc (45 roots; 21.4% redundancy), 0 MiB padding.
 
 Disc: SCAN-04_1995-2008_7
 Type: fixity check
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: image test after creation
 
 Disc: FAMILY-01_2020-2021_K
@@ -557,7 +557,7 @@ Type: message digest calculation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: sha256 and sha512 manifests of 16 files
 
 Disc: FAMILY-01_2020-2021_K
@@ -573,15 +573,15 @@ Type: creation
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
-Note: image FAMILY-01_2020-2021_K.iso, 5202 sectors; RS03: 10 MiB data, 2 MiB ecc (53 roots; 26.2% redundancy), 0 MiB padding.
+Agent: arvc@758ab47f08fb
+Note: image FAMILY-01_2020-2021_K.iso, 5234 sectors; RS03: 10 MiB data, 2 MiB ecc (52 roots; 25.6% redundancy), 0 MiB padding.
 
 Disc: FAMILY-01_2020-2021_K
 Type: fixity check
 Date: 2026-10-04
 Outcome: success
 Authorship: automatic
-Agent: arvc@55ffd12c6d58
+Agent: arvc@758ab47f08fb
 Note: image test after creation
 
 Disc: TRIP-01_2019_4
@@ -671,7 +671,7 @@ Outcome: success
 Authorship: automatic
 Agent: arvc 0.4
 Note: image test (RS03: every sector against its CRC, the parity against the data)
-+ RS03: 10 MiB data, 2 MiB ecc (53 roots; 26.2% redundancy), 0 MiB padding.
++ RS03: 10 MiB data, 2 MiB ecc (52 roots; 25.6% redundancy), 0 MiB padding.
 + header good; 0 data sectors with a wrong CRC, 0 CRC sectors and 0 parity sectors damaged
 + the image is whole
 
@@ -704,7 +704,7 @@ Outcome: success
 Authorship: automatic
 Agent: arvc 0.4
 Note: image test (RS03: every sector against its CRC, the parity against the data)
-+ RS03: 10 MiB data, 2 MiB ecc (46 roots; 22.0% redundancy), 0 MiB padding.
++ RS03: 10 MiB data, 2 MiB ecc (50 roots; 24.4% redundancy), 0 MiB padding.
 + header good; 0 data sectors with a wrong CRC, 0 CRC sectors and 0 parity sectors damaged
 + the image is whole
 
@@ -726,7 +726,7 @@ Outcome: success
 Authorship: automatic
 Agent: arvc 0.4
 Note: image test (RS03: every sector against its CRC, the parity against the data)
-+ RS03: 10 MiB data, 2 MiB ecc (51 roots; 25.0% redundancy), 0 MiB padding.
++ RS03: 10 MiB data, 2 MiB ecc (45 roots; 21.4% redundancy), 0 MiB padding.
 + header good; 0 data sectors with a wrong CRC, 0 CRC sectors and 0 parity sectors damaged
 + the image is whole
 
@@ -737,7 +737,7 @@ Outcome: success
 Authorship: automatic
 Agent: arvc 0.4
 Note: image test (RS03: every sector against its CRC, the parity against the data)
-+ RS03: 9 MiB data, 3 MiB ecc (60 roots; 30.8% redundancy).
++ RS03: 9 MiB data, 2 MiB ecc (58 roots; 29.4% redundancy), 0 MiB padding.
 + header good; 0 data sectors with a wrong CRC, 0 CRC sectors and 0 parity sectors damaged
 + the image is whole
 
@@ -748,7 +748,7 @@ Outcome: success
 Authorship: automatic
 Agent: arvc 0.4
 Note: image test (RS03: every sector against its CRC, the parity against the data)
-+ RS03: 9 MiB data, 3 MiB ecc (61 roots; 31.4% redundancy), 0 MiB padding.
++ RS03: 9 MiB data, 3 MiB ecc (60 roots; 30.8% redundancy).
 + header good; 0 data sectors with a wrong CRC, 0 CRC sectors and 0 parity sectors damaged
 + the image is whole
 
