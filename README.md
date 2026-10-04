@@ -267,7 +267,13 @@ the disc list and history, notes, location and burned copies, search, making a
 disc (with a folder picker), checking discs and rebuilding the catalogue. Every
 action runs the same `arv` command as the terminal and shows its output.
 
-On the disc, `index.html` browses the disc without JavaScript. Searching across
+![arv gui: the sample discs, with where each is kept and when it was last checked](docs/screenshots/gui.png)
+
+On the disc, `index.html` browses the disc without JavaScript:
+
+![A disc's index.html: the sample Kyoto trip disc's record](docs/screenshots/disc.png)
+
+ Searching across
 discs is the job of catalogue software (such as Katalog) reading the catalogue,
 or of this tool, which is on every disc: from the disc's root,
 `tools/arv.com find PATTERN` (copied off the disc first, on systems that will not run programs

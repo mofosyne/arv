@@ -10,4 +10,5 @@ and keep its documentation honest.
 | `fake-llm.c`, `fake-llama-embedding` | a model server and a `llama-embedding` that answer from files, so `make -C src/arv-assist check` needs no model |
 | `ptyrun.c` | runs a program in a pseudo-terminal, so the checks can answer an interactive `arv make` |
 | `rs03-spec-check.py` | RS03 augmenting written from [docs/spec/rs03-format.md](../docs/spec/rs03-format.md) alone, in another language on purpose: it shows the spec is complete (`make -C src/rs03 check` compares it with arv) |
+| `screenshots.sh` | retakes `docs/screenshots/` (arv gui and a disc's index.html) from the samples, with headless Chromium |
 | `architecture-svg.py`, `shelving-svg.py` | draw `docs/img/architecture.svg` and `shelving.svg`; edit and run them to change the pictures |
