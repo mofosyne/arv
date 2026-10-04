@@ -194,6 +194,7 @@ fi
 # ------------------------------------------------------------------ SHA-256 and SHA-512 around block boundaries
 mkdir -p lengths/data
 printf '%%rec: Disc\n\nId: LEN-01_2026_X\n' > lengths/catalog.rec
+printf 'BagIt-Version: 1.0\nTag-File-Character-Encoding: UTF-8\n' > lengths/bagit.txt
 i=0
 while [ $i -lt 256 ]; do
     # shellcheck disable=SC2059

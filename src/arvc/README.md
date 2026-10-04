@@ -99,7 +99,8 @@ hyphens.
   catalog.rec, the catalogue snapshot, README.txt, index.html, the RO-Crate files), 145 files
   compared byte for byte after normalising; the recfile writer must write the Python's bytes;
 - **a real disc**: a disc made from a git repository with links and a script is read back with 7z,
-  verified, and restored with a clean `git status`; damage is reported; bagit.py validates it when
+  verified, and restored with a clean `git status`; damage is reported; the Library of Congress's
+  bagit.py (upstream/) agrees it is a valid bag when
   Python is there; `tools/` carries arv's commit, and with `--tools-history` its branches;
 - RS03 is added and tested by arv, `check --image` passes it again and finds a damaged sector, and
   README.txt's one `cc` line builds arv from a disc's `tools/`; with dvdisaster Light on PATH, it

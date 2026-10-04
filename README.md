@@ -41,7 +41,7 @@ How a disc is built, in one picture: [docs/architecture.md](docs/architecture.md
 ├── index.html               offline viewer (no JavaScript)
 ├── README.txt               plain-text recovery instructions
 │   data/ro-crate-metadata.json  optional RO-Crate description (--ro-crate)
-├── tools/                   this tool (snapshot of the last commit), bagit.py, and arv.com: the
+├── tools/                   this tool (snapshot of the last commit, with its specs) and arv.com: the
 │                            reader ready to run on Linux, macOS, Windows and BSD (x86-64, ARM64)
 └── data/                    the payload
 [ dvdisaster RS03 ECC data appended after the filesystem ]
@@ -52,7 +52,7 @@ Each layer does its own job:
 | Layer | Purpose | Tool |
 |---|---|---|
 | dvdisaster RS03 (augmented image, [format](docs/spec/rs03-format.md)) | **Repair** unreadable sectors | `arv check --repair`, or any `dvdisaster` |
-| BagIt manifests | **Detect** corruption per file, portable off-disc | `bagit.py`, or plain `sha256sum -c` |
+| BagIt manifests | **Detect** corruption per file, portable off-disc | `arv verify`, any BagIt tool, or plain `sha256sum -c` |
 | recfile catalogue | **Find** which disc holds what, without mounting | `recsel`, `recfix` |
 
 ## What's here
@@ -61,13 +61,17 @@ Each layer does its own job:
 |---|---|
 | `src/arvc/` | **arv**, a C program (C99 and POSIX, no libraries): every command, from making a disc to restoring one: [src/arvc/README.md](src/arvc/README.md) |
 | `src/udfwrite/` | arv's UDF 2.50 writer (library, built into arv, and a program): [docs/spec/archival-udf.md](docs/spec/archival-udf.md) |
+| `src/rs03/` | dvdisaster's RS03 error correction: add, test, repair (library, built into arv, and a program): [docs/spec/rs03-format.md](docs/spec/rs03-format.md) |
+| `src/bagit/` | BagIt (RFC 8493) checking and the digests (library, built into arv, and a `bagit` program for any bag) |
 | `src/arv/` | the optional add-on in Python (standard library only): the local AI helpers (`describe`, `tag`, `models`) and `gui` |
 | `arv` | the launcher in a checkout (and `tools/arv/arv` on a disc): the add-on's commands in Python, every other one in the C arv |
-| `docs/` | For users and implementers: workflow, shelving, architecture, philosophy, the disc format, and the website |
+| `docs/` | For users: workflow, burning, shelving, architecture, philosophy, and the website |
+| `docs/spec/` | For implementers, and on every disc: the disc format, the UDF profile, the RS03 error correction |
 | `research/` | Why, and what next: research notes, the standards survey, organising lessons, the plan, RS03 experiments |
 | `samples/` | The sample discs' catalogue and the script that makes them (the images are release downloads) |
 | `tests/` | Unit and integration tests, and language-neutral fixtures |
-| `upstream/` | Not part of arv: work offered to other projects (NetBSD makefs fixes, the RS03 code for dvdisaster Light), all drafts, not sent: [upstream/README.md](upstream/README.md) |
+| `dev-tools/` | Not part of arv: build and test helpers, the spec cross-check, the diagram generators: [dev-tools/README.md](dev-tools/README.md) |
+| `upstream/` | Not part of arv: work offered to other projects (NetBSD makefs fixes, the RS03 code for dvdisaster Light; drafts, not sent), and bagit-python as a referee: [upstream/README.md](upstream/README.md) |
 | `scripts/` | The original shell scripts, before ARV (see [Without arv](#without-arv-the-original-scripts)) |
 | `justfile`, `Makefile` | `just` lists everyday commands (test, install, samples, site preview); `make` alone builds and installs |
 
@@ -446,7 +450,7 @@ What changed, and what 1.0 waits for: [CHANGELOG.md](CHANGELOG.md).
 ## Licence
 
 GNU GPL version 3 (GPL-3.0); see [LICENSE](LICENSE). Code from elsewhere keeps its own licence: NetBSD's
-makefs in `upstream/netbsd-makefs/netbsd/` (BSD) and `src/arv/vendor/bagit.py` (CC0).
+makefs in `upstream/netbsd-makefs/netbsd/` (BSD) and bagit-python in `upstream/bagit-python/` (CC0).
 
 The disc format ([docs/spec/smart-archive-format.md](docs/spec/smart-archive-format.md)) is meant to be
 implemented by anyone, in any program, under any licence: reading and writing these discs

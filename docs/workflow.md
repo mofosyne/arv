@@ -154,7 +154,7 @@ The choices that matter:
    - `catalog/`: the snapshot of the whole catalogue, limited by access, with manifests, listings, tags and search data;
    - `index.html`: offline, no network, no JavaScript;
    - `README.txt`: recovery instructions in plain text;
-   - `tools/`: this repository at its last commit, plus `bagit.py`.
+   - `tools/`: this repository at its last commit (with the specs in `docs/spec/`), plus `arv.com`.
 5. **Build the image.** The folder is grafted in as `data/` and never copied.
    Symbolic links never reach the disc: links to files inside the folder are stored as the
    files they point to, the rest are only noted in the listing (`--links`, see "Links" in

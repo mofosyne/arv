@@ -99,7 +99,7 @@ anyway, in `tools/`.
 | 2. Repair the image | protection | `arv check --image disc.iso --repair` (the disc's `tools/arv.com`), or `dvdisaster -f` |
 | 3. Open it | container | mount it, or 7-Zip; current Windows, macOS and Linux read UDF 2.50 |
 | 4. Understand it and find things | description | `README.txt`, `index.html`, `grep` in `catalog/`, or `arv find` |
-| 5. Check every file | content | `sha256sum -c manifest-sha256.txt`, or `tools/bagit.py --validate` |
+| 5. Check every file | content | `sha256sum -c manifest-sha256.txt`, `tools/arv.com verify .`, or any BagIt tool |
 
 A healthy disc skips steps 1 and 2: put it in a drive and open it.
 
