@@ -114,13 +114,25 @@ static int needs_python(int argc, char **argv)
 /* runs the Python arv with the same arguments: arv-py on PATH, or the tree next to this program */
 static void run_python(int argc, char **argv)
 {
+    /* $ARV_PYTHON_ENTRY, an installed share/arv/arv, arv/arv next to this program (on a disc), or the
+     * checkout it was built in (a few folders up) */
     char *dir = exe_dir(), *python_entry = NULL;
-    const char *candidates[] = { getenv("ARV_PYTHON_ENTRY"), NULL, NULL };
-    char *installed = dir ? xprintf("%s/../share/arv/arv", dir) : NULL, *checkout = dir ? xprintf("%s/../../../arv", dir) : NULL;
-    candidates[1] = installed;
-    candidates[2] = checkout;
-    for (int k = 0; k < 3 && !python_entry; k++)
-        if (candidates[k] && *candidates[k] && !access(candidates[k], R_OK)) python_entry = (char *)candidates[k];
+    struct stat st;
+    if (getenv("ARV_PYTHON_ENTRY") && *getenv("ARV_PYTHON_ENTRY")) python_entry = xstrdup(getenv("ARV_PYTHON_ENTRY"));
+    for (int k = 0; dir && !python_entry && k < 6; k++) {
+        char *root = k == 0 ? xprintf("%s/../share/arv", dir) : k == 1 ? xprintf("%s/arv", dir) : NULL;
+        if (k >= 2) {
+            sbuf up = { 0 };
+            sb_puts(&up, dir);
+            for (int j = 1; j < k; j++) sb_puts(&up, "/..");
+            root = up.s;
+        }
+        char *script = join(root, "arv"), *cli = join(root, "src/arv/cli.py");
+        if (!stat(script, &st) && S_ISREG(st.st_mode) && !access(cli, R_OK)) python_entry = xstrdup(script);
+        free(script);
+        free(cli);
+        free(root);
+    }
     char **args = xmalloc(((size_t)argc + 2) * sizeof *args);
     int n = 0;
     if (python_entry) {
@@ -150,6 +162,7 @@ int main(int argc, char **argv)
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
                  { "where", cmd_where }, { "rebuild", cmd_rebuild },
                  { "tags", cmd_tags }, { "keywords", cmd_keywords } };
+    arv_argv0 = argv[0];
     if (argc >= 2 && (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-V"))) {
         puts(VERSION);
         return 0;

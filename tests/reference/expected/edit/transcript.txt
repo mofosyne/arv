@@ -114,17 +114,25 @@ rc=1
 $ --home edit appraise PROJ-01_2020-2023_L --importance vital
 Error: importance must read '<level> for <audience>', e.g. 'essential for family' (levels: essential, important, useful, incidental), not 'vital'
 rc=1
+$ --home edit appraise PROJ-01_2020-2023_L --importance useful  FOR  my family
+Error: audience 'my family': one word of letters, digits, '-', '_' or ':' (e.g. self, family, heirs, colleagues, public)
+rc=1
+$ --home edit appraise PROJ-01_2020-2023_L --importance essential for
+Error: importance must read '<level> for <audience>', e.g. 'essential for family' (levels: essential, important, useful, incidental), not 'essential for'
+rc=1
+$ --home edit appraise PROJ-01_2020-2023_L --importance  Important	for Heirs 
+PROJ-01_2020-2023_L: important for heirs
+rc=0
 $ --home edit appraise --due
 No appraisals due for review.
 rc=0
 $ --home edit appraise PROJ-01_2020-2023_L
 PROJ-01_2020-2023_L
-  useful for public
-  Basis: rebuildable
-  Review: 2030-01-01
+  important for heirs
   Date: 2026-01-01
   Authorship: human
   Agent: human:archivist
+  (1 earlier appraisal of this target in the log)
 rc=0
 $ --home edit sets
 MEMORIES Memories                     0 discs (5 including below)

@@ -27,6 +27,9 @@ appraise set:PROJ
 appraise collection:BEST --importance "essential for family"
 appraise TRIP-01_2019_4:nope/
 appraise PROJ-01_2020-2023_L --importance vital
+appraise PROJ-01_2020-2023_L --importance "useful  FOR  my family"
+appraise PROJ-01_2020-2023_L --importance "essential for"
+appraise PROJ-01_2020-2023_L --importance " Important	for Heirs "
 appraise --due
 appraise PROJ-01_2020-2023_L
 sets

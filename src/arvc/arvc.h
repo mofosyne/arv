@@ -37,6 +37,7 @@ void copy_tree(const char *from, const char *to, const char *const *skip);
 void remove_tree(const char *path);
 int run(char *const argv[], char **output);
 int on_path(const char *program);
+extern const char *arv_argv0;
 char *exe_dir(void);
 
 /* home.c: where the home catalogue is */

@@ -40,7 +40,12 @@ RESTORE (copy the files back)
   Copying data/ anywhere is enough for most files. Symbolic links in the
   original folder, execute bits and dates are in the listing,
   catalog/volumes/*/listing.tsv; the reader in tools/ brings them back too,
-  checking every file as it copies. Build it with any C compiler:
+  checking every file as it copies. It is also ready to run, as
+  tools/arv.com: one file for Linux, macOS, Windows and the BSDs, on x86-64
+  and ARM64 (Cosmopolitan). Copy it off the disc (on Windows as arv.exe):
+    ~/arv.com verify .                 (or: ~/arv.com restore . ~/restored)
+  If a Linux shell will not start it: sh ~/arv.com verify .
+  Build it with any C compiler:
     cc -O2 -o arvc tools/arv/src/arvc/*.c tools/arv/src/udfwrite/udfwrite.c
     ./arvc verify .                    (or: ./arvc restore . ~/restored)
   Without a compiler, after copying data/ to DEST, recreate the links with:
@@ -74,4 +79,5 @@ CATALOGUE
 TOOLS
   tools/arv/           the program that made this disc
   tools/arv.bundle     the same with full history: git clone <bundle>
+  tools/arv.com           the reader, ready to run (Linux, macOS, Windows, BSD)
   tools/bagit.py          BagIt validator (public domain)

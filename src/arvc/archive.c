@@ -371,6 +371,31 @@ char *place(const archive *a, const char *text)
     return p;
 }
 
+/* appraisal.IMPORTANCE_RE, ^\s*(\w+)\s+for\s+(.+?)\s*$ (any case): the level and the audience;
+ * 0, or -1 when the text does not read "<level> for <audience>" */
+static int parse_importance(const char *text, char *level, size_t nlevel, char *audience, size_t naudience)
+{
+    const char *p = text;
+    while (isspace((unsigned char)*p)) p++;
+    const char *w = p;
+    while (isalnum((unsigned char)*p) || *p == '_' || ((unsigned char)*p & 0x80)) p++;
+    if (p == w || (size_t)(p - w) >= nlevel || !isspace((unsigned char)*p)) return -1;
+    memcpy(level, w, (size_t)(p - w));
+    level[p - w] = 0;
+    while (isspace((unsigned char)*p)) p++;
+    if (tolower((unsigned char)p[0]) != 'f' || tolower((unsigned char)p[1]) != 'o' || tolower((unsigned char)p[2]) != 'r'
+        || !isspace((unsigned char)p[3]))
+        return -1;
+    p += 3;
+    while (isspace((unsigned char)*p)) p++;
+    const char *e = p + strlen(p);
+    while (e > p && isspace((unsigned char)e[-1])) e--;
+    if (e == p || (size_t)(e - p) >= naudience) return -1;
+    memcpy(audience, p, (size_t)(e - p));
+    audience[e - p] = 0;
+    return 0;
+}
+
 /* --importance '<level> for <audience>' (src/arv/appraisal.py) */
 rec_record *new_appraisal(const char *target, const strlist *importance, const char *basis, const char *review)
 {
@@ -379,8 +404,8 @@ rec_record *new_appraisal(const char *target, const strlist *importance, const c
     strlist audiences = { 0 };
     rec_add(r, "Target", target);
     for (size_t i = 0; i < importance->n; i++) {
-        char level[32], audience[128], extra;
-        if (sscanf(importance->v[i], " %31s for %127s %c", level, audience, &extra) != 2)
+        char level[64], audience[256];
+        if (parse_importance(importance->v[i], level, sizeof level, audience, sizeof audience))
             die("importance must read '<level> for <audience>', e.g. 'essential for family' "
                 "(levels: essential, important, useful, incidental), not '%s'", importance->v[i]);
         for (char *p = level; *p; p++) *p = (char)tolower((unsigned char)*p);
@@ -389,7 +414,8 @@ rec_record *new_appraisal(const char *target, const strlist *importance, const c
         for (int k = 0; levels[k]; k++) known |= !strcmp(level, levels[k]);
         if (!known) die("unknown importance level '%s' (levels, most first: essential, important, useful, incidental)", level);
         if (strspn(audience, "abcdefghijklmnopqrstuvwxyz0123456789:_-") != strlen(audience) || !isalnum((unsigned char)audience[0]))
-            die("audience '%s': one word of letters, digits, '-', '_' or ':'", audience);
+            die("audience '%s': one word of letters, digits, '-', '_' or ':' (e.g. self, family, heirs, colleagues, "
+                "public)", audience);
         if (strlist_has(&audiences, audience)) die("%s", "one importance per audience");
         strlist_add(&audiences, audience);
         char *text = xprintf("%s for %s", level, audience);

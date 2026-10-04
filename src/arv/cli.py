@@ -92,6 +92,28 @@ def software_version():
     return "%s@unknown" % REPO_NAME, False
 
 
+APE_USE = ("It is also ready to run, as\n"
+           "  tools/arv.com: one file for Linux, macOS, Windows and the BSDs, on x86-64\n"
+           "  and ARM64 (Cosmopolitan). Copy it off the disc (on Windows as arv.exe):\n"
+           "    ~/arv.com verify .                 (or: ~/arv.com restore . ~/restored)\n"
+           "  If a Linux shell will not start it: sh ~/arv.com verify .\n"
+           "  ")
+APE_LINE = "  tools/arv.com           the reader, ready to run (Linux, macOS, Windows, BSD)\n"
+
+
+def find_ape():
+    """arv as an Actually Portable Executable for tools/arv.com: $ARV_APE, arv.com in the source tree
+    (an installed one), or the C port's build in a checkout; None when there is none, or ARV_APE=none."""
+    if os.environ.get("ARV_APE") == "none":
+        return None
+    root = tools_root()
+    for path in (os.environ.get("ARV_APE"), os.path.join(root, "arv.com"),
+                 os.path.join(root, "src", "arvc", "build", "arv.com")):
+        if path and os.path.isfile(path):
+            return path
+    return None
+
+
 def stage_tools(tools_dir, is_git, extra_tools, history=False):
     """Copy this tool (a snapshot of the last commit), bagit.py and any extra tools onto the disc.
 
@@ -123,6 +145,10 @@ def stage_tools(tools_dir, is_git, extra_tools, history=False):
     if not os.path.exists(bagit):
         bagit = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor", "bagit.py")
     shutil.copyfile(bagit, os.path.join(tools_dir, "bagit.py"))
+    ape = find_ape()
+    if ape:
+        shutil.copyfile(ape, os.path.join(tools_dir, "arv.com"))
+        os.chmod(os.path.join(tools_dir, "arv.com"), 0o755)
     if extra_tools:
         shutil.copytree(extra_tools, os.path.join(tools_dir, "extra"))
 
@@ -163,6 +189,7 @@ def write_readme(path, disc, snapshot_scope, history=False, image_sectors=None):
         catalog_lines=cat_lines, repo=REPO_NAME,
         bundle_line=("  tools/%s.bundle     the same with full history: git clone <bundle>\n" % REPO_NAME)
         if history else "",
+        ape_use=APE_USE if find_ape() else "", ape_line=APE_LINE if find_ape() else "",
     )
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)

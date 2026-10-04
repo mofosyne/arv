@@ -40,7 +40,8 @@ How a disc is built, in one picture: [docs/architecture.md](docs/architecture.md
 ├── index.html               offline viewer (no JavaScript)
 ├── README.txt               plain-text recovery instructions
 │   data/ro-crate-metadata.json  optional RO-Crate description (--ro-crate)
-├── tools/                   this tool (snapshot of the last commit), bagit.py
+├── tools/                   this tool (snapshot of the last commit), bagit.py, and arv.com: the
+│                            reader ready to run on Linux, macOS, Windows and BSD (x86-64, ARM64)
 └── data/                    the payload
 [ dvdisaster RS03 ECC data appended after the filesystem ]
 ```
@@ -106,8 +107,16 @@ make install PREFIX=~/.local     # or: sudo make install   (/usr/local)
 arv --help
 ```
 
+To put the ready-to-run reader on every disc, build `arv.com` (an [Actually Portable
+Executable](https://justine.lol/ape.html): one file for Linux, macOS, Windows and the BSDs, x86-64
+and ARM64) with [cosmocc](https://cosmo.zip/pub/cosmocc/) before installing:
+`make ape COSMOCC=/path/to/cosmocc/bin/cosmocc`. Discs made from then on carry it as
+`tools/arv.com`, and their README.txt says how to run it; without it they carry the source,
+which builds with one `cc` line.
+
 `make install` copies the last commit (exactly the tree every disc carries in `tools/`) to
-`PREFIX/share/arv`, and puts `arv`, `arv-py`, `arvc` and `udfwrite` in `PREFIX/bin`.
+`PREFIX/share/arv` (with `arv.com` when it was built), and puts `arv`, `arv-py`, `arvc` and
+`udfwrite` in `PREFIX/bin`.
 
 **The installed `arv` is the C program** (`arvc`, [src/arvc/README.md](src/arvc/README.md)). It
 runs what has been ported to C, which is the whole make, record, verify cycle and the catalogue
@@ -248,8 +257,9 @@ action runs the same `arv` command as the terminal and shows its output.
 On the disc, `index.html` browses the disc without JavaScript. Searching across
 discs is the job of catalogue software (such as Katalog) reading the catalogue,
 or of this tool, which is on every disc: from the disc's root,
-`python3 tools/arv/arv --home catalog find PATTERN`
-searches every disc in its snapshot with nothing but Python.
+`tools/arv.com find PATTERN` (copied off the disc first, on systems that will not run programs
+from it), or `python3 tools/arv/arv --home catalog find PATTERN`, searches every disc in its
+snapshot.
 
 - `--medium` (default `bd25`; also `bd50`, `bd100`, `bd128`, `auto`) sets the disc the image
   targets. RS03 fills the rest of the disc, and each disc keeps at least `--min-redundancy`

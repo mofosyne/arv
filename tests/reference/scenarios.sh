@@ -9,8 +9,8 @@
 #        sh tests/reference/scenarios.sh /tmp/ref src/arvc/build/arvc
 #
 # Fixed: the clock (SOURCE_DATE_EPOCH), the time zone, the user, the machine config, the file
-# dates of every input, and tools/ (ARV_SOURCE: a small stand-in tree, so discs do not change
-# with every commit). Not covered here: RS03 (dvdisaster), Siegfried and git checkouts as
+# dates of every input, and tools/ (ARV_SOURCE: a small stand-in tree, and ARV_APE: a stand-in
+# arv.com, so discs do not change with every commit). Not covered here: RS03 (dvdisaster), Siegfried and git checkouts as
 # tools/, whose output depends on the machine; check.sh tests those of arvc directly.
 # Needs udfwrite (the Python arv runs it; arvc has it built in) and src/arvc/build/ptyrun.
 set -eu
@@ -36,7 +36,8 @@ root=$work/r
 mkdir -p "$root"
 cd "$root"
 export TZ=UTC LC_ALL=C USER=archivist HOME="$root/userhome" XDG_CONFIG_HOME="$root/userhome/.config" \
-    XDG_DATA_HOME="$root/userhome/.local/share" SOURCE_DATE_EPOCH=1767225600 ARV_SOURCE="$root/arv-source"
+    XDG_DATA_HOME="$root/userhome/.local/share" SOURCE_DATE_EPOCH=1767225600 ARV_SOURCE="$root/arv-source" \
+    ARV_APE="$root/arv.com"
 unset ARV_HOME BLURAY_ARCHIVE_HOME
 mkdir -p "$HOME"
 
@@ -96,6 +97,7 @@ mkdir -p arv-source/src/arv/vendor
 echo "arv@reference" > arv-source/VERSION
 printf 'arv (reference stand-in for tools/)\n' > arv-source/README.md
 printf '# bagit.py stand-in\n' > arv-source/src/arv/vendor/bagit.py
+printf 'arv.com stand-in\n' > arv.com         # tools/arv.com: the Actually Portable Executable
 
 # ------------------------------------------------------------------ make: two discs into one home
 mkdir -p src/docs src/bin second/letters

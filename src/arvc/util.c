@@ -324,9 +324,25 @@ int on_path(const char *program)
 }
 
 /* The folder this program is in (Linux: /proc/self/exe), or NULL. */
+const char *arv_argv0;     /* set by main */
+
+/* the folder this program is in: from argv[0] (a path, or a name found on PATH), else
+ * /proc/self/exe (which, for an Actually Portable Executable, may name its loader instead) */
 char *exe_dir(void)
 {
-    char *p = realpath("/proc/self/exe", NULL);
+    char *p = NULL;
+    if (arv_argv0 && strchr(arv_argv0, '/')) {
+        p = realpath(arv_argv0, NULL);
+    } else if (arv_argv0 && getenv("PATH")) {
+        char *copy = xstrdup(getenv("PATH"));
+        for (char *dir = strtok(copy, ":"); dir && !p; dir = strtok(NULL, ":")) {
+            char *cand = join(*dir ? dir : ".", arv_argv0);
+            if (!access(cand, X_OK)) p = realpath(cand, NULL);
+            free(cand);
+        }
+        free(copy);
+    }
+    if (!p) p = realpath("/proc/self/exe", NULL);
     if (!p) return NULL;
     char *slash = strrchr(p, '/');
     if (slash) *slash = 0;

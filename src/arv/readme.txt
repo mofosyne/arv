@@ -38,7 +38,7 @@ RESTORE (copy the files back)
   Copying data/ anywhere is enough for most files. Symbolic links in the
   original folder, execute bits and dates are in the listing,
   catalog/volumes/*/listing.tsv; the reader in tools/ brings them back too,
-  checking every file as it copies. Build it with any C compiler:
+  checking every file as it copies. {ape_use}Build it with any C compiler:
     cc -O2 -o arvc tools/{repo}/src/arvc/*.c tools/{repo}/src/udfwrite/udfwrite.c
     ./arvc verify .                    (or: ./arvc restore . ~/restored)
   Without a compiler, after copying data/ to DEST, recreate the links with:
@@ -67,4 +67,4 @@ CATALOGUE
 {catalog_lines}
 TOOLS
   tools/{repo}/           the program that made this disc
-{bundle_line}  tools/bagit.py          BagIt validator (public domain)
+{bundle_line}{ape_line}  tools/bagit.py          BagIt validator (public domain)

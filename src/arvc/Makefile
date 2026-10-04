@@ -12,6 +12,18 @@ DATA     = DATA_DESCRIPTORS=../arv/descriptors.rec DATA_README=../arv/readme.txt
 
 all: $(BUILD)/arvc $(BUILD)/fixtures $(BUILD)/ptyrun
 
+COSMOCC ?= cosmocc
+
+# arv.com: arvc as an Actually Portable Executable (Cosmopolitan: one file that runs on Linux, macOS,
+# Windows and the BSDs, x86-64 and ARM64). Every disc made where it exists carries it as tools/arv.com.
+# cosmocc: https://cosmo.zip/pub/cosmocc/ (make ape COSMOCC=/path/to/cosmocc/bin/cosmocc)
+ape: $(BUILD)/arv.com
+
+$(BUILD)/arv.com: *.c *.h ../udfwrite/udfwrite.c ../udfwrite/udfwrite.h
+	@mkdir -p $(BUILD)
+	$(COSMOCC) -O2 -std=c99 -o $@ *.c ../udfwrite/udfwrite.c
+	rm -f $(BUILD)/arv.com.dbg $(BUILD)/arv.aarch64.elf
+
 $(BUILD)/arvc: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJS)
 
@@ -42,6 +54,9 @@ $(BUILD)/%.o: %.c arvc.h rec.h sha256.h sha512.h edtf.h discid.h data.h vocab.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(WARN) -c -o $@ $<
 
+check-ape: $(BUILD)/arv.com $(BUILD)/fixtures $(BUILD)/ptyrun
+	sh check.sh $(BUILD)/arv.com
+
 check: all data-check
 	$(BUILD)/fixtures ../../tests/fixtures
 	sh check.sh $(BUILD)/arvc
@@ -49,4 +64,4 @@ check: all data-check
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all check clean data data-check
+.PHONY: all ape check check-ape clean data data-check

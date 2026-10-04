@@ -20,6 +20,8 @@ sys.path.insert(0, os.path.join(REPO, "src"))
 
 from arv import appraisal, bag, catalog, cli, image, listing, make, media, recfile  # noqa: E402
 
+os.environ["ARV_APE"] = "none"   # the small test media have no room for tools/arv.com (check.sh tests it)
+
 
 def udfwrite_available():
     """arv's own UDF writer (src/udfwrite), built here if a compiler is present."""
@@ -595,6 +597,15 @@ class SplitTest(unittest.TestCase):
         self.tmp = tempfile.mkdtemp()
         self.home = os.path.join(self.tmp, "home")
         self.src = os.path.join(self.tmp, "Big")
+        # tools/ from a small stand-in tree, so the tiny medium does not depend on the repository's size
+        stand_in = os.path.join(self.tmp, "arv-source")
+        os.makedirs(os.path.join(stand_in, "src", "arv", "vendor"))
+        shutil.copyfile(os.path.join(REPO, "src", "arv", "vendor", "bagit.py"),
+                        os.path.join(stand_in, "src", "arv", "vendor", "bagit.py"))
+        with open(os.path.join(stand_in, "VERSION"), "w", encoding="utf-8") as f:
+            f.write("arv@test\n")
+        self.old_source = os.environ.get("ARV_SOURCE")
+        os.environ["ARV_SOURCE"] = stand_in
         for d in "abc":
             for i in range(8):
                 path = os.path.join(self.src, d, "f%d.bin" % i)
@@ -603,6 +614,10 @@ class SplitTest(unittest.TestCase):
                     f.write(os.urandom(700_000))
 
     def tearDown(self):
+        if self.old_source is None:
+            os.environ.pop("ARV_SOURCE", None)
+        else:
+            os.environ["ARV_SOURCE"] = self.old_source
         shutil.rmtree(self.tmp)
 
     def make(self, *extra):
@@ -693,7 +708,7 @@ class MakeTest(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
 
     def test_full_disc(self):
-        disc_id, disc = self.make(self.projects, "--location", "Shelf A", "--note", "first")
+        disc_id, disc = self.make(self.projects, "--location", "Shelf A", "--note", "first", "--formats", "no")
         self.assertEqual(disc_id, PROJ_01)
         self.validate(disc)
         subprocess.run(["sha256sum", "-c", "--quiet", "manifest-sha256.txt"], cwd=disc, check=True)

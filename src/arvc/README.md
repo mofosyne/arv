@@ -11,6 +11,13 @@ line:
 cc -O2 -o arvc tools/arv/src/arvc/*.c tools/arv/src/udfwrite/udfwrite.c
 ```
 
+The same sources build an [Actually Portable Executable](https://justine.lol/ape.html) with
+[cosmocc](https://cosmo.zip/pub/cosmocc/): `make ape COSMOCC=.../bin/cosmocc` writes
+`build/arv.com`, 1.7 MB, one file that runs on Linux, macOS, Windows and the BSDs, x86-64 and
+ARM64. `make check-ape` runs every check below with it (they pass), and every disc made where it
+exists carries it as `tools/arv.com` (found as `$ARV_APE`, `arv.com` in the installed tree, or
+`build/arv.com` in a checkout; `ARV_APE=none` leaves it off).
+
 Called as `arv` (the installed link), it hands to the Python arv (`share/arv/arv`, or `arv-py`)
 any command or option it does not have (the AI helpers, drafts, `gui`) and `--help`. Called as `arvc`, it never hands over. What the Python arv did is frozen in
 [tests/reference/](../../tests/reference/), and `make check` holds arvc to it.

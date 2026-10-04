@@ -23,6 +23,7 @@ cd "$dir"
 ok() { echo "ok: $*"; }
 no() { echo "FAILED: $*"; exit 1; }
 command -v 7z >/dev/null || no "7z is needed to read disc images (p7zip-full)"
+unset ARV_APE ARV_SOURCE    # the real-disc checks use what a user has: the checkout, its arv.com
 
 # ------------------------------------------------------------------ the reference scenarios
 sh "$repo/tests/reference/scenarios.sh" ref "$tool" >/dev/null 2>scenarios.err || { cat scenarios.err; no "scenarios"; }
@@ -75,6 +76,12 @@ if "$tool" restore bad out-bad >out.txt; then no "restore missed damage"; fi
     && ok "restore keeps a link's copy when its target is damaged" || no "copy of a damaged target"
 [ -f disc/tools/arv/src/arvc/arvc.c ] && grep -q "Software: arvc@" disc/catalog.rec \
     && ok "tools/ carries arv's last commit, and the disc names it" || no "tools/ from the git checkout"
+if [ -f "$here/build/arv.com" ]; then
+    [ -f disc/tools/arv.com ] && grep -q "tools/arv.com" disc/README.txt || no "tools/arv.com missing, or README.txt silent on it"
+    cp disc/tools/arv.com ape.com && chmod 755 ape.com     # copied off the disc, as README.txt says (7z drops modes)
+    (cd disc && ../ape.com verify . >/dev/null) && ok "tools/arv.com (Actually Portable Executable), copied off the disc, verifies it" \
+        || no "tools/arv.com from the disc"
+fi
 
 # ------------------------------------------------------------------ what depends on the machine
 "$tool" make -C hist --no-ecc --formats no --set CODE --tools-history --output-dir hist-out src >hist.txt 2>&1 \
@@ -88,7 +95,7 @@ else
         || no "--tools-history: no bundle and no warning"
 fi
 if command -v dvdisaster >/dev/null && dvdisaster --help 2>&1 | grep -q no-bdr-defect-management; then
-    "$tool" make -C ecc-home --formats no --set CODE --medium-sectors 4800 --output-dir ecc-out src >/dev/null 2>&1 \
+    "$tool" make -C ecc-home --formats no --set CODE --medium-sectors 9600 --output-dir ecc-out src >/dev/null 2>&1 \
         || no "arvc make with RS03"
     grep -q "RS03: " ecc-home/catalog/archive.rec && grep -q "Type: fixity check" ecc-home/catalog/archive.rec \
         && ok "arvc make with RS03 error correction: image tested by dvdisaster" || no "RS03 events"

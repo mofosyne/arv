@@ -317,21 +317,27 @@ static int has(const char *dir, const char *rel)
     return r;
 }
 
-/* the arv source tree to put in tools/: --tools, $ARV_SOURCE, an installed share/arv, or the
- * checkout this program was built in */
+/* the arv source tree to put in tools/: --tools, $ARV_SOURCE, an installed share/arv, arv/ next to
+ * this program (tools/arv.com on a disc), or the checkout it was built in (a few folders up) */
 static char *find_source(const char *given)
 {
     if (given) return xstrdup(given);
     if (getenv("ARV_SOURCE") && *getenv("ARV_SOURCE")) return xstrdup(getenv("ARV_SOURCE"));
     char *exe = exe_dir(), *found = NULL;
-    if (exe) {
-        char *installed = xprintf("%s/../share/arv", exe), *checkout = xprintf("%s/../../..", exe);
-        if (has(installed, "src/arv/vendor/bagit.py")) found = realpath(installed, NULL);
-        else if (has(checkout, "src/arvc/arvc.c")) found = realpath(checkout, NULL);
-        free(installed);
-        free(checkout);
-        free(exe);
+    if (!exe) return NULL;
+    char *installed = xprintf("%s/../share/arv", exe), *beside = join(exe, "arv");
+    if (has(installed, "src/arv/vendor/bagit.py")) found = realpath(installed, NULL);
+    else if (has(beside, "src/arvc/arvc.c")) found = realpath(beside, NULL);
+    for (int up = 1; !found && up <= 4; up++) {
+        sbuf dir = { 0 };
+        sb_puts(&dir, exe);
+        for (int k = 0; k < up; k++) sb_puts(&dir, "/..");
+        if (has(dir.s, "src/arvc/arvc.c")) found = realpath(dir.s, NULL);
+        free(dir.s);
     }
+    free(installed);
+    free(beside);
+    free(exe);
     return found;
 }
 
@@ -367,8 +373,58 @@ static char *software_version(const char *source, int *is_git)
     return xstrdup("arvc@unknown");
 }
 
-/* arv's last commit (and with history, a git bundle of every branch), bagit.py and any extra tools
- * (cli.stage_tools) */
+static const char APE_USE[] =
+    "It is also ready to run, as\n"
+    "  tools/arv.com: one file for Linux, macOS, Windows and the BSDs, on x86-64\n"
+    "  and ARM64 (Cosmopolitan). Copy it off the disc (on Windows as arv.exe):\n"
+    "    ~/arv.com verify .                 (or: ~/arv.com restore . ~/restored)\n"
+    "  If a Linux shell will not start it: sh ~/arv.com verify .\n"
+    "  ";
+static const char APE_LINE[] = "  tools/arv.com           the reader, ready to run (Linux, macOS, Windows, BSD)\n";
+
+/* arv as an Actually Portable Executable for tools/arv.com (cli.find_ape): $ARV_APE, arv.com in the
+ * source tree (an installed one), the C port's build in a checkout, or this program when it is
+ * one (arv.com run from a disc); NULL when there is none, or ARV_APE=none */
+static int reg_file(const char *path)
+{
+    struct stat st;
+    return !stat(path, &st) && S_ISREG(st.st_mode);
+}
+
+static char *find_ape(const char *source)
+{
+    const char *env = getenv("ARV_APE");
+    if (env && !strcmp(env, "none")) return NULL;      /* a disc without it */
+    if (env && *env && reg_file(env)) return xstrdup(env);
+    if (source) {
+        char *a = join(source, "arv.com"), *b = join(source, "src/arvc/build/arv.com");
+        char *found = reg_file(a) ? a : reg_file(b) ? b : NULL;
+        if (found) {
+            char *out = xstrdup(found);
+            free(a);
+            free(b);
+            return out;
+        }
+        free(a);
+        free(b);
+    }
+    char *dir = exe_dir();
+    if (dir && arv_argv0) {
+        const char *name = strrchr(arv_argv0, '/') ? strrchr(arv_argv0, '/') + 1 : arv_argv0;
+        size_t n = strlen(name);
+        char *self = join(dir, name);
+        if (n > 4 && !strcmp(name + n - 4, ".com") && reg_file(self)) {
+            free(dir);
+            return self;
+        }
+        free(self);
+    }
+    free(dir);
+    return NULL;
+}
+
+/* arv's last commit (and with history, a git bundle of every branch), bagit.py, arv.com and any
+ * extra tools (cli.stage_tools) */
 static void stage_tools(const char *tools, const char *source, int is_git, const char *workdir, const options *o)
 {
     char *tree = join(tools, "arv");
@@ -405,6 +461,14 @@ static void stage_tools(const char *tools, const char *source, int is_git, const
         }
         free(out);
         free(bundle);
+    }
+    char *ape = find_ape(source);
+    if (ape) {
+        char *to = join(tools, "arv.com");
+        copy_file(ape, to);
+        chmod(to, 0755);
+        free(to);
+        free(ape);
     }
     if (o->extra_tools) {
         char *extra = join(tools, "extra");
@@ -1093,12 +1157,16 @@ static void stage_plan(maker *mk, size_t idx)
               "  catalog/volumes/<id>/   per disc: manifest.sha256, listing.tsv, formats.csv\n";
         char *part = p->parts > 1 ? xprintf("  (part %d of %d)", p->part, p->parts) : xstrdup("");
         char *nfiles = xprintf("%zu", p->files.n), *nbytes = xstrdup(rec_get(p->disc, "Bytes"));
+        char *ape = find_ape(mk->source);
         const char *names[] = { "plain", "size_check", "title", "underline", "id", "set", "part", "date", "files",
-                                "bytes", "software", "other_discs", "catalog_lines", "repo", "bundle_line", NULL };
+                                "bytes", "software", "other_discs", "catalog_lines", "repo", "bundle_line", "ape_use",
+                                "ape_line", NULL };
         const char *values[] = { plain.s, size_check.s, mk->title, underline.s ? underline.s : "", p->disc_id, mk->set_code,
                                  part, mk->today, nfiles, nbytes, mk->software, other, cat_lines, "arv",
-                                 o->tools_history ? "  tools/arv.bundle     the same with full history: git clone <bundle>\n" : "" };
+                                 o->tools_history ? "  tools/arv.bundle     the same with full history: git clone <bundle>\n" : "",
+                                 ape ? APE_USE : "", ape ? APE_LINE : "" };
         char *text = format(DATA_README, names, values), *path = join(p->stage, "README.txt");
+        free(ape);
         write_text(path, text);
         free(path); free(text); free(other); free(part); free(nfiles); free(nbytes);
         free(plain.s); free(size_check.s); free(underline.s); free(plain_text); free(size_text);

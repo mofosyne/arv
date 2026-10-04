@@ -18,12 +18,12 @@ static void *must(void *p)
     return p;
 }
 
-static char *dup(const char *s) { return must(strdup(s)); }
+static char *vdup(const char *s) { return must(strdup(s)); }
 
 void strlist_add(strlist *l, const char *s)
 {
     l->v = must(realloc(l->v, (l->n + 1) * sizeof *l->v));
-    l->v[l->n++] = dup(s);
+    l->v[l->n++] = vdup(s);
 }
 
 void strlist_free(strlist *l)
@@ -51,7 +51,7 @@ void vocab_word(const char *text, char *out)
 static char *trimmed(const char *s)
 {
     while (isspace((unsigned char)*s)) s++;
-    char *p = dup(s), *e = p + strlen(p);
+    char *p = vdup(s), *e = p + strlen(p);
     while (e > p && isspace((unsigned char)e[-1])) *--e = 0;
     return p;
 }
@@ -64,7 +64,7 @@ static void upper(char *s)
 const vset *vocab_get(const vocab *v, const char *code)
 {
     if (!code) return NULL;
-    char *c = dup(code);
+    char *c = vdup(code);
     upper(c);
     for (size_t i = 0; i < v->n; i++)
         if (!strcmp(v->e[i].code, c)) { free(c); return &v->e[i]; }
@@ -100,7 +100,7 @@ int vocab_load(vocab *v, const char *path, const char *text, char *err, size_t e
     rec_file f;
     int bad = 0;
     memset(v, 0, sizeof *v);
-    v->path = path ? dup(path) : NULL;
+    v->path = path ? vdup(path) : NULL;
     if (path ? rec_read(path, &f, &bad) : rec_parse(text, &f, &bad)) {
         snprintf(err, errlen, "cannot read the vocabulary %s%s", path ? path : "(built in)",
                  bad ? " (a line is not a field)" : "");
@@ -122,8 +122,8 @@ int vocab_load(vocab *v, const char *path, const char *text, char *err, size_t e
             rec_free(&f);
             return -1;
         }
-        e.name = dup(rec_get(r, "Name") ? rec_get(r, "Name") : e.code);
-        e.scope_note = dup(rec_get(r, "ScopeNote") ? rec_get(r, "ScopeNote") : "");
+        e.name = vdup(rec_get(r, "Name") ? rec_get(r, "Name") : e.code);
+        e.scope_note = vdup(rec_get(r, "ScopeNote") ? rec_get(r, "ScopeNote") : "");
         {
             char *o = trimmed(rec_get(r, "Order") ? rec_get(r, "Order") : "");
             e.order = *o && strspn(o, "0123456789") == strlen(o) ? atoi(o) : 50;
@@ -251,12 +251,12 @@ const char *vocab_guess(const vocab *v, const char *text)
         if (found) goto done;
     }
     {   /* a word of an entry's name, singular */
-        char *singular = dup(key);
+        char *singular = vdup(key);
         for (char *p = singular; *p; p++) *p = (char)tolower((unsigned char)*p);
         size_t sl = strlen(singular);
         while (sl && singular[sl - 1] == 's') singular[--sl] = 0;
         for (size_t i = 0; i < v->n && !found; i++) {
-            char *name = dup(v->e[i].name);
+            char *name = vdup(v->e[i].name);
             for (char *p = name; *p; p++) *p = *p == ',' ? ' ' : (char)tolower((unsigned char)*p);
             for (char *t = strtok(name, " \t\n"); t && !found; t = strtok(NULL, " \t\n")) {
                 size_t tl = strlen(t);
@@ -321,7 +321,7 @@ int vocab_is_ancestor(const vocab *v, const char *above, const char *code)
 
 void vocab_near(const vocab *v, const char *code, strlist *out)
 {
-    char *c = dup(code ? code : "");
+    char *c = vdup(code ? code : "");
     upper(c);
     for (size_t i = 0; i < v->n && out->n < 5; i++) {
         const char *e = v->e[i].code;
@@ -337,7 +337,7 @@ static int glob(const char *pattern, const char *text)
 
 int vocab_path_matches(const char *pattern, const char *path)
 {
-    char *pat = trimmed(pattern), *p = dup(path);
+    char *pat = trimmed(pattern), *p = vdup(path);
     int r = 0;
     for (char *q = pat; *q; q++) *q = (char)tolower((unsigned char)*q);
     for (char *q = p; *q; q++) *q = (char)tolower((unsigned char)*q);

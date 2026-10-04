@@ -5,6 +5,7 @@
 #   make install PREFIX=~/.local     install for yourself (~/.local/bin must be on PATH)
 #   make uninstall [PREFIX=...]
 #   make check                 run the tests
+#   make ape [COSMOCC=...]     also build arv.com (Cosmopolitan): installed, and carried by every disc
 #
 # Installs:
 #   $(PREFIX)/share/arv/       the tool: exactly the tree every disc carries in tools/
@@ -31,6 +32,9 @@ all:
 check: all
 	python3 -m unittest discover -s tests
 
+ape:
+	$(MAKE) -C src/arvc ape
+
 install: all
 	@git rev-parse --git-dir >/dev/null 2>&1 || { echo "make install: run it in a git checkout"; exit 1; }
 	@git diff --quiet HEAD -- || echo "Note: uncommitted changes are not installed (discs carry the last commit too)"
@@ -38,6 +42,7 @@ install: all
 	mkdir -p "$(DESTDIR)$(SHARE)" "$(DESTDIR)$(BIN)"
 	git archive --format=tar HEAD | tar -x -C "$(DESTDIR)$(SHARE)"
 	printf 'arv@%s\n' "$$(git rev-parse --short=12 HEAD)" > "$(DESTDIR)$(SHARE)/VERSION"
+	if [ -f src/arvc/build/arv.com ]; then install -m 755 src/arvc/build/arv.com "$(DESTDIR)$(SHARE)/arv.com"; fi
 	printf '#!/bin/sh\nexec python3 "%s/arv" "$$@"\n' "$(SHARE)" > "$(DESTDIR)$(BIN)/arv-py"
 	chmod 755 "$(DESTDIR)$(BIN)/arv-py"
 	rm -f "$(DESTDIR)$(BIN)/arv"
@@ -50,4 +55,4 @@ uninstall:
 	rm -rf "$(DESTDIR)$(SHARE)"
 	rm -f "$(DESTDIR)$(BIN)/arv" "$(DESTDIR)$(BIN)/arv-py" "$(DESTDIR)$(BIN)/udfmake" "$(DESTDIR)$(BIN)/udfwrite" "$(DESTDIR)$(BIN)/arvc"
 
-.PHONY: all check install uninstall
+.PHONY: all check ape install uninstall
