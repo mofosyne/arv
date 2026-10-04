@@ -546,7 +546,7 @@ MediumSectors: 12219392
 |---|---|
 | `Volume` | The disc `Id` |
 | `Container` | How the volume is laid out: `udf-2.50` (`iso9660+udf-1.02` on older hybrid discs); later perhaps `ltfs`, `exfat`, `tar`, `afs` |
-| `Protection` | Error correction around the container: `rs03` (dvdisaster augmented image) or `none` |
+| `Protection` | Error correction around the container: `rs03` (dvdisaster augmented image, described in [rs03-format.md](rs03-format.md)) or `none` |
 | `Media`, `Filesystem`, `Ecc` | The same, described for people |
 | `MediumSectors` | The medium size RS03 was computed for, in 2048-byte sectors |
 

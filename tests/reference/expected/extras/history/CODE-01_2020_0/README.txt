@@ -78,7 +78,10 @@ CATALOGUE
   catalog/volumes/<id>/   per disc: manifest.sha256, listing.tsv, formats.csv
 
 TOOLS
-  tools/arv/           the program that made this disc
+  tools/arv/           the program that made this disc; its docs/ folder
+                          describes the disc format (smart-archive-format.md)
+                          and the error correction (rs03-format.md), so other
+                          programs can be written to read and repair it
   tools/arv.bundle     the same with full history: git clone <bundle>
   tools/arv.com           the reader, ready to run (Linux, macOS, Windows, BSD)
   tools/bagit.py          BagIt validator (public domain)

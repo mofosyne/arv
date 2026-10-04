@@ -50,7 +50,7 @@ Each layer does its own job:
 
 | Layer | Purpose | Tool |
 |---|---|---|
-| dvdisaster RS03 (augmented image) | **Repair** unreadable sectors | `arv check --repair`, or any `dvdisaster` |
+| dvdisaster RS03 (augmented image, [format](docs/rs03-format.md)) | **Repair** unreadable sectors | `arv check --repair`, or any `dvdisaster` |
 | BagIt manifests | **Detect** corruption per file, portable off-disc | `bagit.py`, or plain `sha256sum -c` |
 | recfile catalogue | **Find** which disc holds what, without mounting | `recsel`, `recfix` |
 

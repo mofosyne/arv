@@ -67,5 +67,8 @@ CATALOGUE
   catalog.rec             this disc's record (GNU recutils format, plain text)
 {catalog_lines}
 TOOLS
-  tools/{repo}/           the program that made this disc
+  tools/{repo}/           the program that made this disc; its docs/ folder
+                          describes the disc format (smart-archive-format.md)
+                          and the error correction (rs03-format.md), so other
+                          programs can be written to read and repair it
 {bundle_line}{ape_line}  tools/bagit.py          BagIt validator (public domain)
