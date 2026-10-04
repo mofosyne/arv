@@ -29,6 +29,33 @@ robustness and checkability: a real mirror, contiguous files in a fixed order, a
 images. The same idea is offered back upstream: a real mirror for makefs's read-only images
 (issue #7).
 
+## Why UDF 2.50, not 2.60
+
+UDF 2.60 adds one thing to 2.50: **Pseudo-OverWrite** (POW), which lets a BD-R be appended to
+and appear rewritable. The drive maps logical sectors to fresh physical ones, and the
+filesystem tracks the changes. That is how Sony's Optical Disc Archive appends to a cartridge
+over time, much like a tape. Nothing else changes: the metadata partition and its mirror, the
+parts that make a disc survive damage, are already in 2.50.
+
+An arv disc is written whole, once, and closed, so 2.60 would bring it only costs:
+
+- **No robustness gain.** A closed 2.60 volume holds the same structures as a closed 2.50 one;
+  only the revision number differs.
+- **It breaks RS03.** The error correction is computed once over the whole image and spread
+  across the whole medium. Appending, or remapping a sector, invalidates that parity
+  everywhere. An appendable disc would need protection that is rebuilt on every append, which
+  is a different design.
+- **More to go wrong when reading.** Data on a POW disc depends on the drive's remapping and on
+  the filesystem's history of changes. A damaged disc is harder to read back sector by sector,
+  and a sector-by-sector image is exactly what repair works on.
+- **Fewer readers, and fewer writers to check against.** 2.50 is the Blu-ray standard that every
+  current system reads. NetBSD makefs, for example, stops at 2.50 ("0x260 is not ready").
+
+Appending suits a disc that is used like a tape. arv's unit is a finished, self-contained disc,
+and new material goes on a new disc. If appendable media are ever wanted, they would be a
+separate binding (see the Binding record) with their own protection. They would not be a
+change to this profile. (research-notes.md, the UDF revisions table; decided 2026-10.)
+
 ## Layout
 
 Sector numbers are 2048-byte sectors from the start of the image. `N` is the last sector of the
