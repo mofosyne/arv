@@ -4,7 +4,8 @@
 #
 #   samples/make-samples.sh [OUTPUT_DIR]      (default: samples/)
 #
-# Needs: python3, git, dvdisaster Light or the speed47 fork (the stock 0.79.10 build
+# Needs: a C compiler (arv is built here with make if missing), python3 (to generate the
+# sample sources), git, dvdisaster Light or the speed47 fork (the stock 0.79.10 build
 # pads every image to CD size), and src/udfwrite (built here with make if missing). Build
 # src/arvc/build/arv.com first (make ape) so the discs carry it in tools/, as real ones do.
 # The discs use a custom 6800-sector "medium" (13.3 MB) so they stay small; real discs use
@@ -31,7 +32,8 @@ python3 "$here/gen_sources.py" "$src"
 home=$work/home
 discs=$work/discs
 mkdir -p "$discs"
-a() { python3 "$repo/arv" --home "$home" "$@"; }
+[ -x "$repo/src/arvc/build/arvc" ] || make -s -C "$repo/src/arvc"
+a() { "$repo/src/arvc/build/arvc" --home "$home" "$@"; }
 common="-y --medium-sectors 6800 --output-dir $discs --creator Sample_Person --formats no"
 
 draft() {  # draft NAME JSON: a hand-written metadata draft

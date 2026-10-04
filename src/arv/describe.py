@@ -309,21 +309,3 @@ def run(args):
         else:
             log("Not applied.")
     return 0
-
-
-def make_draft(args, src, entries, interactive):
-    """For `arv make --llm`: run the conversation and review before the usual prompts."""
-    if not interactive:
-        raise SystemExit("Error: --llm needs an interactive terminal (or prepare a draft with "
-                         "'arv describe <folder> --save draft.json' and pass --draft draft.json)")
-    client = llm.Client(args.llm_url, args.llm_model, args.llm_allow_remote)
-    seen = look_at_images(args, client, src, entries)
-    inv = llm.inventory(entries, os.path.basename(src), text_root=src) + vision.inventory_section(seen)
-    try:
-        suggestion, answers = conversation(client, inv, llm.folders_of(entries), args.llm_rounds, 5)
-    except llm.LLMError as err:
-        raise SystemExit("Error: %s" % err)
-    draft = review(with_vision(suggestion, seen), answers)
-    draft["agent"] = client.agent
-    return draft
-

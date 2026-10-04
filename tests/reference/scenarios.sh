@@ -1,18 +1,17 @@
 #!/bin/sh
 # The reference scenarios: every command arv has, run in a fixed setting, their output and the
-# files they write kept, normalised, in OUT. Run with the Python arv they make expected/ (see
-# generate.sh); src/arvc/check.sh runs them with arvc and compares with expected/, so the C port
-# is held to the Python arv's behaviour without needing Python.
+# files they write kept, normalised, in OUT. src/arvc/check.sh runs them and compares OUT with
+# expected/ (first written by the Python arv, which the C arv was ported from); generate.sh
+# rewrites expected/ after a change made on purpose.
 #
 #   sh tests/reference/scenarios.sh OUT ARV-COMMAND...
-#   e.g. sh tests/reference/scenarios.sh /tmp/ref python3 ./arv
-#        sh tests/reference/scenarios.sh /tmp/ref src/arvc/build/arvc
+#   e.g. sh tests/reference/scenarios.sh /tmp/ref src/arvc/build/arvc
 #
 # Fixed: the clock (SOURCE_DATE_EPOCH), the time zone, the user, the machine config, the file
 # dates of every input, and tools/ (ARV_SOURCE: a small stand-in tree, and ARV_APE: a stand-in
 # arv.com, so discs do not change with every commit). Not covered here: RS03 (dvdisaster), Siegfried and git checkouts as
 # tools/, whose output depends on the machine; check.sh tests those of arvc directly.
-# Needs udfwrite (the Python arv runs it; arvc has it built in) and src/arvc/build/ptyrun.
+# Needs src/arvc/build/ptyrun (make -C src/arvc).
 set -eu
 [ $# -ge 2 ] || { echo "usage: scenarios.sh OUT ARV-COMMAND..." >&2; exit 2; }
 here=$(cd "$(dirname "$0")" && pwd)

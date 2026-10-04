@@ -40,7 +40,7 @@ after the discs were made.
 cp FAMILY/tools/arv.com . && chmod +x arv.com            # the reader the disc carries (any OS)
 (cd FAMILY && ../arv.com find Kyoto)                     # search every disc from this one
 (cd FAMILY && ../arv.com verify .)                       # every file against the manifests
-(cd FAMILY && python3 tools/arv/arv --home catalog find Kyoto)   # the same with Python
+(cd FAMILY && python3 tools/arv/arv find Kyoto)   # the launcher: runs ../arv.com
 (cd FAMILY && sha256sum -c manifest-sha256.txt)          # verify
 ```
 

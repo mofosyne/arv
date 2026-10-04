@@ -66,7 +66,8 @@ poorly; worth it only for a subset you want watched file by file.
 
 | Need | For | How |
 |---|---|---|
-| Python 3 | everything (standard library only) | usually installed |
+| a C compiler | building arv (`make`) | usually installed (`build-essential`) |
+| Python 3 | only the optional add-on: `arv describe`, `arv tag`, `arv gui` | usually installed |
 | `arv` | the tool | `make install PREFIX=~/.local` in this repository (or run `./arv` from it); `make uninstall PREFIX=~/.local` removes it and leaves your catalogues alone |
 | `dvdisaster` | RS03 error correction | [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) or the [speed47 fork](https://github.com/speed47/dvdisaster) fill a whole BD (byte-identical results); the stock 0.79.10 build works but pads to the smallest standard size |
 | `udfwrite` | the UDF 2.50 image (built into the C arv) | built by `make`, installed by `make install` (a C compiler; nothing else) |
@@ -207,7 +208,7 @@ arv location list -v
 | Everything under a category or a place | `arv list --in MEMORIES`, `arv list --at OFFSITE` |
 | Which tags do I use? | `arv tags`; `arv find place:kyoto` |
 | Group things across discs | `arv collection add BEST --name "Best of" DISC:folder/ DISC:file`, `arv collection show BEST`: virtual folders; other software can show them as a tree ([spec](smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)) |
-| Without this tool installed? | every disc carries it: `python3 tools/arv/arv --home catalog find PATTERN` from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
+| Without this tool installed? | every disc carries it: `tools/arv.com find PATTERN` (or `arvc` built from `tools/arv/` with one `cc` line) from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
 | Changes after burning | `arv note`, `arv locate`, `arv access` (home catalogue; later discs carry them) |
 
 **Check discs every few years** with `arv check --device /dev/sr0`.
@@ -223,7 +224,7 @@ disc is always a backup of the catalogue**.
 |---|---|
 | A disc reads with errors | Follow REPAIR in the disc's `README.txt`: `dvdisaster -d /dev/sr0 -r -i disc.iso` (dvdisaster Light: add `--rescue`), check the image has the size the README states (if smaller, read again with `--ignore-iso-size`), then `dvdisaster -i disc.iso -f`. Too damaged? Copies are sector-identical: read another copy into the same image (`-r -j 1`, only missing sectors are read) and repair again. Then burn a new copy. Tested in research-notes.md section 8. |
 | The home catalogue is lost | `arv rebuild /media/disc` with the newest disc: discs, events, locations, file lists. Then rebuild from later discs, or re-enter notes. |
-| This tool is lost | every disc has `tools/` (the code at burn time) and `README.txt`. Without Python: `sha256sum -c manifest-sha256.txt` verifies, `index.html` browses, `grep` searches `catalog/volumes/*/listing.tsv`, and `catalog.rec` is plain text. |
+| This tool is lost | every disc has `tools/` (the code at burn time) and `README.txt`. Without it: `sha256sum -c manifest-sha256.txt` verifies, `index.html` browses, `grep` searches `catalog/volumes/*/listing.tsv`, and `catalog.rec` is plain text. |
 | dvdisaster is lost | a copy can go in `tools/extra/` with `--extra-tools`; keep one off-disc too. The RS03 format is written up in LCSAS's DVDISASTER_RS03_FORMAT.md (research-notes.md section 7). |
 | Decades later, unknown software | [smart-archive-format.md](smart-archive-format.md) (on every disc under `tools/`) explains every file; BagIt is RFC 8493; recfiles are plain text. |
 
@@ -234,21 +235,25 @@ read or repaired.
 ## 7. How the repository fits together
 
 ```
-arv                        the command (runs src/arv/)
-src/arv/                   the workflow, Python standard library only
-  cli.py                   commands
-  make.py                  the make pipeline (plan, stage, build, protect)
-  bag.py  catalog.py  recfile.py  discid.py  sets.py  names.py   formats and rules
-  image.py                 udfwrite / dvdisaster; reading volume labels
-  html.py  listing.py  gui.py   viewer, file listings, the local web UI
-  tagger.py  describe.py  llm.py  vision.py  models.py            optional AI helpers (local only)
-  default_sets.rec  default_tags.rec                              starting vocabularies
-src/udfwrite/              arv's own UDF 2.50 writer in C (library and program)
+src/arvc/                  arv: the C program (C99 and POSIX, no libraries)
+  arvc.c                   the commands; hands describe, tag, models and gui to the add-on
+  make.c  bag.c  html.c  rocrate.c  formats.c   making discs (plan, stage, build, protect)
+  record.c  edit.c  tags.c  catalogue.c  disc.c  recording, editing, queries, reading a disc
+  archive.c  home.c  rec.c  json.c  vocab.c  discid.c  edtf.c   the catalogue and its rules
+  data.c                   the shared data files below, embedded (make -C src/arvc data)
+src/arv/                   the optional add-on, Python standard library only
+  tagger.py  describe.py  llm.py  vision.py  models.py   local AI helpers: they write drafts
+  gui.py                   the local web UI (runs arv for every action)
+  catalog.py  recfile.py  homes.py  sets.py  ...          reading the home for them
+  descriptors.rec  readme.txt  index.css  default_sets.rec  default_tags.rec   shared data files
+arv                        the launcher: the add-on's commands in Python, the rest in the C arv
+src/udfwrite/              arv's UDF 2.50 writer in C (library, built into arv, and program)
 src/udfmake/               NetBSD makefs, extracted: where arv's UDF work began; kept for the upstream fixes
 src/udfmake/upstream/      upstream reference: draft bug report, one patch per bug, reproduction
 samples/                   eight small sample discs and their catalogue; the scripts that make them
-tests/                     unit and integration tests
-tests/fixtures/            language-neutral test cases (TSV): the contract for a future port
+tests/reference/           what every command prints and writes, frozen (the C arv is held to it)
+tests/fixtures/            language-neutral cases (TSV): disc ids, dates, tags, names, recfiles
+tests/test_addon.py        the add-on's tests (with the C arv for the rest)
 docs/                      this file, the format spec, architecture, philosophy, the website
 research/                  research notes, standards survey, plan and decisions, RS03 experiments
 scripts/                   the original shell scripts, before arv
@@ -257,15 +262,17 @@ justfile, Makefile         everyday commands (just), build and install (make)
 
 The layers, from most to least durable:
 1. **Formats:** BagIt, recfiles, TSV, EDTF, and [the spec](smart-archive-format.md). They outlive any code.
-2. **C tools:** `udfwrite`, and later an RS03 library. Low-level, reused as they are.
-3. **Python workflow:** it can change freely while the workflow settles, and may be ported to C later ([plan.md](../research/plan.md), decisions 2026-09-30).
+2. **The C arv** and `udfwrite`: C99 and POSIX, built from any disc with one `cc` line, or carried
+   ready to run as `tools/arv.com`. It was ported from a Python arv, command by command, against
+   the same outputs ([plan.md](../research/plan.md), decisions 2026-09-30 and 2026-10-04).
+3. **The Python add-on:** local AI helpers and the web UI. Optional; nothing on a disc needs it.
 
 ## 8. Developer flows
 
-- **Tests:** `python3 -m unittest discover -s tests`. Add `ARCHIVE_TEST_ECC=1` to include dvdisaster.
-- **Fixtures:** after an intended behaviour change, run `python3 tests/fixtures/generate.py`, then read `git diff tests/fixtures` before committing ([README](../tests/fixtures/README.md)).
-- **Reference outputs:** `make -C src/arvc check` holds the C arv to [tests/reference/expected](../tests/reference/), what every command printed and wrote when the Python arv ran the scenarios; after an intended change, `sh tests/reference/generate.sh` and read `git diff tests/reference/expected`.
-- **Sample discs:** `samples/make-samples.sh` (needs dvdisaster Light or the speed47 fork; builds `src/udfwrite`) replaces `samples/discs` and `samples/home`; the images are not in git, `samples/publish-discs.sh` publishes them as the `samples` release and `samples/fetch-discs.sh` downloads them.
+- **Tests:** `make check`: the C arv (`make -C src/arvc check`; with dvdisaster and Siegfried on PATH their checks run too; `make -C src/arvc check-ape` with arv.com), then the add-on (`python3 -m unittest discover -s tests`).
+- **Fixtures:** edited by hand, with the expected value worked out ([README](../tests/fixtures/README.md)).
+- **Reference outputs:** `make -C src/arvc check` holds the C arv to [tests/reference/expected](../tests/reference/), what every command printed and wrote (first by the Python arv, the same by both); after an intended change, `sh tests/reference/generate.sh` (or `just bless`) and read `git diff tests/reference/expected`.
+- **Sample discs:** `samples/make-samples.sh` (needs dvdisaster Light or the speed47 fork; builds arv, and with `make ape` first the discs carry arv.com) replaces `samples/discs` and `samples/home`; the images are not in git, `samples/publish-discs.sh` publishes them as the `samples` release and `samples/fetch-discs.sh` downloads them.
 - **udfmake** (upstream work only):
   - `make -C src/udfmake check` (also `asan`, `static`);
   - changes to NetBSD's code go in `src/udfmake/netbsd/`, and each also gets a patch in `src/udfmake/upstream/patches/`;

@@ -10,15 +10,13 @@
 # Installs:
 #   $(PREFIX)/share/arv/       the tool: exactly the tree every disc carries in tools/
 #                              (git archive HEAD; uncommitted changes are not installed)
-#   $(PREFIX)/bin/arv          arv: the C program (arvc) for what it covers, the Python arv for the
-#                              rest (AI helpers, drafts, gui, ...), automatically
-#   $(PREFIX)/bin/arv-py       the Python arv, always
-#   $(PREFIX)/bin/udfwrite     arv's own UDF 2.50 writer (the default)
-#   $(PREFIX)/bin/arvc         the C program alone (no Python fallback)
+#   $(PREFIX)/bin/arv          arv: the C program (arvc); it hands the AI helpers and gui to the add-on
+#   $(PREFIX)/bin/arv-py       the Python add-on (describe, tag, models, gui) alone
+#   $(PREFIX)/bin/udfwrite     arv's UDF 2.50 writer as a program of its own (arv has it built in)
+#   $(PREFIX)/bin/arvc         the C program alone (never hands over)
 #
-# Needs at run time: dvdisaster Light (or the speed47 fork) for error correction; python3
-# only for what arv hands to the Python arv (AI helpers, drafts, gui, ...); see README.md,
-# "Install". src/udfmake (NetBSD makefs, kept for the upstream fixes) is not built or installed.
+# Needs at run time: dvdisaster Light (or the speed47 fork) for error correction; python3 only
+# for the optional add-on (the local AI helpers and gui); see README.md, "Install". src/udfmake (NetBSD makefs, kept for the upstream fixes) is not built or installed.
 
 PREFIX  ?= /usr/local
 DESTDIR ?=
@@ -30,6 +28,7 @@ all:
 	$(MAKE) -C src/arvc
 
 check: all
+	$(MAKE) -C src/arvc check
 	python3 -m unittest discover -s tests
 
 ape:

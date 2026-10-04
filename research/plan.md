@@ -355,6 +355,20 @@ recognise it the same way: a `catalog.rec` at the bag's root.
   means decompressing everything before it) and one bad byte destroys everything after it. Zip
   compresses each file on its own.
 
+## Decision (2026-10-04): one standard output, and arv is C (done)
+
+- **One kind of image.** Hybrid ISO 9660 + UDF 1.02 images and the udfmake writer option are
+  gone: every disc is UDF 2.50 by udfwrite, with a real metadata mirror. Whoever finds a damaged
+  disc never has to guess its layout. Older discs stay readable.
+- **The Python core is removed.** Every command was ported to C and gave the same discs,
+  catalogues and output (now frozen in `tests/reference/`, and `make check` holds the C arv to
+  it, with no Python needed). What stays in Python is an optional add-on: the local AI helpers
+  (`describe`, `tag`, `models`), which write drafts that `arv make --draft` takes, and `gui`.
+  `make --llm` became those two steps.
+- **arv.com on every disc.** Built with Cosmopolitan (`make ape`), one file for Linux, macOS,
+  Windows and the BSDs, x86-64 and ARM64, carried as `tools/arv.com` beside the source.
+- Still open: the burn test of a real disc on Windows and macOS (#5).
+
 ## Decision (2026-10-03): presets, added only when someone needs one
 
 - A volume is made from one **preset** picked by name, with sane defaults: today only the

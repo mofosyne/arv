@@ -1,13 +1,13 @@
 #!/bin/sh
 # Checks arvc, without Python:
 # - the reference scenarios (tests/reference/): every command run in a fixed setting must print
-#   and write what the Python arv did when expected/ was generated, byte for byte (normalised);
+#   and write what expected/ holds (first written by the Python arv), byte for byte (normalised);
 # - what only a real disc shows: a disc made by arvc from a folder like a git clone verifies,
 #   restores to a clean `git status` (links and execute bits included), and damage is found;
 #   with dvdisaster, RS03 is added and tested; with Siegfried, formats are identified; with arv's
 #   git checkout as the source, tools/ gets the commit and its history;
 # - SHA-256 and SHA-512 against sha256sum and sha512sum, and the recfile writer.
-# With python3 on PATH it also checks that arvc called as arv hands what it lacks to the Python arv.
+# With python3 on PATH it also checks that arvc called as arv hands the add-on's commands to it.
 # (tests/fixtures/ is checked by build/fixtures, which make check runs first.)
 #
 #   sh check.sh build/arvc
@@ -32,17 +32,17 @@ if ! diff -r -x recfile "$expected" ref > ref.diff; then
     head -40 ref.diff
     no "the reference scenarios differ from tests/reference/expected (diff in $dir/ref.diff)"
 fi
-ok "reference scenarios: $(find ref -type f | wc -l) files as the Python arv wrote them (make, --split, rebuild,"
+ok "reference scenarios: $(find ref -type f | wc -l) files as expected/ holds them (make, --split, --draft, rebuild,"
 echo "    links, --tools-history, --ro-crate, an interactive make, recording, editing, names, init, tags, queries)"
 n=0
 for f in "$repo"/tests/fixtures/recfile/*.rec "$repo/tests/reference/home/catalog/archive.rec"; do
     name=$(basename "$f")
     [ "$f" = "$repo/tests/reference/home/catalog/archive.rec" ] && name=home-archive.rec
     "$here/build/fixtures" --roundtrip "$f" roundtrip.rec || no "roundtrip $f"
-    cmp -s roundtrip.rec "$expected/recfile/$name" || no "recfile writer differs from python for $f"
+    cmp -s roundtrip.rec "$expected/recfile/$name" || no "recfile writer differs from expected/ for $f"
     n=$((n + 1))
 done
-ok "recfile writer: $n files written byte for byte as python writes them"
+ok "recfile writer: $n files written byte for byte as expected"
 
 # ------------------------------------------------------------------ a real disc: verify, restore, damage
 mkdir -p src/docs src/bin
@@ -134,7 +134,7 @@ if command -v python3 >/dev/null; then
     [ "$(bin/arv --home arv-home describe 2>&1)" = "$(python3 "$repo/arv" --home arv-home describe 2>&1)" ] \
         || no "arv describe (handed to python) differs"
     [ "$(bin/arv --home arv-home sets)" = "$("$tool" -C arv-home sets)" ] || no "arv sets did not run in C"
-    bin/arv --help 2>&1 | grep -q "usage: arv" || no "arv --help (python's)"
-    ok "arv: ported commands run in C, the others (describe, --help) in the Python arv"
+    bin/arv --help 2>&1 | grep -q "usage: arv" || no "arv --help"
+    ok "arv: describe goes to the Python add-on, sets and --help run in C"
 fi
 echo "all checks passed"

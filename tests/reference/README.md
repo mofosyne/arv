@@ -1,14 +1,14 @@
 # Reference outputs: arv's behaviour, frozen
 
-The Python arv was the reference while arv was ported to C. These files keep what it did, so the C
-arv (`src/arvc`) is held to it with no Python installed, and so the reference outlives the Python
-code.
+The Python arv was the reference while arv was ported to C. These files keep what it did, and
+every one of them was the same from both, so the C arv (`src/arvc`) is held to it; the Python core
+has since been removed, and the reference outlives it.
 
 | | |
 |---|---|
-| `scenarios.sh OUT ARV...` | runs every command arv has (make, `--split`, rebuild, the links policies, `--tools-history`, `--extra-tools`, `--ro-crate`, an interactive make on a pseudo-terminal, burned, note, locate, access, location, collection, appraise, sets, names, where, init, `--archive`, tags, keywords, find, list, id) in a fixed setting, and keeps their output and the files they write, normalised, in OUT |
-| `expected/` | the scenarios as the Python arv ran them, and its recfile writer's output (`recfile/`) |
-| `generate.sh` | rewrites `expected/` from the Python arv |
+| `scenarios.sh OUT ARV...` | runs every command arv has (make, `--split`, `--draft`, rebuild, the links policies, `--tools-history`, `--extra-tools`, `--ro-crate`, an interactive make on a pseudo-terminal, burned, note, locate, access, location, collection, appraise, sets, names, where, init, `--archive`, tags, keywords, find, list, id) in a fixed setting, and keeps their output and the files they write, normalised, in OUT |
+| `expected/` | the scenarios' output and files, and the recfile writer's output (`recfile/`): first written by the Python arv |
+| `generate.sh` | rewrites `expected/` from the C arv, after a change made on purpose |
 | `home/` | the catalogue the recording, editing and query scenarios start from (a frozen copy of `samples/home`) |
 | `edit-cases.txt` | the editing commands run on it |
 
@@ -27,11 +27,7 @@ image read back with 7z, restored and damaged.
 ## Use
 
 ```sh
-make -C src/arvc check            # arvc against expected/ (and the rest of its checks)
-sh tests/reference/generate.sh    # after an intended change: rewrite expected/ from the Python arv
-git diff tests/reference/expected # read it before committing
+make -C src/arvc check            # arv against expected/ (and the rest of its checks)
+sh tests/reference/generate.sh    # after an intended change: rewrite expected/ (just bless)
+git diff tests/reference/expected # read it before committing: it is the record of what changed
 ```
-
-While the Python arv exists, a change in behaviour goes into it first, then `generate.sh`, then
-arvc until `make check` passes. Once the Python arv is gone, `expected/` is edited with the C
-change itself: the diff is the record of what changed.

@@ -1,10 +1,10 @@
-# arvc: arv in C
+# arvc: arv
 
-The C port of arv (research/plan.md, "one codebase in C"). **The installed `arv` is this
-program:** it runs everything below, and hands what is not ported yet to the Python arv (see the
-table). The whole archive, record, verify cycle and the catalogue commands work without Python,
-and every disc, catalogue and line of output is the one the Python arv gives. C99 and POSIX, no
-libraries; udfwrite (`../udfwrite/`) is linked in. It builds from any disc's `tools/` with one
+**arv is this program** (the installed `arv` is a link to it): every command, from making a disc
+to restoring one. C99 and POSIX, no libraries; udfwrite (`../udfwrite/`) is linked in. It was
+ported from a Python arv (research/plan.md, "one codebase in C"), command by command, until every
+disc, catalogue and line of output was the same; the Python core was then removed, and what it
+did is frozen in [tests/reference/](../../tests/reference/). It builds from any disc's `tools/` with one
 line:
 
 ```sh
@@ -18,9 +18,9 @@ ARM64. `make check-ape` runs every check below with it (they pass), and every di
 exists carries it as `tools/arv.com` (found as `$ARV_APE`, `arv.com` in the installed tree, or
 `build/arv.com` in a checkout; `ARV_APE=none` leaves it off).
 
-Called as `arv` (the installed link), it hands to the Python arv (`share/arv/arv`, or `arv-py`)
-any command or option it does not have (the AI helpers, `make --llm`, `gui`) and `--help`. Called as `arvc`, it never hands over. What the Python arv did is frozen in
-[tests/reference/](../../tests/reference/), and `make check` holds arvc to it.
+Called as `arv` (the installed link, or `arv.com`), it hands the optional Python add-on's commands
+(`describe`, `tag`, `models`, `gui`: `share/arv/arv`, or `arv-py`) to it. Called as `arvc`, it
+never hands over. `make check` holds it to [tests/reference/](../../tests/reference/).
 
 ## Commands
 
@@ -55,25 +55,25 @@ arvc restore [--no-links] DISC DEST     copy back, checking each file; dates, ex
                                         and links restored
 ```
 
-The home is found as the Python arv finds it: `-C HOME` (before or after the command, like
+The home is found so: `-C HOME` (before or after the command, like
 `--home`), `$ARV_HOME`, a `.arv` folder, `.arv` pointer file or disc root from the folder being
 archived or the current folder up, the machine config (`~/.config/arv/homes.rec`), then
 `~/.local/share/arv`. DISC is the root of a mounted disc or an extracted image.
 
-## What the MVP covers, and what stays in Python for now
+## What is where
 
-| | arvc | Python arv only |
+| | arv (C) | the Python add-on |
 |---|---|---|
-| Making | UDF 2.50 discs, one or (`--split`) as many as the folder needs: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), Siegfried format ids (`formats.csv`), `--tools-history`, `--extra-tools`, `--ro-crate`, drafts (`--draft`: folder tags, captions), RS03 | the local AI helpers (`--llm`, `describe`, `tag`) |
+| Making | UDF 2.50 discs, one or (`--split`) as many as the folder needs: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), Siegfried format ids (`formats.csv`), `--tools-history`, `--extra-tools`, `--ro-crate`, drafts (`--draft`: folder tags, captions), RS03 | the drafts' authors: `describe` (a local LLM), `tag` (a small built-in model) |
 | Recording | `init` (with named homes and pointers; `--archive NAME`), `burned`, `check`, `note`, `locate`, `access`, `location`, `collection`, `appraise`, `rebuild` | `gui` |
-| Looking | `sets`, `names`, `where`, `tags`, `keywords` | `describe`, `tag`, `models` (AI helpers) |
-| Reading | `find`, `list`, `id`, `info`, `verify`, `ls`, `restore` | (`restore` is C only) |
+| Looking | `sets`, `names`, `where`, `tags`, `keywords` | `models` (the built-in model) |
+| Reading | `find`, `list`, `id`, `info`, `verify`, `ls`, `restore` | |
 
 Making a disc still runs two programs: dvdisaster (RS03; vendoring dvdisaster Light is
 issue #19) and, in a git checkout, `git archive` and `tar` to put arv's last commit in
 `tools/`. An installed arvc copies `PREFIX/share/arv` instead.
 
-Differences from the Python arv, on purpose: discs record `Software: arvc@<commit>`; `find`
+Differences from the Python arv it was ported from, on purpose: discs record `Software: arvc@<commit>`; `find`
 folds case for ASCII letters only; the text of README.txt is wrapped without breaking at
 hyphens.
 
@@ -82,7 +82,7 @@ hyphens.
 `make check`, with no Python needed:
 - `build/fixtures` runs every case in `tests/fixtures/` (coverage dates, disc ids and check
   characters, the vocabulary, Match rules, file names, volume labels, recfiles: 160 cases, the
-  ones the Python code passes too), and `data.c` must be up to date;
+  frozen from the Python arv), and `data.c` must be up to date;
 - **the reference scenarios** ([tests/reference/](../../tests/reference/)): every command arvc has,
   run in a fixed setting (clock, time zone, user, input dates, `tools/` source), must print and
   write what the Python arv did when `expected/` was generated: transcripts with exit codes and
@@ -95,7 +95,7 @@ hyphens.
 - with dvdisaster on PATH, RS03 is added, tested, and `check` passes it again; with Siegfried,
   `formats.csv` and its event are written;
 - SHA-256 and SHA-512 match `sha256sum` and `sha512sum` around every block boundary;
-- with Python on PATH, arvc called as `arv` runs ported commands itself and hands the rest over.
+- with Python on PATH, arvc called as `arv` hands the add-on's commands over and runs the rest.
 
 It builds without warnings with gcc and clang (`-std=c99 -Wall -Wextra -Wpedantic -Wshadow`),
 and `make check` passes under AddressSanitizer and UndefinedBehaviorSanitizer (with
@@ -105,7 +105,7 @@ and `make check` passes under AddressSanitizer and UndefinedBehaviorSanitizer (w
 
 | File | What |
 |---|---|
-| `arvc.c` | the commands, and handing the rest to the Python arv |
+| `arvc.c` | the commands, and handing the add-on's to Python |
 | `tags.c` | `tags`, `keywords` |
 | `formats.c` | Siegfried format identification |
 | `rocrate.c` | `--ro-crate` |
@@ -122,5 +122,5 @@ and `make check` passes under AddressSanitizer and UndefinedBehaviorSanitizer (w
 | `vocab.c` | the set vocabulary |
 | `discid.c`, `edtf.c` | disc ids, coverage dates |
 | `rec.c`, `sha256.c`, `sha512.c`, `util.c` | recfiles, checksums, helpers |
-| `data.c`, `data.h` | the files shared with the Python arv (descriptors.rec, readme.txt, index.css, default_sets.rec), generated by `make data` from `src/arv/` and committed |
+| `data.c`, `data.h` | the data files kept in `src/arv/` (descriptors.rec, readme.txt, index.css, default_sets.rec, default_tags.rec; the add-on reads the tag vocabulary too), generated by `make data` from `src/arv/` and committed |
 | `dev/` | the fixture runner, the data embedder and `ptyrun` (a pseudo-terminal for the interactive scenario); not part of the program |

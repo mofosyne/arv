@@ -1,9 +1,42 @@
 #!/usr/bin/env python3
-"""Entry point: arv <command> ... (the same as PYTHONPATH=src python3 -m arv)."""
+"""arv's launcher, in a checkout or on a disc (tools/arv/arv).
+
+The optional add-on (src/arv: the local AI helpers describe, tag and models, and gui) runs here in
+Python. Every other command is the C arv, which this runs: src/arvc/build/arvc (or arv.com) in a
+checkout, tools/arv.com next to tools/arv/ on a disc, or arv / arvc on PATH.
+"""
 import os
+import shutil
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
-from arv.cli import main  # noqa: E402
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "src"))
+from arv.cli import COMMANDS, main  # noqa: E402
 
-sys.exit(main())
+
+def command(argv):
+    """The command word, after the options that take a value (--home, --archive, -C)."""
+    i = 0
+    while i < len(argv) and argv[i].startswith("-"):
+        i += 2 if argv[i] in ("--home", "--archive", "-C") else 1
+    return argv[i] if i < len(argv) else None
+
+
+def c_arv():
+    """The C arv's path, named so that it never hands back to Python (not "arv")."""
+    for path in (os.path.join(HERE, "src", "arvc", "build", "arvc"), os.path.join(HERE, "src", "arvc", "build", "arv.com"),
+                 os.path.join(os.path.dirname(HERE), "arv.com"), shutil.which("arvc"), shutil.which("arv")):
+        if path and os.path.isfile(path) and os.access(path, os.X_OK):
+            real = os.path.realpath(path)
+            if real != os.path.realpath(__file__):
+                return real
+    return None
+
+
+if command(sys.argv[1:]) in COMMANDS:
+    sys.exit(main())
+program = c_arv()
+if not program:
+    sys.exit("Error: arv is a C program, and it was not found: build it with `make` (or: cc -O2 -o arvc "
+             "src/arvc/*.c src/udfwrite/udfwrite.c), or on a disc use tools/arv.com")
+os.execv(program, [program] + sys.argv[1:])

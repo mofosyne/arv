@@ -39,75 +39,57 @@
 
 /* ------------------------------------------------------------------ main */
 
-static void usage(void)
+static void usage(FILE *to)
 {
-    fputs("usage: arvc [-C HOME | --archive NAME] COMMAND ...\n"
-          "       arvc init [FOLDER] [--pointer HOME] [--name NAME [--default]]\n"
-          "       arvc make [-C HOME] [--set CODE] [--title T] [--no-ecc] [--output-dir DIR] ... FOLDER\n"
-          "              (arvc make --help lists every option)\n"
-          "       arvc check [-C HOME] (--image FILE | --device DRIVE) [--note TEXT] [-v] [DISC-ID]\n"
-          "       arvc burned [-C HOME] [--copies N] [--media-id ID] [--location PLACE] [--note TEXT] DISC-ID\n"
-          "       arvc note [-C HOME] DISC-ID TEXT\n"
-          "       arvc locate [-C HOME] [--add] DISC-ID PLACE...\n"
-          "       arvc access DISC-ID public|private|sealed\n"
-          "       arvc location list [-v] | add CODE [NAME] [--in PARENT] [--description TEXT] | move CODE [NAME] [--in PARENT]\n"
-          "       arvc collection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]\n"
-          "       arvc appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]\n"
-          "       arvc sets [-v]\n"
-          "       arvc names [--limit N] FOLDER\n"
-          "       arvc where\n"
-          "       arvc tags [--namespace NS] [--vocab FILE]\n"
-          "       arvc keywords [--format tsv|exiftool] DISC-ID\n"
-          "       arvc rebuild [--prefer-disc] DISC   merge a disc's catalogue into the home\n"
-          "       arvc info DISC\n"
-          "       arvc verify [-v] DISC\n"
-          "       arvc ls DISC\n"
-          "       arvc restore [--no-links] DISC DEST\n"
-          "       arvc find [-C CATALOG] [--limit N] PATTERN\n"
-          "       arvc id [-C CATALOG] ID\n"
-          "       arvc list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]\n"
+    fputs("usage: arv [-C HOME | --archive NAME] COMMAND ...\n"
+          "       arv init [FOLDER] [--pointer HOME] [--name NAME [--default]]\n"
+          "       arv make [-C HOME] [--set CODE] [--title T] [--no-ecc] [--output-dir DIR] ... FOLDER\n"
+          "              (arv make --help lists every option)\n"
+          "       arv check [-C HOME] (--image FILE | --device DRIVE) [--note TEXT] [-v] [DISC-ID]\n"
+          "       arv burned [-C HOME] [--copies N] [--media-id ID] [--location PLACE] [--note TEXT] DISC-ID\n"
+          "       arv note [-C HOME] DISC-ID TEXT\n"
+          "       arv locate [-C HOME] [--add] DISC-ID PLACE...\n"
+          "       arv access DISC-ID public|private|sealed\n"
+          "       arv location list [-v] | add CODE [NAME] [--in PARENT] [--description TEXT] | move CODE [NAME] [--in PARENT]\n"
+          "       arv collection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]\n"
+          "       arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]\n"
+          "       arv sets [-v]\n"
+          "       arv names [--limit N] FOLDER\n"
+          "       arv where\n"
+          "       arv tags [--namespace NS] [--vocab FILE]\n"
+          "       arv keywords [--format tsv|exiftool] DISC-ID\n"
+          "       arv rebuild [--prefer-disc] DISC   merge a disc's catalogue into the home\n"
+          "       arv info DISC\n"
+          "       arv verify [-v] DISC\n"
+          "       arv ls DISC\n"
+          "       arv restore [--no-links] DISC DEST\n"
+          "       arv find [-C CATALOG] [--limit N] PATTERN\n"
+          "       arv id [-C CATALOG] ID\n"
+          "       arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]\n"
+          "with the Python add-on (make install puts it in place):\n"
+          "       arv describe FOLDER|DISC-ID [--save DRAFT] ...   title, description, tags from a local LLM\n"
+          "       arv tag FOLDER|DISC-ID [--save DRAFT] ...        folder tags from your vocabulary\n"
+          "       arv models fetch|status, arv gui\n"
           "DISC: the root of a mounted arv disc or an extracted image (the folder with catalog.rec)\n"
           "CATALOG: a disc root, its catalog/ folder or a home (.arv); default: $ARV_HOME, or the\n"
           "first .arv folder or disc root from here up\n",
-          stderr);
+          to);
 }
 
 /* ------------------------------------------------------------------ arv: C first, Python for the rest */
 
-static int has_arg(int argc, char **argv, const char *name)
-{
-    for (int i = 1; i < argc; i++)
-        if (!strcmp(argv[i], name)) return 1;
-    return 0;
-}
-
-/* Does this command line need the Python arv? (a command or option arvc does not have, the
- * prompts of an interactive make, or help text) */
+/* Is this one of the Python add-on's commands (the local AI helpers, gui)? */
 static int needs_python(int argc, char **argv)
 {
     int i = 1;
-    if (argc < 2) return 1;
     while (i < argc && argv[i][0] == '-') {            /* global options */
         if ((!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home") || !strcmp(argv[i], "--archive")) && i + 1 < argc) i += 2;
-        else return 1;                                 /* --help, ... */
+        else return 0;
     }
-    if (i >= argc) return 1;
-    const char *cmd = argv[i];
-    static const char *const ported[] = { "init", "where", "make", "names", "find", "list", "sets", "id", "note",
-                                          "locate", "location", "appraise", "collection", "access", "check",
-                                          "burned", "info", "verify", "ls", "restore", "rebuild", "tags",
-                                          "keywords", NULL };
-    int known = 0;
-    for (int k = 0; ported[k]; k++) known |= !strcmp(cmd, ported[k]);
-    if (!known) return 1;
-    if (has_arg(argc, argv, "-h") || has_arg(argc, argv, "--help")) return 1;
-    if (strcmp(cmd, "make")) return 0;
-    static const char *const python_only[] = { "--llm", "--llm-rounds",
-                                               "--llm-url", "--llm-model", "--llm-allow-remote", "--vision",
-                                               "--vision-model", "--vision-url", "--vision-per-folder",
-                                               "--vision-max", NULL };
-    for (int k = 0; python_only[k]; k++)
-        if (has_arg(argc, argv, python_only[k])) return 1;
+    if (i >= argc) return 0;
+    static const char *const addon[] = { "describe", "tag", "models", "gui", NULL };
+    for (int k = 0; addon[k]; k++)
+        if (!strcmp(argv[i], addon[k])) return 1;
     return 0;
 }
 
@@ -144,8 +126,8 @@ static void run_python(int argc, char **argv)
     for (int k = 1; k < argc; k++) args[n++] = argv[k];
     args[n] = NULL;
     execvp(args[0], args);
-    fprintf(stderr, "Error: this needs the Python arv (%s), which was not found: install it with make install\n",
-            python_entry ? "python3" : "arv-py");
+    fprintf(stderr, "Error: this command is in arv's optional Python add-on (the AI helpers, gui), which was not "
+                    "found (%s): install it with make install\n", python_entry ? "python3" : "arv-py");
     exit(1);
 }
 
@@ -167,9 +149,13 @@ int main(int argc, char **argv)
         puts(VERSION);
         return 0;
     }
-    /* called as arv: what is ported runs here, the rest in the Python arv */
+    /* called as arv (or arv.com): the add-on's commands run in Python */
     const char *self = strrchr(argv[0], '/') ? strrchr(argv[0], '/') + 1 : argv[0];
-    if (!strcmp(self, "arv") && needs_python(argc, argv)) run_python(argc, argv);
+    if ((!strcmp(self, "arv") || !strcmp(self, "arv.com")) && needs_python(argc, argv)) run_python(argc, argv);
+    if (argc < 2 || !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) {
+        usage(argc < 2 ? stderr : stdout);
+        return argc < 2 ? 2 : 0;
+    }
     /* "arvc -C HOME make ..." (as "arv --home HOME make ..."): the home goes to the command */
     const char *home = NULL;
     while (argc >= 3 && (!strcmp(argv[1], "-C") || !strcmp(argv[1], "--home") || !strcmp(argv[1], "--archive"))) {
@@ -180,6 +166,12 @@ int main(int argc, char **argv)
     }
     for (size_t i = 0; argc >= 2 && i < sizeof cmds / sizeof *cmds; i++)
         if (!strcmp(argv[1], cmds[i].name)) {
+            if (strcmp(cmds[i].name, "make"))         /* make has its own help */
+                for (int k = 2; k < argc; k++)
+                    if (!strcmp(argv[k], "-h") || !strcmp(argv[k], "--help")) {
+                        usage(stdout);
+                        return 0;
+                    }
             char **args = argv + 2;
             int n = argc - 2;
             if (home) {             /* the command reads -C HOME first */
@@ -191,9 +183,12 @@ int main(int argc, char **argv)
                 n += 2;
             }
             int rc = cmds[i].fn(n, args);
-            if (rc == 2) usage();
+            if (rc == 2) usage(stderr);
             return rc;
         }
-    usage();
+    if (argc >= 2 && needs_python(argc, argv))
+        fprintf(stderr, "Error: %s is in arv's optional Python add-on: run it as arv (or ./arv in a checkout)\n", argv[1]);
+    else
+        usage(stderr);
     return 2;
 }

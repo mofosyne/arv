@@ -13,13 +13,13 @@ arv *args:
 build:
     make
 
-# Run the tests
+# Run the tests: the C arv against the reference outputs, then the Python add-on (AI helpers, gui)
 test:
-    python3 -m unittest discover -s tests
+    make check
 
-# Run the tests including the dvdisaster ones (dvdisaster Light or the speed47 fork on PATH)
-test-ecc:
-    ARCHIVE_TEST_ECC=1 python3 -m unittest discover -s tests
+# Rewrite tests/reference/expected after a change in behaviour made on purpose (then read the diff)
+bless:
+    sh tests/reference/generate.sh
 
 # Install arv into PREFIX (installs the last commit)
 install prefix=(env_var("HOME") + "/.local"):
@@ -58,7 +58,7 @@ netbsd-repro:
 udfwrite-check:
     make -C src/udfwrite check
 
-# Check arvc, the C reader, against a disc made by arv (src/arvc/build/check/)
+# Check the C arv alone: reference outputs, a real disc, RS03 and Siegfried when present
 arvc-check:
     make -C src/arvc check
 

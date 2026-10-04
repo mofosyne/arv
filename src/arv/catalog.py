@@ -22,7 +22,6 @@ import datetime
 import fnmatch
 import os
 import re
-import shutil
 
 from . import homes, recfile
 
@@ -54,12 +53,6 @@ LOCATION_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{0,23}$")
 COLLECTION_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{0,31}$")
 
 
-def parse_item(item):
-    """A collection Item -> (disc id, path relative to data/, is_folder). Whole disc: path ''."""
-    disc_id, _, path = item.strip().partition(":")
-    path = path.strip().lstrip("/")
-    return disc_id.strip(), path, path == "" or path.endswith("/")
-
 # Access: who may see a disc's description and file list on *other* discs' catalogue snapshots.
 #   public   anywhere, including discs given to other people (--snapshot set)
 #   private  your own full snapshots only (the default)
@@ -74,14 +67,6 @@ WITHHELD = "title, description, notes, subjects and file lists (Access: sealed)"
 def access(disc):
     value = (disc.get("Access") or DEFAULT_ACCESS).strip().lower()
     return value if value in ACCESS_LEVELS else DEFAULT_ACCESS
-
-
-def sealed_view(disc):
-    """What other discs may carry about a sealed disc."""
-    r = recfile.Record("Disc", [(k, v) for k, v in disc.fields if k in SEALED_FIELDS])
-    r.fields.insert(1, ("Title", "(sealed disc)"))
-    r.add("Withheld", WITHHELD)
-    return r
 
 
 def default_home():
@@ -99,15 +84,6 @@ def today_date():
 
 def today():
     return today_date().isoformat()
-
-
-def coverage_years(entries):
-    """Year range of the payload's modification times as EDTF: '2020/2025' or '2023'."""
-    if not entries:
-        return str(today_date().year)
-    years = [datetime.date.fromtimestamp(e.mtime).year for e in entries]
-    lo, hi = min(years), max(years)
-    return str(lo) if lo == hi else "%d/%d" % (lo, hi)
 
 
 class Catalog:
@@ -151,6 +127,12 @@ class Catalog:
 
     # ------------------------------------------------------------ bindings
 
+
+    # ------------------------------------------------------------ collections
+
+
+    # ------------------------------------------------------------ locations
+
     def binding(self, disc_id):
         return next((b for b in self.bindings if b.get("Volume") == disc_id), None)
 
@@ -162,51 +144,6 @@ class Catalog:
         if b is not None:
             r.fields += [(k, v) for k, v in b.fields if k != "Volume" and r.get(k) is None]
         return r
-
-    # ------------------------------------------------------------ collections
-
-    def collection(self, code):
-        code = (code or "").strip().upper()
-        return next((c for c in self.collections if c.get("Code") == code), None)
-
-    def collection_chain(self, code):
-        """[Collection, its parent, ...] from ``code`` up to the top (cycles are cut)."""
-        chain, seen = [], set()
-        col = self.collection(code)
-        while col is not None and col.get("Code") not in seen:
-            seen.add(col.get("Code"))
-            chain.append(col)
-            col = self.collection(col.get("Parent"))
-        return chain
-
-    def collection_path(self, code):
-        chain = self.collection_chain(code)
-        return " / ".join(c.get("Name") or c.get("Code") for c in reversed(chain)) if chain else code
-
-    def collections_for(self, disc_ids, sealed=()):
-        """Collections as a snapshot may carry them: items only for ``disc_ids``, and no paths
-        on ``sealed`` discs (only the whole-disc item). Collections left empty are dropped,
-        unless a kept collection is inside them."""
-        kept = {}
-        for col in self.collections:
-            items = []
-            for item in col.get_all("Item"):
-                disc_id, path, _ = parse_item(item)
-                if disc_id in disc_ids and not (path and disc_id in sealed):
-                    items.append(item)
-            if items:
-                kept[col.get("Code")] = items
-        codes = set()
-        for code in kept:
-            codes.update(c.get("Code") for c in self.collection_chain(code))
-        out = []
-        for col in self.collections:
-            if col.get("Code") in codes:
-                out.append(recfile.Record("Collection", [(k, v) for k, v in col.fields if k != "Item"]
-                                          + [("Item", i) for i in kept.get(col.get("Code"), [])]))
-        return out
-
-    # ------------------------------------------------------------ locations
 
     def location(self, code):
         code = (code or "").strip().upper()
@@ -233,19 +170,6 @@ class Catalog:
         """Every place a disc's copies are kept, as readable paths ('' when not recorded)."""
         return "; ".join(self.location_path(l) for l in disc.get_all("Location"))
 
-    def locations_under(self, code):
-        """Codes of ``code`` and every location inside it."""
-        code = code.strip().upper()
-        return {l.get("Code") for l in self.locations
-                if code in [c.get("Code") for c in self.location_chain(l.get("Code"))]} | {code}
-
-    def locations_for(self, discs):
-        """The Location records that ``discs`` refer to, with the places containing them."""
-        codes = set()
-        for d in discs:
-            for value in d.get_all("Location"):
-                codes.update(l.get("Code") for l in self.location_chain(value))
-        return [l for l in self.locations if l.get("Code") in codes]
 
     def disc(self, disc_id):
         for d in self.discs:
@@ -255,49 +179,6 @@ class Catalog:
 
     def events_for(self, disc_id):
         return [e for e in self.events if e.get("Disc") == disc_id]
-
-    def appraisals_for_discs(self, disc_ids):
-        """Appraisals of these discs and of paths on them (not of sets or collections)."""
-        return [a for a in self.appraisals if target_disc(a.get("Target")) in disc_ids]
-
-    def next_number(self, set_name):
-        """Next unused sequence number in a set (numbers are never reused)."""
-        from . import discid
-        numbers = [0]
-        for d in self.discs:
-            if d.get("Set") == set_name:
-                if (d.get("Sequence") or "").isdigit():
-                    numbers.append(int(d.get("Sequence")))
-                else:
-                    parsed = discid.parse(d.get("Id", ""))
-                    if parsed:
-                        numbers.append(parsed["sequence"])
-        return max(numbers) + 1
-
-    def subset(self, disc_ids):
-        c = Catalog()
-        c.discs = [d for d in self.discs if d.get("Id") in disc_ids]
-        c.bindings = [b for b in self.bindings if b.get("Volume") in disc_ids]
-        c.events = [e for e in self.events if e.get("Disc") in disc_ids]
-        c.appraisals = self.appraisals_for_discs(disc_ids)
-        c.locations = self.locations_for(c.discs)
-        c.collections = self.collections_for(disc_ids, self.sealed_ids())
-        return c
-
-    def sealed_ids(self):
-        return {d.get("Id") for d in self.discs if access(d) == "sealed"}
-
-    def shared_view(self):
-        """This catalogue as other discs may carry it: sealed discs cut down to their identity."""
-        c = Catalog()
-        sealed = {d.get("Id") for d in self.discs if access(d) == "sealed"}
-        c.discs = [sealed_view(d) if d.get("Id") in sealed else d for d in self.discs]
-        c.bindings = list(self.bindings)  # how a disc is stored says nothing about what is on it
-        c.events = [e for e in self.events if e.get("Disc") not in sealed]
-        c.appraisals = [a for a in self.appraisals if target_disc(a.get("Target")) not in sealed]
-        c.locations = list(self.locations)
-        c.collections = self.collections_for({d.get("Id") for d in self.discs}, sealed)
-        return c
 
 
 CACHEDIR_TAG = ("Signature: 8a477f597d28d172789f06886806bc55\n"
@@ -376,6 +257,7 @@ class Home:
         recfile.write(tmp, catalog.records())
         os.replace(tmp, self.rec_path)
 
+
     def manifest_path(self, disc_id):
         return self.disc_file("manifests", disc_id)
 
@@ -384,23 +266,6 @@ class Home:
 
     def disc_file(self, kind, disc_id):
         return volume_file(self.catalog_dir, kind, disc_id)
-
-    def disc_files(self, disc_id):
-        """{kind: path} of the volume's index files that exist at home."""
-        out = {}
-        for kind in DISC_FILE_KINDS:
-            path = self.disc_file(kind, disc_id)
-            if os.path.exists(path):
-                out[kind] = path
-        return out
-
-    def store_disc_files(self, disc_id, files):
-        """files: {kind: source path}"""
-        for kind, src in files.items():
-            if src and os.path.exists(src):
-                dest = self.disc_file(kind, disc_id)
-                os.makedirs(os.path.dirname(dest), exist_ok=True)
-                shutil.copyfile(src, dest)
 
 
 AUTHORSHIP = ("automatic", "suggested", "accepted", "edited", "human")
@@ -458,14 +323,6 @@ def new_event(disc_id, type_, outcome, agent, note=None, date=None, obj=None, au
     return r
 
 
-def target_disc(target):
-    """The disc an appraisal Target is on, or None for set:CODE / collection:CODE."""
-    target = target or ""
-    if target.startswith(("set:", "collection:")):
-        return None
-    return parse_item(target)[0]
-
-
 def person():
     """The Agent of a change made by hand: human:LOGIN."""
     try:
@@ -473,11 +330,6 @@ def person():
         return "human:" + getpass.getuser()
     except Exception:  # no login name (e.g. some containers)
         return "human:unknown"
-
-
-def metadata_change(cat, note, disc_id=None, obj=None):
-    """Append a PREMIS 'metadata modification' event: every hand edit of the catalogue leaves one."""
-    cat.events.append(new_event(disc_id, "metadata modification", "success", person(), note, obj=obj))
 
 
 FORMAT_NAME = "smart-archive"
@@ -498,93 +350,7 @@ ARCHIVE_POINTERS = [
 ]
 
 
-def archive_records(disc, root):
-    """[descriptor, record] for the Archive entry record at the top of a disc's catalog.rec."""
-    r = recfile.Record("Archive", [("Format", FORMAT_NAME), ("Version", FORMAT_VERSION),
-                                   ("Disc", disc.get("Id")), ("Uuid", disc.get("Uuid") or "")])
-    for field, pattern in ARCHIVE_POINTERS:
-        rel = pattern.format(id=disc.get("Id"))
-        if field == "Payload" or os.path.exists(os.path.join(root, rel)):
-            r.add(field, rel)
-    return [ARCHIVE_DESCRIPTOR, r]
-
-
 SNAPSHOT_DESCRIPTOR = _ALL_DESCRIPTORS[7]
-
-
-def write_snapshot(dest, catalog, disc_files, scope):
-    """Write catalog/archive.rec plus each volume's index files (volumes/<disc-id>/) into ``dest``.
-
-    disc_files: {disc_id: {kind: path}}
-    """
-    info = recfile.Record("Snapshot", [
-        ("Date", today()),
-        ("Scope", scope),
-        ("Discs", str(len(catalog.discs))),
-    ])
-    os.makedirs(dest, exist_ok=True)
-    recfile.write(os.path.join(dest, "archive.rec"), [SNAPSHOT_DESCRIPTOR, info] + catalog.records())
-    os.makedirs(os.path.join(dest, "volumes"), exist_ok=True)
-    for disc_id, files in disc_files.items():
-        for kind, src in files.items():
-            if src and os.path.exists(src):
-                target = volume_file(dest, kind, disc_id)
-                os.makedirs(os.path.dirname(target), exist_ok=True)
-                shutil.copyfile(src, target)
-
-
-def _event_key(e):
-    return tuple(e.fields)
-
-
-def merge(home_catalog, other, prefer_other=False):
-    """Merge ``other`` into ``home_catalog``. Returns (added disc ids, updated disc ids, added events).
-
-    A sealed disc's cut-down record (it has Withheld) never replaces a full one.
-    """
-    added, updated, events = [], [], 0
-    for d in other.discs:
-        existing = home_catalog.disc(d.get("Id"))
-        if existing is None:
-            home_catalog.discs.append(d)
-            added.append(d.get("Id"))
-        elif prefer_other and existing.fields != d.fields and not (d.get("Withheld") and not existing.get("Withheld")):
-            existing.fields = list(d.fields)
-            updated.append(d.get("Id"))
-    for b in other.bindings:
-        existing = home_catalog.binding(b.get("Volume"))
-        if existing is None:
-            home_catalog.bindings.append(b)
-        elif prefer_other:
-            existing.fields = list(b.fields)
-    for col in other.collections:   # items are unioned: a filtered copy never removes any
-        existing = home_catalog.collection(col.get("Code"))
-        if existing is None:
-            home_catalog.collections.append(col)
-            continue
-        if prefer_other:
-            keep = [(k, v) for k, v in col.fields if k != "Item"]
-            existing.fields = keep + [(k, v) for k, v in existing.fields if k == "Item"]
-        have = set(existing.get_all("Item"))
-        existing.fields += [("Item", i) for i in col.get_all("Item") if i not in have]
-    for loc in other.locations:
-        existing = home_catalog.location(loc.get("Code"))
-        if existing is None:
-            home_catalog.locations.append(loc)
-        elif prefer_other:
-            existing.fields = list(loc.fields)
-    known = {_event_key(e) for e in home_catalog.events}
-    for e in other.events:
-        if _event_key(e) not in known:
-            home_catalog.events.append(e)
-            known.add(_event_key(e))
-            events += 1
-    known = {_event_key(a) for a in home_catalog.appraisals}
-    for a in other.appraisals:      # appended records, like events: union
-        if _event_key(a) not in known:
-            home_catalog.appraisals.append(a)
-            known.add(_event_key(a))
-    return added, updated, events
 
 
 def iter_manifest(path):

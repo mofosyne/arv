@@ -115,6 +115,9 @@ static int parse_options(int argc, char **argv, options *o)
             fputs(HELP, stdout);
             exit(0);
         }
+        if (!strncmp(a, "--llm", 5) || !strncmp(a, "--vision", 8))
+            die("make %s: the local AI helpers are separate steps now: arv describe FOLDER --save d.json (or arv tag), "
+                "then arv make --draft d.json FOLDER", a);
         if (i + 1 >= argc) return 2;
         const char *v = argv[++i];
         if (!strcmp(a, "-C") || !strcmp(a, "--home")) str = &o->home;

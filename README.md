@@ -58,10 +58,10 @@ Each layer does its own job:
 
 | Path | What |
 |---|---|
-| `arv` | The command: runs `src/arv/` from a checkout, or from `tools/arv/` on any disc |
-| `src/arv/` | The tool: a Python package, standard library only |
-| `src/arvc/` | arv in C (`arvc`), at its MVP: init, make, burned, check, find, list, verify, restore and more, writing the same discs as the Python arv: [src/arvc/README.md](src/arvc/README.md) |
-| `src/udfwrite/` | arv's own UDF 2.50 writer (library and program), the default: [docs/archival-udf.md](docs/archival-udf.md) |
+| `src/arvc/` | **arv**, a C program (C99 and POSIX, no libraries): every command, from making a disc to restoring one: [src/arvc/README.md](src/arvc/README.md) |
+| `src/udfwrite/` | arv's UDF 2.50 writer (library, built into arv, and a program): [docs/archival-udf.md](docs/archival-udf.md) |
+| `src/arv/` | the optional add-on in Python (standard library only): the local AI helpers (`describe`, `tag`, `models`) and `gui` |
+| `arv` | the launcher in a checkout (and `tools/arv/arv` on a disc): the add-on's commands in Python, every other one in the C arv |
 | `src/udfmake/` | NetBSD's `makefs -t udf` as a C library and program, where arv's UDF work began; kept for the fixes in `upstream/` (draft NetBSD bug report, patches and reproduction), not used to make discs |
 | `docs/` | For users and implementers: workflow, shelving, architecture, philosophy, the disc format, and the website |
 | `research/` | Why, and what next: research notes, the standards survey, organising lessons, the plan, RS03 experiments |
@@ -94,14 +94,15 @@ and how BagIt and recfiles split the work.
 
 ## The `arv` tool
 
-`arv` (Archive, Record, Verify; also Norwegian for "inheritance"). Python 3, standard library
-only (bagit.py is vendored). Needs `dvdisaster` ([dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light),
+`arv` (Archive, Record, Verify; also Norwegian for "inheritance") is a C program: C99 and POSIX,
+no libraries, built from any disc's `tools/` with one `cc` line. An optional add-on in Python
+(standard library only) has the local AI helpers and a web interface. Making discs needs `dvdisaster` ([dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light),
 or the [speed47 fork](https://github.com/speed47/dvdisaster), for BD-sized images; the two give byte-identical results).
 
 ### Install (Linux)
 
 ```sh
-sudo apt install python3 build-essential    # Debian/Ubuntu
+sudo apt install build-essential p7zip-full   # Debian/Ubuntu (python3 too, for the optional add-on)
 # dvdisaster Light: build it from https://github.com/teaching-droid/dvdisaster-light
 make install PREFIX=~/.local     # or: sudo make install   (/usr/local)
 arv --help
@@ -119,25 +120,24 @@ which builds with one `cc` line.
 `udfwrite` in `PREFIX/bin`.
 
 **The installed `arv` is the C program** (`arvc`, [src/arvc/README.md](src/arvc/README.md)). It
-runs what has been ported to C, which is the whole make, record, verify cycle and the catalogue
-commands, and hands everything else to the Python arv unchanged:
-- the AI helpers (`describe`, `tag`, `models`), `arv make --llm`, and `gui`;
-- `--help`.
+hands only the add-on's commands to Python: the local AI helpers (`describe`, `tag`, `models`),
+which write drafts that `arv make --draft` takes, and `gui`. `arv-py` is the add-on alone;
+`arvc` is the C program that never hands over. In a checkout, run `make` once, then `./arv` works
+the same way.
 
-Both write the same discs and catalogue (`make check` compares them file by file). `arv-py` is
-always the Python arv; `arvc` is the C program without the hand-over. In a checkout, `./arv` is
-the Python arv (the reference, and what every disc carries); run `make` once to build the C
-programs, then `src/arvc/build/arvc` is the C one.
+The C arv was ported from a Python one, which was the reference until every command was ported
+and gave the same discs, catalogues and output; what it did is frozen in
+[tests/reference/](tests/reference/), and `make check` holds the C arv to it.
 
 ### What it needs
 
-`arv` is C, with the Python arv (standard library only, nothing from pip) for what is not
-ported yet. Making a disc also runs other programs, which it finds on `PATH`:
+`arv` is C, with nothing else to install for itself. Making a disc also runs other programs,
+which it finds on `PATH`:
 
 | Program | Needed for | Where it comes from |
 |---|---|---|
-| `python3` | the parts of arv not ported to C yet (above) | your distribution |
-| `udfwrite` | the default UDF 2.50 image (the C arv has it built in) | this repository: built by `make`, installed by `make install` (needs a C compiler) |
+| `git`, `tar` | copying arv's last commit into each disc's `tools/` (in a checkout; an installed arv copies `PREFIX/share/arv`) | your distribution |
+| `python3` | only the optional add-on: `describe`, `tag`, `models`, `gui` | your distribution |
 | `dvdisaster` | RS03 error correction (skip with `--no-ecc`, for testing) | **not bundled:** build [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the [speed47 fork](https://github.com/speed47/dvdisaster)); the distro 0.79.10 package works but pads only to the smallest standard size |
 | `sf` (Siegfried), `ffmpeg`, a local LLM | optional extras (format ids, video frames, descriptions) | install if you want them |
 
@@ -258,8 +258,8 @@ On the disc, `index.html` browses the disc without JavaScript. Searching across
 discs is the job of catalogue software (such as Katalog) reading the catalogue,
 or of this tool, which is on every disc: from the disc's root,
 `tools/arv.com find PATTERN` (copied off the disc first, on systems that will not run programs
-from it), or `python3 tools/arv/arv --home catalog find PATTERN`, searches every disc in its
-snapshot.
+from it), or `arvc find PATTERN` built from `tools/arv/` with one `cc` line, searches every disc
+in its snapshot.
 
 - `--medium` (default `bd25`; also `bd50`, `bd100`, `bd128`, `auto`) sets the disc the image
   targets. RS03 fills the rest of the disc, and each disc keeps at least `--min-redundancy`
@@ -303,7 +303,8 @@ snapshot.
 - Each disc carries a snapshot of the committed `HEAD` of this repo (not its history;
   `--tools-history` adds a git bundle), so commit before burning (uncommitted changes
   are flagged in the `Software` field).
-- Tests: `python3 -m unittest discover -s tests` (set `ARCHIVE_TEST_ECC=1` to include dvdisaster).
+- Tests: `make check`: the C arv against the reference outputs, a real disc, RS03 and Siegfried
+  when they are installed (`make -C src/arvc check`), then the add-on's tests.
 
 ## Optional: built-in tagging (`arv tag`)
 
@@ -345,14 +346,13 @@ A local model can draft the title, description, subjects and **folder tags**, an
 ask you specific questions ("Who is in the Kyoto photos?"). Nothing is written
 until you accept it, your answers are kept verbatim as notes, and each accepted
 change is logged as a PREMIS `metadata modification` event naming the model.
-Everything works without it, and no extra Python packages are needed.
+This is the optional add-on (Python, standard library only): everything works without it.
 
 ```sh
 ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM Studio, vLLM
 ./arv describe ./2025-01-13_Personal --show-inventory   # exactly what the model will see
-./arv make ./2025-01-13_Personal --llm                  # suggestions + questions, then the usual prompts
 ./arv describe 2018-2022_PERSONAL_01                    # improve a disc that already exists
-./arv describe ./folder --save draft.json               # prepare, edit by hand, then:
+./arv describe ./folder --save draft.json               # suggestions + questions; edit by hand, then:
 ./arv make ./folder --draft draft.json
 ./arv gui                                               # "Suggest" buttons in Make disc and disc details
 ```
@@ -407,7 +407,8 @@ single-threaded.
 
 ## Roadmap
 
-- [x] Single `arv` CLI (Python, stdlib only): bag → catalog.rec → image → ECC → verify; `make install`
+- [x] Single `arv` CLI: bag → catalog.rec → image → ECC → verify; `make install`; first in Python,
+      then ported to C command by command against the same outputs, then the Python core removed
 - [x] `catalog.rec` per disc (Dublin Core-named `Disc` fields, PREMIS-typed `Event` records) and the home `archive.rec`
 - [x] ~~`archive.sqlite` search index (`arv index`)~~ retired: `find` in C scans the plain-text
       lists as fast as Python searched the index (2 million paths in 0.3 s)
