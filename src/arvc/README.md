@@ -13,14 +13,14 @@ cc -O2 -o arvc tools/arv/src/arvc/*.c tools/arv/src/udfwrite/udfwrite.c
 
 Called as `arv` (the installed link), it hands to the Python arv (`share/arv/arv`, or `arv-py`)
 any command or option it does not have, an interactive `make` in a terminal without `-y` (the
-Python one asks its questions), `make` when Siegfried is installed (format identification) unless
-`--formats no`, and `--help`. Called as `arvc`, it never hands over. The Python arv stays the
+Python one asks its questions), and `--help`. Called as `arvc`, it never hands over. The Python arv stays the
 reference until everything is ported, and `make check` holds the two to the same output.
 
 ## Commands
 
 ```
-arvc init [FOLDER]                      a .arv home in FOLDER
+arvc init [FOLDER] [--pointer HOME] [--name NAME [--default]]
+                                        a .arv home in FOLDER, or a pointer to one; registered by name
 arvc make [options] FOLDER              one disc image, recorded in the home (no prompts;
                                         arvc make --help lists the options)
 arvc burned DISC-ID [--copies N] [--location PLACE] [--media-id ID] [--note TEXT]
@@ -34,6 +34,8 @@ arvc appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--
 arvc sets [-v]                          the set vocabulary with disc counts
 arvc names FOLDER                       names the image cannot hold, or Windows would change
 arvc where                              which home, and how it was found
+arvc tags [--namespace NS]              folder tags in use, by namespace
+arvc keywords [--format tsv|exiftool] DISC-ID   set paths and folder tags as XMP keywords
 arvc rebuild [--prefer-disc] DISC       merge the catalogue a disc carries into the home
 
 arvc find PATTERN                       discs, folder tags and files on every disc known
@@ -56,9 +58,9 @@ archived or the current folder up, the machine config (`~/.config/arv/homes.rec`
 
 | | arvc | Python arv only |
 |---|---|---|
-| Making | UDF 2.50 discs, one or (`--split`) as many as the folder needs: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), RS03 | drafts and the local AI helpers (`--llm`, `describe`, `tag`), Siegfried formats, `--ro-crate`, `--tools-history` |
-| Recording | `init`, `burned`, `check`, `note`, `locate`, `access`, `location`, `collection`, `appraise`, `rebuild` | `index`, `gui` |
-| Looking | `sets`, `names`, `where` | `tags`, `keywords`, `describe`, `tag`, `models` (AI helpers) |
+| Making | UDF 2.50 discs, one or (`--split`) as many as the folder needs: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), Siegfried format ids (`formats.csv`), RS03 | drafts and the local AI helpers (`--llm`, `describe`, `tag`), `--ro-crate`, `--tools-history` |
+| Recording | `init` (with named homes and pointers; `--archive NAME`), `burned`, `check`, `note`, `locate`, `access`, `location`, `collection`, `appraise`, `rebuild` | `gui` |
+| Looking | `sets`, `names`, `where`, `tags`, `keywords` | `describe`, `tag`, `models` (AI helpers) |
 | Reading | `find`, `list`, `id`, `info`, `verify`, `ls`, `restore` | (`restore` is C only) |
 
 Making a disc still runs two programs: dvdisaster (RS03; vendoring dvdisaster Light is

@@ -112,6 +112,19 @@ typedef struct {
     entry *v;
     size_t n;
 } entries;
+
+/* formats.c: Siegfried (PRONOM) format identification */
+typedef struct {
+    char *header;           /* `sf -version`, each line as a "# " comment */
+    char *(*rows)[7];       /* path, puid, format, version, mime, basis, warning */
+    size_t n;
+} formats;
+int formats_identify(const char *src, const char *sf_home, const char *workdir, formats *out, char **error);
+void formats_write(const char *path, const formats *f, const entries *files);
+size_t formats_unknown(const formats *f, const entries *files);
+char *formats_agent(const formats *f);
+void formats_free(formats *f);
+
 void scan_payload(const char *src, const char *policy, entries *files, entries *noted);
 char *link_summary(const entries *files, const entries *noted, const char *policy);
 void write_listing(const char *path, const entries *files, const entries *noted);

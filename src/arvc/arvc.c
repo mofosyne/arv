@@ -81,13 +81,6 @@ static int has_arg(int argc, char **argv, const char *name)
     return 0;
 }
 
-static const char *arg_value(int argc, char **argv, const char *name)
-{
-    for (int i = 1; i + 1 < argc; i++)
-        if (!strcmp(argv[i], name)) return argv[i + 1];
-    return NULL;
-}
-
 /* Does this command line need the Python arv? (a command or option arvc does not have, the
  * prompts of an interactive make, or help text) */
 static int needs_python(int argc, char **argv)
@@ -110,15 +103,12 @@ static int needs_python(int argc, char **argv)
     if (has_arg(argc, argv, "-h") || has_arg(argc, argv, "--help")) return 1;
     if (strcmp(cmd, "make")) return 0;
     static const char *const python_only[] = { "--llm", "--llm-rounds", "--draft", "--ro-crate",
-                                               "--extra-tools", "--tools-history", "--sf-home",
+                                               "--extra-tools", "--tools-history",
                                                "--llm-url", "--llm-model", "--llm-allow-remote", "--vision",
                                                "--vision-model", "--vision-url", "--vision-per-folder",
                                                "--vision-max", NULL };
     for (int k = 0; python_only[k]; k++)
         if (has_arg(argc, argv, python_only[k])) return 1;
-    const char *formats = arg_value(argc, argv, "--formats");
-    if (formats && !strcmp(formats, "yes")) return 1;
-    if ((!formats || strcmp(formats, "no")) && on_path("sf")) return 1;    /* Python identifies formats */
     if (isatty(0) && !has_arg(argc, argv, "-y") && !has_arg(argc, argv, "--yes")) return 1;   /* it asks */
     return 0;
 }

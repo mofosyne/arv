@@ -54,14 +54,18 @@ if "$tool" restore bad out-bad >out.txt; then no "restore missed damage"; fi
 mkdir -p second/letters
 echo "dear diary" > second/letters/2001-05-01.txt
 touch -d '2001-05-01 12:00' second/letters/2001-05-01.txt
+printf '%%PDF-1.4\n%%EOF\n' > "second/letters/scan,page1.pdf"     # a comma: quoted in formats.csv
+touch -d '2001-05-02 12:00' "second/letters/scan,page1.pdf"
+fmt="--formats no"                     # with Siegfried, both identify formats (formats.csv compared too)
+command -v sf >/dev/null && sf -version >/dev/null 2>&1 && fmt="--formats yes"
 for who in py c; do
     mkdir -p "$who-home" "$who-out"
     for folder in src second; do
         if [ $who = py ]; then
-            python3 "$repo/arv" --home "$who-home" make -y --no-ecc --formats no --set CODE --location BOX1 \
+            python3 "$repo/arv" --home "$who-home" make -y --no-ecc $fmt --set CODE --location BOX1 \
                 --importance "essential for self" --output-dir "$who-out" $folder >/dev/null 2>&1 || no "python make $folder"
         else
-            "$tool" make -C "$who-home" --no-ecc --set CODE --location BOX1 --importance "essential for self" \
+            "$tool" make -C "$who-home" --no-ecc $fmt --set CODE --location BOX1 --importance "essential for self" \
                 --output-dir "$who-out" $folder >/dev/null 2>&1 || no "arvc make $folder"
         fi
     done
@@ -85,10 +89,13 @@ for iso in py-out/*.iso; do
 done
 [ "$(sed -E "$norm" py-home/catalog/archive.rec)" = "$(sed -E "$norm" c-home/catalog/archive.rec)" ] \
     || no "home catalogues differ"
+for f in $(cd py-home/catalog/volumes && find . -type f -not -name extents.tsv | sort); do
+    cmp -s "py-home/catalog/volumes/$f" "c-home/catalog/volumes/$f" || no "home file list $f differs"
+done
 python3 "$repo/arv" --home c-home list >/dev/null || no "python cannot read the home arvc made"
-ok "arvc make: $compared discs written as python writes them (bagit-valid; the home catalogue too)"
+ok "arvc make: $compared discs written as python writes them (bagit-valid; the home catalogue too$([ "$fmt" = "--formats yes" ] && echo "; Siegfried formats.csv"))"
 if command -v dvdisaster >/dev/null && dvdisaster --help 2>&1 | grep -q no-bdr-defect-management; then
-    "$tool" make -C ecc-home --set CODE --medium-sectors 4800 --output-dir ecc-out src >/dev/null 2>&1 || no "arvc make with RS03"
+    "$tool" make -C ecc-home --formats no --set CODE --medium-sectors 4800 --output-dir ecc-out src >/dev/null 2>&1 || no "arvc make with RS03"
     grep -q "RS03: " ecc-home/catalog/archive.rec && grep -q "Type: fixity check" ecc-home/catalog/archive.rec \
         && ok "arvc make with RS03 error correction: image tested by dvdisaster" || no "RS03 events"
 fi
@@ -104,7 +111,7 @@ for i in range(70):
     os.utime(p, (1000000000 + i * 86400 * 30,) * 2)"
 python3 "$repo/arv" --home split-py make -y --no-ecc --formats no --set SCAN --split --medium-sectors 4800 \
     --output-dir split-py-out big > split-py.txt 2>&1 || no "python make --split"
-"$tool" make -C split-c --no-ecc --set SCAN --split --medium-sectors 4800 --output-dir split-c-out big \
+"$tool" make -C split-c --no-ecc --formats no --set SCAN --split --medium-sectors 4800 --output-dir split-c-out big \
     > split-c.txt 2>&1 || no "arvc make --split"
 [ "$(grep -E '^Rebalancing|^SCAN' split-py.txt | sed 's|split-py-out|OUT|')" = \
   "$(grep -E '^Rebalancing|^SCAN' split-c.txt | sed 's|split-c-out|OUT|')" ] || no "--split divides the files differently"

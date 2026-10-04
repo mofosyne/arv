@@ -112,12 +112,10 @@ arv --help
 **The installed `arv` is the C program** (`arvc`, [src/arvc/README.md](src/arvc/README.md)). It
 runs what has been ported to C, which is the whole make, record, verify cycle and the catalogue
 commands, and hands everything else to the Python arv unchanged:
-- the AI and tagging commands (`describe`, `tag`, `tags`, `keywords`, `models`), `gui` and
-  `index`;
-- `arv make` with drafts or `--llm`, or with Siegfried installed
-  (format identification), and an interactive `arv make` in a terminal without `-y`, which asks
-  its questions;
-- `--help`, `--archive NAME`, and `arv init` with `--pointer`, `--name` or `--default`.
+- the AI helpers (`describe`, `tag`, `models`) and `gui`;
+- `arv make` with drafts, `--llm`, `--ro-crate` or `--tools-history`, and an interactive
+  `arv make` in a terminal without `-y`, which asks its questions;
+- `--help`.
 
 Both write the same discs and catalogue (`make check` compares them file by file). `arv-py` is
 always the Python arv; `arvc` is the C program without the hand-over. In a checkout, `./arv` is

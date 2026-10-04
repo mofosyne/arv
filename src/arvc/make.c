@@ -39,7 +39,7 @@ static void say(const char *fmt, const char *arg)
 typedef struct {
     const char *source, *home, *output, *output_dir, *id, *set, *coverage, *title, *label, *description;
     const char *creator, *location, *access, *rights, *links, *medium, *media, *snapshot, *tools;
-    const char *basis, *review;
+    const char *basis, *review, *formats, *sf_home;
     strlist categories, subjects, notes, importance;
     long medium_sectors;
     double min_redundancy;
@@ -71,10 +71,11 @@ static const char HELP[] =
     "  --snapshot full|set|disc  the catalogue the disc carries (default: full)\n"
     "  --tools DIR            arv's source for tools/ (default: found next to this program)\n"
     "  --split                spread the folder over as many discs as needed\n"
+    "  --formats auto|yes|no  PRONOM format ids with Siegfried (auto: when sf is on PATH)\n"
+    "  --sf-home DIR          Siegfried signature folder (sf -home)\n"
     "  --no-ecc, --no-verify  skip RS03, or skip dvdisaster -t afterwards\n"
     "  --ignore-names, --keep-stage\n"
-    "Not here (use the Python arv): drafts and AI help, format identification,\n"
-    "--ro-crate, --tools-history.\n";
+    "Not here (use the Python arv): drafts and AI help, --ro-crate, --tools-history.\n";
 
 static int parse_options(int argc, char **argv, options *o)
 {
@@ -83,6 +84,7 @@ static int parse_options(int argc, char **argv, options *o)
     o->links = "default";
     o->medium = "bd25";
     o->snapshot = "full";
+    o->formats = "auto";
     o->min_redundancy = 20;
     for (int i = 0; i < argc; i++) {
         const char *a = argv[i];
@@ -127,6 +129,8 @@ static int parse_options(int argc, char **argv, options *o)
         else if (!strcmp(a, "--tools")) str = &o->tools;
         else if (!strcmp(a, "--basis")) str = &o->basis;
         else if (!strcmp(a, "--review")) str = &o->review;
+        else if (!strcmp(a, "--formats")) str = &o->formats;
+        else if (!strcmp(a, "--sf-home")) str = &o->sf_home;
         else if (!strcmp(a, "--category")) list = &o->categories;
         else if (!strcmp(a, "--subject")) list = &o->subjects;
         else if (!strcmp(a, "--note")) list = &o->notes;
@@ -142,10 +146,11 @@ static int parse_options(int argc, char **argv, options *o)
     }
     if (!o->source) return 2;
     const char *ok[][5] = { { "private", "public", "sealed", NULL }, { "default", "record", "copy", NULL },
-                            { "full", "set", "disc", NULL }, { "bd25", "bd50", "bd100", "bd128", "auto" } };
-    const char *val[] = { o->access, o->links, o->snapshot, o->medium };
-    const char *what[] = { "--access", "--links", "--snapshot", "--medium" };
-    for (int k = 0; k < 4; k++) {
+                            { "full", "set", "disc", NULL }, { "bd25", "bd50", "bd100", "bd128", "auto" },
+                            { "auto", "yes", "no", NULL } };
+    const char *val[] = { o->access, o->links, o->snapshot, o->medium, o->formats };
+    const char *what[] = { "--access", "--links", "--snapshot", "--medium", "--formats" };
+    for (int k = 0; k < 5; k++) {
         int good = 0;
         for (int j = 0; j < 5 && ok[k][j]; j++) good |= !strcmp(val[k], ok[k][j]);
         if (!good) {
@@ -526,7 +531,7 @@ typedef struct {
     char disc_id[64], uuid[37];
     long sequence;
     int part, parts;
-    char *out, *label, *stage, *built, *extents, *b_manifest, *b_listing;
+    char *out, *label, *stage, *built, *extents, *b_manifest, *b_listing, *b_formats;
     rec_record *disc, *binding;
     recs events, appraisals;
     uint64_t sectors;
@@ -542,7 +547,8 @@ typedef struct {
     strlist *categories, *paths;
     char coverage[64], today[11];
     long capacity, budget;
-    int is_git, links_chosen;
+    int is_git, links_chosen, have_formats;
+    formats fmt;
     plan *plans;
     size_t nplans;
 } maker;
@@ -783,6 +789,14 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
             free(who);
             free(summary);
         }
+        if (mk->have_formats) {
+            size_t unknown = formats_unknown(&mk->fmt, &p->files);
+            char *agent = formats_agent(&mk->fmt), *fnote = xprintf("PRONOM ids for %zu files, %zu unidentified", p->files.n, unknown);
+            recs_add(&p->events, new_event(p->disc_id, "format identification", unknown ? "warning" : "success", agent,
+                                           "automatic", fnote));
+            free(agent);
+            free(fnote);
+        }
         if (o->importance.n || o->basis) recs_add(&p->appraisals, new_appraisal(p->disc_id, &o->importance, o->basis, mk->review));
     }
 }
@@ -797,6 +811,11 @@ static void batch_files(maker *mk)
         p->b_listing = xprintf("%s/%s.tsv", batch, p->disc_id);
         write_manifest(p->b_manifest, &p->files, 0);
         write_listing(p->b_listing, &p->files, &p->noted);
+        p->b_formats = NULL;
+        if (mk->have_formats) {
+            p->b_formats = xprintf("%s/%s.csv", batch, p->disc_id);
+            formats_write(p->b_formats, &mk->fmt, &p->files);
+        }
     }
     free(batch);
 }
@@ -915,6 +934,11 @@ static void stage_plan(maker *mk, size_t idx)
         if (mkdirs(dir)) die("cannot create %s", dir);
         copy_file(mk->plans[b].b_manifest, m);
         copy_file(mk->plans[b].b_listing, l);
+        if (mk->plans[b].b_formats) {
+            char *fm = join(dir, "formats.csv");
+            copy_file(mk->plans[b].b_formats, fm);
+            free(fm);
+        }
         free(dir); free(m); free(l);
     }
 
@@ -1107,6 +1131,15 @@ static int make_discs(maker *mk)
     out_dir = abs_out;
     mk->workdir = xprintf("%s/.archive-make-XXXXXX", out_dir);
     if (!mkdtemp(mk->workdir)) die("cannot create a work folder in %s", out_dir);
+    if (!strcmp(o->formats, "yes") || (!strcmp(o->formats, "auto") && on_path("sf"))) {
+        if (!on_path("sf")) die("%s", "--formats yes needs Siegfried (sf) on PATH");
+        fputs("Identifying file formats with Siegfried ...\n", stderr);
+        char *error = NULL;
+        if (!formats_identify(mk->src, o->sf_home, mk->workdir, &mk->fmt, &error)) mk->have_formats = 1;
+        else if (!strcmp(o->formats, "yes")) die("Siegfried failed: %s", error);
+        else fprintf(stderr, "Warning: skipping format identification, Siegfried failed: %s\n", error);
+        free(error);
+    }
     fit(mk);
     int failed = 0;
     for (size_t i = 0; i < mk->nplans; i++) {          /* build: move the measured image into place, then RS03 */
@@ -1166,10 +1199,10 @@ static int make_discs(maker *mk)
         for (size_t k = 0; k < p->appraisals.n; k++) recs_add(&mk->cat->appraisals, p->appraisals.v[k]);
         char *home_vol = xprintf("%s/volumes/%s", mk->h->catalog_dir, p->disc_id);
         if (mkdirs(home_vol)) die("cannot create %s", home_vol);
-        const char *kinds[] = { "manifest.sha256", "listing.tsv", "extents.tsv" };
+        const char *kinds[] = { "manifest.sha256", "listing.tsv", "formats.csv", "extents.tsv" };
         char *own = xprintf("%s/catalog/volumes/%s", p->stage, p->disc_id);
-        char *from[] = { join(own, "manifest.sha256"), join(own, "listing.tsv"), xstrdup(p->extents) };
-        for (int k = 0; k < 3; k++) {       /* extents: kept at home and on later discs, never on this one */
+        char *from[] = { join(own, "manifest.sha256"), join(own, "listing.tsv"), join(own, "formats.csv"), xstrdup(p->extents) };
+        for (int k = 0; k < 4; k++) {       /* extents: kept at home and on later discs, never on this one */
             if (!access(from[k], F_OK)) {
                 char *to = join(home_vol, kinds[k]);
                 copy_file(from[k], to);
