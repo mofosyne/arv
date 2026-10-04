@@ -545,6 +545,32 @@ Message: the 2025 sort, final
 `Retired` is an event on a volume (with a reason: `replaced by FAMILY/4`); a `Collection`
 record holds the code, title, description and defaults.
 
+**Git repositories in a collection.** A repository already keeps its own provisional history
+(commits); a disc is a snapshot of the working tree **and all history up to that point**, so an
+edition stays a full copy. Any folder in the collection with a `.git` is handled this way:
+- **The working tree as plain files**, as now: readable with no git at all, uncommitted changes
+  included (and flagged, as arv flags its own `+uncommitted`).
+- **The history as a compacted `.git` in the same place**: `HEAD`, `config`, `packed-refs`, the
+  index and one pack (`git repack -a -d` on a temporary copy; the source is never touched). The
+  restored folder is a working repository with a clean `git status`, and nothing needs
+  reassembling. Commit hashes are unchanged.
+- **Left out**: hooks (code that would run on restore), reflogs, and credentials embedded in
+  remote URLs. Kept: every branch, tag and the stash. All of it noted in the ingestion event
+  (`git: 3 branches, 12 tags, history full`), as links are.
+- **Trimming history to fit**: `--git-history since DATE` (per collection) makes the pack
+  shallow: git's own `shallow` file marks the boundary, the repository still opens, clones and
+  logs back to that date, and the hashes still match the full history elsewhere. Default: full;
+  `arv make` offers the trim only when an edition does not fit, and shows what it would drop.
+- **Dropped history is tracked like removed files**: the Edition record names each repository's
+  heads and its boundary commits, and `arv retire` refuses to quietly retire the last safe
+  edition holding commits older than a later edition's boundary (it lists them; the person
+  decides).
+- `arv status` reports per repository: new commits since the last edition, uncommitted changes,
+  and the size of ignored files (`node_modules/`, build output) with `--skip-ignored` to leave
+  them out (default: keep everything, as for any folder).
+- Open: Git LFS (the store's objects must be included, or the tree holds pointers only), and
+  submodules and worktrees (a `.git` file pointing elsewhere: archive the repository it names).
+
 **Decisions this needs**
 - **One workflow folder, one collection** (recommended). An inbox where things wait to be sorted
   is an ordinary folder arv does not know about; things move into a collection's folder when
@@ -567,6 +593,8 @@ record holds the code, title, description and defaults.
       not) and `arv log`.
 - [ ] `arv burn` (burn, read back, record the copy, ask where it lives) and edition safety.
 - [ ] `arv retire`, with the list of files only on the retiring discs.
+- [ ] Git repositories: the compacted `.git`, `--git-history since DATE`, per-repo status and
+      the retire check for dropped history.
 - [ ] Folder and zip bindings for an edition.
 - [ ] docs/workflow.md rewritten around: init, sort, status, make, burn, retire.
 
