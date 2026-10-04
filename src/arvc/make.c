@@ -554,7 +554,7 @@ int cmd_make(int argc, char **argv)
         size_t errors = 0;
         for (size_t i = 0; i < issues.n; i++) errors += issues.v[i].error;
         if (errors) {
-            fprintf(stderr, "arvc: %zu file name(s) cannot be stored in a udf250 image (rename them):\n", errors);
+            fprintf(stderr, "Error: %zu file name(s) cannot be stored in a udf250 image (rename them):\n", errors);
             for (size_t i = 0, shown = 0; i < issues.n && shown < 10; i++)
                 if (issues.v[i].error) {
                     fprintf(stderr, "  error: %s: %s\n", issues.v[i].path, issues.v[i].problem);
@@ -976,7 +976,7 @@ int cmd_make(int argc, char **argv)
             char need[32], room[32];
             human_size(sectors * SECTOR, need);
             human_size((uint64_t)budget * SECTOR, room);
-            fprintf(stderr, "arvc: this folder needs %s but a %s holds %s at %g%% minimum redundancy.\n"
+            fprintf(stderr, "Error: this folder needs %s but a %s holds %s at %g%% minimum redundancy.\n"
                             "Use a larger --medium, a lower --min-redundancy, or the Python arv's --split.\n",
                     need, medium_label, room, o.min_redundancy);
             if (!o.keep_stage) remove_tree(workdir);

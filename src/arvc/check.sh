@@ -137,6 +137,15 @@ cmp -s edit-py.out edit-c.out || { diff edit-py.out edit-c.out | head -20; no "e
 cmp -s edit-py/catalog/archive.rec edit-c/catalog/archive.rec || no "editing commands leave different catalogues"
 ok "access, location, collection, appraise, sets, names, where: $(grep -c '^rc=' edit-c.out) runs as python's, catalogue too"
 
+# called as arv, the program runs what it has and hands the rest to the Python arv
+mkdir -p bin && ln -sf "$tool" bin/arv
+[ "$(bin/arv --home "$repo/samples/home" tags 2>&1)" = "$(python3 "$repo/arv" --home "$repo/samples/home" tags 2>&1)" ] \
+    || no "arv tags (handed to python) differs"
+[ "$(bin/arv --home "$repo/samples/home" sets)" = "$(python3 "$repo/arv" --home "$repo/samples/home" sets)" ] \
+    || no "arv sets differs"
+bin/arv --help 2>&1 | grep -q "usage: arv" || no "arv --help (python's)"
+ok "arv: ported commands run in C, the others (tags, --help) in the Python arv"
+
 # find and list give the same lines as the Python arv, on the sample catalogue
 same=0
 for q in kyoto IMG '*.png' 'place:*' BOX 2019 nothing-matches; do

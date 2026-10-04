@@ -48,7 +48,7 @@ static void walk(scan *s, const char *disk, const char *rel, int via_folder_link
 {
     DIR *d = opendir(disk);
     if (!d) {
-        fprintf(stderr, "arvc: cannot read %s: %s\n", disk, strerror(errno));
+        fprintf(stderr, "Error: cannot read %s: %s\n", disk, strerror(errno));
         exit(1);
     }
     strlist names = { 0 };
@@ -152,7 +152,7 @@ static void walk(scan *s, const char *disk, const char *rel, int via_folder_link
 
 static void fail_list(const char *intro, const strlist *l)
 {
-    fprintf(stderr, "arvc: %s", intro);
+    fprintf(stderr, "Error: %s", intro);
     for (size_t i = 0; i < l->n && i < 20; i++) fprintf(stderr, "\n  %s", l->v[i]);
     fputc('\n', stderr);
     exit(1);

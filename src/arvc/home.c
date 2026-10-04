@@ -193,7 +193,8 @@ void home_ensure(const arv_home *h)
 int cmd_init(int argc, char **argv)
 {
     if (argc > 1) return 2;
-    char *folder = absolute(argc ? argv[0] : ".");
+    char *folder = realpath(argc ? argv[0] : ".", NULL);       /* os.path.abspath: no "./" left */
+    if (!folder) die("%s is not a folder", argc ? argv[0] : ".");
     char *target = join(folder, ".arv"), *git = join(folder, ".git");
     struct stat st;
     if (!lstat(target, &st)) die("%s already exists", target);

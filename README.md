@@ -107,17 +107,32 @@ arv --help
 ```
 
 `make install` copies the last commit (exactly the tree every disc carries in `tools/`) to
-`PREFIX/share/arv`, and puts `arv`, `udfwrite`, `udfmake` and `arvc` in `PREFIX/bin`. Without
-installing, run `make` once in a checkout (it builds the C programs), then `./arv` does the same.
+`PREFIX/share/arv`, and puts `arv`, `arv-py`, `arvc`, `udfwrite` and `udfmake` in `PREFIX/bin`.
+
+**The installed `arv` is the C program** (`arvc`, [src/arvc/README.md](src/arvc/README.md)). It
+runs what has been ported to C, which is the whole make, record, verify cycle and the catalogue
+commands, and hands everything else to the Python arv unchanged:
+- the AI and tagging commands (`describe`, `tag`, `tags`, `keywords`, `models`), `gui`, `index`
+  and `rebuild`;
+- `arv make` with `--split`, `--filesystem hybrid`, drafts or `--llm`, or with Siegfried installed
+  (format identification), and an interactive `arv make` in a terminal without `-y`, which asks
+  its questions;
+- `--help`, and `--archive NAME`.
+
+Both write the same discs and catalogue (`make check` compares them file by file). `arv-py` is
+always the Python arv; `arvc` is the C program without the hand-over. In a checkout, `./arv` is
+the Python arv (the reference, and what every disc carries); run `make` once to build the C
+programs, then `src/arvc/build/arvc` is the C one.
 
 ### What it needs
 
-`arv` itself is Python with nothing to install from pip. Making a disc also runs two other
-programs, which it finds on `PATH`:
+`arv` is C, with the Python arv (standard library only, nothing from pip) for what is not
+ported yet. Making a disc also runs other programs, which it finds on `PATH`:
 
 | Program | Needed for | Where it comes from |
 |---|---|---|
-| `udfwrite` | the default UDF 2.50 image | this repository: built by `make`, installed by `make install` (needs a C compiler) |
+| `python3` | the parts of arv not ported to C yet (above) | your distribution |
+| `udfwrite` | the default UDF 2.50 image (the C arv has it built in) | this repository: built by `make`, installed by `make install` (needs a C compiler) |
 | `udfmake` | `--udf-writer udfmake` only (the reference writer) | the same |
 | `genisoimage` | `--filesystem hybrid` only | your distribution (`apt install genisoimage`) |
 | `dvdisaster` | RS03 error correction (skip with `--no-ecc`, for testing) | **not bundled:** build [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the [speed47 fork](https://github.com/speed47/dvdisaster)); the distro 0.79.10 package works but pads only to the smallest standard size |
@@ -127,18 +142,16 @@ programs, which it finds on `PATH`:
 needs none of these: any computer can open it, and `README.txt` on the disc explains checking,
 restoring and repair (repair needs dvdisaster).
 
-**`arvc`, arv in C,** does the whole cycle without Python, and writes the same discs and
-catalogue as `arv` (its checks compare them file by file). It has no prompts and no AI helpers;
-one disc per run, UDF 2.50 only ([src/arvc/README.md](src/arvc/README.md) lists what is ported):
+The whole cycle, as the C arv runs it:
 
 ```sh
-arvc init ~/archive                                        # a .arv home
-arvc make --set trip --location BOX1 ~/archive/2019-kyoto  # disc image, recorded in the home
-arvc burned TRIP-01_2019_4 --copies 2                      # after burning
-arvc check --device /dev/sr0                               # fixity check of a burned disc, logged
-arvc find kyoto                                            # which disc, and where it is
-arvc verify /media/cdrom                                   # every file against its checksum
-arvc restore /media/cdrom ~/restored                       # copy back; links and execute bits too
+arv init ~/archive                                          # a .arv home
+arv make -y --set trip --location BOX1 ~/archive/2019-kyoto # disc image, recorded in the home
+arv burned TRIP-01_2019_4 --copies 2                        # after burning
+arv check --device /dev/sr0                                 # fixity check of a burned disc, logged
+arv find kyoto                                              # which disc, and where it is
+arv verify /media/cdrom                                     # every file against its checksum
+arv restore /media/cdrom ~/restored                         # copy back; links and execute bits too
 ```
 
 ### What `arv make` creates

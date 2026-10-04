@@ -20,7 +20,7 @@
 
 void die(const char *fmt, const char *arg)
 {
-    fprintf(stderr, "arvc: ");
+    fprintf(stderr, "Error: ");
     fprintf(stderr, fmt, arg);
     fputc('\n', stderr);
     exit(1);

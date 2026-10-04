@@ -112,7 +112,7 @@ void open_disc(const char *root, ondisc *d)
         if (errno == ENOENT)
             die("%s: no catalog.rec here (give the root of a mounted disc or an extracted image)", root);
         if (errno == EINVAL) {
-            fprintf(stderr, "arvc: %s: line %d is not a field\n", path, bad);
+            fprintf(stderr, "Error: %s: line %d is not a field\n", path, bad);
             exit(1);
         }
         die("cannot read %s", path);

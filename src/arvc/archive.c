@@ -67,7 +67,7 @@ void archive_load(archive *a, const char *path)
     if (access(path, F_OK)) return;                 /* a new home: an empty catalogue */
     if (rec_read(path, &a->file, &bad)) {
         if (errno == EINVAL) {
-            fprintf(stderr, "arvc: %s: line %d is not a field\n", path, bad);
+            fprintf(stderr, "Error: %s: line %d is not a field\n", path, bad);
             exit(1);
         }
         die("cannot read %s", path);

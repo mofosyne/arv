@@ -1,16 +1,21 @@
 # arvc: arv in C
 
-The C port of arv (research/plan.md, "one codebase in C"). It is at its **MVP**: the whole
-archive, record, verify cycle works without Python, and every disc and catalogue it writes is
-the one the Python arv writes. C99 and POSIX, no libraries; udfwrite (`../udfwrite/`) is linked
-in. It builds from any disc's `tools/` with one line:
+The C port of arv (research/plan.md, "one codebase in C"). **The installed `arv` is this
+program:** it runs everything below, and hands what is not ported yet to the Python arv (see the
+table). The whole archive, record, verify cycle and the catalogue commands work without Python,
+and every disc, catalogue and line of output is the one the Python arv gives. C99 and POSIX, no
+libraries; udfwrite (`../udfwrite/`) is linked in. It builds from any disc's `tools/` with one
+line:
 
 ```sh
 cc -O2 -o arvc tools/arv/src/arvc/*.c tools/arv/src/udfwrite/udfwrite.c
 ```
 
-It becomes `arv` (and later an Actually Portable Executable) when the rest is ported; until
-then the Python arv is the reference, and `make check` holds the two to the same output.
+Called as `arv` (the installed link), it hands to the Python arv (`share/arv/arv`, or `arv-py`)
+any command or option it does not have, an interactive `make` in a terminal without `-y` (the
+Python one asks its questions), `make` when Siegfried is installed (format identification) unless
+`--formats no`, and `--help`. Called as `arvc`, it never hands over. The Python arv stays the
+reference until everything is ported, and `make check` holds the two to the same output.
 
 ## Commands
 
@@ -22,6 +27,13 @@ arvc burned DISC-ID [--copies N] [--location PLACE] [--media-id ID] [--note TEXT
 arvc check (--image FILE | --device DRIVE) [DISC-ID]   dvdisaster fixity check, logged
 arvc note DISC-ID TEXT
 arvc locate [--add] DISC-ID PLACE...
+arvc access DISC-ID public|private|sealed
+arvc location list [-v] | add CODE [NAME] [--in PARENT] | move CODE [NAME] [--in PARENT]
+arvc collection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]
+arvc appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]
+arvc sets [-v]                          the set vocabulary with disc counts
+arvc names [--filesystem F] FOLDER      names an image would change
+arvc where                              which home, and how it was found
 
 arvc find PATTERN                       discs, folder tags and files on every disc known
 arvc list [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]
@@ -44,7 +56,8 @@ archived or the current folder up, the machine config (`~/.config/arv/homes.rec`
 | | arvc | Python arv only |
 |---|---|---|
 | Making | one UDF 2.50 disc: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), RS03 | `--split` over several discs, `--filesystem hybrid`, `--udf-writer udfmake`, drafts and the local AI helpers (`--llm`, `describe`, `tag`), Siegfried formats, `--ro-crate`, `--tools-history` |
-| Recording | `init`, `burned`, `check`, `note`, `locate` | `access`, `location`, `collection`, `appraise`, `rebuild`, `index`, `gui`, `sets`, `names`, `tags`, `keywords`, `where` |
+| Recording | `init`, `burned`, `check`, `note`, `locate`, `access`, `location`, `collection`, `appraise` | `rebuild`, `index`, `gui` |
+| Looking | `sets`, `names`, `where` | `tags`, `keywords`, `describe`, `tag`, `models` (AI helpers) |
 | Reading | `find`, `list`, `id`, `info`, `verify`, `ls`, `restore` | (`restore` is C only) |
 
 Making a disc still runs two programs: dvdisaster (RS03; vendoring dvdisaster Light is
@@ -66,7 +79,10 @@ hyphens.
   of the earlier disc moves by the version string's extra byte), bagit.py validates them, and the
   home catalogues are the same; with dvdisaster on PATH, a disc with RS03 is made and tested;
 - **recording:** `burned`, `note`, `locate` and `check` on copies of a catalogue leave it byte for
-  byte as the Python arv leaves it;
+  byte as the Python arv leaves it; so do the 35 editing runs in `dev/edit-cases.txt` (`access`,
+  `location`, `collection`, `appraise`, `sets`, `names`, `where`), whose output and exit codes
+  are compared too;
+- **arv:** called as `arv`, ported commands run in C and the others in the Python arv;
 - **reading:** `find`, `list` and `id` print what the Python arv prints (20 queries); a disc made
   from a git repository with links and a script is restored by arvc and `git status` in the
   restore is clean; damage is reported; SHA-256 and SHA-512 match `sha256sum` and `sha512sum`
@@ -82,6 +98,7 @@ and `make check` passes under AddressSanitizer and UndefinedBehaviorSanitizer.
 | `arvc.c` | the commands |
 | `make.c` | `make` (cli.cmd_make and make.Maker) |
 | `record.c` | `check`, `burned`, `note`, `locate` |
+| `edit.c` | `access`, `location`, `collection`, `appraise`, `sets`, `names`, `where` |
 | `disc.c` | reading a disc: `info`, `verify`, `ls`, `restore` |
 | `catalogue.c` | `find`, `list`, `id` |
 | `home.c` | finding the home; `init` |

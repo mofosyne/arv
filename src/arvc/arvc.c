@@ -68,6 +68,85 @@ static void usage(void)
           stderr);
 }
 
+/* ------------------------------------------------------------------ arv: C first, Python for the rest */
+
+static int has_arg(int argc, char **argv, const char *name)
+{
+    for (int i = 1; i < argc; i++)
+        if (!strcmp(argv[i], name)) return 1;
+    return 0;
+}
+
+static const char *arg_value(int argc, char **argv, const char *name)
+{
+    for (int i = 1; i + 1 < argc; i++)
+        if (!strcmp(argv[i], name)) return argv[i + 1];
+    return NULL;
+}
+
+/* Does this command line need the Python arv? (a command or option arvc does not have, the
+ * prompts of an interactive make, or help text) */
+static int needs_python(int argc, char **argv)
+{
+    int i = 1;
+    if (argc < 2) return 1;
+    while (i < argc && argv[i][0] == '-') {            /* global options */
+        if ((!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home")) && i + 1 < argc) i += 2;
+        else return 1;                                 /* --archive, --help, ... */
+    }
+    if (i >= argc) return 1;
+    const char *cmd = argv[i];
+    static const char *const ported[] = { "init", "where", "make", "names", "find", "list", "sets", "id", "note",
+                                          "locate", "location", "appraise", "collection", "access", "check",
+                                          "burned", "info", "verify", "ls", "restore", NULL };
+    int known = 0;
+    for (int k = 0; ported[k]; k++) known |= !strcmp(cmd, ported[k]);
+    if (!known) return 1;
+    if (has_arg(argc, argv, "-h") || has_arg(argc, argv, "--help")) return 1;
+    if (strcmp(cmd, "make")) return 0;
+    static const char *const python_only[] = { "--split", "--llm", "--llm-rounds", "--draft", "--ro-crate",
+                                               "--extra-tools", "--tools-history", "--sf-home", "--udfmake",
+                                               "--llm-url", "--llm-model", "--llm-allow-remote", "--vision",
+                                               "--vision-model", "--vision-url", "--vision-per-folder",
+                                               "--vision-max", NULL };
+    for (int k = 0; python_only[k]; k++)
+        if (has_arg(argc, argv, python_only[k])) return 1;
+    const char *fs = arg_value(argc, argv, "--filesystem"), *writer = arg_value(argc, argv, "--udf-writer"),
+               *formats = arg_value(argc, argv, "--formats");
+    if (fs && strcmp(fs, "udf250")) return 1;
+    if (writer && strcmp(writer, "udfwrite")) return 1;
+    if (formats && !strcmp(formats, "yes")) return 1;
+    if ((!formats || strcmp(formats, "no")) && on_path("sf")) return 1;    /* Python identifies formats */
+    if (isatty(0) && !has_arg(argc, argv, "-y") && !has_arg(argc, argv, "--yes")) return 1;   /* it asks */
+    return 0;
+}
+
+/* runs the Python arv with the same arguments: arv-py on PATH, or the tree next to this program */
+static void run_python(int argc, char **argv)
+{
+    char *dir = exe_dir(), *python_entry = NULL;
+    const char *candidates[] = { getenv("ARV_PYTHON_ENTRY"), NULL, NULL };
+    char *installed = dir ? xprintf("%s/../share/arv/arv", dir) : NULL, *checkout = dir ? xprintf("%s/../../../arv", dir) : NULL;
+    candidates[1] = installed;
+    candidates[2] = checkout;
+    for (int k = 0; k < 3 && !python_entry; k++)
+        if (candidates[k] && *candidates[k] && !access(candidates[k], R_OK)) python_entry = (char *)candidates[k];
+    char **args = xmalloc(((size_t)argc + 2) * sizeof *args);
+    int n = 0;
+    if (python_entry) {
+        args[n++] = "python3";
+        args[n++] = python_entry;
+    } else {
+        args[n++] = "arv-py";
+    }
+    for (int k = 1; k < argc; k++) args[n++] = argv[k];
+    args[n] = NULL;
+    execvp(args[0], args);
+    fprintf(stderr, "Error: this needs the Python arv (%s), which was not found: install it with make install\n",
+            python_entry ? "python3" : "arv-py");
+    exit(1);
+}
+
 int main(int argc, char **argv)
 {
     static const struct {
@@ -84,6 +163,9 @@ int main(int argc, char **argv)
         puts(VERSION);
         return 0;
     }
+    /* called as arv: what is ported runs here, the rest in the Python arv */
+    const char *self = strrchr(argv[0], '/') ? strrchr(argv[0], '/') + 1 : argv[0];
+    if (!strcmp(self, "arv") && needs_python(argc, argv)) run_python(argc, argv);
     /* "arvc -C HOME make ..." (as "arv --home HOME make ..."): the home goes to the command */
     const char *home = NULL;
     if (argc >= 3 && (!strcmp(argv[1], "-C") || !strcmp(argv[1], "--home"))) {

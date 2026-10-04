@@ -465,7 +465,7 @@ int cmd_collection(int argc, char **argv)
                     free(p);
                     p = as_folder;
                 } else {
-                    fprintf(stderr, "arvc: %s has no %s %s\n", id, is_folder ? "folder" : "file", p);
+                    fprintf(stderr, "Error: %s has no %s %s\n", id, is_folder ? "folder" : "file", p);
                     exit(1);
                 }
             }
@@ -502,7 +502,7 @@ int cmd_collection(int argc, char **argv)
         for (rec_record *x = within ? coll(&cat, within) : NULL; x; x = coll(&cat, rec_get(x, "Parent")))
             if (rec_get(x, "Code") && !strcmp(rec_get(x, "Code"), code)) {
                 char *w = upper_trim_copy(within);
-                fprintf(stderr, "arvc: %s is inside %s; that would make a loop\n", w, code);
+                fprintf(stderr, "Error: %s is inside %s; that would make a loop\n", w, code);
                 exit(1);
             }
         drop_field(c, "Parent");
@@ -644,7 +644,7 @@ static void check_target(const arv_home *h, const archive *cat, const char *targ
     strlist *paths = *p ? listing_paths(h, id) : NULL;
     if (paths && !(is_folder ? any_prefix(paths, p) : strlist_has(paths, p))) {
         char *as_folder = xprintf("%s/", p);
-        fprintf(stderr, "arvc: %s is not on %s%s\n", p, id,
+        fprintf(stderr, "Error: %s is not on %s%s\n", p, id,
                 !is_folder && any_prefix(paths, as_folder) ? " (folders end with /)" : "");
         exit(1);
     }

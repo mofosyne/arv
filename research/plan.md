@@ -274,7 +274,12 @@ libraries together, so arv is one repository and one program, shipped on every d
   both versions read. Still Python only: `--split`, hybrid images, drafts and AI helpers,
   Siegfried, RO-Crate, and the catalogue-editing commands (`access`, `location`, `collection`,
   `appraise`, `rebuild`, `index`, `gui`); dvdisaster and (in a checkout) git/tar are still
-  called as programs. Next: port those, then switch `arv` to the C binary.
+  called as programs. Then (2026-10-04) the catalogue commands (`access`, `location`,
+  `collection`, `appraise`, `sets`, `names`, `where`; 35 runs compared with Python's, output,
+  exit codes and catalogue), and **the installed `arv` became the C program**, handing what is not
+  ported (AI helpers, `--split`, hybrid images, interactive `make`, `gui`, `index`, `rebuild`) to
+  the Python arv. Next: `--split`, `rebuild`, then the interactive prompts; the AI helpers stay
+  Python longest.
 - **Burn test discs first.** Before the port goes far, burn a few real test discs with today's
   Python arv, read them back on other machines, scratch one and repair it (#5, #4). What they teach
   goes into the C version instead of being found after it.
