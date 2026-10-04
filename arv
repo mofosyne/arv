@@ -3,7 +3,8 @@
 
 The optional add-on (src/arv: the local AI helpers describe, tag and models, and gui) runs here in
 Python. Every other command is the C arv, which this runs: src/arvc/build/arvc (or arv.com) in a
-checkout, tools/arv.com next to tools/arv/ on a disc, or arv / arvc on PATH.
+checkout, PREFIX/bin/arvc when installed, tools/arv.com next to tools/arv/ on a disc, or arv /
+arvc on PATH.
 """
 import os
 import shutil
@@ -24,8 +25,12 @@ def command(argv):
 
 def c_arv():
     """The C arv's path, named so that it never hands back to Python (not "arv")."""
-    for path in (os.path.join(HERE, "src", "arvc", "build", "arvc"), os.path.join(HERE, "src", "arvc", "build", "arv.com"),
-                 os.path.join(os.path.dirname(HERE), "arv.com"), shutil.which("arvc"), shutil.which("arv")):
+    for path in (os.path.join(HERE, "src", "arvc", "build", "arvc"),            # a checkout
+                 os.path.join(HERE, "src", "arvc", "build", "arv.com"),
+                 os.path.join(HERE, "..", "..", "bin", "arvc"),                  # installed: PREFIX/share/arv
+                 os.path.join(HERE, "arv.com"),
+                 os.path.join(os.path.dirname(HERE), "arv.com"),                 # a disc: tools/arv/ and tools/arv.com
+                 shutil.which("arvc"), shutil.which("arv")):
         if path and os.path.isfile(path) and os.access(path, os.X_OK):
             real = os.path.realpath(path)
             if real != os.path.realpath(__file__):
