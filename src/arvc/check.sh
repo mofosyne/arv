@@ -211,14 +211,35 @@ done
 cmp -s init-py.out init-c.out || { diff init-py.out init-c.out | head -20; no "init and --archive differ"; }
 ok "init --name/--default/--pointer and --archive: output, homes.rec and pointer files as python's"
 
+# tags and keywords: the same output as the Python arv, on the samples with extra tags (an alias,
+# a word not in the vocabulary, a non-ASCII value), and the same tags.rec created on first use
+for who in py c; do
+    rm -rf "tags-$who"
+    cp -r "$repo/samples/home" "tags-$who"
+    rm -f "tags-$who/config/tags.rec"
+    printf '.\tHoliday, Zzz, person:\303\205lice, place:kyoto\nsub dir\tkids,  travel ,\n' \
+        >> "tags-$who/catalog/volumes/TRIP-01_2019_4/tags.tsv"
+    if [ $who = py ]; then run() { python3 "$repo/arv" --home "tags-$who" "$@"; }; else run() { "$tool" -C "tags-$who" "$@"; }; fi
+    {
+        run tags; run tags --namespace place; run tags --namespace ""; run tags --namespace nope
+        run tags --vocab "$repo/src/arv/default_tags.rec"
+        for d in $(run list | cut -f1) NOPE-01_2000_X; do
+            for f in tsv exiftool; do run keywords "$d" --format $f 2>&1 && rc=0 || rc=$?; echo "rc=$rc"; done
+        done
+    } | sed "s#tags-$who#H#g" > "tags-$who.out"
+done
+cmp -s tags-py.out tags-c.out || { diff tags-py.out tags-c.out | head -20; no "tags and keywords differ"; }
+cmp -s tags-py/config/tags.rec tags-c/config/tags.rec || no "tags creates a different tags.rec"
+ok "tags and keywords: $(grep -c . tags-c.out) lines as python prints them; tags.rec created alike"
+
 # called as arv, the program runs what it has and hands the rest to the Python arv
 mkdir -p bin && ln -sf "$tool" bin/arv
-[ "$(bin/arv --home "$repo/samples/home" tags 2>&1)" = "$(python3 "$repo/arv" --home "$repo/samples/home" tags 2>&1)" ] \
-    || no "arv tags (handed to python) differs"
+[ "$(bin/arv --home "$repo/samples/home" describe 2>&1)" = "$(python3 "$repo/arv" --home "$repo/samples/home" describe 2>&1)" ] \
+    || no "arv describe (handed to python) differs"
 [ "$(bin/arv --home "$repo/samples/home" sets)" = "$(python3 "$repo/arv" --home "$repo/samples/home" sets)" ] \
     || no "arv sets differs"
 bin/arv --help 2>&1 | grep -q "usage: arv" || no "arv --help (python's)"
-ok "arv: ported commands run in C, the others (tags, --help) in the Python arv"
+ok "arv: ported commands run in C, the others (describe, --help) in the Python arv"
 
 # find and list give the same lines as the Python arv, on the sample catalogue
 same=0

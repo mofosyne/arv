@@ -48,6 +48,8 @@ void home_at(arv_home *h, const char *path);
 void home_ensure(const arv_home *h);
 char *home_volume_file(const arv_home *h, const char *disc_id, const char *name);
 int cmd_init(int argc, char **argv);
+int cmd_tags(int argc, char **argv);
+int cmd_keywords(int argc, char **argv);
 int cmd_make(int argc, char **argv);
 int cmd_check(int argc, char **argv);
 int cmd_burned(int argc, char **argv);

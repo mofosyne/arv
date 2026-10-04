@@ -4,10 +4,11 @@ CFLAGS  ?= -O2
 WARN     = -std=c99 -Wall -Wextra -Wpedantic -Wshadow
 BUILD    = build
 LIB      = $(BUILD)/rec.o $(BUILD)/sha256.o $(BUILD)/sha512.o $(BUILD)/edtf.o $(BUILD)/discid.o $(BUILD)/vocab.o $(BUILD)/data.o
-OBJS     = $(BUILD)/arvc.o $(BUILD)/util.o $(BUILD)/disc.o $(BUILD)/catalogue.o $(BUILD)/names.o $(BUILD)/home.o $(BUILD)/archive.o $(BUILD)/bag.o $(BUILD)/html.o $(BUILD)/make.o $(BUILD)/record.o $(BUILD)/edit.o $(BUILD)/udfwrite.o $(LIB)
+OBJS     = $(BUILD)/arvc.o $(BUILD)/util.o $(BUILD)/disc.o $(BUILD)/catalogue.o $(BUILD)/names.o $(BUILD)/home.o $(BUILD)/archive.o $(BUILD)/bag.o $(BUILD)/html.o $(BUILD)/make.o $(BUILD)/record.o $(BUILD)/edit.o $(BUILD)/tags.o $(BUILD)/udfwrite.o $(LIB)
 
 DATA     = DATA_DESCRIPTORS=../arv/descriptors.rec DATA_README=../arv/readme.txt \
-           DATA_DEFAULT_SETS=../arv/default_sets.rec DATA_INDEX_CSS=../arv/index.css
+           DATA_DEFAULT_SETS=../arv/default_sets.rec DATA_INDEX_CSS=../arv/index.css \
+           DATA_DEFAULT_TAGS=../arv/default_tags.rec
 
 all: $(BUILD)/arvc $(BUILD)/fixtures
 
