@@ -264,6 +264,7 @@ The layers, from most to least durable:
 
 - **Tests:** `python3 -m unittest discover -s tests`. Add `ARCHIVE_TEST_ECC=1` to include dvdisaster.
 - **Fixtures:** after an intended behaviour change, run `python3 tests/fixtures/generate.py`, then read `git diff tests/fixtures` before committing ([README](../tests/fixtures/README.md)).
+- **Reference outputs:** `make -C src/arvc check` holds the C arv to [tests/reference/expected](../tests/reference/), what every command printed and wrote when the Python arv ran the scenarios; after an intended change, `sh tests/reference/generate.sh` and read `git diff tests/reference/expected`.
 - **Sample discs:** `samples/make-samples.sh` (needs dvdisaster Light or the speed47 fork; builds `src/udfwrite`) replaces `samples/discs` and `samples/home`; the images are not in git, `samples/publish-discs.sh` publishes them as the `samples` release and `samples/fetch-discs.sh` downloads them.
 - **udfmake** (upstream work only):
   - `make -C src/udfmake check` (also `asan`, `static`);

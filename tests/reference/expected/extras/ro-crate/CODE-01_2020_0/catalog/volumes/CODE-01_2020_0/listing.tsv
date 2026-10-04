@@ -1,0 +1,6 @@
+# arv listing 2	size (bytes)	modified (UTC, ISO 8601)	kind	link target	path (relative to data/)
+2	2020-09-13T12:26:40Z	file	-	a.txt
+1743	TIME	file	-	ro-crate-metadata.json
+466	TIME	file	-	ro-crate-preview.html
+4	2020-09-13T12:26:40Z	file	-	sub dir/naïve.md
+14	2020-09-13T12:26:40Z	file	-	sub dir/scan #1.pdf

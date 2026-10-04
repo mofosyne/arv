@@ -67,8 +67,14 @@ def folder_defaults(src):
     return title or name, first.upper()
 
 
+def tools_root():
+    """The arv source tree that goes into tools/: $ARV_SOURCE when set (as in the C arv), else this one."""
+    return os.environ.get("ARV_SOURCE") or REPO_ROOT
+
+
 def software_version():
     """Return (version string, is_git_checkout)."""
+    REPO_ROOT = tools_root()
     if shutil.which("git") and os.path.isdir(os.path.join(REPO_ROOT, ".git")):
         try:
             commit = subprocess.run(["git", "-C", REPO_ROOT, "rev-parse", "--short=12", "HEAD"],
@@ -92,6 +98,7 @@ def stage_tools(tools_dir, is_git, extra_tools, history=False):
     The repository's history is only added when ``history`` is set (as a git bundle), so
     files removed from the repository never keep riding along on new discs.
     """
+    REPO_ROOT = tools_root()
     os.makedirs(tools_dir, exist_ok=True)
     tree = os.path.join(tools_dir, REPO_NAME)
     if is_git:
@@ -112,8 +119,10 @@ def stage_tools(tools_dir, is_git, extra_tools, history=False):
                 os.remove(bundle)
     if not is_git:
         shutil.copytree(REPO_ROOT, tree, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".git", "*.iso"))
-    shutil.copyfile(os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor", "bagit.py"),
-                    os.path.join(tools_dir, "bagit.py"))
+    bagit = os.path.join(REPO_ROOT, "src", "arv", "vendor", "bagit.py")
+    if not os.path.exists(bagit):
+        bagit = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor", "bagit.py")
+    shutil.copyfile(bagit, os.path.join(tools_dir, "bagit.py"))
     if extra_tools:
         shutil.copytree(extra_tools, os.path.join(tools_dir, "extra"))
 

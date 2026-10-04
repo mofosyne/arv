@@ -1,0 +1,346 @@
+$ --home q find kyoto
+DISC  TRIP-01_2019_4  Kyoto, July 2019  [Home / Study / Box 1, blue lid; Parents' house]
+TAG   TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/  (travel, place:kyoto, event:kyoto-2019)
+rc=0
+$ --home q find IMG
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day1 Fushimi Inari/IMG_0100.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day1 Fushimi Inari/IMG_0101.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day1 Fushimi Inari/IMG_0102.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day1 Gion/IMG_0110.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day1 Gion/IMG_0111.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day1 Gion/IMG_0112.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day2 Arashiyama/IMG_0210.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day2 Arashiyama/IMG_0211.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day2 Arashiyama/IMG_0212.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day2 Kinkaku-ji/IMG_0200.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day2 Kinkaku-ji/IMG_0201.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day2 Kinkaku-ji/IMG_0202.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day3 Kiyomizu-dera/IMG_0300.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day3 Kiyomizu-dera/IMG_0301.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day3 Kiyomizu-dera/IMG_0302.png
+rc=0
+$ --home q find *.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day1 Fushimi Inari/IMG_0100.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day1 Fushimi Inari/IMG_0101.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day1 Fushimi Inari/IMG_0102.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day1 Gion/IMG_0110.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day1 Gion/IMG_0111.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day1 Gion/IMG_0112.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day2 Arashiyama/IMG_0210.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day2 Arashiyama/IMG_0211.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day2 Arashiyama/IMG_0212.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day2 Kinkaku-ji/IMG_0200.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day2 Kinkaku-ji/IMG_0201.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day2 Kinkaku-ji/IMG_0202.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day3 Kiyomizu-dera/IMG_0300.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day3 Kiyomizu-dera/IMG_0301.png
+TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day3 Kiyomizu-dera/IMG_0302.png
+PROJ-01_2020-2023_L  [Home / Study / Box 1, blue lid]  data/photos/assembled.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1995/letter-1995-1.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1995/letter-1995-2.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1995/letter-1995-3.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1995/letter-1995-4.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1996/letter-1996-1.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1996/letter-1996-2.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1996/letter-1996-3.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1996/letter-1996-4.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1997/letter-1997-1.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1997/letter-1997-2.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1997/letter-1997-3.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1997/letter-1997-4.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1998/letter-1998-1.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1998/letter-1998-2.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1998/letter-1998-3.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1998/letter-1998-4.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1999/letter-1999-1.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1999/letter-1999-2.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1999/letter-1999-3.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/1999/letter-1999-4.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/2000/letter-2000-1.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/2000/letter-2000-2.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/2000/letter-2000-3.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/2000/letter-2000-4.png
+SCAN-01_1995-2008_D  [Home / Study / Box 1, blue lid]  data/2001/letter-2001-1.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2001/letter-2001-2.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2001/letter-2001-3.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2001/letter-2001-4.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2002/letter-2002-1.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2002/letter-2002-2.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2002/letter-2002-3.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2002/letter-2002-4.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2003/letter-2003-1.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2003/letter-2003-2.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2003/letter-2003-3.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2003/letter-2003-4.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2004/letter-2004-1.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2004/letter-2004-2.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2004/letter-2004-3.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2004/letter-2004-4.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2005/letter-2005-1.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2005/letter-2005-2.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2005/letter-2005-3.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2005/letter-2005-4.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2006/letter-2006-1.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2006/letter-2006-2.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2006/letter-2006-3.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2006/letter-2006-4.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2007/letter-2007-1.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2007/letter-2007-2.png
+SCAN-02_1995-2008_B  [Home / Study / Box 1, blue lid]  data/2007/letter-2007-3.png
+SCAN-03_1995-2008_9  [Home / Study / Box 1, blue lid]  data/2007/letter-2007-4.png
+SCAN-03_1995-2008_9  [Home / Study / Box 1, blue lid]  data/2008/letter-2008-1.png
+SCAN-03_1995-2008_9  [Home / Study / Box 1, blue lid]  data/2008/letter-2008-2.png
+SCAN-03_1995-2008_9  [Home / Study / Box 1, blue lid]  data/2008/letter-2008-3.png
+SCAN-03_1995-2008_9  [Home / Study / Box 1, blue lid]  data/2008/letter-2008-4.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2020 Birthday/PXL_20200301.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2020 Birthday/PXL_20200302.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2020 Birthday/PXL_20200303.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2020 Birthday/PXL_20200304.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2020 Garden/PXL_20200401.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2020 Garden/PXL_20200402.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2020 Garden/PXL_20200403.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2020 Garden/PXL_20200404.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2021 Beach/PXL_20210301.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2021 Beach/PXL_20210302.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2021 Beach/PXL_20210303.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2021 Beach/PXL_20210304.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2021 Christmas/PXL_20210401.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2021 Christmas/PXL_20210402.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2021 Christmas/PXL_20210403.png
+FAMILY-01_2020-2021_K  [Parents' house]  data/2021 Christmas/PXL_20210404.png
+rc=0
+$ --home q find place:*
+TAG   TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/  (travel, place:kyoto, event:kyoto-2019)
+TAG   TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day1 Fushimi Inari/  (place:fushimi-inari)
+TAG   TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day2 Arashiyama/  (place:arashiyama, nature)
+TAG   TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day2 Kinkaku-ji/  (place:kinkaku-ji)
+TAG   TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/day3 Kiyomizu-dera/  (place:kiyomizu-dera)
+TAG   FAMILY-01_2020-2021_K  [Parents' house]  data/2021 Beach/  (travel, place:beach)
+rc=0
+$ --home q find BOX
+DISC  TRIP-01_2019_4  Kyoto, July 2019  [Home / Study / Box 1, blue lid; Parents' house]
+DISC  PROJ-01_2020-2023_L  Weather station project  [Home / Study / Box 1, blue lid]
+DISC  SCAN-01_1995-2008_D  Letters 1995-2008, scanned  [Home / Study / Box 1, blue lid]
+DISC  SCAN-02_1995-2008_B  Letters 1995-2008, scanned  [Home / Study / Box 1, blue lid]
+DISC  SCAN-03_1995-2008_9  Letters 1995-2008, scanned  [Home / Study / Box 1, blue lid]
+rc=0
+$ --home q find 2019
+DISC  TRIP-01_2019_4  Kyoto, July 2019  [Home / Study / Box 1, blue lid; Parents' house]
+DISC  TAXES-01_2019-2020_I  Tax return 2019  [Home / Fire safe]
+TAG   TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]  data/  (travel, place:kyoto, event:kyoto-2019)
+TAXES-01_2019-2020_I  [Home / Fire safe]  data/receipts/receipts-2019-01.pdf
+TAXES-01_2019-2020_I  [Home / Fire safe]  data/receipts/receipts-2019-04.pdf
+TAXES-01_2019-2020_I  [Home / Fire safe]  data/receipts/receipts-2019-07.pdf
+TAXES-01_2019-2020_I  [Home / Fire safe]  data/receipts/receipts-2019-10.pdf
+TAXES-01_2019-2020_I  [Home / Fire safe]  data/tax-return-2019.pdf
+rc=0
+$ --home q find nothing-matches
+rc=1
+$ --home q list
+TRIP-01_2019_4	2026-10-04	Kyoto, July 2019	16 files	public	Home / Study / Box 1, blue lid; Parents' house
+PROJ-01_2020-2023_L	2026-10-04	Weather station project	56 files	private	Home / Study / Box 1, blue lid
+TAXES-01_2019-2020_I	2026-10-04	Tax return 2019	5 files	sealed	Home / Fire safe
+SCAN-01_1995-2008_D	2026-10-04	Letters 1995-2008, scanned	25 files	private	Home / Study / Box 1, blue lid
+SCAN-02_1995-2008_B	2026-10-04	Letters 1995-2008, scanned	26 files	private	Home / Study / Box 1, blue lid
+SCAN-03_1995-2008_9	2026-10-04	Letters 1995-2008, scanned	5 files	private	Home / Study / Box 1, blue lid
+FAMILY-01_2020-2021_K	2026-10-04	Family photos 2020-2021	16 files	private	Parents' house
+rc=0
+$ --home q list --in MEMORIES
+TRIP-01_2019_4	2026-10-04	Kyoto, July 2019	16 files	public	Home / Study / Box 1, blue lid; Parents' house
+SCAN-01_1995-2008_D	2026-10-04	Letters 1995-2008, scanned	25 files	private	Home / Study / Box 1, blue lid
+SCAN-02_1995-2008_B	2026-10-04	Letters 1995-2008, scanned	26 files	private	Home / Study / Box 1, blue lid
+SCAN-03_1995-2008_9	2026-10-04	Letters 1995-2008, scanned	5 files	private	Home / Study / Box 1, blue lid
+FAMILY-01_2020-2021_K	2026-10-04	Family photos 2020-2021	16 files	private	Parents' house
+rc=0
+$ --home q list --at BOX1
+TRIP-01_2019_4	2026-10-04	Kyoto, July 2019	16 files	public	Home / Study / Box 1, blue lid; Parents' house
+PROJ-01_2020-2023_L	2026-10-04	Weather station project	56 files	private	Home / Study / Box 1, blue lid
+SCAN-01_1995-2008_D	2026-10-04	Letters 1995-2008, scanned	25 files	private	Home / Study / Box 1, blue lid
+SCAN-02_1995-2008_B	2026-10-04	Letters 1995-2008, scanned	26 files	private	Home / Study / Box 1, blue lid
+SCAN-03_1995-2008_9	2026-10-04	Letters 1995-2008, scanned	5 files	private	Home / Study / Box 1, blue lid
+rc=0
+$ --home q list --access sealed
+TAXES-01_2019-2020_I	2026-10-04	Tax return 2019	5 files	sealed	Home / Fire safe
+rc=0
+$ --home q list --made 2026
+TRIP-01_2019_4	2026-10-04	Kyoto, July 2019	16 files	public	Home / Study / Box 1, blue lid; Parents' house
+PROJ-01_2020-2023_L	2026-10-04	Weather station project	56 files	private	Home / Study / Box 1, blue lid
+TAXES-01_2019-2020_I	2026-10-04	Tax return 2019	5 files	sealed	Home / Fire safe
+SCAN-01_1995-2008_D	2026-10-04	Letters 1995-2008, scanned	25 files	private	Home / Study / Box 1, blue lid
+SCAN-02_1995-2008_B	2026-10-04	Letters 1995-2008, scanned	26 files	private	Home / Study / Box 1, blue lid
+SCAN-03_1995-2008_9	2026-10-04	Letters 1995-2008, scanned	5 files	private	Home / Study / Box 1, blue lid
+FAMILY-01_2020-2021_K	2026-10-04	Family photos 2020-2021	16 files	private	Parents' house
+rc=0
+$ --home q list --covers 2019
+TRIP-01_2019_4	2026-10-04	Kyoto, July 2019	16 files	public	Home / Study / Box 1, blue lid; Parents' house
+TAXES-01_2019-2020_I	2026-10-04	Tax return 2019	5 files	sealed	Home / Fire safe
+rc=0
+$ --home q list --covers 1995-06
+SCAN-01_1995-2008_D	2026-10-04	Letters 1995-2008, scanned	25 files	private	Home / Study / Box 1, blue lid
+SCAN-02_1995-2008_B	2026-10-04	Letters 1995-2008, scanned	26 files	private	Home / Study / Box 1, blue lid
+SCAN-03_1995-2008_9	2026-10-04	Letters 1995-2008, scanned	5 files	private	Home / Study / Box 1, blue lid
+rc=0
+$ --home q id TRIP-01_2019_4
+scheme:    set-seq-coverage/1
+set:       TRIP
+sequence:  1
+coverage:  2019
+check:     4 (correct)
+disc:      Kyoto, July 2019 [Home / Study / Box 1, blue lid; Parents' house]
+fields:    regenerate this id
+rc=0
+$ --home q id trip-01_2019_4
+scheme:    set-seq-coverage/1
+set:       TRIP
+sequence:  1
+coverage:  2019
+check:     4 (correct)
+disc:      Kyoto, July 2019 [Home / Study / Box 1, blue lid; Parents' house]
+fields:    regenerate this id
+rc=0
+$ --home q id TRIP-01_2019_5
+scheme:    set-seq-coverage/1
+set:       TRIP
+sequence:  1
+coverage:  2019
+check:     5 (WRONG: probably a typo)
+disc:      not in the catalogue - did you mean TRIP-01_2019_4?
+rc=1
+$ --home q id PROJ-01_2020-2O23_L
+PROJ-01_2020-2O23_L: not a disc id of a known scheme
+rc=1
+$ --home q id 2020-2025_PROJECTS_01
+scheme:    coverage-set-seq/0
+set:       PROJECTS
+sequence:  1
+coverage:  2020-2025
+disc:      not in the catalogue
+rc=0
+$ --home q id not an id
+not an id: not a disc id of a known scheme
+rc=1
+$ --home q sets
+MEMORIES Memories                     0 discs (5 including below)
+  AUDIO    Audio recordings             
+  PHOTO    Photos                       0 discs (5 including below)
+    EVENT    Events                       
+    FAMILY   Family                       1 disc
+    SCAN     Scans                        3 discs   [also under RECORDS, PHOTO]
+    TRIP     Trips and holidays           1 disc
+  VIDEO    Home video                   
+RECORDS  Records                      0 discs (4 including below)
+  FINANCE  Finance                      0 discs (1 including below)
+    TAXES    Taxes                        1 disc
+  HEALTH   Health                       
+  HOME     Home and property            
+  LEGAL    Legal and identity           
+  LETTERS  Letters and correspondence   3 discs
+  SCAN     Scans                        3 discs   [also under RECORDS, PHOTO]
+CAREER   Work and study               
+  SCHOOL   School and study             
+  WORK     Work                         
+PROJECTS Projects                     0 discs (1 including below)
+  CODE     Software                     1 disc
+  DESIGN   Design and art               
+  ELEC     Electronics                  1 disc
+  PROJ     Personal projects            1 disc
+  WRITING  Writing                      
+COLLECT  Collections                  
+  BOOKS    Books and papers             
+  GAMES    Games                        
+  MEDIA    Media library                
+BACKUPS  Backups and exports          
+  EMAIL    Email and messages           
+  PHONE    Phone backups                
+  SYSTEM   System backups               
+  WEB      Web archives                 
+MISC     Miscellaneous                
+rc=0
+$ --home q sets -v
+MEMORIES Memories                     0 discs (5 including below)
+  AUDIO    Audio recordings             
+           aliases: recordings, voice
+           matches: *.wav *.m4a
+  PHOTO    Photos                       0 discs (5 including below)
+           scope: photos that are not from a trip or event; scans of prints go in SCAN
+           aliases: pictures, pics, camera
+           matches: *.jpg *.jpeg *.heic *.dng *.cr2 *.nef *.arw
+    EVENT    Events                       
+             aliases: wedding, birthday, party
+    FAMILY   Family                       1 disc
+    SCAN     Scans                        3 discs   [also under RECORDS, PHOTO]
+             aliases: scanned, scanner
+    TRIP     Trips and holidays           1 disc
+             aliases: holiday, holidays, travel, vacation
+  VIDEO    Home video                   
+           scope: your own recordings; bought or downloaded films go in MEDIA
+           aliases: videos, movies, footage
+           matches: *.mp4 *.mov *.mts *.m2ts
+RECORDS  Records                      0 discs (4 including below)
+         aliases: documents, paperwork, docs
+  FINANCE  Finance                      0 discs (1 including below)
+           aliases: bank, banking, invoices, receipts, money
+    TAXES    Taxes                        1 disc
+             aliases: tax, taxreturn
+  HEALTH   Health                       
+           aliases: medical
+  HOME     Home and property            
+           aliases: house, property
+  LEGAL    Legal and identity           
+           aliases: identity, contracts, certificates
+  LETTERS  Letters and correspondence   3 discs
+           aliases: correspondence, mail
+  SCAN     Scans                        3 discs   [also under RECORDS, PHOTO]
+           aliases: scanned, scanner
+CAREER   Work and study               
+  SCHOOL   School and study             
+           aliases: study, university, uni, college
+  WORK     Work                         
+           aliases: job, career
+PROJECTS Projects                     0 discs (1 including below)
+  CODE     Software                     1 disc
+           aliases: software, source, src, repos, programming
+           matches: *.git *.py *.c *.h *.cpp *.rs *.go *.js *.ts *.java Makefile CMakeLists.txt Cargo.toml package.json
+  DESIGN   Design and art               
+           aliases: art, cad, drawings, graphics
+           matches: *.stl *.step *.stp *.scad *.f3d *.blend *.svg *.psd *.xcf *.kra
+  ELEC     Electronics                  1 disc
+           aliases: electronics, hardware, pcb, firmware
+           matches: *.kicad_pcb *.kicad_sch *.sch *.brd *.gbr *.ino
+  PROJ     Personal projects            1 disc
+           scope: one project with all its kinds of files; add CODE, ELEC or DESIGN as Categories
+           aliases: projects, project
+  WRITING  Writing                      
+           aliases: blog, articles, stories
+COLLECT  Collections                  
+  BOOKS    Books and papers             
+           aliases: ebooks, papers, library
+           matches: *.epub *.mobi *.azw3 *.djvu
+  GAMES    Games                        
+           aliases: saves, roms, mods
+  MEDIA    Media library                
+           aliases: music, films, podcasts
+           matches: *.flac *.mkv
+BACKUPS  Backups and exports          
+         aliases: backup, exports
+  EMAIL    Email and messages           
+           aliases: emails, inbox
+           matches: *.mbox *.eml *.pst
+  PHONE    Phone backups                
+           aliases: mobile, android, iphone, whatsapp
+  SYSTEM   System backups               
+           aliases: disk images, os
+           matches: *.img *.vhd *.vhdx *.vmdk *.qcow2
+  WEB      Web archives                 
+           aliases: websites, social
+           matches: *.warc *.warc.gz
+MISC     Miscellaneous                
+         aliases: other, stuff
+rc=0
+$ --home q where
+q
+  found by --home
+homes on this machine (ROOT/userhome/.config/arv/homes.rec):
+  main         ROOT/init/a/.arv
+  other        ROOT/init/b/.arv  (default)
+rc=0

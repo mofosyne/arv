@@ -25,6 +25,8 @@ void sb_printf(sbuf *b, const char *fmt, ...);
 char *xprintf(const char *fmt, ...);
 unsigned long utf8_next(const char **s);
 size_t utf8_chars(const char *s);
+struct tm;
+void today_tm(struct tm *tm);
 void today_iso(char out[11]);
 void uuid4(char out[37]);
 int mkdirs(const char *path);
@@ -197,6 +199,7 @@ typedef struct {
 } catalogue;
 
 void die(const char *fmt, const char *arg);
+void die2(const char *fmt, const char *a, const char *b);
 void *xmalloc(size_t n);
 void *xrealloc(void *p, size_t n);
 char *xstrdup(const char *s);

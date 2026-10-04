@@ -89,14 +89,22 @@ def default_home():
     return homes.find()[0]
 
 
+def today_date():
+    """Today; or the day of $SOURCE_DATE_EPOCH (UTC) when set, for reproducible discs and tests."""
+    epoch = os.environ.get("SOURCE_DATE_EPOCH")
+    if epoch and epoch.strip().isdigit():
+        return datetime.datetime.fromtimestamp(int(epoch), datetime.timezone.utc).date()
+    return datetime.date.today()
+
+
 def today():
-    return datetime.date.today().isoformat()
+    return today_date().isoformat()
 
 
 def coverage_years(entries):
     """Year range of the payload's modification times as EDTF: '2020/2025' or '2023'."""
     if not entries:
-        return str(datetime.date.today().year)
+        return str(today_date().year)
     years = [datetime.date.fromtimestamp(e.mtime).year for e in entries]
     lo, hi = min(years), max(years)
     return str(lo) if lo == hi else "%d/%d" % (lo, hi)

@@ -1,0 +1,18 @@
+$ --home hl make -y --no-ecc --formats no --set CODE --links copy --label  --access public --snapshot disc --keep-stage --output-dir out-links src
+Scanning and hashing ROOT/src ...
+Warning: broken link dead -> missing.txt (recorded in the listing, not archived)
+Links: 2 copied, 1 broken (policy: copy)
+Classified as: PROJECTS/CODE
+Building ROOT/out-links/CODE-01_2020_0.noecc.iso (1 of 1, 1.7 MiB) ...
+Kept staging directory ROOT/out-links/.archive-make-XXXXXX
+CODE-01_2020_0	ROOT/out-links/CODE-01_2020_0.noecc.iso	Src
+rc=0
+$ --home hl make -y --no-ecc --formats no --set CODE --links record --title Recorded links --access sealed --keep-stage --output-dir out-links2 src
+Scanning and hashing ROOT/src ...
+Warning: broken link dead -> missing.txt (recorded in the listing, not archived)
+Links: 1 copied, 1 recorded, 1 broken (policy: record)
+Classified as: PROJECTS/CODE
+Building ROOT/out-links2/CODE-02_2020_Y.noecc.iso (1 of 1, 1.7 MiB) ...
+Kept staging directory ROOT/out-links2/.archive-make-XXXXXX
+CODE-02_2020_Y	ROOT/out-links2/CODE-02_2020_Y.noecc.iso	Recorded links
+rc=0

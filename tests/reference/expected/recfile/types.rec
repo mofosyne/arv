@@ -1,0 +1,12 @@
+%rec: Disc
+
+Id: X
+Title: t
+
+%rec: Event
+
+Disc: X
+Type: creation
+
+Disc: X
+Type: fixity check

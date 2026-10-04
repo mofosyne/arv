@@ -12,8 +12,8 @@ cc -O2 -o arvc tools/arv/src/arvc/*.c tools/arv/src/udfwrite/udfwrite.c
 ```
 
 Called as `arv` (the installed link), it hands to the Python arv (`share/arv/arv`, or `arv-py`)
-any command or option it does not have (the AI helpers, drafts, `gui`) and `--help`. Called as `arvc`, it never hands over. The Python arv stays the
-reference until everything is ported, and `make check` holds the two to the same output.
+any command or option it does not have (the AI helpers, drafts, `gui`) and `--help`. Called as `arvc`, it never hands over. What the Python arv did is frozen in
+[tests/reference/](../../tests/reference/), and `make check` holds arvc to it.
 
 ## Commands
 
@@ -72,42 +72,42 @@ hyphens.
 
 ## How it is checked
 
-`make check`:
+`make check`, with no Python needed:
 - `build/fixtures` runs every case in `tests/fixtures/` (coverage dates, disc ids and check
-  characters, the vocabulary, Match rules, file names, volume labels, recfiles: 181 cases, the
+  characters, the vocabulary, Match rules, file names, volume labels, recfiles: 160 cases, the
   ones the Python code passes too), and `data.c` must be up to date;
-- **making:** two discs made by the Python arv and by arvc from the same folders, into fresh
-  homes: every file on the discs is the same (UUIDs and the version string aside; `extents.tsv`
-  of the earlier disc moves by the version string's extra byte), bagit.py validates them, and the
-  home catalogues are the same; with dvdisaster on PATH, a disc with RS03 is made and tested;
-- **recording:** `burned`, `note`, `locate` and `check` on copies of a catalogue leave it byte for
-  byte as the Python arv leaves it; so do the 35 editing runs in `dev/edit-cases.txt` (`access`,
-  `location`, `collection`, `appraise`, `sets`, `names`, `where`), whose output and exit codes
-  are compared too;
-- **splitting:** a folder spread over three discs with `--split`: the same rebalancing steps,
-  the same files on each disc and the same home catalogue as the Python arv's;
-- **rebuild:** a home rebuilt from discs, then a hand edit replaced with `--prefer-disc`: the
-  same catalogue, file lists and output as the Python arv's;
-- **arv:** called as `arv`, ported commands run in C and the others in the Python arv;
-- **reading:** `find`, `list` and `id` print what the Python arv prints (20 queries); a disc made
-  from a git repository with links and a script is restored by arvc and `git status` in the
-  restore is clean; damage is reported; SHA-256 and SHA-512 match `sha256sum` and `sha512sum`
-  around every block boundary; the recfile writer writes the Python's bytes.
+- **the reference scenarios** ([tests/reference/](../../tests/reference/)): every command arvc has,
+  run in a fixed setting (clock, time zone, user, input dates, `tools/` source), must print and
+  write what the Python arv did when `expected/` was generated: transcripts with exit codes and
+  error messages, home catalogues, file lists, and every file staged for each disc (BagIt files,
+  catalog.rec, the catalogue snapshot, README.txt, index.html, the RO-Crate files), 145 files
+  compared byte for byte after normalising; the recfile writer must write the Python's bytes;
+- **a real disc**: a disc made from a git repository with links and a script is read back with 7z,
+  verified, and restored with a clean `git status`; damage is reported; bagit.py validates it when
+  Python is there; `tools/` carries arv's commit, and with `--tools-history` its branches;
+- with dvdisaster on PATH, RS03 is added, tested, and `check` passes it again; with Siegfried,
+  `formats.csv` and its event are written;
+- SHA-256 and SHA-512 match `sha256sum` and `sha512sum` around every block boundary;
+- with Python on PATH, arvc called as `arv` runs ported commands itself and hands the rest over.
 
 It builds without warnings with gcc and clang (`-std=c99 -Wall -Wextra -Wpedantic -Wshadow`),
-and `make check` passes under AddressSanitizer and UndefinedBehaviorSanitizer.
+and `make check` passes under AddressSanitizer and UndefinedBehaviorSanitizer (with
+`ASAN_OPTIONS=detect_leaks=0`: memory still held at exit is left to the system).
 
 ## Files
 
 | File | What |
 |---|---|
-| `arvc.c` | the commands |
+| `arvc.c` | the commands, and handing the rest to the Python arv |
+| `tags.c` | `tags`, `keywords` |
+| `formats.c` | Siegfried format identification |
+| `rocrate.c` | `--ro-crate` |
 | `make.c` | `make` (cli.cmd_make and make.Maker) |
 | `record.c` | `check`, `burned`, `note`, `locate` |
 | `edit.c` | `access`, `location`, `collection`, `appraise`, `sets`, `names`, `where` |
 | `disc.c` | reading a disc: `info`, `verify`, `ls`, `restore` |
 | `catalogue.c` | `find`, `list`, `id` |
-| `home.c` | finding the home; `init` |
+| `home.c` | finding the home (`--archive` too); `init` with named homes and pointers |
 | `archive.c` | the catalogue model: records in order, snapshots, access levels, events |
 | `bag.c` | the payload scan with the links policy, BagIt tag files, the listing |
 | `html.c` | index.html |
@@ -116,4 +116,4 @@ and `make check` passes under AddressSanitizer and UndefinedBehaviorSanitizer.
 | `discid.c`, `edtf.c` | disc ids, coverage dates |
 | `rec.c`, `sha256.c`, `sha512.c`, `util.c` | recfiles, checksums, helpers |
 | `data.c`, `data.h` | the files shared with the Python arv (descriptors.rec, readme.txt, index.css, default_sets.rec), generated by `make data` from `src/arv/` and committed |
-| `dev/` | the fixture runner and the data embedder (not part of the program) |
+| `dev/` | the fixture runner, the data embedder and `ptyrun` (a pseudo-terminal for the interactive scenario); not part of the program |

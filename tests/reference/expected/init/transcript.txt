@@ -1,0 +1,37 @@
+$ init a --name main
+Created ROOT/init/a/.arv
+Registered as main in ROOT/userhome/.config/arv/homes.rec
+rc=0
+$ init b --name other --default
+Created ROOT/init/b/.arv
+Registered as other in ROOT/userhome/.config/arv/homes.rec (default)
+rc=0
+$ init a --name main
+Error: ROOT/init/a/.arv already exists
+rc=1
+$ init c --pointer a/.arv
+Wrote ROOT/init/c/.arv -> ROOT/init/a/.arv
+rc=0
+$ init c/sub --pointer nowhere
+Error: ROOT/init/nowhere is not a folder
+rc=1
+$ init b/../c/sub --pointer ./c/../a/.arv
+Wrote ROOT/init/c/sub/.arv -> ROOT/init/a/.arv
+rc=0
+$ --archive main where
+ROOT/init/a/.arv
+  found by --archive main (ROOT/userhome/.config/arv/homes.rec)
+homes on this machine (ROOT/userhome/.config/arv/homes.rec):
+  main         ROOT/init/a/.arv
+  other        ROOT/init/b/.arv  (default)
+rc=0
+$ --archive nope where
+Error: no home named nope in ROOT/userhome/.config/arv/homes.rec (`arv init --name nope` adds one)
+rc=1
+$ where
+ROOT/init/a/.arv
+  found by the pointer file ROOT/init/c/sub/.arv
+homes on this machine (ROOT/userhome/.config/arv/homes.rec):
+  main         ROOT/init/a/.arv
+  other        ROOT/init/b/.arv  (default)
+rc=0

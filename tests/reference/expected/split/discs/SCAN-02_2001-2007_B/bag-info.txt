@@ -1,0 +1,7 @@
+Bagging-Date: 2026-01-01
+External-Identifier: SCAN-02_2001-2007_B
+External-Description: Big
+Bag-Group-Identifier: SCAN-01-02
+Bag-Count: 2 of 2
+Payload-Oxum: 1500000.15
+Bag-Software-Agent: SW <https://github.com/mofosyne/arv>

@@ -1,0 +1,14 @@
+%rec: Disc
+%key: Id
+
+Id: A
+Note: line one
++ line two
++
++ after a blank line
+Note: second note
+Title: with trailing spaces   
+
+Id: B
+Empty:
+Joined: first half second half

@@ -1,0 +1,82 @@
+%rec: Snapshot
+%doc: When this catalogue snapshot was taken and what it covers. The home
++ archive.rec stays authoritative for anything recorded after this date.
+
+Date: 2026-01-01
+Scope: full
+Discs: 1
+
+%rec: Disc
+%doc: One record per physical disc image (an OAIS AIP). Field names follow
++ Dublin Core terms where one fits: Title, Creator, Date, Description,
++ Subject, Coverage, Rights. Uuid is the machine identity of the image
++ (copies burned from one image share it); Id is for people and is
++ derived from Set, Sequence and Coverage (EDTF) under IdScheme, so it
++ can always be regenerated and checked (see docs/smart-archive-format.md).
+%key: Id
+%mandatory: Id Title Date
+%type: Uuid uuid
+%type: Sequence int
+%type: Date date
+%type: Files int
+%type: Bytes int
+%type: Access enum public private sealed
+
+Id: CODE-01_2020_0
+Uuid: UUID
+IdScheme: set-seq-coverage/1
+Label: CODE-01_2020_0 T"x
+Title: T"x
+Set: CODE
+Path: PROJECTS/CODE
+Sequence: 1
+Coverage: 2020
+Date: 2026-01-01
+Creator: Sam
+Description: Line, with "quotes"
+Subject: one
+Subject: two
+Access: private
+Rights: https://creativecommons.org/licenses/by/4.0/
+Files: 3
+Bytes: 20
+Software: SW
+
+%rec: Binding
+%doc: How one volume is stored on its medium: the container (filesystem) and the
++ protection (error correction) it was made with. These change with the medium;
++ the files and the rest of the catalogue do not (research/plan.md, four layers).
++ Container: iso9660+udf-1.02, udf-2.50 (later perhaps ltfs, exfat, tar, afs).
++ Protection: rs03 or none. Media, Filesystem and Ecc describe them for people
++ (format 0.2 and earlier kept those three in the Disc record).
+%key: Volume
+%mandatory: Volume Container Protection
+%type: MediumSectors int
+
+Volume: CODE-01_2020_0
+Container: udf-2.50
+Protection: none
+Media: M-DISC BD-R 25GB
+Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
+Ecc: none
+
+%rec: Event
+%doc: Preservation actions and metadata changes, appended and never edited. Type uses
++ the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
++ Disc names the disc; a change to a location or a collection names it in Object
++ (location:CODE, collection:CODE) instead. Agent (one or more) is software
++ (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
++ Authorship says how people and machines shared the work: automatic (software
++ following rules), suggested (a model, not reviewed), accepted (a model's suggestion
++ a person kept as it was), edited (one a person changed), human (a person alone).
+%mandatory: Type Date Outcome
+%type: Outcome enum success failure warning
+%type: Authorship enum automatic suggested accepted edited human
+
+Disc: CODE-01_2020_0
+Type: message digest calculation
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: SW
+Note: sha256 and sha512 manifests of 3 files

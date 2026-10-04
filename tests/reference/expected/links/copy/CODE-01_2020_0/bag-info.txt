@@ -1,0 +1,6 @@
+Bagging-Date: 2026-01-01
+External-Identifier: CODE-01_2020_0
+External-Description: Src
+Bag-Group-Identifier: CODE
+Payload-Oxum: 36.4
+Bag-Software-Agent: SW <https://github.com/mofosyne/arv>

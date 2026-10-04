@@ -1,0 +1,13 @@
+%rec: Home
+%doc: Archive homes on this machine (paths are local; this file never goes on a disc).
++ Name is what --archive takes; Default: yes picks the home used outside any .arv tree.
+%key: Name
+%mandatory: Name Path
+%type: Default enum yes no
+
+Name: main
+Path: ROOT/init/a/.arv
+
+Name: other
+Path: ROOT/init/b/.arv
+Default: yes

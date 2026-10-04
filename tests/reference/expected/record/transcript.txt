@@ -1,0 +1,15 @@
+$ --home rec burned TRIP-01_2019_4 --copies 2 --location box1 --media-id MEI-T02 --note for the attic
+TRIP-01_2019_4: 4 copies recorded
+rc=0
+$ --home rec note PROJ-01_2020-2023_L A long note that goes on about the weather station, its board revisions and the spare parts
+rc=0
+$ --home rec locate SCAN-01_1995-2008_D SAFE --add
+SCAN-01_1995-2008_D: Home / Study / Box 1, blue lid; Home / Fire safe
+rc=0
+$ --home rec locate FAMILY-01_2020-2021_K Somewhere new
+Note: Somewhere new is not a location code ('arv location add' to define it); stored as text
+FAMILY-01_2020-2021_K: Somewhere new
+rc=0
+$ --home rec burned NOPE-01_2000_X
+Error: no disc NOPE-01_2000_X in rec/catalog/archive.rec
+rc=1

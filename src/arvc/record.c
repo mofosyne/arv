@@ -19,7 +19,7 @@ static rec_record *open_disc_record(opened *o, const char *given, const char *di
     home_find(&o->h, given, NULL);
     archive_load(&o->cat, o->h.rec_path);
     rec_record *d = archive_disc(&o->cat, disc_id);
-    if (!d) die("no disc %s in the catalogue", disc_id);
+    if (!d) die2("no disc %s in %s", disc_id, o->h.rec_path);
     return d;
 }
 

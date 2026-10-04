@@ -48,7 +48,7 @@ def parse_importance(text):
 
 def review_date(text, today=None):
     """YYYY-MM-DD, or a span from today: 5y, 18m."""
-    today = today or datetime.date.today()
+    today = today or catalog.today_date()
     m = re.match(r"^(\d+)\s*([ym])$", (text or "").strip().lower())
     if m:
         months = int(m.group(1)) * (12 if m.group(2) == "y" else 1)

@@ -1,0 +1,262 @@
+$ --home edit location list
+HOME       Home                           0 discs (6 including inside)
+  STUDY      Study                          0 discs (5 including inside)
+    BOX1       Box 1, blue lid                5 discs
+  SAFE       Fire safe                      1 disc
+OFFSITE    Parents' house                 2 discs
+rc=0
+$ --home edit location list -v
+HOME       Home                           0 discs (6 including inside)
+  STUDY      Study                          0 discs (5 including inside)
+    BOX1       Box 1, blue lid                5 discs
+                 TRIP-01_2019_4  Kyoto, July 2019
+                 PROJ-01_2020-2023_L  Weather station project
+                 SCAN-01_1995-2008_D  Letters 1995-2008, scanned
+                 SCAN-02_1995-2008_B  Letters 1995-2008, scanned
+                 SCAN-03_1995-2008_9  Letters 1995-2008, scanned
+  SAFE       Fire safe                      1 disc
+               TAXES-01_2019-2020_I  Tax return 2019
+OFFSITE    Parents' house                 2 discs
+             TRIP-01_2019_4  Kyoto, July 2019
+             FAMILY-01_2020-2021_K  Family photos 2020-2021
+rc=0
+$ --home edit location add ATTIC Attic shelf --in HOME --description dusty
+ATTIC: Home / Attic shelf
+rc=0
+$ --home edit location move ATTIC --in BOX1
+ATTIC: Home / Study / Box 1, blue lid / Attic shelf
+rc=0
+$ --home edit location move ATTIC Attic, top shelf
+ATTIC: Home / Study / Box 1, blue lid / Attic, top shelf
+rc=0
+$ --home edit location move NOPE
+Error: no location NOPE
+rc=1
+$ --home edit location add attic
+Error: location ATTIC already exists (use 'arv location move' or edit edit/catalog/archive.rec)
+rc=1
+$ --home edit location list
+HOME       Home                           0 discs (6 including inside)
+  STUDY      Study                          0 discs (5 including inside)
+    BOX1       Box 1, blue lid                5 discs
+      ATTIC      Attic, top shelf               0 discs
+  SAFE       Fire safe                      1 disc
+OFFSITE    Parents' house                 2 discs
+rc=0
+$ --home edit collection list
+rc=0
+$ --home edit collection add BEST --name Best of TRIP-01_2019_4:day1 Fushimi Inari/ PROJ-01_2020-2023_L
+BEST: Best of, 2 items
+rc=0
+$ --home edit collection put BEST TRIP-01_2019_4:day2 Arashiyama
+BEST: Best of, 3 items
+rc=0
+$ --home edit collection put BEST TRIP-01_2019_4:nothing.txt
+Error: TRIP-01_2019_4 has no file nothing.txt
+rc=1
+$ --home edit collection show BEST
+BEST  Best of
+  day1 Fushimi Inari/                                TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]
+  (whole disc)                                       PROJ-01_2020-2023_L  [Home / Study / Box 1, blue lid]
+  day2 Arashiyama/                                   TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]
+rc=0
+$ --home edit collection drop BEST PROJ-01_2020-2023_L
+BEST: Best of, 2 items
+rc=0
+$ --home edit collection move BEST --name Best
+BEST: Best, 2 items
+rc=0
+$ --home edit collection add KIDS --in BEST
+KIDS: Best / KIDS, 0 items
+rc=0
+$ --home edit collection move BEST --in KIDS
+Error: KIDS is inside BEST; that would make a loop
+rc=1
+$ --home edit collection list
+BEST         Best                                 2 items
+  KIDS         KIDS                                 0 items
+rc=0
+$ --home edit access TAXES-01_2019-2020_I private
+rc=0
+$ --home edit access TRIP-01_2019_4 public
+rc=0
+$ --home edit appraise TRIP-01_2019_4:day1 Fushimi Inari/IMG_0101.png
+TRIP-01_2019_4:day1 Fushimi Inari/IMG_0101.png  (from TRIP-01_2019_4)
+  essential for self
+  important for family
+  Basis: the only photos of the trip
+  Review: 2031-10-01
+  Date: 2026-10-04
+  Authorship: human
+  Agent: human:root
+rc=0
+$ --home edit appraise --due 2032-01-01
+TRIP-01_2019_4	review 2031-10-01	essential for self; important for family
+rc=0
+$ --home edit appraise PROJ-01_2020-2023_L --importance useful for public --basis rebuildable --review 2030-01-01
+PROJ-01_2020-2023_L: useful for public
+rc=0
+$ --home edit appraise set:PROJ
+set:PROJ
+  important for self
+  useful for public
+  Basis: hardware designs: someone may want to rebuild one
+  Date: 2026-10-04
+  Authorship: human
+  Agent: human:root
+rc=0
+$ --home edit appraise collection:BEST --importance essential for family
+collection:BEST: essential for family
+rc=0
+$ --home edit appraise TRIP-01_2019_4:nope/
+Error: nope/ is not on TRIP-01_2019_4
+rc=1
+$ --home edit appraise PROJ-01_2020-2023_L --importance vital
+Error: importance must read '<level> for <audience>', e.g. 'essential for family' (levels: essential, important, useful, incidental), not 'vital'
+rc=1
+$ --home edit appraise --due
+No appraisals due for review.
+rc=0
+$ --home edit appraise PROJ-01_2020-2023_L
+PROJ-01_2020-2023_L
+  useful for public
+  Basis: rebuildable
+  Review: 2030-01-01
+  Date: 2026-01-01
+  Authorship: human
+  Agent: human:archivist
+rc=0
+$ --home edit sets
+MEMORIES Memories                     0 discs (5 including below)
+  AUDIO    Audio recordings             
+  PHOTO    Photos                       0 discs (5 including below)
+    EVENT    Events                       
+    FAMILY   Family                       1 disc
+    SCAN     Scans                        3 discs   [also under RECORDS, PHOTO]
+    TRIP     Trips and holidays           1 disc
+  VIDEO    Home video                   
+RECORDS  Records                      0 discs (4 including below)
+  FINANCE  Finance                      0 discs (1 including below)
+    TAXES    Taxes                        1 disc
+  HEALTH   Health                       
+  HOME     Home and property            
+  LEGAL    Legal and identity           
+  LETTERS  Letters and correspondence   3 discs
+  SCAN     Scans                        3 discs   [also under RECORDS, PHOTO]
+CAREER   Work and study               
+  SCHOOL   School and study             
+  WORK     Work                         
+PROJECTS Projects                     0 discs (1 including below)
+  CODE     Software                     1 disc
+  DESIGN   Design and art               
+  ELEC     Electronics                  1 disc
+  PROJ     Personal projects            1 disc
+  WRITING  Writing                      
+COLLECT  Collections                  
+  BOOKS    Books and papers             
+  GAMES    Games                        
+  MEDIA    Media library                
+BACKUPS  Backups and exports          
+  EMAIL    Email and messages           
+  PHONE    Phone backups                
+  SYSTEM   System backups               
+  WEB      Web archives                 
+MISC     Miscellaneous                
+rc=0
+$ --home edit sets -v
+MEMORIES Memories                     0 discs (5 including below)
+  AUDIO    Audio recordings             
+           aliases: recordings, voice
+           matches: *.wav *.m4a
+  PHOTO    Photos                       0 discs (5 including below)
+           scope: photos that are not from a trip or event; scans of prints go in SCAN
+           aliases: pictures, pics, camera
+           matches: *.jpg *.jpeg *.heic *.dng *.cr2 *.nef *.arw
+    EVENT    Events                       
+             aliases: wedding, birthday, party
+    FAMILY   Family                       1 disc
+    SCAN     Scans                        3 discs   [also under RECORDS, PHOTO]
+             aliases: scanned, scanner
+    TRIP     Trips and holidays           1 disc
+             aliases: holiday, holidays, travel, vacation
+  VIDEO    Home video                   
+           scope: your own recordings; bought or downloaded films go in MEDIA
+           aliases: videos, movies, footage
+           matches: *.mp4 *.mov *.mts *.m2ts
+RECORDS  Records                      0 discs (4 including below)
+         aliases: documents, paperwork, docs
+  FINANCE  Finance                      0 discs (1 including below)
+           aliases: bank, banking, invoices, receipts, money
+    TAXES    Taxes                        1 disc
+             aliases: tax, taxreturn
+  HEALTH   Health                       
+           aliases: medical
+  HOME     Home and property            
+           aliases: house, property
+  LEGAL    Legal and identity           
+           aliases: identity, contracts, certificates
+  LETTERS  Letters and correspondence   3 discs
+           aliases: correspondence, mail
+  SCAN     Scans                        3 discs   [also under RECORDS, PHOTO]
+           aliases: scanned, scanner
+CAREER   Work and study               
+  SCHOOL   School and study             
+           aliases: study, university, uni, college
+  WORK     Work                         
+           aliases: job, career
+PROJECTS Projects                     0 discs (1 including below)
+  CODE     Software                     1 disc
+           aliases: software, source, src, repos, programming
+           matches: *.git *.py *.c *.h *.cpp *.rs *.go *.js *.ts *.java Makefile CMakeLists.txt Cargo.toml package.json
+  DESIGN   Design and art               
+           aliases: art, cad, drawings, graphics
+           matches: *.stl *.step *.stp *.scad *.f3d *.blend *.svg *.psd *.xcf *.kra
+  ELEC     Electronics                  1 disc
+           aliases: electronics, hardware, pcb, firmware
+           matches: *.kicad_pcb *.kicad_sch *.sch *.brd *.gbr *.ino
+  PROJ     Personal projects            1 disc
+           scope: one project with all its kinds of files; add CODE, ELEC or DESIGN as Categories
+           aliases: projects, project
+  WRITING  Writing                      
+           aliases: blog, articles, stories
+COLLECT  Collections                  
+  BOOKS    Books and papers             
+           aliases: ebooks, papers, library
+           matches: *.epub *.mobi *.azw3 *.djvu
+  GAMES    Games                        
+           aliases: saves, roms, mods
+  MEDIA    Media library                
+           aliases: music, films, podcasts
+           matches: *.flac *.mkv
+BACKUPS  Backups and exports          
+         aliases: backup, exports
+  EMAIL    Email and messages           
+           aliases: emails, inbox
+           matches: *.mbox *.eml *.pst
+  PHONE    Phone backups                
+           aliases: mobile, android, iphone, whatsapp
+  SYSTEM   System backups               
+           aliases: disk images, os
+           matches: *.img *.vhd *.vhdx *.vmdk *.qcow2
+  WEB      Web archives                 
+           aliases: websites, social
+           matches: *.warc *.warc.gz
+MISC     Miscellaneous                
+         aliases: other, stuff
+rc=0
+$ --home edit where
+edit
+  found by --home
+rc=0
+$ names names
+3 issue(s)
+  error: photo 😀.txt: has characters beyond U+FFFF (😀), which UDF cannot store
+  warning: star*?.txt: * ? not allowed in Windows names: shown changed there
+  warning: sub: differs from 'Sub' only in letter case: Windows shows only one
+rc=1
+$ names --limit 2 names
+3 issue(s)
+  error: photo 😀.txt: has characters beyond U+FFFF (😀), which UDF cannot store
+  warning: star*?.txt: * ? not allowed in Windows names: shown changed there
+  warning: sub: differs from 'Sub' only in letter case: Windows shows only one
+rc=1

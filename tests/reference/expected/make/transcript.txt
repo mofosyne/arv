@@ -1,0 +1,16 @@
+$ --home h make -y --no-ecc --formats no --set CODE --location BOX1 --importance essential for self --keep-stage --output-dir out-src src
+Scanning and hashing ROOT/src ...
+Warning: broken link dead -> missing.txt (recorded in the listing, not archived)
+Links: 1 copied, 1 recorded, 1 broken (policy: default)
+Classified as: PROJECTS/CODE
+Building ROOT/out-src/CODE-01_2020_0.noecc.iso (1 of 1, 1.7 MiB) ...
+Kept staging directory ROOT/out-src/.archive-make-XXXXXX
+CODE-01_2020_0	ROOT/out-src/CODE-01_2020_0.noecc.iso	Src
+rc=0
+$ --home h make -y --no-ecc --formats no --set CODE --location BOX1 --importance essential for self --keep-stage --output-dir out-second second
+Scanning and hashing ROOT/second ...
+Classified as: PROJECTS/CODE
+Building ROOT/out-second/CODE-02_2001_Y.noecc.iso (1 of 1, 1.7 MiB) ...
+Kept staging directory ROOT/out-second/.archive-make-XXXXXX
+CODE-02_2001_Y	ROOT/out-second/CODE-02_2001_Y.noecc.iso	Second
+rc=0

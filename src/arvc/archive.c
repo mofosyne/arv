@@ -381,7 +381,8 @@ rec_record *new_appraisal(const char *target, const strlist *importance, const c
     for (size_t i = 0; i < importance->n; i++) {
         char level[32], audience[128], extra;
         if (sscanf(importance->v[i], " %31s for %127s %c", level, audience, &extra) != 2)
-            die("importance must read '<level> for <audience>', e.g. 'essential for family', not '%s'", importance->v[i]);
+            die("importance must read '<level> for <audience>', e.g. 'essential for family' "
+                "(levels: essential, important, useful, incidental), not '%s'", importance->v[i]);
         for (char *p = level; *p; p++) *p = (char)tolower((unsigned char)*p);
         for (char *p = audience; *p; p++) *p = (char)tolower((unsigned char)*p);
         int known = 0;

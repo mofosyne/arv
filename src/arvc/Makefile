@@ -10,13 +10,17 @@ DATA     = DATA_DESCRIPTORS=../arv/descriptors.rec DATA_README=../arv/readme.txt
            DATA_DEFAULT_SETS=../arv/default_sets.rec DATA_INDEX_CSS=../arv/index.css \
            DATA_DEFAULT_TAGS=../arv/default_tags.rec
 
-all: $(BUILD)/arvc $(BUILD)/fixtures
+all: $(BUILD)/arvc $(BUILD)/fixtures $(BUILD)/ptyrun
 
 $(BUILD)/arvc: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJS)
 
 $(BUILD)/fixtures: dev/fixtures.c $(LIB) $(BUILD)/names.o $(BUILD)/util.o
 	$(CC) $(CFLAGS) $(WARN) $(LDFLAGS) -o $@ dev/fixtures.c $(LIB) $(BUILD)/names.o $(BUILD)/util.o
+
+$(BUILD)/ptyrun: dev/ptyrun.c
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(WARN) -o $@ dev/ptyrun.c
 
 $(BUILD)/embed: dev/embed.c
 	@mkdir -p $(BUILD)

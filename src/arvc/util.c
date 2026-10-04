@@ -26,6 +26,14 @@ void die(const char *fmt, const char *arg)
     exit(1);
 }
 
+void die2(const char *fmt, const char *a, const char *b)
+{
+    fprintf(stderr, "Error: ");
+    fprintf(stderr, fmt, a, b);
+    fputc('\n', stderr);
+    exit(1);
+}
+
 void *xmalloc(size_t n)
 {
     void *p = malloc(n ? n : 1);
@@ -136,11 +144,24 @@ size_t utf8_chars(const char *s)
     return n;
 }
 
+/* today's date as broken-down time: local, or the day of $SOURCE_DATE_EPOCH (UTC) when set, for
+ * reproducible discs and tests (catalog.today_date) */
+void today_tm(struct tm *tm)
+{
+    const char *epoch = getenv("SOURCE_DATE_EPOCH");
+    if (epoch && *epoch && strspn(epoch, "0123456789") == strlen(epoch)) {
+        time_t t = (time_t)strtoll(epoch, NULL, 10);
+        gmtime_r(&t, tm);
+        return;
+    }
+    time_t t = time(NULL);
+    localtime_r(&t, tm);
+}
+
 void today_iso(char out[11])
 {
-    time_t t = time(NULL);
     struct tm tm;
-    localtime_r(&t, &tm);
+    today_tm(&tm);
     strftime(out, 11, "%Y-%m-%d", &tm);
 }
 

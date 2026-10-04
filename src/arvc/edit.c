@@ -109,7 +109,7 @@ int cmd_access(int argc, char **argv)
     archive cat;
     open_home(given, &h, &cat);
     rec_record *d = archive_disc(&cat, disc_id);
-    if (!d) die("no disc %s in the catalogue", disc_id);
+    if (!d) die2("no disc %s in %s", disc_id, h.rec_path);
     char before[16];
     snprintf(before, sizeof before, "%s", disc_access(d));
     rec_set(d, "Access", level);
@@ -241,7 +241,7 @@ int cmd_location(int argc, char **argv)
     if (parent && !loc(&cat, parent)) die("no location %s (add it first)", parent);
     rec_record *l = loc(&cat, code);
     if (!strcmp(action, "add")) {
-        if (l) die("location %s already exists (use 'arv location move' or edit the catalogue)", code);
+        if (l) die2("location %s already exists (use 'arv location move' or edit %s)", code, h.rec_path);
         l = rec_alloc("Location");
         rec_add(l, "Code", code);
         rec_add(l, "Name", name ? name : code);
@@ -656,9 +656,8 @@ static char *review_date(const char *text)
     int n = 0;
     while (isspace((unsigned char)*text)) text++;
     if (sscanf(text, "%d %c", &n, &unit) == 2 && n >= 0 && strchr("ymYM", unit)) {
-        time_t t = time(NULL);
         struct tm tm;
-        localtime_r(&t, &tm);
+        today_tm(&tm);
         int months = tm.tm_mon + n * (tolower((unsigned char)unit) == 'y' ? 12 : 1);
         return xprintf("%04d-%02d-%02d", tm.tm_year + 1900 + months / 12, months % 12 + 1, tm.tm_mday < 28 ? tm.tm_mday : 28);
     }

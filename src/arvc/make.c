@@ -422,9 +422,8 @@ static char *review_date(const char *text)
     char unit;
     int n;
     if (sscanf(text, " %d %c", &n, &unit) == 2 && (unit == 'y' || unit == 'm' || unit == 'Y' || unit == 'M') && n >= 0) {
-        time_t t = time(NULL);
         struct tm tm;
-        localtime_r(&t, &tm);
+        today_tm(&tm);
         int months = n * (tolower((unsigned char)unit) == 'y' ? 12 : 1) + tm.tm_mon;
         return xprintf("%04d-%02d-%02d", tm.tm_year + 1900 + months / 12, months % 12 + 1, tm.tm_mday < 28 ? tm.tm_mday : 28);
     }
@@ -1423,9 +1422,8 @@ int cmd_make(int argc, char **argv)
                 if (tm.tm_year + 1900 > hi) hi = tm.tm_year + 1900;
             }
             if (!files.n) {
-                time_t t = time(NULL);
                 struct tm tm;
-                localtime_r(&t, &tm);
+                today_tm(&tm);
                 lo = hi = tm.tm_year + 1900;
             }
             if (lo == hi) snprintf(coverage, sizeof coverage, "%d", lo);

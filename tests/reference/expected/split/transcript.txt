@@ -1,0 +1,10 @@
+$ --home hs make -y --no-ecc --formats no --set SCAN --split --medium-sectors 4800 --keep-stage --output-dir out-split big
+Scanning and hashing ROOT/big ...
+Classified as: MEMORIES/PHOTO/SCAN, RECORDS/SCAN
+Rebalancing: disc 1 was 350 sectors over budget
+Building ROOT/out-split/SCAN-01_2001-2007_D.noecc.iso (1 of 2, 7.2 MiB) ...
+Building ROOT/out-split/SCAN-02_2001-2007_B.noecc.iso (2 of 2, 3.1 MiB) ...
+Kept staging directory ROOT/out-split/.archive-make-XXXXXX
+SCAN-01_2001-2007_D	ROOT/out-split/SCAN-01_2001-2007_D.noecc.iso	Big
+SCAN-02_2001-2007_B	ROOT/out-split/SCAN-02_2001-2007_B.noecc.iso	Big
+rc=0

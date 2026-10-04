@@ -1,0 +1,384 @@
+$ --home tags tags
+(no namespace)
+  Holiday                      1 folder on 1 disc   (alias of travel)
+  Zzz                          1 folder on 1 disc   (alias of zzz)
+  celebration                  1 folder on 1 disc
+  code                         1 folder on 1 disc
+  electronics                  1 folder on 1 disc
+  family                       1 folder on 1 disc
+  home                         1 folder on 1 disc
+  kids                         1 folder on 1 disc   (alias of family)
+  nature                       2 folders on 2 discs
+  travel                       2 folders on 2 discs
+event:
+  birthday-2020                1 folder on 1 disc
+person:
+  Ålice                        1 folder on 1 disc
+place:
+  arashiyama                   1 folder on 1 disc
+  beach                        1 folder on 1 disc
+  fushimi-inari                1 folder on 1 disc
+  kinkaku-ji                   1 folder on 1 disc
+  kiyomizu-dera                1 folder on 1 disc
+  kyoto                        1 folder on 1 disc
+project:
+  weather-station              2 folders on 1 disc
+rc=0
+$ --home tags tags --namespace place
+place:
+  arashiyama                   1 folder on 1 disc
+  beach                        1 folder on 1 disc
+  fushimi-inari                1 folder on 1 disc
+  kinkaku-ji                   1 folder on 1 disc
+  kiyomizu-dera                1 folder on 1 disc
+  kyoto                        1 folder on 1 disc
+rc=0
+$ --home tags tags --namespace 
+(no namespace)
+  Holiday                      1 folder on 1 disc   (alias of travel)
+  Zzz                          1 folder on 1 disc   (alias of zzz)
+  celebration                  1 folder on 1 disc
+  code                         1 folder on 1 disc
+  electronics                  1 folder on 1 disc
+  family                       1 folder on 1 disc
+  home                         1 folder on 1 disc
+  kids                         1 folder on 1 disc   (alias of family)
+  nature                       2 folders on 2 discs
+  travel                       2 folders on 2 discs
+rc=0
+$ --home tags tags --namespace nope
+nope:
+rc=0
+$ --home tags tags --vocab REPO/src/arv/default_tags.rec
+(no namespace)
+  Holiday                      1 folder on 1 disc   (alias of travel)
+  Zzz                          1 folder on 1 disc   (alias of zzz)
+  celebration                  1 folder on 1 disc
+  code                         1 folder on 1 disc
+  electronics                  1 folder on 1 disc
+  family                       1 folder on 1 disc
+  home                         1 folder on 1 disc
+  kids                         1 folder on 1 disc   (alias of family)
+  nature                       2 folders on 2 discs
+  travel                       2 folders on 2 discs
+event:
+  birthday-2020                1 folder on 1 disc
+person:
+  Ålice                        1 folder on 1 disc
+place:
+  arashiyama                   1 folder on 1 disc
+  beach                        1 folder on 1 disc
+  fushimi-inari                1 folder on 1 disc
+  kinkaku-ji                   1 folder on 1 disc
+  kiyomizu-dera                1 folder on 1 disc
+  kyoto                        1 folder on 1 disc
+project:
+  weather-station              2 folders on 1 disc
+rc=0
+$ --home tags keywords TRIP-01_2019_4 --format tsv
+# folder (relative to data/)	hierarchical keywords (| between levels)
+.	MEMORIES|PHOTO|TRIP, Holiday, Zzz, person|Ålice, place|kyoto
+day1 Fushimi Inari	place|fushimi-inari
+day2 Arashiyama	place|arashiyama, nature
+day2 Kinkaku-ji	place|kinkaku-ji
+day3 Kiyomizu-dera	place|kiyomizu-dera
+sub dir	kids, travel
+rc=0
+$ --home tags keywords TRIP-01_2019_4 --format exiftool
+# exiftool argument file for disc TRIP-01_2019_4: from the root of a restored copy, run
+#   exiftool -@ this-file
+# Each section adds the keywords to every file under one folder (-r). Removing each value
+# before adding it keeps a second run from adding it twice.
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=MEMORIES|PHOTO|TRIP
+-XMP-lr:HierarchicalSubject+=MEMORIES|PHOTO|TRIP
+-XMP-dc:Subject-=TRIP
+-XMP-dc:Subject+=TRIP
+-XMP-lr:HierarchicalSubject-=Holiday
+-XMP-lr:HierarchicalSubject+=Holiday
+-XMP-dc:Subject-=Holiday
+-XMP-dc:Subject+=Holiday
+-XMP-lr:HierarchicalSubject-=Zzz
+-XMP-lr:HierarchicalSubject+=Zzz
+-XMP-dc:Subject-=Zzz
+-XMP-dc:Subject+=Zzz
+-XMP-lr:HierarchicalSubject-=person|Ålice
+-XMP-lr:HierarchicalSubject+=person|Ålice
+-XMP-dc:Subject-=Ålice
+-XMP-dc:Subject+=Ålice
+-XMP-lr:HierarchicalSubject-=place|kyoto
+-XMP-lr:HierarchicalSubject+=place|kyoto
+-XMP-dc:Subject-=kyoto
+-XMP-dc:Subject+=kyoto
+data
+-execute
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=place|fushimi-inari
+-XMP-lr:HierarchicalSubject+=place|fushimi-inari
+-XMP-dc:Subject-=fushimi-inari
+-XMP-dc:Subject+=fushimi-inari
+data/day1 Fushimi Inari
+-execute
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=place|arashiyama
+-XMP-lr:HierarchicalSubject+=place|arashiyama
+-XMP-dc:Subject-=arashiyama
+-XMP-dc:Subject+=arashiyama
+-XMP-lr:HierarchicalSubject-=nature
+-XMP-lr:HierarchicalSubject+=nature
+-XMP-dc:Subject-=nature
+-XMP-dc:Subject+=nature
+data/day2 Arashiyama
+-execute
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=place|kinkaku-ji
+-XMP-lr:HierarchicalSubject+=place|kinkaku-ji
+-XMP-dc:Subject-=kinkaku-ji
+-XMP-dc:Subject+=kinkaku-ji
+data/day2 Kinkaku-ji
+-execute
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=place|kiyomizu-dera
+-XMP-lr:HierarchicalSubject+=place|kiyomizu-dera
+-XMP-dc:Subject-=kiyomizu-dera
+-XMP-dc:Subject+=kiyomizu-dera
+data/day3 Kiyomizu-dera
+-execute
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=kids
+-XMP-lr:HierarchicalSubject+=kids
+-XMP-dc:Subject-=kids
+-XMP-dc:Subject+=kids
+-XMP-lr:HierarchicalSubject-=travel
+-XMP-lr:HierarchicalSubject+=travel
+-XMP-dc:Subject-=travel
+-XMP-dc:Subject+=travel
+data/sub dir
+-execute
+rc=0
+$ --home tags keywords PROJ-01_2020-2023_L --format tsv
+# folder (relative to data/)	hierarchical keywords (| between levels)
+.	PROJECTS|PROJ, PROJECTS|CODE, PROJECTS|ELEC
+firmware	code, project|weather-station
+hardware	electronics, project|weather-station
+rc=0
+$ --home tags keywords PROJ-01_2020-2023_L --format exiftool
+# exiftool argument file for disc PROJ-01_2020-2023_L: from the root of a restored copy, run
+#   exiftool -@ this-file
+# Each section adds the keywords to every file under one folder (-r). Removing each value
+# before adding it keeps a second run from adding it twice.
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=PROJECTS|PROJ
+-XMP-lr:HierarchicalSubject+=PROJECTS|PROJ
+-XMP-dc:Subject-=PROJ
+-XMP-dc:Subject+=PROJ
+-XMP-lr:HierarchicalSubject-=PROJECTS|CODE
+-XMP-lr:HierarchicalSubject+=PROJECTS|CODE
+-XMP-dc:Subject-=CODE
+-XMP-dc:Subject+=CODE
+-XMP-lr:HierarchicalSubject-=PROJECTS|ELEC
+-XMP-lr:HierarchicalSubject+=PROJECTS|ELEC
+-XMP-dc:Subject-=ELEC
+-XMP-dc:Subject+=ELEC
+data
+-execute
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=code
+-XMP-lr:HierarchicalSubject+=code
+-XMP-dc:Subject-=code
+-XMP-dc:Subject+=code
+-XMP-lr:HierarchicalSubject-=project|weather-station
+-XMP-lr:HierarchicalSubject+=project|weather-station
+-XMP-dc:Subject-=weather-station
+-XMP-dc:Subject+=weather-station
+data/firmware
+-execute
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=electronics
+-XMP-lr:HierarchicalSubject+=electronics
+-XMP-dc:Subject-=electronics
+-XMP-dc:Subject+=electronics
+-XMP-lr:HierarchicalSubject-=project|weather-station
+-XMP-lr:HierarchicalSubject+=project|weather-station
+-XMP-dc:Subject-=weather-station
+-XMP-dc:Subject+=weather-station
+data/hardware
+-execute
+rc=0
+$ --home tags keywords TAXES-01_2019-2020_I --format tsv
+# folder (relative to data/)	hierarchical keywords (| between levels)
+.	RECORDS|FINANCE|TAXES
+rc=0
+$ --home tags keywords TAXES-01_2019-2020_I --format exiftool
+# exiftool argument file for disc TAXES-01_2019-2020_I: from the root of a restored copy, run
+#   exiftool -@ this-file
+# Each section adds the keywords to every file under one folder (-r). Removing each value
+# before adding it keeps a second run from adding it twice.
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=RECORDS|FINANCE|TAXES
+-XMP-lr:HierarchicalSubject+=RECORDS|FINANCE|TAXES
+-XMP-dc:Subject-=TAXES
+-XMP-dc:Subject+=TAXES
+data
+-execute
+rc=0
+$ --home tags keywords SCAN-01_1995-2008_D --format tsv
+# folder (relative to data/)	hierarchical keywords (| between levels)
+.	MEMORIES|PHOTO|SCAN, RECORDS|SCAN, RECORDS|LETTERS
+rc=0
+$ --home tags keywords SCAN-01_1995-2008_D --format exiftool
+# exiftool argument file for disc SCAN-01_1995-2008_D: from the root of a restored copy, run
+#   exiftool -@ this-file
+# Each section adds the keywords to every file under one folder (-r). Removing each value
+# before adding it keeps a second run from adding it twice.
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=MEMORIES|PHOTO|SCAN
+-XMP-lr:HierarchicalSubject+=MEMORIES|PHOTO|SCAN
+-XMP-dc:Subject-=SCAN
+-XMP-dc:Subject+=SCAN
+-XMP-lr:HierarchicalSubject-=RECORDS|SCAN
+-XMP-lr:HierarchicalSubject+=RECORDS|SCAN
+-XMP-dc:Subject-=SCAN
+-XMP-dc:Subject+=SCAN
+-XMP-lr:HierarchicalSubject-=RECORDS|LETTERS
+-XMP-lr:HierarchicalSubject+=RECORDS|LETTERS
+-XMP-dc:Subject-=LETTERS
+-XMP-dc:Subject+=LETTERS
+data
+-execute
+rc=0
+$ --home tags keywords SCAN-02_1995-2008_B --format tsv
+# folder (relative to data/)	hierarchical keywords (| between levels)
+.	MEMORIES|PHOTO|SCAN, RECORDS|SCAN, RECORDS|LETTERS
+rc=0
+$ --home tags keywords SCAN-02_1995-2008_B --format exiftool
+# exiftool argument file for disc SCAN-02_1995-2008_B: from the root of a restored copy, run
+#   exiftool -@ this-file
+# Each section adds the keywords to every file under one folder (-r). Removing each value
+# before adding it keeps a second run from adding it twice.
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=MEMORIES|PHOTO|SCAN
+-XMP-lr:HierarchicalSubject+=MEMORIES|PHOTO|SCAN
+-XMP-dc:Subject-=SCAN
+-XMP-dc:Subject+=SCAN
+-XMP-lr:HierarchicalSubject-=RECORDS|SCAN
+-XMP-lr:HierarchicalSubject+=RECORDS|SCAN
+-XMP-dc:Subject-=SCAN
+-XMP-dc:Subject+=SCAN
+-XMP-lr:HierarchicalSubject-=RECORDS|LETTERS
+-XMP-lr:HierarchicalSubject+=RECORDS|LETTERS
+-XMP-dc:Subject-=LETTERS
+-XMP-dc:Subject+=LETTERS
+data
+-execute
+rc=0
+$ --home tags keywords SCAN-03_1995-2008_9 --format tsv
+# folder (relative to data/)	hierarchical keywords (| between levels)
+.	MEMORIES|PHOTO|SCAN, RECORDS|SCAN, RECORDS|LETTERS
+rc=0
+$ --home tags keywords SCAN-03_1995-2008_9 --format exiftool
+# exiftool argument file for disc SCAN-03_1995-2008_9: from the root of a restored copy, run
+#   exiftool -@ this-file
+# Each section adds the keywords to every file under one folder (-r). Removing each value
+# before adding it keeps a second run from adding it twice.
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=MEMORIES|PHOTO|SCAN
+-XMP-lr:HierarchicalSubject+=MEMORIES|PHOTO|SCAN
+-XMP-dc:Subject-=SCAN
+-XMP-dc:Subject+=SCAN
+-XMP-lr:HierarchicalSubject-=RECORDS|SCAN
+-XMP-lr:HierarchicalSubject+=RECORDS|SCAN
+-XMP-dc:Subject-=SCAN
+-XMP-dc:Subject+=SCAN
+-XMP-lr:HierarchicalSubject-=RECORDS|LETTERS
+-XMP-lr:HierarchicalSubject+=RECORDS|LETTERS
+-XMP-dc:Subject-=LETTERS
+-XMP-dc:Subject+=LETTERS
+data
+-execute
+rc=0
+$ --home tags keywords FAMILY-01_2020-2021_K --format tsv
+# folder (relative to data/)	hierarchical keywords (| between levels)
+.	MEMORIES|PHOTO|FAMILY
+2020 Birthday	family, event|birthday-2020
+2020 Garden	home, nature
+2021 Beach	travel, place|beach
+2021 Christmas	celebration
+rc=0
+$ --home tags keywords FAMILY-01_2020-2021_K --format exiftool
+# exiftool argument file for disc FAMILY-01_2020-2021_K: from the root of a restored copy, run
+#   exiftool -@ this-file
+# Each section adds the keywords to every file under one folder (-r). Removing each value
+# before adding it keeps a second run from adding it twice.
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=MEMORIES|PHOTO|FAMILY
+-XMP-lr:HierarchicalSubject+=MEMORIES|PHOTO|FAMILY
+-XMP-dc:Subject-=FAMILY
+-XMP-dc:Subject+=FAMILY
+data
+-execute
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=family
+-XMP-lr:HierarchicalSubject+=family
+-XMP-dc:Subject-=family
+-XMP-dc:Subject+=family
+-XMP-lr:HierarchicalSubject-=event|birthday-2020
+-XMP-lr:HierarchicalSubject+=event|birthday-2020
+-XMP-dc:Subject-=birthday-2020
+-XMP-dc:Subject+=birthday-2020
+data/2020 Birthday
+-execute
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=home
+-XMP-lr:HierarchicalSubject+=home
+-XMP-dc:Subject-=home
+-XMP-dc:Subject+=home
+-XMP-lr:HierarchicalSubject-=nature
+-XMP-lr:HierarchicalSubject+=nature
+-XMP-dc:Subject-=nature
+-XMP-dc:Subject+=nature
+data/2020 Garden
+-execute
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=travel
+-XMP-lr:HierarchicalSubject+=travel
+-XMP-dc:Subject-=travel
+-XMP-dc:Subject+=travel
+-XMP-lr:HierarchicalSubject-=place|beach
+-XMP-lr:HierarchicalSubject+=place|beach
+-XMP-dc:Subject-=beach
+-XMP-dc:Subject+=beach
+data/2021 Beach
+-execute
+-r
+-overwrite_original
+-XMP-lr:HierarchicalSubject-=celebration
+-XMP-lr:HierarchicalSubject+=celebration
+-XMP-dc:Subject-=celebration
+-XMP-dc:Subject+=celebration
+data/2021 Christmas
+-execute
+rc=0
+$ --home tags keywords NOPE-01_2000_X --format tsv
+Error: no disc NOPE-01_2000_X in tags/catalog/archive.rec
+rc=1
+$ --home tags keywords NOPE-01_2000_X --format exiftool
+Error: no disc NOPE-01_2000_X in tags/catalog/archive.rec
+rc=1

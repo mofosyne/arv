@@ -1,0 +1,8 @@
+Set code (see 'arv sets') [PROJ]: 
+Extra categories, comma separated (optional) [CODE]: 
+Title [Projects X]: 
+Description (optional): 
+Creator [archivist]: 
+Physical location (optional; see 'arv location list'): 
+Subjects, comma separated (optional): 
+Note (optional): 

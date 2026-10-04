@@ -1,0 +1,11 @@
+$ --home hb rebuild out-split/.archive-make-XXXXXX/stage-SCAN-01_2001-2007_D-XXXXXX
+Added 2 disc(s) (SCAN-01_2001-2007_D, SCAN-02_2001-2007_B), updated 0, 2 new event(s), 4 file list(s) copied into hb
+rc=0
+$ --home hb rebuild out-split/.archive-make-XXXXXX/stage-SCAN-02_2001-2007_B-XXXXXX
+Added 0 disc(s), updated 0, 0 new event(s), 0 file list(s) copied into hb
+rc=0
+$ --home hb note SCAN-01_2001-2007_D edited at home
+rc=0
+$ --home hb rebuild --prefer-disc out-split/.archive-make-XXXXXX/stage-SCAN-01_2001-2007_D-XXXXXX
+Added 0 disc(s), updated 1, 0 new event(s), 0 file list(s) copied into hb
+rc=0
