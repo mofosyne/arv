@@ -441,6 +441,7 @@ single-threaded.
 - [ ] First real burns, and reading them back after time on the shelf
 
 The detailed plan and the reasons behind each decision: [research/plan.md](research/plan.md).
+What changed, and what 1.0 waits for: [CHANGELOG.md](CHANGELOG.md).
 
 ## Licence
 

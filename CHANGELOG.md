@@ -1,0 +1,68 @@
+# Changelog
+
+arv's versions, and the disc format's (`Version` in each disc's `catalog.rec`; the spec is
+[docs/smart-archive-format.md](docs/smart-archive-format.md)). Discs made by any version stay
+readable: a reader that knows a later format reads earlier discs, and every disc carries the
+exact source that made it in `tools/` (its `Software` field names the commit).
+
+## 1.0: when it is tagged
+
+1.0 is tagged once the first real burns pass, because only real hardware can show that the
+format needs no further change. Then the format is frozen at `Version: 1.0`, and later changes
+only add fields.
+
+- [ ] The first-burn drill passes ([docs/burning.md](docs/burning.md), issue #5): read back
+      against the image hash; Linux, Windows and macOS open the disc and run `tools/arv.com`;
+      a damaged copy read with ddrescue is repaired to the very image.
+- [ ] The RS03 weak spot (issue #4) is measured on a full-size BD-R image.
+- [ ] `FORMAT_VERSION` becomes `1.0` (src/arvc/make.c), `VERSION` becomes `arvc 1.0`
+      (src/arvc/arvc.h), the samples are remade and published, and the commit is tagged `v1.0`.
+
+## Unreleased (format 0.4), October 2026
+
+What 1.0 is planned to be, as of now. Format 0.4 is what every disc made today carries.
+
+**Making discs**
+- One standard output: a closed **UDF 2.50** image by arv's own writer (src/udfwrite), with a
+  real metadata mirror, contiguous files in a fixed order, and reproducible bytes
+  ([docs/archival-udf.md](docs/archival-udf.md)). Hybrid ISO 9660 images and the NetBSD makefs
+  writer are gone; makefs lives on in `upstream/` for the fixes offered to NetBSD.
+- **RS03 error correction added by arv itself** (src/rs03), byte for byte what dvdisaster
+  writes, then every sector tested. No dvdisaster needed to make a disc.
+- Every disc carries arv's source and **`tools/arv.com`**, one executable for Linux, macOS,
+  Windows and the BSDs, that verifies, restores, searches and repairs.
+- The home catalogue records each finished image's size and SHA-256 (`ImageSectors`,
+  `ImageSha256` in its Binding record).
+
+**Checking and repairing**
+- `arv check --device` reads a burned disc back against its image hash, past the system's cache.
+- `arv check --image IMAGE --repair` repairs a damaged image in place, as dvdisaster does and to
+  the same bytes, and works on an image that is in no catalogue at all.
+- `arv list --unchecked-since 5y` and `--one-place`: the discs due a check, and those kept in
+  only one place.
+
+**Documentation for the long term**
+- [docs/rs03-format.md](docs/rs03-format.md): the error-correction format, written so that a
+  repair tool can be written from it alone (checked by doing exactly that), with test vectors.
+- [docs/burning.md](docs/burning.md): burning, checking the burn, and the drill for a new drive
+  or media.
+- Each disc's `README.txt` explains reading a damaged disc with ddrescue or dvdisaster and
+  repairing it with the arv on the disc.
+
+**The program**
+- arv is a C99 program with no libraries (src/arvc). It was ported from the Python arv one
+  command at a time and held to the same outputs (tests/reference), and the Python core was
+  then removed. The optional add-on (local AI descriptions and tags, a web interface) stays
+  in Python.
+
+## Earlier formats
+
+From the spec's versioning section:
+- **0.4** (2026-10-03): `Authorship` on events, `Appraisal` records, listing version 2 (links,
+  executables).
+- **0.3**: the medium's fields moved into `Binding` records.
+- **0.2**: per-volume files grouped by volume (`catalog/volumes/<id>/`).
+- **0.1**: the first sample discs, never burned; per-volume files kept by kind.
+
+The history before arv, the original shell scripts, is in `scripts/`; the design and the
+reasons behind each decision are in [research/plan.md](research/plan.md).
