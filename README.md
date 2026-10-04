@@ -96,14 +96,17 @@ and how BagIt and recfiles split the work.
 
 `arv` (Archive, Record, Verify; also Norwegian for "inheritance") is a C program: C99 and POSIX,
 no libraries, built from any disc's `tools/` with one `cc` line. An optional add-on in Python
-(standard library only) has the local AI helpers and a web interface. Making discs needs `dvdisaster` ([dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light),
-or the [speed47 fork](https://github.com/speed47/dvdisaster), for BD-sized images; the two give byte-identical results).
+(standard library only) has the local AI helpers and a web interface. arv adds dvdisaster's RS03
+error correction itself ([src/rs03](src/rs03/): byte for byte what dvdisaster writes), so making
+and testing discs needs nothing else; reading and repairing a damaged disc is
+[dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light)'s job (or the
+[speed47 fork](https://github.com/speed47/dvdisaster)'s).
 
 ### Install (Linux)
 
 ```sh
 sudo apt install build-essential p7zip-full   # Debian/Ubuntu (python3 too, for the optional add-on)
-# dvdisaster Light: build it from https://github.com/teaching-droid/dvdisaster-light
+# for repairs: dvdisaster Light, from https://github.com/teaching-droid/dvdisaster-light
 make install PREFIX=~/.local     # or: sudo make install   (/usr/local)
 arv --help
 ```
@@ -138,12 +141,12 @@ which it finds on `PATH`:
 |---|---|---|
 | `git`, `tar` | copying arv's last commit into each disc's `tools/` (in a checkout; an installed arv copies `PREFIX/share/arv`) | your distribution |
 | `python3` | only the optional add-on: `describe`, `tag`, `models`, `gui` | your distribution |
-| `dvdisaster` | RS03 error correction (skip with `--no-ecc`, for testing) | **not bundled:** build [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the [speed47 fork](https://github.com/speed47/dvdisaster)); the distro 0.79.10 package works but pads only to the smallest standard size |
+| `dvdisaster` | only reading a damaged disc (`arv check --device`) and repairing one (see its `README.txt`); arv adds and tests RS03 itself | **not bundled:** build [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the [speed47 fork](https://github.com/speed47/dvdisaster)); any version can repair arv's discs |
 | `sf` (Siegfried), `ffmpeg`, a local LLM | optional extras (format ids, video frames, descriptions) | install if you want them |
 
 `arv make` stops with a clear message if a program it needs is missing. Reading a disc later
 needs none of these: any computer can open it, and `README.txt` on the disc explains checking,
-restoring and repair (repair needs dvdisaster).
+restoring and repair (repair needs dvdisaster, any version).
 
 The whole cycle, as the C arv runs it:
 
@@ -266,9 +269,11 @@ in its snapshot.
   (default 20%): about 20 GB of data per 25 GB disc. Sizes are measured exactly before
   writing. A folder that is too big either reports how many discs it needs or, with
   `--split`, becomes a set of complete bags (`Bag-Count: n of N`) that each know the whole set.
-- Filling the disc needs [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) or the [speed47 fork](https://github.com/speed47/dvdisaster) of dvdisaster;
-  the distro 0.79.10 build shrinks RS03 to the smallest standard size (a warning says so).
-  Both builds exit with status 1 after a *successful* `-f` repair; check with `-t`.
+- RS03 fills the disc to the medium size: arv writes it itself ([src/rs03](src/rs03/), the same
+  bytes as dvdisaster Light), then reads the image back and tests every sector against its CRC
+  and the parity against the data. `arv check --image` repeats that test later. Repair is
+  dvdisaster's: every build can repair these images. (dvdisaster exits with status 1 after a
+  *successful* `-f` repair; check with `-t`.)
 - With [Siegfried](https://www.itforarchivists.com/siegfried) (`sf`) installed, each file's
   PRONOM format is recorded in `catalog/volumes/<disc-id>/formats.csv`. `--ro-crate` adds
   `data/ro-crate-metadata.json` (RO-Crate 1.2, passes the validator's required checks).
@@ -423,7 +428,8 @@ single-threaded.
 - [x] `.arv` homes, change events, `Binding` records (format 0.3)
 - [ ] dvdisaster sources (and static binaries) on each disc for self-contained repair
 - [ ] File extents per volume, so files can be cut out of a raw image
-- [ ] A small portable RS03 decoder; a standalone RS03 library if dvdisaster Light splits into libraries
+- [x] RS03 in arv itself: encoder and image test in plain C ([src/rs03](src/rs03/)), byte-identical to dvdisaster Light
+- [ ] RS03 repair in arv too, so `tools/arv.com` can repair a disc image anywhere
 - [ ] A man page generated from the command's own help
 - [ ] First real burns, and reading them back after time on the shelf
 

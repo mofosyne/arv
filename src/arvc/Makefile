@@ -4,7 +4,7 @@ CFLAGS  ?= -O2
 WARN     = -std=c99 -Wall -Wextra -Wpedantic -Wshadow
 BUILD    = build
 LIB      = $(BUILD)/rec.o $(BUILD)/sha256.o $(BUILD)/sha512.o $(BUILD)/edtf.o $(BUILD)/discid.o $(BUILD)/vocab.o $(BUILD)/data.o
-OBJS     = $(BUILD)/arvc.o $(BUILD)/util.o $(BUILD)/disc.o $(BUILD)/catalogue.o $(BUILD)/names.o $(BUILD)/home.o $(BUILD)/archive.o $(BUILD)/bag.o $(BUILD)/html.o $(BUILD)/make.o $(BUILD)/record.o $(BUILD)/edit.o $(BUILD)/tags.o $(BUILD)/formats.o $(BUILD)/rocrate.o $(BUILD)/json.o $(BUILD)/udfwrite.o $(LIB)
+OBJS     = $(BUILD)/arvc.o $(BUILD)/util.o $(BUILD)/disc.o $(BUILD)/catalogue.o $(BUILD)/names.o $(BUILD)/home.o $(BUILD)/archive.o $(BUILD)/bag.o $(BUILD)/html.o $(BUILD)/make.o $(BUILD)/record.o $(BUILD)/edit.o $(BUILD)/tags.o $(BUILD)/formats.o $(BUILD)/rocrate.o $(BUILD)/json.o $(BUILD)/udfwrite.o $(BUILD)/rs03.o $(LIB)
 
 DATA     = DATA_DESCRIPTORS=../arv/descriptors.rec DATA_README=../arv/readme.txt \
            DATA_DEFAULT_SETS=../arv/default_sets.rec DATA_INDEX_CSS=../arv/index.css \
@@ -19,13 +19,13 @@ COSMOCC ?= cosmocc
 # cosmocc: https://cosmo.zip/pub/cosmocc/ (make ape COSMOCC=/path/to/cosmocc/bin/cosmocc)
 ape: $(BUILD)/arv.com
 
-$(BUILD)/arv.com: *.c *.h ../udfwrite/udfwrite.c ../udfwrite/udfwrite.h
+$(BUILD)/arv.com: *.c *.h ../udfwrite/udfwrite.c ../udfwrite/udfwrite.h ../rs03/rs03.c ../rs03/rs03.h
 	@mkdir -p $(BUILD)
-	$(COSMOCC) -O2 -std=c99 -o $@ *.c ../udfwrite/udfwrite.c
+	$(COSMOCC) -O2 -std=c99 -o $@ *.c ../udfwrite/udfwrite.c ../rs03/rs03.c
 	rm -f $(BUILD)/arv.com.dbg $(BUILD)/arv.aarch64.elf
 
 $(BUILD)/arvc: $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -pthread -o $@ $(OBJS)
 
 $(BUILD)/fixtures: dev/fixtures.c $(LIB) $(BUILD)/names.o $(BUILD)/util.o
 	$(CC) $(CFLAGS) $(WARN) $(LDFLAGS) -o $@ dev/fixtures.c $(LIB) $(BUILD)/names.o $(BUILD)/util.o
@@ -45,6 +45,10 @@ data: $(BUILD)/embed
 data-check: $(BUILD)/embed
 	@$(BUILD)/embed $(BUILD)/data.c $(DATA)
 	@cmp -s data.c $(BUILD)/data.c || { echo "data.c is out of date: run make -C src/arvc data"; exit 1; }
+
+$(BUILD)/rs03.o: ../rs03/rs03.c ../rs03/rs03.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(WARN) -pthread -c -o $@ ../rs03/rs03.c
 
 $(BUILD)/udfwrite.o: ../udfwrite/udfwrite.c ../udfwrite/udfwrite.h
 	@mkdir -p $(BUILD)

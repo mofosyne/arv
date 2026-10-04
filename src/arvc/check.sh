@@ -4,7 +4,8 @@
 #   and write what expected/ holds (first written by the Python arv), byte for byte (normalised);
 # - what only a real disc shows: a disc made by arvc from a folder like a git clone verifies,
 #   restores to a clean `git status` (links and execute bits included), and damage is found;
-#   with dvdisaster, RS03 is added and tested; with Siegfried, formats are identified; with arv's
+#   RS03 is added and tested (and damage found) by arv itself; with dvdisaster Light, it accepts and
+#   repairs arv's images; with Siegfried, formats are identified; with arv's
 #   git checkout as the source, tools/ gets the commit and its history;
 # - SHA-256 and SHA-512 against sha256sum and sha512sum, and the recfile writer.
 # With python3 on PATH it also checks that arvc called as arv hands the add-on's commands to it.
@@ -94,14 +95,32 @@ else
     grep -q "git bundle failed" hist.txt && ok "--tools-history: git could not bundle this checkout, as warned" \
         || no "--tools-history: no bundle and no warning"
 fi
+# RS03, added and tested by arv itself (src/rs03); no dvdisaster needed
+"$tool" make -C ecc-home --formats no --set CODE --medium-sectors 9600 --output-dir ecc-out src >/dev/null 2>&1 \
+    || no "arvc make with RS03"
+iso=$(ls ecc-out/*.iso)
+grep -q "RS03: " ecc-home/catalog/archive.rec && grep -q "Type: fixity check" ecc-home/catalog/archive.rec \
+    && grep -q "Outcome: success" ecc-home/catalog/archive.rec \
+    && [ $(($(wc -c < "$iso") / 2048)) -eq $((9600 / 255 * 255)) ] \
+    && ok "arvc make with RS03 error correction: image filled to the medium and tested" || no "RS03 make"
+"$tool" check -C ecc-home --image "$iso" --note "yearly check" >/dev/null 2>&1 \
+    && [ "$(grep -c 'Type: fixity check' ecc-home/catalog/archive.rec)" -eq 2 ] \
+    && ok "arvc check --image: the image is whole, logged" || no "arvc check"
+cp "$iso" damaged.iso
+printf X | dd of=damaged.iso bs=1 seek=$((40 * 2048)) conv=notrunc 2>/dev/null
+id=$(sed -n 's/^Id: //p' ecc-home/catalog/archive.rec | head -1)
+out=$("$tool" check -C ecc-home --image damaged.iso "$id" 2>&1) && no "check missed damage"
+echo "$out" | grep -q "1 data sectors with a wrong CRC" && ok "arvc check --image finds a damaged sector" || { echo "$out"; no "damage report"; }
+# the one cc line README.txt gives, from the disc's own tools/
+mkdir -p cc-build
+(cd disc && cc -O2 -pthread -o ../cc-build/arvc tools/arv/src/arvc/*.c tools/arv/src/udfwrite/udfwrite.c \
+    tools/arv/src/rs03/rs03.c >/dev/null 2>&1) && cc-build/arvc verify disc >/dev/null \
+    && ok "README.txt's one cc line builds arv from the disc's tools/" || no "building arv from tools/"
 if command -v dvdisaster >/dev/null && dvdisaster --help 2>&1 | grep -q no-bdr-defect-management; then
-    "$tool" make -C ecc-home --formats no --set CODE --medium-sectors 9600 --output-dir ecc-out src >/dev/null 2>&1 \
-        || no "arvc make with RS03"
-    grep -q "RS03: " ecc-home/catalog/archive.rec && grep -q "Type: fixity check" ecc-home/catalog/archive.rec \
-        && ok "arvc make with RS03 error correction: image tested by dvdisaster" || no "RS03 events"
-    "$tool" check -C ecc-home --image ecc-out/*.iso --note "yearly check" >/dev/null 2>&1 \
-        && [ "$(grep -c 'Type: fixity check' ecc-home/catalog/archive.rec)" -eq 2 ] \
-        && ok "arvc check: the image passes dvdisaster again, logged" || no "arvc check"
+    dvdisaster -i "$iso" -t --no-progress 2>&1 | grep -q "Ecc block test *: pass" \
+        && ok "dvdisaster Light accepts arv's RS03 image" || no "dvdisaster Light -t"
+    dvdisaster -i damaged.iso -f --no-progress >/dev/null 2>&1 || true      # it exits 1 after repairing
+    cmp -s damaged.iso "$iso" && ok "dvdisaster Light repairs it back to the image arv made" || no "dvdisaster Light -f"
 fi
 if command -v sf >/dev/null && sf -version >/dev/null 2>&1; then
     "$tool" make -C sf-home --no-ecc --formats yes --set CODE --output-dir sf-out src >/dev/null 2>&1 \

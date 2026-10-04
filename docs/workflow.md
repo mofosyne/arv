@@ -161,8 +161,10 @@ The choices that matter:
    the format), and the choice is logged as an `ingestion` event.
    Every image is UDF 2.50 written by `udfwrite`: one standard output, so a damaged
    disc found later is never a guess about its layout.
-6. **Protect.** dvdisaster adds RS03 error correction in the space left on the
-   medium, then `dvdisaster -t` verifies the result.
+6. **Protect.** RS03 error correction fills the space left on the medium: dvdisaster's
+   format, written by arv itself (`src/rs03`, byte for byte what dvdisaster Light writes).
+   Then the image is read back and every sector tested against its CRC, the parity against
+   the data.
 7. **Record.** The disc record and its events (PREMIS types: message digest
    calculation, creation, fixity check...) go into the home catalogue, with the
    manifests, listings and tags.
@@ -269,10 +271,10 @@ The layers, from most to least durable:
 
 ## 8. Developer flows
 
-- **Tests:** `make check`: the C arv (`make -C src/arvc check`; with dvdisaster and Siegfried on PATH their checks run too; `make -C src/arvc check-ape` with arv.com), then the add-on (`python3 -m unittest discover -s tests`).
+- **Tests:** `make check`: the C arv (`make -C src/arvc check`; with dvdisaster Light and Siegfried on PATH their checks run too; `make -C src/rs03 check` compares the RS03 encoder with dvdisaster Light; `make -C src/arvc check-ape` with arv.com), then the add-on (`python3 -m unittest discover -s tests`).
 - **Fixtures:** edited by hand, with the expected value worked out ([README](../tests/fixtures/README.md)).
 - **Reference outputs:** `make -C src/arvc check` holds the C arv to [tests/reference/expected](../tests/reference/), what every command printed and wrote (first by the Python arv, the same by both); after an intended change, `sh tests/reference/generate.sh` (or `just bless`) and read `git diff tests/reference/expected`.
-- **Sample discs:** `samples/make-samples.sh` (needs dvdisaster Light or the speed47 fork; builds arv, and with `make ape` first the discs carry arv.com) replaces `samples/discs` and `samples/home`; the images are not in git, `samples/publish-discs.sh` publishes them as the `samples` release and `samples/fetch-discs.sh` downloads them.
+- **Sample discs:** `samples/make-samples.sh` (builds arv, and with `make ape` first the discs carry arv.com) replaces `samples/discs` and `samples/home`; the images are not in git, `samples/publish-discs.sh` publishes them as the `samples` release and `samples/fetch-discs.sh` downloads them.
 - **udfmake** (upstream work only):
   - `make -C src/udfmake check` (also `asan`, `static`);
   - changes to NetBSD's code go in `src/udfmake/netbsd/`, and each also gets a patch in `src/udfmake/upstream/patches/`;

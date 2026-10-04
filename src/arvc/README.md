@@ -8,7 +8,7 @@ did is frozen in [tests/reference/](../../tests/reference/). It builds from any 
 line:
 
 ```sh
-cc -O2 -o arvc tools/arv/src/arvc/*.c tools/arv/src/udfwrite/udfwrite.c
+cc -O2 -pthread -o arvc tools/arv/src/arvc/*.c tools/arv/src/udfwrite/udfwrite.c tools/arv/src/rs03/rs03.c
 ```
 
 The same sources build an [Actually Portable Executable](https://justine.lol/ape.html) with
@@ -30,7 +30,8 @@ arvc init [FOLDER] [--pointer HOME] [--name NAME [--default]]
 arvc make [options] FOLDER              disc images, recorded in the home (in a terminal it asks
                                         what the options leave open; -y does not; --help lists them)
 arvc burned DISC-ID [--copies N] [--location PLACE] [--media-id ID] [--note TEXT]
-arvc check (--image FILE | --device DRIVE) [DISC-ID]   dvdisaster fixity check, logged
+arvc check (--image FILE | --device DRIVE) [DISC-ID]   fixity check, logged (an image: RS03 tested
+                                        here; a drive: dvdisaster Light reads it)
 arvc note DISC-ID TEXT
 arvc locate [--add] DISC-ID PLACE...
 arvc access DISC-ID public|private|sealed
@@ -69,9 +70,11 @@ archived or the current folder up, the machine config (`~/.config/arv/homes.rec`
 | Looking | `sets`, `names`, `where`, `tags`, `keywords` | `models` (the built-in model) |
 | Reading | `find`, `list`, `id`, `info`, `verify`, `ls`, `restore` | |
 
-Making a disc still runs two programs: dvdisaster (RS03; vendoring dvdisaster Light is
-issue #19) and, in a git checkout, `git archive` and `tar` to put arv's last commit in
-`tools/`. An installed arvc copies `PREFIX/share/arv` instead.
+RS03 error correction is linked in ([../rs03](../rs03/): dvdisaster's format, byte for byte what
+dvdisaster Light writes), and so is udfwrite. Making a disc runs other programs only in a git
+checkout (`git archive` and `tar`, to put arv's last commit in `tools/`; an installed arv copies
+`PREFIX/share/arv` instead). dvdisaster Light is needed only to read a damaged disc from a drive
+(`check --device`) and to repair one.
 
 Differences from the Python arv it was ported from, on purpose: discs record `Software: arvc@<commit>`; `find`
 folds case for ASCII letters only; the text of README.txt is wrapped without breaking at
@@ -92,7 +95,9 @@ hyphens.
 - **a real disc**: a disc made from a git repository with links and a script is read back with 7z,
   verified, and restored with a clean `git status`; damage is reported; bagit.py validates it when
   Python is there; `tools/` carries arv's commit, and with `--tools-history` its branches;
-- with dvdisaster on PATH, RS03 is added, tested, and `check` passes it again; with Siegfried,
+- RS03 is added and tested by arv, `check --image` passes it again and finds a damaged sector, and
+  README.txt's one `cc` line builds arv from a disc's `tools/`; with dvdisaster Light on PATH, it
+  accepts the image and repairs the damaged one back; with Siegfried,
   `formats.csv` and its event are written;
 - SHA-256 and SHA-512 match `sha256sum` and `sha512sum` around every block boundary;
 - with Python on PATH, arvc called as `arv` hands the add-on's commands over and runs the rest.

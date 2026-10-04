@@ -2,13 +2,14 @@
  * arvc make: disc images from a folder, without prompts (src/arv/cli.py cmd_make and
  * src/arv/make.py Maker, UDF 2.50; --split spreads a folder over as many discs as needed). The disc it writes is the same as the Python arv's: BagIt
  * tag files, the catalogue snapshot, catalog.rec, README.txt, index.html and tools/, the image
- * written by udfwrite (linked in), and dvdisaster RS03 error correction.
+ * written by udfwrite (linked in), and RS03 error correction (src/rs03, linked in: dvdisaster's format).
  *
  * Not ported (use the Python arv): drafts and the local AI helpers, Siegfried format identification, --ro-crate, --tools-history.
  */
 #define _XOPEN_SOURCE 700
 #include "arvc.h"
 #include "data.h"
+#include "../rs03/rs03.h"
 #include "../udfwrite/udfwrite.h"
 
 #include <ctype.h>
@@ -79,7 +80,7 @@ static const char HELP[] =
     "  --split                spread the folder over as many discs as needed\n"
     "  --formats auto|yes|no  PRONOM format ids with Siegfried (auto: when sf is on PATH)\n"
     "  --sf-home DIR          Siegfried signature folder (sf -home)\n"
-    "  --no-ecc, --no-verify  skip RS03, or skip dvdisaster -t afterwards\n"
+    "  --no-ecc, --no-verify  skip RS03, or skip testing the image afterwards\n"
     "  --ignore-names, --keep-stage\n"
     "Not here: the local AI helpers (arv describe, arv tag) make drafts; this takes them (--draft).\n";
 
@@ -364,16 +365,6 @@ static long data_budget(long medium_sectors, double min_redundancy)
     if (max_ndata > GF_FIELDMAX - 1 - 8) max_ndata = GF_FIELDMAX - 1 - 8;
     if (max_ndata < 1) die("redundancy %s%% is not possible", "requested");
     return max_ndata * per_layer - 2;
-}
-
-static int dvdisaster_sets_medium_size(void)
-{
-    char *out = NULL;
-    char *argv[] = { "dvdisaster", "--help", NULL };
-    run(argv, &out);
-    int yes = out && strstr(out, "no-bdr-defect-management") != NULL;
-    free(out);
-    return yes;
 }
 
 /* ------------------------------------------------------------------ text */
@@ -1286,7 +1277,7 @@ static void stage_plan(maker *mk, size_t idx)
     stage_tools(tools, mk->source, mk->is_git, mk->workdir, o);
     free(tools);
     {
-        long image_sectors = !o->no_ecc && mk->capacity && dvdisaster_sets_medium_size() ? mk->capacity / GF_FIELDMAX * GF_FIELDMAX : 0;
+        long image_sectors = !o->no_ecc && mk->capacity ? mk->capacity / GF_FIELDMAX * GF_FIELDMAX : 0;
         sbuf plain = { 0 }, size_check = { 0 }, underline = { 0 };
         const char *creator = mk->creator;
         char *plain_text = xprintf("This is an archive disc%s%s, made on %s: %s. Its files are ordinary files in the "
@@ -1516,39 +1507,26 @@ static int make_discs(maker *mk)
         rec_record *creation = new_event(p->disc_id, "creation", "success", mk->software, "automatic", note);
         recs_add(&p->events, creation);
         if (o->no_ecc) { free(note); continue; }
-        fprintf(stderr, "Adding dvdisaster RS03 error correction ...\n");
-        char threads[16], ms[32], *output = NULL;
-        snprintf(threads, sizeof threads, "%ld", sysconf(_SC_NPROCESSORS_ONLN) > 0 ? sysconf(_SC_NPROCESSORS_ONLN) : 1);
-        snprintf(ms, sizeof ms, "%ld", mk->capacity);
-        char *a[] = { "dvdisaster", "-i", p->out, "-mRS03", "-o", "image", "-c", "--no-progress", "-x", threads,
-                      mk->capacity && dvdisaster_sets_medium_size() ? "-n" : NULL, ms, NULL };
-        if (run(a, &output)) die("dvdisaster failed:\n%s", output ? output : "");
-        for (char *l = strtok(output, "\n"); l; l = strtok(NULL, "\n"))
-            if (strstr(l, "redundancy")) {
-                while (isspace((unsigned char)*l)) l++;
-                char *n2 = xprintf("%s; RS03: %s", note, l);
-                size_t e = strlen(n2);
-                while (e && isspace((unsigned char)n2[e - 1])) n2[--e] = 0;
-                rec_set(creation, "Note", n2);
-                free(n2);
-            }
-        free(output);
+        fprintf(stderr, "Adding RS03 error correction ...\n");
+        rs03_layout lay;
+        char err[512], line[200];
+        if (rs03_augment(p->out, (uint64_t)mk->capacity, o->no_defect_management, &lay, err, sizeof err)) die("RS03: %s", err);
+        rs03_describe(&lay, line, sizeof line);
+        char *n2 = xprintf("%s; RS03: %s", note, line);
+        rec_set(creation, "Note", n2);
+        free(n2);
         free(note);
-        if (!o->no_verify) {
-            fprintf(stderr, "Verifying with dvdisaster -t ...\n");
-            char *t[] = { "dvdisaster", "-i", p->out, "-t", "--no-progress", NULL };
-            int rc = run(t, &output);
-            char *lower_out = xstrdup(output ? output : "");
-            for (char *c = lower_out; *c; c++) *c = (char)tolower((unsigned char)*c);
-            int ok = rc == 0 && strstr(output, "all sectors present") && !strstr(lower_out, "fail");
-            recs_add(&p->events, new_event(p->disc_id, "fixity check", ok ? "success" : "failure", "dvdisaster", "automatic",
+        if (!o->no_verify) {         /* every sector read back: data against its CRC, parity against the data */
+            fprintf(stderr, "Testing the image ...\n");
+            rs03_report r;
+            int ok = !rs03_verify(p->out, &r, err, sizeof err) && r.header_ok && !r.bad_data && !r.bad_crc && !r.bad_ecc
+                     && r.lay.total_sectors == lay.total_sectors;
+            recs_add(&p->events, new_event(p->disc_id, "fixity check", ok ? "success" : "failure", mk->software, "automatic",
                                            "image test after creation"));
             if (!ok) {
-                fprintf(stderr, "%s\nError: dvdisaster verification failed for %s\n", output, p->disc_id);
+                fprintf(stderr, "Error: the image test failed for %s\n", p->disc_id);
                 failed = 1;
             }
-            free(output);
-            free(lower_out);
         }
     }
     for (size_t i = 0; i < mk->nplans; i++) {          /* record them at home */
@@ -1590,7 +1568,6 @@ int cmd_make(int argc, char **argv)
     struct stat st;
     if (!src || stat(src, &st) || !S_ISDIR(st.st_mode)) die("%s is not a directory", abs_path(o.source));
     if (o.output && o.output_dir) die("%s", "use either --output or --output-dir");
-    if (!o.no_ecc && !on_path("dvdisaster")) die("%s", "missing required tool(s): dvdisaster (or --no-ecc for a test image)");
     char *review = o.review ? review_date(o.review) : NULL;
     if (o.importance.n || o.basis) (void)new_appraisal("X", &o.importance, o.basis, review);   /* checked early */
     else if (o.review) die("%s", "--review needs --importance or --basis");

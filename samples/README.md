@@ -72,7 +72,7 @@ repaired back to a byte-identical image.
 
 ```sh
 make                                 # once: builds src/udfwrite and src/arvc
-samples/make-samples.sh              # needs git and dvdisaster Light or speed47 on PATH
+samples/make-samples.sh              # needs git and a C compiler
 ```
 
 This replaces `samples/home` and `samples/discs`. The images differ on every run,

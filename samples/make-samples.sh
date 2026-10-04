@@ -5,9 +5,8 @@
 #   samples/make-samples.sh [OUTPUT_DIR]      (default: samples/)
 #
 # Needs: a C compiler (arv is built here with make if missing), python3 (to generate the
-# sample sources), git, dvdisaster Light or the speed47 fork (the stock 0.79.10 build
-# pads every image to CD size), and src/udfwrite (built here with make if missing). Build
-# src/arvc/build/arv.com first (make ape) so the discs carry it in tools/, as real ones do.
+# sample sources) and git. Build src/arvc/build/arv.com first (make ape) so the discs carry
+# it in tools/, as real ones do.
 # The discs use a custom 6800-sector "medium" (13.3 MB) so they stay small; real discs use
 # --medium bd25 (the default) or bd100.
 set -eu
@@ -16,11 +15,6 @@ here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/.." && pwd)
 out=$(mkdir -p "${1:-$here}" && cd "${1:-$here}" && pwd)
 
-if ! dvdisaster --help 2>&1 | grep -q no-bdr-defect-management; then
-    echo "error: needs dvdisaster Light or the speed47 fork on PATH (https://github.com/teaching-droid/dvdisaster-light)" >&2
-    exit 1
-fi
-[ -x "$repo/src/udfwrite/build/udfwrite" ] || make -s -C "$repo/src/udfwrite"
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -98,7 +92,7 @@ a appraise "$trip:day3 Kiyomizu-dera/" --importance "useful for family" --basis 
 a appraise "set:PROJ" --importance "important for self" --importance "useful for public" \
     --basis "hardware designs: someone may want to rebuild one" >/dev/null
 
-echo "== check every image with dvdisaster"
+echo "== test every image (arv check --image)"
 for iso in "$discs"/*.iso; do
     a check --image "$iso" | tail -1
 done

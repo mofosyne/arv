@@ -2,6 +2,7 @@
  * Every change appends an Event, as the Python arv does. */
 #define _XOPEN_SOURCE 700
 #include "arvc.h"
+#include "../rs03/rs03.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -121,7 +122,7 @@ int cmd_check(int argc, char **argv)
         else return 2;
     }
     if (!device == !image) return 2;
-    if (!on_path("dvdisaster")) die("%s", "missing required tool(s): dvdisaster");
+    if (device && !on_path("dvdisaster")) die("%s", "reading a disc needs dvdisaster Light on PATH (or check an image with --image)");
     const char *source = device ? device : image;
     if (access(source, F_OK)) die("%s does not exist", source);
     char *from_label = NULL;
@@ -137,23 +138,32 @@ int cmd_check(int argc, char **argv)
     archive_load(&o.cat, o.h.rec_path);
     if (!archive_disc(&o.cat, disc_id)) die("disc %s is not in the catalogue", disc_id);
     fprintf(stderr, "Checking %s (%s) ...\n", disc_id, source);
-    char *output = NULL, *what;
+    char *output = NULL, *what, *agent;
     int ok;
     if (device) {
         char *a[] = { "dvdisaster", "-d", (char *)device, "-s", "--no-progress", NULL };
         ok = run(a, &output) == 0;
         what = xprintf("disc scan with dvdisaster -s on %s", device);
-    } else {
-        char *a[] = { "dvdisaster", "-i", (char *)image, "-t", "--no-progress", NULL };
-        int rc = run(a, &output);
-        char *lower_out = xstrdup(output);
-        for (char *p = lower_out; *p; p++) *p = (char)tolower((unsigned char)*p);
-        ok = rc == 0 && strstr(output, "all sectors present") && !strstr(lower_out, "fail");
-        free(lower_out);
-        what = xstrdup("image test with dvdisaster -t");
+        agent = xstrdup("dvdisaster");
+    } else {                         /* every sector: data against its CRC, parity against the data */
+        rs03_report r;
+        char err[512], line[200];
+        if (rs03_verify(image, &r, err, sizeof err)) {
+            output = xprintf("%s", err);
+            ok = 0;
+        } else {
+            rs03_describe(&r.lay, line, sizeof line);
+            ok = r.header_ok && !r.bad_data && !r.bad_crc && !r.bad_ecc;
+            output = xprintf("RS03: %s\nheader %s; %llu data sectors with a wrong CRC, %llu CRC sectors and %llu "
+                             "parity sectors damaged\n%s", line, r.header_ok ? "good" : "DAMAGED",
+                             (unsigned long long)r.bad_data, (unsigned long long)r.bad_crc, (unsigned long long)r.bad_ecc,
+                             ok ? "the image is whole" : "repair it with dvdisaster Light: dvdisaster -i IMAGE -f");
+        }
+        what = xstrdup("image test (RS03: every sector against its CRC, the parity against the data)");
+        agent = xstrdup(VERSION);
     }
     char *sum = summary(output, 6), *text = note ? xprintf("%s\n%s\n%s", what, sum, note) : xprintf("%s\n%s", what, sum);
-    recs_add(&o.cat.events, new_event(disc_id, "fixity check", ok ? "success" : "failure", "dvdisaster", "automatic", text));
+    recs_add(&o.cat.events, new_event(disc_id, "fixity check", ok ? "success" : "failure", agent, "automatic", text));
     archive_save(&o.cat, o.h.rec_path);
     printf("%s\n", !ok || verbose ? output : sum);
     printf("%s: %s\n", disc_id, ok ? "OK" : "FAILED - see output above");

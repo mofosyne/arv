@@ -45,7 +45,8 @@ RESTORE (copy the files back)
     ~/arv.com verify .                 (or: ~/arv.com restore . ~/restored)
   If a Linux shell will not start it: sh ~/arv.com verify .
   Build it with any C compiler:
-    cc -O2 -o arvc tools/arv/src/arvc/*.c tools/arv/src/udfwrite/udfwrite.c
+    cc -O2 -pthread -o arvc tools/arv/src/arvc/*.c \
+      tools/arv/src/udfwrite/udfwrite.c tools/arv/src/rs03/rs03.c
     ./arvc verify .                    (or: ./arvc restore . ~/restored)
   Without a compiler, after copying data/ to DEST, recreate the links with:
     awk -F'\t' '$3 ~ /^link (recorded|broken)/ {print $4 "\t" $5}' \
