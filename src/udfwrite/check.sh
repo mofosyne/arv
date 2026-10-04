@@ -1,5 +1,5 @@
 #!/bin/sh
-# Checks udfwrite against docs/archival-udf.md, and leaves test images for checking readers
+# Checks udfwrite against docs/spec/archival-udf.md, and leaves test images for checking readers
 # by hand (Linux kernel, Windows, macOS):
 #
 #   build/check/src/                        the files the images hold

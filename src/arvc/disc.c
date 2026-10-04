@@ -25,7 +25,7 @@ int by_path(const void *a, const void *b)
     return strcmp(((const mentry *)a)->path, ((const mentry *)b)->path);
 }
 
-/* "<sha256>  <path>" per line (BagIt; paths written raw, see docs/smart-archive-format.md) */
+/* "<sha256>  <path>" per line (BagIt; paths written raw, see docs/spec/smart-archive-format.md) */
 int read_manifest(const char *file, manifest *m)
 {
     FILE *fp = fopen(file, "rb");

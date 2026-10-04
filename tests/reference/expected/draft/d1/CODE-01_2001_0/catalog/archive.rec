@@ -12,7 +12,7 @@ Discs: 1
 + Subject, Coverage, Rights. Uuid is the machine identity of the image
 + (copies burned from one image share it); Id is for people and is
 + derived from Set, Sequence and Coverage (EDTF) under IdScheme, so it
-+ can always be regenerated and checked (see docs/smart-archive-format.md).
++ can always be regenerated and checked (see docs/spec/smart-archive-format.md).
 %key: Id
 %mandatory: Id Title Date
 %type: Uuid uuid

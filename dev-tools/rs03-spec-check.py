@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""RS03 augmenting, written from docs/rs03-format.md alone, to show the spec is complete.
+"""RS03 augmenting, written from docs/spec/rs03-format.md alone, to show the spec is complete.
 
     python3 spec-check.py IMAGE MEDIUM-SECTORS OUT
 

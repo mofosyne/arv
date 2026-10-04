@@ -1,7 +1,7 @@
 # NetBSD makefs (UDF): udfmake, and fixes for upstream
 
 **arv does not use this.** arv makes discs with its own writer, [`src/udfwrite`](../../src/udfwrite/)
-(a restricted writer with a real metadata mirror, [docs/archival-udf.md](../../docs/archival-udf.md)).
+(a restricted writer with a real metadata mirror, [docs/spec/archival-udf.md](../../docs/spec/archival-udf.md)).
 arv's UDF work began here. It is kept for the fixes we offer upstream to NetBSD, which are not
 sent yet.
 

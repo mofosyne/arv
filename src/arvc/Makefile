@@ -27,16 +27,16 @@ $(BUILD)/arv.com: *.c *.h ../udfwrite/udfwrite.c ../udfwrite/udfwrite.h ../rs03/
 $(BUILD)/arvc: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -pthread -o $@ $(OBJS)
 
-$(BUILD)/fixtures: dev/fixtures.c $(LIB) $(BUILD)/names.o $(BUILD)/util.o
-	$(CC) $(CFLAGS) $(WARN) $(LDFLAGS) -o $@ dev/fixtures.c $(LIB) $(BUILD)/names.o $(BUILD)/util.o
+$(BUILD)/fixtures: ../../dev-tools/fixtures.c $(LIB) $(BUILD)/names.o $(BUILD)/util.o
+	$(CC) $(CFLAGS) $(WARN) $(LDFLAGS) -o $@ ../../dev-tools/fixtures.c $(LIB) $(BUILD)/names.o $(BUILD)/util.o
 
-$(BUILD)/ptyrun: dev/ptyrun.c
+$(BUILD)/ptyrun: ../../dev-tools/ptyrun.c
 	@mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) $(WARN) -o $@ dev/ptyrun.c
+	$(CC) $(CFLAGS) $(WARN) -o $@ ../../dev-tools/ptyrun.c
 
-$(BUILD)/embed: dev/embed.c
+$(BUILD)/embed: ../../dev-tools/embed.c
 	@mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) $(WARN) -o $@ dev/embed.c
+	$(CC) $(CFLAGS) $(WARN) -o $@ ../../dev-tools/embed.c
 
 # data.c is committed (one-cc-line builds need it); regenerate after editing the shared files
 data: $(BUILD)/embed

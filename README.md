@@ -51,7 +51,7 @@ Each layer does its own job:
 
 | Layer | Purpose | Tool |
 |---|---|---|
-| dvdisaster RS03 (augmented image, [format](docs/rs03-format.md)) | **Repair** unreadable sectors | `arv check --repair`, or any `dvdisaster` |
+| dvdisaster RS03 (augmented image, [format](docs/spec/rs03-format.md)) | **Repair** unreadable sectors | `arv check --repair`, or any `dvdisaster` |
 | BagIt manifests | **Detect** corruption per file, portable off-disc | `bagit.py`, or plain `sha256sum -c` |
 | recfile catalogue | **Find** which disc holds what, without mounting | `recsel`, `recfix` |
 
@@ -60,7 +60,7 @@ Each layer does its own job:
 | Path | What |
 |---|---|
 | `src/arvc/` | **arv**, a C program (C99 and POSIX, no libraries): every command, from making a disc to restoring one: [src/arvc/README.md](src/arvc/README.md) |
-| `src/udfwrite/` | arv's UDF 2.50 writer (library, built into arv, and a program): [docs/archival-udf.md](docs/archival-udf.md) |
+| `src/udfwrite/` | arv's UDF 2.50 writer (library, built into arv, and a program): [docs/spec/archival-udf.md](docs/spec/archival-udf.md) |
 | `src/arv/` | the optional add-on in Python (standard library only): the local AI helpers (`describe`, `tag`, `models`) and `gui` |
 | `arv` | the launcher in a checkout (and `tools/arv/arv` on a disc): the add-on's commands in Python, every other one in the C arv |
 | `docs/` | For users and implementers: workflow, shelving, architecture, philosophy, the disc format, and the website |
@@ -78,7 +78,7 @@ correction) are in the [`samples` release](https://github.com/mofosyne/arv/relea
 
 `research/plan.md` has the disc layout, phased plan and open decisions.
 
-`docs/smart-archive-format.md` specifies the on-disc catalogue format (draft 0.4) so other
+`docs/spec/smart-archive-format.md` specifies the on-disc catalogue format (draft 0.4) so other
 cataloguing programs (e.g. Katalog) can read a disc and prefill their database without scanning it.
 
 `research/metadata-standards.md` surveys archival metadata standards (Dublin Core,
@@ -288,7 +288,7 @@ in its snapshot.
   folder is grafted into the image as `data/`.
 - Every image is the same kind: UDF 2.50 with a metadata partition and a real mirror, the
   Blu-ray standard, written by arv's own [`src/udfwrite`](src/udfwrite/) to the profile in
-  [docs/archival-udf.md](docs/archival-udf.md). One standard output, so a damaged disc found
+  [docs/spec/archival-udf.md](docs/spec/archival-udf.md). One standard output, so a damaged disc found
   years later is never a guess about which layout it has. (Discs made by earlier versions as
   ISO 9660 + UDF 1.02 hybrids, or by NetBSD makefs, stay readable: arv reads their labels and
   catalogues the same way.)
@@ -448,6 +448,6 @@ What changed, and what 1.0 waits for: [CHANGELOG.md](CHANGELOG.md).
 GNU GPL version 3 (GPL-3.0); see [LICENSE](LICENSE). Code from elsewhere keeps its own licence: NetBSD's
 makefs in `upstream/netbsd-makefs/netbsd/` (BSD) and `src/arv/vendor/bagit.py` (CC0).
 
-The disc format ([docs/smart-archive-format.md](docs/smart-archive-format.md)) is meant to be
+The disc format ([docs/spec/smart-archive-format.md](docs/spec/smart-archive-format.md)) is meant to be
 implemented by anyone, in any program, under any licence: reading and writing these discs
 must never depend on this code.

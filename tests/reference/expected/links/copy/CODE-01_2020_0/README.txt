@@ -22,7 +22,7 @@ BROWSE
 
 SEARCH
   Catalogue software that reads this format can search every disc (the
-  spec: tools/arv/docs/smart-archive-format.md).
+  spec: tools/arv/docs/spec/smart-archive-format.md).
   From the root of the mounted disc, with the reader (see RESTORE):
     ./arvc find PATTERN                (every disc in this disc's catalogue)
     ./arvc list
@@ -78,9 +78,9 @@ CATALOGUE
   catalog/volumes/<id>/   this disc's file list (listing.tsv) and checksums
 
 TOOLS
-  tools/arv/           the program that made this disc; its docs/ folder
-                          describes the disc format (smart-archive-format.md)
-                          and the error correction (rs03-format.md), so other
-                          programs can be written to read and repair it
+  tools/arv/           the program that made this disc; its docs/spec/
+                          folder describes the disc format, the UDF profile
+                          and the error correction, so other programs can be
+                          written to read and repair it
   tools/arv.com           the reader, ready to run (Linux, macOS, Windows, BSD)
   tools/bagit.py          BagIt validator (public domain)

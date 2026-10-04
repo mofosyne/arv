@@ -87,7 +87,7 @@ def _inside(path, root):
 def scan_payload(src, progress=True, links="default"):
     """Walk ``src`` and hash every regular file; returns a Payload.
 
-    Symbolic links follow the links policy (docs/smart-archive-format.md, "Links"), and every
+    Symbolic links follow the links policy (docs/spec/smart-archive-format.md, "Links"), and every
     link is noted in the listing whatever happens to it:
     - a link to a file inside ``src`` is copied: the target's bytes under the link's name;
     - a link to a folder inside ``src`` is recorded only (``copy``: its files are copied too);

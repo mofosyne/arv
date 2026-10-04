@@ -23,7 +23,7 @@ make check                # the checks below
 | `rs03.h`, `rs03.c` | the library: `rs03_layout_for`, `rs03_augment`, `rs03_verify`, `rs03_repair`, `rs03_describe` |
 | `rs03_cli.c` | the program |
 | `check.sh` | the checks |
-| `spec-check.py` | augmenting written from [docs/rs03-format.md](../../docs/rs03-format.md) alone, to show the spec is complete (the checks compare it with rs03) |
+| `spec-check.py` | augmenting written from [docs/spec/rs03-format.md](../../docs/spec/rs03-format.md) alone, to show the spec is complete (the checks compare it with rs03) |
 
 ## What it covers, and what it does not
 
@@ -45,7 +45,7 @@ make check                # the checks below
   ddrescue read them into an image.
 
 The format is written up, independently of this code and with test vectors, in
-[docs/rs03-format.md](../../docs/rs03-format.md).
+[docs/spec/rs03-format.md](../../docs/spec/rs03-format.md).
 
 A draft offer of this code to dvdisaster Light, not sent, is in
 [`upstream/dvdisaster-light/`](../../upstream/dvdisaster-light/offer.md).

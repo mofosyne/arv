@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draws architecture.svg (the four layers in docs/architecture.md). Run: python3 docs/img/architecture-svg.py
+"""Draws architecture.svg (the four layers in docs/architecture.md). Run: python3 dev-tools/architecture-svg.py
 
 Centre: what is on every disc, layer by layer. Left: making a disc, top to bottom.
 Right: reading and repairing one, bottom to top. The heavy line is the boundary: nothing
@@ -181,8 +181,8 @@ step(RX, 116, RW, "content", ["5 check every file", "sha256sum -c, or bagit.py"]
 text(W / 2, 960, "Every disc stands alone: any one disc, on any computer, holds its files, the whole catalogue,",
      13, anchor="middle")
 text(W / 2, 980, "the source of its tools and the steps to repair it.", 13, anchor="middle")
-text(W / 2, 1012, "Drawn by docs/img/architecture-svg.py", 10.5, fill=MUTED, anchor="middle")
+text(W / 2, 1012, "Drawn by dev-tools/architecture-svg.py", 10.5, fill=MUTED, anchor="middle")
 add("</svg>")
 
-with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "architecture.svg"), "w", encoding="utf-8") as f:
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs", "img", "architecture.svg"), "w", encoding="utf-8") as f:
     f.write("\n".join(out) + "\n")

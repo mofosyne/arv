@@ -1,4 +1,4 @@
-/* Files shared with the Python arv (src/arv/), compiled in: see dev/embed.c and data.c. */
+/* Files shared with the Python arv (src/arv/), compiled in: see dev-tools/embed.c and data.c. */
 #ifndef ARV_DATA_H
 #define ARV_DATA_H
 

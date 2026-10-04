@@ -1,6 +1,6 @@
 # udfwrite: closed, read-only UDF 2.50 images for archives
 
-**The UDF writer of arv**, and the only one it makes discs with, implementing [docs/archival-udf.md](../../docs/archival-udf.md):
+**The UDF writer of arv**, and the only one it makes discs with, implementing [docs/spec/archival-udf.md](../../docs/spec/archival-udf.md):
 a metadata partition with a **real mirror**, every file in **one contiguous run** in a fixed order,
 and nothing taken from the clock or the machine, so the same folder gives the **same bytes**.
 NetBSD makefs, where arv started, is kept outside arv in `upstream/netbsd-makefs/` for the fixes offered upstream. Linux

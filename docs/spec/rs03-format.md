@@ -4,8 +4,8 @@
 and repaired by a program written from this page alone.** The format is dvdisaster's RS03
 (dvdisaster 0.79.x, dvdisaster Light, the speed47 fork), as an *augmented image*: the error
 correction is added to the disc image itself and fills the medium. This page describes it
-independently of any code. arv's implementation is [`src/rs03`](../src/rs03/);
-[`src/rs03/spec-check.py`](../src/rs03/spec-check.py) is a second one written from this page
+independently of any code. arv's implementation is [`src/rs03`](../../src/rs03/);
+[`dev-tools/rs03-spec-check.py`](../../dev-tools/rs03-spec-check.py) is a second one written from this page
 only, and both give the test vectors in section 7, as dvdisaster Light does.
 
 Only what an augmented image needs is described: not RS03 error correction *files* (`.ecc`), nor

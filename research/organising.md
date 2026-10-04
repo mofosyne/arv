@@ -36,7 +36,7 @@ from reading its source; the rest is from the tools' documented behaviour.
 5. **Automate first, ask a person last.** The order is `Match` rules, then EXIF and file dates, then the embedding tagger, then a local LLM, then the owner's review.
 6. **Physical location is a tree of records**, so moving a box is one edit.
 7. **Original order is kept.** The payload is never rearranged; classification lives in metadata.
-8. **Interoperate.** Hierarchical keywords export for XMP tools, and there is a Katalog mapping in [smart-archive-format.md](../docs/smart-archive-format.md).
+8. **Interoperate.** Hierarchical keywords export for XMP tools, and there is a Katalog mapping in [smart-archive-format.md](../docs/spec/smart-archive-format.md).
 
 ## What was adopted
 

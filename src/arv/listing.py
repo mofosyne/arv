@@ -2,7 +2,7 @@
 
 The manifests only have checksums; these add what a person (or Katalog) wants to see, and what
 the manifests cannot hold: which files were executable, and every symbolic link in the source
-folder with what was done with it (docs/smart-archive-format.md, "Listing TSV" and "Links").
+folder with what was done with it (docs/spec/smart-archive-format.md, "Listing TSV" and "Links").
 
 Version 2 columns: size, modified, kind, link target, path. Kind is words:
   file [executable]                 a file, in data/

@@ -1,7 +1,7 @@
 # Archival UDF: the disc profile arv writes
 
 **Draft.** The subset of UDF 2.50 that arv's own disc writer produces (issue #18), and how
-RS03 error correction sits after it. The writer is [`src/udfwrite/`](../src/udfwrite/),
+RS03 error correction sits after it. The writer is [`src/udfwrite/`](../../src/udfwrite/),
 the only one arv makes discs with. NetBSD makefs (now `upstream/netbsd-makefs/`) wrote arv's first UDF discs; where
 it differs from this profile, the difference is noted, since those discs stay readable.
 
@@ -93,7 +93,7 @@ without one does not conform to this profile, whatever else it gets right.
 
 **Only regular files and folders.** No symbolic or hard links, devices, sockets, extended
 attributes, named streams or ACLs. (arv copies or notes the source's links before the writer
-sees them: docs/smart-archive-format.md, "Links".) Permissions: everything readable by all and writable by none;
+sees them: docs/spec/smart-archive-format.md, "Links".) Permissions: everything readable by all and writable by none;
 folders searchable by all; a file whose source had any execute bit is executable by all (as
 `genisoimage -r` and git do: only "executable or not" survives), so a script with `chmod +x`
 runs straight from the mounted disc. "All" matters: on a mounted disc the owner is unknown (−1),

@@ -1,4 +1,4 @@
-/* Coverage dates: the EDTF subset arv uses (docs/smart-archive-format.md, "Coverage";
+/* Coverage dates: the EDTF subset arv uses (docs/spec/smart-archive-format.md, "Coverage";
  * tests/fixtures/coverage.tsv and covers.tsv are the contract). Days are YYYYMMDD numbers;
  * an open end is 00010101 or 99991231. */
 #ifndef ARV_EDTF_H

@@ -2,11 +2,11 @@
 
 How an archive disc is built, layer by layer, and why the layers are kept apart. Why the
 project works this way: [philosophy.md](philosophy.md). Every field and file in detail:
-[smart-archive-format.md](smart-archive-format.md).
+[smart-archive-format.md](spec/smart-archive-format.md).
 
 ![Four layers: content and description above a boundary, container, protection and medium below it; making a disc runs down the left, reading and repairing runs up the right](img/architecture.svg)
 
-(Drawn by `img/architecture-svg.py`; edit the script and run it to change the picture.)
+(Drawn by `dev-tools/architecture-svg.py`; edit the script and run it to change the picture.)
 
 ## The layers
 
@@ -31,7 +31,7 @@ record (`catalog.rec`) and a snapshot of the **whole** archive's catalogue at th
 made it and `README.txt`, which says how to check, repair and search the disc. The BagIt tag
 manifest (`tagmanifest-sha256.txt`) holds a hash of every one of these files.
 
-**Container.** The exact UDF profile arv writes: [archival-udf.md](archival-udf.md). Today a disc image: UDF 2.50, the layout Blu-ray players and recorders expect,
+**Container.** The exact UDF profile arv writes: [archival-udf.md](spec/archival-udf.md). Today a disc image: UDF 2.50, the layout Blu-ray players and recorders expect,
 which current Windows, macOS and Linux read. There is one kind of image, on purpose: whoever
 finds a damaged disc never has to guess its layout. (Older discs written as ISO 9660 + UDF 1.02
 hybrids stay readable.)

@@ -1,7 +1,7 @@
 # Changelog
 
 arv's versions, and the disc format's (`Version` in each disc's `catalog.rec`; the spec is
-[docs/smart-archive-format.md](docs/smart-archive-format.md)). Discs made by any version stay
+[docs/spec/smart-archive-format.md](docs/spec/smart-archive-format.md)). Discs made by any version stay
 readable: a reader that knows a later format reads earlier discs, and every disc carries the
 exact source that made it in `tools/` (its `Software` field names the commit).
 
@@ -25,7 +25,7 @@ What 1.0 is planned to be, as of now. Format 0.4 is what every disc made today c
 **Making discs**
 - One standard output: a closed **UDF 2.50** image by arv's own writer (src/udfwrite), with a
   real metadata mirror, contiguous files in a fixed order, and reproducible bytes
-  ([docs/archival-udf.md](docs/archival-udf.md)). Hybrid ISO 9660 images and the NetBSD makefs
+  ([docs/spec/archival-udf.md](docs/spec/archival-udf.md)). Hybrid ISO 9660 images and the NetBSD makefs
   writer are gone; makefs lives on in `upstream/` for the fixes offered to NetBSD.
 - **RS03 error correction added by arv itself** (src/rs03), byte for byte what dvdisaster
   writes, then every sector tested. No dvdisaster needed to make a disc.
@@ -42,7 +42,7 @@ What 1.0 is planned to be, as of now. Format 0.4 is what every disc made today c
   only one place.
 
 **Documentation for the long term**
-- [docs/rs03-format.md](docs/rs03-format.md): the error-correction format, written so that a
+- [docs/spec/rs03-format.md](docs/spec/rs03-format.md): the error-correction format, written so that a
   repair tool can be written from it alone (checked by doing exactly that), with test vectors.
 - [docs/burning.md](docs/burning.md): burning, checking the burn, and the drill for a new drive
   or media.

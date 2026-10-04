@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draws shelving.svg (the recommended shelf layout in docs/shelving.md). Run: python3 docs/img/shelving-svg.py
+"""Draws shelving.svg (the recommended shelf layout in docs/shelving.md). Run: python3 dev-tools/shelving-svg.py
 
 Physical order: access level, then the year the disc was made, then the order it was made.
 The ids are real (computed with the tool's id rules); the years made are illustrative.
@@ -159,5 +159,5 @@ for i, s in enumerate(notes):
     badge(42, 944 + 22 * i, i + 1)
     text(60, 948 + 22 * i, s, 12.5)
 add("</svg>")
-with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "shelving.svg"), "w", encoding="utf-8") as f:
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs", "img", "shelving.svg"), "w", encoding="utf-8") as f:
     f.write("\n".join(out) + "\n")

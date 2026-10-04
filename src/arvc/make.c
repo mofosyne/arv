@@ -64,7 +64,7 @@ static const char HELP[] =
     "  --label TEXT           volume label text after the id (default: the title)\n"
     "  --location PLACE       where the disc will be kept: a location code or text\n"
     "  --access LEVEL         private (default), public or sealed\n"
-    "  --links POLICY         default, record or copy (docs/smart-archive-format.md, Links)\n"
+    "  --links POLICY         default, record or copy (docs/spec/smart-archive-format.md, Links)\n"
     "  --importance 'LEVEL for AUDIENCE' (repeatable), --basis TEXT, --review DATE|5y\n"
     "                         appraise the disc (the archivist log)\n"
     "  --medium bd25|bd50|bd100|bd128|auto, --medium-sectors N, --no-defect-management\n"

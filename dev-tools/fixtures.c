@@ -5,12 +5,12 @@
  *   fixtures DIR        prints each failing case; exit 0 when all pass
  */
 #define _XOPEN_SOURCE 700
-#include "../discid.h"
-#include "../edtf.h"
-#include "../rec.h"
-#include "../sha512.h"
-#include "../vocab.h"
-#include "../arvc.h"
+#include "../src/arvc/discid.h"
+#include "../src/arvc/edtf.h"
+#include "../src/arvc/rec.h"
+#include "../src/arvc/sha512.h"
+#include "../src/arvc/vocab.h"
+#include "../src/arvc/arvc.h"
 
 #include <stdio.h>
 #include <stdlib.h>

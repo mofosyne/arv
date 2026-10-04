@@ -10,7 +10,7 @@ person can read every file with a text editor.
 This project (`arv make`) writes discs in this format. The format itself is
 independent of the tool.
 
-The layers and how a disc is made and read, as a picture: [architecture.md](architecture.md).
+The layers and how a disc is made and read, as a picture: [architecture.md](../architecture.md).
 
 ## Design rules
 

@@ -1,6 +1,6 @@
 /*
  * udfwrite: closed, read-only UDF 2.50 images for archives. See udfwrite.h and
- * docs/archival-udf.md. References: ECMA-167 3rd edition, OSTA UDF 2.50.
+ * docs/spec/archival-udf.md. References: ECMA-167 3rd edition, OSTA UDF 2.50.
  *
  * Image layout (sectors of 2048 bytes; P = partition start, blocks are partition blocks):
  *

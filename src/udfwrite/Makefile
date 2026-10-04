@@ -1,4 +1,4 @@
-# udfwrite: closed, read-only UDF 2.50 images for archives (docs/archival-udf.md).
+# udfwrite: closed, read-only UDF 2.50 images for archives (docs/spec/archival-udf.md).
 #
 #   make          build udfwrite (library object and program) in build/
 #   make check    build test images and check them (udftools, 7-Zip)

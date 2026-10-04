@@ -172,7 +172,7 @@ archive, a company records system) should be routine, not a rescue. So:
 
 Anything we invent that has no standard counterpart (importance per audience,
 cascading appraisals, the catalogue snapshot on every disc) is documented in
-[smart-archive-format.md](smart-archive-format.md), so an exporter knows what
+[smart-archive-format.md](spec/smart-archive-format.md), so an exporter knows what
 to carry over and where.
 
 ## Describe, don't own (principle 6)

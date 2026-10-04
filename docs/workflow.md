@@ -6,7 +6,7 @@ damage or loss. It also says where each part of this repository fits.
 
 Details live elsewhere and are linked:
 - the command reference is in [README.md](../README.md);
-- the on-disc format is in [smart-archive-format.md](smart-archive-format.md);
+- the on-disc format is in [smart-archive-format.md](spec/smart-archive-format.md);
 - the reasons for each choice are in [research-notes.md](../research/research-notes.md) and [plan.md](../research/plan.md).
 
 ## The whole thing on one page
@@ -211,7 +211,7 @@ arv location list -v
 | What do I have from July 2019? | `arv list --covers 2019-07` |
 | Everything under a category or a place | `arv list --in MEMORIES`, `arv list --at OFFSITE` |
 | Which tags do I use? | `arv tags`; `arv find place:kyoto` |
-| Group things across discs | `arv collection add BEST --name "Best of" DISC:folder/ DISC:file`, `arv collection show BEST`: virtual folders; other software can show them as a tree ([spec](smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)) |
+| Group things across discs | `arv collection add BEST --name "Best of" DISC:folder/ DISC:file`, `arv collection show BEST`: virtual folders; other software can show them as a tree ([spec](spec/smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)) |
 | Without this tool installed? | every disc carries it: `tools/arv.com find PATTERN` (or `arvc` built from `tools/arv/` with one `cc` line) from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
 | Changes after burning | `arv note`, `arv locate`, `arv access` (home catalogue; later discs carry them) |
 
@@ -232,7 +232,7 @@ disc is always a backup of the catalogue**.
 | The home catalogue is lost | `arv rebuild /media/disc` with the newest disc: discs, events, locations, file lists. Then rebuild from later discs, or re-enter notes. |
 | This tool is lost | every disc has `tools/` (the code at burn time) and `README.txt`. Without it: `sha256sum -c manifest-sha256.txt` verifies, `index.html` browses, `grep` searches `catalog/volumes/*/listing.tsv`, and `catalog.rec` is plain text. |
 | dvdisaster is lost | a copy can go in `tools/extra/` with `--extra-tools`; keep one off-disc too. The RS03 format is written up in LCSAS's DVDISASTER_RS03_FORMAT.md (research-notes.md section 7). |
-| Decades later, unknown software | [smart-archive-format.md](smart-archive-format.md) (on every disc under `tools/`) explains every file; BagIt is RFC 8493; recfiles are plain text. |
+| Decades later, unknown software | [smart-archive-format.md](spec/smart-archive-format.md) (on every disc under `tools/`) explains every file; BagIt is RFC 8493; recfiles are plain text. |
 
 The rule behind all of this: **the discs describe themselves**. Nothing on a
 disc needs this tool, the home catalogue or the network to be found, verified,
@@ -266,7 +266,7 @@ justfile, Makefile         everyday commands (just), build and install (make)
 ```
 
 The layers, from most to least durable:
-1. **Formats:** BagIt, recfiles, TSV, EDTF, and [the spec](smart-archive-format.md). They outlive any code.
+1. **Formats:** BagIt, recfiles, TSV, EDTF, and [the spec](spec/smart-archive-format.md). They outlive any code.
 2. **The C arv** and `udfwrite`: C99 and POSIX, built from any disc with one `cc` line, or carried
    ready to run as `tools/arv.com`. It was ported from a Python arv, command by command, against
    the same outputs ([plan.md](../research/plan.md), decisions 2026-09-30 and 2026-10-04).
@@ -281,4 +281,4 @@ The layers, from most to least durable:
 - **Upstream work** (`upstream/`, not part of arv, not built by `make`):
   - NetBSD makefs: `make -C upstream/netbsd-makefs check` (also `asan`, `static`); changes to NetBSD's code go in `upstream/netbsd-makefs/netbsd/`, and each also gets a patch in `upstream/netbsd-makefs/patches/`; `upstream/netbsd-makefs/repro/repro.sh` (`just netbsd-repro`) shows each patch against unmodified upstream;
   - nothing in `upstream/` is sent without a decision to send it; its README says what has been.
-- **Format changes:** update [smart-archive-format.md](smart-archive-format.md) first, and bump its version for anything a reader must know.
+- **Format changes:** update [smart-archive-format.md](spec/smart-archive-format.md) first, and bump its version for anything a reader must know.

@@ -1,4 +1,4 @@
-/* Reading GNU recutils recfiles, as the arv catalogue writes them (docs/smart-archive-format.md):
+/* Reading GNU recutils recfiles, as the arv catalogue writes them (docs/spec/smart-archive-format.md):
  * "Name: value" fields, "+" continuation lines, "#" comments, records separated by blank lines,
  * and %rec descriptors that give the records after them their type. */
 #ifndef ARV_REC_H

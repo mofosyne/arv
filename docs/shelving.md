@@ -28,7 +28,7 @@ catalogue software or `arv find`) shows it under every kind it belongs to
 
 ![Recommended shelving: sections by access level, a box per year made, the safe, and the off-site copies](img/shelving.svg)
 
-(Drawn by `img/shelving-svg.py`. The ids are real, computed with the tool's id
+(Drawn by `dev-tools/shelving-svg.py`. The ids are real, computed with the tool's id
 rules; the years made are illustrative.)
 
 ### Why the year made, not the years covered
@@ -54,7 +54,7 @@ at one place.
 
 Physically a disc can be in only one place. In the catalogue it can be in many,
 and catalogue software can show any of these trees from the newest disc alone
-(see [the format spec](smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)):
+(see [the format spec](spec/smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)):
 - **by kind**, through the vocabulary: the main view, where a disc appears under
   each of its paths;
 - by the years covered, from each disc's coverage;
@@ -178,6 +178,6 @@ index points to a physical place:
 - `arv --home catalog find` run from any disc;
 - a virtual tree in catalogue software, "by place", for example
   `Home/Study/HOME-PUB-2020/TRIP-01_2019_4/…` (see
-  [the format spec](smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)).
+  [the format spec](spec/smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)).
 
 Inside the box, discs are in the order made, the same order as the lid's list.

@@ -1,7 +1,7 @@
 /*
  * udfwrite: writes closed, read-only UDF 2.50 images for archives.
  *
- * The profile it writes is docs/archival-udf.md: a metadata partition with a real mirror, every
+ * The profile it writes is docs/spec/archival-udf.md: a metadata partition with a real mirror, every
  * file in one contiguous run in a fixed order, nothing taken from the clock or the machine, so
  * the same tree gives the same bytes. No dependencies beyond the C library; no file system
  * access of its own: the caller adds folders and files, supplies file bytes through a read

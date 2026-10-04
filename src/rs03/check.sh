@@ -1,7 +1,7 @@
 #!/bin/sh
 # Checks rs03: -t finds exactly the damage done to an augmented image (data, header, CRC and parity
 # sectors); -f repairs damage of every kind back to the very image, and leaves what is too much;
-# docs/rs03-format.md's test vectors come out of rs03 and out of spec-check.py, written from it alone. With dvdisaster Light (or the speed47 fork) on PATH as `dvdisaster`, also: the same images augmented by
+# docs/spec/rs03-format.md's test vectors come out of rs03 and out of spec-check.py, written from it alone. With dvdisaster Light (or the speed47 fork) on PATH as `dvdisaster`, also: the same images augmented by
 # both are byte for byte the same (odd sizes, a chosen medium, the automatic one, the redundancy clip,
 # a large image), and each tool's test accepts the other's image.
 #
@@ -52,7 +52,7 @@ expect crc "header good; 0 data sectors with a wrong CRC, 1 CRC sectors and 0 pa
 expect ecc "header good; 0 data sectors with a wrong CRC, 0 CRC sectors and 1 parity"
 ok "-t: a whole image passes; damaged data, header, CRC and parity sectors are each found and counted"
 
-# docs/rs03-format.md's test vectors, from rs03 and from spec-check.py (written from the spec alone)
+# docs/spec/rs03-format.md's test vectors, from rs03 and from spec-check.py (written from the spec alone)
 python3 - <<'PY'
 for name, n in (("vec1", 100 * 2048), ("vec2", 400 * 2048), ("vec3", 400 * 2048 + 777)):
     open(name + ".iso", "wb").write(bytes((31 * i + i // 2048) % 256 for i in range(n)))
@@ -61,12 +61,12 @@ for v in "vec1 510 9d909de643504e2f1e17ba8fa6ed7d703d9b4e081b6e50a7acb416bf4b118
          "vec2 1020 549b58b1f3ea5dc3b1fd2ec844c3fa322a5d7d5f00d5f307d5cb30e464ed5d48" \
          "vec3 1020 6deb1dc9e4a9b5889c747893c0e179c17fd3e5c1d634a3d763f61c25c57c0d28"; do
     set -- $v
-    python3 "$here/spec-check.py" $1.iso $2 $1.spec.iso
+    python3 "$here/../../dev-tools/rs03-spec-check.py" $1.iso $2 $1.spec.iso
     "$tool" -n $2 $1.iso >/dev/null
     [ "$(sha256sum < $1.iso | cut -d' ' -f1)" = "$3" ] || no "$1: rs03 differs from the spec's test vector"
-    cmp -s $1.iso $1.spec.iso || no "$1: spec-check.py differs from rs03"
+    cmp -s $1.iso $1.spec.iso || no "$1: rs03-spec-check.py differs from rs03"
 done
-ok "the spec's test vectors: rs03 and spec-check.py (written from docs/rs03-format.md alone) give them"
+ok "the spec's test vectors: rs03 and spec-check.py (written from docs/spec/rs03-format.md alone) give them"
 
 # -f: v.iso is 9000 sectors on 12000: 47 sectors per layer, 62 roots, the CRC layer at 9024
 python3 - <<'PY'

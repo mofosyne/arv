@@ -1,5 +1,5 @@
 /*
- * udfwrite: make a closed, read-only UDF 2.50 image of a folder (docs/archival-udf.md).
+ * udfwrite: make a closed, read-only UDF 2.50 image of a folder (docs/spec/archival-udf.md).
  *
  *   udfwrite [-V volume-id] [-L label] [-S volume-set] [-t time] [-x extents.tsv] IMAGE FOLDER
  *

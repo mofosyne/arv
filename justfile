@@ -43,8 +43,8 @@ samples-publish:
 
 # Redraw the diagrams in docs/img
 diagrams:
-    python3 docs/img/architecture-svg.py
-    python3 docs/img/shelving-svg.py
+    python3 dev-tools/architecture-svg.py
+    python3 dev-tools/shelving-svg.py
 
 # Preview the website (docs/) at http://localhost:8000
 site port="8000":
