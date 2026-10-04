@@ -278,8 +278,9 @@ libraries together, so arv is one repository and one program, shipped on every d
   `collection`, `appraise`, `sets`, `names`, `where`; 35 runs compared with Python's, output,
   exit codes and catalogue), and **the installed `arv` became the C program**, handing what is not
   ported (AI helpers, `--split`, hybrid images, interactive `make`, `gui`, `index`, `rebuild`) to
-  the Python arv. Next: `--split`, `rebuild`, then the interactive prompts; the AI helpers stay
-  Python longest.
+  the Python arv. Then `--split` (make.py's fit: the same estimates, rebalancing and discs) and
+  `rebuild` (catalog.merge). Next: the interactive prompts, `init --pointer/--name`, `index`
+  (needs a SQLite reader, or an index format of our own); the AI helpers stay Python longest.
 - **Burn test discs first.** Before the port goes far, burn a few real test discs with today's
   Python arv, read them back on other machines, scratch one and repair it (#5, #4). What they teach
   goes into the C version instead of being found after it.

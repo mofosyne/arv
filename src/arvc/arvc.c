@@ -55,6 +55,7 @@ static void usage(void)
           "       arvc sets [-v]\n"
           "       arvc names [--filesystem hybrid|udf250] [--limit N] FOLDER\n"
           "       arvc where\n"
+          "       arvc rebuild [--prefer-disc] DISC   merge a disc's catalogue into the home\n"
           "       arvc info DISC\n"
           "       arvc verify [-v] DISC\n"
           "       arvc ls DISC\n"
@@ -98,13 +99,15 @@ static int needs_python(int argc, char **argv)
     const char *cmd = argv[i];
     static const char *const ported[] = { "init", "where", "make", "names", "find", "list", "sets", "id", "note",
                                           "locate", "location", "appraise", "collection", "access", "check",
-                                          "burned", "info", "verify", "ls", "restore", NULL };
+                                          "burned", "info", "verify", "ls", "restore", "rebuild", NULL };
     int known = 0;
     for (int k = 0; ported[k]; k++) known |= !strcmp(cmd, ported[k]);
     if (!known) return 1;
     if (has_arg(argc, argv, "-h") || has_arg(argc, argv, "--help")) return 1;
+    if (!strcmp(cmd, "init"))                          /* pointer files and named homes: not ported yet */
+        return has_arg(argc, argv, "--pointer") || has_arg(argc, argv, "--name") || has_arg(argc, argv, "--default");
     if (strcmp(cmd, "make")) return 0;
-    static const char *const python_only[] = { "--split", "--llm", "--llm-rounds", "--draft", "--ro-crate",
+    static const char *const python_only[] = { "--llm", "--llm-rounds", "--draft", "--ro-crate",
                                                "--extra-tools", "--tools-history", "--sf-home", "--udfmake",
                                                "--llm-url", "--llm-model", "--llm-allow-remote", "--vision",
                                                "--vision-model", "--vision-url", "--vision-per-folder",
@@ -158,7 +161,7 @@ int main(int argc, char **argv)
                  { "burned", cmd_burned }, { "note", cmd_note }, { "locate", cmd_locate },
                  { "access", cmd_access }, { "location", cmd_location }, { "collection", cmd_collection },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
-                 { "where", cmd_where } };
+                 { "where", cmd_where }, { "rebuild", cmd_rebuild } };
     if (argc >= 2 && (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-V"))) {
         puts(VERSION);
         return 0;

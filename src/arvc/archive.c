@@ -407,3 +407,102 @@ rec_record *new_appraisal(const char *target, const strlist *importance, const c
     strlist_free(&audiences);
     return r;
 }
+
+static const char *get_or_empty(const rec_record *r, const char *name)
+{
+    return rec_get(r, name) ? rec_get(r, name) : "";
+}
+
+static int same_fields(const rec_record *a, const rec_record *b)
+{
+    if (a->nfields != b->nfields) return 0;
+    for (size_t i = 0; i < a->nfields; i++)
+        if (strcmp(a->fields[i].name, b->fields[i].name) || strcmp(a->fields[i].value, b->fields[i].value)) return 0;
+    return 1;
+}
+
+static void replace_fields(rec_record *dst, const rec_record *src)
+{
+    rec_clear(dst);
+    rec_copy(dst, src);
+}
+
+static rec_record *by_key(const recs *l, const char *key, const char *value, int code)
+{
+    char *want = code ? norm_code(value) : xstrdup(value ? value : "");
+    rec_record *found = NULL;
+    for (size_t i = 0; i < l->n && !found; i++)
+        if (rec_get(l->v[i], key) && !strcmp(rec_get(l->v[i], key), want)) found = l->v[i];
+    free(want);
+    return found;
+}
+
+static int in_recs(const recs *l, const rec_record *r)
+{
+    for (size_t i = 0; i < l->n; i++)
+        if (same_fields(l->v[i], r)) return 1;
+    return 0;
+}
+
+/* Merges other into home (catalog.merge): new discs, bindings, places and collections are added,
+ * collection items unioned, events and appraisals appended when new. With prefer_other, existing
+ * records take the other's fields (a sealed disc's cut-down record never replaces a full one).
+ * Returns the number of new events; added and updated get disc ids. */
+size_t archive_merge(archive *home, const archive *other, int prefer_other, strlist *added, strlist *updated)
+{
+    size_t events = 0;
+    for (size_t i = 0; i < other->discs.n; i++) {
+        rec_record *d = other->discs.v[i], *existing = archive_disc(home, get_or_empty(d, "Id"));
+        if (!existing) {
+            recs_add(&home->discs, d);
+            strlist_add(added, get_or_empty(d, "Id"));
+        } else if (prefer_other && !same_fields(existing, d) && !(rec_get(d, "Withheld") && !rec_get(existing, "Withheld"))) {
+            replace_fields(existing, d);
+            strlist_add(updated, get_or_empty(d, "Id"));
+        }
+    }
+    for (size_t i = 0; i < other->bindings.n; i++) {
+        rec_record *b = other->bindings.v[i], *existing = by_key(&home->bindings, "Volume", rec_get(b, "Volume"), 0);
+        if (!existing) recs_add(&home->bindings, b);
+        else if (prefer_other) replace_fields(existing, b);
+    }
+    for (size_t i = 0; i < other->collections.n; i++) {     /* items are unioned: a filtered copy never removes any */
+        rec_record *c = other->collections.v[i], *existing = by_key(&home->collections, "Code", rec_get(c, "Code"), 1);
+        if (!existing) {
+            recs_add(&home->collections, c);
+            continue;
+        }
+        if (prefer_other) {
+            rec_record merged = { 0 };
+            merged.type = "Collection";
+            for (size_t f = 0; f < c->nfields; f++)
+                if (strcmp(c->fields[f].name, "Item")) rec_add(&merged, c->fields[f].name, c->fields[f].value);
+            for (size_t f = 0; f < existing->nfields; f++)
+                if (!strcmp(existing->fields[f].name, "Item")) rec_add(&merged, "Item", existing->fields[f].value);
+            replace_fields(existing, &merged);
+            rec_clear(&merged);
+        }
+        strlist have = { 0 };
+        for (size_t f = 0; f < existing->nfields; f++)
+            if (!strcmp(existing->fields[f].name, "Item")) strlist_add(&have, existing->fields[f].value);
+        for (size_t f = 0; f < c->nfields; f++)
+            if (!strcmp(c->fields[f].name, "Item") && !strlist_has(&have, c->fields[f].value)) {
+                rec_add(existing, "Item", c->fields[f].value);
+                strlist_add(&have, c->fields[f].value);
+            }
+        strlist_free(&have);
+    }
+    for (size_t i = 0; i < other->locations.n; i++) {
+        rec_record *l = other->locations.v[i], *existing = archive_location(home, rec_get(l, "Code"));
+        if (!existing) recs_add(&home->locations, l);
+        else if (prefer_other) replace_fields(existing, l);
+    }
+    for (size_t i = 0; i < other->events.n; i++)
+        if (!in_recs(&home->events, other->events.v[i])) {
+            recs_add(&home->events, other->events.v[i]);
+            events++;
+        }
+    for (size_t i = 0; i < other->appraisals.n; i++)
+        if (!in_recs(&home->appraisals, other->appraisals.v[i])) recs_add(&home->appraisals, other->appraisals.v[i]);
+    return events;
+}

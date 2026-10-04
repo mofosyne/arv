@@ -59,6 +59,7 @@ int cmd_appraise(int argc, char **argv);
 int cmd_sets(int argc, char **argv);
 int cmd_names(int argc, char **argv);
 int cmd_where(int argc, char **argv);
+int cmd_rebuild(int argc, char **argv);
 
 /* archive.c: the catalogue as arv writes it */
 typedef struct {
@@ -91,6 +92,7 @@ rec_record *new_event(const char *disc_id, const char *type, const char *outcome
 char *person(void);
 char *place(const archive *a, const char *text);
 rec_record *new_appraisal(const char *target, const strlist *importance, const char *basis, const char *review);
+size_t archive_merge(archive *home, const archive *other, int prefer_other, strlist *added, strlist *updated);
 
 /* bag.c: the payload, BagIt tag files and the listing */
 typedef struct {

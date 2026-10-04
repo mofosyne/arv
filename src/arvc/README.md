@@ -34,6 +34,7 @@ arvc appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--
 arvc sets [-v]                          the set vocabulary with disc counts
 arvc names [--filesystem F] FOLDER      names an image would change
 arvc where                              which home, and how it was found
+arvc rebuild [--prefer-disc] DISC       merge the catalogue a disc carries into the home
 
 arvc find PATTERN                       discs, folder tags and files on every disc known
 arvc list [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]
@@ -55,8 +56,8 @@ archived or the current folder up, the machine config (`~/.config/arv/homes.rec`
 
 | | arvc | Python arv only |
 |---|---|---|
-| Making | one UDF 2.50 disc: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), RS03 | `--split` over several discs, `--filesystem hybrid`, `--udf-writer udfmake`, drafts and the local AI helpers (`--llm`, `describe`, `tag`), Siegfried formats, `--ro-crate`, `--tools-history` |
-| Recording | `init`, `burned`, `check`, `note`, `locate`, `access`, `location`, `collection`, `appraise` | `rebuild`, `index`, `gui` |
+| Making | UDF 2.50 discs, one or (`--split`) as many as the folder needs: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), RS03 | `--filesystem hybrid`, `--udf-writer udfmake`, drafts and the local AI helpers (`--llm`, `describe`, `tag`), Siegfried formats, `--ro-crate`, `--tools-history` |
+| Recording | `init`, `burned`, `check`, `note`, `locate`, `access`, `location`, `collection`, `appraise`, `rebuild` | `index`, `gui` |
 | Looking | `sets`, `names`, `where` | `tags`, `keywords`, `describe`, `tag`, `models` (AI helpers) |
 | Reading | `find`, `list`, `id`, `info`, `verify`, `ls`, `restore` | (`restore` is C only) |
 
@@ -82,6 +83,10 @@ hyphens.
   byte as the Python arv leaves it; so do the 35 editing runs in `dev/edit-cases.txt` (`access`,
   `location`, `collection`, `appraise`, `sets`, `names`, `where`), whose output and exit codes
   are compared too;
+- **splitting:** a folder spread over three discs with `--split`: the same rebalancing steps,
+  the same files on each disc and the same home catalogue as the Python arv's;
+- **rebuild:** a home rebuilt from discs, then a hand edit replaced with `--prefer-disc`: the
+  same catalogue, file lists and output as the Python arv's;
 - **arv:** called as `arv`, ported commands run in C and the others in the Python arv;
 - **reading:** `find`, `list` and `id` print what the Python arv prints (20 queries); a disc made
   from a git repository with links and a script is restored by arvc and `git status` in the

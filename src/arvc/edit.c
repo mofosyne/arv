@@ -1037,3 +1037,93 @@ int cmd_where(int argc, char **argv)
     free(config);
     return 0;
 }
+
+/* ------------------------------------------------------------------ rebuild */
+
+/* the disc id of a mounted or extracted disc, from its bag-info.txt */
+static char *disc_root_id(const char *root)
+{
+    char *p = join(root, "bag-info.txt"), *text = read_text(p), *out = NULL;
+    free(p);
+    for (char *l = text ? strtok(text, "\n") : NULL; l && !out; l = strtok(NULL, "\n"))
+        if (!strncmp(l, "External-Identifier:", 20)) {
+            char *v = l + 20;
+            while (isspace((unsigned char)*v)) v++;
+            size_t n = strlen(v);
+            while (n && isspace((unsigned char)v[n - 1])) v[--n] = 0;
+            out = xstrdup(v);
+        }
+    free(text);
+    return out;
+}
+
+/* Merge the catalogue carried by a disc (mounted or extracted) into the home catalogue. */
+int cmd_rebuild(int argc, char **argv)
+{
+    const char *given = NULL, *root = NULL;
+    int prefer = 0;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (!strcmp(argv[i], "--prefer-disc")) prefer = 1;
+        else if (!root) root = argv[i];
+        else return 2;
+    }
+    if (!root) return 2;
+    arv_home h;
+    archive cat;
+    open_home(given, &h, &cat);
+    char *snap_dir = join(root, "catalog");
+    char *sources[] = { join(snap_dir, "archive.rec"), join(root, "catalog.rec") };
+    int any = 0;
+    strlist added = { 0 }, updated = { 0 };
+    size_t events = 0;
+    for (int k = 0; k < 2; k++) {
+        if (access(sources[k], F_OK)) continue;
+        any = 1;
+        archive *other = calloc(1, sizeof *other);      /* its records join the home catalogue: kept */
+        archive_load(other, sources[k]);
+        events += archive_merge(&cat, other, prefer, &added, &updated);
+    }
+    if (!any) die("%s has neither catalog/archive.rec nor catalog.rec", root);
+    static const char *const KINDS[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", NULL };
+    char *own_id = disc_root_id(root);
+    size_t copied = 0;
+    for (size_t i = 0; i < cat.discs.n; i++) {
+        const char *id = rec_get(cat.discs.v[i], "Id");
+        if (!id) continue;
+        for (int k = 0; KINDS[k]; k++) {
+            char *from = xprintf("%s/volumes/%s/%s", snap_dir, id, KINDS[k]);
+            if (k == 0 && access(from, F_OK) && own_id && !strcmp(id, own_id)) {   /* a disc without catalog/ manifests */
+                free(from);
+                from = join(root, "manifest-sha256.txt");
+            }
+            char *to = home_volume_file(&h, id, KINDS[k]);
+            if (!access(from, F_OK) && access(to, F_OK)) {
+                char *dir = xprintf("%s/volumes/%s", h.catalog_dir, id);
+                if (mkdirs(dir)) die("cannot create %s", dir);
+                copy_file(from, to);
+                copied++;
+                free(dir);
+            }
+            free(from);
+            free(to);
+        }
+    }
+    if (mkdirs(h.catalog_dir)) die("cannot create %s", h.catalog_dir);
+    archive_save(&cat, h.rec_path);
+    char *index = join(h.cache_dir, "archive.sqlite");
+    if (!access(index, F_OK))
+        fprintf(stderr, "Note: %s is now out of date; 'arv index' refreshes it (find works without it)\n", index);
+    free(index);
+    sbuf list = { 0 };
+    sb_puts(&list, "");
+    if (added.n) {
+        sb_puts(&list, " (");
+        for (size_t i = 0; i < added.n; i++) sb_printf(&list, "%s%s", i ? ", " : "", added.v[i]);
+        sb_puts(&list, ")");
+    }
+    printf("Added %zu disc(s)%s, updated %zu, %zu new event(s), %zu file list(s) copied into %s\n", added.n, list.s,
+           updated.n, events, copied, h.path);
+    free(list.s);
+    return 0;
+}

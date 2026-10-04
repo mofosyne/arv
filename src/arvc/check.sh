@@ -93,6 +93,56 @@ if command -v dvdisaster >/dev/null && dvdisaster --help 2>&1 | grep -q no-bdr-d
         && ok "arvc make with RS03 error correction: image tested by dvdisaster" || no "RS03 events"
 fi
 
+# --split: the same discs, the same files on each, and the same rebalancing as the Python arv
+mkdir -p big/letters
+python3 -c "
+import os, random
+r = random.Random(7)
+for i in range(70):
+    p = 'big/letters/letter-%03d.txt' % i
+    open(p, 'wb').write(r.randbytes(100000))
+    os.utime(p, (1000000000 + i * 86400 * 30,) * 2)"
+python3 "$repo/arv" --home split-py make -y --no-ecc --formats no --set SCAN --split --medium-sectors 4800 \
+    --output-dir split-py-out big > split-py.txt 2>&1 || no "python make --split"
+"$tool" make -C split-c --no-ecc --set SCAN --split --medium-sectors 4800 --output-dir split-c-out big \
+    > split-c.txt 2>&1 || no "arvc make --split"
+[ "$(grep -E '^Rebalancing|^SCAN' split-py.txt | sed 's|split-py-out|OUT|')" = \
+  "$(grep -E '^Rebalancing|^SCAN' split-c.txt | sed 's|split-c-out|OUT|')" ] || no "--split divides the files differently"
+discs=0
+for iso in split-py-out/*.iso; do
+    name=$(basename "$iso")
+    rm -rf x-py x-c
+    7z x -ox-py "$iso" >/dev/null && 7z x -ox-c "split-c-out/$name" >/dev/null || no "$name missing"
+    [ "$(cd x-py && find . | sort)" = "$(cd x-c && find . | sort)" ] || no "$name: different files"
+    for f in $(cd x-py && find . -type f -not -name 'tagmanifest-*' -not -name extents.tsv | sort); do
+        cmp -s "x-py/$f" "x-c/$f" && continue
+        [ "$(sed -E "$norm" "x-py/$f")" = "$(sed -E "$norm" "x-c/$f")" ] || no "$name: $f differs from python's"
+    done
+    discs=$((discs + 1))
+done
+[ "$(sed -E "$norm" split-py/catalog/archive.rec)" = "$(sed -E "$norm" split-c/catalog/archive.rec)" ] || no "--split: home catalogues differ"
+[ $discs -gt 1 ] || no "--split made only one disc"
+ok "arvc make --split: $discs discs, divided and written as python does"
+
+# rebuild: a home rebuilt from discs (the split ones above), the same as the Python arv's; then a
+# hand edit at home that --prefer-disc replaces with the disc's record
+rm -rf rb-discs && mkdir rb-discs
+for iso in split-py-out/*.iso; do 7z x -o"rb-discs/$(basename "$iso" .iso)" "$iso" >/dev/null; done
+first=$(ls rb-discs | head -1)
+for who in py c; do
+    rm -rf "rb-$who" && : > "rb-$who.out"
+    if [ $who = py ]; then run="python3 $repo/arv --home"; else run="$tool -C"; fi
+    for d in rb-discs/*; do $run "rb-$who" rebuild "$d" >> "rb-$who.out" 2>&1 || no "$who rebuild $d"; done
+    $run "rb-$who" note "$(echo "$first" | cut -d. -f1)" "edited at home" >/dev/null 2>&1
+    $run "rb-$who" rebuild --prefer-disc "rb-discs/$first" >> "rb-$who.out" 2>&1 || no "$who rebuild --prefer-disc"
+    sed -i "s|rb-$who|HOME|" "rb-$who.out"
+done
+cmp -s rb-py.out rb-c.out || { diff rb-py.out rb-c.out; no "rebuild prints differently"; }
+grep -q "updated 1," rb-c.out || no "--prefer-disc did not replace the edited record"
+cmp -s rb-py/catalog/archive.rec rb-c/catalog/archive.rec || no "rebuild: catalogues differ"
+diff -r rb-py/catalog/volumes rb-c/catalog/volumes >/dev/null || no "rebuild: file lists differ"
+ok "arvc rebuild: the home catalogue and file lists as python rebuilds them (--prefer-disc too)"
+
 # burned, note, locate (and check, with dvdisaster) change the catalogue as the Python arv does
 for who in py c; do
     rm -rf "rec-$who" && cp -r "$repo/samples/home" "rec-$who"
