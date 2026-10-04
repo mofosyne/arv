@@ -30,6 +30,7 @@
 #define GENERATOR 0x187
 #define FIRST_ROOT 112
 #define PRIM_ELEM 11
+#define PRIMTH_ROOT 116                 /* the PRIM_ELEM-th root of 1: 11 * 116 = 1 mod 255 */
 #define FINGERPRINT_SECTOR 16
 #define CREATOR_VERSION 7910            /* what dvdisaster 0.79.10 and dvdisaster Light write */
 #define NEEDED_VERSION 7900
@@ -219,7 +220,7 @@ static void put64(unsigned char *p, uint64_t v)
     for (int i = 0; i < 8; i++) p[i] = (unsigned char)(v >> (8 * i));
 }
 
-/* the EccHeader struct, 4096 bytes (dvdisaster.h; the field table in docs/rs03.md) */
+/* the EccHeader struct, 4096 bytes (dvdisaster.h) */
 static void make_header(unsigned char h[4096], const rs03_layout *lay, const unsigned char fp[16], uint32_t in_last)
 {
     memset(h, 0, 4096);
@@ -320,6 +321,51 @@ static void *encode(void *arg)
     return NULL;
 }
 
+/* The parity of a run of codewords, shared out among the processors */
+typedef struct {
+    const unsigned char (*lut)[2 * FIELDMAX + 8];
+    size_t stride;
+    int ndata, nroots, shift_init, g0, threads;
+} parity_coder;
+
+/* the generator, and per feedback value its products, twice over (no wrap-around) */
+static void parity_setup(parity_coder *pc, const rs03_layout *lay, int *gpoly, unsigned char (*lut)[2 * FIELDMAX + 8])
+{
+    int ndata = lay->ndata, nroots = lay->nroots;
+    make_gpoly(nroots, gpoly);
+    for (int f = 0; f < FIELDMAX; f++)
+        for (int i = 0; i < nroots; i++)
+            lut[f][i] = lut[f][nroots + i] = (unsigned char)alpha_to[modmax(f + gpoly[nroots - 1 - i])];
+    long cpus = sysconf(_SC_NPROCESSORS_ONLN);
+    pc->lut = (const unsigned char (*)[2 * FIELDMAX + 8])lut;
+    pc->stride = ((size_t)nroots + 7) & ~(size_t)7;
+    pc->ndata = ndata;
+    pc->nroots = nroots;
+    pc->shift_init = nroots - ndata % nroots;
+    if (pc->shift_init == nroots) pc->shift_init = 0;
+    pc->g0 = gpoly[0];
+    pc->threads = cpus < 1 ? 1 : cpus > MAX_THREADS ? MAX_THREADS : (int)cpus;
+}
+
+/* parity (nbytes * stride): byte k of codeword i at i * stride + k, i.e. parity layer k */
+static void run_parity(const parity_coder *pc, const unsigned char *const *layers, size_t nbytes, unsigned char *parity)
+{
+    int threads = pc->threads;
+    job jobs[MAX_THREADS];
+    pthread_t tid[MAX_THREADS];
+    int started[MAX_THREADS] = { 0 };
+    memset(parity, 0, nbytes * pc->stride);
+    for (int t = 0; t < threads; t++) {
+        jobs[t] = (job){ layers, parity, pc->lut, nbytes * (size_t)t / (size_t)threads, nbytes * (size_t)(t + 1) / (size_t)threads,
+                         pc->stride, pc->ndata, pc->nroots, pc->shift_init, pc->g0 };
+        started[t] = t && !pthread_create(&tid[t], NULL, encode, &jobs[t]);
+        if (t && !started[t]) encode(&jobs[t]);          /* no thread: do it here */
+    }
+    encode(&jobs[0]);
+    for (int t = 1; t < threads; t++)
+        if (started[t]) pthread_join(tid[t], NULL);
+}
+
 /* ------------------------------------------------------------------ augmenting */
 
 static int io_error(char *err, size_t errlen, const char *what, const char *path)
@@ -388,15 +434,8 @@ static int encode_image(int fd, const char *path, const rs03_layout *lay, const 
         io_error(err, errlen, "out of memory for", path);
         goto done;
     }
-    /* the generator, and per feedback value its products, twice over (no wrap-around) */
-    make_gpoly(nroots, gpoly);
-    for (int f = 0; f < FIELDMAX; f++)
-        for (int i = 0; i < nroots; i++)
-            lut[f][i] = lut[f][nroots + i] = (unsigned char)alpha_to[modmax(f + gpoly[nroots - 1 - i])];
-    long cpus = sysconf(_SC_NPROCESSORS_ONLN);
-    int threads = cpus < 1 ? 1 : cpus > MAX_THREADS ? MAX_THREADS : (int)cpus;
-    int shift_init = nroots - ndata % nroots;
-    if (shift_init == nroots) shift_init = 0;
+    parity_coder pc;
+    parity_setup(&pc, lay, gpoly, lut);
 
     for (uint64_t c = 0; c < spl; c += CHUNK) {
         uint64_t m = spl - c < CHUNK ? spl - c : CHUNK, extra = c + m < spl;
@@ -447,22 +486,10 @@ static int encode_image(int fd, const char *path, const rs03_layout *lay, const 
         /* Reed-Solomon: one codeword per byte position, the layers as its symbols in order,
            shared out among the processors */
         size_t nbytes = (size_t)m * SECTOR;
-        memset(parity, 0, nbytes * stride);
         const unsigned char *layers[FIELDMAX];
         for (int l = 0; l < ndata - 1; l++) layers[l] = data + (size_t)l * (CHUNK + 1) * SECTOR;
         layers[ndata - 1] = check ? stored : crcs;     /* the parity protects the CRC layer as it is */
-        job jobs[MAX_THREADS];
-        pthread_t tid[MAX_THREADS];
-        int started[MAX_THREADS] = { 0 };
-        for (int t = 0; t < threads; t++) {
-            jobs[t] = (job){ layers, parity, (const unsigned char (*)[2 * FIELDMAX + 8])lut, nbytes * (size_t)t / (size_t)threads,
-                             nbytes * (size_t)(t + 1) / (size_t)threads, stride, ndata, nroots, shift_init, gpoly[0] };
-            started[t] = t && !pthread_create(&tid[t], NULL, encode, &jobs[t]);
-            if (t && !started[t]) encode(&jobs[t]);          /* no thread: do it here */
-        }
-        encode(&jobs[0]);
-        for (int t = 1; t < threads; t++)
-            if (started[t]) pthread_join(tid[t], NULL);
+        run_parity(&pc, layers, nbytes, parity);
         for (int k = 0; k < nroots; k++) {
             for (size_t i = 0; i < nbytes; i++) slice[i] = parity[i * stride + (size_t)k];
             uint64_t at = (lay->first_ecc + (uint64_t)k * spl + c) * SECTOR;
@@ -546,6 +573,66 @@ static uint64_t get64(const unsigned char *p)
     return v;
 }
 
+/* a CRC sector whose cookie, layout fields (when nd and spl are given) and own CRC are right */
+static int crc_block_ok(const unsigned char *b, int nd, uint64_t spl)
+{
+    unsigned char c[SECTOR];
+    if (memcmp(b + 1024, "*dvdisaster*RS03", 16)) return 0;
+    if (nd && (get32(b + 1024 + 76) != (uint32_t)nd || get64(b + 1024 + 88) != spl)) return 0;
+    memcpy(c, b, SECTOR);
+    put32(c + 1024 + 96, SELF_CRC_PLACEHOLDER);
+    return crc32_dv(c, SECTOR) == get32(b + 1024 + 96);
+}
+
+/* an ecc header (4096 bytes) with its cookie and own CRC right, found at sector `at` */
+static int header_ok(const unsigned char *h, uint64_t at)
+{
+    unsigned char c[4096];
+    if (memcmp(h, "*dvdisaster*RS03", 16) || get64(h + 68) != at) return 0;
+    memcpy(c, h, 4096);
+    put32(c + 96, SELF_CRC_PLACEHOLDER);
+    return crc32_dv(c, 4096) == get32(h + 96);
+}
+
+/* The layout of an augmented image of `size` bytes: from a CRC sector (any of the first few at
+   layer ndata-1, for each ndata of 85..254) when the image is 255 whole layers; otherwise (cut
+   short, or those sectors damaged) from the ecc header, looked for sector by sector. */
+static int find_layout(int fd, uint64_t size, rs03_layout *lay)
+{
+    uint64_t sectors = size / SECTOR, data_sectors = 0, spl = 0;
+    unsigned char b[4096];
+    int ndata = 0;
+    if (!(size % SECTOR) && sectors && !(sectors % FIELDMAX)) {
+        uint64_t s = sectors / FIELDMAX;
+        for (int nd = 85; nd < FIELDMAX && !ndata; nd++)
+            for (uint64_t n = 0; n < 8 && n < s && !ndata; n++)
+                if (!pread_all(fd, b, SECTOR, ((uint64_t)(nd - 1) * s + n) * SECTOR) && crc_block_ok(b, nd, s)) {
+                    ndata = nd;
+                    spl = s;
+                    data_sectors = get64(b + 1024 + 64);
+                }
+    }
+    if (!ndata) {
+        enum { RUN = 512 };
+        unsigned char *run = malloc((size_t)RUN * SECTOR);
+        for (uint64_t at = 0; run && at < sectors && !ndata; at += RUN) {
+            uint64_t m = sectors - at < RUN ? sectors - at : RUN;
+            if (pread_all(fd, run, (size_t)m * SECTOR, at * SECTOR)) break;
+            for (uint64_t n = 0; n < m && !ndata; n++)
+                if (!memcmp(run + n * SECTOR, "*dvdisaster*RS03", 16) && !pread_all(fd, b, 4096, (at + n) * SECTOR)
+                    && header_ok(b, at + n)) {
+                    ndata = (int)get32(b + 76);
+                    spl = get64(b + 120);
+                    data_sectors = at + n;
+                }
+        }
+        free(run);
+    }
+    if (!ndata || !spl) return -1;
+    const char *why;
+    if (rs03_layout_for(data_sectors, spl * FIELDMAX, 0, lay, &why) || lay->ndata != ndata) return -1;
+    return 0;
+}
 
 int rs03_verify(const char *path, rs03_report *r, char *err, size_t errlen)
 {
@@ -562,44 +649,293 @@ int rs03_verify(const char *path, rs03_report *r, char *err, size_t errlen)
         snprintf(err, errlen, "%s is not an RS03 augmented image (its size is not 255 layers of sectors)", path);
         goto done;
     }
-    /* the layout, from the first CRC sector: at layer ndata-1 for some ndata of 85..254 */
-    uint64_t spl = sectors / FIELDMAX, data_sectors = 0;
-    int ndata = 0;
-    for (int nd = 85; nd < FIELDMAX && !ndata; nd++) {
-        if (pread_all(fd, b, SECTOR, (uint64_t)(nd - 1) * spl * SECTOR)) continue;
-        uint32_t want = get32(b + 1024 + 96);
-        put32(b + 1024 + 96, SELF_CRC_PLACEHOLDER);
-        if (!memcmp(b + 1024, "*dvdisaster*RS03", 16) && get32(b + 1024 + 76) == (uint32_t)nd
-            && get64(b + 1024 + 88) == spl && crc32_dv(b, SECTOR) == want) {
-            ndata = nd;
-            data_sectors = get64(b + 1024 + 64);
-        }
-    }
-    if (!ndata) {
-        snprintf(err, errlen, "%s: no RS03 CRC layer found (not augmented, or its first CRC sector is damaged)", path);
+    if (find_layout(fd, (uint64_t)st.st_size, &r->lay) || r->lay.total_sectors != sectors) {
+        snprintf(err, errlen, "%s: no RS03 layout found (not augmented, or its CRC sectors and header are damaged)", path);
         goto done;
     }
-    const char *why = NULL;
-    if (rs03_layout_for(data_sectors, spl * FIELDMAX, 0, &r->lay, &why) || r->lay.ndata != ndata) {
-        snprintf(err, errlen, "%s: the RS03 layout does not add up%s%s", path, why ? ": " : "", why ? why : "");
-        goto done;
-    }
+    uint64_t data_sectors = r->lay.data_sectors;
     /* the header */
     if (pread_all(fd, b, 4096, data_sectors * SECTOR)) { io_error(err, errlen, "cannot read", path); goto done; }
-    uint32_t want = get32(b + 96);
-    put32(b + 96, SELF_CRC_PLACEHOLDER);
-    r->header_ok = !memcmp(b, "*dvdisaster*RS03", 16) && crc32_dv(b, 4096) == want && get64(b + 68) == data_sectors
-                   && get32(b + 76) == (uint32_t)ndata && get64(b + 120) == spl;
+    r->header_ok = header_ok(b, data_sectors) && get32(b + 76) == (uint32_t)r->lay.ndata
+                   && get64(b + 120) == r->lay.sectors_per_layer;
     unsigned char fp[16];
     memcpy(fp, b + 20, 16);
     uint32_t in_last = get32(b + 116);
-    if (!r->header_ok) {                /* the fingerprint and inLast as the CRC layer has them */
-        if (pread_all(fd, b, SECTOR, r->lay.first_crc * SECTOR)) { io_error(err, errlen, "cannot read", path); goto done; }
+    if (!r->header_ok) {                /* the fingerprint and inLast as a CRC sector has them */
+        for (uint64_t n = 0; n < r->lay.sectors_per_layer; n++)
+            if (!pread_all(fd, b, SECTOR, (r->lay.first_crc + n) * SECTOR) && crc_block_ok(b, r->lay.ndata, r->lay.sectors_per_layer))
+                break;
         memcpy(fp, b + 1024 + 32, 16);
         in_last = get32(b + 1024 + 72);
     }
     rc = encode_image(fd, path, &r->lay, fp, in_last, r, err, errlen);
 done:
     close(fd);
+    return rc;
+}
+
+/* ------------------------------------------------------------------ repair */
+
+/* dvdisaster's dead sector marker (ds-marker.c), which its reader writes for a sector it could not read */
+static int dead_sector(const unsigned char *p)
+{
+    static const char head[] = "dvdisaster dead sector marker\n", end[] = "dvdisaster dead sector end marker\n";
+    return !memcmp(p, head, sizeof head - 1) && !memcmp(p + 2046 - (sizeof end - 1), end, sizeof end - 1);
+}
+
+static int all_zero(const unsigned char *p)
+{
+    for (int i = 0; i < SECTOR; i++)
+        if (p[i]) return 0;
+    return 1;
+}
+
+/* One codeword's errors and erasures, corrected in place (dvdisaster's RS03Fix, after Phil Karn's
+   decode_rs): sym[j] is the symbol of layer j; erasures are layer numbers. Returns the layers
+   changed (count, into changed[]), or -1 when the codeword cannot be corrected. */
+static int decode(unsigned char *const *sym, size_t at, int nroots, const unsigned char (*mul)[256], const int *erasures,
+                  int nerasures, int *changed)
+{
+    int lambda[FIELDMAX + 1], syn[FIELDMAX], b[FIELDMAX + 1], t[FIELDMAX + 1], omega[FIELDMAX + 1];
+    int root[FIELDMAX], reg[FIELDMAX + 1], loc[FIELDMAX];
+    int syn_error = 0, count = 0, deg_lambda = 0, el, r;
+    unsigned char sy[FIELDMAX];
+    /* the syndromes: the codeword at each root of the generator, by Horner's rule (mul[i]: times root i) */
+    for (int i = 0; i < nroots; i++) sy[i] = sym[0][at];
+    for (int j = 1; j < FIELDMAX; j++) {
+        unsigned char d = sym[j][at];
+        for (int i = 0; i < nroots; i++) sy[i] = mul[i][sy[i]] ^ d;
+    }
+    for (int i = 0; i < nroots; i++) syn[i] = sy[i];
+    for (int i = 0; i < nroots; i++) {
+        syn_error |= syn[i];
+        syn[i] = index_of[syn[i]];
+    }
+    if (!syn_error) return 0;
+    memset(lambda, 0, sizeof lambda);
+    lambda[0] = 1;
+    if (nerasures > 0) {
+        lambda[1] = alpha_to[modmax(PRIM_ELEM * (FIELDMAX - 1 - erasures[0]) % FIELDMAX)];
+        for (int i = 1; i < nerasures; i++) {
+            int u = modmax(PRIM_ELEM * (FIELDMAX - 1 - erasures[i]) % FIELDMAX);
+            for (int j = i + 1; j > 0; j--) {
+                int tmp = index_of[lambda[j - 1]];
+                if (tmp != A0) lambda[j] ^= alpha_to[modmax(u + tmp)];
+            }
+        }
+    }
+    for (int i = 0; i <= nroots; i++) b[i] = index_of[lambda[i]];
+    /* Berlekamp-Massey: the error and erasure locator */
+    r = el = nerasures;
+    while (++r <= nroots) {
+        int discr = 0;
+        for (int i = 0; i < r; i++)
+            if (lambda[i] && syn[r - i - 1] != A0) discr ^= alpha_to[modmax(index_of[lambda[i]] + syn[r - i - 1])];
+        discr = index_of[discr];
+        if (discr == A0) {
+            memmove(b + 1, b, (size_t)nroots * sizeof b[0]);
+            b[0] = A0;
+        } else {
+            t[0] = lambda[0];
+            for (int i = 0; i < nroots; i++)
+                t[i + 1] = b[i] != A0 ? lambda[i + 1] ^ alpha_to[modmax(discr + b[i])] : lambda[i + 1];
+            if (2 * el <= r + nerasures - 1) {
+                el = r + nerasures - el;
+                for (int i = 0; i <= nroots; i++) b[i] = lambda[i] ? modmax(index_of[lambda[i]] - discr + FIELDMAX) : A0;
+            } else {
+                memmove(b + 1, b, (size_t)nroots * sizeof b[0]);
+                b[0] = A0;
+            }
+            memcpy(lambda, t, (size_t)(nroots + 1) * sizeof t[0]);
+        }
+    }
+    for (int i = 0; i <= nroots; i++) {
+        lambda[i] = index_of[lambda[i]];
+        if (lambda[i] != A0) deg_lambda = i;
+    }
+    /* Chien search: the roots of the locator are the error locations */
+    memcpy(reg + 1, lambda + 1, (size_t)nroots * sizeof reg[0]);
+    for (int i = 1, k = PRIMTH_ROOT - 1; i <= FIELDMAX; i++, k = modmax(k + PRIMTH_ROOT)) {
+        int q = 1;
+        for (int j = deg_lambda; j > 0; j--)
+            if (reg[j] != A0) {
+                reg[j] = modmax(reg[j] + j);
+                q ^= alpha_to[reg[j]];
+            }
+        if (q) continue;
+        root[count] = i;
+        loc[count] = k;
+        if (++count == deg_lambda) break;
+    }
+    if (deg_lambda != count) return -1;
+    /* Forney: the error values, from omega(x) = syn(x) * lambda(x) mod x^nroots */
+    int deg_omega = deg_lambda - 1, nchanged = 0;
+    for (int i = 0; i <= deg_omega; i++) {
+        int tmp = 0;
+        for (int j = i; j >= 0; j--)
+            if (syn[i - j] != A0 && lambda[j] != A0) tmp ^= alpha_to[modmax(syn[i - j] + lambda[j])];
+        omega[i] = index_of[tmp];
+    }
+    for (int j = count - 1; j >= 0; j--) {
+        int num1 = 0, den = 0;
+        for (int i = deg_omega; i >= 0; i--)
+            if (omega[i] != A0) num1 ^= alpha_to[modmax(omega[i] + i * root[j] % FIELDMAX)];
+        int num2 = alpha_to[modmax((root[j] * (FIRST_ROOT - 1) + FIELDMAX) % FIELDMAX)];
+        for (int i = (deg_lambda < nroots - 1 ? deg_lambda : nroots - 1) & ~1; i >= 0; i -= 2)
+            if (lambda[i + 1] != A0) den ^= alpha_to[modmax(lambda[i + 1] + i * root[j] % FIELDMAX)];
+        if (num1) {
+            if (!den || loc[j] >= FIELDMAX) return -1;
+            sym[loc[j]][at] ^= (unsigned char)alpha_to[modmax(index_of[num1] + index_of[num2] + FIELDMAX - index_of[den])];
+            changed[nchanged++] = loc[j];
+        }
+    }
+    return nchanged;
+}
+
+/* One thread's share of a damaged position: bytes from..to of its 255 sectors */
+typedef struct {
+    unsigned char *const *sym;
+    const unsigned char (*mul)[256];
+    const int *erasures;
+    int nerasures, nroots, fail;
+    size_t from, to;
+    unsigned char was[FIELDMAX];        /* the layers it changed */
+} fix_job;
+
+static void *fix(void *arg)
+{
+    fix_job *fj = arg;
+    for (size_t i = fj->from; i < fj->to && !fj->fail; i++) {
+        int changed[FIELDMAX], k = decode(fj->sym, i, fj->nroots, fj->mul, fj->erasures, fj->nerasures, changed);
+        if (k < 0) fj->fail = 1;
+        for (int j = 0; j < k; j++) fj->was[changed[j]] = 1;
+    }
+    return NULL;
+}
+
+int rs03_repair(const char *path, rs03_repair_report *r, char *err, size_t errlen)
+{
+    setup();
+    memset(r, 0, sizeof *r);
+    int fd = open(path, O_RDWR);
+    if (fd < 0) return io_error(err, errlen, "cannot open", path);
+    struct stat st;
+    int rc = -1;
+    int *gpoly = NULL;
+    unsigned char (*lut)[2 * FIELDMAX + 8] = NULL;
+    unsigned char *buf = NULL, *parity = NULL, *last_crc = NULL, *prev_crc = NULL, (*mul)[256] = NULL;
+    if (fstat(fd, &st)) { io_error(err, errlen, "cannot read", path); goto done; }
+    uint64_t size = (uint64_t)st.st_size, have = size / SECTOR;    /* a part-sector at the end counts as missing */
+    rs03_layout *lay = &r->lay;
+    if (find_layout(fd, size, lay)) {
+        snprintf(err, errlen, "%s: no RS03 layout found (not augmented, or its CRC sectors and header are damaged)", path);
+        goto done;
+    }
+    uint64_t spl = lay->sectors_per_layer, total = lay->total_sectors;
+    int ndata = lay->ndata, nroots = lay->nroots;
+    if (have > total) {
+        snprintf(err, errlen, "%s is %llu sectors longer than its RS03 layout (%llu sectors); cut it to %llu bytes first",
+                 path, (unsigned long long)(have - total), (unsigned long long)total, (unsigned long long)total * SECTOR);
+        goto done;
+    }
+    if (size < total * SECTOR && ftruncate(fd, (off_t)(total * SECTOR))) { io_error(err, errlen, "cannot extend", path); goto done; }
+    r->missing = total - have;
+    /* every layer's sectors at CHUNK positions; the parity the data and CRC layers give, to find the
+       positions that need decoding at all */
+    parity_coder pc;
+    gpoly = malloc((size_t)(nroots + 1) * sizeof *gpoly);
+    lut = calloc(FIELDMAX, sizeof *lut);
+    buf = malloc((size_t)FIELDMAX * CHUNK * SECTOR);
+    parity = malloc((size_t)CHUNK * SECTOR * (((size_t)nroots + 7) & ~(size_t)7));
+    last_crc = malloc(SECTOR);
+    prev_crc = malloc(SECTOR);
+    mul = malloc((size_t)nroots * sizeof *mul);
+    if (!gpoly || !lut || !buf || !parity || !last_crc || !prev_crc || !mul) {
+        errno = ENOMEM;
+        io_error(err, errlen, "out of memory for", path);
+        goto done;
+    }
+    parity_setup(&pc, lay, gpoly, lut);
+    for (int i = 0; i < nroots; i++)          /* times the generator's root i, alpha^((FIRST_ROOT + i) * PRIM_ELEM) */
+        for (int x = 0; x < 256; x++)
+            mul[i][x] = x ? (unsigned char)alpha_to[modmax(index_of[x] + (FIRST_ROOT + i) * PRIM_ELEM % FIELDMAX)] : 0;
+    /* position 0's CRCs are in the last CRC sector */
+    uint64_t last_at = lay->first_crc + spl - 1;
+    if (pread_all(fd, last_crc, SECTOR, last_at * SECTOR)) { io_error(err, errlen, "cannot read", path); goto done; }
+    int last_ok = last_at < have && crc_block_ok(last_crc, ndata, spl);
+    for (uint64_t c = 0; c < spl; c += CHUNK) {
+        uint64_t m = spl - c < CHUNK ? spl - c : CHUNK;
+        size_t nbytes = (size_t)m * SECTOR;
+        unsigned char *layer[FIELDMAX];
+        for (int l = 0; l < FIELDMAX; l++) {
+            layer[l] = buf + (size_t)l * CHUNK * SECTOR;
+            if (pread_all(fd, layer[l], nbytes, ((uint64_t)l * spl + c) * SECTOR)) { io_error(err, errlen, "cannot read", path); goto done; }
+        }
+        run_parity(&pc, (const unsigned char *const *)layer, nbytes, parity);
+        for (uint64_t n = 0; n < m; n++) {
+            uint64_t s = c + n;
+            /* the CRCs of this position: the CRC sector before it (repaired already), or the last one */
+            const unsigned char *crcs = !s ? last_crc : n ? layer[ndata - 1] + (n - 1) * SECTOR : prev_crc;
+            int crcs_ok = !s ? last_ok : crc_block_ok(crcs, ndata, spl);
+            int erasures[FIELDMAX], nerasures = 0, need = !crcs_ok;
+            unsigned char *sym[FIELDMAX];
+            for (int l = 0; l < FIELDMAX; l++) {
+                unsigned char *p = sym[l] = layer[l] + n * SECTOR;
+                uint64_t at = (uint64_t)l * spl + s;
+                int gone = at >= have || dead_sector(p);
+                if (!gone && l < ndata - 1) gone = crcs_ok && crc32_dv(p, SECTOR) != get32(crcs + 4 * l);
+                else if (!gone && l == ndata - 1) gone = !crc_block_ok(p, ndata, spl);
+                else if (!gone) gone = all_zero(p);     /* a sector a reader filled with zeros */
+                if (gone) erasures[nerasures++] = l;
+            }
+            need |= nerasures > 0;
+            for (size_t i = 0; i < SECTOR && !need; i++)
+                for (int k = 0; k < nroots && !need; k++)
+                    need = parity[(n * SECTOR + i) * pc.stride + (size_t)k] != sym[ndata + k][i];
+            if (!need) continue;
+            if (nerasures > nroots) {
+                r->unrepaired_positions++;
+                r->unrepaired_sectors += (uint64_t)nerasures;
+                continue;
+            }
+            unsigned char was[FIELDMAX];        /* the layers this position changed */
+            int fail = 0, threads = pc.threads;
+            fix_job jobs[MAX_THREADS];
+            pthread_t tid[MAX_THREADS];
+            int started[MAX_THREADS] = { 0 };
+            for (int t = 0; t < threads; t++) {
+                jobs[t] = (fix_job){ sym, (const unsigned char (*)[256])mul, erasures, nerasures, nroots, 0,
+                                     (size_t)SECTOR * (size_t)t / (size_t)threads, (size_t)SECTOR * (size_t)(t + 1) / (size_t)threads, { 0 } };
+                started[t] = t && !pthread_create(&tid[t], NULL, fix, &jobs[t]);
+                if (t && !started[t]) fix(&jobs[t]);
+            }
+            fix(&jobs[0]);
+            memset(was, 0, sizeof was);
+            for (int t = 0; t < threads; t++) {
+                if (t && started[t]) pthread_join(tid[t], NULL);
+                fail |= jobs[t].fail;
+                for (int l = 0; l < FIELDMAX; l++) was[l] |= jobs[t].was[l];
+            }
+            if (fail) {                         /* leave it as it was (the copy in memory is not written) */
+                for (int l = 0; l < FIELDMAX; l++)
+                    if (pread_all(fd, sym[l], SECTOR, ((uint64_t)l * spl + s) * SECTOR)) { io_error(err, errlen, "cannot read", path); goto done; }
+                r->unrepaired_positions++;
+                r->unrepaired_sectors += (uint64_t)(nerasures ? nerasures : 1);
+                continue;
+            }
+            for (int l = 0; l < FIELDMAX; l++) {
+                if (!was[l]) continue;
+                if (pwrite_all(fd, sym[l], SECTOR, ((uint64_t)l * spl + s) * SECTOR)) { io_error(err, errlen, "cannot write", path); goto done; }
+                if (l < ndata - 1) r->repaired_data++;
+                else if (l == ndata - 1) r->repaired_crc++;
+                else r->repaired_ecc++;
+            }
+        }
+        memcpy(prev_crc, layer[ndata - 1] + (m - 1) * SECTOR, SECTOR);
+    }
+    rc = 0;
+done:
+    if (close(fd) && !rc) rc = io_error(err, errlen, "cannot write", path);
+    free(gpoly); free(lut); free(buf); free(parity); free(last_crc); free(prev_crc); free(mul);
     return rc;
 }

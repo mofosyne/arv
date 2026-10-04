@@ -36,7 +36,7 @@ flowchart TD
         S --> C[arv check on the drive<br/>every few years]
     end
     subgraph recover [Recover]
-        C -- damage --> D[dvdisaster -r / -f<br/>repair from RS03]
+        C -- damage --> D[ddrescue or dvdisaster -r, then<br/>arv check --repair: repair from RS03]
         S -- home catalogue lost --> RB[arv rebuild /media/disc]
         S -- tools lost --> P[plain tools:<br/>sha256sum, a browser, a text editor]
     end
@@ -224,7 +224,7 @@ disc is always a backup of the catalogue**.
 
 | What happened | What to do |
 |---|---|
-| A disc reads with errors | Follow REPAIR in the disc's `README.txt`: `dvdisaster -d /dev/sr0 -r -i disc.iso` (dvdisaster Light: add `--rescue`), check the image has the size the README states (if smaller, read again with `--ignore-iso-size`), then `dvdisaster -i disc.iso -f`. Too damaged? Copies are sector-identical: read another copy into the same image (`-r -j 1`, only missing sectors are read) and repair again. Then burn a new copy. Tested in research-notes.md section 8. |
+| A disc reads with errors | Follow REPAIR in the disc's `README.txt`: read it into an image with `ddrescue -b 2048 /dev/sr0 disc.iso disc.map` or `dvdisaster -d /dev/sr0 -r -i disc.iso` (dvdisaster Light: add `--rescue`; if the image is smaller than the README states, read again with `--ignore-iso-size`), then `arv check --image disc.iso --repair` (logged when the disc is in your home; the disc's own `tools/arv.com` works too), or `dvdisaster -i disc.iso -f`. Too damaged? Copies are sector-identical: read another copy into the same image (ddrescue with the same map file, or dvdisaster `-r -j 1`: only missing sectors are read) and repair again. Then burn a new copy. Tested in research-notes.md section 8 and `src/rs03/check.sh`. |
 | The home catalogue is lost | `arv rebuild /media/disc` with the newest disc: discs, events, locations, file lists. Then rebuild from later discs, or re-enter notes. |
 | This tool is lost | every disc has `tools/` (the code at burn time) and `README.txt`. Without it: `sha256sum -c manifest-sha256.txt` verifies, `index.html` browses, `grep` searches `catalog/volumes/*/listing.tsv`, and `catalog.rec` is plain text. |
 | dvdisaster is lost | a copy can go in `tools/extra/` with `--extra-tools`; keep one off-disc too. The RS03 format is written up in LCSAS's DVDISASTER_RS03_FORMAT.md (research-notes.md section 7). |

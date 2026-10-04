@@ -54,19 +54,20 @@ RESTORE (copy the files back)
       do ln -s "$t" "DEST/$p"; done
 
 REPAIR (fix damage)
-  Use dvdisaster: https://github.com/teaching-droid/dvdisaster-light or
-  https://github.com/speed47/dvdisaster (a copy may be in tools/extra/, but
-  keep one off-disc too).
-  1. Read the disc into an image, even if parts are unreadable:
-       dvdisaster -d /dev/sr0 -r -i disc.iso
-     (dvdisaster Light can read, repair and re-read in one go: add --rescue.)
+  1. Read the disc into an image, even if parts are unreadable, with either
+     of (unread sectors are left as zeros, which the repair finds):
+       ddrescue -b 2048 /dev/sr0 disc.iso disc.map       (GNU ddrescue)
+       dvdisaster -d /dev/sr0 -r -i disc.iso             (dvdisaster Light,
+         https://github.com/teaching-droid/dvdisaster-light: add --rescue)
      The image is larger than the filesystem. If dvdisaster does not mention
      RS03 error correction while reading, read again with --ignore-iso-size.
-  2. Repair, then check:
-       dvdisaster -i disc.iso -f
-       dvdisaster -i disc.iso -t
+  2. Repair, then check, with the reader in tools/ (arvc or arv.com: see
+     RESTORE); it needs nothing else:
+       ./arvc check --image disc.iso --repair
+     or with dvdisaster: dvdisaster -i disc.iso -f
   3. Still damaged? Every copy of this disc is identical. Put in another copy
      and read it into the same image; only the missing sectors are read:
+       ddrescue -b 2048 /dev/sr0 disc.iso disc.map       (the same map file)
        dvdisaster -d /dev/sr0 -r -j 1 -i disc.iso
      then repair as in step 2.
   Then burn or mount disc.iso and verify as above.

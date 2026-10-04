@@ -110,10 +110,10 @@
 <text x='30' y='559' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>udfwrite (UDF 2.50)</text>
 <rect x='20' y='638' width='236' height='44' rx='6' fill='#ffffff' stroke='#8a3a2f' stroke-width='1.2'/>
 <text x='30' y='657' font-size='11' font-weight='bold' fill='#8a3a2f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>6 add RS03</text>
-<text x='30' y='673' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>dvdisaster Light</text>
+<text x='30' y='673' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>src/rs03 (as dvdisaster writes it)</text>
 <rect x='20' y='692' width='236' height='44' rx='6' fill='#ffffff' stroke='#8a3a2f' stroke-width='1.2'/>
 <text x='30' y='711' font-size='11' font-weight='bold' fill='#8a3a2f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>7 verify the image</text>
-<text x='30' y='727' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>dvdisaster -t</text>
+<text x='30' y='727' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>every sector: CRC and parity</text>
 <rect x='20' y='780' width='236' height='44' rx='6' fill='#ffffff' stroke='#444444' stroke-width='1.2'/>
 <text x='30' y='799' font-size='11' font-weight='bold' fill='#444444' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>8 burn two or more copies</text>
 <text x='30' y='815' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>keep them apart; arv burned</text>
@@ -121,11 +121,11 @@
 <path d='M963,123 L977,123 L970,112.2 Z' fill='#57606a'/>
 <rect x='984' y='780' width='236' height='60' rx='6' fill='#ffffff' stroke='#444444' stroke-width='1.2'/>
 <text x='994' y='799' font-size='11' font-weight='bold' fill='#444444' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>1 read the disc to an image</text>
-<text x='994' y='815' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>dvdisaster -r; read copy B into</text>
-<text x='994' y='831' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>copy A's image to fill its gaps</text>
+<text x='994' y='815' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>ddrescue or dvdisaster; read copy</text>
+<text x='994' y='831' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>B into A's image to fill its gaps</text>
 <rect x='984' y='638' width='236' height='44' rx='6' fill='#ffffff' stroke='#8a3a2f' stroke-width='1.2'/>
 <text x='994' y='657' font-size='11' font-weight='bold' fill='#8a3a2f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>2 repair the image</text>
-<text x='994' y='673' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>dvdisaster -f</text>
+<text x='994' y='673' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>arv check --repair, or dvdisaster -f</text>
 <rect x='984' y='524' width='236' height='44' rx='6' fill='#ffffff' stroke='#8a5a1f' stroke-width='1.2'/>
 <text x='994' y='543' font-size='11' font-weight='bold' fill='#8a5a1f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>3 open it</text>
 <text x='994' y='559' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>mount, or 7-Zip: no tool of ours</text>

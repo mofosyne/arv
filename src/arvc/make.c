@@ -1285,8 +1285,9 @@ static void stage_plan(maker *mk, size_t idx)
                                    creator && *creator ? " by " : "", creator && *creator ? creator : "", mk->today, mk->title);
         fill(&plain, plain_text, 76, "");
         char *size_text = image_sectors
-            ? xprintf("The image must be %ld sectors (%ld bytes). If it comes out smaller, the error correction "
-                      "was not found; read again with --ignore-iso-size.", image_sectors, image_sectors * SECTOR)
+            ? xprintf("The image must be %ld sectors (%ld bytes). If dvdisaster gives a smaller one, read again "
+                      "with --ignore-iso-size; an end that cannot be read at all, the repair fills in.",
+                      image_sectors, image_sectors * SECTOR)
             : xstrdup("The image is larger than the filesystem. If dvdisaster does not mention RS03 error "
                       "correction while reading, read again with --ignore-iso-size.");
         fill(&size_check, size_text, 76, "     ");

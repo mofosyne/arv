@@ -45,7 +45,7 @@ static void usage(FILE *to)
           "       arv init [FOLDER] [--pointer HOME] [--name NAME [--default]]\n"
           "       arv make [-C HOME] [--set CODE] [--title T] [--no-ecc] [--output-dir DIR] ... FOLDER\n"
           "              (arv make --help lists every option)\n"
-          "       arv check [-C HOME] (--image FILE | --device DRIVE) [--note TEXT] [-v] [DISC-ID]\n"
+          "       arv check [-C HOME] (--image FILE [--repair] | --device DRIVE) [--note TEXT] [-v] [DISC-ID]\n"
           "       arv burned [-C HOME] [--copies N] [--media-id ID] [--location PLACE] [--note TEXT] DISC-ID\n"
           "       arv note [-C HOME] DISC-ID TEXT\n"
           "       arv locate [-C HOME] [--add] DISC-ID PLACE...\n"

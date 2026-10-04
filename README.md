@@ -50,7 +50,7 @@ Each layer does its own job:
 
 | Layer | Purpose | Tool |
 |---|---|---|
-| dvdisaster RS03 (augmented image) | **Repair** unreadable sectors | `dvdisaster` |
+| dvdisaster RS03 (augmented image) | **Repair** unreadable sectors | `arv check --repair`, or any `dvdisaster` |
 | BagIt manifests | **Detect** corruption per file, portable off-disc | `bagit.py`, or plain `sha256sum -c` |
 | recfile catalogue | **Find** which disc holds what, without mounting | `recsel`, `recfix` |
 
@@ -97,16 +97,17 @@ and how BagIt and recfiles split the work.
 `arv` (Archive, Record, Verify; also Norwegian for "inheritance") is a C program: C99 and POSIX,
 no libraries, built from any disc's `tools/` with one `cc` line. An optional add-on in Python
 (standard library only) has the local AI helpers and a web interface. arv adds dvdisaster's RS03
-error correction itself ([src/rs03](src/rs03/): byte for byte what dvdisaster writes), so making
-and testing discs needs nothing else; reading and repairing a damaged disc is
-[dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light)'s job (or the
-[speed47 fork](https://github.com/speed47/dvdisaster)'s).
+error correction itself ([src/rs03](src/rs03/): byte for byte what dvdisaster writes), and
+tests and repairs it, so making, checking and repairing discs needs nothing else. Reading a
+damaged disc into an image is for GNU ddrescue or
+[dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the
+[speed47 fork](https://github.com/speed47/dvdisaster)), which can also repair it.
 
 ### Install (Linux)
 
 ```sh
 sudo apt install build-essential p7zip-full   # Debian/Ubuntu (python3 too, for the optional add-on)
-# for repairs: dvdisaster Light, from https://github.com/teaching-droid/dvdisaster-light
+# for reading damaged discs: gddrescue, or dvdisaster Light (https://github.com/teaching-droid/dvdisaster-light)
 make install PREFIX=~/.local     # or: sudo make install   (/usr/local)
 arv --help
 ```
@@ -141,12 +142,12 @@ which it finds on `PATH`:
 |---|---|---|
 | `git`, `tar` | copying arv's last commit into each disc's `tools/` (in a checkout; an installed arv copies `PREFIX/share/arv`) | your distribution |
 | `python3` | only the optional add-on: `describe`, `tag`, `models`, `gui` | your distribution |
-| `dvdisaster` | only reading a damaged disc (`arv check --device`) and repairing one (see its `README.txt`); arv adds and tests RS03 itself | **not bundled:** build [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the [speed47 fork](https://github.com/speed47/dvdisaster)); any version can repair arv's discs |
+| `dvdisaster` or `ddrescue` | only reading a damaged disc into an image (see its `README.txt`), and `arv check --device`; arv adds, tests and repairs RS03 itself | **not bundled:** build [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the [speed47 fork](https://github.com/speed47/dvdisaster)); any version can repair arv's discs |
 | `sf` (Siegfried), `ffmpeg`, a local LLM | optional extras (format ids, video frames, descriptions) | install if you want them |
 
 `arv make` stops with a clear message if a program it needs is missing. Reading a disc later
 needs none of these: any computer can open it, and `README.txt` on the disc explains checking,
-restoring and repair (repair needs dvdisaster, any version).
+restoring and repair (with the arv on the disc, or any dvdisaster).
 
 The whole cycle, as the C arv runs it:
 
@@ -271,9 +272,12 @@ in its snapshot.
   `--split`, becomes a set of complete bags (`Bag-Count: n of N`) that each know the whole set.
 - RS03 fills the disc to the medium size: arv writes it itself ([src/rs03](src/rs03/), the same
   bytes as dvdisaster Light), then reads the image back and tests every sector against its CRC
-  and the parity against the data. `arv check --image` repeats that test later. Repair is
-  dvdisaster's: every build can repair these images. (dvdisaster exits with status 1 after a
-  *successful* `-f` repair; check with `-t`.)
+  and the parity against the data. `arv check --image` repeats that test later, and
+  `arv check --image IMAGE --repair` mends a damaged image in place (`tools/arv.com` on every
+  disc can do it, with no catalogue). It finds damage from the CRCs, dvdisaster's dead sector
+  markers, zero-filled sectors (what ddrescue leaves) and a missing end, and repairs as
+  dvdisaster Light does, to the same bytes. Every dvdisaster build can repair these images too.
+  (dvdisaster exits with status 1 after a *successful* `-f` repair; check with `-t`.)
 - With [Siegfried](https://www.itforarchivists.com/siegfried) (`sf`) installed, each file's
   PRONOM format is recorded in `catalog/volumes/<disc-id>/formats.csv`. `--ro-crate` adds
   `data/ro-crate-metadata.json` (RO-Crate 1.2, passes the validator's required checks).
@@ -426,10 +430,10 @@ single-threaded.
 - [x] UDF 2.50 through NetBSD `makefs -t udf` (now in `upstream/netbsd-makefs`), then arv's own writer (`src/udfwrite`, now the only one)
 - [x] GUI front end over the CLI (`arv gui`, local web UI, standard library only)
 - [x] `.arv` homes, change events, `Binding` records (format 0.3)
-- [ ] dvdisaster sources (and static binaries) on each disc for self-contained repair
+- [x] ~~dvdisaster sources (and static binaries) on each disc for self-contained repair~~ superseded: arv repairs RS03 itself
 - [ ] File extents per volume, so files can be cut out of a raw image
-- [x] RS03 in arv itself: encoder and image test in plain C ([src/rs03](src/rs03/)), byte-identical to dvdisaster Light
-- [ ] RS03 repair in arv too, so `tools/arv.com` can repair a disc image anywhere
+- [x] RS03 in arv itself: encoder, image test and repair in plain C ([src/rs03](src/rs03/)), byte-identical to dvdisaster Light,
+      so `tools/arv.com` can repair a disc image anywhere
 - [ ] A man page generated from the command's own help
 - [ ] First real burns, and reading them back after time on the shelf
 

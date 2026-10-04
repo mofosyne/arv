@@ -3,9 +3,10 @@
  *
  * Augments an image the way `dvdisaster -i IMAGE -mRS03 -o image -c [-n SECTORS]` does, byte for
  * byte: the ecc header after the data, padding sectors, a CRC layer and Reed-Solomon parity
- * layers fill the image up to the medium size, interleaved over the whole disc. The format is
- * dvdisaster's (GPLv3; this is a reimplementation of its 0.79.10 / dvdisaster Light encoder, with
- * the format written up in docs/rs03.md), so any dvdisaster can test and repair the result.
+ * layers fill the image up to the medium size, interleaved over the whole disc. Tests and repairs
+ * such an image too, as `-t` and `-f` do. The format is dvdisaster's (GPLv3; this is a
+ * reimplementation of its 0.79.10 / dvdisaster Light code, with the format described at the top
+ * of rs03.c), so any dvdisaster can test and repair the result.
  */
 #ifndef RS03_H
 #define RS03_H
@@ -59,6 +60,23 @@ typedef struct {
 /* Checks an augmented image (dvdisaster's, or rs03_augment's). Returns 0 with *report filled in,
  * or -1 with err filled in when it is not an RS03 image or cannot be read. */
 int rs03_verify(const char *path, rs03_report *report, char *err, size_t errlen);
+
+/* What rs03_repair did. Nothing unrepaired: the image is whole again (rs03_verify can confirm). */
+typedef struct {
+    rs03_layout lay;
+    uint64_t missing;               /* sectors past the end of a cut-short image (added, then repaired) */
+    uint64_t repaired_data;         /* data sectors (the image, its header and padding) put right */
+    uint64_t repaired_crc, repaired_ecc;
+    uint64_t unrepaired_positions;  /* sector positions with more damage than the parity can correct */
+    uint64_t unrepaired_sectors;    /* the damaged sectors known at those positions */
+} rs03_repair_report;
+
+/* Repairs an augmented image in place, as `dvdisaster -f` does: damaged sectors are found from
+ * dvdisaster's dead sector markers, the CRC layer, zero-filled CRC or parity sectors (what other
+ * readers leave), sectors missing from the end, and the Reed-Solomon code itself, which then puts
+ * them right where the parity allows. Returns 0 with *report filled in, or -1 with err filled in
+ * when it is not an RS03 image or cannot be read or written. */
+int rs03_repair(const char *path, rs03_repair_report *report, char *err, size_t errlen);
 
 /* dvdisaster's summary line: "8 MiB data, 4 MiB ecc (84 roots; 49.1% redundancy), 0 MiB padding." */
 void rs03_describe(const rs03_layout *lay, char *out, size_t outlen);

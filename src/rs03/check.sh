@@ -1,6 +1,6 @@
 #!/bin/sh
 # Checks rs03: -t finds exactly the damage done to an augmented image (data, header, CRC and parity
-# sectors). With dvdisaster Light (or the speed47 fork) on PATH as `dvdisaster`, also: the same images augmented by
+# sectors); -f repairs damage of every kind back to the very image, and leaves what is too much. With dvdisaster Light (or the speed47 fork) on PATH as `dvdisaster`, also: the same images augmented by
 # both are byte for byte the same (odd sizes, a chosen medium, the automatic one, the redundancy clip,
 # a large image), and each tool's test accepts the other's image.
 #
@@ -51,6 +51,44 @@ expect crc "header good; 0 data sectors with a wrong CRC, 1 CRC sectors and 0 pa
 expect ecc "header good; 0 data sectors with a wrong CRC, 0 CRC sectors and 1 parity"
 ok "-t: a whole image passes; damaged data, header, CRC and parity sectors are each found and counted"
 
+# -f: v.iso is 9000 sectors on 12000: 47 sectors per layer, 62 roots, the CRC layer at 9024
+python3 - <<'PY'
+import random, shutil
+r = random.Random(11)
+spl, crc = 47, 9024
+marker = bytearray(2048)
+head, end = b"dvdisaster dead sector marker\nThis sector could not be read from the image.\n", b"dvdisaster dead sector end marker\n"
+marker[:len(head)] = head
+marker[2046 - len(end):2046] = end
+def damage(name, writes, cut=None):
+    shutil.copy("v.iso", name + ".iso")
+    with open(name + ".iso", "r+b") as f:
+        for at, data in writes:
+            f.seek(at)
+            f.write(data)
+        if cut is not None:
+            f.truncate(cut)
+scattered = [(s * 2048 + r.randrange(2048), bytes([r.randrange(256)])) for s in (0, 1, 16, 100, 2000, 5000, 8999, 9000, 9001)]
+damage("fix-mixed", scattered + [(3000 * 2048, bytes(30 * 2048)),            # a zero-filled run (ddrescue, dd)
+                                 (4000 * 2048, bytes(marker)),               # dvdisaster's dead sector marker
+                                 ((crc + 9) * 2048 + 5, b"xx"),              # a CRC sector
+                                 (11000 * 2048, bytes(2048)), (11500 * 2048 + 77, b"garbage")])  # parity
+damage("fix-nocrc", [((crc + 19) * 2048 + 3, b"x"), (20 * 2048 + 99, b"y"), (20 * 2048 + 700, b"z")])  # its CRCs damaged too
+damage("fix-first", [((crc + n) * 2048 + 1500, b"broken") for n in range(10)])    # the first CRC sectors
+damage("fix-cut", [], cut=(11985 - 600) * 2048)                                    # the end missing
+damage("fix-much", [(1000 * 2048, bytes(70 * spl * 2048))])                       # 70 layers gone: more than 62 roots
+PY
+for f in fix-mixed fix-nocrc fix-first fix-cut; do
+    "$tool" -f $f.iso >f.txt || { cat f.txt; no "-f could not repair $f"; }
+    cmp -s $f.iso v.iso || { cat f.txt; no "-f did not bring $f back to the image"; }
+done
+grep -q "600 sectors were missing" f.txt || { cat f.txt; no "-f did not report the missing end"; }
+ok "-f: scattered bytes, zero-filled runs, dead sector markers, CRC and parity damage, damage its CRCs miss,"
+echo "    damaged first CRC sectors and a missing end are each repaired back to the very image"
+"$tool" -f fix-much.iso >f.txt && no "-f claims to have repaired too much damage"
+grep -q "NOT repaired: .* at 47 positions" f.txt && ok "-f: damage beyond the parity is reported, not guessed at" \
+    || { cat f.txt; no "-f on too much damage"; }
+
 if ! dvdisaster --help 2>&1 | grep -q no-bdr-defect-management; then
     echo "skipped: no dvdisaster Light (or speed47 fork) on PATH to compare with"
     exit 0
@@ -80,3 +118,19 @@ for f in data crc ecc; do
     "$tool" -t $f.iso >/dev/null || no "$f.iso still damaged after dvdisaster -f"
 done
 ok "dvdisaster Light repairs the damaged rs03 images, and rs03 -t then finds them whole"
+python3 - <<'PY'
+import random, shutil
+r = random.Random(13)
+for name in ("light", "ours"):
+    shutil.copy("b.iso", name + ".iso")
+with open("light.iso", "r+b") as f:
+    hits = [(r.randrange(100000) * 2048 + r.randrange(2048), bytes([r.randrange(256)])) for _ in range(300)]
+    for at, b in hits + [(5000 * 2048, bytes(40 * 2048))]:
+        f.seek(at)
+        f.write(b)
+shutil.copy("light.iso", "ours.iso")
+PY
+dvdisaster -i light.iso -f --no-progress >/dev/null 2>&1 || true
+"$tool" -f ours.iso >/dev/null || no "rs03 -f on scattered damage"
+cmp -s light.iso b.iso && cmp -s ours.iso b.iso && ok "rs03 -f and dvdisaster Light -f repair the same damage to the same image" \
+    || no "rs03 -f and dvdisaster Light -f differ"

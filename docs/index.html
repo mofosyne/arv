@@ -71,7 +71,8 @@ and can be read, checked and repaired decades from now without this tool.</p>
   catalogue of the whole archive so far, the source of the tools that made it, and a
   <code>README.txt</code> with the steps to check and repair it.</li>
   <li><strong>Damage can be repaired.</strong> dvdisaster's RS03 error correction fills the
-  rest of each disc, and two damaged copies can rebuild each other.</li>
+  rest of each disc, the arv on every disc can repair it, and two damaged copies can rebuild
+  each other.</li>
   <li><strong>Open standards, plain text.</strong> BagIt, recfiles and TSV, and one kind of
   image: UDF 2.50, the Blu-ray standard. Nothing on a disc needs this tool to be read.</li>
 </ul>
@@ -104,9 +105,10 @@ separate <code>--home</code> keeps the trial apart from anything real.</p>
 <pre><code>./arv --home /tmp/arv-try make ~/some/small/folder --no-ecc --output-dir /tmp
 ./arv --home /tmp/arv-try list</code></pre>
 
-<p><strong>3. When you want real discs</strong>: install it (arv adds the error correction
-itself; keep <a href="https://github.com/teaching-droid/dvdisaster-light">dvdisaster Light</a> at
-hand for repairing a damaged disc one day), and follow the
+<p><strong>3. When you want real discs</strong>: install it (arv adds, tests and repairs the
+error correction itself; GNU ddrescue or
+<a href="https://github.com/teaching-droid/dvdisaster-light">dvdisaster Light</a> reads a damaged
+disc into an image one day), and follow the
 <a href="https://github.com/mofosyne/arv/blob/main/docs/workflow.md">workflow guide</a>.</p>
 <pre><code>make install PREFIX=~/.local
 cd /path/above/your/files &amp;&amp; arv init --name home --default

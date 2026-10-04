@@ -108,12 +108,48 @@ static char *summary(const char *output, int lines)
     return b.s;
 }
 
+/* RS03's test of an image: every sector against its CRC, the parity against the data. 1 = whole. */
+static int image_test(const char *image, sbuf *out)
+{
+    rs03_report r;
+    char err[512], line[200];
+    if (rs03_verify(image, &r, err, sizeof err)) {
+        sb_printf(out, "%s\n", err);
+        return 0;
+    }
+    rs03_describe(&r.lay, line, sizeof line);
+    int ok = r.header_ok && !r.bad_data && !r.bad_crc && !r.bad_ecc;
+    sb_printf(out, "RS03: %s\nheader %s; %llu data sectors with a wrong CRC, %llu CRC sectors and %llu parity sectors damaged\n",
+              line, r.header_ok ? "good" : "DAMAGED", (unsigned long long)r.bad_data, (unsigned long long)r.bad_crc,
+              (unsigned long long)r.bad_ecc);
+    return ok;
+}
+
+/* RS03 repair in place, then the test again. 1 = whole now. */
+static int image_repair(const char *image, sbuf *out)
+{
+    rs03_repair_report f;
+    char err[512];
+    if (rs03_repair(image, &f, err, sizeof err)) {
+        sb_printf(out, "repair: %s\n", err);
+        return 0;
+    }
+    if (f.missing) sb_printf(out, "%llu sectors were missing from the end of the image\n", (unsigned long long)f.missing);
+    sb_printf(out, "repaired: %llu data sectors, %llu CRC sectors, %llu parity sectors\n", (unsigned long long)f.repaired_data,
+              (unsigned long long)f.repaired_crc, (unsigned long long)f.repaired_ecc);
+    if (f.unrepaired_positions)
+        sb_printf(out, "NOT repaired: %llu sectors at %llu positions have more damage than the error correction can mend\n",
+                  (unsigned long long)f.unrepaired_sectors, (unsigned long long)f.unrepaired_positions);
+    return image_test(image, out);
+}
+
 int cmd_check(int argc, char **argv)
 {
     const char *given = NULL, *device = NULL, *image = NULL, *disc_id = NULL, *note = NULL;
-    int verbose = 0;
+    int verbose = 0, repair = 0;
     for (int i = 0; i < argc; i++) {
         if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) verbose = 1;
+        else if (!strcmp(argv[i], "--repair")) repair = 1;
         else if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--device")) device = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--image")) image = argv[++i];
@@ -122,51 +158,67 @@ int cmd_check(int argc, char **argv)
         else return 2;
     }
     if (!device == !image) return 2;
+    if (device && repair) die("%s", "read the disc into an image first (see the disc's README.txt, REPAIR), then: arv check --image IMAGE --repair");
     if (device && !on_path("dvdisaster")) die("%s", "reading a disc needs dvdisaster Light on PATH (or check an image with --image)");
     const char *source = device ? device : image;
     if (access(source, F_OK)) die("%s does not exist", source);
+    /* repairing first: a damaged image may not even give its label */
+    sbuf out = { 0 };
+    int ok = 0, was_whole = 0;
+    if (repair) {
+        fprintf(stderr, "Testing and repairing %s ...\n", image);
+        was_whole = ok = image_test(image, &out);
+        if (!ok) ok = image_repair(image, &out);
+        sb_puts(&out, !was_whole && ok ? "the image was damaged and is whole again\n" : ok ? "the image is whole\n"
+                                                                                      : "the image is still damaged\n");
+    }
     char *from_label = NULL;
     if (!disc_id) {
         char *label = read_volume_label(source);
         char *word = label ? strtok(label, " \t") : NULL;
-        if (!word) die("no volume label on %s; pass the disc id explicitly", source);
-        disc_id = from_label = xstrdup(word);
+        if (word) disc_id = from_label = xstrdup(word);
+        else if (!repair) die("no volume label on %s; pass the disc id explicitly", source);
         free(label);
     }
     opened o;
     home_find(&o.h, given, NULL);
     archive_load(&o.cat, o.h.rec_path);
-    if (!archive_disc(&o.cat, disc_id)) die("disc %s is not in the catalogue", disc_id);
-    fprintf(stderr, "Checking %s (%s) ...\n", disc_id, source);
-    char *output = NULL, *what, *agent;
-    int ok;
-    if (device) {
-        char *a[] = { "dvdisaster", "-d", (char *)device, "-s", "--no-progress", NULL };
+    int logged = disc_id && archive_disc(&o.cat, disc_id);
+    if (!logged && !repair) die("disc %s is not in the catalogue", disc_id);
+    int read_only = logged && repair && access(o.h.rec_path, W_OK);   /* e.g. run from a mounted disc */
+    logged &= !read_only;
+    char *what, *agent;
+    if (repair) {
+        what = xstrdup("image test and repair (RS03: every sector against its CRC, the parity against the data)");
+        agent = xstrdup(VERSION);
+    } else if (device) {
+        fprintf(stderr, "Checking %s (%s) ...\n", disc_id, source);
+        char *a[] = { "dvdisaster", "-d", (char *)device, "-s", "--no-progress", NULL }, *output = NULL;
         ok = run(a, &output) == 0;
+        sb_puts(&out, output ? output : "");
+        free(output);
         what = xprintf("disc scan with dvdisaster -s on %s", device);
         agent = xstrdup("dvdisaster");
-    } else {                         /* every sector: data against its CRC, parity against the data */
-        rs03_report r;
-        char err[512], line[200];
-        if (rs03_verify(image, &r, err, sizeof err)) {
-            output = xprintf("%s", err);
-            ok = 0;
-        } else {
-            rs03_describe(&r.lay, line, sizeof line);
-            ok = r.header_ok && !r.bad_data && !r.bad_crc && !r.bad_ecc;
-            output = xprintf("RS03: %s\nheader %s; %llu data sectors with a wrong CRC, %llu CRC sectors and %llu "
-                             "parity sectors damaged\n%s", line, r.header_ok ? "good" : "DAMAGED",
-                             (unsigned long long)r.bad_data, (unsigned long long)r.bad_crc, (unsigned long long)r.bad_ecc,
-                             ok ? "the image is whole" : "repair it with dvdisaster Light: dvdisaster -i IMAGE -f");
-        }
+    } else {
+        fprintf(stderr, "Checking %s (%s) ...\n", disc_id, source);
+        ok = image_test(image, &out);
+        sb_puts(&out, ok ? "the image is whole\n" : "repair it: arv check --image IMAGE --repair\n");
         what = xstrdup("image test (RS03: every sector against its CRC, the parity against the data)");
         agent = xstrdup(VERSION);
     }
+    const char *output = out.s ? out.s : "";
     char *sum = summary(output, 6), *text = note ? xprintf("%s\n%s\n%s", what, sum, note) : xprintf("%s\n%s", what, sum);
-    recs_add(&o.cat.events, new_event(disc_id, "fixity check", ok ? "success" : "failure", agent, "automatic", text));
-    archive_save(&o.cat, o.h.rec_path);
-    printf("%s\n", !ok || verbose ? output : sum);
-    printf("%s: %s\n", disc_id, ok ? "OK" : "FAILED - see output above");
+    if (logged) {
+        const char *outcome = !ok ? "failure" : repair && !was_whole ? "warning" : "success";
+        recs_add(&o.cat.events, new_event(disc_id, "fixity check", outcome, agent, "automatic", text));
+        archive_save(&o.cat, o.h.rec_path);
+    }
+    printf("%s\n", !ok || verbose || repair ? output : sum);
+    if (disc_id) printf("%s: %s\n", disc_id, ok ? (repair && !was_whole ? "REPAIRED" : "OK") : "FAILED - see output above");
+    else printf("%s: %s\n", image, ok ? (was_whole ? "OK" : "REPAIRED") : "FAILED - see output above");
+    if (!logged)
+        fprintf(stderr, "(not logged: %s)\n", read_only ? "the catalogue found is read-only"
+                                              : disc_id ? "that disc is not in this catalogue" : "no disc id; the image has no readable label");
     free(from_label);
     return ok ? 0 : 1;
 }

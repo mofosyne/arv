@@ -95,8 +95,8 @@ anyway, in `tools/`.
 
 | Step | Layer | With |
 |---|---|---|
-| 1. Read the disc to an image. With two damaged copies, read copy B into copy A's image: only the missing sectors are read | medium | `dvdisaster -r` (`--ignore-iso-size` if the RS03 header itself is unreadable) |
-| 2. Repair the image | protection | `dvdisaster -f` |
+| 1. Read the disc to an image. With two damaged copies, read copy B into copy A's image: only the missing sectors are read | medium | `ddrescue` (with its map file), or `dvdisaster -r` (`--ignore-iso-size` if the RS03 header itself is unreadable) |
+| 2. Repair the image | protection | `arv check --image disc.iso --repair` (the disc's `tools/arv.com`), or `dvdisaster -f` |
 | 3. Open it | container | mount it, or 7-Zip; current Windows, macOS and Linux read UDF 2.50 |
 | 4. Understand it and find things | description | `README.txt`, `index.html`, `grep` in `catalog/`, or `arv find` |
 | 5. Check every file | content | `sha256sum -c manifest-sha256.txt`, or `tools/bagit.py --validate` |

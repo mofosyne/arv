@@ -163,15 +163,15 @@ step(LX, 238, LW, "description", ["3 describe", "set, title, tags, access level"
 step(LX, 292, LW, "description", ["4 snapshot the catalogue", "every disc so far, minus sealed",
                                   "detail; add tools/ and README"])
 step(LX, 524, LW, "container", ["5 build the image", "udfwrite (UDF 2.50)"])
-step(LX, 638, LW, "protection", ["6 add RS03", "dvdisaster Light"])
-step(LX, 692, LW, "protection", ["7 verify the image", "dvdisaster -t"])
+step(LX, 638, LW, "protection", ["6 add RS03", "src/rs03 (as dvdisaster writes it)"])
+step(LX, 692, LW, "protection", ["7 verify the image", "every sector: CRC and parity"])
 step(LX, 780, LW, "medium", ["8 burn two or more copies", "keep them apart; arv burned"])
 
 # ---------------------------------------------------------------- reading (right, upwards)
 arrow(RX - 14, Y["medium"][0] + Y["medium"][1] - 6, 114)
-step(RX, 780, RW, "medium", ["1 read the disc to an image", "dvdisaster -r; read copy B into",
-                             "copy A's image to fill its gaps"])
-step(RX, 638, RW, "protection", ["2 repair the image", "dvdisaster -f"])
+step(RX, 780, RW, "medium", ["1 read the disc to an image", "ddrescue or dvdisaster; read copy",
+                             "B into A's image to fill its gaps"])
+step(RX, 638, RW, "protection", ["2 repair the image", "arv check --repair, or dvdisaster -f"])
 step(RX, 524, RW, "container", ["3 open it", "mount, or 7-Zip: no tool of ours"])
 step(RX, 238, RW, "description", ["4 understand and search", "README.txt, index.html;",
                                   "arv find, or grep catalog/"])
