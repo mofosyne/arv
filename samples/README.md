@@ -44,19 +44,19 @@ cp FAMILY/tools/arv.com . && chmod +x arv.com            # the reader the disc c
 (cd FAMILY && sha256sum -c manifest-sha256.txt)          # verify
 ```
 
-Check the error correction, then damage a copy and repair it (needs dvdisaster;
-dvdisaster Light, the speed47 fork, or 0.79.10 for these already-augmented images):
+Check the error correction, then damage a copy and repair it, with arv alone (or the disc's
+own `arv.com`; any dvdisaster does the same with `-t` and `-f`):
 
 ```sh
-dvdisaster -i samples/discs/TRIP-01_2019_4.iso -t
+./arv check --image samples/discs/TRIP-01_2019_4.iso --repair   # whole: nothing to do (not logged: no home)
 cp samples/discs/TRIP-01_2019_4.iso /tmp/damaged.iso
 python3 -c "f=open('/tmp/damaged.iso','r+b'); [ (f.seek(s*2048), f.write(bytes(100*2048))) for s in (40,600,1500) ]"
-dvdisaster -i /tmp/damaged.iso -f          # "Good! All sectors are repaired."
+./arv check --image /tmp/damaged.iso --repair     # "the image was damaged and is whole again"
 cmp /tmp/damaged.iso samples/discs/TRIP-01_2019_4.iso && echo identical
 ```
 
-When these were made, zeroing those 300 sectors (about 11% of the image) was
-repaired back to a byte-identical image.
+Zeroing those 300 sectors (about 11% of the image; sectors 40 to 139 were zeros already, so 200
+actually change) is repaired back to a byte-identical image, by arv and by dvdisaster Light alike.
 
 ## Notes
 
