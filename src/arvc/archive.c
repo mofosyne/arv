@@ -100,6 +100,12 @@ void write_records(const char *path, const recs *r)
 
 void archive_save(const archive *a, const char *path)
 {
+    char *dir = xstrdup(path), *slash = strrchr(dir, '/');   /* a new home: its catalog/ folder first */
+    if (slash && slash != dir) {
+        *slash = 0;
+        if (mkdirs(dir)) die("cannot create %s", dir);
+    }
+    free(dir);
     recs all = { 0 };
     archive_records(a, &all);
     write_records(path, &all);

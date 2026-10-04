@@ -84,6 +84,9 @@ if [ -f "$here/build/arv.com" ]; then
         || no "tools/arv.com from the disc"
 fi
 
+"$tool" --home fresh-home location add HOME "Home" >/dev/null && [ -s fresh-home/catalog/archive.rec ] \
+    && ok "a catalogue command on a home that does not exist yet creates it" || no "location add on a new home"
+
 # ------------------------------------------------------------------ what depends on the machine
 "$tool" make -C hist --no-ecc --formats no --set CODE --tools-history --output-dir hist-out src >hist.txt 2>&1 \
     || no "arvc make --tools-history"
