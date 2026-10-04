@@ -24,10 +24,9 @@ BROWSE
 SEARCH
   Catalogue software that reads this format can search every disc (the
   spec: tools/arv/docs/smart-archive-format.md).
-  From the root of the mounted disc, with Python 3:
-    python3 tools/arv/arv --home catalog find PATTERN
-    python3 tools/arv/arv --home catalog list
-  or with arvc (see RESTORE): ./arvc find PATTERN, ./arvc list
+  From the root of the mounted disc, with the reader (see RESTORE):
+    ./arvc find PATTERN                (every disc in this disc's catalogue)
+    ./arvc list
   Or plain text tools: grep -ri PATTERN catalog/volumes/*/listing.tsv
 
 VERIFY (detect damage)
