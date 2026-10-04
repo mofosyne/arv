@@ -568,8 +568,10 @@ edition stays a full copy. Any folder in the collection with a `.git` is handled
 - `arv status` reports per repository: new commits since the last edition, uncommitted changes,
   and the size of ignored files (`node_modules/`, build output) with `--skip-ignored` to leave
   them out (default: keep everything, as for any folder).
-- Open: Git LFS (the store's objects must be included, or the tree holds pointers only), and
-  submodules and worktrees (a `.git` file pointing elsewhere: archive the repository it names).
+- arv runs the `git` program for all of this and never reads git's files itself; without git
+  on PATH it copies `.git` as is (today's behaviour) and says so in the event.
+- Submodules and worktrees (a `.git` file pointing elsewhere): archive the repository it names.
+- Not handled: Git LFS. Left until someone actually needs it.
 
 **Decisions this needs**
 - **One workflow folder, one collection** (recommended). An inbox where things wait to be sorted
