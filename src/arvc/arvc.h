@@ -125,6 +125,10 @@ size_t formats_unknown(const formats *f, const entries *files);
 char *formats_agent(const formats *f);
 void formats_free(formats *f);
 
+/* rocrate.c: --ro-crate */
+char *rocrate_metadata(const rec_record *disc, const entries *files, const formats *fmt);
+char *rocrate_preview(const rec_record *disc, const entries *files);
+
 void scan_payload(const char *src, const char *policy, entries *files, entries *noted);
 char *link_summary(const entries *files, const entries *noted, const char *policy);
 void write_listing(const char *path, const entries *files, const entries *noted);
@@ -134,6 +138,9 @@ void write_tagmanifests(const char *stage);
 
 /* html.c: index.html */
 void human_size(uint64_t n, char out[32]);
+void html_esc(sbuf *b, const char *s);     /* html.escape */
+void url_quote(sbuf *b, const char *s);    /* urllib.parse.quote */
+void hash_both(const char *path, char sha256[65], char sha512[129]);
 char *render_index(const rec_record *disc, const rec_record *binding, const entries *files,
                    const archive *snapshot, char *(*where_fn)(const archive *, const rec_record *));
 

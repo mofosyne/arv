@@ -171,7 +171,7 @@ static int ambiguous(const char *p)
 }
 
 /* hashes a file with both algorithms */
-static void hash_both(const char *path, char sha256[65], char sha512[129])
+void hash_both(const char *path, char sha256[65], char sha512[129])
 {
     static unsigned char buf[1 << 20];
     sha256_ctx a;

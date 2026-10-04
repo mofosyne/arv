@@ -43,7 +43,7 @@ typedef struct {
     strlist categories, subjects, notes, importance;
     long medium_sectors;
     double min_redundancy;
-    int no_rules, no_ecc, no_verify, no_defect_management, keep_stage, ignore_names, label_given, redundancy_given, split, tools_history;
+    int no_rules, no_ecc, no_verify, no_defect_management, keep_stage, ignore_names, label_given, redundancy_given, split, tools_history, ro_crate;
 } options;
 
 static const char HELP[] =
@@ -71,13 +71,14 @@ static const char HELP[] =
     "  --snapshot full|set|disc  the catalogue the disc carries (default: full)\n"
     "  --tools DIR            arv's source for tools/ (default: found next to this program)\n"
     "  --tools-history        also arv's whole git history in tools/ (a git bundle)\n"
+    "  --ro-crate             RO-Crate 1.2 metadata in data/ (ro-crate-metadata.json and a preview)\n"
     "  --extra-tools DIR      a folder copied to tools/extra/ (dvdisaster binaries, say)\n"
     "  --split                spread the folder over as many discs as needed\n"
     "  --formats auto|yes|no  PRONOM format ids with Siegfried (auto: when sf is on PATH)\n"
     "  --sf-home DIR          Siegfried signature folder (sf -home)\n"
     "  --no-ecc, --no-verify  skip RS03, or skip dvdisaster -t afterwards\n"
     "  --ignore-names, --keep-stage\n"
-    "Not here (use the Python arv): drafts and AI help, --ro-crate.\n";
+    "Not here (use the Python arv): drafts and AI help.\n";
 
 static int parse_options(int argc, char **argv, options *o)
 {
@@ -105,6 +106,7 @@ static int parse_options(int argc, char **argv, options *o)
         if (!strcmp(a, "--ignore-names")) { o->ignore_names = 1; continue; }
         if (!strcmp(a, "--split")) { o->split = 1; continue; }
         if (!strcmp(a, "--tools-history")) { o->tools_history = 1; continue; }
+        if (!strcmp(a, "--ro-crate")) { o->ro_crate = 1; continue; }
         if (!strcmp(a, "-y") || !strcmp(a, "--yes")) continue;      /* arvc never asks */
         if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             fputs(HELP, stdout);
@@ -446,7 +448,7 @@ static void add_tree(udfw *w, image_ctx *c, const char *dir, const char *rel)
 }
 
 /* the image: the stage at the top, the payload under data/. Returns its sectors. */
-static uint64_t build_image(const char *stage, const char *src, const entries *files, int whole_folder,
+static uint64_t build_image(const char *stage, const char *src, const entries *files, const entries *extras, int whole_folder,
                             const char *out, const char *extents, const char *label, const char *disc_id,
                             const char *volume_set, int64_t when)
 {
@@ -460,14 +462,14 @@ static uint64_t build_image(const char *stage, const char *src, const entries *f
     struct stat st;
     if (stat(src, &st)) die("cannot read %s", src);
     if (udfw_add_dir(w, "data", (int64_t)st.st_mtime)) die("udfwrite: %s", udfw_error(w));
-    if (whole_folder) {
-        add_tree(w, &c, src, "data");                   /* empty folders included */
-    } else {
-        for (size_t i = 0; i < files->n; i++) {         /* a folder with links: exactly the listed files */
-            char *path = join("data", files->v[i].path);
-            if (stat(files->v[i].source, &st)) die("cannot read %s", files->v[i].source);
-            if (udfw_add_file(w, path, files->v[i].size, (int64_t)st.st_mtime, (unsigned)st.st_mode, read_cb,
-                              (void *)(uintptr_t)add_source(&c, files->v[i].source)))
+    if (whole_folder) add_tree(w, &c, src, "data");     /* empty folders included */
+    for (int pass = whole_folder; pass < 2; pass++) {   /* a folder with links: exactly the listed files */
+        const entries *list = pass ? extras : files;    /* then the files added to data/ */
+        for (size_t i = 0; i < list->n; i++) {
+            char *path = join("data", list->v[i].path);
+            if (stat(list->v[i].source, &st)) die("cannot read %s", list->v[i].source);
+            if (udfw_add_file(w, path, list->v[i].size, (int64_t)st.st_mtime, (unsigned)st.st_mode, read_cb,
+                              (void *)(uintptr_t)add_source(&c, list->v[i].source)))
                 die("udfwrite: %s", udfw_error(w));
             free(path);
         }
@@ -552,6 +554,7 @@ static char *pick_code(const vocab *v, const char *text)
 
 typedef struct {
     entries files, noted;           /* this disc's share of the folder */
+    entries extras, payload;        /* files added to data/ (--ro-crate); files + extras */
     char disc_id[64], uuid[37];
     long sequence;
     int part, parts;
@@ -590,6 +593,11 @@ static void sub_entries(entries *out, const entry *v, size_t n)
     out->v = xmalloc((n + 1) * sizeof *out->v);
     memcpy(out->v, v, n * sizeof *v);
     out->n = n;
+}
+
+static int by_entry_path(const void *a, const void *b)
+{
+    return strcmp(((const entry *)a)->path, ((const entry *)b)->path);
 }
 
 /* rough image cost of one file: its data, a file entry and directory records (make.estimate_sectors) */
@@ -831,10 +839,46 @@ static void batch_files(maker *mk)
     if (mkdirs(batch)) die("cannot create %s", batch);
     for (size_t i = 0; i < mk->nplans; i++) {
         plan *p = &mk->plans[i];
+        free(p->extras.v);
+        free(p->payload.v);
+        memset(&p->extras, 0, sizeof p->extras);
+        if (mk->o->ro_crate) {                         /* the crate files, added to data/ */
+            char *dir = xprintf("%s/%s-rocrate", batch, p->disc_id);
+            if (mkdirs(dir)) die("cannot create %s", dir);
+            char *text[2] = { rocrate_metadata(p->disc, &p->files, mk->have_formats ? &mk->fmt : NULL),
+                              rocrate_preview(p->disc, &p->files) };
+            const char *names[2] = { "ro-crate-metadata.json", "ro-crate-preview.html" };
+            p->extras.v = xmalloc(3 * sizeof *p->extras.v);
+            for (int k = 0; k < 2; k++) {
+                char *path = join(dir, names[k]);
+                write_text(path, text[k]);
+                struct stat st;
+                if (stat(path, &st)) die("cannot read %s", path);
+                entry *e = &p->extras.v[p->extras.n++];
+                memset(e, 0, sizeof *e);
+                e->path = xstrdup(names[k]);
+                e->kind = "file";
+                e->link = "";
+                e->source = path;
+                e->size = (uint64_t)st.st_size;
+                e->mtime = st.st_mtime;
+                hash_both(path, e->sha256, e->sha512);
+                free(text[k]);
+            }
+            free(dir);
+        }
+        p->payload.v = xmalloc((p->files.n + p->extras.n + 1) * sizeof *p->payload.v);
+        memcpy(p->payload.v, p->files.v, p->files.n * sizeof *p->files.v);
+        if (p->extras.n) memcpy(p->payload.v + p->files.n, p->extras.v, p->extras.n * sizeof *p->extras.v);
+        p->payload.n = p->files.n + p->extras.n;
         p->b_manifest = xprintf("%s/%s.sha256", batch, p->disc_id);
         p->b_listing = xprintf("%s/%s.tsv", batch, p->disc_id);
-        write_manifest(p->b_manifest, &p->files, 0);
-        write_listing(p->b_listing, &p->files, &p->noted);
+        write_manifest(p->b_manifest, &p->payload, 0);
+        entries sorted;                                /* the listing is by path: extras slot in */
+        sub_entries(&sorted, p->payload.v, p->payload.n);
+        if (sorted.n) qsort(sorted.v, sorted.n, sizeof *sorted.v, by_entry_path);
+        write_listing(p->b_listing, &sorted, &p->noted);
+        free(sorted.v);
         p->b_formats = NULL;
         if (mk->have_formats) {
             p->b_formats = xprintf("%s/%s.csv", batch, p->disc_id);
@@ -860,20 +904,20 @@ static void stage_plan(maker *mk, size_t idx)
     if (!mkdtemp(tmpl)) die("cannot create %s", tmpl);
     p->stage = tmpl;
     uint64_t bytes = 0;
-    for (size_t i = 0; i < p->files.n; i++) bytes += p->files.v[i].size;
+    for (size_t i = 0; i < p->payload.n; i++) bytes += p->payload.v[i].size;
 
     /* BagIt */
     strlist info = { 0 };
     char *ext_desc = o->description && *o->description ? xprintf("%s - %s", mk->title, o->description) : xstrdup(mk->title);
     char *group = group_id(mk), *count = xprintf("%d of %d", p->part, p->parts);
-    char *oxum = xprintf("%llu.%zu", (unsigned long long)bytes, p->files.n), *agent = xprintf("%s <%s>", mk->software, URL);
+    char *oxum = xprintf("%llu.%zu", (unsigned long long)bytes, p->payload.n), *agent = xprintf("%s <%s>", mk->software, URL);
     const char *pairs[] = { "Bagging-Date", mk->today, "External-Identifier", p->disc_id, "External-Description", ext_desc,
                             "Bag-Group-Identifier", group ? group : mk->set_code };
     for (int i = 0; i < 8; i++) strlist_add(&info, pairs[i]);
     if (p->parts > 1) { strlist_add(&info, "Bag-Count"); strlist_add(&info, count); }
     strlist_add(&info, "Payload-Oxum"); strlist_add(&info, oxum);
     strlist_add(&info, "Bag-Software-Agent"); strlist_add(&info, agent);
-    write_bag_tags(p->stage, &p->files, &info);
+    write_bag_tags(p->stage, &p->payload, &info);
     strlist_free(&info);
     free(ext_desc); free(group); free(count); free(oxum); free(agent);
 
@@ -993,7 +1037,7 @@ static void stage_plan(maker *mk, size_t idx)
             : "  catalog/archive.rec     all discs in the archive as of the burn date\n"
               "  catalog/volumes/<id>/   per disc: manifest.sha256, listing.tsv, formats.csv\n";
         char *part = p->parts > 1 ? xprintf("  (part %d of %d)", p->part, p->parts) : xstrdup("");
-        char *nfiles = xprintf("%zu", p->files.n), *nbytes = xprintf("%llu", (unsigned long long)bytes);
+        char *nfiles = xprintf("%zu", p->files.n), *nbytes = xstrdup(rec_get(p->disc, "Bytes"));
         const char *names[] = { "plain", "size_check", "title", "underline", "id", "set", "part", "date", "files",
                                 "bytes", "software", "other_discs", "catalog_lines", "repo", "bundle_line", NULL };
         const char *values[] = { plain.s, size_check.s, mk->title, underline.s ? underline.s : "", p->disc_id, mk->set_code,
@@ -1005,7 +1049,7 @@ static void stage_plan(maker *mk, size_t idx)
         free(plain.s); free(size_check.s); free(underline.s); free(plain_text); free(size_text);
     }
     {
-        char *html = render_index(p->disc, p->binding, &p->files, &snap, archive_where), *path = join(p->stage, "index.html");
+        char *html = render_index(p->disc, p->binding, &p->payload, &snap, archive_where), *path = join(p->stage, "index.html");
         write_text(path, html);
         free(path);
         free(html);
@@ -1062,7 +1106,7 @@ static void measure(maker *mk, plan *p)
     volume_set[k] = 0;
     char stamp[32];            /* the recording time: the record's Date at midnight UTC */
     snprintf(stamp, sizeof stamp, "%sT00:00:00Z", mk->today);
-    p->sectors = build_image(p->stage, mk->src, &p->files, whole, p->built, p->extents, p->label, p->disc_id, volume_set,
+    p->sectors = build_image(p->stage, mk->src, &p->files, &p->extras, whole, p->built, p->extents, p->label, p->disc_id, volume_set,
                              (int64_t)parse_utc(stamp));
 }
 
@@ -1075,6 +1119,12 @@ static void free_plans(maker *mk)
         if (p->extents) unlink(p->extents);
         free(p->files.v);
         free(p->noted.v);
+        for (size_t k = 0; k < p->extras.n; k++) {
+            free(p->extras.v[k].path);
+            free(p->extras.v[k].source);
+        }
+        free(p->extras.v);
+        free(p->payload.v);
     }
     free(mk->plans);
     mk->plans = NULL;
@@ -1156,6 +1206,16 @@ static int make_discs(maker *mk)
     out_dir = abs_out;
     mk->workdir = xprintf("%s/.archive-make-XXXXXX", out_dir);
     if (!mkdtemp(mk->workdir)) die("cannot create a work folder in %s", out_dir);
+    if (o->ro_crate) {
+        sbuf clash = { 0 };
+        for (size_t i = 0; i < mk->files->n; i++)
+            if (!strcmp(mk->files->v[i].path, "ro-crate-metadata.json") || !strcmp(mk->files->v[i].path, "ro-crate-preview.html"))
+                sb_printf(&clash, "%s%s", clash.s ? ", " : "", mk->files->v[i].path);
+        if (clash.s) {
+            remove_tree(mk->workdir);
+            die("--ro-crate would overwrite %s in the source folder", clash.s);
+        }
+    }
     if (!strcmp(o->formats, "yes") || (!strcmp(o->formats, "auto") && on_path("sf"))) {
         if (!on_path("sf")) die("%s", "--formats yes needs Siegfried (sf) on PATH");
         fputs("Identifying file formats with Siegfried ...\n", stderr);

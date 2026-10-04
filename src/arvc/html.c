@@ -23,7 +23,7 @@ void human_size(uint64_t n, char out[32])
     }
 }
 
-static void esc(sbuf *b, const char *s)
+void html_esc(sbuf *b, const char *s)
 {
     for (; *s; s++) {
         switch (*s) {
@@ -37,7 +37,7 @@ static void esc(sbuf *b, const char *s)
     }
 }
 
-static void quote(sbuf *b, const char *s)     /* urllib.parse.quote: / and unreserved characters stay */
+void url_quote(sbuf *b, const char *s)     /* urllib.parse.quote: / and unreserved characters stay */
 {
     for (; *s; s++) {
         unsigned char c = (unsigned char)*s;
@@ -108,16 +108,16 @@ static void render_tree(tnode *n, sbuf *out, int depth)
         human_size(tree_size(k), size);
         if (!k->file) {
             sb_printf(out, "<li><details%s><summary>", depth == 0 ? " open" : "");
-            esc(out, k->name);
+            html_esc(out, k->name);
             sb_printf(out, "<span class=\"size\">%s</span></summary>\n", size);
             render_tree(k, out, depth + 1);
             sb_puts(out, "</details></li>\n");
         } else {
             sb_puts(out, "<li><a href=\"");
-            quote(out, "data/");
-            quote(out, k->file->path);
+            url_quote(out, "data/");
+            url_quote(out, k->file->path);
             sb_puts(out, "\">");
-            esc(out, k->name);
+            html_esc(out, k->name);
             sb_printf(out, "</a><span class=\"size\">%s</span></li>\n", size);
         }
     }
@@ -133,12 +133,12 @@ static void field_rows(sbuf *out, const rec_record *r, const char *const *names)
             if (!any) {
                 if (out->len && out->s[out->len - 1] != '\n') sb_puts(out, "\n");
                 sb_puts(out, "<tr><th>");
-                esc(out, names[i]);
+                html_esc(out, names[i]);
                 sb_puts(out, "</th><td>");
             } else {
                 sb_puts(out, "<br>");
             }
-            esc(out, r->fields[f].value);
+            html_esc(out, r->fields[f].value);
             any = 1;
         }
         if (any) sb_puts(out, "</td></tr>");
@@ -160,17 +160,17 @@ char *render_index(const rec_record *disc, const rec_record *binding, const entr
     line(&out, "<!doctype html>");
     line(&out, "<html lang=\"en\"><head><meta charset=\"utf-8\">");
     line(&out, "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-    esc(&t, title);
+    html_esc(&t, title);
     sb_printf(&out, "\n<title>%s</title>", t.s);
     sb_printf(&out, "\n<style>%s</style></head><body><main>", DATA_INDEX_CSS);
     sb_printf(&out, "\n<h1>%s</h1>", t.s);
     t.len = 0;
-    esc(&t, rec_get(disc, "Id"));
+    html_esc(&t, rec_get(disc, "Id"));
     sb_printf(&out, "\n<div class=\"id\">%s</div>", t.s);
     for (size_t f = 0; f < disc->nfields; f++)
         if (!strcmp(disc->fields[f].name, "Description")) {
             sb_puts(&out, "\n<p>");
-            esc(&out, disc->fields[f].value);
+            html_esc(&out, disc->fields[f].value);
             sb_puts(&out, "</p>");
         }
     line(&out, "<p>To search this disc and the rest of the archive, see SEARCH in "
@@ -195,7 +195,7 @@ char *render_index(const rec_record *disc, const rec_record *binding, const entr
     char size[32];
     human_size(strtoull(rec_get(disc, "Bytes") ? rec_get(disc, "Bytes") : "0", NULL, 10), size);
     t.len = 0;
-    esc(&t, rec_get(disc, "Files") ? rec_get(disc, "Files") : "None");
+    html_esc(&t, rec_get(disc, "Files") ? rec_get(disc, "Files") : "None");
     sb_printf(&out, "\n<tr><th>Contents</th><td>%s files, %s</td></tr>", t.s, size);
     line(&out, "</table>");
     int notes = 0;
@@ -203,7 +203,7 @@ char *render_index(const rec_record *disc, const rec_record *binding, const entr
         if (!strcmp(disc->fields[f].name, "Note")) {
             if (!notes++) line(&out, "<h2>Notes</h2>");
             sb_puts(&out, "\n<div class=\"note\">");
-            esc(&out, disc->fields[f].value);
+            html_esc(&out, disc->fields[f].value);
             sb_puts(&out, "</div>");
         }
     line(&out, "<h2>Files</h2>");
@@ -245,7 +245,7 @@ char *render_index(const rec_record *disc, const rec_record *binding, const entr
             sb_puts(&out, "\n<tr>");
             for (int c = 0; c < 5; c++) {
                 sb_puts(&out, "<td>");
-                esc(&out, cells[c]);
+                html_esc(&out, cells[c]);
                 sb_puts(&out, "</td>");
             }
             sb_puts(&out, "</tr>");

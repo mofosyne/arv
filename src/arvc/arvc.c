@@ -102,7 +102,7 @@ static int needs_python(int argc, char **argv)
     if (!known) return 1;
     if (has_arg(argc, argv, "-h") || has_arg(argc, argv, "--help")) return 1;
     if (strcmp(cmd, "make")) return 0;
-    static const char *const python_only[] = { "--llm", "--llm-rounds", "--draft", "--ro-crate",
+    static const char *const python_only[] = { "--llm", "--llm-rounds", "--draft",
                                                "--llm-url", "--llm-model", "--llm-allow-remote", "--vision",
                                                "--vision-model", "--vision-url", "--vision-per-folder",
                                                "--vision-max", NULL };

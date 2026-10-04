@@ -119,6 +119,29 @@ if [ -f x-py/tools/arv.bundle ]; then
 fi
 ok "--tools-history and --extra-tools: tools/ (git bundle, extra/) and README.txt as python's"
 
+# --ro-crate: the same crate files in data/ (and formats in them, with Siegfried), manifests and listing
+mkdir -p "rc-src/sub dir"
+echo a > rc-src/a.txt
+printf '%%PDF-1.4\n%%EOF\n' > "rc-src/sub dir/scan #1.pdf"
+echo '"q"' > "rc-src/sub dir/na\303\257ve.md"
+for who in py c; do
+    if [ $who = py ]; then mk() { python3 "$repo/arv" --home rc-py make -y "$@"; }; else mk() { "$tool" make -C rc-c "$@"; }; fi
+    mk $fmt --no-ecc --set CODE --ro-crate --title 'T"x' --description 'Line, with "quotes"' --subject one \
+        --subject two --creator Sam --rights https://creativecommons.org/licenses/by/4.0/ --output-dir "rc-$who-out" rc-src \
+        >/dev/null 2>&1 || no "$who make --ro-crate"
+done
+rm -rf x-py x-c
+7z x -ox-py rc-py-out/*.iso >/dev/null && 7z x -ox-c rc-c-out/*.iso >/dev/null
+[ "$(cd x-py && find . | sort)" = "$(cd x-c && find . | sort)" ] || no "--ro-crate: different files"
+for f in data/ro-crate-metadata.json data/ro-crate-preview.html manifest-sha256.txt manifest-sha512.txt; do
+    cmp -s "x-py/$f" "x-c/$f" || { diff "x-py/$f" "x-c/$f" | head; no "--ro-crate: $f differs"; }
+done
+stamp='s/\t20[0-9-]+T[0-9:]+Z\t(file\t-\tro-crate)/\tT\t\1/'      # the crate files are written at make time
+[ "$(sed -E "$stamp" x-py/catalog/volumes/*/listing.tsv)" = "$(sed -E "$stamp" x-c/catalog/volumes/*/listing.tsv)" ] \
+    || no "--ro-crate: listings differ"
+python3 x-c/tools/bagit.py --validate x-c >/dev/null 2>&1 || no "--ro-crate: the arvc disc is not a valid bag"
+ok "--ro-crate: ro-crate-metadata.json and the preview as python writes them (bagit-valid)"
+
 # --split: the same discs, the same files on each, and the same rebalancing as the Python arv
 mkdir -p big/letters
 python3 -c "
