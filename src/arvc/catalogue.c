@@ -387,13 +387,60 @@ char *upper_trim(const char *s)
     return p;
 }
 
+/* The date `ago` (5y, 18m, 90d) before today, or a date given as such (2021, 2021-06, 2021-06-30),
+   as YYYY-MM-DD; NULL when it is neither */
+static char *cutoff_date(const char *ago)
+{
+    char *end;
+    long n = strtol(ago, &end, 10);
+    if (n > 0 && end != ago && end[0] && !end[1] && strchr("ymd", end[0])) {
+        struct tm tm;
+        today_tm(&tm);
+        if (end[0] == 'y') tm.tm_year -= (int)n;
+        else if (end[0] == 'm') tm.tm_mon -= (int)n;
+        else tm.tm_mday -= (int)n;
+        tm.tm_hour = 12;
+        tm.tm_isdst = -1;
+        mktime(&tm);
+        return xprintf("%04d-%02d-%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+    }
+    static const char *const shapes[] = { "dddd", "dddd-dd", "dddd-dd-dd", NULL };   /* d: a digit */
+    for (int k = 0; shapes[k]; k++) {
+        size_t len = strlen(shapes[k]), j = 0;
+        if (strlen(ago) != len) continue;
+        while (j < len && (shapes[k][j] == 'd' ? isdigit((unsigned char)ago[j]) : ago[j] == shapes[k][j])) j++;
+        if (j == len) return xprintf("%s%s", ago, k == 0 ? "-01-01" : k == 1 ? "-01" : "");
+    }
+    return NULL;
+}
+
+/* The date of the disc's last successful check (outcome success or warning), not counting the
+   test of the image when it was made: "" when there is none */
+static const char *last_checked(const catalogue *c, const char *id)
+{
+    const char *last = "";
+    for (size_t i = 0; i < c->rec.nrecords; i++) {
+        const rec_record *e = &c->rec.records[i];
+        const char *disc = rec_get(e, "Disc"), *type = rec_get(e, "Type"), *out = rec_get(e, "Outcome"), *date = rec_get(e, "Date"),
+                   *note = rec_get(e, "Note");
+        if (!is_type(e, "Event") || !disc || !type || !out || !date || strcmp(disc, id) || strcmp(type, "fixity check")) continue;
+        if (strcmp(out, "success") && strcmp(out, "warning")) continue;
+        if (note && !strncmp(note, "image test after creation", 25)) continue;
+        if (strncmp(date, last, 10) > 0) last = date;
+    }
+    return last;
+}
+
 int cmd_list(int argc, char **argv)
 {
-    const char *given = NULL, *within = NULL, *at = NULL, *made = NULL, *acc = NULL, *covers = NULL;
+    const char *given = NULL, *within = NULL, *at = NULL, *made = NULL, *acc = NULL, *covers = NULL, *unchecked = NULL;
+    int one_place = 0;
     for (int i = 0; i < argc; i++) {
+        if (!strcmp(argv[i], "--one-place")) { one_place = 1; continue; }
         const char **slot = !strcmp(argv[i], "-C") ? &given : !strcmp(argv[i], "--in") ? &within
             : !strcmp(argv[i], "--at") ? &at : !strcmp(argv[i], "--made") ? &made
-            : !strcmp(argv[i], "--access") ? &acc : !strcmp(argv[i], "--covers") ? &covers : NULL;
+            : !strcmp(argv[i], "--access") ? &acc : !strcmp(argv[i], "--covers") ? &covers
+            : !strcmp(argv[i], "--unchecked-since") ? &unchecked : NULL;
         if (!slot || i + 1 >= argc) return 2;
         *slot = argv[++i];
     }
@@ -402,6 +449,9 @@ int cmd_list(int argc, char **argv)
         if (edtf_span(covers, &a, &b) <= 0)
             die("--covers: %s is not a date or range (examples: 2019, 2015/2024, 2019-07/2019-08, 199X)", covers);
     }
+    char *cutoff = NULL;
+    if (unchecked && !(cutoff = cutoff_date(unchecked)))
+        die("--unchecked-since: %s is neither an age (5y, 18m, 90d) nor a date (2021, 2021-06, 2021-06-30)", unchecked);
     catalogue c;
     open_catalogue(given, &c);
     char *code = within ? upper_trim(within) : NULL, *place = at ? upper_trim(at) : NULL;
@@ -422,12 +472,22 @@ int cmd_list(int argc, char **argv)
         if (acc && strcmp(access_of(d), acc)) continue;
         if (made && strncmp(rec_get(d, "Date") ? rec_get(d, "Date") : "", made, strlen(made))) continue;
         if (covers && edtf_covers(rec_get(d, "Coverage"), covers) != 1) continue;
+        const char *checked = cutoff ? last_checked(&c, rec_get(d, "Id") ? rec_get(d, "Id") : "") : NULL;
+        if (cutoff && *checked && strncmp(checked, cutoff, 10) >= 0) continue;
+        if (one_place) {
+            size_t places = 0;
+            for (size_t j = 0; j < d->nfields; j++) places += !strcmp(d->fields[j].name, "Location");
+            if (places > 1) continue;
+        }
         char *w = where(&c, d);
         const char *files = rec_get(d, "Files");
-        printf("%s\t%s\t%s\t%s files\t%s\t%s\n", rec_get(d, "Id"), rec_get(d, "Date") ? rec_get(d, "Date") : "None",
+        printf("%s\t%s\t%s\t%s files\t%s\t%s", rec_get(d, "Id"), rec_get(d, "Date") ? rec_get(d, "Date") : "None",
                rec_get(d, "Title") ? rec_get(d, "Title") : "None", files && *files ? files : "?", access_of(d), w);
+        if (cutoff) printf("\tlast checked %.10s", *checked ? checked : "never");
+        putchar('\n');
         free(w);
     }
+    free(cutoff);
     free(code);
     free(place);
     return 0;

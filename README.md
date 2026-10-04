@@ -245,6 +245,8 @@ arv collection add KYOTO-BEST --name "Best of Kyoto" TRIP-01_2019_4:"day2 Kinkak
 arv collection show KYOTO-BEST                  # virtual folders across discs, with where each disc is
 arv list --at HOME                              # discs anywhere inside a place
 arv list --access private --made 2026          # what belongs in this year's private box
+arv list --unchecked-since 5y                  # discs due a check (last checked, or never)
+arv list --one-place                           # discs kept in only one place
 arv access 2020-2025_PROJECTS_01 public          # public / private (default) / sealed
 arv tags                                         # every folder tag in use, by namespace
 arv keywords PROJ-01_2020-2025_K --format exiftool > kw.args  # tags as XMP keywords

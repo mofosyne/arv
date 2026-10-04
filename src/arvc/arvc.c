@@ -66,6 +66,7 @@ static void usage(FILE *to)
           "       arv find [-C CATALOG] [--limit N] PATTERN\n"
           "       arv id [-C CATALOG] ID\n"
           "       arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]\n"
+          "                [--unchecked-since AGE|DATE] [--one-place]   (AGE: 5y, 18m, 90d)\n"
           "with the Python add-on (make install puts it in place):\n"
           "       arv describe FOLDER|DISC-ID [--save DRAFT] ...   title, description, tags from a local LLM\n"
           "       arv tag FOLDER|DISC-ID [--save DRAFT] ...        folder tags from your vocabulary\n"

@@ -93,8 +93,9 @@ Then the `.iso` can go, or stay on a drive as one more copy.
 
 ## Later: checking and reading damaged discs
 
-- Every few years, per copy: `arv check --device /dev/sr0` (logged; `arv list` and the catalogue
-  show when each disc was last checked).
+- Every few years, per copy: `arv check --device /dev/sr0` (logged). `arv list --unchecked-since 5y`
+  lists the discs due one, with the date of their last check; `arv list --one-place` those kept in
+  only one place. (A check is recorded per disc, not per copy: note which copy in `--note`.)
 - A disc that will not read cleanly: follow REPAIR in its `README.txt`: read it into an image
   with GNU ddrescue or dvdisaster Light, then `arv check --image disc.iso --repair`. A disc that
   needed repair is a warning: burn a fresh copy from the repaired image.

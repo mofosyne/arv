@@ -215,9 +215,11 @@ arv location list -v
 | Without this tool installed? | every disc carries it: `tools/arv.com find PATTERN` (or `arvc` built from `tools/arv/` with one `cc` line) from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
 | Changes after burning | `arv note`, `arv locate`, `arv access` (home catalogue; later discs carry them) |
 
-**Check discs every few years** with `arv check --device /dev/sr0`.
+**Check discs every few years** with `arv check --device /dev/sr0` (it reads the disc back
+against the image's hash and logs the check).
+- `arv list --unchecked-since 5y` lists the discs due a check (with the date of their last
+  one, or `never`); `arv list --one-place` those kept in only one place.
 - A disc that needed repair is a warning sign: copy it to new media.
-- `arv list` shows copies and locations, so you know which discs have only one copy.
 
 Every new disc carries the whole catalogue as of its burn date. So **the newest
 disc is always a backup of the catalogue**.

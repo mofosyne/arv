@@ -51,6 +51,7 @@ arvc rebuild [--prefer-disc] DISC       merge the catalogue a disc carries into 
 
 arvc find PATTERN                       discs, folder tags and files on every disc known
 arvc list [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]
+          [--unchecked-since AGE|DATE] [--one-place]   due a check (5y, 18m, 90d); kept in one place
 arvc id ID                              explain a disc id, check its check character
 
 arvc info DISC                          a disc's record, binding and appraisals

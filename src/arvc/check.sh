@@ -143,6 +143,13 @@ mkdir -p nowhere
 out=$(cd nowhere && ARV_HOME="$dir/nowhere/none" "$tool" check --image ../nohome.iso --repair 2>&1) || { echo "$out"; no "repair without a home"; }
 cmp -s nohome.iso "$iso" && echo "$out" | grep -q "not logged" \
     && ok "arvc check --repair works on an image in no catalogue (as from a disc found decades on)" || { echo "$out"; no "repair without a home"; }
+# overdue checks: a disc checked today is not overdue now, but is five years on; one never checked is
+[ -z "$("$tool" list -C ecc-home --unchecked-since 5y)" ] \
+    && SOURCE_DATE_EPOCH=$(( $(date +%s) + 6 * 366 * 86400 )) "$tool" list -C ecc-home --unchecked-since 5y | grep -q "last checked 20" \
+    && "$tool" list -C hist --unchecked-since 1y | grep -q "last checked never" \
+    && "$tool" list -C hist --one-place | grep -q "^CODE" \
+    && ok "list --unchecked-since and --one-place: the discs due a check, and those kept in one place" \
+    || no "list --unchecked-since / --one-place"
 # the one cc line README.txt gives, from the disc's own tools/
 mkdir -p cc-build
 (cd disc && cc -O2 -pthread -o ../cc-build/arvc tools/arv/src/arvc/*.c tools/arv/src/udfwrite/udfwrite.c \
