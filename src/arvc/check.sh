@@ -142,6 +142,24 @@ out=$("$tool" check -C ecc-home --image damaged.iso --repair "$id" 2>&1) || { ec
 cmp -s damaged.iso "$iso" && echo "$out" | grep -q "$id: REPAIRED" && grep -q "Outcome: warning" ecc-home/catalog/archive.rec \
     && ok "arvc check --repair: damaged sectors, a zero-filled run and a missing end, back to the very image; logged" \
     || { echo "$out"; no "arvc check --repair"; }
+# the layout's own copies lost (the header, the start of the CRC layer): arv hands over to dvdisaster
+# Light, with the medium size from the catalogue
+D=$(sed -n "s/^Note: image $id.iso, \([0-9]*\) sectors.*/\1/p" ecc-home/catalog/archive.rec | head -1)
+spl=$((9600 / 255)); nd=$(( (D + 2 + spl - 1) / spl )); [ $nd -lt 84 ] && nd=84
+cp "$iso" lost.iso
+dd if=/dev/zero of=lost.iso bs=2048 seek=$D count=2 conv=notrunc 2>/dev/null
+dd if=/dev/zero of=lost.iso bs=2048 seek=$((nd * spl)) count=10 conv=notrunc 2>/dev/null
+printf 'damage' | dd of=lost.iso bs=1 seek=$((300 * 2048)) conv=notrunc 2>/dev/null
+"$tool" check -C ecc-home --image lost.iso --repair "$id" >lost.txt 2>&1 && no "--repair claims to have repaired a lost layout"
+grep -q "^    dvdisaster -i 'lost.iso' -f -n 9600$" lost.txt \
+    && ok "--repair without a layout: prints the dvdisaster Light commands, with the catalogue's medium size" \
+    || { cat lost.txt; no "the dvdisaster hand-over"; }
+if command -v dvdisaster >/dev/null && dvdisaster --help 2>&1 | grep -q no-bdr-defect-management; then
+    grep "^    dvdisaster" lost.txt > paste.sh
+    sh paste.sh >/dev/null 2>&1 || true
+    cmp -s lost.iso "$iso" && ok "dvdisaster Light, run with the commands as printed, repairs it to the very image" \
+        || no "the pasted dvdisaster commands"
+fi
 mkdir -p nowhere
 out=$(cd nowhere && ARV_HOME="$dir/nowhere/none" "$tool" check --image ../nohome.iso --repair 2>&1) || { echo "$out"; no "repair without a home"; }
 cmp -s nohome.iso "$iso" && echo "$out" | grep -q "not logged" \

@@ -1302,15 +1302,18 @@ static void stage_plan(maker *mk, size_t idx)
         char *part = p->parts > 1 ? xprintf("  (part %d of %d)", p->part, p->parts) : xstrdup("");
         char *nfiles = xprintf("%zu", p->files.n), *nbytes = xstrdup(rec_get(p->disc, "Bytes"));
         char *ape = find_ape(mk->source);
+        /* the medium size dvdisaster needs (-n) when the error correction's own copies of it are lost */
+        char *dv_n = mk->capacity && !mk->o->no_ecc ? xprintf(" -n %ld", mk->capacity) : xstrdup("");
+        char *n_note = mk->capacity && !mk->o->no_ecc ? xprintf(",\n     and -n %ld (this disc's medium size) tells it where to look", mk->capacity) : xstrdup("");
         const char *names[] = { "plain", "size_check", "title", "underline", "id", "set", "part", "date", "files",
                                 "bytes", "software", "other_discs", "catalog_lines", "repo", "bundle_line", "ape_use",
-                                "ape_line", NULL };
+                                "ape_line", "dvdisaster_n", "n_note", NULL };
         const char *values[] = { plain.s, size_check.s, mk->title, underline.s ? underline.s : "", p->disc_id, mk->set_code,
                                  part, mk->today, nfiles, nbytes, mk->software, other, cat_lines, "arv",
                                  o->tools_history ? "  tools/arv.bundle     the same with full history: git clone <bundle>\n" : "",
-                                 ape ? APE_USE : "", ape ? APE_LINE : "" };
+                                 ape ? APE_USE : "", ape ? APE_LINE : "", dv_n, n_note };
         char *text = format(DATA_README, names, values), *path = join(p->stage, "README.txt");
-        free(ape);
+        free(ape); free(dv_n); free(n_note);
         write_text(path, text);
         free(path); free(text); free(other); free(part); free(nfiles); free(nbytes);
         free(plain.s); free(size_check.s); free(underline.s); free(plain_text); free(size_text);
@@ -1513,6 +1516,11 @@ static int make_discs(maker *mk)
         char err[512], line[200];
         if (rs03_augment(p->out, (uint64_t)mk->capacity, o->no_defect_management, &lay, err, sizeof err)) die("RS03: %s", err);
         rs03_describe(&lay, line, sizeof line);
+        if (!rec_get(p->binding, "MediumSectors")) {   /* --medium auto: the one RS03 chose (dvdisaster -n needs it) */
+            char *ms = xprintf("%llu", (unsigned long long)lay.medium_sectors);
+            rec_add(p->binding, "MediumSectors", ms);
+            free(ms);
+        }
         char *n2 = xprintf("%s; RS03: %s", note, line);
         rec_set(creation, "Note", n2);
         free(n2);

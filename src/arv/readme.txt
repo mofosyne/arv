@@ -55,7 +55,9 @@ REPAIR (fix damage)
 {size_check}  2. Repair, then check, with the reader in tools/ (arvc or arv.com: see
      RESTORE); it needs nothing else:
        ./arvc check --image disc.iso --repair
-     or with dvdisaster: dvdisaster -i disc.iso -f
+     or with dvdisaster: dvdisaster -i disc.iso -f{dvdisaster_n}
+     If arv cannot repair it, it prints the dvdisaster Light commands to
+     paste: dvdisaster looks harder for the error correction's layout{n_note}.
   3. Still damaged? Every copy of this disc is identical. Put in another copy
      and read it into the same image; only the missing sectors are read:
        ddrescue -b 2048 /dev/sr0 disc.iso disc.map       (the same map file)

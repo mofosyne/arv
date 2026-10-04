@@ -74,8 +74,9 @@ typedef struct {
 /* Repairs an augmented image in place, as `dvdisaster -f` does: damaged sectors are found from
  * dvdisaster's dead sector markers, the CRC layer, zero-filled CRC or parity sectors (what other
  * readers leave), sectors missing from the end, and the Reed-Solomon code itself, which then puts
- * them right where the parity allows. Returns 0 with *report filled in, or -1 with err filled in
- * when it is not an RS03 image or cannot be read or written. */
+ * them right where the parity allows. Returns 0 with *report filled in; -2 with err filled in when
+ * no RS03 layout is found (not augmented, or the header and the CRC sectors searched are damaged:
+ * dvdisaster searches harder, given the medium size); -1 when it cannot be read or written. */
 int rs03_repair(const char *path, rs03_repair_report *report, char *err, size_t errlen);
 
 /* dvdisaster's summary line: "8 MiB data, 4 MiB ecc (84 roots; 49.1% redundancy), 0 MiB padding." */

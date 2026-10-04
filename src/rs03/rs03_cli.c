@@ -35,8 +35,12 @@ int main(int argc, char **argv)
     char err[512], line[200];
     if (fix) {
         rs03_repair_report f;
-        if (rs03_repair(image, &f, err, sizeof err)) {
+        int rc = rs03_repair(image, &f, err, sizeof err);
+        if (rc) {
             fprintf(stderr, "rs03: %s\n", err);
+            if (rc == -2)
+                fprintf(stderr, "dvdisaster Light searches the whole image for its layout; give it the medium size in sectors:\n"
+                                "    dvdisaster -i IMAGE -f -n MEDIUM-SECTORS\n");
             return 1;
         }
         rs03_describe(&f.lay, line, sizeof line);

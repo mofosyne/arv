@@ -829,6 +829,7 @@ int rs03_repair(const char *path, rs03_repair_report *r, char *err, size_t errle
     rs03_layout *lay = &r->lay;
     if (find_layout(fd, size, lay)) {
         snprintf(err, errlen, "%s: no RS03 layout found (not augmented, or its CRC sectors and header are damaged)", path);
+        rc = -2;
         goto done;
     }
     uint64_t spl = lay->sectors_per_layer, total = lay->total_sectors;

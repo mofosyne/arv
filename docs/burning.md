@@ -97,8 +97,11 @@ Then the `.iso` can go, or stay on a drive as one more copy.
   lists the discs due one, with the date of their last check; `arv list --one-place` those kept in
   only one place. (A check is recorded per disc, not per copy: note which copy in `--note`.)
 - A disc that will not read cleanly: follow REPAIR in its `README.txt`: read it into an image
-  with GNU ddrescue or dvdisaster Light, then `arv check --image disc.iso --repair`. A disc that
-  needed repair is a warning: burn a fresh copy from the repaired image.
+  with GNU ddrescue or dvdisaster Light, then `arv check --image disc.iso --repair`. If arv cannot
+  repair it, it prints what to paste next: dvdisaster Light with the disc's medium size (`-n`, which
+  arv keeps in the catalogue as `MediumSectors` and in the disc's README.txt), and the reads that
+  fetch the missing sectors from another copy. A disc that needed repair is a warning: burn a
+  fresh copy from the repaired image.
 
 ## The first-burn drill (issue #5)
 

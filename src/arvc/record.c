@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 typedef struct {
@@ -127,13 +128,17 @@ static int image_test(const char *image, sbuf *out)
     return ok;
 }
 
-/* RS03 repair in place, then the test again. 1 = whole now. */
-static int image_repair(const char *image, sbuf *out)
+/* RS03 repair in place, then the test again. 1 = whole now. *lost: no RS03 layout was found;
+   *medium: the medium size of the layout it found (0: none) */
+static int image_repair(const char *image, sbuf *out, int *lost, uint64_t *medium)
 {
     rs03_repair_report f;
     char err[512];
-    if (rs03_repair(image, &f, err, sizeof err)) {
-        sb_printf(out, "repair: %s\n", err);
+    int rc = rs03_repair(image, &f, err, sizeof err);
+    *lost = rc == -2;
+    *medium = rc == -1 || rc == -2 ? 0 : f.lay.medium_sectors;
+    if (rc) {
+        if (!out->s || !strstr(out->s, err)) sb_printf(out, "repair: %s\n", err);   /* the test may have said it */
         return 0;
     }
     if (f.missing) sb_printf(out, "%llu sectors were missing from the end of the image\n", (unsigned long long)f.missing);
@@ -143,6 +148,58 @@ static int image_repair(const char *image, sbuf *out)
         sb_printf(out, "NOT repaired: %llu sectors at %llu positions have more damage than the error correction can mend\n",
                   (unsigned long long)f.unrepaired_sectors, (unsigned long long)f.unrepaired_positions);
     return image_test(image, out);
+}
+
+/* 'text', quoted for a POSIX shell */
+static char *shell_quote(const char *text)
+{
+    sbuf q = { 0 };
+    sb_puts(&q, "'");
+    for (const char *c = text; *c; c++) {
+        if (*c == '\'') sb_puts(&q, "'\\''");
+        else sb_printf(&q, "%c", *c);
+    }
+    sb_puts(&q, "'");
+    return q.s;
+}
+
+/* What to do when arv could not repair an image: the commands to paste, with the medium size that
+   tells dvdisaster Light where the layers are (0: not known) */
+static void hand_over(FILE *to, const char *image, int lost, uint64_t medium)
+{
+    char *q = shell_quote(image), *map = xprintf("%s.map", image), *qm = shell_quote(map);
+    char *n = medium ? xprintf(" -n %llu", (unsigned long long)medium) : xstrdup("");
+    if (lost) {
+        fprintf(to, "\narv found nothing to repair with: the RS03 header and the start of the CRC layer are damaged,\n"
+                    "or this is not an augmented image. dvdisaster Light searches the whole image for them%s:\n\n",
+                medium ? "; the medium size tells it where the layers are" : "");
+        fprintf(to, "    dvdisaster -i %s -f%s\n    dvdisaster -i %s -t%s\n\n", q, n, q, n);
+    } else {
+        fprintf(to, "\nSome damage is beyond the error correction: too many sectors lost at the same positions.\n"
+                    "Read more of the disc into the same image (only the missing sectors are read): another copy\n"
+                    "of this disc, or this one again with dvdisaster Light, which retries hard and repairs as it reads\n"
+                    "(both keep the same ddrescue map file, so each reads only what is still missing):\n\n"
+                    "    ddrescue -b 2048 /dev/sr0 %s %s\n"
+                    "    dvdisaster -d /dev/sr0 -r --rescue --ignore-iso-size --mapfile %s -i %s%s\n\n"
+                    "then repair again:\n\n"
+                    "    arv check --image %s --repair\n\n", q, qm, qm, q, n, q);
+    }
+    if (!medium)
+        fputs("(Add -n with the disc's medium size, if you can find it: MediumSectors in its Binding record in a\n"
+              "catalogue, or the -n the disc's README.txt gives.)\n", to);
+    fputs("dvdisaster Light: https://github.com/teaching-droid/dvdisaster-light. Its -f exits with 1 even after a\n"
+          "good repair; -t says whether the image is whole.\n", to);
+    free(q); free(map); free(qm); free(n);
+}
+
+/* A field of the disc's Binding record (NULL: none) */
+static const char *binding_field(const archive *cat, const char *disc_id, const char *name)
+{
+    for (size_t i = 0; i < cat->bindings.n; i++) {
+        const char *vol = rec_get(cat->bindings.v[i], "Volume");
+        if (vol && disc_id && !strcmp(vol, disc_id)) return rec_get(cat->bindings.v[i], name);
+    }
+    return NULL;
 }
 
 /* The image's size and SHA-256 at creation, from the disc's Binding (NULL: not recorded) */
@@ -225,11 +282,12 @@ int cmd_check(int argc, char **argv)
     if (access(source, F_OK)) die("%s does not exist", source);
     /* repairing first: a damaged image may not even give its label */
     sbuf out = { 0 };
-    int ok = 0, was_whole = 0;
+    int ok = 0, was_whole = 0, lost = 0;
+    uint64_t found_medium = 0;
     if (repair) {
         fprintf(stderr, "Testing and repairing %s ...\n", image);
         was_whole = ok = image_test(image, &out);
-        if (!ok) ok = image_repair(image, &out);
+        if (!ok) ok = image_repair(image, &out, &lost, &found_medium);
         sb_puts(&out, !was_whole && ok ? "the image was damaged and is whole again\n" : ok ? "the image is whole\n"
                                                                                       : "the image is still damaged\n");
     }
@@ -276,7 +334,12 @@ int cmd_check(int argc, char **argv)
     } else {
         fprintf(stderr, "Checking %s (%s) ...\n", disc_id, source);
         ok = image_test(image, &out);
-        sb_puts(&out, ok ? "the image is whole\n" : "repair it: arv check --image IMAGE --repair\n");
+        if (ok) sb_puts(&out, "the image is whole\n");
+        else {
+            char *q = shell_quote(image);
+            sb_printf(&out, "repair it: arv check --image %s --repair\n", q);
+            free(q);
+        }
         what = xstrdup("image test (RS03: every sector against its CRC, the parity against the data)");
         agent = xstrdup(VERSION);
     }
@@ -293,6 +356,13 @@ int cmd_check(int argc, char **argv)
     if (!logged)
         fprintf(stderr, "(not logged: %s)\n", read_only ? "the catalogue found is read-only"
                                               : disc_id ? "that disc is not in this catalogue" : "no disc id; the image has no readable label");
+    if (repair && !ok) {            /* the medium size: the catalogue's, the layout's, or the image's own */
+        const char *ms = binding_field(&o.cat, disc_id, "MediumSectors");
+        uint64_t medium = ms ? strtoull(ms, NULL, 10) : found_medium;
+        struct stat st;
+        if (!medium && !stat(image, &st) && st.st_size % 2048 == 0 && (st.st_size / 2048) % 255 == 0) medium = (uint64_t)st.st_size / 2048;
+        hand_over(stdout, image, lost, medium);
+    }
     free(from_label);
     return ok ? 0 : 1;
 }
