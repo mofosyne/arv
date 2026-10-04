@@ -549,6 +549,7 @@ MediumSectors: 12219392
 | `Protection` | Error correction around the container: `rs03` (dvdisaster augmented image, described in [rs03-format.md](rs03-format.md)) or `none` |
 | `Media`, `Filesystem`, `Ecc` | The same, described for people |
 | `MediumSectors` | The medium size RS03 was computed for, in 2048-byte sectors |
+| `ImageSectors`, `ImageSha256` | The finished image as it is to be burned (with RS03): its size in 2048-byte sectors and its SHA-256. The first sectors of a burned disc, read back whole, give the same hash, so a copy can be proven to hold exactly these bits. Only in the home catalogue and later discs' snapshots: an image cannot hold its own hash |
 
 Planned: an optional `Extents` pointer to `catalog/volumes/<id>/extents.tsv` (path, start and
 length of each file in the container's units). It is kept in the home catalogue and in later

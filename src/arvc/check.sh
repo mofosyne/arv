@@ -103,12 +103,30 @@ grep -q "RS03: " ecc-home/catalog/archive.rec && grep -q "Type: fixity check" ec
     && grep -q "Outcome: success" ecc-home/catalog/archive.rec \
     && [ $(($(wc -c < "$iso") / 2048)) -eq $((9600 / 255 * 255)) ] \
     && ok "arvc make with RS03 error correction: image filled to the medium and tested" || no "RS03 make"
+[ "$(sed -n 's/^ImageSha256: //p' ecc-home/catalog/archive.rec)" = "$(sha256sum < "$iso" | cut -d' ' -f1)" ] \
+    && [ "$(sed -n 's/^ImageSectors: //p' ecc-home/catalog/archive.rec)" -eq $(($(wc -c < "$iso") / 2048)) ] \
+    && ok "the home's Binding records the finished image's size and SHA-256 (to check a burned disc against)" \
+    || no "ImageSectors / ImageSha256"
+# check --device reads the image's sectors back and compares (a file stands in for the drive)
+id=$(sed -n 's/^Id: //p' ecc-home/catalog/archive.rec | head -1)
+cp "$iso" drive.img
+dd if=/dev/zero bs=2048 count=40 >> drive.img 2>/dev/null       # a drive gives sectors past the image too
+out=$(PATH=/usr/bin:/bin "$tool" check -C ecc-home --device drive.img "$id" 2>&1) \
+    && echo "$out" | grep -q "holds exactly the image arv made" && grep -q "Note: read-back of the whole image" ecc-home/catalog/archive.rec \
+    || { echo "$out"; no "check --device read-back"; }
+printf X | dd of=drive.img bs=1 seek=$((7000 * 2048)) conv=notrunc 2>/dev/null
+"$tool" check -C ecc-home --device drive.img "$id" >/dev/null 2>&1 && no "check --device missed a changed sector"
+head -c $((4000 * 2048)) "$iso" > drive.img
+out=$("$tool" check -C ecc-home --device drive.img "$id" 2>&1) && no "check --device missed a short disc"
+echo "$out" | grep -q "the disc ends at sector 4000" \
+    && ok "check --device: reads the image back past the cache, no dvdisaster needed; finds a changed sector, a short disc" \
+    || { echo "$out"; no "check --device on a short disc"; }
+checks=$(grep -c 'Type: fixity check' ecc-home/catalog/archive.rec)
 "$tool" check -C ecc-home --image "$iso" --note "yearly check" >/dev/null 2>&1 \
-    && [ "$(grep -c 'Type: fixity check' ecc-home/catalog/archive.rec)" -eq 2 ] \
+    && [ "$(grep -c 'Type: fixity check' ecc-home/catalog/archive.rec)" -eq $((checks + 1)) ] \
     && ok "arvc check --image: the image is whole, logged" || no "arvc check"
 cp "$iso" damaged.iso
 printf X | dd of=damaged.iso bs=1 seek=$((40 * 2048)) conv=notrunc 2>/dev/null
-id=$(sed -n 's/^Id: //p' ecc-home/catalog/archive.rec | head -1)
 out=$("$tool" check -C ecc-home --image damaged.iso "$id" 2>&1) && no "check missed damage"
 echo "$out" | grep -q "1 data sectors with a wrong CRC" && ok "arvc check --image finds a damaged sector" || { echo "$out"; no "damage report"; }
 cp damaged.iso light.iso

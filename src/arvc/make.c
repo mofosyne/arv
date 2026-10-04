@@ -1530,6 +1530,16 @@ static int make_discs(maker *mk)
             }
         }
     }
+    for (size_t i = 0; i < mk->nplans; i++) {          /* the finished image, as it is to be burned: a disc read back */
+        plan *p = &mk->plans[i];                        /* whole gives the same (home and later discs only) */
+        char hex[65], *n;
+        uint64_t bytes;
+        fprintf(stderr, "Hashing %s ...\n", p->out);
+        if (hash_file(p->out, hex, -1, &bytes)) die("cannot read %s", p->out);
+        rec_add(p->binding, "ImageSectors", n = xprintf("%llu", (unsigned long long)(bytes / SECTOR)));
+        rec_add(p->binding, "ImageSha256", hex);
+        free(n);
+    }
     for (size_t i = 0; i < mk->nplans; i++) {          /* record them at home */
         plan *p = &mk->plans[i];
         recs_add(&mk->cat->discs, p->disc);

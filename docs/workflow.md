@@ -173,13 +173,15 @@ Output: `<disc-id>.iso`, ready to burn.
 
 ## 3. Burn and record
 
-Burn the `.iso` yourself, with any burning program, as a disc-at-once burn of the
-whole image. M-DISC BD-R is the standard medium here. Then record what you did:
+Burn the `.iso` as it is (one session, closed; never as a data-disc project), check the burn
+from the disc itself, then record it. **[burning.md](burning.md)** has the commands, the
+pitfalls, and the drill to run before trusting a new drive or media. In short:
 
 ```sh
-arv burned TRIP-01_2019_4 --copies 2
+xorriso -as cdrecord -v dev=/dev/sr0 -eject TRIP-01_2019_4.iso
+arv check --device /dev/sr0          # after re-inserting: the disc must hold exactly the image (logged)
+arv burned TRIP-01_2019_4 --copies 1 --location HOME-PUB-2026
 arv burned TRIP-01_2019_4 --copies 1 --location OFFSITE --note "for the parents"
-arv check --device /dev/sr0          # reads the whole disc once; logs a fixity-check event
 ```
 
 Write the disc id on the disc and the case. The id's last character is a check

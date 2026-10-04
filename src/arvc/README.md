@@ -33,7 +33,9 @@ arvc burned DISC-ID [--copies N] [--location PLACE] [--media-id ID] [--note TEXT
 arvc check (--image FILE [--repair] | --device DRIVE) [DISC-ID]   fixity check, logged (an image:
                                         RS03 tested here, --repair mends it in place, logged only
                                         when its disc is in a writable catalogue; a drive:
-                                        dvdisaster Light reads it)
+                                        the image's sectors read back past the cache and
+                                        compared with its SHA-256 at creation, or without
+                                        one, scanned by dvdisaster Light)
 arvc note DISC-ID TEXT
 arvc locate [--add] DISC-ID PLACE...
 arvc access DISC-ID public|private|sealed
@@ -75,9 +77,9 @@ archived or the current folder up, the machine config (`~/.config/arv/homes.rec`
 RS03 error correction is linked in ([../rs03](../rs03/): dvdisaster's format, byte for byte what
 dvdisaster Light writes), and so is udfwrite. Making a disc runs other programs only in a git
 checkout (`git archive` and `tar`, to put arv's last commit in `tools/`; an installed arv copies
-`PREFIX/share/arv` instead). dvdisaster Light is needed only to scan a disc in a drive
-(`check --device`); a damaged disc is read into an image with it or GNU ddrescue, and arv repairs
-the image.
+`PREFIX/share/arv` instead). dvdisaster Light is needed only to scan a disc whose image hash
+was never recorded (`check --device`); a damaged disc is read into an image with it or GNU
+ddrescue, and arv repairs the image.
 
 Differences from the Python arv it was ported from, on purpose: discs record `Software: arvc@<commit>`; `find`
 folds case for ASCII letters only; the text of README.txt is wrapped without breaking at

@@ -5,6 +5,8 @@
 #include "../rs03/rs03.h"
 
 #include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -143,6 +145,66 @@ static int image_repair(const char *image, sbuf *out)
     return image_test(image, out);
 }
 
+/* The image's size and SHA-256 at creation, from the disc's Binding (NULL: not recorded) */
+static const char *image_hash(const archive *cat, const char *disc_id, uint64_t *sectors)
+{
+    for (size_t i = 0; i < cat->bindings.n; i++) {
+        const rec_record *b = cat->bindings.v[i];
+        const char *vol = rec_get(b, "Volume"), *sha = rec_get(b, "ImageSha256"), *n = rec_get(b, "ImageSectors");
+        if (vol && sha && n && !strcmp(vol, disc_id)) {
+            *sectors = strtoull(n, NULL, 10);
+            return sha;
+        }
+    }
+    return NULL;
+}
+
+/* Reads the first `sectors` sectors of a drive (or file) and hashes them, after asking the
+   system to drop what it has cached of it, so that the disc itself is read. 0, or -1 with *out
+   saying what went wrong. */
+static int read_back(const char *dev, uint64_t sectors, char hex[65], sbuf *out)
+{
+    enum { SECTOR = 2048, RUN = 512 };  /* sectors per read: 1 MiB */
+    static unsigned char buf[RUN * SECTOR];
+    int fd = open(dev, O_RDONLY);
+    if (fd < 0) {
+        sb_printf(out, "cannot open %s: %s\n", dev, strerror(errno));
+        return -1;
+    }
+    (void)posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
+    sha256_ctx c;
+    unsigned char digest[32];
+    sha256_init(&c);
+    int tty = isatty(2), last = -1;
+    for (uint64_t at = 0; at < sectors;) {
+        size_t want = (size_t)(sectors - at < RUN ? sectors - at : RUN) * SECTOR, got = 0;
+        while (got < want) {
+            size_t n = want - got < sizeof buf - got ? want - got : sizeof buf - got;
+            ssize_t r = pread(fd, buf + got, n, (off_t)(at * SECTOR + got));
+            if (r < 0 && errno == EINTR) continue;
+            if (r <= 0) {
+                if (r < 0) sb_printf(out, "unreadable near sector %llu of %llu: %s\n", (unsigned long long)(at + got / SECTOR),
+                                     (unsigned long long)sectors, strerror(errno));
+                else sb_printf(out, "the disc ends at sector %llu; the image has %llu\n", (unsigned long long)(at + got / SECTOR),
+                               (unsigned long long)sectors);
+                close(fd);
+                return -1;
+            }
+            got += (size_t)r;
+        }
+        sha256_update(&c, buf, want);
+        at += want / SECTOR;
+        int pc = (int)(at * 100 / sectors);
+        if (tty && pc != last) fprintf(stderr, "\r  %3d%%", last = pc);
+    }
+    if (tty) fputs("\r      \r", stderr);
+    (void)posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
+    close(fd);
+    sha256_final(&c, digest);
+    sha256_hex(digest, hex);
+    return 0;
+}
+
 int cmd_check(int argc, char **argv)
 {
     const char *given = NULL, *device = NULL, *image = NULL, *disc_id = NULL, *note = NULL;
@@ -159,7 +221,6 @@ int cmd_check(int argc, char **argv)
     }
     if (!device == !image) return 2;
     if (device && repair) die("%s", "read the disc into an image first (see the disc's README.txt, REPAIR), then: arv check --image IMAGE --repair");
-    if (device && !on_path("dvdisaster")) die("%s", "reading a disc needs dvdisaster Light on PATH (or check an image with --image)");
     const char *source = device ? device : image;
     if (access(source, F_OK)) die("%s does not exist", source);
     /* repairing first: a damaged image may not even give its label */
@@ -191,7 +252,20 @@ int cmd_check(int argc, char **argv)
     if (repair) {
         what = xstrdup("image test and repair (RS03: every sector against its CRC, the parity against the data)");
         agent = xstrdup(VERSION);
+    } else if (device && image_hash(&o.cat, disc_id, &(uint64_t){ 0 })) {    /* every sector, against the image */
+        uint64_t sectors = 0;
+        const char *want = image_hash(&o.cat, disc_id, &sectors);
+        char hex[65];
+        fprintf(stderr, "Checking %s (%s): reading the %llu sectors of its image ...\n", disc_id, source, (unsigned long long)sectors);
+        ok = !read_back(device, sectors, hex, &out) && !strcmp(hex, want);
+        if (out.len) sb_puts(&out, "read the disc into an image and repair it (README.txt on the disc, REPAIR)\n");
+        else sb_printf(&out, "read %llu sectors from %s: SHA-256 %s\n%s\n", (unsigned long long)sectors, device, hex,
+                       ok ? "the disc holds exactly the image arv made" : "DIFFERENT from the image arv made: test it with dvdisaster -s, or read it into an image and arv check --image --repair");
+        what = xprintf("read-back of the whole image from %s, against its SHA-256 at creation", device);
+        agent = xstrdup(VERSION);
     } else if (device) {
+        if (!on_path("dvdisaster"))
+            die("%s has no image hash in the catalogue to read it back against; scanning it needs dvdisaster Light on PATH", disc_id);
         fprintf(stderr, "Checking %s (%s) ...\n", disc_id, source);
         char *a[] = { "dvdisaster", "-d", (char *)device, "-s", "--no-progress", NULL }, *output = NULL;
         ok = run(a, &output) == 0;

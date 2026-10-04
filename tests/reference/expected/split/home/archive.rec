@@ -67,6 +67,8 @@ Protection: none
 Media: M-DISC custom medium
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
+ImageSectors: 3698
+ImageSha256: SHA256
 
 Volume: SCAN-02_2001-2007_B
 Container: udf-2.50
@@ -74,6 +76,8 @@ Protection: none
 Media: M-DISC custom medium
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
+ImageSectors: 1586
+ImageSha256: SHA256
 
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses

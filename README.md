@@ -22,7 +22,8 @@ Why it works the way it does (curated discs on top of everyday storage, plain fi
 
 **Start with [docs/workflow.md](docs/workflow.md)**: the whole flow, from a folder to discs on a
 shelf, finding and checking them over the years, and recovering from damage or loss.
-[docs/shelving.md](docs/shelving.md) covers arranging, labelling and storing the physical discs.
+[docs/burning.md](docs/burning.md) is how to burn and check a disc (and the drill for a new drive or
+media); [docs/shelving.md](docs/shelving.md) covers arranging, labelling and storing the physical discs.
 How a disc is built, in one picture: [docs/architecture.md](docs/architecture.md).
 
 ## Disc layout
@@ -142,7 +143,7 @@ which it finds on `PATH`:
 |---|---|---|
 | `git`, `tar` | copying arv's last commit into each disc's `tools/` (in a checkout; an installed arv copies `PREFIX/share/arv`) | your distribution |
 | `python3` | only the optional add-on: `describe`, `tag`, `models`, `gui` | your distribution |
-| `dvdisaster` or `ddrescue` | only reading a damaged disc into an image (see its `README.txt`), and `arv check --device`; arv adds, tests and repairs RS03 itself | **not bundled:** build [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the [speed47 fork](https://github.com/speed47/dvdisaster)); any version can repair arv's discs |
+| `dvdisaster` or `ddrescue` | only reading a damaged disc into an image (see its `README.txt`); arv adds, tests and repairs RS03 itself, and checks a burned disc against its image hash | **not bundled:** build [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the [speed47 fork](https://github.com/speed47/dvdisaster)); any version can repair arv's discs |
 | `sf` (Siegfried), `ffmpeg`, a local LLM | optional extras (format ids, video frames, descriptions) | install if you want them |
 
 `arv make` stops with a clear message if a program it needs is missing. Reading a disc later
@@ -247,7 +248,7 @@ arv list --access private --made 2026          # what belongs in this year's pri
 arv access 2020-2025_PROJECTS_01 public          # public / private (default) / sealed
 arv tags                                         # every folder tag in use, by namespace
 arv keywords PROJ-01_2020-2025_K --format exiftool > kw.args  # tags as XMP keywords
-arv check --device /dev/sr0                        # scan a disc, log a fixity-check event
+arv check --device /dev/sr0                        # read a disc back against its image hash, logged
 arv check --image 2020-2025_PROJECTS_01.iso
 arv rebuild /media/disc                            # recreate/merge the home catalogue from a disc
 arv gui                                            # the same, in your web browser
