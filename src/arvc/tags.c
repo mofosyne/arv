@@ -20,7 +20,7 @@ static void open_home(const char *given, arv_home *h, archive *cat)
 }
 
 /* catalog.normalise_tag: 'Place : Kyoto ' -> 'place:kyoto' (letter case folded for ASCII only) */
-static char *normalise_tag(const char *tag)
+char *tag_normalise(const char *tag)
 {
     sbuf b = { 0 };
     int space = 0;
@@ -148,11 +148,11 @@ static int load_tag_vocab(tag_vocab *tv, const arv_home *h, const char *given)
     for (size_t i = 0; i < f.nrecords; i++) {
         const rec_record *r = &f.records[i];
         if (r->descriptor || !rec_get(r, "Name")) continue;
-        char *name = normalise_tag(rec_get(r, "Name"));
+        char *name = tag_normalise(rec_get(r, "Name"));
         strlist_add(&tv->names, name);
         for (size_t j = 0; j < r->nfields; j++)
             if (!strcmp(r->fields[j].name, "Alias")) {
-                char *a = normalise_tag(r->fields[j].value);
+                char *a = tag_normalise(r->fields[j].value);
                 strlist_add(&tv->alias_from, a);
                 strlist_add(&tv->alias_to, name);
                 free(a);
@@ -171,7 +171,7 @@ void tags_canonical(const arv_home *h, strlist *tags)
     if (load_tag_vocab(&tv, h, NULL)) return;
     strlist out = { 0 };
     for (size_t i = 0; i < tags->n; i++) {
-        char *t = normalise_tag(tags->v[i]);
+        char *t = tag_normalise(tags->v[i]);
         const char *canon = t;
         for (size_t a = 0; a < tv.alias_from.n; a++)
             if (!strcmp(tv.alias_from.v[a], t)) { canon = tv.alias_to.v[a]; break; }
@@ -278,7 +278,7 @@ int cmd_tags(int argc, char **argv)
             printf(" %zu folder%s on %zu disc%s", x->folders.n, x->folders.n == 1 ? "" : "s", x->discs.n,
                    x->discs.n == 1 ? "" : "s");
             if (have_vocab && !*ns && !strlist_has(&tv.names, x->tag)) {
-                char *norm = normalise_tag(x->tag);
+                char *norm = tag_normalise(x->tag);
                 const char *canon = norm;
                 for (size_t a = 0; a < tv.alias_from.n; a++)
                     if (!strcmp(tv.alias_from.v[a], norm)) { canon = tv.alias_to.v[a]; break; }

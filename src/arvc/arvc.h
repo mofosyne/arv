@@ -148,6 +148,19 @@ void jdump(sbuf *b, const jv *v, int depth);
 jv *json_parse(const char *text);
 jv *json_get(const jv *o, const char *key);
 
+/* draft.c: the JSON drafts arv describe and arv tag write */
+typedef struct {
+    char *title, *description, *agent, *authorship;
+    strlist subjects, notes;
+    size_t nft, ncap;
+    char **ft_folder, **cap_folder, **cap_text;
+    strlist *ft_tags;
+} draft;
+int is_model(const char *agent);
+void draft_load(const char *path, draft *d, int accept);
+rec_record *reviewed_event(const char *disc_id, const char *agent, const char *how, const char *note);
+char *tag_normalise(const char *tag);       /* tags.c: 'Place : Kyoto ' -> 'place:kyoto' */
+
 /* rocrate.c: --ro-crate */
 char *rocrate_metadata(const rec_record *disc, const entries *files, const formats *fmt);
 char *rocrate_preview(const rec_record *disc, const entries *files);

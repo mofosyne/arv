@@ -1,0 +1,42 @@
+#!/bin/sh
+# Stand-in for llama.cpp's llama-embedding in arv-assist's checks: the same command line and output
+# format (log lines, then the vectors as one JSON array), with bag-of-words vectors: each word
+# (a-z) adds 1 to one of 64 numbers, chosen by a hash of the word; then L2-normalised.
+file= sep=
+while [ $# -gt 0 ]; do
+    case $1 in
+        -f) file=$2; shift ;;
+        --embd-separator) sep=$2; shift ;;
+    esac
+    shift
+done
+echo "log noise before the vectors"
+awk -v sep="$sep" '
+BEGIN { RS = "\001"; for (i = 32; i < 127; i++) ord[sprintf("%c", i)] = i }
+{ text = text $0 }
+END {
+    n = 0
+    while (length(text) > 0) {             # split at the separator (literally)
+        i = index(text, sep)
+        if (i == 0) { chunk[++n] = text; text = "" }
+        else { chunk[++n] = substr(text, 1, i - 1); text = substr(text, i + length(sep)) }
+    }
+    printf "["
+    for (c = 1; c <= n; c++) {
+        for (k = 0; k < 64; k++) v[k] = 0
+        t = tolower(chunk[c]); gsub(/[^a-z]+/, " ", t)
+        m = split(t, words, " ")
+        for (w = 1; w <= m; w++) {
+            h = 0
+            for (j = 1; j <= length(words[w]); j++) h = (h * 31 + ord[substr(words[w], j, 1)]) % 1000003
+            v[h % 64] += 1
+        }
+        norm = 0
+        for (k = 0; k < 64; k++) norm += v[k] * v[k]
+        norm = norm > 0 ? sqrt(norm) : 1
+        printf "%s[", (c > 1 ? ", " : "")
+        for (k = 0; k < 64; k++) printf "%s%.6f", (k ? ", " : ""), v[k] / norm
+        printf "]"
+    }
+    print "]"
+}' "$file"

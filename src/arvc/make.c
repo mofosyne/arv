@@ -182,73 +182,6 @@ static int by_cstr(const void *a, const void *b)
     return strcmp(*(char *const *)a, *(char *const *)b);
 }
 
-typedef struct {
-    char *title, *description, *agent, *authorship;
-    strlist subjects, notes;
-    size_t nft, ncap;
-    char **ft_folder, **cap_folder, **cap_text;
-    strlist *ft_tags;
-} draft;
-
-static int is_model(const char *agent)        /* catalog.is_model: a model's judgement */
-{
-    return agent && (strstr(agent, "llm:") || strstr(agent, "embeddings:") || strstr(agent, "vision:"));
-}
-
-static char *jtext(const jv *v)                /* a string value; NULL when absent, empty or not a string */
-{
-    return v && v->kind == 's' && *v->str ? xstrdup(v->str) : NULL;
-}
-
-static void jlist(const jv *v, strlist *out)
-{
-    for (size_t i = 0; v && v->kind == 'a' && i < v->n; i++)
-        if (v->vals[i]->kind == 's') strlist_add(out, v->vals[i]->str);
-}
-
-/* a saved draft, applied by the person who runs make: a model's suggestion becomes accepted */
-static void load_draft(const char *path, draft *d)
-{
-    memset(d, 0, sizeof *d);
-    char *text = read_text(path);
-    if (!text) die("cannot read the draft %s", path);
-    jv *doc = json_parse(text);
-    free(text);
-    if (!doc || doc->kind != 'o') die("%s is not a JSON draft (arv describe --save writes them)", path);
-    d->title = jtext(json_get(doc, "title"));
-    d->description = jtext(json_get(doc, "description"));
-    jlist(json_get(doc, "subjects"), &d->subjects);
-    jlist(json_get(doc, "notes"), &d->notes);
-    const jv *ft = json_get(doc, "folder_tags"), *caps = json_get(doc, "folder_captions");
-    for (size_t i = 0; ft && ft->kind == 'o' && i < ft->n; i++) {
-        d->ft_folder = xrealloc(d->ft_folder, (d->nft + 1) * sizeof *d->ft_folder);
-        d->ft_tags = xrealloc(d->ft_tags, (d->nft + 1) * sizeof *d->ft_tags);
-        d->ft_folder[d->nft] = xstrdup(ft->keys[i]);
-        memset(&d->ft_tags[d->nft], 0, sizeof *d->ft_tags);
-        jlist(ft->vals[i], &d->ft_tags[d->nft]);
-        d->nft++;
-    }
-    for (size_t i = 0; caps && caps->kind == 'o' && i < caps->n; i++) {
-        if (caps->vals[i]->kind != 's') continue;
-        d->cap_folder = xrealloc(d->cap_folder, (d->ncap + 1) * sizeof *d->cap_folder);
-        d->cap_text = xrealloc(d->cap_text, (d->ncap + 1) * sizeof *d->cap_text);
-        d->cap_folder[d->ncap] = xstrdup(caps->keys[i]);
-        d->cap_text[d->ncap++] = xstrdup(caps->vals[i]->str);
-    }
-    d->agent = jtext(json_get(doc, "agent"));
-    if (!d->agent) d->agent = xstrdup("draft");
-    static const char *const kinds[] = { "automatic", "suggested", "accepted", "edited", "human", NULL };
-    const jv *how = json_get(doc, "authorship");
-    for (int k = 0; kinds[k] && how && how->kind == 's'; k++)
-        if (!strcmp(how->str, kinds[k])) d->authorship = xstrdup(kinds[k]);
-    if (!d->authorship) d->authorship = xstrdup(is_model(d->agent) ? "suggested" : "human");
-    if (!strcmp(d->authorship, "suggested")) {          /* describe.accept_draft */
-        free(d->authorship);
-        d->authorship = xstrdup("accepted");
-    }
-    jfree(doc);
-}
-
 /* the folder tags and captions for the folders on one disc ("." and every folder above a file), as
  * tags.tsv (catalog.write_tags); 0 when there are none */
 static int write_plan_tags(const char *path, const draft *d, const entries *files)
@@ -1056,13 +989,7 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
             const char *how = mk->draft->authorship;
             char *dnote = xprintf("title, description, subjects and folder tags taken from a draft (made by: %s)",
                                   mk->draft->agent);
-            rec_record *e = new_event(p->disc_id, "metadata modification", "success", mk->draft->agent, how, NULL);
-            if ((!strcmp(how, "accepted") || !strcmp(how, "edited")) && strncmp(mk->draft->agent, "human:", 6)) {
-                char *who = person();
-                rec_add(e, "Agent", who);
-                free(who);
-            }
-            rec_add(e, "Note", dnote);
+            rec_record *e = reviewed_event(p->disc_id, mk->draft->agent, how, dnote);
             free(dnote);
             recs_add(&p->events, e);
         }
@@ -1623,7 +1550,7 @@ int cmd_make(int argc, char **argv)
         draft dr;
         memset(&dr, 0, sizeof dr);
         if (o.draft) {
-            load_draft(o.draft, &dr);
+            draft_load(o.draft, &dr, 1);
             if (!strcmp(dr.authorship, "suggested") || !strcmp(dr.authorship, "accepted")) {
                 int same = o.subjects.n == dr.subjects.n;      /* a model's draft overridden: edited by a person */
                 for (size_t i = 0; same && i < o.subjects.n; i++) same = !strcmp(o.subjects.v[i], dr.subjects.v[i]);
