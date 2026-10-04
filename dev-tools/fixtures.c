@@ -8,7 +8,7 @@
 #include "../src/arvc/discid.h"
 #include "../src/arvc/edtf.h"
 #include "../src/arvc/rec.h"
-#include "../src/arvc/sha512.h"
+#include "../src/bagit/bagit.h"
 #include "../src/arvc/vocab.h"
 #include "../src/arvc/arvc.h"
 

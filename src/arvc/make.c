@@ -443,7 +443,7 @@ static char *find_source(const char *given)
     char *exe = exe_dir(), *found = NULL;
     if (!exe) return NULL;
     char *installed = xprintf("%s/../share/arv", exe), *beside = join(exe, "arv");
-    if (has(installed, "src/arv/vendor/bagit.py")) found = realpath(installed, NULL);
+    if (has(installed, "src/arvc/arvc.c")) found = realpath(installed, NULL);
     else if (has(beside, "src/arvc/arvc.c")) found = realpath(beside, NULL);
     for (int up = 1; !found && up <= 4; up++) {
         sbuf dir = { 0 };
@@ -540,7 +540,7 @@ static char *find_ape(const char *source)
     return NULL;
 }
 
-/* arv's last commit (and with history, a git bundle of every branch), bagit.py, arv.com and any
+/* arv's last commit (and with history, a git bundle of every branch), arv.com and any
  * extra tools (cli.stage_tools) */
 static void stage_tools(const char *tools, const char *source, int is_git, const char *workdir, const options *o)
 {
@@ -560,12 +560,6 @@ static void stage_tools(const char *tools, const char *source, int is_git, const
     } else {
         static const char *const skip[] = { "__pycache__", "*.pyc", ".git", "*.iso", NULL };
         copy_tree(source, tree, skip);
-    }
-    if (source) {
-        char *from = join(source, "src/arv/vendor/bagit.py"), *to = join(tools, "bagit.py");
-        if (!access(from, F_OK)) copy_file(from, to);
-        free(from);
-        free(to);
     }
     if (source && is_git && o->tools_history) {
         char *bundle = join(tools, "arv.bundle"), *out = NULL;

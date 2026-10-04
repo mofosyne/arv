@@ -65,7 +65,8 @@ git -C src -c user.name=t -c user.email=t@example.invalid commit -q -m test
 [ -L out/README.md ] && [ -L out/latest ] && [ -L out/dead ] && [ -x out/bin/tool.sh ] \
     && ok "links and execute bits are back" || no "links or execute bits"
 if command -v python3 >/dev/null; then
-    python3 disc/tools/bagit.py --validate disc >/dev/null 2>&1 && ok "bagit.py (from the disc's tools/) validates it" \
+    python3 "$repo/upstream/bagit-python/bagit.py" --validate disc >/dev/null 2>&1 \
+        && ok "the Library of Congress's bagit.py (upstream/bagit-python) agrees the disc is a valid bag" \
         || no "bagit.py says the disc is not a valid bag"
 fi
 cp -r disc bad
@@ -173,7 +174,7 @@ cmp -s nohome.iso "$iso" && echo "$out" | grep -q "not logged" \
     || no "list --unchecked-since / --one-place"
 # the one cc line README.txt gives, from the disc's own tools/
 mkdir -p cc-build
-(cd disc && cc -O2 -pthread -o ../cc-build/arvc tools/arv/src/arvc/*.c tools/arv/src/udfwrite/udfwrite.c \
+(cd disc && cc -O2 -pthread -o ../cc-build/arvc tools/arv/src/arvc/*.c tools/arv/src/bagit/bagit.c tools/arv/src/udfwrite/udfwrite.c \
     tools/arv/src/rs03/rs03.c >/dev/null 2>&1) && cc-build/arvc verify disc >/dev/null \
     && ok "README.txt's one cc line builds arv from the disc's tools/" || no "building arv from tools/"
 if command -v dvdisaster >/dev/null && dvdisaster --help 2>&1 | grep -q no-bdr-defect-management; then

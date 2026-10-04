@@ -43,5 +43,5 @@ if command(sys.argv[1:]) in COMMANDS:
 program = c_arv()
 if not program:
     sys.exit("Error: arv is a C program, and it was not found: build it with `make` (or: cc -O2 -o arvc "
-             "src/arvc/*.c src/udfwrite/udfwrite.c src/rs03/rs03.c -pthread), or on a disc use tools/arv.com")
+             "src/arvc/*.c src/bagit/bagit.c src/udfwrite/udfwrite.c src/rs03/rs03.c -pthread), or on a disc use tools/arv.com")
 os.execv(program, [program] + sys.argv[1:])

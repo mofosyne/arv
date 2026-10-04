@@ -5,8 +5,7 @@
 #include "discid.h"
 #include "edtf.h"
 #include "rec.h"
-#include "sha256.h"
-#include "sha512.h"
+#include "../bagit/bagit.h"
 #include "vocab.h"
 
 #include <stddef.h>
@@ -211,11 +210,6 @@ typedef struct {
 } listing;
 
 typedef struct {
-    size_t ok, failed, missing, extra;
-    int verbose;
-} tally;
-
-typedef struct {
     char *dir;              /* the folder with archive.rec and volumes/ */
     rec_file rec;
 } catalogue;
@@ -240,8 +234,6 @@ int has_word(const char *kind, const char *word);
 long long parse_utc(const char *s);
 void print_record(const rec_record *r);
 int cmd_info(int argc, char **argv);
-void check_manifest(const char *root, manifest *m, tally *t);
-void find_extra(const char *root, const char *rel, const manifest *m, tally *t);
 int cmd_verify(int argc, char **argv);
 int cmd_ls(int argc, char **argv);
 int safe_rel(const char *p);

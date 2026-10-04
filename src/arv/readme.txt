@@ -28,17 +28,18 @@ SEARCH
   Or plain text tools: grep -ri PATTERN catalog/volumes/*/listing.tsv
 
 VERIFY (detect damage)
-  From the root of the mounted disc, any of (arvc: see RESTORE):
-    sha256sum -c manifest-sha256.txt
-    python3 tools/bagit.py --validate .
-    ./arvc verify .
+  From the root of the mounted disc, either of:
+    sha256sum -c manifest-sha256.txt   (any Unix-like system; nothing else)
+    ./arvc verify .                    (arvc: see RESTORE; checks it as a BagIt
+                                        bag: every manifest, every file, no
+                                        file too many or missing)
 
 RESTORE (copy the files back)
   Copying data/ anywhere is enough for most files. Symbolic links in the
   original folder, execute bits and dates are in the listing,
   catalog/volumes/*/listing.tsv; the reader in tools/ brings them back too,
   checking every file as it copies. {ape_use}Build it with any C compiler:
-    cc -O2 -pthread -o arvc tools/{repo}/src/arvc/*.c \
+    cc -O2 -pthread -o arvc tools/{repo}/src/arvc/*.c tools/{repo}/src/bagit/bagit.c \
       tools/{repo}/src/udfwrite/udfwrite.c tools/{repo}/src/rs03/rs03.c
     ./arvc verify .                    (or: ./arvc restore . ~/restored)
   Without a compiler, after copying data/ to DEST, recreate the links with:
@@ -73,4 +74,4 @@ TOOLS
                           folder describes the disc format, the UDF profile
                           and the error correction, so other programs can be
                           written to read and repair it
-{bundle_line}{ape_line}  tools/bagit.py          BagIt validator (public domain)
+{bundle_line}{ape_line}

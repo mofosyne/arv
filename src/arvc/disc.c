@@ -259,83 +259,33 @@ int cmd_info(int argc, char **argv)
 /* ------------------------------------------------------------------ verify */
 
 
-void check_manifest(const char *root, manifest *m, tally *t)
+/* each problem the BagIt check finds, as a line: FAILED, MISSING, EXTRA, INVALID (OK with -v) */
+static void verify_line(void *ctx, enum bagit_event what, const char *path, const char *detail)
 {
-    for (size_t i = 0; i < m->n; i++) {
-        char hex[65];
-        char *path = join(root, m->e[i].path);
-        m->e[i].seen = 1;
-        if (hash_file(path, hex, -1, NULL)) {
-            printf("MISSING  %s (%s)\n", m->e[i].path, strerror(errno));
-            t->missing++;
-        } else if (strcmp(hex, m->e[i].hex)) {
-            printf("FAILED   %s\n", m->e[i].path);
-            t->failed++;
-        } else {
-            if (t->verbose) printf("OK       %s\n", m->e[i].path);
-            t->ok++;
-        }
-        free(path);
-    }
-}
-
-/* files under data/ that no manifest line names */
-void find_extra(const char *root, const char *rel, const manifest *m, tally *t)
-{
-    char *dir = join(root, rel);
-    DIR *dp = opendir(dir);
-    struct dirent *e;
-    if (!dp) {
-        if (strcmp(rel, "data")) printf("MISSING  %s/ (%s)\n", rel, strerror(errno));
-        free(dir);
-        return;
-    }
-    while ((e = readdir(dp))) {
-        if (!strcmp(e->d_name, ".") || !strcmp(e->d_name, "..")) continue;
-        char *r = join(rel, e->d_name), *full = join(root, r);
-        struct stat st;
-        if (!lstat(full, &st) && S_ISDIR(st.st_mode)) find_extra(root, r, m, t);
-        else if (!find_entry(m, r)) {
-            printf("EXTRA    %s\n", r);
-            t->extra++;
-        }
-        free(r);
-        free(full);
-    }
-    closedir(dp);
-    free(dir);
+    static const char *const word[] = { "OK      ", "FAILED  ", "MISSING ", "EXTRA   ", "INVALID " };
+    (void)ctx;
+    if (what == BAGIT_MISSING || what == BAGIT_INVALID) printf("%s %s (%s)\n", word[what], path, detail);
+    else printf("%s %s\n", word[what], path);
 }
 
 int cmd_verify(int argc, char **argv)
 {
-    tally t = { 0 };
     ondisc d;
-    manifest payload, tags;
-    if (argc == 2 && !strcmp(argv[0], "-v")) { t.verbose = 1; argc--; argv++; }
+    unsigned flags = 0;
+    if (argc == 2 && !strcmp(argv[0], "-v")) { flags |= BAGIT_VERBOSE; argc--; argv++; }
     if (argc != 1) return 2;
     open_disc(argv[0], &d);
-    char *mpath = join(d.root, "manifest-sha256.txt"), *tpath = join(d.root, "tagmanifest-sha256.txt");
-    if (read_manifest(mpath, &payload)) die("%s: no manifest-sha256.txt (not a bag?)", d.root);
-    check_manifest(d.root, &payload, &t);
-    size_t files = t.ok + t.failed + t.missing;
-    if (!read_manifest(tpath, &tags)) {
-        check_manifest(d.root, &tags, &t);
-        free_manifest(&tags);
-    } else {
-        printf("MISSING  tagmanifest-sha256.txt\n");
-        t.missing++;
-    }
-    find_extra(d.root, "data", &payload, &t);
-    free_manifest(&payload);
-    free(mpath);
-    free(tpath);
-    if (!t.failed && !t.missing && !t.extra) {
-        printf("%s: all %zu files and %zu tag files match their checksums\n", d.id, files, t.ok - files);
+    bagit_report r;            /* every manifest (sha256 and sha512), every file, the tag files, Payload-Oxum */
+    if (!bagit_validate(d.root, flags, &r, verify_line, NULL)) {
+        printf("%s: all %zu files and %zu tag files match their checksums (%s)\n", d.id, r.payload_ok, r.tag_ok, r.algorithms);
         return 0;
     }
-    printf("%s: %zu OK, %zu FAILED, %zu MISSING, %zu EXTRA\n", d.id, t.ok, t.failed, t.missing, t.extra);
-    if (t.failed || t.missing)
-        printf("Repair the image with its RS03 error correction first (dvdisaster -f), then verify again.\n");
+    printf("%s: %zu OK, %zu FAILED, %zu MISSING, %zu EXTRA", d.id, r.payload_ok + r.tag_ok, r.failed, r.missing, r.extra);
+    if (r.invalid) printf(", %zu other problems", r.invalid);
+    putchar('\n');
+    if (r.failed || r.missing)
+        printf("Damaged: if this is a disc or its image, read it into an image and repair it (README.txt, REPAIR):\n"
+               "  arv check --image disc.iso --repair\n");
     return 1;
 }
 

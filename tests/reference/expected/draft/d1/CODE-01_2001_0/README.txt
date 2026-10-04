@@ -30,10 +30,11 @@ SEARCH
   Or plain text tools: grep -ri PATTERN catalog/volumes/*/listing.tsv
 
 VERIFY (detect damage)
-  From the root of the mounted disc, any of (arvc: see RESTORE):
-    sha256sum -c manifest-sha256.txt
-    python3 tools/bagit.py --validate .
-    ./arvc verify .
+  From the root of the mounted disc, either of:
+    sha256sum -c manifest-sha256.txt   (any Unix-like system; nothing else)
+    ./arvc verify .                    (arvc: see RESTORE; checks it as a BagIt
+                                        bag: every manifest, every file, no
+                                        file too many or missing)
 
 RESTORE (copy the files back)
   Copying data/ anywhere is enough for most files. Symbolic links in the
@@ -45,7 +46,7 @@ RESTORE (copy the files back)
     ~/arv.com verify .                 (or: ~/arv.com restore . ~/restored)
   If a Linux shell will not start it: sh ~/arv.com verify .
   Build it with any C compiler:
-    cc -O2 -pthread -o arvc tools/arv/src/arvc/*.c \
+    cc -O2 -pthread -o arvc tools/arv/src/arvc/*.c tools/arv/src/bagit/bagit.c \
       tools/arv/src/udfwrite/udfwrite.c tools/arv/src/rs03/rs03.c
     ./arvc verify .                    (or: ./arvc restore . ~/restored)
   Without a compiler, after copying data/ to DEST, recreate the links with:
@@ -85,4 +86,3 @@ TOOLS
                           and the error correction, so other programs can be
                           written to read and repair it
   tools/arv.com           the reader, ready to run (Linux, macOS, Windows, BSD)
-  tools/bagit.py          BagIt validator (public domain)

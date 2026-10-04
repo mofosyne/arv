@@ -3,7 +3,7 @@ CC      ?= cc
 CFLAGS  ?= -O2
 WARN     = -std=c99 -Wall -Wextra -Wpedantic -Wshadow
 BUILD    = build
-LIB      = $(BUILD)/rec.o $(BUILD)/sha256.o $(BUILD)/sha512.o $(BUILD)/edtf.o $(BUILD)/discid.o $(BUILD)/vocab.o $(BUILD)/data.o
+LIB      = $(BUILD)/rec.o $(BUILD)/bagit.o $(BUILD)/edtf.o $(BUILD)/discid.o $(BUILD)/vocab.o $(BUILD)/data.o
 OBJS     = $(BUILD)/arvc.o $(BUILD)/util.o $(BUILD)/disc.o $(BUILD)/catalogue.o $(BUILD)/names.o $(BUILD)/home.o $(BUILD)/archive.o $(BUILD)/bag.o $(BUILD)/html.o $(BUILD)/make.o $(BUILD)/record.o $(BUILD)/edit.o $(BUILD)/tags.o $(BUILD)/formats.o $(BUILD)/rocrate.o $(BUILD)/json.o $(BUILD)/udfwrite.o $(BUILD)/rs03.o $(LIB)
 
 DATA     = DATA_DESCRIPTORS=../arv/descriptors.rec DATA_README=../arv/readme.txt \
@@ -19,9 +19,9 @@ COSMOCC ?= cosmocc
 # cosmocc: https://cosmo.zip/pub/cosmocc/ (make ape COSMOCC=/path/to/cosmocc/bin/cosmocc)
 ape: $(BUILD)/arv.com
 
-$(BUILD)/arv.com: *.c *.h ../udfwrite/udfwrite.c ../udfwrite/udfwrite.h ../rs03/rs03.c ../rs03/rs03.h
+$(BUILD)/arv.com: *.c *.h ../udfwrite/udfwrite.c ../udfwrite/udfwrite.h ../rs03/rs03.c ../rs03/rs03.h ../bagit/bagit.c ../bagit/bagit.h
 	@mkdir -p $(BUILD)
-	$(COSMOCC) -O2 -std=c99 -o $@ *.c ../udfwrite/udfwrite.c ../rs03/rs03.c
+	$(COSMOCC) -O2 -std=c99 -o $@ *.c ../udfwrite/udfwrite.c ../rs03/rs03.c ../bagit/bagit.c
 	rm -f $(BUILD)/arv.com.dbg $(BUILD)/arv.aarch64.elf
 
 $(BUILD)/arvc: $(OBJS)
@@ -46,6 +46,10 @@ data-check: $(BUILD)/embed
 	@$(BUILD)/embed $(BUILD)/data.c $(DATA)
 	@cmp -s data.c $(BUILD)/data.c || { echo "data.c is out of date: run make -C src/arvc data"; exit 1; }
 
+$(BUILD)/bagit.o: ../bagit/bagit.c ../bagit/bagit.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(WARN) -c -o $@ ../bagit/bagit.c
+
 $(BUILD)/rs03.o: ../rs03/rs03.c ../rs03/rs03.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(WARN) -pthread -c -o $@ ../rs03/rs03.c
@@ -54,7 +58,7 @@ $(BUILD)/udfwrite.o: ../udfwrite/udfwrite.c ../udfwrite/udfwrite.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(WARN) -D_POSIX_C_SOURCE=200809L -c -o $@ ../udfwrite/udfwrite.c
 
-$(BUILD)/%.o: %.c arvc.h rec.h sha256.h sha512.h edtf.h discid.h data.h vocab.h
+$(BUILD)/%.o: %.c arvc.h rec.h ../bagit/bagit.h edtf.h discid.h data.h vocab.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(WARN) -c -o $@ $<
 
