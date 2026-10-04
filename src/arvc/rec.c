@@ -208,7 +208,7 @@ static void *grow(void *p, size_t n)
     p = realloc(p, n ? n : 1);
     if (!p) {
         fputs("out of memory\n", stderr);
-        exit(2);
+        exit(1);
     }
     return p;
 }
@@ -234,7 +234,7 @@ void rec_add(rec_record *r, const char *name, const char *value)
     r->fields[r->nfields].value = copy(value ? value : "");
     if (!r->fields[r->nfields].name || !r->fields[r->nfields].value) {
         fputs("out of memory\n", stderr);
-        exit(2);
+        exit(1);
     }
     r->nfields++;
 }

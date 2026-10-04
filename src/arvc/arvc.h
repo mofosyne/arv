@@ -40,7 +40,7 @@ char *exe_dir(void);
 /* home.c: where the home catalogue is */
 typedef struct {
     char *path, *catalog_dir, *config_dir, *drafts_dir, *cache_dir, *rec_path;
-    const char *how;        /* how it was found */
+    char *how;              /* how it was found, in the Python arv's words */
 } arv_home;
 void home_find(arv_home *h, const char *given, const char *source);
 void home_at(arv_home *h, const char *path);
@@ -52,6 +52,13 @@ int cmd_check(int argc, char **argv);
 int cmd_burned(int argc, char **argv);
 int cmd_note(int argc, char **argv);
 int cmd_locate(int argc, char **argv);
+int cmd_access(int argc, char **argv);
+int cmd_location(int argc, char **argv);
+int cmd_collection(int argc, char **argv);
+int cmd_appraise(int argc, char **argv);
+int cmd_sets(int argc, char **argv);
+int cmd_names(int argc, char **argv);
+int cmd_where(int argc, char **argv);
 
 /* archive.c: the catalogue as arv writes it */
 typedef struct {
@@ -83,6 +90,7 @@ rec_record *new_event(const char *disc_id, const char *type, const char *outcome
                       const char *authorship, const char *note);
 char *person(void);
 char *place(const archive *a, const char *text);
+rec_record *new_appraisal(const char *target, const strlist *importance, const char *basis, const char *review);
 
 /* bag.c: the payload, BagIt tag files and the listing */
 typedef struct {

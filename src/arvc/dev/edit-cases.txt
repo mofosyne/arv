@@ -1,0 +1,34 @@
+# Catalogue-editing commands that check.sh runs with the Python arv and with arvc, on copies
+# of samples/home: output, exit codes and the catalogue afterwards must be the same.
+location list
+location list -v
+location add ATTIC "Attic shelf" --in HOME --description dusty
+location move ATTIC --in BOX1
+location move ATTIC "Attic, top shelf"
+location move NOPE
+location add attic
+location list
+collection list
+collection add BEST --name "Best of" "TRIP-01_2019_4:day1 Fushimi Inari/" PROJ-01_2020-2023_L
+collection put BEST "TRIP-01_2019_4:day2 Arashiyama"
+collection put BEST TRIP-01_2019_4:nothing.txt
+collection show BEST
+collection drop BEST PROJ-01_2020-2023_L
+collection move BEST --name Best
+collection add KIDS --in BEST
+collection move BEST --in KIDS
+collection list
+access TAXES-01_2019-2020_I private
+access TRIP-01_2019_4 public
+appraise "TRIP-01_2019_4:day1 Fushimi Inari/IMG_0101.png"
+appraise --due 2032-01-01
+appraise PROJ-01_2020-2023_L --importance "useful for public" --basis "rebuildable" --review 2030-01-01
+appraise set:PROJ
+appraise collection:BEST --importance "essential for family"
+appraise TRIP-01_2019_4:nope/
+appraise PROJ-01_2020-2023_L --importance vital
+appraise --due
+appraise PROJ-01_2020-2023_L
+sets
+sets -v
+where

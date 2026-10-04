@@ -48,6 +48,13 @@ static void usage(void)
           "       arvc burned [-C HOME] [--copies N] [--media-id ID] [--location PLACE] [--note TEXT] DISC-ID\n"
           "       arvc note [-C HOME] DISC-ID TEXT\n"
           "       arvc locate [-C HOME] [--add] DISC-ID PLACE...\n"
+          "       arvc access DISC-ID public|private|sealed\n"
+          "       arvc location list [-v] | add CODE [NAME] [--in PARENT] [--description TEXT] | move CODE [NAME] [--in PARENT]\n"
+          "       arvc collection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]\n"
+          "       arvc appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]\n"
+          "       arvc sets [-v]\n"
+          "       arvc names [--filesystem hybrid|udf250] [--limit N] FOLDER\n"
+          "       arvc where\n"
           "       arvc info DISC\n"
           "       arvc verify [-v] DISC\n"
           "       arvc ls DISC\n"
@@ -69,7 +76,10 @@ int main(int argc, char **argv)
     } cmds[] = { { "info", cmd_info }, { "verify", cmd_verify }, { "ls", cmd_ls }, { "restore", cmd_restore },
                  { "find", cmd_find }, { "list", cmd_list }, { "id", cmd_id },
                  { "init", cmd_init }, { "make", cmd_make }, { "check", cmd_check },
-                 { "burned", cmd_burned }, { "note", cmd_note }, { "locate", cmd_locate } };
+                 { "burned", cmd_burned }, { "note", cmd_note }, { "locate", cmd_locate },
+                 { "access", cmd_access }, { "location", cmd_location }, { "collection", cmd_collection },
+                 { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
+                 { "where", cmd_where } };
     if (argc >= 2 && (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-V"))) {
         puts(VERSION);
         return 0;

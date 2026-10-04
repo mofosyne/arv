@@ -55,7 +55,7 @@ int find_catalogue(const char *given, catalogue *c, int required)
     }
     if (rec_read(path, &c->rec, &bad)) {
         fprintf(stderr, "arvc: cannot read %s%s\n", path, errno == EINVAL ? " (a line is not a field)" : "");
-        exit(2);
+        exit(1);
     }
     free(path);
     return 0;

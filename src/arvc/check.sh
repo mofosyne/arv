@@ -112,6 +112,31 @@ cmp -s rec-py/catalog/archive.rec rec-c/catalog/archive.rec || no "burned, note,
 [ ! -d ecc-home ] || cmp -s ecc-py/catalog/archive.rec ecc-c/catalog/archive.rec || no "check: catalogues differ"
 ok "burned, note, locate$([ -d ecc-home ] && echo ", check"): the catalogue byte for byte as python leaves it"
 
+# access, location, collection, appraise, sets, where and names: the same output, exit codes and
+# catalogue as the Python arv (dev/edit-cases.txt)
+mkdir -p names/Sub names/sub
+(cd names && touch plain.txt "star*?.txt" "photo 😀.txt" "$(printf '%0120d' 0)" Sub/File.txt sub/file.txt "semi;colon")
+for who in py c; do
+    rm -rf "edit-$who" && cp -r "$repo/samples/home" "edit-$who"
+    : > "edit-$who.out"
+    grep -v '^#' "$here/dev/edit-cases.txt" | while IFS= read -r line; do
+        eval "set -- $line"
+        echo "\$ $line" >> "edit-$who.out"
+        if [ $who = py ]; then python3 "$repo/arv" --home "edit-$who" "$@" >> "edit-$who.out" 2>/dev/null && rc=0 || rc=$?
+        else "$tool" -C "edit-$who" "$@" >> "edit-$who.out" 2>/dev/null && rc=0 || rc=$?; fi
+        echo "rc=$rc" >> "edit-$who.out"
+    done
+    for fs in "" "--filesystem udf250" "--limit 2"; do
+        if [ $who = py ]; then python3 "$repo/arv" names $fs names >> "edit-$who.out" 2>/dev/null && rc=0 || rc=$?
+        else "$tool" names $fs names >> "edit-$who.out" 2>/dev/null && rc=0 || rc=$?; fi
+        echo "rc=$rc" >> "edit-$who.out"
+    done
+    sed -i "s|edit-$who|HOME|g" "edit-$who.out"
+done
+cmp -s edit-py.out edit-c.out || { diff edit-py.out edit-c.out | head -20; no "editing commands print differently"; }
+cmp -s edit-py/catalog/archive.rec edit-c/catalog/archive.rec || no "editing commands leave different catalogues"
+ok "access, location, collection, appraise, sets, names, where: $(grep -c '^rc=' edit-c.out) runs as python's, catalogue too"
+
 # find and list give the same lines as the Python arv, on the sample catalogue
 same=0
 for q in kyoto IMG '*.png' 'place:*' BOX 2019 nothing-matches; do

@@ -329,43 +329,6 @@ static void stage_tools(const char *tools, const char *source, int is_git, const
 
 /* ------------------------------------------------------------------ the catalogue */
 
-/* --importance '<level> for <audience>' (src/arv/appraisal.py) */
-static rec_record *appraisal(const char *target, const strlist *importance, const char *basis, const char *review)
-{
-    static const char *const levels[] = { "essential", "important", "useful", "incidental", NULL };
-    rec_record *r = rec_alloc("Appraisal");
-    strlist audiences = { 0 };
-    rec_add(r, "Target", target);
-    for (size_t i = 0; i < importance->n; i++) {
-        char level[32], audience[128], extra;
-        if (sscanf(importance->v[i], " %31s for %127s %c", level, audience, &extra) != 2)
-            die("importance must read '<level> for <audience>', e.g. 'essential for family', not '%s'", importance->v[i]);
-        for (char *p = level; *p; p++) *p = (char)tolower((unsigned char)*p);
-        for (char *p = audience; *p; p++) *p = (char)tolower((unsigned char)*p);
-        int known = 0;
-        for (int k = 0; levels[k]; k++) known |= !strcmp(level, levels[k]);
-        if (!known) die("unknown importance level '%s' (levels, most first: essential, important, useful, incidental)", level);
-        if (strspn(audience, "abcdefghijklmnopqrstuvwxyz0123456789:_-") != strlen(audience) || !isalnum((unsigned char)audience[0]))
-            die("audience '%s': one word of letters, digits, '-', '_' or ':'", audience);
-        if (strlist_has(&audiences, audience)) die("%s", "one importance per audience");
-        strlist_add(&audiences, audience);
-        char *text = xprintf("%s for %s", level, audience);
-        rec_add(r, "Importance", text);
-        free(text);
-    }
-    if (!importance->n && !basis) die("%s", "an appraisal needs an importance or a basis");
-    if (basis) rec_add(r, "Basis", basis);
-    char today[11], *agent = person();
-    today_iso(today);
-    rec_add(r, "Date", today);
-    rec_add(r, "Authorship", "human");
-    rec_add(r, "Agent", agent);
-    free(agent);
-    if (review) rec_add(r, "Review", review);
-    strlist_free(&audiences);
-    return r;
-}
-
 static char *review_date(const char *text)
 {
     char unit;
@@ -570,7 +533,7 @@ int cmd_make(int argc, char **argv)
     if (o.output && o.output_dir) die("%s", "use either --output or --output-dir");
     if (!o.no_ecc && !on_path("dvdisaster")) die("%s", "missing required tool(s): dvdisaster (or --no-ecc for a test image)");
     char *review = o.review ? review_date(o.review) : NULL;
-    if (o.importance.n || o.basis) (void)appraisal("X", &o.importance, o.basis, review);   /* checked early */
+    if (o.importance.n || o.basis) (void)new_appraisal("X", &o.importance, o.basis, review);   /* checked early */
     else if (o.review) die("%s", "--review needs --importance or --basis");
 
     arv_home h;
@@ -597,7 +560,7 @@ int cmd_make(int argc, char **argv)
                     fprintf(stderr, "  error: %s: %s\n", issues.v[i].path, issues.v[i].problem);
                     shown++;
                 }
-            exit(2);
+            exit(1);
         }
         if (issues.n && !o.ignore_names) {
             fprintf(stderr, "Note: %zu file name(s) will look different on Windows/macOS (the manifests and Linux "
@@ -810,7 +773,7 @@ int cmd_make(int argc, char **argv)
             recs_add(&events, new_event(disc_id, "ingestion", "success", who, chosen ? "human" : "automatic", summary));
             free(who);
         }
-        if (o.importance.n || o.basis) recs_add(&appraisals, appraisal(disc_id, &o.importance, o.basis, review));
+        if (o.importance.n || o.basis) recs_add(&appraisals, new_appraisal(disc_id, &o.importance, o.basis, review));
 
         /* --------------------------------------------------------------- staging */
         char *out_dir = xstrdup(out), *slash = strrchr(out_dir, '/');

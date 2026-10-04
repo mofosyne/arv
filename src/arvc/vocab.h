@@ -11,7 +11,8 @@ typedef struct {
 } strlist;
 
 typedef struct {
-    char *code, *name;
+    char *code, *name, *scope_note;
+    int order;              /* Order, or 50: sorts siblings for display */
     strlist parents, aliases, matches;
 } vset;
 

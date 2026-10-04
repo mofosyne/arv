@@ -23,7 +23,7 @@ void die(const char *fmt, const char *arg)
     fprintf(stderr, "arvc: ");
     fprintf(stderr, fmt, arg);
     fputc('\n', stderr);
-    exit(2);
+    exit(1);
 }
 
 void *xmalloc(size_t n)

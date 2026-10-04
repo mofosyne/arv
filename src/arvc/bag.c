@@ -49,7 +49,7 @@ static void walk(scan *s, const char *disk, const char *rel, int via_folder_link
     DIR *d = opendir(disk);
     if (!d) {
         fprintf(stderr, "arvc: cannot read %s: %s\n", disk, strerror(errno));
-        exit(2);
+        exit(1);
     }
     strlist names = { 0 };
     struct dirent *e;
@@ -155,7 +155,7 @@ static void fail_list(const char *intro, const strlist *l)
     fprintf(stderr, "arvc: %s", intro);
     for (size_t i = 0; i < l->n && i < 20; i++) fprintf(stderr, "\n  %s", l->v[i]);
     fputc('\n', stderr);
-    exit(2);
+    exit(1);
 }
 
 static int ambiguous(const char *p)

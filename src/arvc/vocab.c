@@ -13,7 +13,7 @@ static void *must(void *p)
 {
     if (!p) {
         fputs("out of memory\n", stderr);
-        exit(2);
+        exit(1);
     }
     return p;
 }
@@ -123,6 +123,12 @@ int vocab_load(vocab *v, const char *path, const char *text, char *err, size_t e
             return -1;
         }
         e.name = dup(rec_get(r, "Name") ? rec_get(r, "Name") : e.code);
+        e.scope_note = dup(rec_get(r, "ScopeNote") ? rec_get(r, "ScopeNote") : "");
+        {
+            char *o = trimmed(rec_get(r, "Order") ? rec_get(r, "Order") : "");
+            e.order = *o && strspn(o, "0123456789") == strlen(o) ? atoi(o) : 50;
+            free(o);
+        }
         for (size_t k = 0; k < r->nfields; k++) {
             const char *n = r->fields[k].name;
             char *val = trimmed(r->fields[k].value);
@@ -171,6 +177,7 @@ void vocab_free(vocab *v)
     for (size_t i = 0; i < v->n; i++) {
         free(v->e[i].code);
         free(v->e[i].name);
+        free(v->e[i].scope_note);
         strlist_free(&v->e[i].parents);
         strlist_free(&v->e[i].aliases);
         strlist_free(&v->e[i].matches);

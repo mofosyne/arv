@@ -50,22 +50,26 @@ static char *read_pointer(const char *file)
     return out;
 }
 
-static char *walk_up(const char *start, const char **how)
+static char *walk_up(const char *start, char **how)
 {
     char *folder = absolute(start);
+    size_t len = strlen(folder);
+    while (len > 1 && folder[len - 1] == '/') folder[--len] = 0;
+    if (len > 2 && !strcmp(folder + len - 2, "/.")) folder[len - 2] = 0;    /* "x/." -> "x" */
     for (;;) {
         char *cand = join(folder, ".arv"), *found = NULL;
+        if (!strcmp(folder, "/")) { free(cand); cand = xstrdup("/.arv"); }
         if (is_dir(cand)) {
             found = xstrdup(cand);
-            *how = "a .arv folder";
+            *how = xprintf("the .arv folder in %s", folder);
         } else if (is_reg(cand)) {
             found = read_pointer(cand);
-            *how = "a .arv pointer file";
+            *how = xprintf("the pointer file %s", cand);
         } else {
             char *rec = join(folder, "catalog.rec"), *cat = join(folder, "catalog/archive.rec");
             if (is_reg(rec) && is_reg(cat)) {
                 found = join(folder, "catalog");
-                *how = "an archive disc";
+                *how = xprintf("the archive disc at %s", folder);
             }
             free(rec);
             free(cat);
@@ -80,10 +84,15 @@ static char *walk_up(const char *start, const char **how)
     }
 }
 
-static char *configured_home(void)
+static char *config_path(void)
 {
     const char *xdg = getenv("XDG_CONFIG_HOME"), *home = getenv("HOME");
-    char *path = xdg && *xdg ? join(xdg, "arv/homes.rec") : home ? xprintf("%s/.config/arv/homes.rec", home) : NULL;
+    return xdg && *xdg ? join(xdg, "arv/homes.rec") : xprintf("%s/.config/arv/homes.rec", home ? home : "");
+}
+
+static char *configured_home(void)
+{
+    char *path = config_path();
     rec_file f;
     int bad = 0;
     char *out = NULL;
@@ -121,21 +130,25 @@ void home_at(arv_home *h, const char *path)
 
 void home_find(arv_home *h, const char *given, const char *source)
 {
-    const char *how = NULL;
+    char *how = NULL;
     char *found = NULL;
     memset(h, 0, sizeof *h);
     if (given) {
         found = xstrdup(given);
-        how = "-C";
+        how = xstrdup("--home");
     }
     for (const char *const *var = (const char *const[]){ "ARV_HOME", "BLURAY_ARCHIVE_HOME", NULL }; !found && *var; var++)
         if (getenv(*var) && *getenv(*var)) {
             found = xstrdup(getenv(*var));
-            how = *var;
+            how = xprintf("$%s", *var);
         }
     if (!found && source && is_dir(source)) found = walk_up(source, &how);
     if (!found) found = walk_up(".", &how);
-    if (!found && (found = configured_home())) how = "the machine config";
+    if (!found && (found = configured_home())) {
+        char *cp = config_path();
+        how = xprintf("the default home in %s", cp);
+        free(cp);
+    }
     if (!found) {
         const char *xdg = getenv("XDG_DATA_HOME"), *home = getenv("HOME");
         char *base = xdg && *xdg ? xstrdup(xdg) : xprintf("%s/.local/share", home ? home : ".");
@@ -143,7 +156,9 @@ void home_find(arv_home *h, const char *given, const char *source)
         found = is_dir(old) ? old : join(base, "arv");
         if (found != old) free(old);
         free(base);
-        how = "the fallback home";
+        char *cwd = getcwd(NULL, 4096);
+        how = xprintf("the fallback home (no .arv found above %s)", cwd ? cwd : ".");
+        free(cwd);
     }
     home_at(h, found);
     h->how = how;
