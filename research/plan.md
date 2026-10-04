@@ -471,6 +471,105 @@ Reading, checking and repairing (what a disc must carry for itself):
 
 Details and measurements: research-notes.md, sections 7-9.
 
+## Design (2026-10-04, agreed in outline): collections, editions and the workflow folder
+
+Not implemented. Supersedes "changed files go on the new disc whole" in the history-graph design
+below: every edition is a full copy. The rest of that design (node hashes, a log on every disc,
+appraisals) carries over.
+
+**Two kinds of folder.** A *tracked* folder (the NAS, loose drives) holds data objects that stay
+where they are; arv only knows which of its files are on which disc, by SHA-256. A *workflow*
+folder is where a person sorts and organises something into shape and builds discs from it: one
+**collection**, with one history log, shared by every disc made from it.
+
+| Term | What it is |
+|---|---|
+| collection | the thing being kept, e.g. FAMILY: one workflow folder, one code, one log; its settings (title, set, categories, access) are given once, so `arv make` asks nothing |
+| edition | a **full copy** of the collection as it was on a date, numbered 1, 2, 3 ...; `provisional` or `final`; split over as many discs as it needs |
+| volume (disc) | as now: one bag, one image; belongs to exactly one edition |
+| binding | where an edition's volumes sit: Blu-ray images, and later the same bags as a folder or a zip on the NAS (the binding table above) |
+
+Example:
+
+```
+FAMILY  (one workflow folder, one log)
+  edition 1  provisional  2024-03  FAMILY-01               BD25, 18 GB
+  edition 2  provisional  2024-11  FAMILY-02               BD25, 20 GB   replaces edition 1
+  edition 3  provisional  2025-06  FAMILY-03 + FAMILY-04   2x BD25       replaces edition 2
+  edition 4  final        2026-01  FAMILY-05 + FAMILY-06   2x BD100      replaces 1-3
+             (and the same bags as a folder on the NAS: a second copy in another medium)
+```
+
+**Why full copies.** For a power user, not an institution: any one edition restores the whole
+collection by itself, with no chain to replay and no disc that is useless alone. It costs discs;
+provisional discs are cheap BD-R, and they are retired.
+
+**Lifecycle**
+1. `arv collection init FAMILY --title "Family photos" [--set PHOTO] [--access private]` in the
+   workflow folder writes a marker (`.arv`: the pointer file, with a `Collection:` line). The
+   marker never goes on a disc, and arv writes nothing else in the folder.
+2. Sort and organise freely. `arv status` in the folder: what changed since the last edition
+   (added, changed, removed, renamed: by SHA-256), the size, and the media it fits.
+3. `arv make` in the folder: the next edition, provisional by default, a full copy, split as
+   needed. `--final [--medium bd100]` makes the final one.
+4. Burn and check each disc (`arv burn`, see the workflow review). An edition is *safe* once
+   every volume has a copy that passed its read-back.
+5. **Retiring.** When an edition is safe, the provisional editions before it are *replaced*:
+   `arv status` says so, and `arv retire` records it (an event; the discs leave every location).
+   Before retiring, it lists files that exist only on the discs being retired (removed from the
+   collection since), so nothing goes by accident. The person decides; arv never deletes.
+6. After a final edition, changes start a new provisional run (edition 5, 6 ... then final).
+   Only two stages: no provisional-on-provisional chains, so the log stays readable.
+7. **Another medium.** The same edition can also be bound as a folder or zip on the NAS
+   (`arv make --binding folder DEST`): the same bags, so the same manifests and hashes, and it
+   counts as a copy in copy health ("final edition: 1 disc copy + 1 NAS copy").
+
+**The log** is `Edition` records in `archive.rec`, so every disc carries the whole history in its
+snapshot (limited by access, as now):
+
+```
+%rec: Edition
+%key: Id
+Id: FAMILY/4
+Collection: FAMILY
+Stage: final
+Parent: FAMILY/3
+Date: 2026-01-10
+Volume: FAMILY-05_2001-2025_X
+Volume: FAMILY-06_2001-2025_Q
+Node: <SHA-256 over the volumes' tagmanifests>
+Changes: +312 ~4 -17 files since FAMILY/3
+Message: the 2025 sort, final
+```
+
+`Retired` is an event on a volume (with a reason: `replaced by FAMILY/4`); a `Collection`
+record holds the code, title, description and defaults.
+
+**Decisions this needs**
+- **One workflow folder, one collection** (recommended). An inbox where things wait to be sorted
+  is an ordinary folder arv does not know about; things move into a collection's folder when
+  they are ready. Several collections in one folder can come later if needed.
+- **Disc ids**: the collection code becomes the id prefix (`FAMILY-05_...`); the sequence runs
+  across editions and is never reused. Set and Category become classification only. A disc
+  made outside any collection (`arv make FOLDER`, as today) is a collection of one edition,
+  coded by its set as now, so today's discs need no change.
+- **A name clash**: today's `Collection` records are virtual folders across discs ("Best of
+  Kyoto"). They become `Selection` (format 0.5; readers accept both), so "collection" means
+  the thing in a workflow folder.
+- **Tracked folders** get `arv status PATH` too: for each file, archived on which discs, or
+  not yet; the first part of the organiser below.
+
+**Steps**
+- [ ] Format 0.5: `Collection` (the kept thing), `Edition`, `Selection`, the `Retired` event; the
+      spec, fixtures and reference outputs.
+- [ ] `arv collection init`, the marker, and `arv make` taking its settings from it.
+- [ ] `arv status` (a workflow folder: changes since the last edition; any folder: archived or
+      not) and `arv log`.
+- [ ] `arv burn` (burn, read back, record the copy, ask where it lives) and edition safety.
+- [ ] `arv retire`, with the list of files only on the retiring discs.
+- [ ] Folder and zip bindings for an edition.
+- [ ] docs/workflow.md rewritten around: init, sort, status, make, burn, retire.
+
 ## Design: discs as nodes in a history graph (2026-10-02, not implemented)
 
 Git's model, with the content kept where it already is. Each disc image is a **node** (a
