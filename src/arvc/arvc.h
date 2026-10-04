@@ -39,6 +39,7 @@ int run(char *const argv[], char **output);
 int on_path(const char *program);
 extern const char *arv_argv0;
 char *exe_dir(void);
+char *abs_path(const char *p);
 
 /* home.c: where the home catalogue is */
 typedef struct {
@@ -52,6 +53,7 @@ void home_ensure(const arv_home *h);
 char *home_volume_file(const arv_home *h, const char *disc_id, const char *name);
 int cmd_init(int argc, char **argv);
 int cmd_tags(int argc, char **argv);
+void tags_canonical(const arv_home *h, strlist *tags);
 int cmd_keywords(int argc, char **argv);
 int cmd_make(int argc, char **argv);
 int cmd_check(int argc, char **argv);
@@ -127,6 +129,25 @@ void formats_write(const char *path, const formats *f, const entries *files);
 size_t formats_unknown(const formats *f, const entries *files);
 char *formats_agent(const formats *f);
 void formats_free(formats *f);
+
+/* json.c: a small JSON tree */
+typedef struct jv {
+    char kind;                  /* 'o' object, 'a' array, 's' string, 't' number or boolean, 'n' null */
+    char *str;
+    char **keys;                /* objects: in insertion order, as Python dicts keep them */
+    struct jv **vals;
+    size_t n;
+} jv;
+jv *jstr(const char *s);
+jv *jobj(void);
+jv *jarr(void);
+void jput(jv *o, const char *key, jv *val);
+void jpush(jv *a, jv *val);
+jv *jref(const char *id);
+void jfree(jv *v);
+void jdump(sbuf *b, const jv *v, int depth);
+jv *json_parse(const char *text);
+jv *json_get(const jv *o, const char *key);
 
 /* rocrate.c: --ro-crate */
 char *rocrate_metadata(const rec_record *disc, const entries *files, const formats *fmt);

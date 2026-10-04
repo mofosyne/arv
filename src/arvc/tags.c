@@ -163,6 +163,25 @@ static int load_tag_vocab(tag_vocab *tv, const arv_home *h, const char *given)
     return tv->names.n ? 0 : -1;
 }
 
+/* the vocabulary's names for tags, without repeats or blanks (tagger.TagVocab.canonical_list); the
+ * tags as they are when the home's vocabulary has no tags */
+void tags_canonical(const arv_home *h, strlist *tags)
+{
+    tag_vocab tv;
+    if (load_tag_vocab(&tv, h, NULL)) return;
+    strlist out = { 0 };
+    for (size_t i = 0; i < tags->n; i++) {
+        char *t = normalise_tag(tags->v[i]);
+        const char *canon = t;
+        for (size_t a = 0; a < tv.alias_from.n; a++)
+            if (!strcmp(tv.alias_from.v[a], t)) { canon = tv.alias_to.v[a]; break; }
+        if (*canon && !strlist_has(&out, canon)) strlist_add(&out, canon);
+        free(t);
+    }
+    strlist_free(tags);
+    *tags = out;
+}
+
 static int by_str(const void *a, const void *b)
 {
     return strcmp(*(char *const *)a, *(char *const *)b);

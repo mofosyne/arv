@@ -1,0 +1,6 @@
+# arv listing 2	size (bytes)	modified (UTC, ISO 8601)	kind	link target	path (relative to data/)
+6	2020-01-01T12:00:00Z	link copied	docs/guide.md	README.md
+18	2020-01-01T12:00:00Z	file executable	-	bin/tool.sh
+-	2020-01-01T12:00:00Z	link broken	missing.txt	dead
+6	2020-01-01T12:00:00Z	file	-	docs/guide.md
+-	2020-01-01T12:00:00Z	link recorded folder	docs	latest

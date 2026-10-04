@@ -39,7 +39,7 @@ static void say(const char *fmt, const char *arg)
 typedef struct {
     const char *source, *home, *output, *output_dir, *id, *set, *coverage, *title, *label, *description;
     const char *creator, *location, *access, *rights, *links, *medium, *media, *snapshot, *tools;
-    const char *basis, *review, *formats, *sf_home, *extra_tools;
+    const char *basis, *review, *formats, *sf_home, *extra_tools, *draft;
     strlist categories, subjects, notes, importance;
     long medium_sectors;
     double min_redundancy;
@@ -73,13 +73,15 @@ static const char HELP[] =
     "  --tools DIR            arv's source for tools/ (default: found next to this program)\n"
     "  --tools-history        also arv's whole git history in tools/ (a git bundle)\n"
     "  --ro-crate             RO-Crate 1.2 metadata in data/ (ro-crate-metadata.json and a preview)\n"
+    "  --draft FILE           title, description, subjects, notes and folder tags from a draft (the JSON\n"
+    "                         arv describe --save and arv tag --save write); options given win\n"
     "  --extra-tools DIR      a folder copied to tools/extra/ (dvdisaster binaries, say)\n"
     "  --split                spread the folder over as many discs as needed\n"
     "  --formats auto|yes|no  PRONOM format ids with Siegfried (auto: when sf is on PATH)\n"
     "  --sf-home DIR          Siegfried signature folder (sf -home)\n"
     "  --no-ecc, --no-verify  skip RS03, or skip dvdisaster -t afterwards\n"
     "  --ignore-names, --keep-stage\n"
-    "Not here (use the Python arv): drafts and AI help.\n";
+    "Not here: the local AI helpers (arv describe, arv tag) make drafts; this takes them (--draft).\n";
 
 static int parse_options(int argc, char **argv, options *o)
 {
@@ -138,6 +140,7 @@ static int parse_options(int argc, char **argv, options *o)
         else if (!strcmp(a, "--formats")) str = &o->formats;
         else if (!strcmp(a, "--sf-home")) str = &o->sf_home;
         else if (!strcmp(a, "--extra-tools")) str = &o->extra_tools;
+        else if (!strcmp(a, "--draft")) str = &o->draft;
         else if (!strcmp(a, "--category")) list = &o->categories;
         else if (!strcmp(a, "--subject")) list = &o->subjects;
         else if (!strcmp(a, "--note")) list = &o->notes;
@@ -166,6 +169,126 @@ static int parse_options(int argc, char **argv, options *o)
         }
     }
     return 0;
+}
+
+/* ------------------------------------------------------------------ drafts (describe.load_draft) */
+
+static int by_cstr(const void *a, const void *b)
+{
+    return strcmp(*(char *const *)a, *(char *const *)b);
+}
+
+typedef struct {
+    char *title, *description, *agent, *authorship;
+    strlist subjects, notes;
+    size_t nft, ncap;
+    char **ft_folder, **cap_folder, **cap_text;
+    strlist *ft_tags;
+} draft;
+
+static int is_model(const char *agent)        /* catalog.is_model: a model's judgement */
+{
+    return agent && (strstr(agent, "llm:") || strstr(agent, "embeddings:") || strstr(agent, "vision:"));
+}
+
+static char *jtext(const jv *v)                /* a string value; NULL when absent, empty or not a string */
+{
+    return v && v->kind == 's' && *v->str ? xstrdup(v->str) : NULL;
+}
+
+static void jlist(const jv *v, strlist *out)
+{
+    for (size_t i = 0; v && v->kind == 'a' && i < v->n; i++)
+        if (v->vals[i]->kind == 's') strlist_add(out, v->vals[i]->str);
+}
+
+/* a saved draft, applied by the person who runs make: a model's suggestion becomes accepted */
+static void load_draft(const char *path, draft *d)
+{
+    memset(d, 0, sizeof *d);
+    char *text = read_text(path);
+    if (!text) die("cannot read the draft %s", path);
+    jv *doc = json_parse(text);
+    free(text);
+    if (!doc || doc->kind != 'o') die("%s is not a JSON draft (arv describe --save writes them)", path);
+    d->title = jtext(json_get(doc, "title"));
+    d->description = jtext(json_get(doc, "description"));
+    jlist(json_get(doc, "subjects"), &d->subjects);
+    jlist(json_get(doc, "notes"), &d->notes);
+    const jv *ft = json_get(doc, "folder_tags"), *caps = json_get(doc, "folder_captions");
+    for (size_t i = 0; ft && ft->kind == 'o' && i < ft->n; i++) {
+        d->ft_folder = xrealloc(d->ft_folder, (d->nft + 1) * sizeof *d->ft_folder);
+        d->ft_tags = xrealloc(d->ft_tags, (d->nft + 1) * sizeof *d->ft_tags);
+        d->ft_folder[d->nft] = xstrdup(ft->keys[i]);
+        memset(&d->ft_tags[d->nft], 0, sizeof *d->ft_tags);
+        jlist(ft->vals[i], &d->ft_tags[d->nft]);
+        d->nft++;
+    }
+    for (size_t i = 0; caps && caps->kind == 'o' && i < caps->n; i++) {
+        if (caps->vals[i]->kind != 's') continue;
+        d->cap_folder = xrealloc(d->cap_folder, (d->ncap + 1) * sizeof *d->cap_folder);
+        d->cap_text = xrealloc(d->cap_text, (d->ncap + 1) * sizeof *d->cap_text);
+        d->cap_folder[d->ncap] = xstrdup(caps->keys[i]);
+        d->cap_text[d->ncap++] = xstrdup(caps->vals[i]->str);
+    }
+    d->agent = jtext(json_get(doc, "agent"));
+    if (!d->agent) d->agent = xstrdup("draft");
+    static const char *const kinds[] = { "automatic", "suggested", "accepted", "edited", "human", NULL };
+    const jv *how = json_get(doc, "authorship");
+    for (int k = 0; kinds[k] && how && how->kind == 's'; k++)
+        if (!strcmp(how->str, kinds[k])) d->authorship = xstrdup(kinds[k]);
+    if (!d->authorship) d->authorship = xstrdup(is_model(d->agent) ? "suggested" : "human");
+    if (!strcmp(d->authorship, "suggested")) {          /* describe.accept_draft */
+        free(d->authorship);
+        d->authorship = xstrdup("accepted");
+    }
+    jfree(doc);
+}
+
+/* the folder tags and captions for the folders on one disc ("." and every folder above a file), as
+ * tags.tsv (catalog.write_tags); 0 when there are none */
+static int write_plan_tags(const char *path, const draft *d, const entries *files)
+{
+    strlist folders = { 0 };
+    strlist_add(&folders, ".");
+    for (size_t i = 0; i < files->n; i++)
+        for (const char *s = strchr(files->v[i].path, '/'); s; s = strchr(s + 1, '/')) {
+            char *f = xprintf("%.*s", (int)(s - files->v[i].path), files->v[i].path);
+            if (!strlist_has(&folders, f)) strlist_add(&folders, f);
+            free(f);
+        }
+    strlist keys = { 0 };
+    for (size_t i = 0; i < d->nft; i++)
+        if (strlist_has(&folders, d->ft_folder[i]) && !strlist_has(&keys, d->ft_folder[i])) strlist_add(&keys, d->ft_folder[i]);
+    for (size_t i = 0; i < d->ncap; i++)
+        if (strlist_has(&folders, d->cap_folder[i]) && !strlist_has(&keys, d->cap_folder[i])) strlist_add(&keys, d->cap_folder[i]);
+    strlist_free(&folders);
+    if (!keys.n) return 0;
+    qsort(keys.v, keys.n, sizeof *keys.v, by_cstr);
+    sbuf b = { 0 };
+    sb_puts(&b, "# folder (relative to data/)\ttags\tcaption (what sampled images show, if analysed)\n");
+    for (size_t k = 0; k < keys.n; k++) {
+        sb_puts(&b, keys.v[k]);
+        sb_puts(&b, "\t");
+        for (size_t i = d->nft; i-- > 0;)                /* the last entry for a folder, as a dict keeps */
+            if (!strcmp(d->ft_folder[i], keys.v[k])) {
+                for (size_t t = 0; t < d->ft_tags[i].n; t++) sb_printf(&b, "%s%s", t ? ", " : "", d->ft_tags[i].v[t]);
+                break;
+            }
+        for (size_t i = d->ncap; i-- > 0;)
+            if (!strcmp(d->cap_folder[i], keys.v[k])) {
+                if (*d->cap_text[i]) {
+                    sb_puts(&b, "\t");
+                    for (const char *c = d->cap_text[i]; *c; c++) sb_add(&b, *c == '\t' || *c == '\n' ? " " : c, 1);
+                }
+                break;
+            }
+        sb_puts(&b, "\n");
+    }
+    write_text(path, b.s);
+    free(b.s);
+    strlist_free(&keys);
+    return 1;
 }
 
 /* ------------------------------------------------------------------ questions (cli.ask) */
@@ -677,7 +800,7 @@ typedef struct {
     char disc_id[64], uuid[37];
     long sequence;
     int part, parts;
-    char *out, *label, *stage, *built, *extents, *b_manifest, *b_listing, *b_formats;
+    char *out, *label, *stage, *built, *extents, *b_manifest, *b_listing, *b_formats, *b_tags;
     rec_record *disc, *binding;
     recs events, appraisals;
     uint64_t sectors;
@@ -695,6 +818,7 @@ typedef struct {
     long capacity, budget;
     int is_git, links_chosen, have_formats;
     formats fmt;
+    const draft *draft;         /* --draft, or NULL */
     plan *plans;
     size_t nplans;
 } maker;
@@ -940,6 +1064,20 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
             free(who);
             free(summary);
         }
+        if (mk->draft) {          /* the draft's suggestions, and who saw them (catalog.reviewed_agents) */
+            const char *how = mk->draft->authorship;
+            char *dnote = xprintf("title, description, subjects and folder tags taken from a draft (made by: %s)",
+                                  mk->draft->agent);
+            rec_record *e = new_event(p->disc_id, "metadata modification", "success", mk->draft->agent, how, NULL);
+            if ((!strcmp(how, "accepted") || !strcmp(how, "edited")) && strncmp(mk->draft->agent, "human:", 6)) {
+                char *who = person();
+                rec_add(e, "Agent", who);
+                free(who);
+            }
+            rec_add(e, "Note", dnote);
+            free(dnote);
+            recs_add(&p->events, e);
+        }
         if (mk->have_formats) {
             size_t unknown = formats_unknown(&mk->fmt, &p->files);
             char *agent = formats_agent(&mk->fmt), *fnote = xprintf("PRONOM ids for %zu files, %zu unidentified", p->files.n, unknown);
@@ -998,6 +1136,12 @@ static void batch_files(maker *mk)
         if (sorted.n) qsort(sorted.v, sorted.n, sizeof *sorted.v, by_entry_path);
         write_listing(p->b_listing, &sorted, &p->noted);
         free(sorted.v);
+        p->b_tags = NULL;
+        if (mk->draft) {
+            char *t = xprintf("%s/%s.tags", batch, p->disc_id);
+            if (write_plan_tags(t, mk->draft, &p->files)) p->b_tags = t;
+            else free(t);
+        }
         p->b_formats = NULL;
         if (mk->have_formats) {
             p->b_formats = xprintf("%s/%s.csv", batch, p->disc_id);
@@ -1125,6 +1269,11 @@ static void stage_plan(maker *mk, size_t idx)
             char *fm = join(dir, "formats.csv");
             copy_file(mk->plans[b].b_formats, fm);
             free(fm);
+        }
+        if (mk->plans[b].b_tags) {
+            char *tg = join(dir, "tags.tsv");
+            copy_file(mk->plans[b].b_tags, tg);
+            free(tg);
         }
         free(dir); free(m); free(l);
     }
@@ -1407,10 +1556,11 @@ static int make_discs(maker *mk)
         for (size_t k = 0; k < p->appraisals.n; k++) recs_add(&mk->cat->appraisals, p->appraisals.v[k]);
         char *home_vol = xprintf("%s/volumes/%s", mk->h->catalog_dir, p->disc_id);
         if (mkdirs(home_vol)) die("cannot create %s", home_vol);
-        const char *kinds[] = { "manifest.sha256", "listing.tsv", "formats.csv", "extents.tsv" };
+        const char *kinds[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv" };
         char *own = xprintf("%s/catalog/volumes/%s", p->stage, p->disc_id);
-        char *from[] = { join(own, "manifest.sha256"), join(own, "listing.tsv"), join(own, "formats.csv"), xstrdup(p->extents) };
-        for (int k = 0; k < 4; k++) {       /* extents: kept at home and on later discs, never on this one */
+        char *from[] = { join(own, "manifest.sha256"), join(own, "listing.tsv"), join(own, "formats.csv"), join(own, "tags.tsv"),
+                         xstrdup(p->extents) };
+        for (int k = 0; k < 5; k++) {       /* extents: kept at home and on later discs, never on this one */
             if (!access(from[k], F_OK)) {
                 char *to = join(home_vol, kinds[k]);
                 copy_file(from[k], to);
@@ -1435,7 +1585,7 @@ int cmd_make(int argc, char **argv)
     interactive = isatty(0) && !o.yes;
     char *src = realpath(o.source, NULL);
     struct stat st;
-    if (!src || stat(src, &st) || !S_ISDIR(st.st_mode)) die("%s is not a directory", o.source);
+    if (!src || stat(src, &st) || !S_ISDIR(st.st_mode)) die("%s is not a directory", abs_path(o.source));
     if (o.output && o.output_dir) die("%s", "use either --output or --output-dir");
     if (!o.no_ecc && !on_path("dvdisaster")) die("%s", "missing required tool(s): dvdisaster (or --no-ecc for a test image)");
     char *review = o.review ? review_date(o.review) : NULL;
@@ -1475,6 +1625,29 @@ int cmd_make(int argc, char **argv)
                 fprintf(stderr, "  warning: %s: %s\n", issues.v[i].path, issues.v[i].problem);
         }
         names_free(&issues);
+
+        /* a draft fills what the options leave empty (cli.cmd_make): no questions for those */
+        draft dr;
+        memset(&dr, 0, sizeof dr);
+        if (o.draft) {
+            load_draft(o.draft, &dr);
+            if (!strcmp(dr.authorship, "suggested") || !strcmp(dr.authorship, "accepted")) {
+                int same = o.subjects.n == dr.subjects.n;      /* a model's draft overridden: edited by a person */
+                for (size_t i = 0; same && i < o.subjects.n; i++) same = !strcmp(o.subjects.v[i], dr.subjects.v[i]);
+                if ((o.title && (!dr.title || strcmp(o.title, dr.title)))
+                    || (o.description && (!dr.description || strcmp(o.description, dr.description)))
+                    || (o.subjects.n && !same)) {
+                    free(dr.authorship);
+                    dr.authorship = xstrdup("edited");
+                }
+            }
+            if (!o.title || !*o.title) o.title = dr.title;
+            if (!o.description || !*o.description) o.description = dr.description;
+            if (!o.subjects.n)
+                for (size_t i = 0; i < dr.subjects.n; i++) strlist_add(&o.subjects, dr.subjects.v[i]);
+            for (size_t i = 0; i < dr.notes.n; i++) strlist_add(&o.notes, dr.notes.v[i]);
+            for (size_t i = 0; i < dr.nft; i++) tags_canonical(&h, &dr.ft_tags[i]);   /* aliases become names */
+        }
 
         /* coverage: the files' years, or --coverage */
         char coverage[64];
@@ -1597,6 +1770,7 @@ int cmd_make(int argc, char **argv)
         mk.src = src;
         mk.files = &files;
         mk.noted = &noted;
+        mk.draft = o.draft ? &dr : NULL;
         mk.title = o.title ? o.title : default_title;
         mk.creator = o.creator ? o.creator : getenv("USER");
         if (o.location && *o.location) mk.location = place(&cat, o.location);

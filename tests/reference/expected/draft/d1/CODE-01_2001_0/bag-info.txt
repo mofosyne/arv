@@ -1,0 +1,6 @@
+Bagging-Date: 2026-01-01
+External-Identifier: CODE-01_2001_0
+External-Description: My own title - Old letters.
+Bag-Group-Identifier: CODE
+Payload-Oxum: 25.2
+Bag-Software-Agent: SW <https://github.com/mofosyne/arv>

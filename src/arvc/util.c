@@ -348,3 +348,36 @@ char *exe_dir(void)
     if (slash) *slash = 0;
     return p;
 }
+
+/* os.path.normpath of an absolute path: no ".", "..", or doubled or trailing "/" */
+static char *normalise(const char *abs)
+{
+    char *copy = xstrdup(abs), *save = NULL;
+    sbuf out = { 0 };
+    size_t *ends = xmalloc((strlen(abs) + 1) * sizeof *ends), n = 0;
+    for (char *part = strtok_r(copy, "/", &save); part; part = strtok_r(NULL, "/", &save)) {
+        if (!strcmp(part, ".")) continue;
+        if (!strcmp(part, "..")) {
+            if (n) out.len = ends[--n];
+            if (out.s) out.s[out.len] = 0;
+            continue;
+        }
+        ends[n++] = out.len;
+        sb_puts(&out, "/");
+        sb_puts(&out, part);
+    }
+    free(ends);
+    free(copy);
+    if (!out.len) sb_puts(&out, "/");
+    return out.s;
+}
+
+/* os.path.abspath: the path from the current folder, normalised (links are not followed) */
+char *abs_path(const char *p)
+{
+    if (p[0] == '/') return normalise(p);
+    char *cwd = getcwd(NULL, 4096), *joined = join(cwd ? cwd : ".", p), *out = normalise(joined);
+    free(cwd);
+    free(joined);
+    return out;
+}

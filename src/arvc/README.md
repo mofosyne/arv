@@ -19,7 +19,7 @@ exists carries it as `tools/arv.com` (found as `$ARV_APE`, `arv.com` in the inst
 `build/arv.com` in a checkout; `ARV_APE=none` leaves it off).
 
 Called as `arv` (the installed link), it hands to the Python arv (`share/arv/arv`, or `arv-py`)
-any command or option it does not have (the AI helpers, drafts, `gui`) and `--help`. Called as `arvc`, it never hands over. What the Python arv did is frozen in
+any command or option it does not have (the AI helpers, `make --llm`, `gui`) and `--help`. Called as `arvc`, it never hands over. What the Python arv did is frozen in
 [tests/reference/](../../tests/reference/), and `make check` holds arvc to it.
 
 ## Commands
@@ -64,7 +64,7 @@ archived or the current folder up, the machine config (`~/.config/arv/homes.rec`
 
 | | arvc | Python arv only |
 |---|---|---|
-| Making | UDF 2.50 discs, one or (`--split`) as many as the folder needs: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), Siegfried format ids (`formats.csv`), `--tools-history`, `--extra-tools`, `--ro-crate`, RS03 | drafts and the local AI helpers (`--llm`, `describe`, `tag`) |
+| Making | UDF 2.50 discs, one or (`--split`) as many as the folder needs: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), Siegfried format ids (`formats.csv`), `--tools-history`, `--extra-tools`, `--ro-crate`, drafts (`--draft`: folder tags, captions), RS03 | the local AI helpers (`--llm`, `describe`, `tag`) |
 | Recording | `init` (with named homes and pointers; `--archive NAME`), `burned`, `check`, `note`, `locate`, `access`, `location`, `collection`, `appraise`, `rebuild` | `gui` |
 | Looking | `sets`, `names`, `where`, `tags`, `keywords` | `describe`, `tag`, `models` (AI helpers) |
 | Reading | `find`, `list`, `id`, `info`, `verify`, `ls`, `restore` | (`restore` is C only) |

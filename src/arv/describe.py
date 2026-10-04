@@ -150,8 +150,15 @@ def accept_draft(draft):
 
 
 def load_draft(path):
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except OSError:
+        raise SystemExit("Error: cannot read the draft %s" % path)
+    except ValueError:
+        data = None
+    if not isinstance(data, dict):
+        raise SystemExit("Error: %s is not a JSON draft (arv describe --save writes them)" % path)
     return {
         "title": data.get("title") or None,
         "description": data.get("description") or None,

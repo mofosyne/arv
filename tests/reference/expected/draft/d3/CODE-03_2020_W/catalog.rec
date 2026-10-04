@@ -1,0 +1,95 @@
+%rec: Archive
+%doc: Entry point of a smart-archive disc: which format and version this is, which disc,
++ and where its other catalogue files are (paths relative to the disc root).
++ Specification: tools/arv/docs/smart-archive-format.md
+%mandatory: Format Version Disc Uuid
+
+Format: smart-archive
+Version: 0.4
+Disc: CODE-03_2020_W
+Uuid: UUID
+Manifest: manifest-sha256.txt
+Listing: catalog/volumes/CODE-03_2020_W/listing.tsv
+Snapshot: catalog/archive.rec
+Viewer: index.html
+Payload: data/
+
+%rec: Disc
+%doc: One record per physical disc image (an OAIS AIP). Field names follow
++ Dublin Core terms where one fits: Title, Creator, Date, Description,
++ Subject, Coverage, Rights. Uuid is the machine identity of the image
++ (copies burned from one image share it); Id is for people and is
++ derived from Set, Sequence and Coverage (EDTF) under IdScheme, so it
++ can always be regenerated and checked (see docs/smart-archive-format.md).
+%key: Id
+%mandatory: Id Title Date
+%type: Uuid uuid
+%type: Sequence int
+%type: Date date
+%type: Files int
+%type: Bytes int
+%type: Access enum public private sealed
+
+Id: CODE-03_2020_W
+Uuid: UUID
+IdScheme: set-seq-coverage/1
+Label: CODE-03_2020_W T
+Title: T
+Set: CODE
+Path: PROJECTS/CODE
+Sequence: 3
+Coverage: 2020
+Date: 2026-01-01
+Creator: archivist
+Description: No agent, no title
+Access: private
+Files: 1
+Bytes: 2
+Software: SW
+
+%rec: Binding
+%doc: How one volume is stored on its medium: the container (filesystem) and the
++ protection (error correction) it was made with. These change with the medium;
++ the files and the rest of the catalogue do not (research/plan.md, four layers).
++ Container: iso9660+udf-1.02, udf-2.50 (later perhaps ltfs, exfat, tar, afs).
++ Protection: rs03 or none. Media, Filesystem and Ecc describe them for people
++ (format 0.2 and earlier kept those three in the Disc record).
+%key: Volume
+%mandatory: Volume Container Protection
+%type: MediumSectors int
+
+Volume: CODE-03_2020_W
+Container: udf-2.50
+Protection: none
+Media: M-DISC BD-R 25GB
+Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
+Ecc: none
+
+%rec: Event
+%doc: Preservation actions and metadata changes, appended and never edited. Type uses
++ the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
++ Disc names the disc; a change to a location or a collection names it in Object
++ (location:CODE, collection:CODE) instead. Agent (one or more) is software
++ (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
++ Authorship says how people and machines shared the work: automatic (software
++ following rules), suggested (a model, not reviewed), accepted (a model's suggestion
++ a person kept as it was), edited (one a person changed), human (a person alone).
+%mandatory: Type Date Outcome
+%type: Outcome enum success failure warning
+%type: Authorship enum automatic suggested accepted edited human
+
+Disc: CODE-03_2020_W
+Type: message digest calculation
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: SW
+Note: sha256 and sha512 manifests of 1 files
+
+Disc: CODE-03_2020_W
+Type: metadata modification
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: draft
+Note: title, description, subjects and folder tags taken from a draft (made by: draft)

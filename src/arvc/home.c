@@ -193,29 +193,6 @@ void home_ensure(const arv_home *h)
     free(ign);
 }
 
-/* os.path.normpath of an absolute path: no ".", "..", or doubled or trailing "/" */
-static char *normalise(const char *abs)
-{
-    char *copy = xstrdup(abs), *save = NULL;
-    sbuf out = { 0 };
-    size_t *ends = xmalloc((strlen(abs) + 1) * sizeof *ends), n = 0;
-    for (char *part = strtok_r(copy, "/", &save); part; part = strtok_r(NULL, "/", &save)) {
-        if (!strcmp(part, ".")) continue;
-        if (!strcmp(part, "..")) {
-            if (n) out.len = ends[--n];
-            if (out.s) out.s[out.len] = 0;
-            continue;
-        }
-        ends[n++] = out.len;
-        sb_puts(&out, "/");
-        sb_puts(&out, part);
-    }
-    free(ends);
-    free(copy);
-    if (!out.len) sb_puts(&out, "/");
-    return out.s;
-}
-
 /* adds or updates a home in the machine config (homes.register) */
 static void register_home(const char *name, const char *path, int is_default)
 {
@@ -327,7 +304,7 @@ int cmd_init(int argc, char **argv)
         fprintf(stderr, "Note: %s is a git repository; a .arv in the folder above it can cover several "
                         "repositories and stays out of git\n", folder);
     if (pointer) {
-        char *abs = absolute(pointer), *home = normalise(abs);
+        char *abs = absolute(pointer), *home = abs_path(abs);
         if (!is_dir(home)) die("%s is not a folder", home);
         char *text = xprintf("# This tree belongs to the archive whose catalogue is here (see `arv where`):\n"
                              "Home: %s\n", home);

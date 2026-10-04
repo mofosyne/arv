@@ -1,0 +1,6 @@
+Bagging-Date: 2026-01-01
+External-Identifier: CODE-02_2020_Y
+External-Description: Hand-written été 😀
+Bag-Group-Identifier: CODE
+Payload-Oxum: 30.3
+Bag-Software-Agent: SW <https://github.com/mofosyne/arv>

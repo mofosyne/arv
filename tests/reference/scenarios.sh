@@ -195,6 +195,33 @@ done
 keep rebuild.out rebuild/transcript.txt
 keep_home hb rebuild/home
 
+# ------------------------------------------------------------------ --draft: what arv describe and arv tag save
+cat > draft-model.json <<'JSON'
+{"title": "Letters and scans", "description": "Old letters.", "subjects": ["letters", "family"],
+ "notes": ["Drafted by a model."], "agent": "llm:qwen2.5 (local)", "authorship": "suggested",
+ "folder_tags": {".": ["Holiday", "kids", "place: Kyoto"], "letters": ["letters", "relatives"], "elsewhere": ["x"]},
+ "folder_captions": {"letters": "two pages,\tone scan\nand a stamp", "missing": "not on this disc"}}
+JSON
+cat > draft-human.json <<'JSON'
+{"title": "Hand-written été 😀", "subjects": [], "agent": "sample script (hand-written)",
+ "folder_tags": {"letters": ["letters"]}}
+JSON
+printf '{"description": "No agent, no title"}\n' > draft-bare.json
+log draft.out --home hd make -y --no-ecc --formats no --set CODE --draft draft-model.json --title "My own title" \
+    --note "from the command line" --keep-stage --output-dir out-d1 second
+log draft.out --home hd make -y --no-ecc --formats no --set CODE --draft draft-human.json --keep-stage --output-dir out-d2 src
+log draft.out --home hd make -y --no-ecc --formats no --set CODE --draft draft-bare.json --title T --keep-stage \
+    --output-dir out-d3 hist-src
+printf '{"agent": "embeddings:bge-small", "folder_tags": {"letters": ["letters"], ".": ["scan"]}}\n' > draft-split.json
+log draft.out --home hd make -y --no-ecc --formats no --set SCAN --split --medium-sectors 4800 --draft draft-split.json \
+    --keep-stage --output-dir out-d4 big
+printf 'not json' > draft-broken.json
+log draft.out --home hd make -y --no-ecc --formats no --set CODE --draft draft-broken.json --output-dir out-d5 src
+keep draft.out draft/transcript.txt
+for k in 1 2 3 4; do keep_stages out-d$k draft/d$k; done
+keep_home hd draft/home
+keep hd/config/tags.rec draft/tags.rec
+
 # ------------------------------------------------------------------ recording, on a copy of the reference home
 cp -r "$here/home" rec
 log record.out --home rec burned TRIP-01_2019_4 --copies 2 --location box1 --media-id MEI-T02 --note "for the attic"

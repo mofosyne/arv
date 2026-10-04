@@ -121,7 +121,7 @@ which builds with one `cc` line.
 **The installed `arv` is the C program** (`arvc`, [src/arvc/README.md](src/arvc/README.md)). It
 runs what has been ported to C, which is the whole make, record, verify cycle and the catalogue
 commands, and hands everything else to the Python arv unchanged:
-- the AI helpers (`describe`, `tag`, `models`), `arv make --draft` or `--llm`, and `gui`;
+- the AI helpers (`describe`, `tag`, `models`), `arv make --llm`, and `gui`;
 - `--help`.
 
 Both write the same discs and catalogue (`make check` compares them file by file). `arv-py` is
