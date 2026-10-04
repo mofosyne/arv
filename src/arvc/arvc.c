@@ -41,7 +41,8 @@
 
 static void usage(void)
 {
-    fputs("usage: arvc init [FOLDER]\n"
+    fputs("usage: arvc [-C HOME | --archive NAME] COMMAND ...\n"
+          "       arvc init [FOLDER] [--pointer HOME] [--name NAME [--default]]\n"
           "       arvc make [-C HOME] [--set CODE] [--title T] [--no-ecc] [--output-dir DIR] ... FOLDER\n"
           "              (arvc make --help lists every option)\n"
           "       arvc check [-C HOME] (--image FILE | --device DRIVE) [--note TEXT] [-v] [DISC-ID]\n"
@@ -92,8 +93,8 @@ static int needs_python(int argc, char **argv)
     int i = 1;
     if (argc < 2) return 1;
     while (i < argc && argv[i][0] == '-') {            /* global options */
-        if ((!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home")) && i + 1 < argc) i += 2;
-        else return 1;                                 /* --archive, --help, ... */
+        if ((!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home") || !strcmp(argv[i], "--archive")) && i + 1 < argc) i += 2;
+        else return 1;                                 /* --help, ... */
     }
     if (i >= argc) return 1;
     const char *cmd = argv[i];
@@ -104,8 +105,6 @@ static int needs_python(int argc, char **argv)
     for (int k = 0; ported[k]; k++) known |= !strcmp(cmd, ported[k]);
     if (!known) return 1;
     if (has_arg(argc, argv, "-h") || has_arg(argc, argv, "--help")) return 1;
-    if (!strcmp(cmd, "init"))                          /* pointer files and named homes: not ported yet */
-        return has_arg(argc, argv, "--pointer") || has_arg(argc, argv, "--name") || has_arg(argc, argv, "--default");
     if (strcmp(cmd, "make")) return 0;
     static const char *const python_only[] = { "--llm", "--llm-rounds", "--draft", "--ro-crate",
                                                "--extra-tools", "--tools-history", "--sf-home",
@@ -168,8 +167,9 @@ int main(int argc, char **argv)
     if (!strcmp(self, "arv") && needs_python(argc, argv)) run_python(argc, argv);
     /* "arvc -C HOME make ..." (as "arv --home HOME make ..."): the home goes to the command */
     const char *home = NULL;
-    if (argc >= 3 && (!strcmp(argv[1], "-C") || !strcmp(argv[1], "--home"))) {
-        home = argv[2];
+    while (argc >= 3 && (!strcmp(argv[1], "-C") || !strcmp(argv[1], "--home") || !strcmp(argv[1], "--archive"))) {
+        if (!strcmp(argv[1], "--archive")) home_archive_name = argv[2];
+        else home = argv[2];
         argv += 2;
         argc -= 2;
     }

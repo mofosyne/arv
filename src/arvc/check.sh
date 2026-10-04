@@ -187,6 +187,30 @@ cmp -s edit-py.out edit-c.out || { diff edit-py.out edit-c.out | head -20; no "e
 cmp -s edit-py/catalog/archive.rec edit-c/catalog/archive.rec || no "editing commands leave different catalogues"
 ok "access, location, collection, appraise, sets, names, where: $(grep -c '^rc=' edit-c.out) runs as python's, catalogue too"
 
+# init (named homes, pointer files) and --archive: the same output, machine config and pointers
+for who in py c; do
+    d=$dir/init-$who
+    mkdir -p "$d/a" "$d/b" "$d/c/sub" "$d/cfg"
+    if [ $who = py ]; then run() { python3 "$repo/arv" "$@"; }; else run() { "$tool" "$@"; }; fi
+    (
+        cd "$d"
+        export XDG_CONFIG_HOME="$d/cfg"
+        unset ARV_HOME BLURAY_ARCHIVE_HOME
+        for args in "init a --name main" "init b --name other --default" "init a --name main" \
+                    "init c --pointer a/.arv" "init c/sub --pointer nowhere" \
+                    "init b/../c/sub --pointer ./c/../a/.arv" "--archive main where" "--archive nope where"; do
+            # shellcheck disable=SC2086
+            run $args 2>&1 && rc=0 || rc=$?
+            echo "rc=$rc"
+        done
+        (cd c/sub && run where 2>&1)
+        (cd / && run where 2>&1)
+        cat cfg/arv/homes.rec c/.arv c/sub/.arv
+    ) | sed "s#$d#D#g" > "init-$who.out"
+done
+cmp -s init-py.out init-c.out || { diff init-py.out init-c.out | head -20; no "init and --archive differ"; }
+ok "init --name/--default/--pointer and --archive: output, homes.rec and pointer files as python's"
+
 # called as arv, the program runs what it has and hands the rest to the Python arv
 mkdir -p bin && ln -sf "$tool" bin/arv
 [ "$(bin/arv --home "$repo/samples/home" tags 2>&1)" = "$(python3 "$repo/arv" --home "$repo/samples/home" tags 2>&1)" ] \

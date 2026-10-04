@@ -43,6 +43,7 @@ typedef struct {
     char *how;              /* how it was found, in the Python arv's words */
 } arv_home;
 void home_find(arv_home *h, const char *given, const char *source);
+extern const char *home_archive_name;   /* --archive NAME: a home from the machine config */
 void home_at(arv_home *h, const char *path);
 void home_ensure(const arv_home *h);
 char *home_volume_file(const arv_home *h, const char *disc_id, const char *name);

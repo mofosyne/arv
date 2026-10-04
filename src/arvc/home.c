@@ -115,6 +115,8 @@ static char *configured_home(void)
     return out;
 }
 
+static char *named_home(const char *name, char **how);
+
 void home_at(arv_home *h, const char *path)
 {
     h->path = xstrdup(path);
@@ -136,6 +138,8 @@ void home_find(arv_home *h, const char *given, const char *source)
     if (given) {
         found = xstrdup(given);
         how = xstrdup("--home");
+    } else if (home_archive_name) {
+        found = named_home(home_archive_name, &how);
     }
     for (const char *const *var = (const char *const[]){ "ARV_HOME", "BLURAY_ARCHIVE_HOME", NULL }; !found && *var; var++)
         if (getenv(*var) && *getenv(*var)) {
@@ -189,18 +193,151 @@ void home_ensure(const arv_home *h)
     free(ign);
 }
 
-/* arvc init [FOLDER]: a .arv home in FOLDER (default: the current folder) */
+/* os.path.normpath of an absolute path: no ".", "..", or doubled or trailing "/" */
+static char *normalise(const char *abs)
+{
+    char *copy = xstrdup(abs), *save = NULL;
+    sbuf out = { 0 };
+    size_t *ends = xmalloc((strlen(abs) + 1) * sizeof *ends), n = 0;
+    for (char *part = strtok_r(copy, "/", &save); part; part = strtok_r(NULL, "/", &save)) {
+        if (!strcmp(part, ".")) continue;
+        if (!strcmp(part, "..")) {
+            if (n) out.len = ends[--n];
+            if (out.s) out.s[out.len] = 0;
+            continue;
+        }
+        ends[n++] = out.len;
+        sb_puts(&out, "/");
+        sb_puts(&out, part);
+    }
+    free(ends);
+    free(copy);
+    if (!out.len) sb_puts(&out, "/");
+    return out.s;
+}
+
+/* adds or updates a home in the machine config (homes.register) */
+static void register_home(const char *name, const char *path, int is_default)
+{
+    char *cp = config_path();
+    rec_file old, out;
+    int bad = 0;
+    memset(&old, 0, sizeof old);
+    memset(&out, 0, sizeof out);
+    if (is_reg(cp) && rec_read(cp, &old, &bad)) die("cannot read %s", cp);
+    rec_record *d = rec_new(&out, "Home");
+    d->descriptor = 1;
+    rec_add(d, "%rec", "Home");
+    rec_add(d, "%doc", "Archive homes on this machine (paths are local; this file never goes on a disc).\n"
+                       "Name is what --archive takes; Default: yes picks the home used outside any .arv tree.");
+    rec_add(d, "%key", "Name");
+    rec_add(d, "%mandatory", "Name Path");
+    rec_add(d, "%type", "Default enum yes no");
+    size_t mine = (size_t)-1;
+    for (size_t i = 0; i < old.nrecords; i++) {
+        const rec_record *r = &old.records[i];
+        if (r->descriptor || !r->type || strcmp(r->type, "Home")) continue;
+        rec_record *c = rec_new(&out, "Home");
+        rec_copy(c, r);
+        const char *n = rec_get(r, "Name");
+        if (n && !strcmp(n, name) && mine == (size_t)-1) mine = out.nrecords - 1;
+    }
+    if (mine == (size_t)-1) {
+        rec_record *c = rec_new(&out, "Home");
+        rec_add(c, "Name", name);
+        rec_add(c, "Path", path);
+        mine = out.nrecords - 1;
+    }
+    rec_set(&out.records[mine], "Path", path);
+    if (is_default) {
+        for (size_t i = 1; i < out.nrecords; i++) {      /* every Default field goes */
+            rec_record *r = &out.records[i];
+            size_t k = 0;
+            for (size_t j = 0; j < r->nfields; j++) {
+                if (!strcmp(r->fields[j].name, "Default")) {
+                    free(r->fields[j].name);
+                    free(r->fields[j].value);
+                } else {
+                    r->fields[k++] = r->fields[j];
+                }
+            }
+            r->nfields = k;
+        }
+        rec_add(&out.records[mine], "Default", "yes");
+    }
+    char *dir = xstrdup(cp), *slash = strrchr(dir, '/');
+    if (slash) *slash = 0;
+    if (mkdirs(dir)) die("cannot create %s", dir);
+    rec_record **v = xmalloc(out.nrecords * sizeof *v);
+    for (size_t i = 0; i < out.nrecords; i++) v[i] = &out.records[i];
+    if (rec_write(cp, v, out.nrecords)) die("cannot write %s", cp);
+    free(v);
+    free(dir);
+    rec_free(&old);
+    rec_free(&out);
+    free(cp);
+}
+
+/* the home registered under NAME, and how it was found (homes.find with --archive) */
+static char *named_home(const char *name, char **how)
+{
+    char *cp = config_path(), *out = NULL;
+    rec_file f;
+    int bad = 0;
+    if (is_reg(cp) && !rec_read(cp, &f, &bad)) {
+        for (size_t i = 0; i < f.nrecords && !out; i++) {
+            const rec_record *r = &f.records[i];
+            const char *n = rec_get(r, "Name");
+            if (!r->descriptor && r->type && !strcmp(r->type, "Home") && n && !strcmp(n, name) && rec_get(r, "Path"))
+                out = xstrdup(rec_get(r, "Path"));
+        }
+        rec_free(&f);
+    }
+    if (!out) {
+        fprintf(stderr, "Error: no home named %s in %s (`arv init --name %s` adds one)\n", name, cp, name);
+        exit(1);
+    }
+    *how = xprintf("--archive %s (%s)", name, cp);
+    free(cp);
+    return out;
+}
+
+const char *home_archive_name;      /* --archive NAME, before the command */
+
+/* arvc init [FOLDER] [--pointer HOME] [--name NAME [--default]]: a .arv home in FOLDER (default:
+ * the current folder), or a .arv pointer file to an existing home */
 int cmd_init(int argc, char **argv)
 {
-    if (argc > 1) return 2;
-    char *folder = realpath(argc ? argv[0] : ".", NULL);       /* os.path.abspath: no "./" left */
-    if (!folder) die("%s is not a folder", argc ? argv[0] : ".");
+    const char *given = NULL, *pointer = NULL, *name = NULL;
+    int is_default = 0;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && !strcmp(argv[i], "--pointer")) pointer = argv[++i];
+        else if (i + 1 < argc && !strcmp(argv[i], "--name")) name = argv[++i];
+        else if (!strcmp(argv[i], "--default")) is_default = 1;
+        else if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) i++;
+        else if (!given && argv[i][0] != '-') given = argv[i];
+        else return 2;
+    }
+    char *folder = realpath(given ? given : ".", NULL);       /* os.path.abspath: no "./" left */
+    if (!folder) die("%s is not a folder", given ? given : ".");
     char *target = join(folder, ".arv"), *git = join(folder, ".git");
     struct stat st;
     if (!lstat(target, &st)) die("%s already exists", target);
     if (is_dir(git))
         fprintf(stderr, "Note: %s is a git repository; a .arv in the folder above it can cover several "
                         "repositories and stays out of git\n", folder);
+    if (pointer) {
+        char *abs = absolute(pointer), *home = normalise(abs);
+        if (!is_dir(home)) die("%s is not a folder", home);
+        char *text = xprintf("# This tree belongs to the archive whose catalogue is here (see `arv where`):\n"
+                             "Home: %s\n", home);
+        write_text(target, text);
+        printf("Wrote %s -> %s\n", target, home);
+        free(text);
+        free(abs);
+        free(home);
+        return 0;
+    }
     arv_home h;
     memset(&h, 0, sizeof h);
     h.path = target;
@@ -210,5 +347,11 @@ int cmd_init(int argc, char **argv)
     h.cache_dir = join(target, "cache");
     home_ensure(&h);
     printf("Created %s\n", target);
+    if (name) {
+        register_home(name, target, is_default);
+        char *cp = config_path();
+        printf("Registered as %s in %s%s\n", name, cp, is_default ? " (default)" : "");
+        free(cp);
+    }
     return 0;
 }
