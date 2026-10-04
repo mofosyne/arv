@@ -49,11 +49,13 @@ column in `device.csv` is a natural place for the disc's `Uuid`.
 
 ## Discovery
 
-The filesystem is either a hybrid of ISO 9660 (Rock Ridge, Joliet) and UDF 1.02,
-readable almost anywhere, or UDF 2.50 only (BD-ROM layout with a metadata
-partition; the disc's [`Binding`](#binding-record-recfile) says which). Both show the same files. A UDF-only
-disc has no ISO 9660 volume descriptor, so readers take the label from the UDF
-logical volume identifier instead.
+The filesystem is UDF 2.50 (BD-ROM layout with a metadata partition and a real
+mirror, [archival-udf.md](archival-udf.md); the disc's [`Binding`](#binding-record-recfile) says so). arv
+writes one kind of image only, so whoever finds a damaged disc never has to guess
+its layout. There is no ISO 9660 volume descriptor: readers take the label from the
+UDF logical volume identifier. Discs written before draft 0.4 may be hybrids of
+ISO 9660 (Rock Ridge, Joliet) and UDF 1.02 (`Container: iso9660+udf-1.02`), or
+UDF 2.50 by NetBSD makefs; readers keep reading both, labels included.
 
 The volume label starts with the disc `Id`, optionally followed by a space and
 the title as far as it fits, so the disc is recognisable in a file manager.
@@ -107,7 +109,7 @@ Version 0.1 (samples only, never burned) kept these files by kind instead: `cata
 | Field | Meaning | Notes |
 |---|---|---|
 | `Id` | Human disc id, e.g. `PHOTOS-07_2015-2024_Q` | The first word of the volume label; written on the disc. **Derived**, see [Disc ids](#disc-ids) |
-| `Label` | The volume label, when it is more than the id | The id, a space, then as much of the title as fits: 32 bytes on hybrid discs, 126 characters on UDF 2.50, e.g. `TRIP-01_2019_4 Kyoto July 2019` |
+| `Label` | The volume label, when it is more than the id | The id, a space, then as much of the title as fits (126 characters, 63 with any beyond U+00FF; 32 bytes on older hybrid discs), e.g. `TRIP-01_2019_4 Kyoto July 2019` |
 | `IdScheme` | Which rule built `Id` | `set-seq-coverage/1`; absent for older discs |
 | `Uuid` | Machine identity (UUID v4) of this image | Copies burned from one image share it |
 | `Set`, `Sequence` | Set code and number within the set | `Sequence` is never reused within a set |
@@ -143,9 +145,9 @@ CHECK    = Luhn mod 36 check character              Q
 Examples: `PHOTOS-07_2015-2024_Q`, `TAXES-01_2019_M`, `SCANS-02_199X_K`,
 `TRIP-01_201907-201908_P`.
 
-- **Set and number first:** Joliet keeps only 16 characters of the volume label
-  (`PHOTOS-07_2015-2`), ISO 9660 and UDF keep 32, so the identifying part comes
-  first. Sorting by id also groups a set.
+- **Set and number first:** the identifying part comes first, so a short label
+  still identifies the disc (older hybrid discs: Joliet kept only 16 characters,
+  `PHOTOS-07_2015-2`). Sorting by id also groups a set.
 - **Compact coverage:** EDTF intervals `a/b` become `a-b`, months drop their
   dash (`2019-07` → `201907`), qualifiers (`~ ? %`) are dropped. Open intervals
   cannot be used in an id.
@@ -539,7 +541,7 @@ MediumSectors: 12219392
 | Field | Meaning |
 |---|---|
 | `Volume` | The disc `Id` |
-| `Container` | How the volume is laid out: `iso9660+udf-1.02` (hybrid) or `udf-2.50`; later perhaps `ltfs`, `exfat`, `tar`, `afs` |
+| `Container` | How the volume is laid out: `udf-2.50` (`iso9660+udf-1.02` on older hybrid discs); later perhaps `ltfs`, `exfat`, `tar`, `afs` |
 | `Protection` | Error correction around the container: `rs03` (dvdisaster augmented image) or `none` |
 | `Media`, `Filesystem`, `Ecc` | The same, described for people |
 | `MediumSectors` | The medium size RS03 was computed for, in 2048-byte sectors |

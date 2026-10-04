@@ -972,33 +972,28 @@ static void report(const name_issues *x, size_t limit)
 
 int cmd_names(int argc, char **argv)
 {
-    const char *source = NULL, *fs = NULL;
+    const char *source = NULL;
     long limit = 20;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) i++;
-        else if (i + 1 < argc && !strcmp(argv[i], "--filesystem")) fs = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--limit")) limit = atol(argv[++i]);
         else if (!source) source = argv[i];
         else return 2;
     }
-    if (!source || (fs && strcmp(fs, "hybrid") && strcmp(fs, "udf250"))) return 2;
+    if (!source) return 2;
     struct stat st;
     char *src = realpath(source, NULL);
     if (!src || stat(src, &st) || !S_ISDIR(st.st_mode)) die("%s is not a directory", source);
     strlist paths = { 0 };
     walk_names(src, "", &paths);
     int errors = 0;
-    const char *all[] = { "hybrid", "udf250" };
-    for (int k = 0; k < 2; k++) {
-        if (fs && strcmp(fs, all[k])) continue;
-        name_issues x = { 0 };
-        names_check(paths.v, paths.n, !strcmp(all[k], "udf250"), &x);
-        if (!x.n) printf("%s: all %zu names kept exactly\n", all[k], paths.n);
-        else printf("%s: %zu issue(s)\n", all[k], x.n);
-        report(&x, limit ? (size_t)limit : x.n);
-        for (size_t i = 0; i < x.n; i++) errors |= x.v[i].error;
-        names_free(&x);
-    }
+    name_issues x = { 0 };
+    names_check(paths.v, paths.n, &x);
+    if (!x.n) printf("all %zu names kept exactly\n", paths.n);
+    else printf("%zu issue(s)\n", x.n);
+    report(&x, limit ? (size_t)limit : x.n);
+    for (size_t i = 0; i < x.n; i++) errors |= x.v[i].error;
+    names_free(&x);
     return errors ? 1 : 0;
 }
 

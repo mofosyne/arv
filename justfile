@@ -9,7 +9,7 @@ default:
 arv *args:
     ./arv {{args}}
 
-# Build the C programs: udfmake, udfwrite and arvc (needs a C compiler)
+# Build the C programs: udfwrite and arvc (needs a C compiler)
 build:
     make
 
@@ -21,7 +21,7 @@ test:
 test-ecc:
     ARCHIVE_TEST_ECC=1 python3 -m unittest discover -s tests
 
-# Install arv and udfmake into PREFIX (installs the last commit)
+# Install arv into PREFIX (installs the last commit)
 install prefix=(env_var("HOME") + "/.local"):
     make install PREFIX="{{prefix}}"
 

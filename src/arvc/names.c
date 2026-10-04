@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define JOLIET_MAX 103
 
 static void issue(name_issues *out, const char *path, int error, const char *problem)
 {
@@ -32,7 +31,7 @@ static void chars_in(const char *name, const char *set, char *out)
 }
 
 /* the issues of one name (the last part of key), worded as src/arv/names.py words them */
-static void check_one(const char *key, const char *name, int udf250, name_issues *out)
+static void check_one(const char *key, const char *name, name_issues *out)
 {
     size_t chars = 0;
     int wide = 0, nbeyond = 0;
@@ -45,7 +44,7 @@ static void check_one(const char *key, const char *name, int udf250, name_issues
         if (c > 0xFFFF && nbeyond++ < 3) sb_add(&beyond, start, (size_t)(s - start));
     }
     char msg[512], bad[32];
-    if (udf250) {
+    {
         if (nbeyond) {
             snprintf(msg, sizeof msg, "has characters beyond U+FFFF (%s), which UDF cannot store", beyond.s);
             issue(out, key, 1, msg);
@@ -59,23 +58,6 @@ static void check_one(const char *key, const char *name, int udf250, name_issues
             snprintf(msg, sizeof msg, "%s not allowed in Windows names: shown changed there", bad);
             issue(out, key, 0, msg);
         }
-    } else {
-        if (nbeyond) {
-            const char *s = beyond.s;
-            utf8_next(&s);
-            snprintf(msg, sizeof msg, "cut at %.*s on Windows/macOS (Joliet/UDF end the name there)",
-                     (int)(s - beyond.s), beyond.s);
-            issue(out, key, 0, msg);
-        }
-        if (chars > JOLIET_MAX) {
-            snprintf(msg, sizeof msg, "%zu characters: shortened to %d on Windows/macOS", chars, JOLIET_MAX);
-            issue(out, key, 0, msg);
-        }
-        chars_in(name, "*:;?\\<>\"|", bad);
-        if (*bad) {
-            snprintf(msg, sizeof msg, "%s shown as _ or changed on Windows/macOS", bad);
-            issue(out, key, 0, msg);
-        }
     }
     free(beyond.s);
 }
@@ -85,7 +67,7 @@ static int by_str(const void *a, const void *b)
     return strcmp(*(char *const *)a, *(char *const *)b);
 }
 
-void names_check(char *const *paths, size_t n, int udf250, name_issues *out)
+void names_check(char *const *paths, size_t n, name_issues *out)
 {
     char **seen = NULL;
     size_t nseen = 0;
@@ -103,7 +85,7 @@ void names_check(char *const *paths, size_t n, int udf250, name_issues *out)
                 seen = xrealloc(seen, (nseen + 1) * sizeof *seen);
                 seen[nseen++] = key;
                 const char *name = strrchr(key, '/');
-                check_one(key, name ? name + 1 : key, udf250, out);
+                check_one(key, name ? name + 1 : key, out);
             } else {
                 free(key);
             }
@@ -147,16 +129,16 @@ void names_free(name_issues *x)
     x->n = 0;
 }
 
-/* The volume label: the disc id, then the text as far as it fits (udf250: 126 characters, or 63
- * with any above U+00FF, no commas; hybrid: 32 bytes). Characters beyond U+FFFF are dropped. */
-char *volume_label(const char *disc_id, const char *text, int udf250)
+/* The volume label: the disc id, then the text as far as it fits (126 characters, or 63 with any
+ * above U+00FF; no commas). Characters beyond U+FFFF are dropped. */
+char *volume_label(const char *disc_id, const char *text)
 {
     sbuf t = { 0 }, label = { 0 };
     int space = 0;
     for (const char *s = text ? text : ""; *s;) {           /* drop, then collapse whitespace */
         const char *start = s;
         unsigned long c = utf8_next(&s);
-        if (c > 0xFFFF || (udf250 && c == ',')) continue;
+        if (c > 0xFFFF || c == ',') continue;
         if (c < 128 && isspace((int)c)) {
             space = t.len > 0;
             continue;
@@ -171,7 +153,7 @@ char *volume_label(const char *disc_id, const char *text, int udf250)
         sb_puts(&label, t.s);
     }
     free(t.s);
-    if (udf250) {
+    {
         int wide = 0;
         for (const char *s = label.s; *s;) wide |= utf8_next(&s) > 0xFF;
         size_t max = wide ? 63 : 126, n = 0;
@@ -179,11 +161,6 @@ char *volume_label(const char *disc_id, const char *text, int udf250)
         while (*s && n < max) { utf8_next(&s); n++; }
         label.len = (size_t)(s - label.s);
         label.s[label.len] = 0;
-    } else {
-        while (label.len > 32) {                            /* whole characters only */
-            do label.len--; while (label.len && ((unsigned char)label.s[label.len] & 0xC0) == 0x80);
-            label.s[label.len] = 0;
-        }
     }
     if (strncmp(label.s, disc_id, strlen(disc_id))) {
         free(label.s);

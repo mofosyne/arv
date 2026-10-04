@@ -53,7 +53,7 @@ static void usage(void)
           "       arvc collection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]\n"
           "       arvc appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]\n"
           "       arvc sets [-v]\n"
-          "       arvc names [--filesystem hybrid|udf250] [--limit N] FOLDER\n"
+          "       arvc names [--limit N] FOLDER\n"
           "       arvc where\n"
           "       arvc rebuild [--prefer-disc] DISC   merge a disc's catalogue into the home\n"
           "       arvc info DISC\n"
@@ -108,16 +108,13 @@ static int needs_python(int argc, char **argv)
         return has_arg(argc, argv, "--pointer") || has_arg(argc, argv, "--name") || has_arg(argc, argv, "--default");
     if (strcmp(cmd, "make")) return 0;
     static const char *const python_only[] = { "--llm", "--llm-rounds", "--draft", "--ro-crate",
-                                               "--extra-tools", "--tools-history", "--sf-home", "--udfmake",
+                                               "--extra-tools", "--tools-history", "--sf-home",
                                                "--llm-url", "--llm-model", "--llm-allow-remote", "--vision",
                                                "--vision-model", "--vision-url", "--vision-per-folder",
                                                "--vision-max", NULL };
     for (int k = 0; python_only[k]; k++)
         if (has_arg(argc, argv, python_only[k])) return 1;
-    const char *fs = arg_value(argc, argv, "--filesystem"), *writer = arg_value(argc, argv, "--udf-writer"),
-               *formats = arg_value(argc, argv, "--formats");
-    if (fs && strcmp(fs, "udf250")) return 1;
-    if (writer && strcmp(writer, "udfwrite")) return 1;
+    const char *formats = arg_value(argc, argv, "--formats");
     if (formats && !strcmp(formats, "yes")) return 1;
     if ((!formats || strcmp(formats, "no")) && on_path("sf")) return 1;    /* Python identifies formats */
     if (isatty(0) && !has_arg(argc, argv, "-y") && !has_arg(argc, argv, "--yes")) return 1;   /* it asks */

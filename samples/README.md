@@ -2,7 +2,7 @@
 
 Six small disc images made with the full workflow. They are real images with
 RS03 error correction; only the "medium" is a custom 9.4 MB one (4800 sectors)
-instead of a 25 GB BD-R (52 MB in total). The images are **not in git** (they change on
+instead of a 25 GB BD-R (63 MB in total). The images are **not in git** (they change on
 every rebuild): download them from the [`samples` release](https://github.com/mofosyne/arv/releases/tag/samples)
 into `discs/` with
 
@@ -18,9 +18,9 @@ real personal data).
 |---|---|
 | `TRIP-01_2019_4` | `--set trip`, namespaced folder tags (`place:kyoto`, `event:kyoto-2019`); **public**; kept in Box 1, a second copy at the parents' |
 | `PROJ-01_2020-2023_L` | `--set project` resolves to **PROJ** through its alias; the vocabulary's `Match` rules added **CODE** and **ELEC** from the files (C sources, KiCad board, gerbers, a git repository). Like a real clone it has an executable script (`firmware/flash.sh`, runnable from the mounted disc) and two links: `hardware/README.md` (to a file: copied) and `gerbers` (to a folder: only noted), both in its `listing.tsv`, with an `ingestion` event saying so. |
-| `TAXES-01_2019-2020_I` | **sealed**: later discs carry only its id, dates and location, never its title or file list; kept in the fire safe. Written by the reference UDF writer (`--udf-writer udfmake`, NetBSD makefs), so `TAXES-01_2019-2020_I.udfmake.iso`; the other UDF discs come from arv's own writer, the default |
-| `SCAN-01…02_1995-2008` | `--set scan --category letters` (under both MEMORIES and RECORDS), **split** over two discs (`Bag-Count: n of 2`) |
-| `FAMILY-01_2020-2021_K` | the one **hybrid** image (`--filesystem hybrid`: ISO 9660 + UDF 1.02, so `FAMILY-01_2020-2021_K.hybrid.iso`); the others are UDF 2.50, the default. Made last, so it carries the whole catalogue |
+| `TAXES-01_2019-2020_I` | **sealed**: later discs carry only its id, dates and location, never its title or file list; kept in the fire safe. |
+| `SCAN-01…03_1995-2008` | `--set scan --category letters` (under both MEMORIES and RECORDS), **split** over three discs (`Bag-Count: n of 3`) |
+| `FAMILY-01_2020-2021_K` | made last, so it carries the whole catalogue |
 
 `home/` is the catalogue these were made into, as arv keeps it, including locations, burned copies, notes and appraisals (the archivist log) recorded
 after the discs were made.
@@ -36,7 +36,7 @@ after the discs were made.
 ./arv --home samples/home list --covers 2019-07-15
 ./arv --home samples/home keywords TRIP-01_2019_4
 
-7z x -oFAMILY samples/discs/FAMILY-01_2020-2021_K.hybrid.iso   # or mount it (Linux: mount -o loop,ro)
+7z x -oFAMILY samples/discs/FAMILY-01_2020-2021_K.iso   # or mount it (Linux: mount -o loop,ro)
 (cd FAMILY && python3 tools/arv/arv --home catalog find Kyoto)   # search every disc from this one
 (cd FAMILY && sha256sum -c manifest-sha256.txt)          # verify
 ```
@@ -61,16 +61,15 @@ repaired back to a byte-identical image.
   after the data, and small discs leave a lot. A real 25 GB disc gets at least
   `--min-redundancy` (default 20%).
 - UDF 2.50 has a fixed overhead that doesn't matter on a real disc but shows on these
-  tiny ones: about 1.5 MB with arv's own writer (anchors, descriptor sequences, the
-  metadata and its mirror) and about 3.1 MB with udfmake, for a one-file folder. That
-  is why the udfmake-written TAXES disc leaves less room for error correction.
+  tiny ones: about 1.5 MB (anchors, descriptor sequences, the metadata and its mirror)
+  for a one-file folder.
 - The `Date` fields are the day these were made; coverage comes from the file dates.
 
 ## Remake
 
 ```sh
-make                                 # once: builds src/udfwrite and src/udfmake
-samples/make-samples.sh              # needs genisoimage, git and dvdisaster Light or speed47 on PATH
+make                                 # once: builds src/udfwrite and src/arvc
+samples/make-samples.sh              # needs git and dvdisaster Light or speed47 on PATH
 ```
 
 This replaces `samples/home` and `samples/discs`. The images differ on every run,

@@ -4,7 +4,7 @@ Commands:
   init   start an archive: a .arv folder here (or a pointer to one elsewhere)
   where  which home catalogue is used here, and why
   make   bag a folder, write the catalogue + viewer, build the image, add RS03 ECC
-  names  check a folder's file names against the disc filesystems' limits
+  names  check a folder's file names against the disc image's limits
   find   search every disc's catalogue and file list (no discs needed)
   list   list discs in the home catalogue
   note   add a note to a disc
@@ -190,15 +190,10 @@ def cmd_make(args):
     src = os.path.abspath(args.source)
     if not os.path.isdir(src):
         raise SystemExit("Error: %s is not a directory" % src)
-    image.require(*(["genisoimage"] if args.filesystem == "hybrid" else []),
-                  *(["dvdisaster"] if not args.no_ecc else []))
-    if args.filesystem == "udf250" and args.udf_writer == "udfwrite" and not image.find_udfwrite(args.udfwrite):
-        raise SystemExit("Error: UDF 2.50 images need udfwrite: build it with 'make -C %s' (or run make)"
+    image.require(*(["dvdisaster"] if not args.no_ecc else []))
+    if not image.find_udfwrite(args.udfwrite):
+        raise SystemExit("Error: disc images need udfwrite: build it with 'make -C %s' (or run make)"
                          % os.path.join(REPO_ROOT, "src", "udfwrite"))
-    if args.filesystem == "udf250" and args.udf_writer == "udfmake" and not image.find_udfmake(args.udfmake):
-        raise SystemExit("Error: --filesystem udf250 needs udfmake: build it with 'make -C %s', "
-                         "put it on PATH, or pass --udfmake PATH"
-                         % os.path.join(REPO_ROOT, "src", "udfmake"))
     if args.output and args.output_dir:
         raise SystemExit("Error: use either --output or --output-dir")
     args.review_date = None
@@ -222,7 +217,7 @@ def cmd_make(args):
         raise SystemExit("Error: %s" % err)
     if entries.link_summary():
         log("Links: %s" % entries.link_summary()[len("links: "):])
-    check_names([e.path for e in entries], args.filesystem, args.ignore_names)
+    check_names([e.path for e in entries], args.ignore_names)
 
     draft = {}
     if args.draft:
@@ -305,14 +300,13 @@ def cmd_make(args):
     return maker.run()
 
 
-def check_names(paths, filesystem, ignore_warnings=False):
+def check_names(paths, ignore_warnings=False):
     """Stop on names the image cannot hold; show names some systems will see differently."""
-    issues = names.check(paths, filesystem)
+    issues = names.check(paths)
     errors = [i for i in issues if i[1] == "error"]
     if errors:
-        raise SystemExit("Error: %d file name(s) cannot be stored in a %s image (rename them, or use "
-                         "--filesystem hybrid, which keeps them exactly for Linux):\n%s"
-                         % (len(errors), filesystem, "\n".join(names.report(errors))))
+        raise SystemExit("Error: %d file name(s) cannot be stored in a UDF 2.50 image (rename them):\n%s"
+                         % (len(errors), "\n".join(names.report(errors))))
     if issues and not ignore_warnings:
         log("Note: %d file name(s) will look different on Windows/macOS (the manifests and Linux keep "
             "them exactly; --ignore-names hides this):\n%s" % (len(issues), "\n".join(names.report(issues))))
@@ -329,15 +323,11 @@ def cmd_names(args):
         rel = os.path.relpath(root, src)
         for n in sorted(files):
             paths.append(n if rel == "." else "%s/%s" % (rel.replace(os.sep, "/"), n))
-    code = 0
-    for fs in ([args.filesystem] if args.filesystem else list(image.FILESYSTEMS)):
-        issues = names.check(paths, fs)
-        print("%s: %s" % (fs, "all %d names kept exactly" % len(paths) if not issues else
-                          "%d issue(s)" % len(issues)))
-        for line in names.report(issues, limit=args.limit or len(issues)):
-            print(line)
-        code = code or any(i[1] == "error" for i in issues)
-    return 1 if code else 0
+    issues = names.check(paths)
+    print("all %d names kept exactly" % len(paths) if not issues else "%d issue(s)" % len(issues))
+    for line in names.report(issues, limit=args.limit or len(issues)):
+        print(line)
+    return 1 if any(i[1] == "error" for i in issues) else 0
 
 
 def cmd_find(args):
@@ -1039,7 +1029,7 @@ def build_parser():
     m.add_argument("--title")
     m.add_argument("--label", metavar="TEXT",
                    help="volume label text after the disc id (default: the title; '' for the id only). "
-                        "Fits 32 characters in all on the hybrid image, 126 on UDF 2.50")
+                        "Fits 126 characters in all (63 with characters beyond U+00FF)")
     m.add_argument("--description")
     m.add_argument("--creator")
     m.add_argument("--subject", action="append", help="repeatable")
@@ -1049,15 +1039,6 @@ def build_parser():
                    help="what other discs' catalogues may show of this one: public (also discs given to "
                         "others), private (your own discs; default), sealed (only its id and location)")
     m.add_argument("--rights")
-    m.add_argument("--filesystem", choices=list(image.FILESYSTEMS), default="udf250",
-                   help="udf250 (default): UDF 2.50 with a metadata partition, as Blu-ray uses (see "
-                        "--udf-writer); hybrid: ISO9660 + Rock Ridge + Joliet + UDF 1.02 (needs genisoimage), "
-                        "named <id>.hybrid.iso")
-    m.add_argument("--udfmake", help="path to the udfmake program (default: PATH, then src/udfmake/build)")
-    m.add_argument("--udf-writer", choices=["udfwrite", "udfmake"], default="udfwrite",
-                   help="UDF 2.50 writer: udfwrite (default: arv's own, docs/archival-udf.md: real metadata "
-                        "mirror, reproducible) or udfmake (NetBSD makefs, the reference; no real mirror; "
-                        "image named <id>.udfmake.iso)")
     m.add_argument("--udfwrite", help="path to the udfwrite program (default: PATH, then src/udfwrite/build)")
     m.add_argument("--links", choices=bag.LINK_POLICIES,
                    help="symbolic links in the folder; each one is noted in the listing whatever happens to "
@@ -1107,9 +1088,8 @@ def build_parser():
     m.add_argument("-y", "--yes", action="store_true", help="no prompts; use defaults")
     m.set_defaults(func=cmd_make)
 
-    nm = sub.add_parser("names", help="check a folder's file names against each disc filesystem's limits")
+    nm = sub.add_parser("names", help="check a folder's file names against the disc image's limits")
     nm.add_argument("source")
-    nm.add_argument("--filesystem", choices=list(image.FILESYSTEMS), help="only this one (default: all)")
     nm.add_argument("--limit", type=int, default=20, help="issues listed per kind (0: all)")
     nm.set_defaults(func=cmd_names)
 

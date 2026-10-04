@@ -1,6 +1,6 @@
 # arv (Archive, Record, Verify): install on Linux.
 #
-#   make                       build src/udfmake, src/udfwrite and src/arvc (needs a C compiler)
+#   make                       build src/udfwrite and src/arvc (needs a C compiler)
 #   make install               install for everyone: /usr/local (run as root)
 #   make install PREFIX=~/.local     install for yourself (~/.local/bin must be on PATH)
 #   make uninstall [PREFIX=...]
@@ -10,15 +10,14 @@
 #   $(PREFIX)/share/arv/       the tool: exactly the tree every disc carries in tools/
 #                              (git archive HEAD; uncommitted changes are not installed)
 #   $(PREFIX)/bin/arv          arv: the C program (arvc) for what it covers, the Python arv for the
-#                              rest (AI helpers, --split, hybrid images, gui, ...), automatically
+#                              rest (AI helpers, drafts, gui, ...), automatically
 #   $(PREFIX)/bin/arv-py       the Python arv, always
-#   $(PREFIX)/bin/udfmake      UDF 2.50 image builder (NetBSD makefs), the default
 #   $(PREFIX)/bin/udfwrite     arv's own UDF 2.50 writer (the default)
 #   $(PREFIX)/bin/arvc         the C program alone (no Python fallback)
 #
 # Needs at run time: dvdisaster Light (or the speed47 fork) for error correction; python3
-# only for what arv hands to the Python arv (AI helpers, --split, gui, ...), and genisoimage
-# only for --filesystem hybrid; see README.md, "Install".
+# only for what arv hands to the Python arv (AI helpers, drafts, gui, ...); see README.md,
+# "Install". src/udfmake (NetBSD makefs, kept for the upstream fixes) is not built or installed.
 
 PREFIX  ?= /usr/local
 DESTDIR ?=
@@ -26,7 +25,6 @@ SHARE    = $(PREFIX)/share/arv
 BIN      = $(PREFIX)/bin
 
 all:
-	$(MAKE) -C src/udfmake
 	$(MAKE) -C src/udfwrite
 	$(MAKE) -C src/arvc
 
@@ -44,7 +42,6 @@ install: all
 	chmod 755 "$(DESTDIR)$(BIN)/arv-py"
 	rm -f "$(DESTDIR)$(BIN)/arv"
 	ln -s arvc "$(DESTDIR)$(BIN)/arv"
-	install -m 755 src/udfmake/build/udfmake "$(DESTDIR)$(BIN)/udfmake"
 	install -m 755 src/udfwrite/build/udfwrite "$(DESTDIR)$(BIN)/udfwrite"
 	install -m 755 src/arvc/build/arvc "$(DESTDIR)$(BIN)/arvc"
 	@echo "Installed arv $$(cat "$(DESTDIR)$(SHARE)/VERSION") in $(PREFIX). Try: arv --help"

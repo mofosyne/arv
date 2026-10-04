@@ -1,6 +1,6 @@
 """Tests for the archive CLI. Run: python3 -m unittest discover -s tests
 
-Image tests need genisoimage and 7z; the ECC test additionally needs dvdisaster
+Image tests need udfwrite (built from src/udfwrite) and 7z; the ECC test additionally needs dvdisaster
 and only runs with ARCHIVE_TEST_ECC=1 (it takes several minutes).
 """
 
@@ -20,15 +20,6 @@ sys.path.insert(0, os.path.join(REPO, "src"))
 
 from arv import appraisal, bag, catalog, cli, image, listing, make, media, recfile  # noqa: E402
 
-HAVE_IMAGE_TOOLS = all(shutil.which(t) for t in ("genisoimage", "7z"))
-
-
-def udfmake_available():
-    """udfmake for --filesystem udf250 tests: built from src/udfmake if a compiler is present."""
-    if not image.find_udfmake() and shutil.which("make") and shutil.which("cc"):
-        subprocess.run(["make", "-s", "-C", os.path.join(REPO, "src", "udfmake")],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    return image.find_udfmake() is not None and shutil.which("7z") is not None
 
 def udfwrite_available():
     """arv's own UDF writer (src/udfwrite), built here if a compiler is present."""
@@ -36,6 +27,9 @@ def udfwrite_available():
         subprocess.run(["make", "-s", "-C", os.path.join(REPO, "src", "udfwrite")],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return image.find_udfwrite() is not None and shutil.which("7z") is not None
+
+
+HAVE_IMAGE_TOOLS = udfwrite_available()
 
 
 def udf_permissions(iso, path):
@@ -136,17 +130,6 @@ class UdfWriteTest(unittest.TestCase):
             self.assertTrue(os.path.exists(catalog.volume_file(os.path.join(y, "catalog"), "extents", first_id)))
             self.assertFalse(os.path.exists(catalog.volume_file(os.path.join(y, "catalog"), "extents", out[1][0])))
 
-    @unittest.skipUnless(udfmake_available(), "udfmake not available")
-    def test_udfmake_stays_available_as_the_reference(self):
-        with tempfile.TemporaryDirectory() as d:
-            write(os.path.join(d, "src", "a.txt"), "a", 2020)
-            code, o = run_cli("--home", os.path.join(d, "home"), "make", "-y", "--no-ecc", "--set", "TRIP",
-                              "--udf-writer", "udfmake", "--output-dir", d, os.path.join(d, "src"))
-            self.assertEqual(code, 0, o)
-            disc_id, iso = o.split("\t")[:2]
-            self.assertTrue(iso.endswith(disc_id + ".udfmake.noecc.iso"))
-            binding = catalog.Home(os.path.join(d, "home")).load().binding(disc_id)
-            self.assertEqual(binding.get("Filesystem"), image.UDFMAKE_FILESYSTEM)
 
 
 from arv import discid  # noqa: E402
@@ -414,7 +397,7 @@ class DiscIdTest(unittest.TestCase):
     def test_compose_and_parse(self):
         disc_id = discid.compose("photos", 7, "2015/2024")
         self.assertTrue(disc_id.startswith("PHOTOS-07_2015-2024_"))
-        self.assertEqual(disc_id[:16], "PHOTOS-07_2015-2")  # the Joliet label still identifies the disc
+        self.assertEqual(disc_id[:16], "PHOTOS-07_2015-2")  # a 16-character label still identifies the disc
         p = discid.parse(disc_id)
         self.assertEqual((p["set"], p["sequence"], p["coverage"], p["valid"]), ("PHOTOS", 7, "2015-2024", True))
 
@@ -489,12 +472,8 @@ class HomeLayoutTest(unittest.TestCase):
 class ImageNameTest(unittest.TestCase):
     def test_infix_names_each_deviation_from_the_defaults(self):
         from types import SimpleNamespace as A
-        self.assertEqual(make.image_name("TRIP-01_2019_4", A(filesystem="udf250", no_ecc=False, udf_writer="udfmake")),
-                         "TRIP-01_2019_4.udfmake.iso")
-        cases = [("udf250", False, "TRIP-01_2019_4.iso"), ("udf250", True, "TRIP-01_2019_4.noecc.iso"),
-                 ("hybrid", False, "TRIP-01_2019_4.hybrid.iso"), ("hybrid", True, "TRIP-01_2019_4.hybrid.noecc.iso")]
-        for fs, no_ecc, name in cases:
-            self.assertEqual(make.image_name("TRIP-01_2019_4", A(filesystem=fs, no_ecc=no_ecc)), name)
+        self.assertEqual(make.image_name("TRIP-01_2019_4", A(no_ecc=False)), "TRIP-01_2019_4.iso")
+        self.assertEqual(make.image_name("TRIP-01_2019_4", A(no_ecc=True)), "TRIP-01_2019_4.noecc.iso")
 
 
 class HomeDiscoveryTest(unittest.TestCase):
@@ -610,7 +589,7 @@ class MediaTest(unittest.TestCase):
         self.assertAlmostEqual(media.data_budget(media.capacity("bd25"), 20) * 2048 / 1e9, 20.04, places=2)
 
 
-@unittest.skipUnless(HAVE_IMAGE_TOOLS, "genisoimage and 7z required")
+@unittest.skipUnless(HAVE_IMAGE_TOOLS, "udfwrite and 7z required")
 class SplitTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
@@ -669,7 +648,7 @@ class SplitTest(unittest.TestCase):
     def test_split_udf250(self):
         if not udfwrite_available():
             self.skipTest("udfwrite (src/udfwrite) and 7z required")
-        code, out = self.make("--split", "--filesystem", "udf250")
+        code, out = self.make("--split")
         self.assertEqual(code, 0, out)
         self.check_split(out)
 
@@ -684,7 +663,7 @@ class SplitTest(unittest.TestCase):
         self.check_split(out)
 
 
-@unittest.skipUnless(HAVE_IMAGE_TOOLS, "genisoimage and 7z required")
+@unittest.skipUnless(HAVE_IMAGE_TOOLS, "udfwrite and 7z required")
 class MakeTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
@@ -1029,24 +1008,22 @@ class MakeTest(unittest.TestCase):
         src = os.path.join(self.tmp, "Names")
         write(os.path.join(src, "日本語の名前.txt"), "x", 2020)
         write(os.path.join(src, "ünïcode.txt"), "x", 2020)
-        for fs, handlers in (("udf250", ("-tUdf",)), ("hybrid", ("-tIso", "-tUdf"))):
-            _, _ = self.make(src, "--set", "MISC", "--filesystem", fs)
-            iso = os.path.join(self.tmp, "disc%d.iso" % self.count)
-            for handler in handlers:                  # 7-Zip's ISO reader uses the Joliet names
-                listing = subprocess.run(["7z", "l", handler, "-slt", iso], capture_output=True, text=True).stdout
-                self.assertIn("data/日本語の名前.txt", listing, (fs, handler))
-                self.assertIn("data/ünïcode.txt", listing, (fs, handler))
+        _, _ = self.make(src, "--set", "MISC")
+        iso = os.path.join(self.tmp, "disc%d.iso" % self.count)
+        listing = subprocess.run(["7z", "l", "-tUdf", "-slt", iso], capture_output=True, text=True).stdout
+        self.assertIn("data/日本語の名前.txt", listing)
+        self.assertIn("data/ünïcode.txt", listing)
 
     def test_names_that_udf_cannot_hold_stop_make(self):
         src = os.path.join(self.tmp, "Long")
         write(os.path.join(src, "d" * 251 + ".txt"), "x", 2020)
-        code, out = run_cli("--home", self.home, "make", "-y", "--no-ecc", "--filesystem", "udf250",
+        code, out = run_cli("--home", self.home, "make", "-y", "--no-ecc",
                             "-o", os.path.join(self.tmp, "long.iso"), src)
-        self.assertIn("cannot be stored in a udf250 image", str(code))
+        self.assertIn("cannot be stored in a UDF 2.50 image", str(code))
         self.assertFalse(os.path.exists(os.path.join(self.tmp, "long.iso")))
         code, out = run_cli("names", src)
         self.assertEqual(code, 1)
-        self.assertIn("shortened to 103", out)
+        self.assertIn("UDF holds at most 254", out)
 
     def test_rebuild_from_newest_disc(self):
         self.make(self.projects, "--location", "Shelf A")
@@ -1113,7 +1090,7 @@ class MakeTest(unittest.TestCase):
 
 
 class Udf250Test(unittest.TestCase):
-    """--filesystem udf250 (the default): the same disc contents, as a UDF 2.50 image (src/udfwrite)."""
+    """The UDF 2.50 image (src/udfwrite): the disc contents as the reader sees them."""
 
     def setUp(self):
         if not udfwrite_available():
@@ -1130,7 +1107,7 @@ class Udf250Test(unittest.TestCase):
 
     def test_udf250_disc(self):
         iso = os.path.join(self.tmp, "u.iso")
-        code, out = run_cli("--home", self.home, "make", "-y", "--no-ecc", "--filesystem", "udf250",
+        code, out = run_cli("--home", self.home, "make", "-y", "--no-ecc",
                             "--ro-crate", "-o", iso, self.src)
         self.assertEqual(code, 0, out)
         disc_id = out.split("\t")[0]
@@ -1148,7 +1125,7 @@ class Udf250Test(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(dest, name)), name)
         disc = catalog.Home(self.home).load().disc(disc_id)
         binding = catalog.Home(self.home).load().binding(disc_id)
-        self.assertEqual(binding.get("Filesystem"), image.FILESYSTEMS["udf250"])
+        self.assertEqual(binding.get("Filesystem"), image.FILESYSTEM)
         self.assertEqual(binding.get("Container"), "udf-2.50")
         self.assertIsNone(disc.get("Filesystem"))       # medium facts live in the Binding, not the Disc
         own = catalog.Catalog(recfile.read(os.path.join(dest, "catalog.rec")))
@@ -1156,21 +1133,15 @@ class Udf250Test(unittest.TestCase):
 
     def test_descriptive_labels(self):
         title = "Weather station, board rev B and firmware notes"
-        for fs, expected in (("udf250", disc_id_then("Weather station board rev B and firmware notes")),
-                             ("hybrid", None)):
-            iso = os.path.join(self.tmp, fs + ".iso")
-            code, out = run_cli("--home", self.home, "make", "-y", "--no-ecc", "--filesystem", fs,
-                                "--title", title, "-o", iso, self.src)
-            self.assertEqual(code, 0, out)
-            disc_id = out.split("\t")[0]
-            label = image.read_volume_label(iso)
-            self.assertEqual(image.read_volume_id(iso), disc_id)          # `arv check` still finds it
-            self.assertTrue(label.startswith(disc_id + " Weather"), label)
-            if fs == "udf250":
-                self.assertEqual(label, expected(disc_id))              # whole title (commas dropped)
-            else:
-                self.assertEqual(len(label), 32)                       # ISO 9660 limit
-            self.assertEqual(catalog.Home(self.home).load().disc(disc_id).get("Label"), label)
+        expected = disc_id_then("Weather station board rev B and firmware notes")
+        iso = os.path.join(self.tmp, "udf.iso")
+        code, out = run_cli("--home", self.home, "make", "-y", "--no-ecc", "--title", title, "-o", iso, self.src)
+        self.assertEqual(code, 0, out)
+        disc_id = out.split("\t")[0]
+        label = image.read_volume_label(iso)
+        self.assertEqual(image.read_volume_id(iso), disc_id)          # `arv check` still finds it
+        self.assertEqual(label, expected(disc_id))                    # whole title (commas dropped)
+        self.assertEqual(catalog.Home(self.home).load().disc(disc_id).get("Label"), label)
         code, out = run_cli("--home", self.home, "make", "-y", "--no-ecc", "--label", "",
                             "-o", os.path.join(self.tmp, "plain.iso"), self.src)
         self.assertEqual(image.read_volume_label(os.path.join(self.tmp, "plain.iso")), out.split("\t")[0])
@@ -1312,7 +1283,7 @@ class LLMTest(unittest.TestCase):
         self.assertEqual(draft["folder_tags"], {})
         self.assertEqual(draft["title"], "Family trip photos 2019")
 
-    @unittest.skipUnless(HAVE_IMAGE_TOOLS, "genisoimage and 7z required")
+    @unittest.skipUnless(HAVE_IMAGE_TOOLS, "udfwrite and 7z required")
     def test_apply_draft_to_existing_disc(self):
         home = os.path.join(self.tmp, "home")
         code, out = run_cli("--home", home, "make", "-y", "--no-ecc", "--title", "Old title",
@@ -1406,7 +1377,7 @@ class VisionTest(unittest.TestCase):
         self.assertEqual(d["folder_tags"]["photos/beach day"], ["beach", "sea"])
         self.assertIn("sandy beach", d["folder_captions"]["photos/beach day"])
 
-    @unittest.skipUnless(HAVE_IMAGE_TOOLS, "genisoimage and 7z required")
+    @unittest.skipUnless(HAVE_IMAGE_TOOLS, "udfwrite and 7z required")
     def test_captions_on_disc_and_searchable(self):
         home = os.path.join(self.tmp, "home")
         draft = os.path.join(self.tmp, "d.json")
@@ -1610,7 +1581,7 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn(self.token, page)
 
-    @unittest.skipUnless(HAVE_IMAGE_TOOLS, "genisoimage and 7z required")
+    @unittest.skipUnless(HAVE_IMAGE_TOOLS, "udfwrite and 7z required")
     def test_make_note_find(self):
         src = os.path.join(self.tmp, "Photos")
         write(os.path.join(src, "IMG_0001.JPG"), "jpeg", 2023)

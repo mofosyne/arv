@@ -32,7 +32,7 @@ arvc location list [-v] | add CODE [NAME] [--in PARENT] | move CODE [NAME] [--in
 arvc collection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]
 arvc appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]
 arvc sets [-v]                          the set vocabulary with disc counts
-arvc names [--filesystem F] FOLDER      names an image would change
+arvc names FOLDER                       names the image cannot hold, or Windows would change
 arvc where                              which home, and how it was found
 arvc rebuild [--prefer-disc] DISC       merge the catalogue a disc carries into the home
 
@@ -56,7 +56,7 @@ archived or the current folder up, the machine config (`~/.config/arv/homes.rec`
 
 | | arvc | Python arv only |
 |---|---|---|
-| Making | UDF 2.50 discs, one or (`--split`) as many as the folder needs: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), RS03 | `--filesystem hybrid`, `--udf-writer udfmake`, drafts and the local AI helpers (`--llm`, `describe`, `tag`), Siegfried formats, `--ro-crate`, `--tools-history` |
+| Making | UDF 2.50 discs, one or (`--split`) as many as the folder needs: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), RS03 | drafts and the local AI helpers (`--llm`, `describe`, `tag`), Siegfried formats, `--ro-crate`, `--tools-history` |
 | Recording | `init`, `burned`, `check`, `note`, `locate`, `access`, `location`, `collection`, `appraise`, `rebuild` | `index`, `gui` |
 | Looking | `sets`, `names`, `where` | `tags`, `keywords`, `describe`, `tag`, `models` (AI helpers) |
 | Reading | `find`, `list`, `id`, `info`, `verify`, `ls`, `restore` | (`restore` is C only) |

@@ -175,25 +175,25 @@ static void match_case(char **c, int n)
     expect("match rule", c[0], vocab_path_matches(c[0], c[1]) ? "yes" : "no", c[2]);
 }
 
-/* filesystem, file name, result (ok, warning, error: the worst issue) */
+/* file name, result (ok, warning, error: the worst issue) */
 static void names_case(char **c, int n)
 {
     name_issues x = { 0 };
-    char *one[1] = { c[1] };
-    if (n < 3) return;
-    names_check(one, 1, !strcmp(c[0], "udf250"), &x);
+    char *one[1] = { c[0] };
+    if (n < 2) return;
+    names_check(one, 1, &x);
     const char *got = "ok";
     for (size_t i = 0; i < x.n; i++) got = x.v[i].error ? "error" : !strcmp(got, "error") ? got : "warning";
     names_free(&x);
-    expect("names", c[1], got, c[2]);
+    expect("names", c[0], got, c[1]);
 }
 
-/* disc id, text, filesystem, volume label */
+/* disc id, text, volume label */
 static void label_case(char **c, int n)
 {
-    if (n < 4) return;
-    char *got = volume_label(c[0], c[1], !strcmp(c[2], "udf250"));
-    expect("label", c[1], got, c[3]);
+    if (n < 3) return;
+    char *got = volume_label(c[0], c[1]);
+    expect("label", c[1], got, c[2]);
     free(got);
 }
 

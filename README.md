@@ -28,7 +28,7 @@ How a disc is built, in one picture: [docs/architecture.md](docs/architecture.md
 ## Disc layout
 
 ```
-<disc root>                  filesystem: UDF 2.50 (default), or ISO9660 (Rock Ridge + Joliet) + UDF 1.02 (hybrid)
+<disc root>                  filesystem: UDF 2.50 (BD-ROM layout, metadata partition with a real mirror)
 ├── bagit.txt                BagIt signature (RFC 8493)
 ├── bag-info.txt             Bagging-Date, Bag-Group-Identifier, Bag-Count "n of N", Payload-Oxum
 ├── manifest-sha256.txt      per-file checksums (`sha256sum -c` compatible)
@@ -61,7 +61,7 @@ Each layer does its own job:
 | `src/arv/` | The tool: a Python package, standard library only |
 | `src/arvc/` | arv in C (`arvc`), at its MVP: init, make, burned, check, find, list, verify, restore and more, writing the same discs as the Python arv: [src/arvc/README.md](src/arvc/README.md) |
 | `src/udfwrite/` | arv's own UDF 2.50 writer (library and program), the default: [docs/archival-udf.md](docs/archival-udf.md) |
-| `src/udfmake/` | NetBSD's `makefs -t udf` as a C library and program, the reference UDF 2.50 writer; `upstream/` has the draft NetBSD bug report, patches and reproduction |
+| `src/udfmake/` | NetBSD's `makefs -t udf` as a C library and program, where arv's UDF work began; kept for the fixes in `upstream/` (draft NetBSD bug report, patches and reproduction), not used to make discs |
 | `docs/` | For users and implementers: workflow, shelving, architecture, philosophy, the disc format, and the website |
 | `research/` | Why, and what next: research notes, the standards survey, organising lessons, the plan, RS03 experiments |
 | `samples/` | The sample discs' catalogue and the script that makes them (the images are release downloads) |
@@ -69,8 +69,8 @@ Each layer does its own job:
 | `scripts/` | The original shell scripts, before ARV (see [Without arv](#without-arv-the-original-scripts)) |
 | `justfile`, `Makefile` | `just` lists everyday commands (test, install, samples, site preview); `make` alone builds and installs |
 
-`samples/` has the catalogue of six small sample discs made with the full workflow: try
-`./arv --home samples/home list`. The disc images themselves (52 MB, with RS03 error
+`samples/` has the catalogue of seven small sample discs made with the full workflow: try
+`./arv --home samples/home list`. The disc images themselves (63 MB, with RS03 error
 correction) are in the [`samples` release](https://github.com/mofosyne/arv/releases/tag/samples);
 `samples/fetch-discs.sh` downloads and checks them.
 
@@ -94,27 +94,27 @@ and how BagIt and recfiles split the work.
 ## The `arv` tool
 
 `arv` (Archive, Record, Verify; also Norwegian for "inheritance"). Python 3, standard library
-only (bagit.py is vendored). Needs `genisoimage` and `dvdisaster` ([dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light),
+only (bagit.py is vendored). Needs `dvdisaster` ([dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light),
 or the [speed47 fork](https://github.com/speed47/dvdisaster), for BD-sized images; the two give byte-identical results).
 
 ### Install (Linux)
 
 ```sh
-sudo apt install python3 build-essential    # Debian/Ubuntu (genisoimage too, for --filesystem hybrid)
+sudo apt install python3 build-essential    # Debian/Ubuntu
 # dvdisaster Light: build it from https://github.com/teaching-droid/dvdisaster-light
 make install PREFIX=~/.local     # or: sudo make install   (/usr/local)
 arv --help
 ```
 
 `make install` copies the last commit (exactly the tree every disc carries in `tools/`) to
-`PREFIX/share/arv`, and puts `arv`, `arv-py`, `arvc`, `udfwrite` and `udfmake` in `PREFIX/bin`.
+`PREFIX/share/arv`, and puts `arv`, `arv-py`, `arvc` and `udfwrite` in `PREFIX/bin`.
 
 **The installed `arv` is the C program** (`arvc`, [src/arvc/README.md](src/arvc/README.md)). It
 runs what has been ported to C, which is the whole make, record, verify cycle and the catalogue
 commands, and hands everything else to the Python arv unchanged:
 - the AI and tagging commands (`describe`, `tag`, `tags`, `keywords`, `models`), `gui` and
   `index`;
-- `arv make` with `--filesystem hybrid`, drafts or `--llm`, or with Siegfried installed
+- `arv make` with drafts or `--llm`, or with Siegfried installed
   (format identification), and an interactive `arv make` in a terminal without `-y`, which asks
   its questions;
 - `--help`, `--archive NAME`, and `arv init` with `--pointer`, `--name` or `--default`.
@@ -133,8 +133,6 @@ ported yet. Making a disc also runs other programs, which it finds on `PATH`:
 |---|---|---|
 | `python3` | the parts of arv not ported to C yet (above) | your distribution |
 | `udfwrite` | the default UDF 2.50 image (the C arv has it built in) | this repository: built by `make`, installed by `make install` (needs a C compiler) |
-| `udfmake` | `--udf-writer udfmake` only (the reference writer) | the same |
-| `genisoimage` | `--filesystem hybrid` only | your distribution (`apt install genisoimage`) |
 | `dvdisaster` | RS03 error correction (skip with `--no-ecc`, for testing) | **not bundled:** build [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the [speed47 fork](https://github.com/speed47/dvdisaster)); the distro 0.79.10 package works but pads only to the smallest standard size |
 | `sf` (Siegfried), `ffmpeg`, a local LLM | optional extras (format ids, video frames, descriptions) | install if you want them |
 
@@ -175,7 +173,7 @@ image holds the files under `data/` plus everything in [Disc layout](#disc-layou
 make uninstall PREFIX=~/.local   # or: sudo make uninstall   (use the PREFIX you installed with)
 ```
 
-This removes `PREFIX/share/arv` and `PREFIX/bin/arv`, `udfwrite` and `udfmake`, and nothing else. Your
+This removes `PREFIX/share/arv` and `PREFIX/bin/arv`, `arv-py`, `arvc` and `udfwrite`, and nothing else. Your
 catalogues are yours and stay where they are: each `.arv` folder (or `~/.local/share/arv`)
 and the list of homes in `~/.config/arv/`. Delete those yourself only if you no longer want
 the catalogue; every disc also carries a copy of it.
@@ -211,10 +209,8 @@ arv make ./2025-01-13_Projects_2020_-_2025 --location BOX3
 #  -> prompts for set (PROJ, from the folder name), categories (CODE, ELEC: from the files), title, ...
 #  -> PROJ-01_2020-2025_K.iso  (bag + catalogue + index.html + tools/ + RS03 ECC, verified)
 arv make ./Diaries --access sealed      # other discs' catalogues show only its id and location
-arv make ./Photos --filesystem hybrid   # ISO 9660 + UDF 1.02 hybrid instead of UDF 2.50 (very old systems; needs genisoimage)
-arv make ./Photos --udf-writer udfmake   # the reference writer (NetBSD makefs; no real metadata mirror): <id>.udfmake.iso
-arv names ./Photos                      # names each image type would shorten or change on Windows/macOS
-# volume label: the disc id, then the title as far as it fits (32 bytes hybrid, 126 characters UDF 2.50);
+arv names ./Photos                      # names the image cannot hold, or Windows would show changed
+# volume label: the disc id, then the title as far as it fits (126 characters, 63 beyond U+00FF);
 # --label TEXT to choose the text, --label '' for the id alone
 arv make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: only this set's catalogue
 arv make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
@@ -272,12 +268,12 @@ searches every disc in its snapshot with nothing but Python.
   `data/ro-crate-metadata.json` (RO-Crate 1.2, passes the validator's required checks).
 - The source folder is never modified: tag files are staged separately and the
   folder is grafted into the image as `data/`.
-- `--filesystem` picks the image: `udf250` (default: UDF 2.50 with a metadata partition and a
-  real mirror, the Blu-ray standard, written by arv's own [`src/udfwrite`](src/udfwrite/) to the
-  profile in [docs/archival-udf.md](docs/archival-udf.md); `--udf-writer udfmake` uses NetBSD's
-  makefs instead) or `hybrid` (ISO9660 + Rock Ridge + Joliet with a UDF 1.02 bridge, for very old
-  systems; needs `genisoimage`; the file is named `<disc-id>.hybrid.iso`). Both carry the same
-  files, catalogue and RS03 data.
+- Every image is the same kind: UDF 2.50 with a metadata partition and a real mirror, the
+  Blu-ray standard, written by arv's own [`src/udfwrite`](src/udfwrite/) to the profile in
+  [docs/archival-udf.md](docs/archival-udf.md). One standard output, so a damaged disc found
+  years later is never a guess about which layout it has. (Discs made by earlier versions as
+  ISO 9660 + UDF 1.02 hybrids, or by NetBSD makefs, stay readable: arv reads their labels and
+  catalogues the same way.)
 - Disc ids look like `PHOTOS-07_2015-2024_Q`: set, number, coverage and a check character
   that catches typos. They are derived from the record's `Set`, `Sequence` and `Coverage`
   (EDTF: `2019`, `2015/2024`, `199X`, `1995~`) and used as the volume label. `arv id <ID>`
@@ -415,7 +411,7 @@ single-threaded.
 - [x] Multi-disc splitting for sets larger than one disc (`Bag-Count: n of N`)
 - [x] `README.txt` and the tool's source on each disc
 - [x] Target medium size, minimum redundancy, defect-management sizes for RS03
-- [x] UDF 2.50 through NetBSD `makefs -t udf` (`src/udfmake`), then arv's own writer (`src/udfwrite`, the default)
+- [x] UDF 2.50 through NetBSD `makefs -t udf` (`src/udfmake`), then arv's own writer (`src/udfwrite`, now the only one)
 - [x] GUI front end over the CLI (`arv gui`, local web UI, standard library only)
 - [x] `.arv` homes, change events, `Binding` records (format 0.3)
 - [ ] dvdisaster sources (and static binaries) on each disc for self-contained repair

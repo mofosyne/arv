@@ -14,7 +14,7 @@ project works this way: [philosophy.md](philosophy.md). Every field and file in 
 |---|---|---|---|---|
 | 1 | **Content** | The files, untouched, and a hash of each | `data/`, `manifest-sha256.txt`, `manifest-sha512.txt`, `bagit.txt`, `bag-info.txt` (a BagIt bag, RFC 8493) | no |
 | 2 | **Description** | What the files are, and the whole archive they belong to | `catalog.rec`, `catalog/archive.rec`, `catalog/volumes/<id>/`, `README.txt`, `index.html`, `tools/`, `tagmanifest-sha256.txt` | no |
-| 3 | **Container** | How one volume is laid out on its medium | UDF 2.50, the Blu-ray standard (default), or a hybrid ISO 9660 + Rock Ridge + Joliet image with a UDF 1.02 bridge | **yes** |
+| 3 | **Container** | How one volume is laid out on its medium | UDF 2.50, the Blu-ray standard, with a metadata partition and a real mirror | **yes** |
 | 4 | **Protection** | Repair for that medium | dvdisaster RS03 data appended after the filesystem | **yes** |
 | | *Medium* | The physical thing | M-DISC BD-R, two or more identical copies kept apart | **it is the medium** |
 
@@ -32,8 +32,9 @@ made it and `README.txt`, which says how to check, repair and search the disc. T
 manifest (`tagmanifest-sha256.txt`) holds a hash of every one of these files.
 
 **Container.** The exact UDF profile arv writes: [archival-udf.md](archival-udf.md). Today a disc image: UDF 2.50, the layout Blu-ray players and recorders expect,
-which current Windows, macOS and Linux read; or, for very old systems, a hybrid image with an
-extra ISO 9660 tree. Both hold the same files.
+which current Windows, macOS and Linux read. There is one kind of image, on purpose: whoever
+finds a damaged disc never has to guess its layout. (Older discs written as ISO 9660 + UDF 1.02
+hybrids stay readable.)
 
 **Protection.** dvdisaster's RS03 adds Reed-Solomon error correction over the whole image,
 filesystem included, sized so the image fills the medium with at least 20% redundancy. A
@@ -74,11 +75,11 @@ plain files, so any one of them can be replaced (plan.md, "a chain of small prog
 
 | Step | Layer | Done by |
 |---|---|---|
-| 1. Scan the folder, hash every file, check names against each image type's limits | content | `arv` (Python) |
+| 1. Scan the folder, hash every file, check names against the image's limits | content | `arv` |
 | 2. Write the bag: manifests and `bag-info.txt`. The source folder is never changed; it is grafted into the image as `data/` | content | `arv` |
 | 3. Describe: set, title, tags, access level; optionally suggestions from a local model | description | `arv` |
 | 4. Snapshot the whole catalogue onto the disc; add `tools/`, `README.txt`, `index.html`, the tag manifests | description | `arv` |
-| 5. Build the image | container | `udfwrite` (UDF 2.50, arv's own writer; `udfmake`, NetBSD's makefs, as the reference), or `genisoimage` (hybrid) |
+| 5. Build the image | container | `udfwrite` (UDF 2.50, arv's own writer, built into arv) |
 | 6. Add RS03, sized to the medium | protection | dvdisaster Light (or the speed47 fork; byte-identical output) |
 | 7. Verify the finished image | protection | `dvdisaster -t` |
 | 8. Burn two or more copies, keep them in different places, record it | medium | any burner; `arv burned` |

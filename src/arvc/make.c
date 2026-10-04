@@ -4,8 +4,7 @@
  * tag files, the catalogue snapshot, catalog.rec, README.txt, index.html and tools/, the image
  * written by udfwrite (linked in), and dvdisaster RS03 error correction.
  *
- * Not ported (use the Python arv): --filesystem hybrid, --udf-writer udfmake, drafts and the
- * local AI helpers, Siegfried format identification, --ro-crate, --tools-history.
+ * Not ported (use the Python arv): drafts and the local AI helpers, Siegfried format identification, --ro-crate, --tools-history.
  */
 #define _XOPEN_SOURCE 700
 #include "arvc.h"
@@ -74,8 +73,8 @@ static const char HELP[] =
     "  --split                spread the folder over as many discs as needed\n"
     "  --no-ecc, --no-verify  skip RS03, or skip dvdisaster -t afterwards\n"
     "  --ignore-names, --keep-stage\n"
-    "Not here (use the Python arv): --filesystem hybrid, drafts and AI help,\n"
-    "format identification, --ro-crate.\n";
+    "Not here (use the Python arv): drafts and AI help, format identification,\n"
+    "--ro-crate, --tools-history.\n";
 
 static int parse_options(int argc, char **argv, options *o)
 {
@@ -770,7 +769,7 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
             free(absdir);
         }
         if (!access(p->out, F_OK)) die("%s already exists", p->out);
-        p->label = volume_label(p->disc_id, o->label_given ? o->label : mk->title, 1);
+        p->label = volume_label(p->disc_id, o->label_given ? o->label : mk->title);
         uuid4(p->uuid);
         p->disc = disc_record(mk, p);
         p->binding = binding_record(mk, p);
@@ -1215,7 +1214,7 @@ int cmd_make(int argc, char **argv)
         char **paths = xmalloc((files.n + 1) * sizeof *paths);
         for (size_t i = 0; i < files.n; i++) paths[i] = files.v[i].path;
         name_issues issues = { 0 };
-        names_check(paths, files.n, 1, &issues);
+        names_check(paths, files.n, &issues);
         size_t errors = 0;
         for (size_t i = 0; i < issues.n; i++) errors += issues.v[i].error;
         if (errors) {

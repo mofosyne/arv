@@ -176,7 +176,7 @@ for who in py c; do
         else "$tool" -C "edit-$who" "$@" >> "edit-$who.out" 2>/dev/null && rc=0 || rc=$?; fi
         echo "rc=$rc" >> "edit-$who.out"
     done
-    for fs in "" "--filesystem udf250" "--limit 2"; do
+    for fs in "" "--limit 2"; do
         if [ $who = py ]; then python3 "$repo/arv" names $fs names >> "edit-$who.out" 2>/dev/null && rc=0 || rc=$?
         else "$tool" names $fs names >> "edit-$who.out" 2>/dev/null && rc=0 || rc=$?; fi
         echo "rc=$rc" >> "edit-$who.out"

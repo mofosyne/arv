@@ -14,9 +14,9 @@ Scheme "set-seq-coverage/1":
 
     PHOTOS-07_2015-2024_K
 
-Set and number come first so the part that identifies the disc survives the
-16-character Joliet volume label ("PHOTOS-07_2015-2") and sorts sets together.
-The whole id fits the 32-character ISO 9660 / UDF volume label.
+Set and number come first so the part that identifies the disc survives a
+short label (older hybrid discs: the 16-character Joliet label, "PHOTOS-07_2015-2")
+and sorts sets together. The whole id fits any UDF or ISO 9660 volume label.
 
 Coverage is stored in the Disc record as EDTF (ISO 8601-2, Library of Congress
 Extended Date/Time Format), which can say "1995~" (circa), "199X" (some year

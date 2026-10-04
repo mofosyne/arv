@@ -102,14 +102,13 @@ def build():
                   "a" * 127 + "日", "a" * 126 + "日", "semi;colon.txt", "star*?.txt", "photo \U0001F600 ok.txt",
                   "日本語の名前.txt"]
     rows = []
-    for fs in ("hybrid", "udf250"):
-        for n in name_cases:
-            sev = {i[1] for i in names.check([n], fs)}
-            rows.append([fs, n, "error" if "error" in sev else "warning" if sev else "ok"])
-    out["names.tsv"] = (["filesystem", "file name", "result"], rows,
-                        "ok: kept exactly everywhere. warning: Windows/macOS show another name (hybrid:\n"
-                        "Joliet/UDF 1.02). error: the image cannot hold it (udf250: 254 characters, or 127\n"
-                        "when any is beyond U+00FF; nothing beyond U+FFFF).")
+    for n in name_cases:
+        sev = {i[1] for i in names.check([n])}
+        rows.append([n, "error" if "error" in sev else "warning" if sev else "ok"])
+    out["names.tsv"] = (["file name", "result"], rows,
+                        "ok: kept exactly everywhere. warning: Windows shows another name. error: the image\n"
+                        "cannot hold it (UDF 2.50: 254 characters, or 127 when any is beyond U+00FF; nothing\n"
+                        "beyond U+FFFF). udf250 is the only image arv makes.")
 
     label_cases = [("TRIP-01_2019_4", "Kyoto, July 2019"), ("TRIP-01_2019_4", ""),
                    ("TRIP-01_2019_4", "Kyoto trip July 2019 photos and notes"),
@@ -117,10 +116,10 @@ def build():
                    ("FAMILY-01_2020-2021_K", "Family photos 2020-2021 " + "x" * 120),
                    ("FAMILY-01_2020-2021_K", "日本の旅 " + "y" * 60), ("MISC-01_2020_1", "emoji \U0001F600 ok"),
                    ("MISC-01_2020_1", "  spaced   out  ")]
-    out["labels.tsv"] = (["disc id", "text (title)", "filesystem", "volume label"],
-                         [[i, t, fs, image.volume_label(i, t, fs)] for fs in ("hybrid", "udf250") for i, t in label_cases],
-                         "The id first and whole; then the text as far as it fits: 32 bytes of UTF-8 (hybrid),\n"
-                         "126 characters, or 63 with any above U+00FF (udf250, which also drops commas).\n"
+    out["labels.tsv"] = (["disc id", "text (title)", "volume label"],
+                         [[i, t, image.volume_label(i, t)] for i, t in label_cases],
+                         "The id first and whole; then the text as far as it fits: 126 characters, or 63\n"
+                         "with any above U+00FF; commas are dropped.\n"
                          "Characters beyond U+FFFF are dropped. A reader takes the first word as the disc id.")
 
     vocab = sets.load(None, os.path.join(HERE, "vocab.rec"))

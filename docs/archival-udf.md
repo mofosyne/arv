@@ -2,8 +2,8 @@
 
 **Draft.** The subset of UDF 2.50 that arv's own disc writer produces (issue #18), and how
 RS03 error correction sits after it. The writer is [`src/udfwrite/`](../src/udfwrite/),
-the default since 2026-10-03; `--udf-writer udfmake` uses NetBSD makefs (`src/udfmake/`) as the
-reference, and where it differs from this profile, the difference is noted.
+the only one arv makes discs with. NetBSD makefs (`src/udfmake/`) wrote arv's first UDF discs; where
+it differs from this profile, the difference is noted, since those discs stay readable.
 
 The goal is a disc that is **written once, whole and closed**, readable by any UDF 2.50 reader
 (Windows, macOS, Linux, 7-Zip), and laid out so that damage is survivable and the image is

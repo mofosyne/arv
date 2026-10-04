@@ -3,8 +3,8 @@
 A folder that does not fit on one disc (at the requested minimum RS03
 redundancy) can be split with --split: files are assigned in path order, each
 disc becomes its own complete bag, and every disc of the batch carries the
-catalogue of the whole batch. Sizes are checked exactly with
-`genisoimage -print-size` before any image is written.
+catalogue of the whole batch. Sizes are checked exactly by building each
+image (in the work directory) before any is kept.
 """
 
 import datetime
@@ -27,10 +27,7 @@ def image_name(disc_id, args):
     """<disc-id>[.<deviation>...].iso: an infix names each way the image differs from the
     preset's defaults, so an unprotected image is obvious in any file listing. The name is
     only a hint: the Binding in the image's catalog.rec is what it is."""
-    infix = [".hybrid"] if (getattr(args, "filesystem", None) or "udf250") == "hybrid" else []
-    infix += [".udfmake"] if (getattr(args, "filesystem", None) or "udf250") == "udf250" and \
-        getattr(args, "udf_writer", None) == "udfmake" else []
-    infix += [".noecc"] if args.no_ecc else []
+    infix = [".noecc"] if args.no_ecc else []
     return disc_id + "".join(infix) + ".iso"
 
 
@@ -103,7 +100,6 @@ class Maker:
         self.workdir = None
         self.plans = []
         self.formats = None  # (header, {path: row}) from Siegfried
-        self.filesystem = getattr(args, "filesystem", None) or "udf250"
 
     # ------------------------------------------------------------ planning
 
@@ -160,8 +156,7 @@ class Maker:
                 raise SystemExit("Error: %s already exists" % out)
             plan = Plan(entries=entries, disc_id=disc_id, part=i + 1, parts=n, out=out, sequence=first + i)
             label_text = getattr(self.args, "label", None)
-            plan.label = image.volume_label(disc_id, meta["title"] if label_text is None else label_text,
-                                            self.filesystem)
+            plan.label = image.volume_label(disc_id, meta["title"] if label_text is None else label_text)
             plan.record = self.disc_record(plan)
             plan.binding = self.binding_record(plan)
             plan.links = self.links_for(i, bins)
@@ -275,12 +270,10 @@ class Maker:
             ecc = "dvdisaster RS03 augmented image"
         r = recfile.Record("Binding", [
             ("Volume", plan.disc_id),
-            ("Container", image.CONTAINERS[self.filesystem]),
+            ("Container", image.CONTAINER),
             ("Protection", "none" if a.no_ecc else "rs03"),
             ("Media", a.media or ("M-DISC " + (self.medium_label if self.capacity else "BD-R"))),
-            ("Filesystem", image.UDFMAKE_FILESYSTEM if (self.filesystem == "udf250" and
-                                                        getattr(a, "udf_writer", None) == "udfmake")
-                           else image.FILESYSTEMS[self.filesystem]),
+            ("Filesystem", image.FILESYSTEM),
             ("Ecc", ecc),
         ])
         if self.capacity and not a.no_ecc:
@@ -453,33 +446,23 @@ class Maker:
         raise SystemExit("Error: could not fit the files onto discs after %d attempts" % attempts)
 
     def measure(self, plan):
-        """Exact image size in sectors. genisoimage can print it; for UDF the image is
-        built (in the work directory) and kept for build()."""
-        if self.filesystem == "udf250" and getattr(self.args, "udf_writer", None) != "udfmake":
-            plan.prebuilt = plan.stage + ".udf"
-            plan.extents = plan.stage + ".extents.tsv"
-            created = datetime.datetime.strptime(plan.record.get("Date"), "%Y-%m-%d").replace(
-                tzinfo=datetime.timezone.utc).timestamp()
-            return image.build_udfwrite(plan.stage, plan.prebuilt, plan.label, plan.disc_id,
-                                        plan.record.get("Uuid").replace("-", "")[:16], created,
-                                        extents=plan.extents, tool=getattr(self.args, "udfwrite", None),
-                                        **self.payload(plan))
-        if self.filesystem == "udf250":
-            plan.prebuilt = plan.stage + ".udf"
-            return image.build_udf(plan.stage, plan.prebuilt, plan.label, disc_id=plan.disc_id,
-                                   udfmake=getattr(self.args, "udfmake", None), **self.payload(plan))
-        return image.print_size(plan.stage, plan.label, **self.payload(plan))
+        """Exact image size in sectors: the image is built (in the work directory) and kept for build()."""
+        plan.prebuilt = plan.stage + ".udf"
+        plan.extents = plan.stage + ".extents.tsv"
+        created = datetime.datetime.strptime(plan.record.get("Date"), "%Y-%m-%d").replace(
+            tzinfo=datetime.timezone.utc).timestamp()
+        return image.build_udfwrite(plan.stage, plan.prebuilt, plan.label, plan.disc_id,
+                                    plan.record.get("Uuid").replace("-", "")[:16], created,
+                                    extents=plan.extents, tool=getattr(self.args, "udfwrite", None),
+                                    **self.payload(plan))
 
     # ------------------------------------------------------------ building
 
     def build(self, plan):
         a = self.args
         log("Building %s (%d of %d, %s) ..." % (plan.out, plan.part, plan.parts, html.human_size(plan.sectors * media.SECTOR)))
-        if plan.prebuilt:
-            shutil.move(plan.prebuilt, plan.out)
-            plan.prebuilt = ""
-        else:
-            image.build_iso(plan.stage, plan.out, plan.label, **self.payload(plan))
+        shutil.move(plan.prebuilt, plan.out)
+        plan.prebuilt = ""
         note = "image %s, %d sectors" % (os.path.basename(plan.out), plan.sectors)
         plan.events.append(catalog.new_event(plan.disc_id, "creation", "success", self.version, note))
         if a.no_ecc:

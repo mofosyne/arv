@@ -1,12 +1,11 @@
 #!/bin/sh
-# Make the sample discs: samples/discs/*.iso (about 52 MB in total; not in git, published
+# Make the sample discs: samples/discs/*.iso (about 63 MB in total; not in git, published
 # with samples/publish-discs.sh) and their home catalogue in samples/home (both replaced).
 #
 #   samples/make-samples.sh [OUTPUT_DIR]      (default: samples/)
 #
-# Needs: python3, genisoimage, git, dvdisaster Light or the speed47 fork (the stock
-# 0.79.10 build pads every image to CD size), and src/udfmake (built here with
-# make if missing). The discs use a custom 4800-sector "medium" (9.4 MB) so they
+# Needs: python3, git, dvdisaster Light or the speed47 fork (the stock 0.79.10 build
+# pads every image to CD size), and src/udfwrite (built here with make if missing). The discs use a custom 4800-sector "medium" (9.4 MB) so they
 # stay small; real discs use --medium bd25 (the default) or bd100.
 set -eu
 
@@ -18,7 +17,6 @@ if ! dvdisaster --help 2>&1 | grep -q no-bdr-defect-management; then
     echo "error: needs dvdisaster Light or the speed47 fork on PATH (https://github.com/teaching-droid/dvdisaster-light)" >&2
     exit 1
 fi
-[ -x "$repo/src/udfmake/build/udfmake" ] || make -s -C "$repo/src/udfmake"
 [ -x "$repo/src/udfwrite/build/udfwrite" ] || make -s -C "$repo/src/udfwrite"
 
 work=$(mktemp -d)
@@ -67,15 +65,15 @@ a make $common --set project --location BOX1 \
     "$src/Projects_weather_station"
 
 echo "== 3. Taxes 2019: sealed (other discs show only its id and location)"
-a make $common --set taxes --location SAFE --access sealed --udf-writer udfmake --title "Tax return 2019" \
+a make $common --set taxes --location SAFE --access sealed --title "Tax return 2019" \
     --description "Tax return and quarterly receipts for 2019." "$src/Taxes_2019"
 
 echo "== 4. Scanned letters: SCAN plus the LETTERS category, split over several discs"
 a make $common --set scan --category letters --location BOX1 --split --title "Letters 1995-2008, scanned" \
     --description "Scans of letters kept since 1995." "$src/Scans_letters"
 
-echo "== 5. Family photos as a hybrid ISO 9660 + UDF 1.02 image; made last, so it carries the whole catalogue"
-a make $common --set family --location OFFSITE --filesystem hybrid \
+echo "== 5. Family photos; made last, so it carries the whole catalogue"
+a make $common --set family --location OFFSITE \
     --draft "$(draft family '{"title": "Family photos 2020-2021",
       "description": "Birthdays, the garden, the beach and Christmas.",
       "agent": "sample script (hand-written)",
@@ -100,13 +98,11 @@ echo "== check every image with dvdisaster"
 for iso in "$discs"/*.iso; do
     a check --image "$iso" | tail -1
 done
-a index
 
 echo "== result"
 a list
 rm -rf "$out/home" "$out/discs"
 mv "$home" "$out/home"
 mv "$discs" "$out/discs"
-python3 "$repo/arv" --home "$out/home" index > /dev/null   # the index records its home path
 ls -l "$out/discs"
 du -ch "$out/discs"/*.iso | tail -1

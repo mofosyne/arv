@@ -43,10 +43,10 @@
 <rect x='284' y='520' width='672' height='104' rx='6' fill='#f8ead8' stroke='#8a5a1f' stroke-width='1.5'/>
 <text x='298' y='542' font-size='14' font-weight='bold' fill='#8a5a1f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>3  CONTAINER</text>
 <text x='944' y='542' font-size='11' font-weight='normal' fill='#8a5a1f' text-anchor='end' font-style='italic' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>depends on the medium</text>
-<text x='298' y='566' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>udf250 (default)</text>
+<text x='298' y='566' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>udf-2.50</text>
 <text x='522' y='566' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>UDF 2.50, the Blu-ray layout, real mirror (src/udfwrite)</text>
-<text x='298' y='584' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>hybrid</text>
-<text x='522' y='584' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>ISO 9660 + Rock Ridge + Joliet, UDF 1.02 bridge</text>
+<text x='298' y='584' font-size='11.5' font-weight='bold' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans Mono, Menlo, Consolas, monospace'>one image</text>
+<text x='522' y='584' font-size='11.5' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>the same layout on every disc, so a damaged one is no guess</text>
 <text x='298' y='610' font-size='11' font-weight='normal' fill='#8a5a1f' text-anchor='start' font-style='italic' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>other bindings later:</text>
 <rect x='455' y='596' width='44.8' height='20' rx='10' fill='#ffffff' stroke='#8a5a1f' stroke-width='1' stroke-dasharray='4 3'/>
 <text x='477.4' y='610' font-size='11' font-weight='normal' fill='#8a5a1f' text-anchor='middle' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>LTFS</text>
@@ -94,7 +94,7 @@
 <path d='M263,905 L277,905 L270,915.8 Z' fill='#57606a'/>
 <rect x='20' y='116' width='236' height='44' rx='6' fill='#ffffff' stroke='#2f6b34' stroke-width='1.2'/>
 <text x='30' y='135' font-size='11' font-weight='bold' fill='#2f6b34' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>1 scan and hash</text>
-<text x='30' y='151' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>names checked for each image type</text>
+<text x='30' y='151' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>names checked for the image</text>
 <rect x='20' y='170' width='236' height='44' rx='6' fill='#ffffff' stroke='#2f6b34' stroke-width='1.2'/>
 <text x='30' y='189' font-size='11' font-weight='bold' fill='#2f6b34' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>2 bag it (BagIt)</text>
 <text x='30' y='205' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>the folder itself is never changed</text>
@@ -107,7 +107,7 @@
 <text x='30' y='343' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>detail; add tools/ and README</text>
 <rect x='20' y='524' width='236' height='44' rx='6' fill='#ffffff' stroke='#8a5a1f' stroke-width='1.2'/>
 <text x='30' y='543' font-size='11' font-weight='bold' fill='#8a5a1f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>5 build the image</text>
-<text x='30' y='559' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>udfwrite, or genisoimage</text>
+<text x='30' y='559' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>udfwrite (UDF 2.50)</text>
 <rect x='20' y='638' width='236' height='44' rx='6' fill='#ffffff' stroke='#8a3a2f' stroke-width='1.2'/>
 <text x='30' y='657' font-size='11' font-weight='bold' fill='#8a3a2f' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>6 add RS03</text>
 <text x='30' y='673' font-size='11' font-weight='normal' fill='#1f2328' text-anchor='start' font-family='DejaVu Sans, Helvetica, Arial, sans-serif'>dvdisaster Light</text>

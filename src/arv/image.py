@@ -1,4 +1,4 @@
-"""Disc image building (genisoimage, or udfmake for UDF 2.50) and error correction (dvdisaster RS03)."""
+"""Disc images (UDF 2.50 by src/udfwrite) and error correction (dvdisaster RS03)."""
 
 import functools
 import os
@@ -10,26 +10,18 @@ import tempfile
 MAX_VOLID_LEN = 32
 
 
-def volume_label(disc_id, text, filesystem):
+def volume_label(disc_id, text):
     """The volume label: the disc id, then a space and ``text`` (usually the title) as far as it fits.
 
-    The id always comes first and whole: tools identify a disc by the label's first word,
-    and Joliet shows only 16 characters. Limits: 32 bytes of UTF-8 on the hybrid image
-    (genisoimage's limit for ISO 9660 and its UDF), 126 characters on UDF 2.50 (63 with
-    any character above U+00FF). Characters beyond U+FFFF (emoji) are dropped: UDF
-    cannot store them and genisoimage rejects them. Commas are dropped for UDF 2.50,
-    because makefs separates its options with them.
+    The id always comes first and whole: tools identify a disc by the label's first word.
+    UDF 2.50 holds 126 characters (63 with any character above U+00FF). Characters beyond
+    U+FFFF (emoji) are dropped: UDF cannot store them. Commas are dropped too (they were
+    option separators for the first UDF writer), so labels stay what they have been.
     """
-    text = "".join(c for c in (text or "") if ord(c) <= 0xFFFF)
-    if filesystem == "udf250":
-        text = text.replace(",", "")
+    text = "".join(c for c in (text or "") if ord(c) <= 0xFFFF).replace(",", "")
     text = " ".join(text.split())
     label = disc_id + (" " + text if text else "")
-    if filesystem == "udf250":
-        label = label[:63 if any(ord(c) > 0xFF for c in label) else 126]
-    else:
-        while len(label.encode("utf-8")) > MAX_VOLID_LEN:
-            label = label[:-1]
+    label = label[:63 if any(ord(c) > 0xFF for c in label) else 126]
     return (label if label.startswith(disc_id) else disc_id).rstrip()
 
 
@@ -44,94 +36,21 @@ def require(*commands):
         raise SystemExit("Error: missing required tool(s): %s" % ", ".join(missing))
 
 
-def _graft_escape(path):
-    return path.replace("\\", "\\\\").replace("=", "\\=")
-
-
-def _genisoimage(stage, volume_id, payload_dir=None, payload_files=None, extra=()):
-    """Run genisoimage with the staged tag files as root and the payload under data/.
-
-    payload_dir grafts a whole folder; payload_files is [(relative path, source path)]
-    for a disc that holds only part of a folder (passed through -path-list).
-    Returns stdout. The source files are never copied or modified.
-    """
-    if len(volume_id) > MAX_VOLID_LEN:
-        raise SystemExit("Error: volume id %r is longer than %d characters" % (volume_id, MAX_VOLID_LEN))
-    cmd = [
-        "genisoimage", "-quiet",
-        "-input-charset", "utf-8",   # source names are UTF-8; the default (locale or ISO-8859-1)
-                                     # garbles every non-ASCII name in the Joliet and UDF trees
-        "-udf", "-r", "-J", "-joliet-long",    # -r: Rock Ridge with sane modes: readable by all,
-                                               # executable by all if it was; no owner ids or write bits
-        "-allow-lowercase", "-allow-multidot", "-allow-limited-size",
-        "-iso-level", "3",
-        "-V", volume_id,
-        "-graft-points",
-    ] + list(extra)
-    path_list = None
-    try:
-        if payload_files is not None:
-            fd, path_list = tempfile.mkstemp(prefix="pathlist-", suffix=".txt", dir=os.path.dirname(stage))
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                for rel, src in payload_files:
-                    f.write("%s=%s\n" % (_graft_escape("data/" + rel), _graft_escape(src)))
-            cmd += ["-path-list", path_list]
-        cmd.append("/=" + _graft_escape(stage))
-        if payload_dir is not None:
-            cmd.append("data/=" + _graft_escape(payload_dir))
-        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    finally:
-        if path_list:
-            os.remove(path_list)
-    # genisoimage always warns that level 3 + long names "does not conform to ISO-9660"
-    noise = "Warning: creating filesystem that does not conform to ISO-9660."
-    errors = "\n".join(l for l in proc.stderr.splitlines() if l.strip() != noise)
-    if proc.returncode != 0:
-        raise SystemExit("Error: genisoimage failed:\n" + errors)
-    if errors:
-        print(errors, file=sys.stderr)
-    return proc.stdout
-
-
-def build_iso(stage, out, volume_id, payload_dir=None, payload_files=None):
-    """Hybrid ISO9660 (Rock Ridge + Joliet, level 3) + UDF image."""
-    _genisoimage(stage, volume_id, payload_dir, payload_files, extra=["-o", out])
-
-
-def print_size(stage, volume_id, payload_dir=None, payload_files=None):
-    """Exact size in 2048-byte sectors of the image build_iso would write, without writing it."""
-    out = _genisoimage(stage, volume_id, payload_dir, payload_files, extra=["-print-size"])
-    return int(out.strip().splitlines()[-1])
-
-
-# ---------------------------------------------------------------- UDF 2.50 (src/udfmake)
+# ---------------------------------------------------------------- UDF 2.50 (src/udfwrite)
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # src/arv/ -> repository
-CONTAINERS = {"hybrid": "iso9660+udf-1.02", "udf250": "udf-2.50"}  # Binding Container tokens
-FILESYSTEMS = {
-    "hybrid": "ISO9660 level 3 + Rock Ridge + Joliet, UDF 1.02 bridge",
-    "udf250": "UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)",
-}
-UDF_OPTIONS = "T=bdrom,v=2.50,V=2.50"
-
-
-def find_udfmake(explicit=None):
-    """Path of the udfmake program: --udfmake, $PATH, or src/udfmake/build in this repository."""
-    for candidate in (explicit, shutil.which("udfmake"),
-                      os.path.join(REPO_ROOT, "src", "udfmake", "build", "udfmake"),
-                      os.path.join(REPO_ROOT, "src", "udfmake", "build-static", "udfmake")):
-        if candidate and os.path.isfile(candidate) and os.access(candidate, os.X_OK):
-            return candidate
-    return None
+# the one image arv makes (docs/archival-udf.md); older discs may also be iso9660+udf-1.02 (hybrid)
+# or UDF 2.50 by NetBSD makefs, and stay readable
+CONTAINER = "udf-2.50"   # Binding Container token
+FILESYSTEM = "UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)"
 
 
 def _udf_view(parent, stage, payload_dir=None, payload_files=None):
     """One folder of symlinks: the staged files at the top, the untouched source under
-    data/ (udfmake -L follows them).
+    data/ (udfwrite follows them).
 
-    A single folder because makefs -t udf mishandles several source folders (it opens
-    every file relative to the first). The payload itself never contains symlinks
-    (bag.scan_payload rejects them), so the only links followed are these.
+    The writer takes one folder. Links in the payload never get here: bag.scan_payload
+    turns them into files or listing rows, so the only links followed are these.
     """
     view = tempfile.mkdtemp(prefix="udfview-", dir=parent)
     for name in os.listdir(stage):
@@ -149,41 +68,6 @@ def _udf_view(parent, stage, payload_dir=None, payload_files=None):
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         os.symlink(os.path.abspath(src), dest)
     return view
-
-
-def build_udf(stage, out, volume_id, payload_dir=None, payload_files=None, udfmake=None, disc_id=None):
-    """UDF 2.50 image (BD-ROM layout) of the stage plus the payload under data/. Returns its sectors.
-
-    volume_id is the label (logical volume identifier); disc_id, when given, also goes
-    into the 32-byte primary volume identifier (otherwise udfmake puts a random number there).
-    """
-    if "," in volume_id or (disc_id and "," in disc_id):
-        raise SystemExit("Error: a UDF volume label cannot contain commas (makefs option syntax)")
-    tool = find_udfmake(udfmake)
-    if not tool:
-        raise SystemExit("Error: udfmake not found. Build it with 'make -C %s', put it on PATH, "
-                         "or pass --udfmake PATH" % os.path.join(REPO_ROOT, "src", "udfmake"))
-    view = _udf_view(os.path.dirname(stage), stage, payload_dir, payload_files)
-    try:
-        if os.path.exists(out):
-            os.remove(out)
-        options = "%s,L=%s" % (UDF_OPTIONS, volume_id) + (",P=%s" % disc_id if disc_id else "")
-        proc = subprocess.run([tool, "-L", "-o", options, out, view],
-                              stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                              text=True, errors="replace")
-    finally:
-        shutil.rmtree(view, ignore_errors=True)
-    if proc.returncode != 0 or not os.path.exists(out):
-        raise SystemExit("Error: udfmake failed:\n" + "\n".join(proc.stdout.splitlines()[-15:]))
-    size = os.path.getsize(out)
-    if size % 2048:
-        raise SystemExit("Error: udfmake wrote %d bytes, not whole 2048-byte sectors" % size)
-    return size // 2048
-
-
-# ---------------------------------------------------------------- UDF 2.50 (src/udfwrite)
-
-UDFMAKE_FILESYSTEM = "UDF 2.50, BD-ROM layout with metadata partition (NetBSD makefs via udfmake)"
 
 
 def find_udfwrite(explicit=None):

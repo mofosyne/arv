@@ -1,9 +1,9 @@
 # udfwrite: closed, read-only UDF 2.50 images for archives
 
-**The default UDF writer of arv** (since 2026-10-03), implementing [docs/archival-udf.md](../../docs/archival-udf.md):
+**The UDF writer of arv**, and the only one it makes discs with, implementing [docs/archival-udf.md](../../docs/archival-udf.md):
 a metadata partition with a **real mirror**, every file in **one contiguous run** in a fixed order,
 and nothing taken from the clock or the machine, so the same folder gives the **same bytes**.
-`src/udfmake/` (NetBSD makefs) stays as the reference (`arv make --udf-writer udfmake`). Linux
+`src/udfmake/` (NetBSD makefs, where arv started) is kept for the upstream fixes only. Linux
 reads all test images; Windows and macOS are checked with the first real burn (issues #18, #5).
 
 A library with no dependencies beyond the C library (`udfwrite.h`, `udfwrite.c`): the caller

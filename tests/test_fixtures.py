@@ -74,14 +74,14 @@ class FixtureTest(unittest.TestCase):
             self.assertEqual("yes" if sets.path_matches(pattern, path) else "no", expected, (pattern, path))
 
     def test_names(self):
-        for fs, name, expected in cases("names.tsv"):
-            sev = {i[1] for i in names.check([name], fs)}
+        for name, expected in cases("names.tsv"):
+            sev = {i[1] for i in names.check([name])}
             got = "error" if "error" in sev else "warning" if sev else "ok"
-            self.assertEqual(got, expected, (fs, name))
+            self.assertEqual(got, expected, name)
 
     def test_labels(self):
-        for disc_id, text, fs, expected in cases("labels.tsv"):
-            self.assertEqual(image.volume_label(disc_id, text, fs), expected, (disc_id, text, fs))
+        for disc_id, text, expected in cases("labels.tsv"):
+            self.assertEqual(image.volume_label(disc_id, text), expected, (disc_id, text))
             self.assertEqual(image.disc_id_from_label(expected), disc_id)
 
     def test_vocabulary(self):

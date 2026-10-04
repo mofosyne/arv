@@ -129,9 +129,9 @@ typedef struct {
     } *v;
     size_t n;
 } name_issues;
-void names_check(char *const *paths, size_t n, int udf250, name_issues *out);
+void names_check(char *const *paths, size_t n, name_issues *out);
 void names_free(name_issues *x);
-char *volume_label(const char *disc_id, const char *text, int udf250);
+char *volume_label(const char *disc_id, const char *text);
 
 #define VERSION "arvc 0.4"
 
