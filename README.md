@@ -3,7 +3,7 @@
 > [!WARNING]
 > **Experimental. Do not trust your only copy of anything to this yet.**
 > No disc made with it has been burned and read back over years; the disc format is a draft
-> (0.3) and may still change in ways older discs do not follow. Keep your data where it is
+> (0.5) and may still change in ways older discs do not follow. Keep your data where it is
 > now, and treat discs made with this as an extra copy while you test it.
 >
 > **Written largely by an AI coding assistant** ("vibe-coded"), with a human choosing the
@@ -11,12 +11,25 @@
 > mature project: read the code before relying on it, check what it produces, and expect
 > bugs. Provided as is, with no warranty (see [LICENSE](LICENSE)).
 
-**ARV** (`arv`; also Norwegian for "inheritance") writes long-term personal archives (photos,
-video, documents, source code) to discs that can still be read, checked and repaired decades
-from now, with nothing but open, well-documented formats. Each disc holds your files untouched,
-a hash of every file, a catalogue of the whole archive so far, the source of the tools that
-made it, and the steps to repair it; error correction fills the rest of the disc. Blu-ray
-(M-DISC BD-R) is today's medium; the format does not depend on it.
+**ARV** (`arv`; also Norwegian for "inheritance") is a personal archivist's tool for things
+worth keeping for decades (photos, video, documents, source code). It is more than a disc
+burner's helper; it keeps the whole archive's record:
+
+- **What you keep, over time.** A folder you sort and grow becomes a *collection* with its own
+  history, like git's but for any files: each state is a revision, and each set of discs made
+  from it is an edition, provisional or final, a full copy every time.
+- **What is archived, and where.** Point it at any folder and it says which files are already
+  on which discs and which are on none, and what changed since the last edition.
+- **Where every copy is, and whether it still reads.** Locations down to the box, copies per
+  place, when each disc was last checked, what is overdue, what is kept in one place only.
+- **Why it matters.** Appraisals (how important, to whom, why) and a log of every change,
+  people's and machines' told apart.
+
+What it writes are self-describing archive discs: your files untouched, a hash of every file,
+a catalogue of the whole archive so far, the source of the tools that made it, and the steps to
+check and repair it, with error correction filling the rest of the disc. All in open,
+well-documented formats that can be read decades from now without this tool. Blu-ray (M-DISC
+BD-R) is today's medium; the format does not depend on it.
 
 Why it works the way it does (curated discs on top of everyday storage, plain files, copies): [docs/philosophy.md](docs/philosophy.md).
 

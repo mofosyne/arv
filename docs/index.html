@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>arv: Blu-ray archives that explain themselves</title>
-<meta name="description" content="arv (Archive, Record, Verify) writes long-term archives to Blu-ray: plain files, checksums, error correction and a catalogue on every disc, readable without this tool. Experimental.">
+<title>arv: personal archives that explain themselves</title>
+<meta name="description" content="arv (Archive, Record, Verify) keeps a personal archive's record over decades: collections with their history, what is archived where, every copy's place and checks, and self-describing Blu-ray discs readable without this tool. Experimental.">
 <style>
   :root {
     --bg: #ffffff; --fg: #1f2328; --muted: #57606a; --line: #d0d7de; --card: #f6f8fa;
@@ -46,8 +46,9 @@
 <main>
 
 <h1>arv</h1>
-<p class="tagline">Archive, Record, Verify: long-term archives on Blu-ray that explain themselves,
-and can be read, checked and repaired decades from now without this tool.</p>
+<p class="tagline">Archive, Record, Verify: a personal archivist's tool. It keeps what you keep, its
+history and every copy's whereabouts, and writes discs that explain themselves and can be read,
+checked and repaired decades from now without it.</p>
 
 <div class="warn">
   <p><strong>Experimental.</strong> No disc made with it has yet been read back after years on a
@@ -65,6 +66,10 @@ and can be read, checked and repaired decades from now without this tool.</p>
 
 <h2>What it does</h2>
 <ul>
+  <li><strong>It keeps the archive's record, not just discs.</strong> A folder you keep sorting
+  becomes a collection with a history, like git's for any files; each set of discs from it is an
+  edition. Point it at any folder and it tells you what is already on which disc, and what is on
+  none. It knows where every copy is kept and when it was last checked.</li>
   <li><strong>Your files stay plain files.</strong> No packing, compression or proprietary
   container: any computer can open the disc and copy them off.</li>
   <li><strong>Every disc stands alone.</strong> Each one carries a hash of every file, a
