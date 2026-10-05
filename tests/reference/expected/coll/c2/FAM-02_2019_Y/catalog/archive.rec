@@ -120,7 +120,7 @@ Date: 2026-01-01
 Stage: provisional
 Edition: 1
 Volume: FAM-01_2019_0
-Changes: +2 ~0 -0 files
+Changes: +2 ~0 -0 >0 files
 
 Node: 95a366ff6ab057524819f4269e38c7d31178aefdd18888fdd07fc629a4554183
 Collection: UUID
@@ -130,7 +130,7 @@ Date: 2026-01-01
 Stage: final
 Edition: 2
 Volume: FAM-02_2019_Y
-Changes: +1 ~1 -1 files
+Changes: +1 ~1 -1 >0 files
 Message: the 2019 sort
 
 %rec: Event

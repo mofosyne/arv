@@ -63,6 +63,11 @@ int cmd_access(int argc, char **argv);
 int cmd_location(int argc, char **argv);
 int cmd_selection(int argc, char **argv);
 int cmd_collection(int argc, char **argv);
+int cmd_status(int argc, char **argv);
+int cmd_checkpoint(int argc, char **argv);
+int cmd_log(int argc, char **argv);
+int cmd_diff(int argc, char **argv);
+int cmd_link(int argc, char **argv);
 int cmd_appraise(int argc, char **argv);
 int cmd_sets(int argc, char **argv);
 int cmd_names(int argc, char **argv);
@@ -131,6 +136,8 @@ void revision_hashes(const char *text, const char *parent, const char *date, con
                      char tree[65], char node[65]);
 char *revision_manifest_path(const arv_home *h, const char *node);
 char *manifest_changes(const char *before, const char *after);
+rec_record *folder_collection(const archive *cat, const char *abs, const char **how);
+void hash_cache_note(const arv_home *h, const entries *files);   /* after arv make */
 
 /* formats.c: Siegfried (PRONOM) format identification */
 typedef struct {

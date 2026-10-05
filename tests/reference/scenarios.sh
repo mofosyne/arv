@@ -239,6 +239,32 @@ stamp 1570000000 coll/fam/b.txt
 stamp 1570000000 coll/fam/c.txt
 log coll.out --home hc make -y --no-ecc --formats no --final --message "the 2019 sort" --keep-stage --output-dir out-c2 coll/fam
 log coll.out --home hc make -y --no-ecc --formats no --final --set CODE --output-dir out-c3 src
+log coll.out --home hc status coll/fam
+echo e > coll/fam/e.txt
+mv coll/fam/c.txt coll/fam/c2.txt
+echo X > coll/fam/b.txt
+stamp 1580000000 coll/fam/e.txt
+stamp 1580000000 coll/fam/b.txt
+log coll.out --home hc status coll/fam
+log coll.out --home hc status coll/fam
+log coll.out --home hc checkpoint --message "renamed c" coll/fam
+log coll.out --home hc checkpoint coll/fam
+log coll.out --home hc diff FAM/1 FAM/2
+log coll.out --home hc diff FAM/1
+log coll.out --home hc diff 0000000
+log coll.out --home hc log FAM
+mkdir -p coll/loose coll/plain
+cp coll/fam/e.txt coll/loose/e.txt
+echo n > coll/loose/n.txt
+cp -p coll/fam/c2.txt coll/plain/c.txt
+log coll.out --home hc status coll/loose
+log coll.out --home hc link coll/loose FAM --past
+log coll.out --home hc status coll/loose
+log coll.out --home hc link coll/plain FAM
+log coll.out --home hc status coll/plain
+log coll.out --home hc link coll/plain NOPE
+log coll.out --home hc link coll/loose FAM-01_2019_0
+log coll.out --home hc status coll/loose
 log coll.out --home hc collection list
 log coll.out --home hc collection show FAM
 log coll.out --home hc collection show NOPE

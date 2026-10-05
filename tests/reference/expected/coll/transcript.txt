@@ -16,7 +16,7 @@ Scanning and hashing ROOT/coll/fam ...
 Classified as: PROJECTS/CODE
 Building ROOT/out-c1/FAM-01_2019_0.noecc.iso (1 of 1, 1.7 MiB) ...
 Hashing ROOT/out-c1/FAM-01_2019_0.noecc.iso ...
-FAM: edition 1 (provisional), revision 1436106577dc, +2 ~0 -0 files
+FAM: edition 1 (provisional), revision 1436106577dc, +2 ~0 -0 >0 files
 Kept staging directory ROOT/out-c1/.archive-make-XXXXXX
 FAM-01_2019_0	ROOT/out-c1/FAM-01_2019_0.noecc.iso	Family photos
 rc=0
@@ -26,21 +26,136 @@ Scanning and hashing ROOT/coll/fam ...
 Classified as: PROJECTS/CODE
 Building ROOT/out-c2/FAM-02_2019_Y.noecc.iso (1 of 1, 1.7 MiB) ...
 Hashing ROOT/out-c2/FAM-02_2019_Y.noecc.iso ...
-FAM: edition 2 (final), revision 95a366ff6ab0, +1 ~1 -1 files
+FAM: edition 2 (final), revision 95a366ff6ab0, +1 ~1 -1 >0 files
 Kept staging directory ROOT/out-c2/.archive-make-XXXXXX
 FAM-02_2019_Y	ROOT/out-c2/FAM-02_2019_Y.noecc.iso	Family photos
 rc=0
 $ --home hc make -y --no-ecc --formats no --final --set CODE --output-dir out-c3 src
 Error: --final and --message are for a collection's workflow folder (arv collection init)
 rc=1
+$ --home hc status coll/fam
+2 files: 0 read, 2 unchanged since last read (hash cache)
+FAM (Family photos): workflow folder ROOT/coll/fam (marker)
+  since edition 2 (final), 2026-01-01, revision 95a366ff6ab0:
+  nothing changed
+rc=0
+$ --home hc status coll/fam
+3 files: 3 read, 0 unchanged since last read (hash cache)
+FAM (Family photos): workflow folder ROOT/coll/fam (marker)
+  since edition 2 (final), 2026-01-01, revision 95a366ff6ab0:
+  +1 new, ~1 changed, -0 removed, >1 moved
+  + e.txt
+  ~ b.txt
+  > c.txt -> c2.txt
+rc=0
+$ --home hc status coll/fam
+3 files: 0 read, 3 unchanged since last read (hash cache)
+FAM (Family photos): workflow folder ROOT/coll/fam (marker)
+  since edition 2 (final), 2026-01-01, revision 95a366ff6ab0:
+  +1 new, ~1 changed, -0 removed, >1 moved
+  + e.txt
+  ~ b.txt
+  > c.txt -> c2.txt
+rc=0
+$ --home hc checkpoint --message renamed c coll/fam
+3 files: 0 read, 3 unchanged since last read (hash cache)
+FAM (Family photos): workflow folder ROOT/coll/fam (marker)
+  since edition 2 (final), 2026-01-01, revision 95a366ff6ab0:
+  +1 new, ~1 changed, -0 removed, >1 moved
+  + e.txt
+  ~ b.txt
+  > c.txt -> c2.txt
+FAM: checkpoint 266394586162, +1 ~1 -0 >1 files
+rc=0
+$ --home hc checkpoint coll/fam
+3 files: 0 read, 3 unchanged since last read (hash cache)
+FAM (Family photos): workflow folder ROOT/coll/fam (marker)
+  since checkpoint, 2026-01-01, revision 266394586162:
+  nothing changed
+FAM: nothing changed since 266394586162; no checkpoint recorded
+rc=0
+$ --home hc diff FAM/1 FAM/2
+edition 1 (provisional), 2026-01-01, revision 1436106577dc -> edition 2 (final), 2026-01-01, revision 95a366ff6ab0
+  +1 new, ~1 changed, -1 removed, >0 moved
+  + c.txt
+  ~ b.txt
+  - 2019/a.txt
+rc=0
+$ --home hc diff FAM/1
+3 files: 0 read, 3 unchanged since last read (hash cache)
+edition 1 (provisional), 2026-01-01, revision 1436106577dc -> ROOT/coll/fam now
+  +2 new, ~1 changed, -1 removed, >0 moved
+  + c2.txt
+  + e.txt
+  ~ b.txt
+  - 2019/a.txt
+rc=0
+$ --home hc diff 0000000
+Error: no revision 0000000 (a Node prefix of 6+ digits, or CODE/N for edition N)
+rc=1
+$ --home hc log FAM
+FAM/1  edition 1 (provisional), 2026-01-01, revision 1436106577dc
+    +2 ~0 -0 >0 files  FAM-01_2019_0
+FAM/2  edition 2 (final), 2026-01-01, revision 95a366ff6ab0
+    +1 ~1 -1 >0 files  FAM-02_2019_Y
+    the 2019 sort
+FAM/-  checkpoint, 2026-01-01, revision 266394586162
+    +1 ~1 -0 >1 files
+    renamed c
+rc=0
+$ --home hc status coll/loose
+2 files: 2 read, 0 unchanged since last read (hash cache)
+ROOT/coll/loose: not a collection's workflow folder
+  0 of its 2 files are on discs; 2 on none
+  + e.txt
+  + n.txt
+  (arv link FOLDER COLLECTION|DISC-ID says what it is; arv collection init makes it a collection)
+rc=0
+$ --home hc link coll/loose FAM --past
+ROOT/coll/loose: an older state of collection:FAM (logged)
+rc=0
+$ --home hc status coll/loose
+2 files: 0 read, 2 unchanged since last read (hash cache)
+ROOT/coll/loose: kept for reference, an older state of collection:FAM (linked 2026-01-01)
+  0 of its 2 files are on discs; 2 on none
+  + e.txt
+  + n.txt
+rc=0
+$ --home hc link coll/plain FAM
+Note: ROOT/coll/fam is FAM's workflow folder too (marker); two folders for one collection branch its history: link the older one --past
+ROOT/coll/plain: linked to collection:FAM (logged)
+rc=0
+$ --home hc status coll/plain
+1 files: 1 read, 0 unchanged since last read (hash cache)
+FAM (Family photos): workflow folder ROOT/coll/plain (declared)
+  since checkpoint, 2026-01-01, revision 266394586162:
+  +0 new, ~0 changed, -2 removed, >1 moved
+  - b.txt
+  - e.txt
+  > c2.txt -> c.txt
+rc=0
+$ --home hc link coll/plain NOPE
+Error: no collection or disc NOPE in the catalogue
+rc=1
+$ --home hc link coll/loose FAM-01_2019_0
+ROOT/coll/loose: linked to FAM-01_2019_0 (logged)
+rc=0
+$ --home hc status coll/loose
+2 files: 0 read, 2 unchanged since last read (hash cache)
+ROOT/coll/loose: the source of disc FAM-01_2019_0 (declared 2026-01-01)
+  0 of its 2 files are on discs; 2 on none
+  + e.txt
+  + n.txt
+rc=0
 $ --home hc collection list
-FAM       Family photos  (2 editions; last 2026-01-01, final)
+FAM       Family photos  (2 editions; last 2026-01-01, checkpoint)
 rc=0
 $ --home hc collection show FAM
-FAM       Family photos  (2 editions; last 2026-01-01, final)
+FAM       Family photos  (2 editions; last 2026-01-01, checkpoint)
   uuid UUID; set CODE; access public
-  1436106577dc  2026-01-01  edition 1   provisional  +2 ~0 -0 files  FAM-01_2019_0
-  95a366ff6ab0  2026-01-01  edition 2   final        +1 ~1 -1 files  FAM-02_2019_Y  the 2019 sort
+  1436106577dc  2026-01-01  edition 1   provisional  +2 ~0 -0 >0 files  FAM-01_2019_0
+  95a366ff6ab0  2026-01-01  edition 2   final        +1 ~1 -1 >0 files  FAM-02_2019_Y  the 2019 sort
+  266394586162  2026-01-01  checkpoint  checkpoint   +1 ~1 -0 >1 files    renamed c
 rc=0
 $ --home hc collection show NOPE
 Error: no collection NOPE

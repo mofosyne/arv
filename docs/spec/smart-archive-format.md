@@ -312,7 +312,7 @@ Stage: final
 Edition: 4
 Volume: FAMILY-05_2001-2025_X
 Volume: FAMILY-06_2001-2025_Q
-Changes: +312 ~4 -17 files
+Changes: +312 ~4 -17 >2 files
 Message: the 2025 sort, final
 ```
 
@@ -325,6 +325,7 @@ Message: the 2025 sort, final
 | `Parent`* | the revision(s) it follows (two for a merge); none for the first |
 | `Stage` | `checkpoint` (state recorded, no discs), `provisional` or `final` (an edition) |
 | `Edition`, `Volume`* | for an edition: its number and its discs |
+| `Changes` | since the parent: files new (`+`), changed (`~`), removed (`-`) and moved (`>`: the same content under a new path) |
 
 Revisions are appended, never edited, and merged by `Node`; collections are merged by `Uuid`.
 A disc carries its collection and its own edition's `Revision` in `catalog.rec`; a full catalogue
@@ -332,6 +333,11 @@ snapshot carries every collection and revision, a `set` or `disc` snapshot those
 own collection. Each revision's manifest is kept in the home catalogue as
 `catalog/revisions/<Node>.sha256`; an edition's can also be rebuilt from its discs' manifests
 (paths without `data/`).
+
+**Which folder is what** is logged as `accession` events (home catalogue only; they name your
+folders): `Object: collection:CODE` (or `Disc: ID`), `Folder:` the folder's absolute path,
+`How:` `marker` or `declared` (`arv link`), and `State:` `present` (the workflow folder now) or
+`past` (an older state kept for reference). The newest such event for a folder is what it is.
 
 **The workflow folder's marker** is a `.arv` file at its root: a recfile with `Home:` (the home
 catalogue, as any `.arv` pointer file) and `Collection:` (the collection's `Uuid`). It is arv's

@@ -1568,6 +1568,7 @@ static int make_discs(maker *mk)
         free(dir);
     }
     archive_save(mk->cat, mk->h->rec_path);
+    if (mk->collection) hash_cache_note(mk->h, mk->files);
     if (o->keep_stage) fprintf(stderr, "Kept staging directory %s\n", mk->workdir);
     else remove_tree(mk->workdir);
     for (size_t i = 0; i < mk->nplans; i++) printf("%s\t%s\t%s\n", mk->plans[i].disc_id, mk->plans[i].out, mk->title);
@@ -1593,11 +1594,10 @@ int cmd_make(int argc, char **argv)
     archive_load(&cat, h.rec_path);
 
     /* a collection's workflow folder: the collection gives what the options leave open */
-    rec_record *coll = NULL;
     char *coll_uuid = marker_collection(src);
-    if (coll_uuid) {
-        coll = archive_collection(&cat, coll_uuid);
-        if (!coll) die("this folder's .arv marker names collection %s, which is not in the home catalogue", coll_uuid);
+    rec_record *coll = folder_collection(&cat, src, NULL);   /* its marker, or a declaration (arv link) */
+    if (coll_uuid && !coll) die("this folder's .arv marker names collection %s, which is not in the home catalogue", coll_uuid);
+    if (coll) {
         if (!o.title || !*o.title) o.title = rec_get(coll, "Title");
         if ((!o.description || !*o.description) && rec_get(coll, "Description")) o.description = rec_get(coll, "Description");
         if ((!o.set || !*o.set) && rec_get(coll, "Set")) o.set = rec_get(coll, "Set");

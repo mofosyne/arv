@@ -665,11 +665,12 @@ edition stays a full copy. Any folder in the collection with a `.git` is handled
 - [x] Format 0.5: `Collection` (with its Uuid), `Revision` (Tree, Node, editions), `Selection`;
       the spec and reference outputs (2026-10-05; the `Retired` event comes with `arv retire`).
       No compatibility with earlier drafts: nothing has been burned yet.
-- [ ] `arv checkpoint`, `arv log`, `arv diff`, and the hash cache they share with `arv status`.
+- [x] `arv checkpoint`, `arv log`, `arv diff`, and the hash cache they share with `arv status`
+      (2026-10-05; `arv make` fills the cache for a collection's files).
 - [x] `arv collection init|list|show`, the marker, and `arv make` taking its settings from it and
       recording each edition (2026-10-05).
-- [ ] `arv status` (a workflow folder: changes since the last edition; any folder: archived or
-      not) and `arv log`.
+- [x] `arv status` (a workflow folder: changes since the last revision; any folder: archived or
+      not, and the discs it most resembles) and `arv link` (2026-10-05).
 - [ ] `arv burn` (burn, read back, record the copy, ask where it lives) and edition safety.
 - [ ] `arv retire`, with the list of files only on the retiring discs.
 - [ ] Git repositories: the compacted `.git`, `--git-history since DATE`, per-repo status and

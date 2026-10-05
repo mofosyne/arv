@@ -114,7 +114,7 @@ Date: 2026-01-01
 Stage: provisional
 Edition: 1
 Volume: FAM-01_2019_0
-Changes: +2 ~0 -0 files
+Changes: +2 ~0 -0 >0 files
 
 Node: 95a366ff6ab057524819f4269e38c7d31178aefdd18888fdd07fc629a4554183
 Collection: UUID
@@ -124,8 +124,17 @@ Date: 2026-01-01
 Stage: final
 Edition: 2
 Volume: FAM-02_2019_Y
-Changes: +1 ~1 -1 files
+Changes: +1 ~1 -1 >0 files
 Message: the 2019 sort
+
+Node: 2663945861627cb66d3f69f4c3de54e7b413ee304e3dd6a83196004e3100a00c
+Collection: UUID
+Tree: 90c012feed467a17ae7ebb1f32a240e960d452631b4148ec336eb29ef3fbdc16
+Parent: 95a366ff6ab057524819f4269e38c7d31178aefdd18888fdd07fc629a4554183
+Date: 2026-01-01
+Stage: checkpoint
+Changes: +1 ~1 -0 >1 files
+Message: renamed c
 
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
@@ -147,6 +156,9 @@ Outcome: success
 Authorship: human
 Agent: human:archivist
 Note: collection FAM created; workflow folder ROOT/coll/fam (marker)
+Folder: ROOT/coll/fam
+How: marker
+State: present
 
 Disc: FAM-01_2019_0
 Type: message digest calculation
@@ -179,3 +191,36 @@ Outcome: success
 Authorship: automatic
 Agent: SW
 Note: image FAM-02_2019_Y.noecc.iso, 850 sectors
+
+Object: collection:FAM
+Type: accession
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: ROOT/coll/loose declared an older state of collection:FAM, kept for reference
+Folder: ROOT/coll/loose
+How: declared
+State: past
+
+Object: collection:FAM
+Type: accession
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: ROOT/coll/plain declared the collection's workflow folder
+Folder: ROOT/coll/plain
+How: declared
+State: present
+
+Disc: FAM-01_2019_0
+Type: accession
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: ROOT/coll/loose declared the source of this disc
+Folder: ROOT/coll/loose
+How: declared
+State: present

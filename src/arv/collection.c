@@ -144,51 +144,6 @@ char *revision_manifest_path(const arv_home *h, const char *node)
     return xprintf("%s/revisions/%s.sha256", h->catalog_dir, node);
 }
 
-/* "+ADDED ~CHANGED -REMOVED files" between two manifests (paths compared; a move is + and -) */
-char *manifest_changes(const char *before, const char *after)
-{
-    strlist bp = { 0 }, bh = { 0 };
-    for (const char *l = before; l && *l;) {
-        const char *nl = strchr(l, '\n'), *sep = strstr(l, "  ");
-        if (!nl) break;
-        if (sep && sep < nl) {
-            char *hash = xmalloc((size_t)(sep - l) + 1), *path = xmalloc((size_t)(nl - sep - 2) + 1);
-            memcpy(hash, l, (size_t)(sep - l));
-            hash[sep - l] = 0;
-            memcpy(path, sep + 2, (size_t)(nl - sep - 2));
-            path[nl - sep - 2] = 0;
-            strlist_add(&bp, path);
-            strlist_add(&bh, hash);
-            free(hash);
-            free(path);
-        }
-        l = nl + 1;
-    }
-    size_t added = 0, changed = 0, kept = 0;
-    for (const char *l = after; *l;) {
-        const char *nl = strchr(l, '\n'), *sep = strstr(l, "  ");
-        if (!nl) break;
-        if (sep && sep < nl) {
-            char *path = xmalloc((size_t)(nl - sep - 2) + 1);
-            memcpy(path, sep + 2, (size_t)(nl - sep - 2));
-            path[nl - sep - 2] = 0;
-            size_t k = 0;
-            while (k < bp.n && strcmp(bp.v[k], path)) k++;
-            if (k == bp.n) added++;
-            else {
-                kept++;
-                if (strncmp(bh.v[k], l, (size_t)(sep - l))) changed++;
-            }
-            free(path);
-        }
-        l = nl + 1;
-    }
-    char *out = xprintf("+%zu ~%zu -%zu files", added, changed, bp.n - kept);
-    strlist_free(&bp);
-    strlist_free(&bh);
-    return out;
-}
-
 /* ------------------------------------------------------------------ arv collection */
 
 static int code_ok(const char *code)
@@ -282,6 +237,9 @@ static int init(int argc, char **argv, const char *given)
     rec_record *e = new_event(obj, "accession", "success", who, "human", note);
     free(e->fields[0].name);
     e->fields[0].name = xstrdup("Object");
+    rec_add(e, "Folder", abs);          /* as arv link records a folder: the workflow folder, now */
+    rec_add(e, "How", "marker");
+    rec_add(e, "State", "present");
     recs_add(&cat.events, e);
     archive_save(&cat, h.rec_path);
     printf("%s: collection %s, workflow folder %s\n", code, uuid, abs);
