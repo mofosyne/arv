@@ -6,6 +6,19 @@ Date: 2026-01-01
 Scope: full
 Discs: 2
 
+%rec: Home
+%doc: This archive's identity: one per home catalogue, made by arv init (or on first use).
++ Each home is its own privacy sphere: a disc carries the catalogue of its home only, and
++ names it (HomeUuid in catalog.rec). A home rebuilt from a disc keeps the disc's Uuid;
++ arv rebuild refuses a disc of another home unless told otherwise. Name is for people.
+%key: Uuid
+%mandatory: Uuid
+%type: Uuid uuid
+%type: Date date
+
+Uuid: UUID
+Date: 2026-01-01
+
 %rec: Disc
 %doc: One record per physical disc image (an OAIS AIP). Field names follow
 + Dublin Core terms where one fits: Title, Creator, Date, Description,

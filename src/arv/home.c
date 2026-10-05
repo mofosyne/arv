@@ -323,6 +323,12 @@ int cmd_init(int argc, char **argv)
     h.drafts_dir = join(target, "drafts");
     h.cache_dir = join(target, "cache");
     home_ensure(&h);
+    h.rec_path = join(h.catalog_dir, "archive.rec");
+    archive cat;                        /* the home's identity, from its first day */
+    archive_load(&cat, h.rec_path);
+    archive_home_uuid(&cat);
+    if (name) rec_add(cat.homes.v[0], "Name", name);
+    archive_save(&cat, h.rec_path);
     printf("Created %s\n", target);
     if (name) {
         register_home(name, target, is_default);

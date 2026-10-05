@@ -192,6 +192,13 @@ for s in out-split/.archive-make-*/stage-*; do
     id=$(sed -n 's/^Disc: //p' "$s/catalog.rec" | head -1)
     [ "$id" = "$first" ] && log rebuild.out --home hb rebuild --prefer-disc "$s"
 done
+cp -r h hother                        # a home of another archive: its discs are not merged by accident
+for s in out-split/.archive-make-*/stage-*; do
+    log rebuild.out --home hother rebuild "$s"
+    log rebuild.out --home hother rebuild --any-archive "$s"
+    break
+done
+log rebuild.out --home hb where
 keep rebuild.out rebuild/transcript.txt
 keep_home hb rebuild/home
 

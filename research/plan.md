@@ -616,6 +616,10 @@ edition stays a full copy. Any folder in the collection with a `.git` is handled
 - Submodules and worktrees (a `.git` file pointing elsewhere): archive the repository it names.
 - Not handled: Git LFS. Left until someone actually needs it.
 
+**Each home is an archive with its own identity** (2026-10-05): a `Home` record (Uuid, Name, Date)
+heads `archive.rec`; discs name it (`HomeUuid`); archives are separate privacy spheres, and
+`arv rebuild` keeps them apart (`--any-archive` to merge on purpose).
+
 **Decisions this needs**
 - **One workflow folder, one collection** (recommended). An inbox where things wait to be sorted
   is an ordinary folder arv does not know about; things move into a collection's folder when

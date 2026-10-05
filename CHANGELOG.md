@@ -26,6 +26,9 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - A *collection* is something kept and made into discs again and again, from one workflow
   folder with one history: `Collection` records (with a Uuid) and `Revision` records (git-like:
   `Tree` and `Node` hashes; checkpoints, and provisional or final editions, each a full copy).
+- Each home catalogue (archive) has an identity: a `Home` record with a Uuid, made by `arv init`;
+  every disc names it (`HomeUuid`), a home rebuilt from a disc keeps it, and `arv rebuild`
+  refuses a disc of another archive unless `--any-archive`. `arv where` shows it.
 - `arv collection init|list|show`; `arv make` on a workflow folder makes the next edition.
   `arv status` (what changed since the last revision, or for any folder which files are on
   which discs), `arv checkpoint`, `arv log`, `arv diff`, `arv link [--past]`; a hash cache

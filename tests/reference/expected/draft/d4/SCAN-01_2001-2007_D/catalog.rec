@@ -8,6 +8,7 @@ Format: smart-archive
 Version: 0.5
 Disc: SCAN-01_2001-2007_D
 Uuid: UUID
+HomeUuid: UUID
 Manifest: manifest-sha256.txt
 Listing: catalog/volumes/SCAN-01_2001-2007_D/listing.tsv
 Tags: catalog/volumes/SCAN-01_2001-2007_D/tags.tsv

@@ -27,7 +27,7 @@ from . import homes, recfile
 
 # The record descriptors (the catalogue's TYPES, in the order written, then the Archive and Snapshot
 # records on discs) live in arv's data/descriptors.rec (src/arv/data), shared with arv.
-TYPES = ("Disc", "Binding", "Location", "Selection", "Collection", "Revision", "Event", "Appraisal")
+TYPES = ("Home", "Disc", "Binding", "Location", "Selection", "Collection", "Revision", "Event", "Appraisal")
 _ALL_DESCRIPTORS = recfile.read(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "arv", "data",
                                              "descriptors.rec"))
 DESCRIPTORS = _ALL_DESCRIPTORS[:len(TYPES)]
@@ -97,7 +97,7 @@ class Catalog:
                 continue
             if r.type in self.groups:
                 self.groups[r.type].append(r)
-        (self.discs, self.bindings, self.locations, self.selections, self.collections, self.revisions,
+        (self.homes, self.discs, self.bindings, self.locations, self.selections, self.collections, self.revisions,
          self.events, self.appraisals) = (self.groups[t] for t in TYPES)
 
     def records(self):

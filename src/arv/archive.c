@@ -50,13 +50,13 @@ rec_record *descriptor(const char *type)
     return NULL;
 }
 
-static const char *const TYPES[] = { "Disc", "Binding", "Location", "Selection", "Collection", "Revision",
+static const char *const TYPES[] = { "Home", "Disc", "Binding", "Location", "Selection", "Collection", "Revision",
                                      "Event", "Appraisal" };
-enum { NTYPES = 8, EVENT_TYPE = 6 };
+enum { NTYPES = 9, DISC_TYPE = 1, EVENT_TYPE = 7 };
 
 static recs *group(archive *a, const char *type)
 {
-    recs *g[] = { &a->discs, &a->bindings, &a->locations, &a->selections, &a->collections, &a->revisions,
+    recs *g[] = { &a->homes, &a->discs, &a->bindings, &a->locations, &a->selections, &a->collections, &a->revisions,
                   &a->events, &a->appraisals };
     for (int i = 0; i < NTYPES; i++)
         if (!strcmp(type, TYPES[i])) return g[i];
@@ -85,10 +85,10 @@ void archive_load(archive *a, const char *path)
 /* every record in file order: each type's descriptor, then its records (as Catalog.records) */
 void archive_records(const archive *a, recs *out)
 {
-    const recs *g[] = { &a->discs, &a->bindings, &a->locations, &a->selections, &a->collections, &a->revisions,
-                        &a->events, &a->appraisals };
+    const recs *g[] = { &a->homes, &a->discs, &a->bindings, &a->locations, &a->selections, &a->collections,
+                        &a->revisions, &a->events, &a->appraisals };
     for (int i = 0; i < NTYPES; i++) {
-        int always = i == 0 || i == EVENT_TYPE;     /* Disc and Event descriptors are always written */
+        int always = i == DISC_TYPE || i == EVENT_TYPE;     /* Disc and Event descriptors are always written */
         if (!always && !g[i]->n) continue;
         recs_add(out, descriptor(TYPES[i]));
         for (size_t k = 0; k < g[i]->n; k++) recs_add(out, g[i]->v[k]);
@@ -102,8 +102,23 @@ void write_records(const char *path, const recs *r)
     free(tmp);
 }
 
-void archive_save(const archive *a, const char *path)
+const char *archive_home_uuid(archive *a)
 {
+    if (!a->homes.n) {
+        char uuid[37], today[11];
+        uuid4(uuid);
+        today_iso(today);
+        rec_record *r = rec_alloc("Home");
+        rec_add(r, "Uuid", uuid);
+        rec_add(r, "Date", today);
+        recs_add(&a->homes, r);
+    }
+    return rec_get(a->homes.v[0], "Uuid");
+}
+
+void archive_save(archive *a, const char *path)
+{
+    archive_home_uuid(a);
     char *dir = xstrdup(path), *slash = strrchr(dir, '/');   /* a new home: its catalog/ folder first */
     if (slash && slash != dir) {
         *slash = 0;
@@ -297,6 +312,7 @@ void archive_shared_subset(const archive *a, const strlist *ids, archive *out)
 {
     char buf[256];
     memset(out, 0, sizeof *out);
+    for (size_t i = 0; i < a->homes.n; i++) recs_add(&out->homes, a->homes.v[i]);
     strlist sealed = { 0 };
     for (size_t i = 0; i < a->discs.n; i++) {
         rec_record *d = a->discs.v[i];
@@ -493,6 +509,7 @@ static int in_recs(const recs *l, const rec_record *r)
 size_t archive_merge(archive *home, const archive *other, int prefer_other, strlist *added, strlist *updated)
 {
     size_t events = 0;
+    if (!home->homes.n && other->homes.n) recs_add(&home->homes, other->homes.v[0]);   /* a home rebuilt from a disc */
     for (size_t i = 0; i < other->discs.n; i++) {
         rec_record *d = other->discs.v[i], *existing = archive_disc(home, get_or_empty(d, "Id"));
         if (!existing) {

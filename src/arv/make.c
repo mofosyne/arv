@@ -1313,6 +1313,7 @@ static void stage_plan(maker *mk, size_t idx)
         rec_add(arc, "Version", FORMAT_VERSION);
         rec_add(arc, "Disc", p->disc_id);
         rec_add(arc, "Uuid", p->uuid);
+        rec_add(arc, "HomeUuid", archive_home_uuid(cat));
         const char *pointers[][2] = { { "Manifest", "manifest-sha256.txt" }, { "Listing", "catalog/volumes/%s/listing.tsv" },
                                       { "Tags", "catalog/volumes/%s/tags.tsv" }, { "Formats", "catalog/volumes/%s/formats.csv" },
                                       { "Snapshot", "catalog/archive.rec" }, { "Viewer", "index.html" }, { "Payload", "data/" } };
@@ -1592,6 +1593,8 @@ int cmd_make(int argc, char **argv)
     home_find(&h, o.home, src);
     archive cat;
     archive_load(&cat, h.rec_path);
+
+    archive_home_uuid(&cat);            /* every disc names the home it belongs to */
 
     /* a collection's workflow folder: the collection gives what the options leave open */
     char *coll_uuid = marker_collection(src);

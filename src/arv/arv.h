@@ -81,7 +81,7 @@ typedef struct {
 } recs;
 typedef struct {
     rec_file file;          /* what was read; new records are allocated one by one */
-    recs discs, bindings, locations, selections, collections, revisions, events, appraisals;
+    recs homes, discs, bindings, locations, selections, collections, revisions, events, appraisals;
 } archive;
 void recs_add(recs *l, rec_record *r);
 int recs_has(const recs *l, const rec_record *r);
@@ -89,7 +89,8 @@ rec_record *rec_alloc(const char *type);
 rec_record *descriptor(const char *type);
 void archive_load(archive *a, const char *path);
 void archive_records(const archive *a, recs *out);
-void archive_save(const archive *a, const char *path);
+void archive_save(archive *a, const char *path);
+const char *archive_home_uuid(archive *a);           /* this home's identity, made on first use */
 void write_records(const char *path, const recs *r);
 rec_record *archive_disc(const archive *a, const char *id);
 rec_record *archive_location(const archive *a, const char *code);

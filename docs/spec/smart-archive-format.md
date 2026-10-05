@@ -73,6 +73,7 @@ Format: smart-archive
 Version: 0.5
 Disc: 2020-2025_PROJECTS_01
 Uuid: 4f1c2a9e-7b3d-4c55-9e2a-1d0b6f8c3a71
+HomeUuid: 9d2e61b0-3c4f-4a8e-b1d7-5e0a7c2f8b43
 Manifest: manifest-sha256.txt
 Listing: catalog/volumes/2020-2025_PROJECTS_01/listing.tsv
 Tags: catalog/volumes/2020-2025_PROJECTS_01/tags.tsv
@@ -84,6 +85,12 @@ Payload: data/
 
 All paths are relative to the disc root. Pointer fields appear only when the
 file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
+
+`HomeUuid` names the archive the disc belongs to: the `Uuid` of the home catalogue's `Home`
+record, which the disc's `catalog/archive.rec` also carries (with the archive's `Name` and
+`Date`). **Each archive is its own privacy sphere**: a disc carries the catalogue of its own
+archive only. A reader merging discs into a catalogue keeps archives apart by this id; a
+catalogue rebuilt from a disc takes the disc's archive identity.
 
 ## Files
 

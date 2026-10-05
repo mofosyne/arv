@@ -64,7 +64,7 @@ static void usage(FILE *to)
           "       arv where\n"
           "       arv tags [--namespace NS] [--vocab FILE]\n"
           "       arv keywords [--format tsv|exiftool] DISC-ID\n"
-          "       arv rebuild [--prefer-disc] DISC   merge a disc's catalogue into the home\n"
+          "       arv rebuild [--prefer-disc] [--any-archive] DISC   merge a disc's catalogue into the home\n"
           "       arv info DISC\n"
           "       arv verify [-v] DISC\n"
           "       arv ls DISC\n"

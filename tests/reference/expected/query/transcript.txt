@@ -340,6 +340,7 @@ rc=0
 $ --home q where
 q
   found by --home
+  archive: no identity yet (made by arv init, or the first change)
 homes on this machine (ROOT/userhome/.config/arv/homes.rec):
   main         ROOT/init/a/.arv
   other        ROOT/init/b/.arv  (default)

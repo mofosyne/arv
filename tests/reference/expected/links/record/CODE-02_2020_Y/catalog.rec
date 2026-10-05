@@ -8,6 +8,7 @@ Format: smart-archive
 Version: 0.5
 Disc: CODE-02_2020_Y
 Uuid: UUID
+HomeUuid: UUID
 Manifest: manifest-sha256.txt
 Listing: catalog/volumes/CODE-02_2020_Y/listing.tsv
 Snapshot: catalog/archive.rec

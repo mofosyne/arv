@@ -9,3 +9,15 @@ rc=0
 $ --home hb rebuild --prefer-disc out-split/.archive-make-XXXXXX/stage-SCAN-01_2001-2007_D-XXXXXX
 Added 0 disc(s), updated 1, 0 new event(s), 0 file list(s) copied into hb
 rc=0
+$ --home hother rebuild out-split/.archive-make-XXXXXX/stage-SCAN-01_2001-2007_D-XXXXXX
+Error: this disc belongs to another archive (home UUID), not to hother (home UUID).
+Each archive is its own privacy sphere; --any-archive merges it anyway.
+rc=1
+$ --home hother rebuild --any-archive out-split/.archive-make-XXXXXX/stage-SCAN-01_2001-2007_D-XXXXXX
+Added 2 disc(s) (SCAN-01_2001-2007_D, SCAN-02_2001-2007_B), updated 0, 2 new event(s), 4 file list(s) copied into hother
+rc=0
+$ --home hb where
+hb
+  found by --home
+  archive UUID
+rc=0

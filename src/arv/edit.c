@@ -1008,6 +1008,13 @@ int cmd_where(int argc, char **argv)
     arv_home h;
     home_find(&h, given, NULL);
     printf("%s\n  found by %s\n", h.path, h.how);
+    archive cat;
+    archive_load(&cat, h.rec_path);
+    if (cat.homes.n)
+        printf("  archive %s%s%s\n", get_or(cat.homes.v[0], "Uuid", "?"), rec_get(cat.homes.v[0], "Name") ? ", " : "",
+               rec_get(cat.homes.v[0], "Name") ? rec_get(cat.homes.v[0], "Name") : "");
+    else
+        puts("  archive: no identity yet (made by arv init, or the first change)");
     const char *xdg = getenv("XDG_CONFIG_HOME"), *home = getenv("HOME");
     char *config = xdg && *xdg ? join(xdg, "arv/homes.rec") : xprintf("%s/.config/arv/homes.rec", home ? home : "");
     rec_file f;
@@ -1055,10 +1062,11 @@ static char *disc_root_id(const char *root)
 int cmd_rebuild(int argc, char **argv)
 {
     const char *given = NULL, *root = NULL;
-    int prefer = 0;
+    int prefer = 0, any_archive = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (!strcmp(argv[i], "--prefer-disc")) prefer = 1;
+        else if (!strcmp(argv[i], "--any-archive")) any_archive = 1;
         else if (!root) root = argv[i];
         else return 2;
     }
@@ -1076,6 +1084,25 @@ int cmd_rebuild(int argc, char **argv)
         any = 1;
         archive *other = calloc(1, sizeof *other);      /* its records join the home catalogue: kept */
         archive_load(other, sources[k]);
+        /* a disc belongs to one home: another home's disc is not merged by accident */
+        const char *theirs = other->homes.n ? rec_get(other->homes.v[0], "Uuid") : NULL;
+        if (!theirs && k == 1 && other->file.nrecords) {
+            const rec_record *arc = rec_first(&other->file, "Archive");
+            theirs = arc ? rec_get(arc, "HomeUuid") : NULL;
+        }
+        int fresh = !cat.homes.n && !cat.discs.n;      /* an empty home takes the disc's identity */
+        if (theirs && !fresh && strcmp(theirs, archive_home_uuid(&cat)) && !any_archive) {
+            const char *nm = other->homes.n && rec_get(other->homes.v[0], "Name") ? rec_get(other->homes.v[0], "Name") : NULL;
+            fprintf(stderr, "Error: this disc belongs to another archive (home %s%s%s), not to %s (home %s).\n"
+                            "Each archive is its own privacy sphere; --any-archive merges it anyway.\n",
+                    theirs, nm ? ", " : "", nm ? nm : "", h.path, archive_home_uuid(&cat));
+            exit(1);
+        }
+        if (theirs && fresh && !cat.homes.n) {     /* the whole record (name, date) when the disc has it */
+            rec_record *r = other->homes.n ? other->homes.v[0] : rec_alloc("Home");
+            if (!other->homes.n) rec_add(r, "Uuid", theirs);
+            recs_add(&cat.homes, r);
+        }
         events += archive_merge(&cat, other, prefer, &added, &updated);
     }
     if (!any) die("%s has neither catalog/archive.rec nor catalog.rec", root);
