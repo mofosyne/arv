@@ -11,9 +11,19 @@
 > mature project: read the code before relying on it, check what it produces, and expect
 > bugs. Provided as is, with no warranty (see [LICENSE](LICENSE)).
 
-**ARV** (`arv`; also Norwegian for "inheritance") is a personal archivist's tool for things
-worth keeping for decades (photos, video, documents, source code). It is more than a disc
-burner's helper; it keeps the whole archive's record:
+**ARV** (`arv`; also Norwegian for "inheritance") is for **long-term archiving, not backup**.
+
+| | A backup | An archive |
+|---|---|---|
+| Holds | everything, as it is now | what is worth keeping, chosen |
+| For | getting back what you lost last week | your grandchildren, decades from now |
+| Lives | as long as the current copy; replaced by the next one | longer than the software and the person who made it |
+| Read with | the backup program that wrote it | anything: plain files, open formats, the steps on the disc itself |
+| Knows | file contents | what each thing is, where every copy is, when it was last checked, why it matters |
+
+Keep your backups (the NAS, restic, Borg, the cloud): arv sits on top of them, for the photos,
+video, documents and source code that should outlive them. It is a personal archivist's tool,
+and keeps the whole archive's record:
 
 - **What you keep, over time.** A folder you sort and grow becomes a *collection* with its own
   history, like git's but for any files: each state is a revision, and each set of discs made
