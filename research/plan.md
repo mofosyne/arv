@@ -689,7 +689,7 @@ ones, except those kept (`arv make --keep`, `arv collection keep CODE N`).
       copies nothing itself. Every copy has a temperature (hot: in use; warm: online, left alone;
       cold: offline).
 - [ ] Zip copies (one sealed file, store mode), when someone needs them.
-- [ ] docs/workflow.md rewritten around: init, sort, status, make, burn, retire.
+- [x] docs/workflow.md rewritten around: init, collection, status, make, burned / stored, todo, retire (2026-10-05).
 
 ## Design: discs as nodes in a history graph (2026-10-02, not implemented)
 
