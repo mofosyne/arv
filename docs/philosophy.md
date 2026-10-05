@@ -51,6 +51,12 @@ need to last fifty years. So there are two tiers:
 
 The discs are not a backup of the NAS. They are a **curated selection**: the
 things worth the extra effort of a durable copy. Choosing is part of the work.
+
+The archive tier is **cold storage** wherever possible: offline media, untouched between checks.
+A connected copy shares the fate of the computer it is on (a mistyped command, a failing
+controller, ransomware); a written-once disc on a shelf does not. Everyday storage stays warm,
+because it is used. When a new medium is chosen (philosophy principle 4), cold comes first:
+offline, write-once or write-protected, and readable without power for years at a time.
 How the everyday tier can be set up: [workflow.md](workflow.md), "Before the discs".
 
 ## Plain files, not a backup engine (principle 2)

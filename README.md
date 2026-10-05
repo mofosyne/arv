@@ -18,11 +18,13 @@
 | Holds | everything, as it is now | what is worth keeping, chosen |
 | For | getting back what you lost last week | your grandchildren, decades from now |
 | Lives | as long as the current copy; replaced by the next one | longer than the software and the person who made it |
+| Kept | online: always connected, so one mistake, failure or ransomware reaches it | **cold** where possible: offline media on a shelf, untouched until needed, copies in other places |
 | Read with | the backup program that wrote it | anything: plain files, open formats, the steps on the disc itself |
 | Knows | file contents | what each thing is, where every copy is, when it was last checked, why it matters |
 
 Keep your backups (the NAS, restic, Borg, the cloud): arv sits on top of them, for the photos,
-video, documents and source code that should outlive them. It is a personal archivist's tool,
+video, documents and source code that should outlive them, and puts them in cold storage
+(write-once discs today) whenever it can. It is a personal archivist's tool,
 and keeps the whole archive's record:
 
 - **What you keep, over time.** A folder you sort and grow becomes a *collection* with its own
