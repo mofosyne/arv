@@ -145,6 +145,20 @@ char *revision_manifest_path(const arv_home *h, const char *node);
 char *manifest_changes(const char *before, const char *after);
 rec_record *folder_collection(const archive *cat, const char *abs, const char **how);
 void hash_cache_note(const arv_home *h, const entries *files);   /* after arv make */
+
+/* gitrepo.c: git repositories in a folder being archived */
+typedef struct {
+    char *path;             /* the repository's folder, relative to the source ("" for the source itself) */
+    char *tsv;              /* its rows of git.tsv (NULL: git not on PATH) */
+    char *note;             /* for the ingestion event */
+} gitrepo;
+typedef struct {
+    gitrepo *v;
+    size_t n;
+} gitrepos;
+void git_prepare(const char *src, const char *workdir, const char *since, entries *files, gitrepos *out);
+char *git_tsv_for(const gitrepos *g, const entries *disc_files);
+int git_internal(const char *path);
 const char *disc_read_back(const archive *cat, const char *id);   /* upkeep.c: a copy known good */
 int edition_safe(const archive *cat, const rec_record *rev);
 

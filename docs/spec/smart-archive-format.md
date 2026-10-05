@@ -101,6 +101,7 @@ catalogue rebuilt from a disc takes the disc's archive identity.
 | `manifest-sha256.txt`, `manifest-sha512.txt` | BagIt manifest | `<hash>  data/<path>`, one per payload file (`sha256sum -c` compatible) |
 | `catalog/volumes/<id>/listing.tsv` | TSV | Size, modification time and path of every payload file |
 | `catalog/volumes/<id>/tags.tsv` | TSV | Folder tags and optional image captions |
+| `catalog/volumes/<id>/git.tsv` | TSV | For each git repository on the disc: its root commits, heads, shallow boundary and every commit it holds (see [Git repositories](#git-repositories)) |
 | `catalog/volumes/<id>/formats.csv` | CSV | PRONOM format identification per file (optional) |
 | `catalog/volumes/<id>/manifest.sha256` | BagIt manifest | Copy of the disc's `manifest-sha256.txt` |
 | `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Binding`, `Location`, `Selection`, `Collection`, `Revision`, `Event` and `Appraisal` records (limited by [Access](#access)) |
@@ -545,6 +546,28 @@ where, which occasion, which device. Suggested namespaces are `person`,
 hierarchical keyword form used by XMP `lr:hierarchicalSubject` (Lightroom,
 digiKam) replaces the colon with `|`: `place|kyoto`; set paths become
 `MEMORIES|PHOTO|TRIP`.
+
+### Git repositories
+
+A git repository in the payload is its working tree as plain files, plus a `.git` made by the
+`git` program on a copy: `HEAD`, `config`, the index, one pack, refs both packed and loose
+(git needs `refs/`, and a disc keeps no empty folders), and the stash's reflog. Hooks, other
+reflogs and credentials in remote URLs are left out, and the `ingestion` event says so. With
+`--git-since DATE` the history is shallow: git's own `shallow` file lists the boundary commits,
+every ref's commit is kept, and hashes are unchanged. Copied as it is when git was not at hand
+(the event says that too).
+
+```
+# arv git 1	repository (relative to data/)	kind (root, head, shallow, commit)	value
+proj	root	be1d4102a4ff3e9cfa8b8446e22410b0b77d9fe8
+proj	head	refs/heads/main 29eff04b1647797a126cf5b0dcd8aec54d3d5239
+proj	commit	29eff04b1647797a126cf5b0dcd8aec54d3d5239
+```
+
+`root` rows come from the full history (before any trimming), so a repository is recognised by
+its first commits wherever it is later found; `commit` rows let a reader tell, with no disc in the
+drive, whether a commit is archived. A repository's `.git` is not part of a collection revision's
+manifest: its state is its commits.
 
 ## Reading a disc: suggested algorithm
 

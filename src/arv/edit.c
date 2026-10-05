@@ -1117,7 +1117,8 @@ int cmd_rebuild(int argc, char **argv)
         events += archive_merge(&cat, other, prefer, &added, &updated);
     }
     if (!any) die("%s has neither catalog/archive.rec nor catalog.rec", root);
-    static const char *const KINDS[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", NULL };
+    static const char *const KINDS[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", "git.tsv",
+                                         NULL };
     char *own_id = disc_root_id(root);
     size_t copied = 0;
     for (size_t i = 0; i < cat.discs.n; i++) {

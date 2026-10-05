@@ -148,8 +148,16 @@ whose content changed while its time did not (bit rot, or a tool that keeps time
 which discs and which are on none, and which discs it most resembles. To say what a folder is
 without writing in it: `arv link FOLDER FAMILY` (it is that collection's workflow folder),
 `arv link FOLDER DISC-ID` (it is the source of that disc), or `arv link FOLDER FAMILY --past`
-(an older state kept for reference). Every link is logged. A git repository is recognised by its
-history too (planned: [plan.md](../research/plan.md), "Git repositories in a collection").
+(an older state kept for reference). Every link is logged.
+
+**Git repositories** are recognised by their history, wherever they are and whatever the folder
+is called: `arv status` says, for each repository in a folder, whether its HEAD is already on a
+disc, how many commits newer it is than a branch on a disc, whether it has diverged (and how many
+commits are on no disc), or whether no disc holds its history at all; and whether it has
+uncommitted changes. `arv find COMMIT` names the discs that hold a commit. On a disc, a
+repository is its working files plus a compacted `.git` (one pack; no hooks, no reflogs but the
+stash's, no credentials in remote URLs), so the restored folder is a working repository; `arv
+make --git-since DATE` keeps only the history since then (shallow, as git itself does it).
 
 ## 3. Make an edition
 

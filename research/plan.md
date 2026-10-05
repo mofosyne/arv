@@ -682,8 +682,12 @@ ones, except those kept (`arv make --keep`, `arv collection keep CODE N`).
       `arv burned --device` reads a copy back and records it only if identical; edition safety;
       `arv todo`.
 - [x] `arv retire`, with the list of files only on the retiring discs (2026-10-05).
-- [ ] Git repositories: the compacted `.git`, `--git-history since DATE`, per-repo status and
-      the retire check for dropped history.
+- [x] Git repositories (2026-10-05): the compacted `.git` (one pack, refs also loose, no hooks,
+      reflogs but the stash's, or URL credentials), `--git-since DATE` (shallow; every ref's tip
+      kept), `git.tsv` per disc, `arv status` per repository (archived, ahead of a named ref,
+      diverged, not archived, uncommitted), `arv find COMMIT`. Revision manifests leave `.git`
+      out (a repository's state is its commits). Without git on PATH, `.git` is copied as is.
+- [ ] `arv retire`: also list commits found only on the retiring discs (git.tsv), as for files.
 - [x] Copies on a drive or NAS (2026-10-05): `arv stored DISC-ID PATH` checks and records the image
       as a file (`Form: iso`) or the disc's files as a folder (`Form: folder`), warm by default; arv
       copies nothing itself. Every copy has a temperature (hot: in use; warm: online, left alone;

@@ -155,6 +155,7 @@ and `make check` passes under AddressSanitizer and UndefinedBehaviorSanitizer (w
 | `rec.c`, `json.c`, `util.c` | recfiles, JSON, helpers (the checksums are in `../bagit`) |
 | `draft.c` | drafts (`make --draft`), shared with arv-assist |
 | `collection.c` | `collection`: workflow folders, their markers, revisions (Tree and Node) |
+| `gitrepo.c` | git repositories: the compacted `.git`, `--git-since`, `git.tsv` |
 | `upkeep.c` | `todo`, `retire`: copies known good, safe editions |
 | `status.c` | `status`, `checkpoint`, `log`, `diff`, `link`; the hash cache (`<home>/cache/hashes.tsv`) |
 | `data/` | the data files: descriptors.rec, readme.txt (each disc's README.txt), index.css, default_sets.rec, default_tags.rec |

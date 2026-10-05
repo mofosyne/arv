@@ -210,6 +210,7 @@ static int cached_hash(hcache *c, const char *abs, const struct stat *st, int de
 typedef struct {
     mlist files;
     size_t links, unreadable, silent;
+    strlist repos;          /* folders holding a .git: compared by their history, not their files */
     strlist silent_paths;
 } scan;
 
@@ -228,6 +229,10 @@ static void walk(const char *root, const char *rel, hcache *c, int deep, scan *s
     closedir(d);
     for (size_t i = 0; i < names.n; i++) {
         if (!*rel && !strcmp(names.v[i], ".arv")) continue;     /* arv's own */
+        if (!strcmp(names.v[i], ".git")) {                      /* a repository: by its history */
+            strlist_add(&s->repos, *rel ? rel : ".");
+            continue;
+        }
         char *r = *rel ? xprintf("%s/%s", rel, names.v[i]) : xstrdup(names.v[i]), *abs = join(root, r);
         struct stat st;
         if (lstat(abs, &st)) s->unreadable++;
@@ -259,6 +264,7 @@ void hash_cache_note(const arv_home *h, const entries *files)
     cache_load(&c, h);
     for (size_t i = 0; i < files->n; i++) {
         const entry *f = &files->v[i];
+        if (git_internal(f->path)) continue;
         struct stat st;
         char *abs = f->source ? realpath(f->source, NULL) : NULL;
         if (!abs || *f->link || lstat(abs, &st) || !S_ISREG(st.st_mode)) {
@@ -556,9 +562,13 @@ static void tracked_status(const arv_home *h, const archive *cat, const scan *s,
         char *text = access(p, F_OK) ? NULL : read_text(p);
         mlist one = { 0 };
         ml_parse(&one, text);
-        disc_total[i] = one.n;
+        disc_total[i] = 0;
         disc_here[i] = 0;
-        for (size_t k = 0; k < one.n; k++) ml_add(&all, id, one.v[k].hash);
+        for (size_t k = 0; k < one.n; k++)              /* a repository's .git is compared by its history */
+            if (!git_internal(one.v[k].path)) {
+                ml_add(&all, id, one.v[k].hash);
+                disc_total[i]++;
+            }
         ml_free(&one);
         free(text);
         free(p);
@@ -602,6 +612,167 @@ static void tracked_status(const arv_home *h, const archive *cat, const scan *s,
     ml_free(&all);
     free(disc_total);
     free(disc_here);
+}
+
+/* ------------------------------------------------------------------ git repositories, by their history */
+
+typedef struct {
+    char *disc, *repo, *kind, *value, *ref;     /* ref: a head's name */
+} grow;
+
+static int grow_by_value(const void *a, const void *b)
+{
+    return strcmp(((const grow *)a)->value, ((const grow *)b)->value);
+}
+
+/* every row of every disc's git.tsv in the home catalogue */
+static void load_git_rows(const arv_home *h, const archive *cat, grow **out, size_t *n)
+{
+    *out = NULL;
+    *n = 0;
+    size_t cap = 0;
+    for (size_t i = 0; i < cat->discs.n; i++) {
+        const char *id = get_or(cat->discs.v[i], "Id", "");
+        char *p = home_volume_file(h, id, "git.tsv"), *t = access(p, F_OK) ? NULL : read_text(p);
+        for (char *l = t; l && *l;) {
+            char *nl = strchr(l, '\n');
+            if (nl) *nl = 0;
+            char *a = strchr(l, '\t'), *b = a ? strchr(a + 1, '\t') : NULL;
+            if (*l != '#' && a && b) {
+                *a = *b = 0;
+                if (*n == cap) {
+                    cap = cap ? cap * 2 : 256;
+                    *out = xrealloc(*out, cap * sizeof **out);
+                }
+                grow *g = &(*out)[(*n)++];
+                g->disc = xstrdup(id);
+                g->repo = xstrdup(l);
+                g->kind = xstrdup(a + 1);
+                char *sp = strchr(b + 1, ' ');           /* heads: "refs/... HASH" */
+                g->value = xstrdup(!strcmp(g->kind, "head") && sp ? sp + 1 : b + 1);
+                g->ref = !strcmp(g->kind, "head") && sp ? xprintf("%.*s", (int)(sp - (b + 1)), b + 1) : NULL;
+            }
+            l = nl ? nl + 1 : l + strlen(l);
+        }
+        free(t);
+        free(p);
+    }
+    if (*n) qsort(*out, *n, sizeof **out, grow_by_value);
+}
+
+static const grow *find_value(const grow *rows, size_t n, const char *value, const char *kind)
+{
+    size_t lo = 0, hi = n;
+    while (lo < hi) {
+        size_t mid = (lo + hi) / 2;
+        if (strcmp(rows[mid].value, value) < 0) lo = mid + 1;
+        else hi = mid;
+    }
+    const grow *hit = NULL;
+    for (size_t i = lo; i < n && !strcmp(rows[i].value, value); i++)
+        if (!kind || !strcmp(rows[i].kind, kind)) hit = &rows[i];     /* the last: the newest disc */
+    return hit;
+}
+
+static char *git_out(char **argv)
+{
+    char *out = NULL;
+    if (run(argv, &out) != 0) {
+        free(out);
+        return NULL;
+    }
+    out[strcspn(out, "\n")] = 0;
+    return out;
+}
+
+static void git_report(const arv_home *h, const archive *cat, const char *root, const strlist *repos)
+{
+    if (!repos->n) return;
+    if (!on_path("git")) {
+        printf("  (%zu git repositor%s not compared: git is not on PATH)\n", repos->n, repos->n == 1 ? "y" : "ies");
+        return;
+    }
+    grow *rows;
+    size_t n;
+    load_git_rows(h, cat, &rows, &n);
+    for (size_t r = 0; r < repos->n; r++) {
+        char *abs = !strcmp(repos->v[r], ".") ? xstrdup(root) : join(root, repos->v[r]);
+        char *hd[] = { "git", "-C", abs, "rev-parse", "--verify", "-q", "HEAD", NULL }, *head = git_out(hd);
+        char *rt[] = { "git", "-C", abs, "rev-list", "--max-parents=0", "--all", NULL }, *roots_out = NULL;
+        run(rt, &roots_out);
+        char *st[] = { "git", "-C", abs, "status", "--porcelain", NULL }, *dirty = NULL;
+        int changed = run(st, &dirty) == 0 && dirty && *dirty;
+        free(dirty);
+        strlist roots = { 0 }, same = { 0 };
+        for (char *l = roots_out; l && *l;) {
+            char *nl = strchr(l, '\n');
+            if (nl) *nl = 0;
+            if (*l) strlist_add(&roots, l);
+            l = nl ? nl + 1 : l + strlen(l);
+        }
+        free(roots_out);
+        for (size_t i = 0; i < roots.n; i++)
+            for (size_t k = 0; k < n; k++)
+                if (!strcmp(rows[k].kind, "root") && !strcmp(rows[k].value, roots.v[i]) && !strlist_has(&same, rows[k].disc))
+                    strlist_add(&same, rows[k].disc);
+        sbuf line = { 0 };
+        sb_printf(&line, "  git %s: ", repos->v[r]);
+        const grow *on = head ? find_value(rows, n, head, "commit") : NULL;
+        if (!head) sb_puts(&line, "no commits yet");
+        else if (!same.n) sb_puts(&line, "not archived (no disc holds its history)");
+        else if (on) sb_printf(&line, "archived: its HEAD %.12s is on %s", head, on->disc);
+        else {
+            long best = -1;
+            const char *best_disc = NULL, *best_ref = NULL;
+            for (size_t k = 0; k < n; k++) {         /* an archived head this one descends from */
+                if (strcmp(rows[k].kind, "head") || !strlist_has(&same, rows[k].disc)) continue;
+                char *anc[] = { "git", "-C", abs, "merge-base", "--is-ancestor", rows[k].value, head, NULL };
+                if (run(anc, NULL) != 0) continue;
+                char *range = xprintf("%s..%s", rows[k].value, head);
+                char *cnt[] = { "git", "-C", abs, "rev-list", "--count", range, NULL }, *c = git_out(cnt);
+                long v = c ? atol(c) : -1;
+                int named = rows[k].ref && strcmp(rows[k].ref, "HEAD");        /* a branch's name over HEAD */
+                if (v >= 0 && (best < 0 || v < best || (v == best && named && best_ref && !strcmp(best_ref, "HEAD")))) {
+                    best = v;
+                    best_disc = rows[k].disc;
+                    best_ref = rows[k].ref;
+                }
+                free(c);
+                free(range);
+            }
+            if (best >= 0)
+                sb_printf(&line, "%ld commit%s newer than %s on %s", best, best == 1 ? "" : "s", best_ref ? best_ref : "a head",
+                          best_disc);
+            else {
+                char *all[] = { "git", "-C", abs, "rev-list", head, NULL }, *out = NULL;
+                run(all, &out);
+                size_t missing = 0;
+                for (char *l = out; l && *l;) {
+                    char *nl = strchr(l, '\n');
+                    if (nl) *nl = 0;
+                    if (*l && !find_value(rows, n, l, "commit")) missing++;
+                    l = nl ? nl + 1 : l + strlen(l);
+                }
+                free(out);
+                sb_printf(&line, "diverged from %s: %zu commit%s on no disc", same.v[same.n - 1], missing, missing == 1 ? "" : "s");
+            }
+        }
+        if (changed) sb_puts(&line, "; uncommitted changes");
+        puts(line.s);
+        free(line.s);
+        free(head);
+        free(abs);
+        strlist_free(&roots);
+        strlist_free(&same);
+    }
+    for (size_t k = 0; k < n; k++) {
+        free(rows[k].disc);
+        free(rows[k].repo);
+        free(rows[k].kind);
+        free(rows[k].value);
+        free(rows[k].ref);
+    }
+    free(rows);
 }
 
 int cmd_status(int argc, char **argv)
@@ -662,6 +833,7 @@ int cmd_status(int argc, char **argv)
         printf("%s: not a collection's workflow folder\n", abs);
         tracked_status(&h, &cat, &s, verbose, 1);
     }
+    git_report(&h, &cat, abs, &s.repos);
     if (s.links || s.unreadable) printf("  (%zu symbolic links not compared, %zu unreadable)\n", s.links, s.unreadable);
     for (size_t i = 0; i < s.silent_paths.n; i++)
         printf("  ! %s: content changed but its modified time did not (bit rot, or a tool that keeps times)\n",
@@ -672,6 +844,7 @@ int cmd_status(int argc, char **argv)
     }
     ml_free(&s.files);
     strlist_free(&s.silent_paths);
+    strlist_free(&s.repos);
     free(abs);
     return 0;
 }

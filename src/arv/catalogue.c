@@ -201,6 +201,51 @@ int cmd_find(int argc, char **argv)
             any = 1;
         }
     }
+    size_t hexlen = strspn(pat, "0123456789abcdef");
+    if (hexlen == strlen(pat) && hexlen >= 7 && hexlen <= 40)  /* a git commit: the discs holding it */
+        for (size_t i = 0; i < c.rec.nrecords; i++) {
+            const rec_record *d = &c.rec.records[i];
+            if (!is_type(d, "Disc") || !rec_get(d, "Id")) continue;
+            char *path = catalogue_volume(&c, rec_get(d, "Id"), "git.tsv"), *line = NULL;
+            size_t cap = 0;
+            ssize_t len;
+            FILE *fp = fopen(path, "r");
+            strlist repos = { 0 }, shown = { 0 };     /* per repository: the commit, and the refs at it */
+            while (fp && (len = getline(&line, &cap, fp)) >= 0) {
+                while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) line[--len] = 0;
+                char *cols[3] = { line, NULL, NULL };
+                if (line[0] == '#' || split_tabs(line, cols, 3) < 3) continue;
+                char *sp = strchr(cols[2], ' ');
+                const char *v = sp ? sp + 1 : cols[2];
+                if (strncmp(v, pat, hexlen) || (strcmp(cols[1], "commit") && strcmp(cols[1], "head"))) continue;
+                size_t k = 0;
+                while (k < repos.n && strcmp(repos.v[k], cols[0])) k++;
+                if (k == repos.n) {
+                    strlist_add(&repos, cols[0]);
+                    char *first = xprintf("%.12s", v);
+                    strlist_add(&shown, first);
+                    free(first);
+                }
+                if (!strcmp(cols[1], "head")) {
+                    if (sp) *sp = 0;
+                    char *more = xprintf("%s%s%s", shown.v[k], strchr(shown.v[k], '(') ? ", " : " (", cols[2]);
+                    free(shown.v[k]);
+                    shown.v[k] = more;
+                }
+            }
+            for (size_t k = 0; k < repos.n; k++) {
+                char *w = where(&c, d);
+                printf("GIT   %s  %s  commit %s%s  [%s]\n", rec_get(d, "Id"), repos.v[k], shown.v[k],
+                       strchr(shown.v[k], '(') ? ")" : "", *w ? w : "location unknown");
+                free(w);
+                any = 1;
+            }
+            strlist_free(&repos);
+            strlist_free(&shown);
+            if (fp) fclose(fp);
+            free(line);
+            free(path);
+        }
     for (size_t i = 0; i < c.rec.nrecords; i++) {          /* folder tags and captions */
         const rec_record *d = &c.rec.records[i];
         if (!is_type(d, "Disc") || !rec_get(d, "Id")) continue;

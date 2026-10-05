@@ -40,7 +40,7 @@ static void say(const char *fmt, const char *arg)
 typedef struct {
     const char *source, *home, *output, *output_dir, *id, *set, *coverage, *title, *label, *description;
     const char *creator, *location, *access, *rights, *links, *medium, *media, *snapshot, *tools;
-    const char *basis, *review, *formats, *sf_home, *extra_tools, *draft, *message;
+    const char *basis, *review, *formats, *sf_home, *extra_tools, *draft, *message, *git_since;
     strlist categories, subjects, notes, importance;
     long medium_sectors;
     double min_redundancy;
@@ -78,6 +78,7 @@ static const char HELP[] =
     "  --draft FILE           title, description, subjects, notes and folder tags from a draft (the JSON\n"
     "                         arv describe --save and arv tag --save write); options given win\n"
     "  --extra-tools DIR      a folder copied to tools/extra/ (dvdisaster binaries, say)\n"
+    "  --git-since DATE       git repositories keep only the history since DATE (shallow; default: all)\n"
     "  --split                spread the folder over as many discs as needed\n"
     "In a collection's workflow folder (arv collection init), the collection gives the title, set,\n"
     "categories and access, its code starts the disc ids, and each make is its next edition (a full copy):\n"
@@ -140,6 +141,7 @@ static int parse_options(int argc, char **argv, options *o)
         else if (!strcmp(a, "--location")) str = &o->location;
         else if (!strcmp(a, "--access")) { str = &o->access; o->access_given = 1; }
         else if (!strcmp(a, "--message")) str = &o->message;
+        else if (!strcmp(a, "--git-since")) str = &o->git_since;
         else if (!strcmp(a, "--rights")) str = &o->rights;
         else if (!strcmp(a, "--links")) str = &o->links;
         else if (!strcmp(a, "--medium")) str = &o->medium;
@@ -752,6 +754,7 @@ typedef struct {
     char *tree_text;            /* the collection's revision manifest */
     rec_record *revision;       /* this edition, once the discs are assigned */
     size_t left_out;            /* files arv keeps off the disc (its own .arv) */
+    gitrepos git;               /* repositories in the folder, their .git compacted */
     plan *plans;
     size_t nplans;
 } maker;
@@ -832,7 +835,8 @@ static int prior_disc(const maker *mk, const rec_record *d)
 
 static long snapshot_estimate(const maker *mk)
 {
-    static const char *const KINDS[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", NULL };
+    static const char *const KINDS[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", "git.tsv",
+                                         NULL };
     long total = 0;
     for (size_t i = 0; i < mk->cat->discs.n; i++) {
         const rec_record *d = mk->cat->discs.v[i];
@@ -1050,6 +1054,14 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
             free(fnote);
         }
         if (o->importance.n || o->basis) recs_add(&p->appraisals, new_appraisal(p->disc_id, &o->importance, o->basis, mk->review));
+        for (size_t k = 0; k < mk->git.n; k++) {      /* its git repositories: how each was treated */
+            char *head = *mk->git.v[k].path ? xprintf("%s/.git/HEAD", mk->git.v[k].path) : xstrdup(".git/HEAD");
+            int here = 0;
+            for (size_t f = 0; f < p->files.n && !here; f++) here = !strcmp(p->files.v[f].path, head);
+            free(head);
+            if (here) recs_add(&p->events, new_event(p->disc_id, "ingestion", mk->git.v[k].tsv ? "success" : "warning",
+                                                     mk->software, "automatic", mk->git.v[k].note));
+        }
     }
     if (mk->collection) mk->revision = revision_record(mk);
 }
@@ -1219,7 +1231,8 @@ static void stage_plan(maker *mk, size_t idx)
         free(n);
         free(all.v);
     }
-    static const char *const KINDS[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", NULL };
+    static const char *const KINDS[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", "git.tsv",
+                                         NULL };
     for (size_t i = 0; i < prior.n; i++) {               /* earlier discs' file lists (not sealed ones) */
         rec_record *d = archive_disc(cat, prior.v[i]);
         if (!d || !strcmp(disc_access(d), "sealed")) continue;
@@ -1249,6 +1262,13 @@ static void stage_plan(maker *mk, size_t idx)
             char *tg = join(dir, "tags.tsv");
             copy_file(mk->plans[b].b_tags, tg);
             free(tg);
+        }
+        char *gt = git_tsv_for(&mk->git, &mk->plans[b].files);     /* its repositories' commits */
+        if (gt) {
+            char *gp = join(dir, "git.tsv");
+            write_text(gp, gt);
+            free(gp);
+            free(gt);
         }
         free(dir); free(m); free(l);
     }
@@ -1462,6 +1482,8 @@ static int make_discs(maker *mk)
     out_dir = abs_out;
     mk->workdir = xprintf("%s/.archive-make-XXXXXX", out_dir);
     if (!mkdtemp(mk->workdir)) die("cannot create a work folder in %s", out_dir);
+    git_prepare(mk->src, mk->workdir, o->git_since, mk->files, &mk->git);   /* .git: compacted copies */
+    for (size_t k = 0; k < mk->git.n; k++) mk->left_out += mk->git.v[k].tsv != NULL;
     if (o->ro_crate) {
         sbuf clash = { 0 };
         for (size_t i = 0; i < mk->files->n; i++)
@@ -1542,11 +1564,11 @@ static int make_discs(maker *mk)
         for (size_t k = 0; k < p->appraisals.n; k++) recs_add(&mk->cat->appraisals, p->appraisals.v[k]);
         char *home_vol = xprintf("%s/volumes/%s", mk->h->catalog_dir, p->disc_id);
         if (mkdirs(home_vol)) die("cannot create %s", home_vol);
-        const char *kinds[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv" };
+        const char *kinds[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", "git.tsv" };
         char *own = xprintf("%s/catalog/volumes/%s", p->stage, p->disc_id);
         char *from[] = { join(own, "manifest.sha256"), join(own, "listing.tsv"), join(own, "formats.csv"), join(own, "tags.tsv"),
-                         xstrdup(p->extents) };
-        for (int k = 0; k < 5; k++) {       /* extents: kept at home and on later discs, never on this one */
+                         xstrdup(p->extents), join(own, "git.tsv") };
+        for (int k = 0; k < 6; k++) {       /* extents: kept at home and on later discs, never on this one */
             if (!access(from[k], F_OK)) {
                 char *to = join(home_vol, kinds[k]);
                 copy_file(from[k], to);

@@ -106,11 +106,13 @@ static int by_entry(const void *a, const void *b)
 char *tree_manifest(const entries *files)
 {
     const entry **v = xmalloc((files->n + 1) * sizeof *v);
-    for (size_t i = 0; i < files->n; i++) v[i] = &files->v[i];
-    qsort(v, files->n, sizeof *v, by_entry);
+    size_t n = 0;
+    for (size_t i = 0; i < files->n; i++)       /* a repository's history is in git.tsv, not here */
+        if (!git_internal(files->v[i].path)) v[n++] = &files->v[i];
+    if (n) qsort(v, n, sizeof *v, by_entry);
     sbuf b = { 0 };
     sb_puts(&b, "");
-    for (size_t i = 0; i < files->n; i++) sb_printf(&b, "%s  %s\n", v[i]->sha256, v[i]->path);
+    for (size_t i = 0; i < n; i++) sb_printf(&b, "%s  %s\n", v[i]->sha256, v[i]->path);
     free(v);
     return b.s;
 }

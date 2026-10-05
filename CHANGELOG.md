@@ -33,6 +33,11 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - Copies have a form (disc, iso, folder) and a temperature: hot (in active use), warm (online
   or reachable, left alone: an image on a NAS) or cold (offline: discs on a shelf); places carry
   a default (`arv location add|move --temperature`), and `arv todo` lists discs with no cold copy.
+- Git repositories go on a disc as working files plus a compacted `.git` (one pack; no hooks,
+  reflogs but the stash's, or credentials in remote URLs), optionally trimmed with
+  `--git-since DATE`; `git.tsv` lists each repository's roots, heads and commits. `arv status`
+  recognises a repository by its history (archived, ahead of a branch on a disc, diverged, not
+  archived) and `arv find COMMIT` names the discs holding a commit.
 - `arv stored DISC-ID PATH`: a copy kept on a drive or NAS, as the image file or as a folder,
   checked (read back, or verified as the bag) and then recorded; warm unless its place says.
 - Each home catalogue (archive) has an identity: a `Home` record with a Uuid, made by `arv init`;

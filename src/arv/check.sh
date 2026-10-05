@@ -6,7 +6,8 @@
 #   restores to a clean `git status` (links and execute bits included), and damage is found;
 #   RS03 is added, tested (and damage found) and repaired by arv itself; with dvdisaster Light, it
 #   accepts and repairs arv's images; with Siegfried, formats are identified; with arv's
-#   git checkout as the source, tools/ gets the commit and its history;
+#   git checkout as the source, tools/ gets the commit and its history; git repositories in a
+#   folder go on as a compacted .git (trimmed with --git-since) and are recognised by their history;
 # - SHA-256 and SHA-512 against sha256sum and sha512sum, and the recfile writer.
 # - that describe, tag and models go to arv-assist, and gui to arv-gui.
 # (tests/fixtures/ is checked by build/fixtures, which make check runs first.)
@@ -88,6 +89,54 @@ fi
 "$tool" --home fresh-home location add HOME "Home" >/dev/null && [ -s fresh-home/catalog/archive.rec ] \
     && ok "a catalogue command on a home that does not exist yet creates it" || no "location add on a new home"
 
+
+# ------------------------------------------------------------------ git repositories: compacted, trimmed, recognised
+gitenv() { GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.invalid GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@example.invalid "$@"; }
+mkdir -p g/src/proj
+(
+    cd g/src/proj && git init -q -b main
+    for i in 1 2 3; do
+        echo $i > f$i && git add f$i
+        GIT_AUTHOR_DATE="200$i-01-01T00:00:00Z" GIT_COMMITTER_DATE="200$i-01-01T00:00:00Z" gitenv git commit -qm c$i
+    done
+    git remote add origin https://me:secret@example.invalid/x.git
+    printf '#!/bin/sh\nexit 0\n' > .git/hooks/post-checkout && chmod +x .git/hooks/post-checkout
+    echo wip > f1 && gitenv git stash -q && echo dirty > f2
+)
+"$tool" make -C g/home -y --no-ecc --formats no --set CODE --output g/full.iso g/src >g/make.txt 2>&1 || { cat g/make.txt; no "arv make (git)"; }
+7z x -og/full g/full.iso >/dev/null
+r=g/full/data/proj
+git -C $r fsck --no-progress >/dev/null 2>&1 && [ "$(git -C $r rev-list --all | wc -l)" -eq 5 ] \
+    && [ "$(git -C $r stash list | wc -l)" -eq 1 ] && [ "$(ls $r/.git/objects/pack/*.pack | wc -l)" -eq 1 ] \
+    && ok "git: the disc holds a whole repository: one pack, every commit, the stash (fsck)" || no "git: the compacted .git"
+[ "$(git -C $r status --porcelain)" = " M f2" ] && ok "git: the uncommitted change is kept, as a plain file" \
+    || no "git status on the disc: $(git -C $r status --porcelain)"
+[ ! -e $r/.git/hooks/post-checkout ] && ! grep -q secret $r/.git/config && grep -q "url = https://example.invalid/x.git" $r/.git/config \
+    && ok "git: hooks and the credentials in remote URLs are left out" || no "git: hooks or credentials on the disc"
+grep -q "^proj	root	" g/full/catalog/volumes/*/git.tsv && grep -q "^proj	commit	" g/full/catalog/volumes/*/git.tsv \
+    && grep -q "git repository proj: 1 branch, 0 tags, 5 commits, history full" g/home/catalog/archive.rec \
+    && ok "git: git.tsv lists its roots, heads and commits; the ingestion event says what was done" || no "git: git.tsv or event"
+"$tool" make -C g/home -y --no-ecc --formats no --set CODE --git-since 2002-06-01 --output g/trim.iso g/src >/dev/null 2>&1 \
+    || no "arv make --git-since"
+7z x -og/trim g/trim.iso >/dev/null
+t=g/trim/data/proj
+git -C $t fsck --no-progress >/dev/null 2>&1 && [ -f $t/.git/shallow ] && ! git -C $t cat-file -e HEAD~1 2>/dev/null \
+    && grep -q "^proj	root	$(git -C g/src/proj rev-list --max-parents=0 HEAD)" g/trim/catalog/volumes/CODE-02*/git.tsv \
+    && ok "git: --git-since keeps the history since then (shallow, fsck clean); git.tsv keeps the true root" \
+    || no "git: --git-since"
+"$tool" status -C g/home g/src 2>/dev/null | grep -q "git proj: archived: its HEAD .* is on CODE-0.*; uncommitted changes" \
+    && ok "git: status knows the repository is archived (by its HEAD)" || no "git: status, archived"
+(cd g/src/proj && git checkout -q f2 && echo 4 > f4 && git add f4 && gitenv git commit -qm c4)
+"$tool" status -C g/home g/src 2>/dev/null | grep -q "git proj: 1 commit newer than refs/heads/main on CODE-0" \
+    && ok "git: and when it is a commit ahead of the disc" || no "git: status, ahead"
+git clone -q g/src/proj g/other/proj && (cd g/other/proj && git reset -q --hard HEAD~2 && echo x > x && git add x && gitenv git commit -qm x)
+mkdir -p g/other/new && (cd g/other/new && git init -q && echo y > y && git add y && gitenv git commit -qm y)
+"$tool" status -C g/home g/other 2>/dev/null > g/status.txt
+grep -q "git proj: diverged from CODE-0.*: 1 commit on no disc" g/status.txt && grep -q "git new: not archived" g/status.txt \
+    && ok "git: a diverged clone and an unrelated repository are told apart, wherever they are" \
+    || { cat g/status.txt; no "git: status, diverged or new"; }
+"$tool" find -C g/home "$(git -C g/src/proj rev-parse --short=9 HEAD~1)" | grep -q "^GIT   CODE-01.*proj  commit .*(HEAD, refs/heads/main)" \
+    && ok "git: arv find COMMIT names the discs holding it" || no "git: find a commit"
 # ------------------------------------------------------------------ what depends on the machine
 "$tool" make -C hist --no-ecc --formats no --set CODE --tools-history --output-dir hist-out src >hist.txt 2>&1 \
     || no "arv make --tools-history"
