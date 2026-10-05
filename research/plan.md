@@ -524,26 +524,51 @@ provisional discs are cheap BD-R, and they are retired.
    (`arv make --binding folder DEST`): the same bags, so the same manifests and hashes, and it
    counts as a copy in copy health ("final edition: 1 disc copy + 1 NAS copy").
 
-**The log** is `Edition` records in `archive.rec`, so every disc carries the whole history in its
-snapshot (limited by access, as now):
+**Git's model, for any folder: a UUID for the lineage, hashes for each state.** Three
+identifiers, one job each:
+
+| Identifier | Says | Git's equivalent |
+|---|---|---|
+| collection `Uuid` (v4, made by `arv collection init`) | *which thing*: the same collection, however renamed, moved or changed | (none: git infers it from the root commit) |
+| `Tree` (SHA-256 of the sorted manifest: path and SHA-256 of every file) | *which exact contents*, wherever they are | tree hash |
+| `Node` (SHA-256 of Tree, Parent(s), Date, Message) | *which state in the history* | commit hash |
+| disc id and image `Uuid` (as now) | *which physical image*; copies share it | (none) |
+
+- The UUID is in the folder's marker and the catalogue, never in the payload: a folder copied,
+  moved or restored keeps it (`arv restore` writes the marker back), so it continues the same
+  lineage.
+- **Snapshots are commits; editions are snapshots that became discs.** `arv snapshot` (or
+  `arv status --record`) logs the folder's state with no content stored: the NAS holds the
+  content, the log holds hashes. It costs a manifest (about 100 bytes a file) in the home
+  catalogue, and gives `arv log`, `arv diff A B` and a fixity history between burns. `arv make`
+  takes a snapshot and turns it into an edition.
+- **Forks**: a folder copied to two places carries the same UUID. When both take snapshots,
+  the history branches, as in git: `arv status` says "FAMILY has two heads: /nas/family and
+  ~/family" and the person merges by hand (or `arv collection fork` gives one a new UUID).
+- Identical contents are found across collections by `Tree` alone, without comparing files.
+
+**The log** is `Snapshot` records in `archive.rec`, so every disc carries the whole history in
+its catalogue copy (limited by access, as now); each snapshot's manifest is in the home
+catalogue, and an edition's is on its discs:
 
 ```
-%rec: Edition
-%key: Id
-Id: FAMILY/4
-Collection: FAMILY
-Stage: final
-Parent: FAMILY/3
+%rec: Snapshot
+%key: Node
+Node: 3f9a...                      SHA-256 of Tree, Parent, Date, Message
+Collection: 0b6c2f1e-...           the collection's Uuid
+Tree: 81d0...                      SHA-256 of the sorted manifest
+Parent: c47e...                    (two for a merge)
 Date: 2026-01-10
+Stage: final                       checkpoint (no discs) | provisional | final
+Edition: 4                         snapshots that became discs are numbered
 Volume: FAMILY-05_2001-2025_X
 Volume: FAMILY-06_2001-2025_Q
-Node: <SHA-256 over the volumes' tagmanifests>
-Changes: +312 ~4 -17 files since FAMILY/3
+Changes: +312 ~4 -17 files since the parent
 Message: the 2025 sort, final
 ```
 
-`Retired` is an event on a volume (with a reason: `replaced by FAMILY/4`); a `Collection`
-record holds the code, title, description and defaults.
+`Retired` is an event on a volume (with a reason: `replaced by edition 4`); a `Collection`
+record holds the code, Uuid, title, description and defaults.
 
 **Git repositories in a collection.** A repository already keeps its own provisional history
 (commits); a disc is a snapshot of the working tree **and all history up to that point**, so an
@@ -604,7 +629,8 @@ edition stays a full copy. Any folder in the collection with a `.git` is handled
 - **Tracked folders** get `arv status PATH` too: for each file, archived on which discs, or
   not yet; the first part of the organiser below.
 - **Recognising a plain folder (no git) as the same but changed**, strongest evidence first:
-  1. *Declared*: a workflow folder's marker names its collection. Exact; no guessing.
+  1. *Declared*: a workflow folder's marker carries its collection's Uuid. Exact; no guessing,
+     whatever happened to the folder's name, place or contents.
   2. *Content*: otherwise the folder's files are matched against the discs' manifests by
      SHA-256. Each file is **unchanged** (same path, same hash), **changed** (same path, new
      hash), **moved** (same hash, new path), **new** or **removed**. The folder as a whole is
@@ -624,8 +650,9 @@ edition stays a full copy. Any folder in the collection with a `.git` is handled
     hashes (changed, same path); an edited file that was also renamed is new + removed.
 
 **Steps**
-- [ ] Format 0.5: `Collection` (the kept thing), `Edition`, `Selection`, the `Retired` event; the
-      spec, fixtures and reference outputs.
+- [ ] Format 0.5: `Collection` (with its Uuid), `Snapshot` (Tree, Node, editions), `Selection`,
+      the `Retired` event; the spec, fixtures and reference outputs.
+- [ ] `arv snapshot`, `arv log`, `arv diff`, and the hash cache they share with `arv status`.
 - [ ] `arv collection init`, the marker, and `arv make` taking its settings from it.
 - [ ] `arv status` (a workflow folder: changes since the last edition; any folder: archived or
       not) and `arv log`.
