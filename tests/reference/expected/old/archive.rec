@@ -34,9 +34,8 @@ Access: public
 Files: 16
 Bytes: 9443
 Software: arv@e8c6358ab75d
-Copies: 4
+Copies: 2
 Location: OFFSITE
-MediaId: MEI-T02
 
 Id: PROJ-01_2020-2023_L
 Uuid: UUID
@@ -61,7 +60,6 @@ Bytes: 32142
 Software: arv@e8c6358ab75d
 Copies: 1
 Note: Board rev B; rev A gerbers were never ordered.
-Note: A long note that goes on about the weather station, its board revisions and the spare parts
 
 Id: TAXES-01_2019-2020_I
 Uuid: UUID
@@ -99,7 +97,6 @@ Part: 1 of 3
 Creator: Sample_Person
 Description: Scans of letters kept since 1995.
 Location: BOX1
-Location: SAFE
 Access: private
 Files: 25
 Bytes: 2504433
@@ -164,7 +161,7 @@ Coverage: 2020/2021
 Date: 2026-10-04
 Creator: Sample_Person
 Description: Birthdays, the garden, the beach and Christmas.
-Location: Somewhere new
+Location: OFFSITE
 Access: private
 Files: 16
 Bytes: 8828
@@ -262,6 +259,19 @@ Parent: HOME
 
 Code: OFFSITE
 Name: Parents' house
+
+%rec: Selection
+%doc: Virtual folders across discs. Item is DISC-ID (a whole disc), DISC-ID:folder/
++ or DISC-ID:folder/file (paths relative to the disc's data/). Parent nests
++ selections. Snapshots on other discs carry only items they may show.
++ Format 0.4 and earlier called these Collection (a Collection without a Uuid).
+%key: Code
+%mandatory: Code Name
+
+Code: OLD
+Name: Kept from format 0.4
+Item: TRIP-01_2019_4:day1 Fushimi Inari/
+Item: PROJ-01_2020-2023_L
 
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
@@ -686,37 +696,13 @@ Note: image test with dvdisaster -t
 + - data md5sum      : b37275a289d7940e029a67bda058640e
 + - Ecc block test   : pass
 
-Disc: TRIP-01_2019_4
-Type: replication
-Date: 2026-01-01
-Outcome: success
-Authorship: human
-Agent: human:archivist
-Note: burned 2 copies, kept at Home / Study / Box 1, blue lid; for the attic
-
-Disc: PROJ-01_2020-2023_L
+Object: selection:OLD
 Type: metadata modification
 Date: 2026-01-01
 Outcome: success
 Authorship: human
 Agent: human:archivist
-Note: Note added: A long note that goes on about the weather station, its b...
-
-Disc: SCAN-01_1995-2008_D
-Type: metadata modification
-Date: 2026-01-01
-Outcome: success
-Authorship: human
-Agent: human:archivist
-Note: Location: BOX1 -> BOX1, SAFE
-
-Disc: FAMILY-01_2020-2021_K
-Type: metadata modification
-Date: 2026-01-01
-Outcome: success
-Authorship: human
-Agent: human:archivist
-Note: Location: OFFSITE -> Somewhere new
+Note: 1 item added
 
 %rec: Appraisal
 %doc: The archivist log: how much something matters, to whom, and why. Appended and
@@ -757,3 +743,9 @@ Basis: hardware designs: someone may want to rebuild one
 Date: 2026-10-04
 Authorship: human
 Agent: human:root
+
+Target: collection:OLD
+Importance: useful for family
+Date: 2026-01-01
+Authorship: human
+Agent: human:archivist

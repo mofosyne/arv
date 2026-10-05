@@ -45,7 +45,7 @@ arv note DISC-ID TEXT
 arv locate [--add] DISC-ID PLACE...
 arv access DISC-ID public|private|sealed
 arv location list [-v] | add CODE [NAME] [--in PARENT] | move CODE [NAME] [--in PARENT]
-arv collection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]
+arv selection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]
 arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]
 arv sets [-v]                          the set vocabulary with disc counts
 arv names FOLDER                       names the image cannot hold, or Windows would change

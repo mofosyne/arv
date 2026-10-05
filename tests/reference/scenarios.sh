@@ -246,6 +246,24 @@ log edit.out names --limit 2 names
 keep edit.out edit/transcript.txt
 keep edit/catalog/archive.rec edit/archive.rec
 
+# ------------------------------------------------------------------ format 0.4 catalogues: Collection meant a selection
+cp -r "$here/home" old
+cat >> old/catalog/archive.rec <<'EOF'
+
+%rec: Collection
+%key: Code
+
+Code: OLD
+Name: Kept from format 0.4
+Item: TRIP-01_2019_4:day1 Fushimi Inari/
+EOF
+log old.out --home old selection list
+log old.out --home old selection show OLD
+log old.out --home old appraise collection:OLD --importance "useful for family"
+log old.out --home old selection put OLD PROJ-01_2020-2023_L
+keep old.out old/transcript.txt
+keep old/catalog/archive.rec old/archive.rec
+
 # ------------------------------------------------------------------ init, named homes, pointers, --archive
 mkdir -p init/a init/b init/c/sub
 (

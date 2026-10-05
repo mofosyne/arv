@@ -1,5 +1,5 @@
-/* The catalogue as arv writes it (src/arv/catalog.py Catalog): Disc, Binding, Location,
- * Collection, Event and Appraisal records, written in that order under the shared descriptors
+/* The catalogue as arv writes it: Disc, Binding, Location, Selection, Collection, Revision,
+ * Event and Appraisal records, written in that order under the shared descriptors
  * (descriptors.rec), and the views of it a disc may carry (access levels, snapshots). */
 #define _XOPEN_SOURCE 700
 #include "arv.h"
@@ -50,12 +50,15 @@ rec_record *descriptor(const char *type)
     return NULL;
 }
 
-static const char *const TYPES[] = { "Disc", "Binding", "Location", "Collection", "Event", "Appraisal" };
+static const char *const TYPES[] = { "Disc", "Binding", "Location", "Selection", "Collection", "Revision",
+                                     "Event", "Appraisal" };
+enum { NTYPES = 8, EVENT_TYPE = 6 };
 
 static recs *group(archive *a, const char *type)
 {
-    recs *g[] = { &a->discs, &a->bindings, &a->locations, &a->collections, &a->events, &a->appraisals };
-    for (int i = 0; i < 6; i++)
+    recs *g[] = { &a->discs, &a->bindings, &a->locations, &a->selections, &a->collections, &a->revisions,
+                  &a->events, &a->appraisals };
+    for (int i = 0; i < NTYPES; i++)
         if (!strcmp(type, TYPES[i])) return g[i];
     return NULL;
 }
@@ -74,6 +77,8 @@ void archive_load(archive *a, const char *path)
     }
     for (size_t i = 0; i < a->file.nrecords; i++) {
         rec_record *r = &a->file.records[i];
+        if (!r->descriptor && r->type && !strcmp(r->type, "Collection") && !rec_get(r, "Uuid"))
+            r->type = "Selection";          /* format 0.4 and earlier: virtual folders were Collection */
         recs *g = r->descriptor || !r->type ? NULL : group(a, r->type);
         if (g) recs_add(g, r);
     }
@@ -82,9 +87,10 @@ void archive_load(archive *a, const char *path)
 /* every record in file order: each type's descriptor, then its records (as Catalog.records) */
 void archive_records(const archive *a, recs *out)
 {
-    const recs *g[] = { &a->discs, &a->bindings, &a->locations, &a->collections, &a->events, &a->appraisals };
-    for (int i = 0; i < 6; i++) {
-        int always = i == 0 || i == 4;              /* Disc and Event descriptors are always written */
+    const recs *g[] = { &a->discs, &a->bindings, &a->locations, &a->selections, &a->collections, &a->revisions,
+                        &a->events, &a->appraisals };
+    for (int i = 0; i < NTYPES; i++) {
+        int always = i == 0 || i == EVENT_TYPE;     /* Disc and Event descriptors are always written */
         if (!always && !g[i]->n) continue;
         recs_add(out, descriptor(TYPES[i]));
         for (size_t k = 0; k < g[i]->n; k++) recs_add(out, g[i]->v[k]);
@@ -201,6 +207,13 @@ void archive_locations_for(const archive *a, const recs *discs, recs *out)
     strlist_free(&codes);
 }
 
+const char *selection_target(const char *target)
+{
+    if (!strncmp(target, "selection:", 10)) return target + 10;
+    if (!strncmp(target, "collection:", 11)) return target + 11;
+    return NULL;
+}
+
 /* "DISC-ID:path" -> the disc id (and whether there is a path) */
 static char *item_disc(const char *item, int *has_path)
 {
@@ -217,13 +230,13 @@ static char *item_disc(const char *item, int *has_path)
     return id;
 }
 
-/* collections as a snapshot may carry them: items only for disc_ids, no paths on sealed discs */
-void archive_collections_for(const archive *a, const strlist *disc_ids, recs *out)
+/* selections as a snapshot may carry them: items only for disc_ids, no paths on sealed discs */
+void archive_selections_for(const archive *a, const strlist *disc_ids, recs *out)
 {
     strlist keep_codes = { 0 };
     recs kept = { 0 };
-    for (size_t i = 0; i < a->collections.n; i++) {
-        rec_record *col = a->collections.v[i], *copy = rec_alloc("Collection");
+    for (size_t i = 0; i < a->selections.n; i++) {
+        rec_record *col = a->selections.v[i], *copy = rec_alloc("Selection");
         int any = 0;
         for (size_t f = 0; f < col->nfields; f++)
             if (strcmp(col->fields[f].name, "Item")) rec_add(copy, col->fields[f].name, col->fields[f].value);
@@ -238,14 +251,14 @@ void archive_collections_for(const archive *a, const strlist *disc_ids, recs *ou
             free(id);
         }
         recs_add(&kept, copy);
-        if (any)        /* it and every collection it is in */
-            for (rec_record *c = col; c; c = by_code(&a->collections, rec_get(c, "Parent"))) {
+        if (any)        /* it and every selection it is in */
+            for (rec_record *c = col; c; c = by_code(&a->selections, rec_get(c, "Parent"))) {
                 if (in_list(&keep_codes, rec_get(c, "Code"))) break;
                 strlist_add(&keep_codes, rec_get(c, "Code"));
             }
     }
-    for (size_t i = 0; i < a->collections.n; i++)
-        if (in_list(&keep_codes, rec_get(a->collections.v[i], "Code"))) recs_add(out, kept.v[i]);
+    for (size_t i = 0; i < a->selections.n; i++)
+        if (in_list(&keep_codes, rec_get(a->selections.v[i], "Code"))) recs_add(out, kept.v[i]);
     free(kept.v);
     strlist_free(&keep_codes);
 }
@@ -277,7 +290,7 @@ rec_record *sealed_view(const rec_record *d)
 
 static const char *target_disc(const char *target, char *buf, size_t n)
 {
-    if (!target || !strncmp(target, "set:", 4) || !strncmp(target, "collection:", 11)) return NULL;
+    if (!target || !strncmp(target, "set:", 4) || selection_target(target)) return NULL;
     char *id = item_disc(target, NULL);
     snprintf(buf, n, "%s", id);
     free(id);
@@ -477,8 +490,9 @@ static int in_recs(const recs *l, const rec_record *r)
     return 0;
 }
 
-/* Merges other into home (catalog.merge): new discs, bindings, places and collections are added,
- * collection items unioned, events and appraisals appended when new. With prefer_other, existing
+/* Merges other into home (catalog.merge): new discs, bindings, places, selections, collections and
+ * revisions are added, selection items unioned, events and appraisals appended when new. With
+ * prefer_other, existing
  * records take the other's fields (a sealed disc's cut-down record never replaces a full one).
  * Returns the number of new events; added and updated get disc ids. */
 size_t archive_merge(archive *home, const archive *other, int prefer_other, strlist *added, strlist *updated)
@@ -499,15 +513,15 @@ size_t archive_merge(archive *home, const archive *other, int prefer_other, strl
         if (!existing) recs_add(&home->bindings, b);
         else if (prefer_other) replace_fields(existing, b);
     }
-    for (size_t i = 0; i < other->collections.n; i++) {     /* items are unioned: a filtered copy never removes any */
-        rec_record *c = other->collections.v[i], *existing = by_key(&home->collections, "Code", rec_get(c, "Code"), 1);
+    for (size_t i = 0; i < other->selections.n; i++) {     /* items are unioned: a filtered copy never removes any */
+        rec_record *c = other->selections.v[i], *existing = by_key(&home->selections, "Code", rec_get(c, "Code"), 1);
         if (!existing) {
-            recs_add(&home->collections, c);
+            recs_add(&home->selections, c);
             continue;
         }
         if (prefer_other) {
             rec_record merged = { 0 };
-            merged.type = "Collection";
+            merged.type = "Selection";
             for (size_t f = 0; f < c->nfields; f++)
                 if (strcmp(c->fields[f].name, "Item")) rec_add(&merged, c->fields[f].name, c->fields[f].value);
             for (size_t f = 0; f < existing->nfields; f++)
@@ -530,6 +544,14 @@ size_t archive_merge(archive *home, const archive *other, int prefer_other, strl
         if (!existing) recs_add(&home->locations, l);
         else if (prefer_other) replace_fields(existing, l);
     }
+    for (size_t i = 0; i < other->collections.n; i++) {     /* the same collection is the same Uuid */
+        rec_record *c = other->collections.v[i], *existing = by_key(&home->collections, "Uuid", rec_get(c, "Uuid"), 0);
+        if (!existing) recs_add(&home->collections, c);
+        else if (prefer_other) replace_fields(existing, c);
+    }
+    for (size_t i = 0; i < other->revisions.n; i++)          /* a log: revisions are added, never edited */
+        if (!by_key(&home->revisions, "Node", rec_get(other->revisions.v[i], "Node"), 0))
+            recs_add(&home->revisions, other->revisions.v[i]);
     for (size_t i = 0; i < other->events.n; i++)
         if (!in_recs(&home->events, other->events.v[i])) {
             recs_add(&home->events, other->events.v[i]);

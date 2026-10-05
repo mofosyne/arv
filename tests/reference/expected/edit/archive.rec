@@ -265,10 +265,11 @@ Name: Attic, top shelf
 Parent: BOX1
 Description: dusty
 
-%rec: Collection
+%rec: Selection
 %doc: Virtual folders across discs. Item is DISC-ID (a whole disc), DISC-ID:folder/
 + or DISC-ID:folder/file (paths relative to the disc's data/). Parent nests
-+ collections. Snapshots on other discs carry only items they may show.
++ selections. Snapshots on other discs carry only items they may show.
++ Format 0.4 and earlier called these Collection (a Collection without a Uuid).
 %key: Code
 %mandatory: Code Name
 
@@ -284,9 +285,9 @@ Parent: BEST
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
-+ Disc names the disc; a change to a location or a collection names it in Object
-+ (location:CODE, collection:CODE) instead. Agent (one or more) is software
-+ (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
++ Disc names the disc; a change to a location or a selection names it in Object
++ (location:CODE, selection:CODE; collection:CODE before format 0.5) instead.
++ Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion
 + a person kept as it was), edited (one a person changed), human (a person alone).
@@ -728,7 +729,7 @@ Authorship: human
 Agent: human:archivist
 Note: renamed Attic shelf -> Attic, top shelf
 
-Object: collection:BEST
+Object: selection:BEST
 Type: metadata modification
 Date: 2026-01-01
 Outcome: success
@@ -736,7 +737,7 @@ Authorship: human
 Agent: human:archivist
 Note: created; 2 items added
 
-Object: collection:BEST
+Object: selection:BEST
 Type: metadata modification
 Date: 2026-01-01
 Outcome: success
@@ -744,7 +745,7 @@ Authorship: human
 Agent: human:archivist
 Note: 1 item added
 
-Object: collection:BEST
+Object: selection:BEST
 Type: metadata modification
 Date: 2026-01-01
 Outcome: success
@@ -752,7 +753,7 @@ Authorship: human
 Agent: human:archivist
 Note: 1 item removed
 
-Object: collection:BEST
+Object: selection:BEST
 Type: metadata modification
 Date: 2026-01-01
 Outcome: success
@@ -760,7 +761,7 @@ Authorship: human
 Agent: human:archivist
 Note: renamed Best of -> Best
 
-Object: collection:KIDS
+Object: selection:KIDS
 Type: metadata modification
 Date: 2026-01-01
 Outcome: success
@@ -780,7 +781,7 @@ Note: Access: sealed -> private
 %doc: The archivist log: how much something matters, to whom, and why. Appended and
 + never edited; the newest appraisal of a target replaces earlier ones, and one a
 + person made or reviewed outranks a machine's. Target is DISC-ID, DISC-ID:folder/,
-+ DISC-ID:folder/file (relative to data/), set:CODE or collection:CODE; a target
++ DISC-ID:folder/file (relative to data/), set:CODE or selection:CODE; a target
 + without an appraisal takes the nearest one above it (file, folder, disc, set).
 + Importance is '<level> for <audience>', one per audience; levels, most first:
 + essential (must survive: several copies, one elsewhere), important (on disc),
@@ -824,7 +825,7 @@ Authorship: human
 Agent: human:archivist
 Review: 2030-01-01
 
-Target: collection:BEST
+Target: selection:BEST
 Importance: essential for family
 Date: 2026-01-01
 Authorship: human

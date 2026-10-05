@@ -537,22 +537,23 @@ identifiers, one job each:
 - The UUID is in the folder's marker and the catalogue, never in the payload: a folder copied,
   moved or restored keeps it (`arv restore` writes the marker back), so it continues the same
   lineage.
-- **Snapshots are commits; editions are snapshots that became discs.** `arv snapshot` (or
+- **Revisions are commits; editions are revisions that became discs.** `arv checkpoint` (or
   `arv status --record`) logs the folder's state with no content stored: the NAS holds the
-  content, the log holds hashes. It costs a manifest (about 100 bytes a file) in the home
+  content, the log holds hashes. (Not "snapshot": that word already means a disc's copy of the
+  catalogue.) It costs a manifest (about 100 bytes a file) in the home
   catalogue, and gives `arv log`, `arv diff A B` and a fixity history between burns. `arv make`
-  takes a snapshot and turns it into an edition.
-- **Forks**: a folder copied to two places carries the same UUID. When both take snapshots,
+  records a revision and turns it into an edition.
+- **Forks**: a folder copied to two places carries the same UUID. When both record revisions,
   the history branches, as in git: `arv status` says "FAMILY has two heads: /nas/family and
   ~/family" and the person merges by hand (or `arv collection fork` gives one a new UUID).
 - Identical contents are found across collections by `Tree` alone, without comparing files.
 
-**The log** is `Snapshot` records in `archive.rec`, so every disc carries the whole history in
-its catalogue copy (limited by access, as now); each snapshot's manifest is in the home
+**The log** is `Revision` records in `archive.rec`, so every disc carries the whole history in
+its catalogue copy (limited by access, as now); each revision's manifest is in the home
 catalogue, and an edition's is on its discs:
 
 ```
-%rec: Snapshot
+%rec: Revision
 %key: Node
 Node: 3f9a...                      SHA-256 of Tree, Parent, Date, Message
 Collection: 0b6c2f1e-...           the collection's Uuid
@@ -560,7 +561,7 @@ Tree: 81d0...                      SHA-256 of the sorted manifest
 Parent: c47e...                    (two for a merge)
 Date: 2026-01-10
 Stage: final                       checkpoint (no discs) | provisional | final
-Edition: 4                         snapshots that became discs are numbered
+Edition: 4                         revisions that became discs are numbered
 Volume: FAMILY-05_2001-2025_X
 Volume: FAMILY-06_2001-2025_Q
 Changes: +312 ~4 -17 files since the parent
@@ -661,9 +662,9 @@ edition stays a full copy. Any folder in the collection with a `.git` is handled
     hashes (changed, same path); an edited file that was also renamed is new + removed.
 
 **Steps**
-- [ ] Format 0.5: `Collection` (with its Uuid), `Snapshot` (Tree, Node, editions), `Selection`,
+- [ ] Format 0.5: `Collection` (with its Uuid), `Revision` (Tree, Node, editions), `Selection`,
       the `Retired` event; the spec, fixtures and reference outputs.
-- [ ] `arv snapshot`, `arv log`, `arv diff`, and the hash cache they share with `arv status`.
+- [ ] `arv checkpoint`, `arv log`, `arv diff`, and the hash cache they share with `arv status`.
 - [ ] `arv collection init`, the marker, and `arv make` taking its settings from it.
 - [ ] `arv status` (a workflow folder: changes since the last edition; any folder: archived or
       not) and `arv log`.

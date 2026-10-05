@@ -1,0 +1,13 @@
+$ --home old selection list
+OLD          Kept from format 0.4                 1 item
+rc=0
+$ --home old selection show OLD
+OLD  Kept from format 0.4
+  day1 Fushimi Inari/                                TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]
+rc=0
+$ --home old appraise collection:OLD --importance useful for family
+collection:OLD: useful for family
+rc=0
+$ --home old selection put OLD PROJ-01_2020-2023_L
+OLD: Kept from format 0.4, 2 items
+rc=0

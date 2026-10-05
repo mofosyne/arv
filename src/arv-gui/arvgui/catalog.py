@@ -4,7 +4,7 @@ Home layout (the working copy: a .arv folder, found as described in homes.py):
 
     config/         what you set up: sets.rec (vocabulary), tags.rec (tag vocabulary)
     catalog/        the catalogue, laid out exactly like catalog/ on every disc:
-      archive.rec                       Disc / Binding / Location / Collection / Event / Appraisal records
+      archive.rec                       Disc / Binding / Location / Selection / Collection / Revision / Event / Appraisal records
       volumes/<disc-id>/manifest.sha256 that disc's manifest-sha256.txt
       volumes/<disc-id>/listing.tsv     size, modification time and path of each file
       volumes/<disc-id>/formats.csv     PRONOM format of each file (when Siegfried is installed)
@@ -25,11 +25,13 @@ import re
 
 from . import homes, recfile
 
-# The record descriptors (Disc, Binding, Location, Collection, Event, Appraisal, then the Archive
-# and Snapshot records on discs) live in arv's data/descriptors.rec (src/arv/data), shared with arv.
+# The record descriptors (the catalogue's TYPES, in the order written, then the Archive and Snapshot
+# records on discs) live in arv's data/descriptors.rec (src/arv/data), shared with arv.
+TYPES = ("Disc", "Binding", "Location", "Selection", "Collection", "Revision", "Event", "Appraisal")
 _ALL_DESCRIPTORS = recfile.read(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "arv", "data",
                                              "descriptors.rec"))
-DESCRIPTORS = _ALL_DESCRIPTORS[:6]
+DESCRIPTORS = _ALL_DESCRIPTORS[:len(TYPES)]
+assert tuple(d.type for d in DESCRIPTORS) == TYPES
 
 # Per-disc files kept at home and in each disc's catalog/ snapshot: folder -> extension
 DISC_FILE_KINDS = {
@@ -51,7 +53,7 @@ def volume_file(catalog_dir, kind, disc_id):
 # No dots: in file names everything before the first dot is the id (TRIP-01_2019_4.noecc.iso)
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 LOCATION_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{0,23}$")
-COLLECTION_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{0,31}$")
+SELECTION_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{0,31}$")
 
 
 # Access: who may see a disc's description and file list on *other* discs' catalogue snapshots.
@@ -89,47 +91,32 @@ def today():
 
 class Catalog:
     def __init__(self, records=None):
-        self.discs = []
-        self.bindings = []
-        self.locations = []
-        self.collections = []
-        self.events = []
-        self.appraisals = []
+        self.groups = {t: [] for t in TYPES}
         for r in records or []:
             if r.is_descriptor:
                 continue
-            if r.type == "Disc":
-                self.discs.append(r)
-            elif r.type == "Binding":
-                self.bindings.append(r)
-            elif r.type == "Location":
-                self.locations.append(r)
-            elif r.type == "Collection":
-                self.collections.append(r)
-            elif r.type == "Event":
-                self.events.append(r)
-            elif r.type == "Appraisal":
-                self.appraisals.append(r)
+            kind = r.type
+            if kind == "Collection" and r.get("Uuid") is None:
+                kind = "Selection"      # format 0.4 and earlier: virtual folders were Collection
+            if kind in self.groups:
+                self.groups[kind].append(r)
+        (self.discs, self.bindings, self.locations, self.selections, self.collections, self.revisions,
+         self.events, self.appraisals) = (self.groups[t] for t in TYPES)
 
     def records(self):
-        """Records in file order: each type's descriptor is followed by its records."""
-        disc_desc, binding_desc, location_desc, collection_desc, event_desc, appraisal_desc = DESCRIPTORS
-        out = [disc_desc] + self.discs
-        if self.bindings:
-            out += [binding_desc] + self.bindings
-        if self.locations:
-            out += [location_desc] + self.locations
-        if self.collections:
-            out += [collection_desc] + self.collections
-        out += [event_desc] + self.events
-        if self.appraisals:
-            out += [appraisal_desc] + self.appraisals
+        """Records in file order: each type's descriptor is followed by its records (Disc and
+        Event always, the rest when there are any)."""
+        out = []
+        for desc, kind in zip(DESCRIPTORS, TYPES):
+            if self.groups[kind] or kind in ("Disc", "Event"):
+                out += [desc] + [recfile.Record(kind, list(r.fields)) if r.type != kind else r
+                                 for r in self.groups[kind]]
         return out
 
     # ------------------------------------------------------------ bindings
 
 
-    # ------------------------------------------------------------ collections
+    # ------------------------------------------------------------ selections
 
 
     # ------------------------------------------------------------ locations

@@ -43,36 +43,36 @@ HOME       Home                           0 discs (6 including inside)
   SAFE       Fire safe                      1 disc
 OFFSITE    Parents' house                 2 discs
 rc=0
-$ --home edit collection list
+$ --home edit selection list
 rc=0
-$ --home edit collection add BEST --name Best of TRIP-01_2019_4:day1 Fushimi Inari/ PROJ-01_2020-2023_L
+$ --home edit selection add BEST --name Best of TRIP-01_2019_4:day1 Fushimi Inari/ PROJ-01_2020-2023_L
 BEST: Best of, 2 items
 rc=0
-$ --home edit collection put BEST TRIP-01_2019_4:day2 Arashiyama
+$ --home edit selection put BEST TRIP-01_2019_4:day2 Arashiyama
 BEST: Best of, 3 items
 rc=0
-$ --home edit collection put BEST TRIP-01_2019_4:nothing.txt
+$ --home edit selection put BEST TRIP-01_2019_4:nothing.txt
 Error: TRIP-01_2019_4 has no file nothing.txt
 rc=1
-$ --home edit collection show BEST
+$ --home edit selection show BEST
 BEST  Best of
   day1 Fushimi Inari/                                TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]
   (whole disc)                                       PROJ-01_2020-2023_L  [Home / Study / Box 1, blue lid]
   day2 Arashiyama/                                   TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]
 rc=0
-$ --home edit collection drop BEST PROJ-01_2020-2023_L
+$ --home edit selection drop BEST PROJ-01_2020-2023_L
 BEST: Best of, 2 items
 rc=0
-$ --home edit collection move BEST --name Best
+$ --home edit selection move BEST --name Best
 BEST: Best, 2 items
 rc=0
-$ --home edit collection add KIDS --in BEST
+$ --home edit selection add KIDS --in BEST
 KIDS: Best / KIDS, 0 items
 rc=0
-$ --home edit collection move BEST --in KIDS
+$ --home edit selection move BEST --in KIDS
 Error: KIDS is inside BEST; that would make a loop
 rc=1
-$ --home edit collection list
+$ --home edit selection list
 BEST         Best                                 2 items
   KIDS         KIDS                                 0 items
 rc=0
@@ -105,8 +105,8 @@ set:PROJ
   Authorship: human
   Agent: human:root
 rc=0
-$ --home edit appraise collection:BEST --importance essential for family
-collection:BEST: essential for family
+$ --home edit appraise selection:BEST --importance essential for family
+selection:BEST: essential for family
 rc=0
 $ --home edit appraise TRIP-01_2019_4:nope/
 Error: nope/ is not on TRIP-01_2019_4

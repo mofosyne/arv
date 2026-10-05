@@ -52,7 +52,7 @@ static void usage(FILE *to)
           "       arv locate [-C HOME] [--add] DISC-ID PLACE...\n"
           "       arv access DISC-ID public|private|sealed\n"
           "       arv location list [-v] | add CODE [NAME] [--in PARENT] [--description TEXT] | move CODE [NAME] [--in PARENT]\n"
-          "       arv collection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]\n"
+          "       arv selection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]\n"
           "       arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]\n"
           "       arv sets [-v]\n"
           "       arv names [--limit N] FOLDER\n"
@@ -153,7 +153,7 @@ int main(int argc, char **argv)
                  { "find", cmd_find }, { "list", cmd_list }, { "id", cmd_id },
                  { "init", cmd_init }, { "make", cmd_make }, { "check", cmd_check },
                  { "burned", cmd_burned }, { "note", cmd_note }, { "locate", cmd_locate },
-                 { "access", cmd_access }, { "location", cmd_location }, { "collection", cmd_collection },
+                 { "access", cmd_access }, { "location", cmd_location }, { "selection", cmd_selection }, { "collection", cmd_collection },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
                  { "where", cmd_where }, { "rebuild", cmd_rebuild },
                  { "tags", cmd_tags }, { "keywords", cmd_keywords } };

@@ -1,4 +1,4 @@
-/* Editing the catalogue and looking at it (src/arv/cli.py): access, location, collection,
+/* Editing the catalogue and looking at it (src/arv/cli.py): access, location, selection,
  * appraise, sets, names, where. Every change appends an Event, as the Python arv does, and the
  * output is the Python arv's, line for line. */
 #define _XOPEN_SOURCE 700
@@ -48,7 +48,7 @@ static void change(archive *cat, const char *disc_id, const char *obj, const cha
 {
     char *who = person();
     rec_record *e = new_event(disc_id ? disc_id : obj, "metadata modification", "success", who, "human", note);
-    if (!disc_id) {                  /* a place or a collection: Object instead of Disc */
+    if (!disc_id) {                  /* a place or a selection: Object instead of Disc */
         free(e->fields[0].name);
         e->fields[0].name = xstrdup("Object");
     }
@@ -285,20 +285,20 @@ int cmd_location(int argc, char **argv)
     return 0;
 }
 
-/* ------------------------------------------------------------------ collections */
+/* ------------------------------------------------------------------ selections */
 
 static rec_record *coll(const archive *cat, const char *code)
 {
     char *want = upper_trim_copy(code);
     rec_record *found = NULL;
-    for (size_t i = 0; i < cat->collections.n && !found; i++)
-        if (rec_get(cat->collections.v[i], "Code") && !strcmp(rec_get(cat->collections.v[i], "Code"), want))
-            found = cat->collections.v[i];
+    for (size_t i = 0; i < cat->selections.n && !found; i++)
+        if (rec_get(cat->selections.v[i], "Code") && !strcmp(rec_get(cat->selections.v[i], "Code"), want))
+            found = cat->selections.v[i];
     free(want);
     return found;
 }
 
-static char *collection_path(const archive *cat, const char *code)
+static char *selection_path(const archive *cat, const char *code)
 {
     const rec_record *chain[64];
     size_t n = 0;
@@ -314,7 +314,7 @@ static char *collection_path(const archive *cat, const char *code)
     return b.s;
 }
 
-static void show_collection(const archive *cat, const rec_record *c, int depth)
+static void show_selection(const archive *cat, const rec_record *c, int depth)
 {
     if (depth > 64) return;
     int items = count_field(c, "Item");
@@ -326,9 +326,9 @@ static void show_collection(const archive *cat, const rec_record *c, int depth)
     sb_printf(&line, " %d item%s", items, items == 1 ? "" : "s");
     puts(line.s);
     free(line.s);
-    for (size_t i = 0; i < cat->collections.n; i++) {
-        char *p = upper_trim_copy(get_or(cat->collections.v[i], "Parent", ""));
-        if (!strcmp(p, get_or(c, "Code", ""))) show_collection(cat, cat->collections.v[i], depth + 1);
+    for (size_t i = 0; i < cat->selections.n; i++) {
+        char *p = upper_trim_copy(get_or(cat->selections.v[i], "Parent", ""));
+        if (!strcmp(p, get_or(c, "Code", ""))) show_selection(cat, cat->selections.v[i], depth + 1);
         free(p);
     }
 }
@@ -377,7 +377,7 @@ static int any_prefix(const strlist *l, const char *prefix)
     return 0;
 }
 
-int cmd_collection(int argc, char **argv)
+int cmd_selection(int argc, char **argv)
 {
     const char *given = NULL, *action = NULL, *code_arg = NULL, *name = NULL, *within = NULL, *description = NULL;
     strlist items = { 0 };
@@ -398,16 +398,16 @@ int cmd_collection(int argc, char **argv)
     archive cat;
     open_home(given, &h, &cat);
     if (!strcmp(action, "list")) {
-        for (size_t i = 0; i < cat.collections.n; i++)
-            if (!coll(&cat, rec_get(cat.collections.v[i], "Parent"))) show_collection(&cat, cat.collections.v[i], 0);
+        for (size_t i = 0; i < cat.selections.n; i++)
+            if (!coll(&cat, rec_get(cat.selections.v[i], "Parent"))) show_selection(&cat, cat.selections.v[i], 0);
         return 0;
     }
-    if (!code_arg) die("arv collection %s needs a collection code", action);
+    if (!code_arg) die("arv selection %s needs a selection code", action);
     char *code = upper_trim_copy(code_arg);
     rec_record *c = coll(&cat, code);
     if (!strcmp(action, "show")) {
-        if (!c) die("no collection %s", code);
-        char *path = collection_path(&cat, code);
+        if (!c) die("no selection %s", code);
+        char *path = selection_path(&cat, code);
         printf("%s  %s\n", code, path);
         free(path);
         if (rec_get(c, "Description")) printf("  %s\n", rec_get(c, "Description"));
@@ -431,23 +431,23 @@ int cmd_collection(int argc, char **argv)
     }
     sbuf changes = { 0 };
     if (!strcmp(action, "add")) {
-        if (c) die("collection %s already exists", code);
-        if (!code_ok(code, 32)) die("collection code %s: use 1-32 capital letters, digits, - or _", code_arg);
+        if (c) die("selection %s already exists", code);
+        if (!code_ok(code, 32)) die("selection code %s: use 1-32 capital letters, digits, - or _", code_arg);
         if (within && !coll(&cat, within)) {
             char *w = upper_trim_copy(within);
-            die("no collection %s (add it first)", w);
+            die("no selection %s (add it first)", w);
         }
-        c = rec_alloc("Collection");
+        c = rec_alloc("Selection");
         rec_add(c, "Code", code);
         rec_add(c, "Name", name ? name : code);
         char *w = within ? upper_trim_copy(within) : NULL;
         if (w) rec_add(c, "Parent", w);
         if (description) rec_add(c, "Description", description);
-        recs_add(&cat.collections, c);
+        recs_add(&cat.selections, c);
         sb_printf(&changes, "created%s%s", w ? " in " : "", w ? w : "");
         free(w);
     } else if (!c) {
-        die("no collection %s", code);
+        die("no selection %s", code);
     }
     int items_before = count_field(c, "Item");
     char *parent_before = rec_get(c, "Parent") ? xstrdup(rec_get(c, "Parent")) : NULL;
@@ -524,16 +524,27 @@ int cmd_collection(int argc, char **argv)
             sb_printf(&changes, "%srenamed %s -> %s", changes.len ? "; " : "", name_before, get_or(c, "Name", "None"));
     }
     if (changes.len) {
-        char *obj = xprintf("collection:%s", code);
+        char *obj = xprintf("selection:%s", code);
         change(&cat, NULL, obj, changes.s);
         free(obj);
     }
     archive_save(&cat, h.rec_path);
-    char *path = collection_path(&cat, code);
+    char *path = selection_path(&cat, code);
     printf("%s: %s, %d items\n", code, path, count_field(c, "Item"));
     free(path);
     free(changes.s);
     return 0;
+}
+
+/* arv collection: until format 0.5 these were the virtual folders, now selections */
+int cmd_collection(int argc, char **argv)
+{
+    static const char *const old[] = { "list", "show", "add", "put", "drop", "move", NULL };
+    int i = 0;
+    while (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) i += 2;
+    for (int k = 0; i < argc && old[k]; k++)
+        if (!strcmp(argv[i], old[k])) die("virtual folders across discs are now selections: arv selection %s ...", old[k]);
+    return 2;
 }
 
 /* ------------------------------------------------------------------ appraisals (src/arv/appraisal.py) */
@@ -580,7 +591,7 @@ static rec_record *current(const archive *cat, const char *target)
 /* the target and everything above it, most specific first: file, folders, disc, set */
 static void chain(const archive *cat, const char *target, strlist *out)
 {
-    if (!strncmp(target, "set:", 4) || !strncmp(target, "collection:", 11)) {
+    if (!strncmp(target, "set:", 4) || selection_target(target)) {
         strlist_add(out, target);
         return;
     }
@@ -620,8 +631,8 @@ static void chain(const archive *cat, const char *target, strlist *out)
 
 static void check_target(const arv_home *h, const archive *cat, const char *target)
 {
-    if (!strncmp(target, "collection:", 11)) {
-        if (!coll(cat, target + 11)) die("no collection %s", target + 11);
+    if (selection_target(target)) {
+        if (!coll(cat, selection_target(target))) die("no selection %s", selection_target(target));
         return;
     }
     if (!strncmp(target, "set:", 4)) {
@@ -640,7 +651,7 @@ static void check_target(const arv_home *h, const archive *cat, const char *targ
     int is_folder = parse_item(target, &id, &p);
     if (!archive_disc(cat, id))
         die("no disc %s in the catalogue (targets: DISC-ID, DISC-ID:folder/, DISC-ID:folder/file, set:CODE, "
-            "collection:CODE)", id);
+            "selection:CODE)", id);
     strlist *paths = *p ? listing_paths(h, id) : NULL;
     if (paths && !(is_folder ? any_prefix(paths, p) : strlist_has(paths, p))) {
         char *as_folder = xprintf("%s/", p);

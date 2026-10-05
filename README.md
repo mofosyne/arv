@@ -247,8 +247,8 @@ arv locate 2020-2025_PROJECTS_01 BOX3 OFFSITE   # one location per place a copy 
 arv burned 2020-2025_PROJECTS_01 --copies 1 --location OFFSITE  # after burning the ISO yourself
 arv location move BOX3 --in OFFSITE             # moving a box moves its discs
 arv location list -v                            # places as a tree, with the discs in each
-arv collection add KYOTO-BEST --name "Best of Kyoto" TRIP-01_2019_4:"day2 Kinkaku-ji/"
-arv collection show KYOTO-BEST                  # virtual folders across discs, with where each disc is
+arv selection add KYOTO-BEST --name "Best of Kyoto" TRIP-01_2019_4:"day2 Kinkaku-ji/"
+arv selection show KYOTO-BEST                   # virtual folders across discs, with where each disc is
 arv list --at HOME                              # discs anywhere inside a place
 arv list --access private --made 2026          # what belongs in this year's private box
 arv list --unchecked-since 5y                  # discs due a check (last checked, or never)

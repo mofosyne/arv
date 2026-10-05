@@ -1,4 +1,4 @@
-# Smart archive disc format (draft 0.4)
+# Smart archive disc format (draft 0.5)
 
 A disc (or any folder, image or drive) that **describes itself**: what it is,
 what is on it, what each file is, how to verify it, and what other discs of the
@@ -70,7 +70,7 @@ first `Archive` record has `Format: smart-archive`**:
 %mandatory: Format Version Disc Uuid
 
 Format: smart-archive
-Version: 0.4
+Version: 0.5
 Disc: 2020-2025_PROJECTS_01
 Uuid: 4f1c2a9e-7b3d-4c55-9e2a-1d0b6f8c3a71
 Manifest: manifest-sha256.txt
@@ -96,7 +96,7 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 | `catalog/volumes/<id>/tags.tsv` | TSV | Folder tags and optional image captions |
 | `catalog/volumes/<id>/formats.csv` | CSV | PRONOM format identification per file (optional) |
 | `catalog/volumes/<id>/manifest.sha256` | BagIt manifest | Copy of the disc's `manifest-sha256.txt` |
-| `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Binding`, `Location`, `Event` and `Appraisal` records (limited by [Access](#access)) |
+| `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Binding`, `Location`, `Selection`, `Collection`, `Revision`, `Event` and `Appraisal` records (limited by [Access](#access)) |
 | `catalog/volumes/<other-id>/` | as above | The same per-volume index files for the other discs in the snapshot: one folder per volume, as LTFS keeps one index per tape |
 | `index.html` | HTML | Offline viewer (for people; readers can ignore) |
 | `README.txt` | text | How to browse, search, verify, restore and repair the disc, for people |
@@ -246,14 +246,16 @@ its path of names: `Home / Study / Box 3, blue lid`. A disc carries the
 `Location` records it refers to (and the places containing them), so it stays
 self-describing; a full snapshot carries all of them.
 
-### Collection records
+### Selection records
 
 Virtual folders that you make: named groups of whole discs, folders and files
 from **different** discs, e.g. "Best of Kyoto" or "Tax documents 2015-2024".
-They work like VVV's virtual folders or Lightroom's collections.
+They work like VVV's virtual folders or Lightroom's collections. Format 0.4 and earlier
+called them `Collection`; a reader takes a `Collection` record **without a `Uuid`** as a
+selection.
 
 ```
-%rec: Collection
+%rec: Selection
 %key: Code
 
 Code: KYOTO-BEST
@@ -268,17 +270,64 @@ Item: TAXES-01_2019-2020_I
 | Field | Meaning |
 |---|---|
 | `Code`, `Name` | key and readable name |
-| `Parent` | the collection it is inside (collections form a tree) |
+| `Parent` | the selection it is inside (selections form a tree) |
 | `Item`* | `DISC-ID` (a whole disc), `DISC-ID:folder/` (a folder: trailing `/`) or `DISC-ID:folder/file`; paths relative to `data/`. Disc ids contain no `:` |
 
-Collections live in `archive.rec` and travel in snapshots, limited by
+Selections live in `archive.rec` and travel in snapshots, limited by
 [Access](#access):
 - a snapshot keeps only items on discs it carries;
 - items with paths on **sealed** discs are dropped (the whole-disc item stays);
-- collections left empty are dropped.
+- selections left empty are dropped.
 
-When merging, readers **union** a collection's items and never remove any,
+When merging, readers **union** a selection's items and never remove any,
 because a snapshot's copy may be filtered.
+
+### Collection and Revision records: what is kept, and its history
+
+A **collection** is something kept over time and made into discs again and again, e.g. a
+family's photos: one folder on everyday storage (its *workflow folder*), one history. Each
+**revision** records one state of it, as a git commit does; a revision that became discs is
+an **edition**, a full copy of the collection, `provisional` or `final`. A later edition, once
+safely burned, replaces earlier provisional ones. (Format 0.5 defines the records; arv writes
+them from `arv collection init` on. Readers must accept them.)
+
+```
+%rec: Collection
+%key: Code
+
+Code: FAMILY
+Uuid: 0b6c2f1e-8d1a-4c1e-9a77-3f2f6f0c9e10
+Title: Family photos
+Set: PHOTO
+Access: private
+
+%rec: Revision
+%key: Node
+
+Node: 3f9a...                      (64 hex digits)
+Collection: 0b6c2f1e-8d1a-4c1e-9a77-3f2f6f0c9e10
+Tree: 81d0...
+Parent: c47e...
+Date: 2026-01-10
+Stage: final
+Edition: 4
+Volume: FAMILY-05_2001-2025_X
+Volume: FAMILY-06_2001-2025_Q
+Changes: +312 ~4 -17 files
+Message: the 2025 sort, final
+```
+
+| Field | Meaning |
+|---|---|
+| `Collection.Uuid` | its identity: the same collection however renamed, moved or changed (the workflow folder's `.arv` marker carries it) |
+| `Collection.Code`, `Title`, ... | for people; the code prefixes its disc ids; `Set`, `Category`, `Access` are the defaults its discs are made with |
+| `Tree` | SHA-256 of the revision's manifest: every file's path and SHA-256, sorted by path, in `manifest-sha256.txt` form |
+| `Node` | SHA-256 of `Tree`, each `Parent`, `Date` and `Message`, each line `Field: value`; it names the revision |
+| `Parent`* | the revision(s) it follows (two for a merge); none for the first |
+| `Stage` | `checkpoint` (state recorded, no discs), `provisional` or `final` (an edition) |
+| `Edition`, `Volume`* | for an edition: its number and its discs |
+
+Revisions are appended, never edited, and merged by `Node`; collections are merged by `Uuid`.
 
 ### Access
 
@@ -318,8 +367,9 @@ record keeps full precision.
 
 ### `Event` records (recfile)
 
-`Disc` (or, for a change to a place or a collection, `Object`: `location:CODE`,
-`collection:CODE`), `Type` (PREMIS event type: `message digest calculation`, `creation`,
+`Disc` (or, for a change to a place or a selection, `Object`: `location:CODE`,
+`selection:CODE`; `collection:CODE` before format 0.5), `Type` (PREMIS event type:
+`message digest calculation`, `creation`,
 `fixity check`, `format identification`, `metadata modification`, `ingestion`,
 `replication`), `Date`, `Outcome` (`success` / `failure` / `warning`), `Authorship`,
 one or more `Agent`, optional `Note`.
@@ -343,11 +393,11 @@ whether it was changed was not recorded) or `(unreviewed)` (`suggested`). These 
 IPTC's digital source types and PREMIS agent roles when the archive is handed on.
 
 Events are appended, never edited. **Every change to the catalogue leaves one:** a note, an
-access level, where a disc is kept, a place or a collection added, moved or renamed
+access level, where a disc is kept, a place or a selection added, moved or renamed
 (`metadata modification`, with what changed in `Note`, e.g. `Access: private -> public`).
-Collection events give counts, never item paths, so they reveal nothing about sealed discs.
+Selection events give counts, never item paths, so they reveal nothing about sealed discs.
 A disc's events follow its access level; events with an `Object` go only into full
-snapshots, for the places and collections that snapshot carries.
+snapshots, for the places and selections that snapshot carries.
 
 ### `Appraisal` records (recfile): the archivist log
 
@@ -367,7 +417,7 @@ Review: 2031-10-03
 ```
 
 - **Target**: `DISC-ID`, `DISC-ID:folder/`, `DISC-ID:folder/file` (relative to `data/`, as in
-  collections), `set:CODE` or `collection:CODE`.
+  selections), `set:CODE` or `selection:CODE` (`collection:CODE` before format 0.5).
 - **Importance**: `<level> for <audience>`, one per audience. Levels, most first, each tied to
   what the archive does about it:
 
@@ -392,7 +442,7 @@ the highest standing: a person's (`human`, `accepted`, `edited`), then software'
 (`automatic`), then a model's unreviewed suggestion. A target with none takes the nearest
 appraisal above it: file, folder, disc, then the disc's set. A disc carries its own
 appraisals in `catalog.rec`; other discs carry them as they carry its events (none for
-sealed discs), and full snapshots also carry those of the sets and collections they hold.
+sealed discs), and full snapshots also carry those of the sets and selections they hold.
 
 ### Listing TSV
 
@@ -468,8 +518,8 @@ digiKam) replaces the colon with `|`: `place|kyoto`; set paths become
 5. Import folder tags and captions; optionally PRONOM formats.
 6. Optionally read `catalog/archive.rec` plus the other discs' listings, and
    create entries for discs that are **not** inserted (marked offline), so a
-   single disc restores a whole archive's catalogue. Merge `Location` and
-   `Collection` records too (union collection items).
+   single disc restores a whole archive's catalogue. Merge `Location`,
+   `Selection` (union their items), `Collection` and `Revision` records too.
 7. Optionally verify: `Payload-Oxum` in `bag-info.txt` for a quick completeness
    check; the manifests for a full one.
 
@@ -485,7 +535,8 @@ in `catalog/archive.rec` and the listings of the newest disc. Useful trees:
 | By kind | `Disc.Path` (vocabulary paths), then by disc | `MEMORIES/PHOTO/TRIP/TRIP-01_2019_4/...` |
 | By place | `Disc.Location` + `Location` tree | `Home/Study/HOME-PUB-2020/TRIP-01_2019_4/...` |
 | By date | `Disc.Coverage` (EDTF), or each file's modified time from the listing | `2019/07/TRIP-01_2019_4/...` |
-| By collection | `Collection` tree and `Item`s | `Travel/Best of Kyoto/day2 Kinkaku-ji/...` |
+| By selection | `Selection` tree and `Item`s | `Travel/Best of Kyoto/day2 Kinkaku-ji/...` |
+| By collection | `Collection`, its newest edition's discs | `Family photos/FAMILY-05_2001-2025_X/...` |
 | By tag | Tags TSV (`namespace:value`) | `place/kyoto/TRIP-01_2019_4/...` |
 
 What each entry can show:
@@ -493,7 +544,7 @@ What each entry can show:
 - **Folders:** implied by the file paths. Empty folders are not listed.
 - **Discs:** where their copies are (location path), so opening a file can say "insert TRIP-01_2019_4, kept in Home / Study / Public, made 2020".
 
-A disc in several categories, places or collections appears in each tree under
+A disc in several categories, places or selections appears in each tree under
 each of them. That is the point of a DAG vocabulary.
 
 ## Mapping to Katalog
@@ -515,7 +566,7 @@ Based on Katalog's source (collection files `device.csv`, `storage.csv`,
 | Manifest SHA-256 | Katalog's checksum column (catalogue with checksums enabled) |
 | Tags TSV row | `tags.csv`: one tag per (tag, folder path) with type folder; `namespace:value` kept as the tag name |
 | `catalog/archive.rec` other discs | additional devices marked as not connected |
-| `Collection` records | virtual folders, if Katalog adds them (no direct equivalent today; folder tags named after the collection come closest) |
+| `Selection` records | virtual folders, if Katalog adds them (no direct equivalent today; folder tags named after the selection come closest) |
 
 Up to version 0.2 the Disc record also held `Media`, `Filesystem` and `Ecc`; they are now in
 the disc's `Binding`. Readers look in the Binding first, then in the Disc record.
@@ -563,9 +614,10 @@ and set/part numbering beyond a virtual-device parent.
 
 ## Versioning
 
-- `Version: 0.4` is a draft; field names may still change before `1.0`. 0.2 grouped
+- `Version: 0.5` is a draft; field names may still change before `1.0`. 0.2 grouped
   per-volume files by volume; 0.3 moved the medium's fields into `Binding`; 0.4 added
-  `Authorship` to events, `Appraisal` records and listing version 2 (links, executables).
+  `Authorship` to events, `Appraisal` records and listing version 2 (links, executables);
+  0.5 renamed the virtual folders `Selection` and added `Collection` and `Revision`.
 - Minor versions only add optional fields or files. A major version bump means
   a reader must not assume the old layout.
 - Listing and tags files carry their own header version (`arv listing 2`; readers also

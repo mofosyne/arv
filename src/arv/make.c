@@ -24,7 +24,7 @@
 #include <unistd.h>
 
 #define FORMAT_NAME "smart-archive"
-#define FORMAT_VERSION "0.4"
+#define FORMAT_VERSION "0.5"
 #define URL "https://github.com/mofosyne/arv"
 #define SECTOR 2048
 #define GF_FIELDMAX 255
@@ -1114,16 +1114,19 @@ static void stage_plan(maker *mk, size_t idx)
     else archive_locations_for(cat, &snap.discs, &snap.locations);
     strlist snap_ids = { 0 };
     for (size_t i = 0; i < snap.discs.n; i++) strlist_add(&snap_ids, rec_get(snap.discs.v[i], "Id"));
-    archive_collections_for(cat, &snap_ids, &snap.collections);
-    if (!strcmp(o->snapshot, "full")) {          /* the history of the places and collections it carries */
+    archive_selections_for(cat, &snap_ids, &snap.selections);
+    if (!strcmp(o->snapshot, "full")) {          /* the history of the places and selections it carries */
         strlist carried = { 0 };
         for (size_t i = 0; i < snap.locations.n; i++) {
             char *k = xprintf("location:%s", rec_get(snap.locations.v[i], "Code"));
             strlist_add(&carried, k);
             free(k);
         }
-        for (size_t i = 0; i < snap.collections.n; i++) {
-            char *k = xprintf("collection:%s", rec_get(snap.collections.v[i], "Code"));
+        for (size_t i = 0; i < snap.selections.n; i++) {
+            char *k = xprintf("selection:%s", rec_get(snap.selections.v[i], "Code"));
+            strlist_add(&carried, k);
+            free(k);
+            k = xprintf("collection:%s", rec_get(snap.selections.v[i], "Code"));     /* format 0.4 events */
             strlist_add(&carried, k);
             free(k);
         }

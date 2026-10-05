@@ -5,7 +5,7 @@
 %mandatory: Format Version Disc Uuid
 
 Format: smart-archive
-Version: 0.4
+Version: 0.5
 Disc: CODE-01_2020_0
 Uuid: UUID
 Manifest: manifest-sha256.txt
@@ -66,9 +66,9 @@ Ecc: none
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
-+ Disc names the disc; a change to a location or a collection names it in Object
-+ (location:CODE, collection:CODE) instead. Agent (one or more) is software
-+ (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
++ Disc names the disc; a change to a location or a selection names it in Object
++ (location:CODE, selection:CODE; collection:CODE before format 0.5) instead.
++ Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion
 + a person kept as it was), edited (one a person changed), human (a person alone).

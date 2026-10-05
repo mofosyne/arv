@@ -61,6 +61,7 @@ int cmd_note(int argc, char **argv);
 int cmd_locate(int argc, char **argv);
 int cmd_access(int argc, char **argv);
 int cmd_location(int argc, char **argv);
+int cmd_selection(int argc, char **argv);
 int cmd_collection(int argc, char **argv);
 int cmd_appraise(int argc, char **argv);
 int cmd_sets(int argc, char **argv);
@@ -75,7 +76,7 @@ typedef struct {
 } recs;
 typedef struct {
     rec_file file;          /* what was read; new records are allocated one by one */
-    recs discs, bindings, locations, collections, events, appraisals;
+    recs discs, bindings, locations, selections, collections, revisions, events, appraisals;
 } archive;
 void recs_add(recs *l, rec_record *r);
 int recs_has(const recs *l, const rec_record *r);
@@ -90,7 +91,9 @@ rec_record *archive_location(const archive *a, const char *code);
 long archive_next_number(const archive *a, const char *set);
 const char *disc_access(const rec_record *d);
 void archive_locations_for(const archive *a, const recs *discs, recs *out);
-void archive_collections_for(const archive *a, const strlist *disc_ids, recs *out);
+void archive_selections_for(const archive *a, const strlist *disc_ids, recs *out);
+/* "selection:CODE" (or "collection:CODE", format 0.4 and earlier) -> CODE; else NULL */
+const char *selection_target(const char *target);
 rec_record *sealed_view(const rec_record *d);
 void archive_shared_subset(const archive *a, const strlist *ids, archive *out);
 char *archive_where(const archive *a, const rec_record *d);

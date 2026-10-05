@@ -18,9 +18,16 @@ only add fields.
 - [ ] `FORMAT_VERSION` becomes `1.0` (src/arv/make.c), `VERSION` becomes `arv 1.0`
       (src/arv/arv.h), the samples are remade and published, and the commit is tagged `v1.0`.
 
-## Unreleased (format 0.4), October 2026
+## Unreleased (format 0.5), October 2026
 
-What 1.0 is planned to be, as of now. Format 0.4 is what every disc made today carries.
+What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
+
+**Collections over time** (format 0.5; design in research/plan.md, being built)
+- A *collection* is something kept and made into discs again and again, from one workflow
+  folder with one history: `Collection` records (with a Uuid) and `Revision` records (git-like:
+  `Tree` and `Node` hashes; checkpoints, and provisional or final editions, each a full copy).
+- The virtual folders across discs are now *selections* (`arv selection`, `Selection`
+  records, `selection:CODE`); catalogues and discs that still say `Collection` read as before.
 
 **Making discs**
 - One standard output: a closed **UDF 2.50** image by arv's own writer (src/udfwrite), with a
@@ -61,6 +68,7 @@ What 1.0 is planned to be, as of now. Format 0.4 is what every disc made today c
 ## Earlier formats
 
 From the spec's versioning section:
+- **0.5** (2026-10-05): `Selection` (was `Collection`), and the new `Collection` and `Revision`.
 - **0.4** (2026-10-03): `Authorship` on events, `Appraisal` records, listing version 2 (links,
   executables).
 - **0.3**: the medium's fields moved into `Binding` records.

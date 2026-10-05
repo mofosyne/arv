@@ -53,6 +53,14 @@ class RecfileTest(unittest.TestCase):
         self.assertEqual([d.get("Id") for d in again.discs], ["A"])
         self.assertEqual([e.get("Type") for e in again.events], ["creation"])
 
+    def test_format_04_collections_are_selections(self):
+        old = recfile.parse("%rec: Collection\n\nCode: BEST\nName: Best\nItem: A\n\n"
+                            "%rec: Collection\n\nCode: FAMILY\nUuid: 0b6c2f1e-0000-4000-8000-000000000000\nTitle: t\n")
+        c = catalog.Catalog(old)
+        self.assertEqual(([s.get("Code") for s in c.selections], [k.get("Code") for k in c.collections]),
+                         (["BEST"], ["FAMILY"]))
+        self.assertEqual([r.type for r in c.records() if not r.is_descriptor], ["Selection", "Collection"])
+
 
 class GuiTest(unittest.TestCase):
     def setUp(self):

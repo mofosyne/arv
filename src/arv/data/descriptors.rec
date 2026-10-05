@@ -36,19 +36,44 @@
 %key: Code
 %mandatory: Code Name
 
-%rec: Collection
+%rec: Selection
 %doc: Virtual folders across discs. Item is DISC-ID (a whole disc), DISC-ID:folder/
 + or DISC-ID:folder/file (paths relative to the disc's data/). Parent nests
-+ collections. Snapshots on other discs carry only items they may show.
++ selections. Snapshots on other discs carry only items they may show.
++ Format 0.4 and earlier called these Collection (a Collection without a Uuid).
 %key: Code
 %mandatory: Code Name
+
+%rec: Collection
+%doc: Something kept over time and made into discs again and again, e.g. a family's
++ photos: one workflow folder, one history of Revision records. Uuid is its identity
++ (it survives renames, moves and changes; the folder's .arv marker carries it); Code
++ is for people and prefixes its disc ids. Title, Description, Set, Category and
++ Access are the defaults its discs are made with.
+%key: Code
+%mandatory: Code Uuid Title
+%type: Uuid uuid
+%type: Access enum public private sealed
+
+%rec: Revision
+%doc: One state of a collection, as git's commits are: appended, never edited. Tree is
++ the SHA-256 of its manifest (every file's path and SHA-256, sorted); Node is the
++ SHA-256 of Tree, Parent(s), Date and Message, and names the revision. A checkpoint
++ only records the state (the files stay on everyday storage); a provisional or final
++ revision became discs: Edition numbers it, Volume names each disc. Each edition is a
++ full copy of the collection; a later safe edition replaces earlier provisional ones.
+%key: Node
+%mandatory: Node Collection Tree Date Stage
+%type: Date date
+%type: Edition int
+%type: Stage enum checkpoint provisional final
 
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
-+ Disc names the disc; a change to a location or a collection names it in Object
-+ (location:CODE, collection:CODE) instead. Agent (one or more) is software
-+ (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
++ Disc names the disc; a change to a location or a selection names it in Object
++ (location:CODE, selection:CODE; collection:CODE before format 0.5) instead.
++ Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion
 + a person kept as it was), edited (one a person changed), human (a person alone).
@@ -60,7 +85,7 @@
 %doc: The archivist log: how much something matters, to whom, and why. Appended and
 + never edited; the newest appraisal of a target replaces earlier ones, and one a
 + person made or reviewed outranks a machine's. Target is DISC-ID, DISC-ID:folder/,
-+ DISC-ID:folder/file (relative to data/), set:CODE or collection:CODE; a target
++ DISC-ID:folder/file (relative to data/), set:CODE or selection:CODE; a target
 + without an appraisal takes the nearest one above it (file, folder, disc, set).
 + Importance is '<level> for <audience>', one per audience; levels, most first:
 + essential (must survive: several copies, one elsewhere), important (on disc),
