@@ -164,7 +164,7 @@ ImageSha256: SHA256
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
 + Disc names the disc; a change to a location or a selection names it in Object
-+ (location:CODE, selection:CODE; collection:CODE before format 0.5) instead.
++ (location:CODE, selection:CODE) instead.
 + Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion

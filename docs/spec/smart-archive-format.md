@@ -250,9 +250,7 @@ self-describing; a full snapshot carries all of them.
 
 Virtual folders that you make: named groups of whole discs, folders and files
 from **different** discs, e.g. "Best of Kyoto" or "Tax documents 2015-2024".
-They work like VVV's virtual folders or Lightroom's collections. Format 0.4 and earlier
-called them `Collection`; a reader takes a `Collection` record **without a `Uuid`** as a
-selection.
+They work like VVV's virtual folders or Lightroom's collections.
 
 ```
 %rec: Selection
@@ -368,7 +366,7 @@ record keeps full precision.
 ### `Event` records (recfile)
 
 `Disc` (or, for a change to a place or a selection, `Object`: `location:CODE`,
-`selection:CODE`; `collection:CODE` before format 0.5), `Type` (PREMIS event type:
+`selection:CODE`), `Type` (PREMIS event type:
 `message digest calculation`, `creation`,
 `fixity check`, `format identification`, `metadata modification`, `ingestion`,
 `replication`), `Date`, `Outcome` (`success` / `failure` / `warning`), `Authorship`,
@@ -417,7 +415,7 @@ Review: 2031-10-03
 ```
 
 - **Target**: `DISC-ID`, `DISC-ID:folder/`, `DISC-ID:folder/file` (relative to `data/`, as in
-  selections), `set:CODE` or `selection:CODE` (`collection:CODE` before format 0.5).
+  selections), `set:CODE` or `selection:CODE`.
 - **Importance**: `<level> for <audience>`, one per audience. Levels, most first, each tied to
   what the archive does about it:
 

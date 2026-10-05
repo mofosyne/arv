@@ -27,7 +27,7 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   folder with one history: `Collection` records (with a Uuid) and `Revision` records (git-like:
   `Tree` and `Node` hashes; checkpoints, and provisional or final editions, each a full copy).
 - The virtual folders across discs are now *selections* (`arv selection`, `Selection`
-  records, `selection:CODE`); catalogues and discs that still say `Collection` read as before.
+  records, `selection:CODE`). No compatibility with earlier drafts: nothing has been burned.
 
 **Making discs**
 - One standard output: a closed **UDF 2.50** image by arv's own writer (src/udfwrite), with a

@@ -536,17 +536,6 @@ int cmd_selection(int argc, char **argv)
     return 0;
 }
 
-/* arv collection: until format 0.5 these were the virtual folders, now selections */
-int cmd_collection(int argc, char **argv)
-{
-    static const char *const old[] = { "list", "show", "add", "put", "drop", "move", NULL };
-    int i = 0;
-    while (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) i += 2;
-    for (int k = 0; i < argc && old[k]; k++)
-        if (!strcmp(argv[i], old[k])) die("virtual folders across discs are now selections: arv selection %s ...", old[k]);
-    return 2;
-}
-
 /* ------------------------------------------------------------------ appraisals (src/arv/appraisal.py) */
 
 static int standing(const rec_record *a)

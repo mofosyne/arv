@@ -95,11 +95,8 @@ class Catalog:
         for r in records or []:
             if r.is_descriptor:
                 continue
-            kind = r.type
-            if kind == "Collection" and r.get("Uuid") is None:
-                kind = "Selection"      # format 0.4 and earlier: virtual folders were Collection
-            if kind in self.groups:
-                self.groups[kind].append(r)
+            if r.type in self.groups:
+                self.groups[r.type].append(r)
         (self.discs, self.bindings, self.locations, self.selections, self.collections, self.revisions,
          self.events, self.appraisals) = (self.groups[t] for t in TYPES)
 
@@ -109,8 +106,7 @@ class Catalog:
         out = []
         for desc, kind in zip(DESCRIPTORS, TYPES):
             if self.groups[kind] or kind in ("Disc", "Event"):
-                out += [desc] + [recfile.Record(kind, list(r.fields)) if r.type != kind else r
-                                 for r in self.groups[kind]]
+                out += [desc] + self.groups[kind]
         return out
 
     # ------------------------------------------------------------ bindings

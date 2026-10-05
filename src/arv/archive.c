@@ -77,8 +77,6 @@ void archive_load(archive *a, const char *path)
     }
     for (size_t i = 0; i < a->file.nrecords; i++) {
         rec_record *r = &a->file.records[i];
-        if (!r->descriptor && r->type && !strcmp(r->type, "Collection") && !rec_get(r, "Uuid"))
-            r->type = "Selection";          /* format 0.4 and earlier: virtual folders were Collection */
         recs *g = r->descriptor || !r->type ? NULL : group(a, r->type);
         if (g) recs_add(g, r);
     }
@@ -209,9 +207,7 @@ void archive_locations_for(const archive *a, const recs *discs, recs *out)
 
 const char *selection_target(const char *target)
 {
-    if (!strncmp(target, "selection:", 10)) return target + 10;
-    if (!strncmp(target, "collection:", 11)) return target + 11;
-    return NULL;
+    return !strncmp(target, "selection:", 10) ? target + 10 : NULL;
 }
 
 /* "DISC-ID:path" -> the disc id (and whether there is a path) */

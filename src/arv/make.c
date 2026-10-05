@@ -1126,9 +1126,6 @@ static void stage_plan(maker *mk, size_t idx)
             char *k = xprintf("selection:%s", rec_get(snap.selections.v[i], "Code"));
             strlist_add(&carried, k);
             free(k);
-            k = xprintf("collection:%s", rec_get(snap.selections.v[i], "Code"));     /* format 0.4 events */
-            strlist_add(&carried, k);
-            free(k);
         }
         for (size_t i = 0; i < cat->events.n; i++)
             if (rec_get(cat->events.v[i], "Object") && strlist_has(&carried, rec_get(cat->events.v[i], "Object")))

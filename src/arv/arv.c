@@ -153,7 +153,7 @@ int main(int argc, char **argv)
                  { "find", cmd_find }, { "list", cmd_list }, { "id", cmd_id },
                  { "init", cmd_init }, { "make", cmd_make }, { "check", cmd_check },
                  { "burned", cmd_burned }, { "note", cmd_note }, { "locate", cmd_locate },
-                 { "access", cmd_access }, { "location", cmd_location }, { "selection", cmd_selection }, { "collection", cmd_collection },
+                 { "access", cmd_access }, { "location", cmd_location }, { "selection", cmd_selection },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
                  { "where", cmd_where }, { "rebuild", cmd_rebuild },
                  { "tags", cmd_tags }, { "keywords", cmd_keywords } };
