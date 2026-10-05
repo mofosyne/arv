@@ -1,5 +1,5 @@
 #!/bin/sh
-# Make the sample discs: samples/discs/*.iso (about 104 MB in total; not in git, published
+# Make the sample discs: samples/discs/*.iso (about 105 MB in total; not in git, published
 # with samples/publish-discs.sh) and their home catalogue in samples/home (both replaced).
 #
 #   samples/make-samples.sh [OUTPUT_DIR]      (default: samples/)
@@ -7,7 +7,7 @@
 # Needs: a C compiler (arv is built here with make if missing), python3 (to generate the
 # sample sources) and git. Build src/arv/build/arv.com first (make ape) so the discs carry
 # it in tools/, as real ones do.
-# The discs use a custom 6800-sector "medium" (13.3 MB) so they stay small; real discs use
+# The discs use a custom 9000-sector "medium" (17.6 MB) so they stay small; real discs use
 # --medium bd25 (the default) or bd100.
 set -eu
 
@@ -16,8 +16,10 @@ repo=$(cd "$here/.." && pwd)
 out=$(mkdir -p "${1:-$here}" && cd "${1:-$here}" && pwd)
 
 
-work=$(mktemp -d)
-trap 'rm -rf "$work"' EXIT
+work=${TMPDIR:-/tmp}/arv-samples      # a fixed place: the catalogue names its folders
+rm -rf "${work:?}"
+mkdir -p "$work"
+trap 'rm -rf "${work:?}"' EXIT
 src=$work/sources
 python3 "$here/gen_sources.py" "$src"
 
@@ -28,19 +30,20 @@ discs=$work/discs
 mkdir -p "$discs"
 [ -x "$repo/src/arv/build/arv" ] || make -s -C "$repo/src/arv"
 a() { "$repo/src/arv/build/arv" --home "$home" "$@"; }
-common="-y --medium-sectors 6800 --output-dir $discs --creator Sample_Person --formats no"
+common="-y --medium-sectors 9000 --output-dir $discs --creator Sample_Person --formats no"
 
 draft() {  # draft NAME JSON: a hand-written metadata draft
     printf '%s\n' "$2" > "$work/$1.json"
     echo "$work/$1.json"
 }
 
-echo "== locations"
+echo "== locations, with how warm each place is"
 a location add HOME "Home"
 a location add STUDY "Study" --in HOME
-a location add BOX1 "Box 1, blue lid" --in STUDY
-a location add SAFE "Fire safe" --in HOME
-a location add OFFSITE "Parents' house"
+a location add BOX1 "Box 1, blue lid" --in STUDY --temperature cold
+a location add SAFE "Fire safe" --in HOME --temperature cold
+a location add OFFSITE "Parents' house" --temperature cold
+a location add NAS "The NAS" --in HOME --temperature warm
 
 echo "== 1. Kyoto trip: TRIP, namespaced folder tags, public"
 a make $common --set trip --location BOX1 --access public \
@@ -70,19 +73,33 @@ echo "== 4. Scanned letters: SCAN plus the LETTERS category, split over several 
 a make $common --set scan --category letters --location BOX1 --split --title "Letters 1995-2008, scanned" \
     --description "Scans of letters kept since 1995." "$src/Scans_letters"
 
-echo "== 5. Family photos; made last, so it carries the whole catalogue"
-a make $common --set family --location OFFSITE \
-    --draft "$(draft family '{"title": "Family photos 2020-2021",
-      "description": "Birthdays, the garden, the beach and Christmas.",
-      "agent": "sample script (hand-written)",
+echo "== 5. Family photos: a collection, two editions; made last, so they carry the whole catalogue"
+fam=$work/family                           # the workflow folder: 2020 first, 2021 added later
+mkdir -p "$fam"
+cp -Rp "$src/Family_photos_2020-2021/2020 "* "$fam/"
+a collection init "$fam" --code FAMILY --title "Family photos" --set family \
+    --description "Birthdays, the garden, the beach and Christmas."
+a make $common --location OFFSITE --message "2020 sorted" \
+    --draft "$(draft family1 '{"agent": "sample script (hand-written)",
+      "folder_tags": {"2020 Birthday": ["family", "event:birthday-2020"], "2020 Garden": ["home", "nature"]}}')" \
+    "$fam"
+cp -Rp "$src/Family_photos_2020-2021/2021 "* "$fam/"
+a status "$fam"
+a make $common --location OFFSITE --message "2021 added" \
+    --draft "$(draft family2 '{"agent": "sample script (hand-written)",
       "folder_tags": {"2020 Birthday": ["family", "event:birthday-2020"], "2020 Garden": ["home", "nature"],
                       "2021 Beach": ["travel", "place:beach"], "2021 Christmas": ["celebration"]}}')" \
-    "$src/Family_photos_2020-2021"
+    "$fam"
 
-echo "== after burning (home catalogue only)"
+echo "== after burning (home catalogue only: these samples were never burned, so not read back)"
 for d in $(a list | cut -f1); do
     a burned "$d" --copies 1 >/dev/null
 done
+fam2=$(a list | grep '^FAMILY-02' | cut -f1)   # a warm copy of the newest edition, checked
+mkdir -p "$work/nas"
+cp "$discs/$fam2.iso" "$work/nas/"
+a stored "$fam2" "$work/nas/$fam2.iso" --location NAS --note "kept on the NAS for quick restores"
+a retire FAMILY --yes                        # edition 2 is safe (its stored copy was read back)
 a burned "$(a list --in TRIP | cut -f1)" --copies 1 --location OFFSITE --note "second copy for the parents"
 a note "$(a list --in PROJ | cut -f1)" "Board rev B; rev A gerbers were never ordered."
 trip=$(a list --in TRIP | cut -f1)   # the archivist log: how much it matters, to whom, and why
@@ -99,6 +116,8 @@ done
 
 echo "== result"
 a list
+a collection show FAMILY
+a todo
 rm -rf "$out/home" "$out/discs"
 mv "$home" "$out/home"
 mv "$discs" "$out/discs"

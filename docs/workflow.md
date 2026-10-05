@@ -300,7 +300,7 @@ src/arv-assist/           optional, C: the local AI helpers (describe, tag, mode
 src/arv-gui/              optional, Python standard library only: the local web interface
 src/bagit/  src/rs03/  src/udfwrite/   BagIt checking, RS03, the UDF 2.50 writer (built into arv; also programs)
 arv                       runs src/arv/build/arv in a checkout (make first if needed)
-samples/                  eight small sample discs and their catalogue; the scripts that make them
+samples/                  six small sample discs and their catalogue; the scripts that make them
 tests/                    reference outputs (every command, frozen), fixtures, arv-gui's tests
 docs/                     this file, burning, shelving, architecture, philosophy, the website
 docs/spec/                the disc format, the UDF profile, RS03
