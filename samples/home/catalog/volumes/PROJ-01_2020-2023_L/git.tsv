@@ -1,0 +1,5 @@
+# arv git 1	repository (relative to data/)	kind (root, head, shallow, commit)	value
+.	root	d947d6c16c2c885c49c3359177b11e86586f17d6
+.	head	HEAD d947d6c16c2c885c49c3359177b11e86586f17d6
+.	head	refs/heads/main d947d6c16c2c885c49c3359177b11e86586f17d6
+.	commit	d947d6c16c2c885c49c3359177b11e86586f17d6

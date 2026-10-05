@@ -1,47 +1,18 @@
 # arv listing 2	size (bytes)	modified (UTC, ISO 8601)	kind	link target	path (relative to data/)
 29	2023-02-11T15:00:00Z	file	-	.git/COMMIT_EDITMSG
 21	2023-02-11T15:00:00Z	file	-	.git/HEAD
-92	2023-02-11T15:00:00Z	file	-	.git/config
+92	2026-10-05T06:52:15Z	file	-	.git/config
 73	2023-02-11T15:00:00Z	file	-	.git/description
-478	2023-02-11T15:00:00Z	file executable	-	.git/hooks/applypatch-msg.sample
-896	2023-02-11T15:00:00Z	file executable	-	.git/hooks/commit-msg.sample
-4726	2023-02-11T15:00:00Z	file executable	-	.git/hooks/fsmonitor-watchman.sample
-189	2023-02-11T15:00:00Z	file executable	-	.git/hooks/post-update.sample
-424	2023-02-11T15:00:00Z	file executable	-	.git/hooks/pre-applypatch.sample
-1643	2023-02-11T15:00:00Z	file executable	-	.git/hooks/pre-commit.sample
-416	2023-02-11T15:00:00Z	file executable	-	.git/hooks/pre-merge-commit.sample
-1374	2023-02-11T15:00:00Z	file executable	-	.git/hooks/pre-push.sample
-4898	2023-02-11T15:00:00Z	file executable	-	.git/hooks/pre-rebase.sample
-544	2023-02-11T15:00:00Z	file executable	-	.git/hooks/pre-receive.sample
-1492	2023-02-11T15:00:00Z	file executable	-	.git/hooks/prepare-commit-msg.sample
-2783	2023-02-11T15:00:00Z	file executable	-	.git/hooks/push-to-checkout.sample
-2308	2023-02-11T15:00:00Z	file executable	-	.git/hooks/sendemail-validate.sample
-3650	2023-02-11T15:00:00Z	file executable	-	.git/hooks/update.sample
 1427	2023-02-11T15:00:00Z	file	-	.git/index
 240	2023-02-11T15:00:00Z	file	-	.git/info/exclude
-178	2023-02-11T15:00:00Z	file	-	.git/logs/HEAD
-178	2023-02-11T15:00:00Z	file	-	.git/logs/refs/heads/main
-151	2023-02-11T15:00:00Z	file	-	.git/objects/1f/ddaee01484634a632dacf4fd320f338499dd00
-65	2023-02-11T15:00:00Z	file	-	.git/objects/26/1f6ab22083e006d042928d58793638511eca03
-28	2023-02-11T15:00:00Z	file	-	.git/objects/32/d46ee883b58d6a383eed06eb98f33aa6530ded
-117	2023-02-11T15:00:00Z	file	-	.git/objects/48/49f46ea935c02174bcf351dac68d921fe53acf
-441	2023-02-11T15:00:00Z	file	-	.git/objects/4c/482b64554ab5cfb27e5f72f8a711f42510b2ef
-152	2023-02-11T15:00:00Z	file	-	.git/objects/68/ecf94fa9bcfe18bbb939079d4156d65391bb4a
-68	2023-02-11T15:00:00Z	file	-	.git/objects/6a/7df1fcab3e3db2e802e455bf90170d412fe1ef
-86	2023-02-11T15:00:00Z	file	-	.git/objects/72/9e005dc8ece4c1e4a6cf53967be40e3d55117d
-58	2023-02-11T15:00:00Z	file	-	.git/objects/7a/4f2e9eec1a53a83cc2d8acee9161e1b798c7c8
-83	2023-02-11T15:00:00Z	file	-	.git/objects/85/7cbf56d609ce8df221321971a50d689313151c
-95	2023-02-11T15:00:00Z	file	-	.git/objects/8d/835eee91996f8b30c98dad6a915d06e7b0b39a
-68	2023-02-11T15:00:00Z	file	-	.git/objects/9e/f9bcb178e6035a03d29f4d6b75abf88091364c
-63	2023-02-11T15:00:00Z	file	-	.git/objects/a1/6946ded5d1f70b82b81aead4d3c6589f9eb857
-98	2023-02-11T15:00:00Z	file	-	.git/objects/bb/5f0910049e7381690270ef220e5df01d03a8ed
-32	2023-02-11T15:00:00Z	file	-	.git/objects/cb/0d2b46ff0f93753f81f37d02d9945dd7154a2d
-359	2023-02-11T15:00:00Z	file	-	.git/objects/d9/47d6c16c2c885c49c3359177b11e86586f17d6
-63	2023-02-11T15:00:00Z	file	-	.git/objects/dc/60f08addeff6843a00aa28dfdaadef84493843
-120	2023-02-11T15:00:00Z	file	-	.git/objects/e4/060f686bdf68b6918e1432668ac16978528407
-159	2023-02-11T15:00:00Z	file	-	.git/objects/e5/c349eaeb3740045276639e4f3d8b7f3a6f08ce
-182	2023-02-11T15:00:00Z	file	-	.git/objects/ec/edf9ecb036fdee82bb0d27c2ae2e7a1384d240
-41	2023-02-11T15:00:00Z	file	-	.git/refs/heads/main
+57	2026-10-05T06:52:15Z	file	-	.git/info/refs
+1172	2026-10-05T06:52:15Z	file	-	.git/objects/info/commit-graph
+54	2026-10-05T06:52:15Z	file	-	.git/objects/info/packs
+1632	2026-10-05T06:52:15Z	file	-	.git/objects/pack/pack-138708e40d10c027059c50e813566f384b147dca.idx
+2396	2026-10-05T06:52:15Z	file	-	.git/objects/pack/pack-138708e40d10c027059c50e813566f384b147dca.pack
+132	2026-10-05T06:52:15Z	file	-	.git/objects/pack/pack-138708e40d10c027059c50e813566f384b147dca.rev
+103	2026-10-05T06:52:15Z	file	-	.git/packed-refs
+41	2026-10-05T06:52:15Z	file	-	.git/refs/heads/main
 121	2020-03-02T10:00:00Z	file	-	README.md
 52	2021-05-01T12:00:00Z	file	-	firmware/Makefile
 84	2021-05-01T12:00:00Z	file executable	-	firmware/flash.sh
