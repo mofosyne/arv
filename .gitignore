@@ -8,3 +8,9 @@
 __pycache__/
 *.pyc
 .venv/
+
+# C
+*.o
+src/arvc/build/arvc
+src/arvc/build/ptyrun
+src/arvc/build/fixtures
