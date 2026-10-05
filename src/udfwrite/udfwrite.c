@@ -381,7 +381,7 @@ static int collect(udfw *w, node *n)
     w->order[w->norder++] = n;
     if (!n->is_dir) { w->nfiles++; return 0; }
     w->ndirs++;
-    qsort(n->kids, n->nkids, sizeof *n->kids, by_name);
+    if (n->nkids) qsort(n->kids, n->nkids, sizeof *n->kids, by_name);
     n->size = fid_len(0);                       /* the parent entry */
     for (size_t i = 0; i < n->nkids; i++) {
         n->size += fid_len(n->kids[i]->ident_len);

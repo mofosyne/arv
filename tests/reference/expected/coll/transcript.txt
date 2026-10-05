@@ -1,0 +1,51 @@
+$ --home hc collection init coll/fam --code FAM --title Family photos --set CODE --access public
+FAM: collection UUID, workflow folder ROOT/coll/fam
+rc=0
+$ --home hc collection init coll/fam --code OTHER --title Again
+Error: this folder is already the workflow folder of collection UUID
+rc=1
+$ --home hc collection init coll --code fam --title Code taken
+Error: there is already a collection FAM
+rc=1
+$ --home hc collection init coll --code F --title Code too short
+Error: collection code F: 2-8 capital letters or digits (it starts each disc id)
+rc=1
+$ --home hc make -y --no-ecc --formats no --keep-stage --output-dir out-c1 coll/fam
+Collection FAM (Family photos): its next edition
+Scanning and hashing ROOT/coll/fam ...
+Classified as: PROJECTS/CODE
+Building ROOT/out-c1/FAM-01_2019_0.noecc.iso (1 of 1, 1.7 MiB) ...
+Hashing ROOT/out-c1/FAM-01_2019_0.noecc.iso ...
+FAM: edition 1 (provisional), revision 1436106577dc, +2 ~0 -0 files
+Kept staging directory ROOT/out-c1/.archive-make-XXXXXX
+FAM-01_2019_0	ROOT/out-c1/FAM-01_2019_0.noecc.iso	Family photos
+rc=0
+$ --home hc make -y --no-ecc --formats no --final --message the 2019 sort --keep-stage --output-dir out-c2 coll/fam
+Collection FAM (Family photos): its next edition
+Scanning and hashing ROOT/coll/fam ...
+Classified as: PROJECTS/CODE
+Building ROOT/out-c2/FAM-02_2019_Y.noecc.iso (1 of 1, 1.7 MiB) ...
+Hashing ROOT/out-c2/FAM-02_2019_Y.noecc.iso ...
+FAM: edition 2 (final), revision 95a366ff6ab0, +1 ~1 -1 files
+Kept staging directory ROOT/out-c2/.archive-make-XXXXXX
+FAM-02_2019_Y	ROOT/out-c2/FAM-02_2019_Y.noecc.iso	Family photos
+rc=0
+$ --home hc make -y --no-ecc --formats no --final --set CODE --output-dir out-c3 src
+Error: --final and --message are for a collection's workflow folder (arv collection init)
+rc=1
+$ --home hc collection list
+FAM       Family photos  (2 editions; last 2026-01-01, final)
+rc=0
+$ --home hc collection show FAM
+FAM       Family photos  (2 editions; last 2026-01-01, final)
+  uuid UUID; set CODE; access public
+  1436106577dc  2026-01-01  edition 1   provisional  +2 ~0 -0 files  FAM-01_2019_0
+  95a366ff6ab0  2026-01-01  edition 2   final        +1 ~1 -1 files  FAM-02_2019_Y  the 2019 sort
+rc=0
+$ --home hc collection show NOPE
+Error: no collection NOPE
+rc=1
+$ --home hc list
+FAM-01_2019_0	2026-01-01	Family photos	2 files	public	
+FAM-02_2019_Y	2026-01-01	Family photos	2 files	public	
+rc=0

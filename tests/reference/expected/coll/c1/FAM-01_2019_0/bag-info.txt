@@ -1,0 +1,6 @@
+Bagging-Date: 2026-01-01
+External-Identifier: FAM-01_2019_0
+External-Description: Family photos
+Bag-Group-Identifier: FAM
+Payload-Oxum: 4.2
+Bag-Software-Agent: SW <https://github.com/mofosyne/arv>

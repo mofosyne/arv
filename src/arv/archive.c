@@ -145,19 +145,18 @@ rec_record *archive_disc(const archive *a, const char *id)
 rec_record *archive_location(const archive *a, const char *code) { return by_code(&a->locations, code); }
 
 /* next unused sequence number in a set (numbers are never reused) */
-long archive_next_number(const archive *a, const char *set)
+long archive_next_number(const archive *a, const char *set)   /* set: the id prefix */
 {
     long most = 0;
     for (size_t i = 0; i < a->discs.n; i++) {
         const rec_record *d = a->discs.v[i];
-        if (!rec_get(d, "Set") || strcmp(rec_get(d, "Set"), set)) continue;
+        discid_parts p;              /* the id's prefix: a set code, or a collection's code */
+        int parsed = discid_parse(rec_get(d, "Id") ? rec_get(d, "Id") : "", &p);
+        if (parsed ? strcmp(p.set, set) : !rec_get(d, "Set") || strcmp(rec_get(d, "Set"), set)) continue;
         const char *seq = rec_get(d, "Sequence");
         long n = 0;
         if (seq && *seq && strspn(seq, "0123456789") == strlen(seq)) n = atol(seq);
-        else {
-            discid_parts p;
-            if (discid_parse(rec_get(d, "Id") ? rec_get(d, "Id") : "", &p)) n = p.sequence;
-        }
+        else if (parsed) n = p.sequence;
         if (n > most) most = n;
     }
     return most + 1;

@@ -220,6 +220,33 @@ log draft.out --home hd make -y --no-ecc --formats no --set CODE --draft draft-b
 keep draft.out draft/transcript.txt
 for k in 1 2 3 4; do keep_stages out-d$k draft/d$k; done
 keep_home hd draft/home
+
+# ------------------------------------------------------------------ collections: a workflow folder and its editions
+mkdir -p coll/fam/2019
+echo a > coll/fam/2019/a.txt
+echo b > coll/fam/b.txt
+stamp 1560000000 coll/fam/2019/a.txt
+stamp 1560000000 coll/fam/b.txt
+log coll.out --home hc collection init coll/fam --code FAM --title "Family photos" --set CODE --access public
+log coll.out --home hc collection init coll/fam --code OTHER --title "Again"
+log coll.out --home hc collection init coll --code fam --title "Code taken"
+log coll.out --home hc collection init coll --code F --title "Code too short"
+log coll.out --home hc make -y --no-ecc --formats no --keep-stage --output-dir out-c1 coll/fam
+echo B > coll/fam/b.txt
+echo c > coll/fam/c.txt
+rm coll/fam/2019/a.txt
+stamp 1570000000 coll/fam/b.txt
+stamp 1570000000 coll/fam/c.txt
+log coll.out --home hc make -y --no-ecc --formats no --final --message "the 2019 sort" --keep-stage --output-dir out-c2 coll/fam
+log coll.out --home hc make -y --no-ecc --formats no --final --set CODE --output-dir out-c3 src
+log coll.out --home hc collection list
+log coll.out --home hc collection show FAM
+log coll.out --home hc collection show NOPE
+log coll.out --home hc list
+keep coll.out coll/transcript.txt
+keep coll/fam/.arv coll/marker
+for k in 1 2; do keep_stages out-c$k coll/c$k; done
+keep_home hc coll/home
 keep hd/config/tags.rec draft/tags.rec
 
 # ------------------------------------------------------------------ recording, on a copy of the reference home

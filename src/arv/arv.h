@@ -62,6 +62,7 @@ int cmd_locate(int argc, char **argv);
 int cmd_access(int argc, char **argv);
 int cmd_location(int argc, char **argv);
 int cmd_selection(int argc, char **argv);
+int cmd_collection(int argc, char **argv);
 int cmd_appraise(int argc, char **argv);
 int cmd_sets(int argc, char **argv);
 int cmd_names(int argc, char **argv);
@@ -118,6 +119,18 @@ typedef struct {
     entry *v;
     size_t n;
 } entries;
+
+/* collection.c: collections kept over time, their workflow folders and revisions */
+char *marker_path(const char *folder);
+char *marker_collection(const char *folder);            /* the Uuid the folder's .arv marker names, or NULL */
+rec_record *archive_collection(const archive *a, const char *code_or_uuid);
+rec_record *collection_head(const archive *a, const char *uuid);
+int collection_editions(const archive *a, const char *uuid);
+char *tree_manifest(const entries *files);
+void revision_hashes(const char *text, const char *parent, const char *date, const char *message,
+                     char tree[65], char node[65]);
+char *revision_manifest_path(const arv_home *h, const char *node);
+char *manifest_changes(const char *before, const char *after);
 
 /* formats.c: Siegfried (PRONOM) format identification */
 typedef struct {

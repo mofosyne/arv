@@ -90,7 +90,7 @@ file exists. `bagit.txt` at the root additionally marks the disc as a BagIt bag.
 | Path | Shape | Contents |
 |---|---|---|
 | `catalog.rec` | recfile | `Archive` entry record, then this disc's `Disc` and `Binding` records, the `Location` records it refers to, its `Event` records and its `Appraisal` records |
-| `bagit.txt`, `bag-info.txt` | BagIt | Bag declaration; `External-Identifier` = disc Id, `External-Description` = title and description, `Bag-Group-Identifier` = set and `Bag-Count` for multi-disc sets, `Payload-Oxum`, and `Bag-Software-Agent` = `arv@<commit> <https://github.com/mofosyne/arv>` |
+| `bagit.txt`, `bag-info.txt` | BagIt | Bag declaration; `External-Identifier` = disc Id, `External-Description` = title and description, `Bag-Group-Identifier` = the disc's collection code, else its set (or the range of a multi-disc set, with `Bag-Count`), `Payload-Oxum`, and `Bag-Software-Agent` = `arv@<commit> <https://github.com/mofosyne/arv>` |
 | `manifest-sha256.txt`, `manifest-sha512.txt` | BagIt manifest | `<hash>  data/<path>`, one per payload file (`sha256sum -c` compatible) |
 | `catalog/volumes/<id>/listing.tsv` | TSV | Size, modification time and path of every payload file |
 | `catalog/volumes/<id>/tags.tsv` | TSV | Folder tags and optional image captions |
@@ -115,7 +115,8 @@ Version 0.1 (samples only, never burned) kept these files by kind instead: `cata
 | `Label` | The volume label, when it is more than the id | The id, a space, then as much of the title as fits (126 characters, 63 with any beyond U+00FF; 32 bytes on older hybrid discs), e.g. `TRIP-01_2019_4 Kyoto July 2019` |
 | `IdScheme` | Which rule built `Id` | `set-seq-coverage/1`; absent for older discs |
 | `Uuid` | Machine identity (UUID v4) of this image | Copies burned from one image share it |
-| `Set`, `Sequence` | Set code and number within the set | `Sequence` is never reused within a set |
+| `Collection` | The code of the collection it is an edition of | Only for discs made from a collection's workflow folder; its id then starts with this code |
+| `Set`, `Sequence` | Set code, and the number within the id's prefix (the collection's code, else the set) | `Sequence` is never reused within a prefix |
 | `Category`* | Extra vocabulary codes | see [Set vocabulary](#set-vocabulary-a-word-hierarchy) |
 | `Path`* | Vocabulary paths of the set and categories | e.g. `MEMORIES/PHOTO/TRIP`; recorded at burn time |
 | `Title`, `Description`, `Creator`, `Subject`*, `Coverage`, `Rights` | Dublin Core description | `Subject` repeats; `Coverage` is [EDTF](#coverage-edtf) |
@@ -326,6 +327,15 @@ Message: the 2025 sort, final
 | `Edition`, `Volume`* | for an edition: its number and its discs |
 
 Revisions are appended, never edited, and merged by `Node`; collections are merged by `Uuid`.
+A disc carries its collection and its own edition's `Revision` in `catalog.rec`; a full catalogue
+snapshot carries every collection and revision, a `set` or `disc` snapshot those of the disc's
+own collection. Each revision's manifest is kept in the home catalogue as
+`catalog/revisions/<Node>.sha256`; an edition's can also be rebuilt from its discs' manifests
+(paths without `data/`).
+
+**The workflow folder's marker** is a `.arv` file at its root: a recfile with `Home:` (the home
+catalogue, as any `.arv` pointer file) and `Collection:` (the collection's `Uuid`). It is arv's
+own and never goes on a disc (nor does any `.arv` at the root of a folder being archived).
 
 ### Access
 

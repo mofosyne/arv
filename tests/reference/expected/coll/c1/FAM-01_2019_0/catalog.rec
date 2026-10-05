@@ -1,0 +1,126 @@
+%rec: Archive
+%doc: Entry point of a smart-archive disc: which format and version this is, which disc,
++ and where its other catalogue files are (paths relative to the disc root).
++ Specification: tools/arv/docs/spec/smart-archive-format.md
+%mandatory: Format Version Disc Uuid
+
+Format: smart-archive
+Version: 0.5
+Disc: FAM-01_2019_0
+Uuid: UUID
+Manifest: manifest-sha256.txt
+Listing: catalog/volumes/FAM-01_2019_0/listing.tsv
+Snapshot: catalog/archive.rec
+Viewer: index.html
+Payload: data/
+
+%rec: Disc
+%doc: One record per physical disc image (an OAIS AIP). Field names follow
++ Dublin Core terms where one fits: Title, Creator, Date, Description,
++ Subject, Coverage, Rights. Uuid is the machine identity of the image
++ (copies burned from one image share it); Id is for people and is
++ derived from Set, Sequence and Coverage (EDTF) under IdScheme, so it
++ can always be regenerated and checked (see docs/spec/smart-archive-format.md).
+%key: Id
+%mandatory: Id Title Date
+%type: Uuid uuid
+%type: Sequence int
+%type: Date date
+%type: Files int
+%type: Bytes int
+%type: Access enum public private sealed
+
+Id: FAM-01_2019_0
+Uuid: UUID
+IdScheme: set-seq-coverage/1
+Label: FAM-01_2019_0 Family photos
+Title: Family photos
+Collection: FAM
+Set: CODE
+Path: PROJECTS/CODE
+Sequence: 1
+Coverage: 2019
+Date: 2026-01-01
+Creator: archivist
+Access: public
+Files: 2
+Bytes: 4
+Software: SW
+
+%rec: Binding
+%doc: How one volume is stored on its medium: the container (filesystem) and the
++ protection (error correction) it was made with. These change with the medium;
++ the files and the rest of the catalogue do not (research/plan.md, four layers).
++ Container: iso9660+udf-1.02, udf-2.50 (later perhaps ltfs, exfat, tar, afs).
++ Protection: rs03 or none. Media, Filesystem and Ecc describe them for people
++ (format 0.2 and earlier kept those three in the Disc record).
+%key: Volume
+%mandatory: Volume Container Protection
+%type: MediumSectors int
+
+Volume: FAM-01_2019_0
+Container: udf-2.50
+Protection: none
+Media: M-DISC BD-R 25GB
+Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
+Ecc: none
+
+%rec: Collection
+%doc: Something kept over time and made into discs again and again, e.g. a family's
++ photos: one workflow folder, one history of Revision records. Uuid is its identity
++ (it survives renames, moves and changes; the folder's .arv marker carries it); Code
++ is for people and prefixes its disc ids. Title, Description, Set, Category and
++ Access are the defaults its discs are made with.
+%key: Code
+%mandatory: Code Uuid Title
+%type: Uuid uuid
+%type: Access enum public private sealed
+
+Code: FAM
+Uuid: UUID
+Title: Family photos
+Set: CODE
+Access: public
+
+%rec: Revision
+%doc: One state of a collection, as git's commits are: appended, never edited. Tree is
++ the SHA-256 of its manifest (every file's path and SHA-256, sorted); Node is the
++ SHA-256 of Tree, Parent(s), Date and Message, and names the revision. A checkpoint
++ only records the state (the files stay on everyday storage); a provisional or final
++ revision became discs: Edition numbers it, Volume names each disc. Each edition is a
++ full copy of the collection; a later safe edition replaces earlier provisional ones.
+%key: Node
+%mandatory: Node Collection Tree Date Stage
+%type: Date date
+%type: Edition int
+%type: Stage enum checkpoint provisional final
+
+Node: 1436106577dc489c0d805d34f07fce5c8af9e3fed51904b8c7e368f5ebc1cd7d
+Collection: UUID
+Tree: 8c351f9d3f15c68d437ff4e7046b540ae7b587cb8693c1da450c39fb95c605f8
+Date: 2026-01-01
+Stage: provisional
+Edition: 1
+Volume: FAM-01_2019_0
+Changes: +2 ~0 -0 files
+
+%rec: Event
+%doc: Preservation actions and metadata changes, appended and never edited. Type uses
++ the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
++ Disc names the disc; a change to a location or a selection names it in Object
++ (location:CODE, selection:CODE) instead.
++ Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
++ Authorship says how people and machines shared the work: automatic (software
++ following rules), suggested (a model, not reviewed), accepted (a model's suggestion
++ a person kept as it was), edited (one a person changed), human (a person alone).
+%mandatory: Type Date Outcome
+%type: Outcome enum success failure warning
+%type: Authorship enum automatic suggested accepted edited human
+
+Disc: FAM-01_2019_0
+Type: message digest calculation
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: SW
+Note: sha256 and sha512 manifests of 2 files

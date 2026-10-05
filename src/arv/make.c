@@ -40,11 +40,12 @@ static void say(const char *fmt, const char *arg)
 typedef struct {
     const char *source, *home, *output, *output_dir, *id, *set, *coverage, *title, *label, *description;
     const char *creator, *location, *access, *rights, *links, *medium, *media, *snapshot, *tools;
-    const char *basis, *review, *formats, *sf_home, *extra_tools, *draft;
+    const char *basis, *review, *formats, *sf_home, *extra_tools, *draft, *message;
     strlist categories, subjects, notes, importance;
     long medium_sectors;
     double min_redundancy;
     int no_rules, no_ecc, no_verify, no_defect_management, keep_stage, ignore_names, label_given, redundancy_given, split, tools_history, ro_crate, yes;
+    int final, access_given;
 } options;
 
 static const char HELP[] =
@@ -78,6 +79,10 @@ static const char HELP[] =
     "                         arv describe --save and arv tag --save write); options given win\n"
     "  --extra-tools DIR      a folder copied to tools/extra/ (dvdisaster binaries, say)\n"
     "  --split                spread the folder over as many discs as needed\n"
+    "In a collection's workflow folder (arv collection init), the collection gives the title, set,\n"
+    "categories and access, its code starts the disc ids, and each make is its next edition:\n"
+    "  --final                a final edition (default: provisional)\n"
+    "  --message TEXT         what this edition is, for the collection's history\n"
     "  --formats auto|yes|no  PRONOM format ids with Siegfried (auto: when sf is on PATH)\n"
     "  --sf-home DIR          Siegfried signature folder (sf -home)\n"
     "  --no-ecc, --no-verify  skip RS03, or skip testing the image afterwards\n"
@@ -111,6 +116,7 @@ static int parse_options(int argc, char **argv, options *o)
         if (!strcmp(a, "--split")) { o->split = 1; continue; }
         if (!strcmp(a, "--tools-history")) { o->tools_history = 1; continue; }
         if (!strcmp(a, "--ro-crate")) { o->ro_crate = 1; continue; }
+        if (!strcmp(a, "--final")) { o->final = 1; continue; }
         if (!strcmp(a, "-y") || !strcmp(a, "--yes")) { o->yes = 1; continue; }
         if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             fputs(HELP, stdout);
@@ -132,7 +138,8 @@ static int parse_options(int argc, char **argv, options *o)
         else if (!strcmp(a, "--description")) str = &o->description;
         else if (!strcmp(a, "--creator")) str = &o->creator;
         else if (!strcmp(a, "--location")) str = &o->location;
-        else if (!strcmp(a, "--access")) str = &o->access;
+        else if (!strcmp(a, "--access")) { str = &o->access; o->access_given = 1; }
+        else if (!strcmp(a, "--message")) str = &o->message;
         else if (!strcmp(a, "--rights")) str = &o->rights;
         else if (!strcmp(a, "--links")) str = &o->links;
         else if (!strcmp(a, "--medium")) str = &o->medium;
@@ -740,6 +747,11 @@ typedef struct {
     int is_git, links_chosen, have_formats;
     formats fmt;
     const draft *draft;         /* --draft, or NULL */
+    rec_record *collection;     /* the workflow folder's collection, or NULL */
+    const char *id_prefix;      /* the collection's code, else the set code */
+    char *tree_text;            /* the collection's revision manifest */
+    rec_record *revision;       /* this edition, once the discs are assigned */
+    size_t left_out;            /* files arv keeps off the disc (its own .arv) */
     plan *plans;
     size_t nplans;
 } maker;
@@ -880,6 +892,7 @@ static rec_record *disc_record(const maker *mk, const plan *p)
     if (!o->id) rec_add(d, "IdScheme", DISCID_SCHEME);
     if (strcmp(p->label, p->disc_id)) rec_add(d, "Label", p->label);
     rec_add(d, "Title", mk->title);
+    if (mk->collection) rec_add(d, "Collection", rec_get(mk->collection, "Code"));
     rec_add(d, "Set", mk->set_code);
     for (size_t i = 0; i < mk->categories->n; i++) rec_add(d, "Category", mk->categories->v[i]);
     for (size_t i = 0; i < mk->paths->n; i++) rec_add(d, "Path", mk->paths->v[i]);
@@ -937,12 +950,46 @@ static rec_record *binding_record(const maker *mk, const plan *p)
     return b;
 }
 
+/* this edition of the collection: a Revision naming its discs */
+static rec_record *revision_record(const maker *mk)
+{
+    const options *o = mk->o;
+    const char *uuid = rec_get(mk->collection, "Uuid");
+    const rec_record *head = collection_head(mk->cat, uuid);
+    const char *parent = head ? rec_get(head, "Node") : NULL;
+    char tree[65], node[65];
+    revision_hashes(mk->tree_text, parent, mk->today, o->message, tree, node);
+    rec_record *r = rec_alloc("Revision");
+    rec_add(r, "Node", node);
+    rec_add(r, "Collection", uuid);
+    rec_add(r, "Tree", tree);
+    if (parent) rec_add(r, "Parent", parent);
+    rec_add(r, "Date", mk->today);
+    rec_add(r, "Stage", o->final ? "final" : "provisional");
+    char *n = xprintf("%d", collection_editions(mk->cat, uuid) + 1);
+    rec_add(r, "Edition", n);
+    free(n);
+    for (size_t i = 0; i < mk->nplans; i++) rec_add(r, "Volume", mk->plans[i].disc_id);
+    char *before = NULL;
+    if (parent) {
+        char *path = revision_manifest_path(mk->h, parent);
+        before = access(path, F_OK) ? NULL : read_text(path);
+        free(path);
+    }
+    char *changes = manifest_changes(before ? before : "", mk->tree_text);
+    rec_add(r, "Changes", changes);
+    free(changes);
+    free(before);
+    if (o->message && *o->message) rec_add(r, "Message", o->message);
+    return r;
+}
+
 /* plans for these bins: ids, records and their first events (make.Maker.assign) */
 static void assign(maker *mk, const size_t *counts, size_t nbins)
 {
     const options *o = mk->o;
     if (o->id && nbins > 1) die("--id cannot be used when the folder is split across several discs%s", "");
-    long first = archive_next_number(mk->cat, mk->set_code);
+    long first = archive_next_number(mk->cat, mk->id_prefix);
     mk->plans = xmalloc(nbins * sizeof *mk->plans);
     memset(mk->plans, 0, nbins * sizeof *mk->plans);
     mk->nplans = nbins;
@@ -956,8 +1003,8 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
         p->parts = (int)nbins;
         p->sequence = first + (long)i;
         if (o->id) snprintf(p->disc_id, sizeof p->disc_id, "%s", o->id);
-        else if (discid_compose(mk->set_code, p->sequence, mk->coverage, p->disc_id, sizeof p->disc_id))
-            die("cannot make a disc id from set %s and this coverage", mk->set_code);
+        else if (discid_compose(mk->id_prefix, p->sequence, mk->coverage, p->disc_id, sizeof p->disc_id))
+            die("cannot make a disc id from %s and this coverage", mk->id_prefix);
         int id_ok = isalnum((unsigned char)p->disc_id[0]) && strlen(p->disc_id) <= 32;
         for (const char *c = p->disc_id; *c; c++) id_ok &= isalnum((unsigned char)*c) || *c == '_' || *c == '-';
         if (!id_ok) die("invalid disc id %s (letters, digits, _ and -; at most 32 characters)", p->disc_id);
@@ -1003,6 +1050,7 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
         }
         if (o->importance.n || o->basis) recs_add(&p->appraisals, new_appraisal(p->disc_id, &o->importance, o->basis, mk->review));
     }
+    if (mk->collection) mk->revision = revision_record(mk);
 }
 
 static void batch_files(maker *mk)
@@ -1069,7 +1117,7 @@ static void batch_files(maker *mk)
 static char *group_id(const maker *mk)
 {
     if (mk->nplans < 2) return NULL;
-    return xprintf("%s-%02ld-%02ld", mk->set_code, mk->plans[0].sequence, mk->plans[mk->nplans - 1].sequence);
+    return xprintf("%s-%02ld-%02ld", mk->id_prefix, mk->plans[0].sequence, mk->plans[mk->nplans - 1].sequence);
 }
 
 /* everything on disc i but the payload, in a stage folder (make.Maker.stage) */
@@ -1090,7 +1138,7 @@ static void stage_plan(maker *mk, size_t idx)
     char *group = group_id(mk), *count = xprintf("%d of %d", p->part, p->parts);
     char *oxum = xprintf("%llu.%zu", (unsigned long long)bytes, p->payload.n), *agent = xprintf("%s <%s>", mk->software, URL);
     const char *pairs[] = { "Bagging-Date", mk->today, "External-Identifier", p->disc_id, "External-Description", ext_desc,
-                            "Bag-Group-Identifier", group ? group : mk->set_code };
+                            "Bag-Group-Identifier", group ? group : mk->id_prefix };
     for (int i = 0; i < 8; i++) strlist_add(&info, pairs[i]);
     if (p->parts > 1) { strlist_add(&info, "Bag-Count"); strlist_add(&info, count); }
     strlist_add(&info, "Payload-Oxum"); strlist_add(&info, oxum);
@@ -1115,6 +1163,17 @@ static void stage_plan(maker *mk, size_t idx)
     strlist snap_ids = { 0 };
     for (size_t i = 0; i < snap.discs.n; i++) strlist_add(&snap_ids, rec_get(snap.discs.v[i], "Id"));
     archive_selections_for(cat, &snap_ids, &snap.selections);
+    for (size_t i = 0; i < cat->collections.n; i++) {    /* collections and their histories: all of them in a
+                                                           full snapshot, else this disc's own */
+        rec_record *c = cat->collections.v[i];
+        if (strcmp(o->snapshot, "full") && c != mk->collection) continue;
+        recs_add(&snap.collections, c);
+        for (size_t k = 0; k < cat->revisions.n; k++)
+            if (rec_get(cat->revisions.v[k], "Collection") && rec_get(c, "Uuid")
+                && !strcmp(rec_get(cat->revisions.v[k], "Collection"), rec_get(c, "Uuid")))
+                recs_add(&snap.revisions, cat->revisions.v[k]);
+    }
+    if (mk->revision) recs_add(&snap.revisions, mk->revision);
     if (!strcmp(o->snapshot, "full")) {          /* the history of the places and selections it carries */
         strlist carried = { 0 };
         for (size_t i = 0; i < snap.locations.n; i++) {
@@ -1270,6 +1329,10 @@ static void stage_plan(maker *mk, size_t idx)
         recs_add(&own.bindings, p->binding);
         for (size_t i = 0; i < p->events.n; i++) recs_add(&own.events, p->events.v[i]);
         for (size_t i = 0; i < p->appraisals.n; i++) recs_add(&own.appraisals, p->appraisals.v[i]);
+        if (mk->collection) {                   /* the collection, and the edition this disc is part of */
+            recs_add(&own.collections, mk->collection);
+            recs_add(&own.revisions, mk->revision);
+        }
         archive_locations_for(cat, &own.discs, &own.locations);
         archive_records(&own, &all);
         char *path = join(p->stage, "catalog.rec");
@@ -1289,7 +1352,7 @@ static void measure(maker *mk, plan *p)
 {
     p->built = xprintf("%s.udf", p->stage);
     p->extents = xprintf("%s.extents.tsv", p->stage);
-    int whole = p->parts == 1 && !mk->noted->n;      /* the whole folder: empty folders too */
+    int whole = p->parts == 1 && !mk->noted->n && !mk->left_out;     /* the whole folder: empty folders too */
     for (size_t i = 0; i < p->files.n && whole; i++) whole = !*p->files.v[i].link && !p->files.v[i].via_folder;
     char volume_set[17];
     size_t k = 0;
@@ -1492,6 +1555,18 @@ static int make_discs(maker *mk)
         free(own);
         free(home_vol);
     }
+    if (mk->revision) {         /* the edition in the collection's history, and its manifest */
+        recs_add(&mk->cat->revisions, mk->revision);
+        char *path = revision_manifest_path(mk->h, rec_get(mk->revision, "Node")), *dir = xstrdup(path);
+        *strrchr(dir, '/') = 0;
+        if (mkdirs(dir)) die("cannot create %s", dir);
+        write_text(path, mk->tree_text);
+        fprintf(stderr, "%s: edition %s (%s), revision %.12s, %s\n", rec_get(mk->collection, "Code"),
+                rec_get(mk->revision, "Edition"), rec_get(mk->revision, "Stage"), rec_get(mk->revision, "Node"),
+                rec_get(mk->revision, "Changes"));
+        free(path);
+        free(dir);
+    }
     archive_save(mk->cat, mk->h->rec_path);
     if (o->keep_stage) fprintf(stderr, "Kept staging directory %s\n", mk->workdir);
     else remove_tree(mk->workdir);
@@ -1517,9 +1592,35 @@ int cmd_make(int argc, char **argv)
     archive cat;
     archive_load(&cat, h.rec_path);
 
+    /* a collection's workflow folder: the collection gives what the options leave open */
+    rec_record *coll = NULL;
+    char *coll_uuid = marker_collection(src);
+    if (coll_uuid) {
+        coll = archive_collection(&cat, coll_uuid);
+        if (!coll) die("this folder's .arv marker names collection %s, which is not in the home catalogue", coll_uuid);
+        if (!o.title || !*o.title) o.title = rec_get(coll, "Title");
+        if ((!o.description || !*o.description) && rec_get(coll, "Description")) o.description = rec_get(coll, "Description");
+        if ((!o.set || !*o.set) && rec_get(coll, "Set")) o.set = rec_get(coll, "Set");
+        if (!o.categories.n)
+            for (size_t i = 0; i < coll->nfields; i++)
+                if (!strcmp(coll->fields[i].name, "Category")) strlist_add(&o.categories, coll->fields[i].value);
+        if (!o.access_given && rec_get(coll, "Access")) o.access = rec_get(coll, "Access");
+        fprintf(stderr, "Collection %s (%s): its next edition\n", rec_get(coll, "Code"), rec_get(coll, "Title"));
+    } else if (o.final || o.message) {
+        die("%s", "--final and --message are for a collection's workflow folder (arv collection init)");
+    }
+
     fprintf(stderr, "Scanning and hashing %s ...\n", src);
+    size_t left_out = 0;
     entries files, noted;
     scan_payload(src, o.links, &files, &noted);
+    {   /* the .arv at the folder's root is arv's own (a marker, pointer or home), never content */
+        size_t kept = 0;
+        for (size_t i = 0; i < files.n; i++)
+            if (strcmp(files.v[i].path, ".arv") && strncmp(files.v[i].path, ".arv/", 5)) files.v[kept++] = files.v[i];
+        left_out = files.n - kept;
+        files.n = kept;
+    }
     char *summary = link_summary(&files, &noted, o.links);
     if (summary) fprintf(stderr, "Links: %s\n", summary + strlen("links: "));
     {
@@ -1695,6 +1796,10 @@ int cmd_make(int argc, char **argv)
         mk.creator = o.creator ? o.creator : getenv("USER");
         if (o.location && *o.location) mk.location = place(&cat, o.location);
         mk.set_code = set_code;
+        mk.collection = coll;
+        mk.left_out = left_out;
+        mk.id_prefix = coll ? rec_get(coll, "Code") : set_code;
+        if (coll) mk.tree_text = tree_manifest(&files);
         mk.categories = &categories;
         mk.paths = &all_paths;
         snprintf(mk.coverage, sizeof mk.coverage, "%s", coverage);

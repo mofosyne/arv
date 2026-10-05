@@ -662,10 +662,12 @@ edition stays a full copy. Any folder in the collection with a `.git` is handled
     hashes (changed, same path); an edited file that was also renamed is new + removed.
 
 **Steps**
-- [ ] Format 0.5: `Collection` (with its Uuid), `Revision` (Tree, Node, editions), `Selection`,
-      the `Retired` event; the spec, fixtures and reference outputs.
+- [x] Format 0.5: `Collection` (with its Uuid), `Revision` (Tree, Node, editions), `Selection`;
+      the spec and reference outputs (2026-10-05; the `Retired` event comes with `arv retire`).
+      No compatibility with earlier drafts: nothing has been burned yet.
 - [ ] `arv checkpoint`, `arv log`, `arv diff`, and the hash cache they share with `arv status`.
-- [ ] `arv collection init`, the marker, and `arv make` taking its settings from it.
+- [x] `arv collection init|list|show`, the marker, and `arv make` taking its settings from it and
+      recording each edition (2026-10-05).
 - [ ] `arv status` (a workflow folder: changes since the last edition; any folder: archived or
       not) and `arv log`.
 - [ ] `arv burn` (burn, read back, record the copy, ask where it lives) and edition safety.
