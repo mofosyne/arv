@@ -568,6 +568,23 @@ edition stays a full copy. Any folder in the collection with a `.git` is handled
 - `arv status` reports per repository: new commits since the last edition, uncommitted changes,
   and the size of ignored files (`node_modules/`, build output) with `--skip-ignored` to leave
   them out (default: keep everything, as for any folder).
+- **Recognising a repository by its history, not its path.** For each repository on a disc the
+  catalogue keeps its root commit(s), its heads, and the list of commits it holds
+  (`catalog/volumes/<id>/git-commits.txt`: repository path, then one hash per line; about 41
+  bytes a commit, so 10,000 commits is 400 KB, kept beside the listing). Then, for any
+  repository on the NAS or a laptop, `arv status` answers from the home catalogue alone, with
+  no disc in the drive:
+  - **same project**: its root commit is on a disc, whatever the folder is called now or
+    wherever it was cloned;
+  - **already archived**: its HEAD is in a disc's commit list (it is that disc's state, or older);
+  - **ahead**: an archived head is an ancestor of its HEAD (`git merge-base --is-ancestor`):
+    "14 commits newer than PROJ-02";
+  - **diverged**: both have commits the other lacks (a rebase, or work on two machines):
+    "3 commits on no disc";
+  - **not archived**: no root commit matches.
+  `arv find <commit>` names the discs holding a commit. Repositories nested in another's tree
+  (submodules, or a clone inside a folder) are checked the same way, each on its own.
+  History rewritten from the root (filter-repo) matches nothing; that is the honest answer.
 - arv runs the `git` program for all of this and never reads git's files itself; without git
   on PATH it copies `.git` as is (today's behaviour) and says so in the event.
 - Submodules and worktrees (a `.git` file pointing elsewhere): archive the repository it names.
