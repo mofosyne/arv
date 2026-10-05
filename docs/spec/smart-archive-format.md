@@ -293,8 +293,8 @@ because a snapshot's copy may be filtered.
 A **collection** is something kept over time and made into discs again and again, e.g. a
 family's photos: one folder on everyday storage (its *workflow folder*), one history. Each
 **revision** records one state of it, as a git commit does; a revision that became discs is
-an **edition**, a full copy of the collection, `provisional` or `final`. A later edition, once
-safely burned, replaces earlier provisional ones. (Format 0.5 defines the records; arv writes
+an **edition**, a full copy of the collection, with as many copies as its owner makes. A later
+edition, once safely burned, replaces earlier ones, except those marked `Keep: yes`. (Format 0.5 defines the records; arv writes
 them from `arv collection init` on. Readers must accept them.)
 
 ```
@@ -315,12 +315,13 @@ Collection: 0b6c2f1e-8d1a-4c1e-9a77-3f2f6f0c9e10
 Tree: 81d0...
 Parent: c47e...
 Date: 2026-01-10
-Stage: final
+Stage: edition
 Edition: 4
+Keep: yes
 Volume: FAMILY-05_2001-2025_X
 Volume: FAMILY-06_2001-2025_Q
 Changes: +312 ~4 -17 >2 files
-Message: the 2025 sort, final
+Message: the 2025 sort
 ```
 
 | Field | Meaning |
@@ -330,7 +331,8 @@ Message: the 2025 sort, final
 | `Tree` | SHA-256 of the revision's manifest: every file's path and SHA-256, sorted by path, in `manifest-sha256.txt` form |
 | `Node` | SHA-256 of `Tree`, each `Parent`, `Date` and `Message`, each line `Field: value`; it names the revision |
 | `Parent`* | the revision(s) it follows (two for a merge); none for the first |
-| `Stage` | `checkpoint` (state recorded, no discs), `provisional` or `final` (an edition) |
+| `Stage` | `checkpoint` (state recorded, no discs) or `edition` |
+| `Keep` | `yes`: never offered for retiring; may be added later (it is not part of `Node`) |
 | `Edition`, `Volume`* | for an edition: its number and its discs |
 | `Changes` | since the parent: files new (`+`), changed (`~`), removed (`-`) and moved (`>`: the same content under a new path) |
 
@@ -338,8 +340,8 @@ Revisions are appended, never edited, and merged by `Node`; collections are merg
 
 A copy is **known good** when its `replication` event carries `ReadBack: identical` (the disc was
 read back against the image's `ImageSha256` before the copy was recorded). An edition is **safe**
-when each of its discs has a known-good copy. Once a later edition is safe, earlier provisional
-editions may be retired: each of their discs gets `Retired: DATE` (and loses its `Location`
+when each of its discs has a known-good copy. Once a later edition is safe, earlier editions not
+kept may be retired: each of their discs gets `Retired: DATE` (and loses its `Location`
 fields) and a `deaccession` event saying what replaced it. Nothing is deleted.
 A disc carries its collection and its own edition's `Revision` in `catalog.rec`; a full catalogue
 snapshot carries every collection and revision, a `set` or `disc` snapshot those of the disc's

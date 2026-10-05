@@ -47,7 +47,7 @@ arv access DISC-ID public|private|sealed
 arv location list [-v] | add CODE [NAME] [--in PARENT] | move CODE [NAME] [--in PARENT]
 arv collection init [FOLDER] --code CODE --title TITLE [--set CODE] [--category CODE]... [--access LEVEL]
                                         make FOLDER a collection's workflow folder (a .arv marker);
-                                        arv make FOLDER then makes its next edition (--final, --message)
+                                        arv make FOLDER then makes its next edition (--keep, --message)
 arv collection list | show CODE        the collections, and a collection's editions
 arv status [-v] [--deep] [FOLDER]      a workflow folder: what changed since its last revision; any
                                         other folder: which of its files are on which discs
@@ -55,7 +55,8 @@ arv checkpoint [--message TEXT] [FOLDER]   record a workflow folder's state (no 
 arv log [COLLECTION]                   its revisions;  arv diff REV [REV|FOLDER]: what changed
 arv link FOLDER COLLECTION|DISC-ID [--past]   say what a folder is, writing nothing in it (logged)
 arv todo [--overdue YEARS]             what is owed: burns, read-backs, safe editions, places, checks
-arv retire CODE [--yes]                retire the provisional editions a safe edition replaces
+arv retire CODE [--yes]                retire the editions a newer safe one replaces (not kept)
+arv collection keep CODE N            edition N is never offered for retiring
 arv selection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]
 arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]
 arv sets [-v]                          the set vocabulary with disc counts

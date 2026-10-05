@@ -4,7 +4,7 @@
  *   arv todo [--overdue YEARS]   what needs doing: images not burned, copies not read back,
  *                                editions not yet safe, replaced editions, discs kept in one place,
  *                                checks overdue (default: 5 years)
- *   arv retire CODE [--yes] [-v] the provisional editions a later safe edition replaces: lists the
+ *   arv retire CODE [--yes] [-v] the editions a later safe edition replaces (not those kept): lists the
  *                                files found only on them, and records nothing without --yes
  *
  * arv never burns and never deletes: a copy is known good when arv burned --device read it back
@@ -101,7 +101,7 @@ static void editions(const archive *cat, const rec_record *c, recs *out)
     }
 }
 
-/* the newest safe edition, and the provisional editions before it not yet retired */
+/* the newest safe edition, and the editions before it not kept and not yet retired */
 static const rec_record *replaced(const archive *cat, const rec_record *c, recs *out)
 {
     recs eds = { 0 };
@@ -110,7 +110,7 @@ static const rec_record *replaced(const archive *cat, const rec_record *c, recs 
     while (safe > 0 && !edition_safe(cat, eds.v[safe - 1])) safe--;
     const rec_record *by = safe ? eds.v[safe - 1] : NULL;
     for (size_t i = 0; by && i + 1 < safe; i++)
-        if (!strcmp(get_or(eds.v[i], "Stage", ""), "provisional") && !edition_retired(cat, eds.v[i])) recs_add(out, eds.v[i]);
+        if (!rec_get(eds.v[i], "Keep") && !edition_retired(cat, eds.v[i])) recs_add(out, eds.v[i]);
     free(eds.v);
     return by;
 }
@@ -162,7 +162,7 @@ int cmd_todo(int argc, char **argv)
         editions(&cat, c, &eds);
         if (eds.n && !edition_safe(&cat, eds.v[eds.n - 1]) && !edition_retired(&cat, eds.v[eds.n - 1])) {
             heading(&s3, "Editions not safe yet (every disc burned and read back):");
-            printf("  %s/%s (%s)\n", get_or(c, "Code", ""), get_or(eds.v[eds.n - 1], "Edition", ""), get_or(eds.v[eds.n - 1], "Stage", ""));
+            printf("  %s/%s\n", get_or(c, "Code", ""), get_or(eds.v[eds.n - 1], "Edition", ""));
             items++;
         }
         const rec_record *by = replaced(&cat, c, &old);
@@ -230,7 +230,7 @@ int cmd_retire(int argc, char **argv)
         return 0;
     }
     if (!old.n) {
-        printf("%s: nothing to retire (edition %s is safe; no earlier provisional edition is left)\n", get_or(c, "Code", ""),
+        printf("%s: nothing to retire (edition %s is safe; every earlier edition is kept or retired)\n", get_or(c, "Code", ""),
                get_or(by, "Edition", ""));
         return 0;
     }
@@ -271,12 +271,12 @@ int cmd_retire(int argc, char **argv)
         free(t);
         free(p);
     }
-    printf("%s: edition %s (%s, %s) is safe; it replaces:\n", get_or(c, "Code", ""), get_or(by, "Edition", ""),
-           get_or(by, "Stage", ""), get_or(by, "Date", ""));
+    printf("%s: edition %s (%s) is safe; it replaces (editions marked kept stay):\n", get_or(c, "Code", ""),
+           get_or(by, "Edition", ""), get_or(by, "Date", ""));
     for (size_t i = 0; i < old.n; i++) {
         strlist v = { 0 };
         volumes(old.v[i], &v);
-        printf("  edition %s (provisional, %s):", get_or(old.v[i], "Edition", ""), get_or(old.v[i], "Date", ""));
+        printf("  edition %s (%s):", get_or(old.v[i], "Edition", ""), get_or(old.v[i], "Date", ""));
         for (size_t k = 0; k < v.n; k++) printf(" %s", v.v[k]);
         putchar('\n');
         strlist_free(&v);

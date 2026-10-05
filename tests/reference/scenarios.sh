@@ -244,8 +244,8 @@ echo c > coll/fam/c.txt
 rm coll/fam/2019/a.txt
 stamp 1570000000 coll/fam/b.txt
 stamp 1570000000 coll/fam/c.txt
-log coll.out --home hc make -y --no-ecc --formats no --final --message "the 2019 sort" --keep-stage --output-dir out-c2 coll/fam
-log coll.out --home hc make -y --no-ecc --formats no --final --set CODE --output-dir out-c3 src
+log coll.out --home hc make -y --no-ecc --formats no --message "the 2019 sort" --keep-stage --output-dir out-c2 coll/fam
+log coll.out --home hc make -y --no-ecc --formats no --keep --set CODE --output-dir out-c3 src
 log coll.out --home hc status coll/fam
 echo e > coll/fam/e.txt
 mv coll/fam/c.txt coll/fam/c2.txt
@@ -274,6 +274,7 @@ log coll.out --home hc link coll/loose FAM-01_2019_0
 log coll.out --home hc status coll/loose
 log coll.out --home hc collection list
 log coll.out --home hc collection show FAM
+log coll.out --home hc collection keep FAM 9
 log coll.out --home hc todo
 log coll.out --home hc retire FAM
 cp out-c2/FAM-02_2019_Y.noecc.iso bad.iso
@@ -285,6 +286,8 @@ log coll.out --home hc todo
 log coll.out --home hc retire FAM
 log coll.out --home hc retire FAM --yes
 log coll.out --home hc retire FAM
+log coll.out --home hc collection keep FAM 2
+log coll.out --home hc collection keep FAM 2
 log coll.out --home hc todo
 log coll.out --home hc collection show NOPE
 log coll.out --home hc list

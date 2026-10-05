@@ -45,7 +45,7 @@ typedef struct {
     long medium_sectors;
     double min_redundancy;
     int no_rules, no_ecc, no_verify, no_defect_management, keep_stage, ignore_names, label_given, redundancy_given, split, tools_history, ro_crate, yes;
-    int final, access_given;
+    int keep, access_given;
 } options;
 
 static const char HELP[] =
@@ -80,8 +80,8 @@ static const char HELP[] =
     "  --extra-tools DIR      a folder copied to tools/extra/ (dvdisaster binaries, say)\n"
     "  --split                spread the folder over as many discs as needed\n"
     "In a collection's workflow folder (arv collection init), the collection gives the title, set,\n"
-    "categories and access, its code starts the disc ids, and each make is its next edition:\n"
-    "  --final                a final edition (default: provisional)\n"
+    "categories and access, its code starts the disc ids, and each make is its next edition (a full copy):\n"
+    "  --keep                 keep this edition: never offered for retiring when a newer one is safe\n"
     "  --message TEXT         what this edition is, for the collection's history\n"
     "  --formats auto|yes|no  PRONOM format ids with Siegfried (auto: when sf is on PATH)\n"
     "  --sf-home DIR          Siegfried signature folder (sf -home)\n"
@@ -116,7 +116,7 @@ static int parse_options(int argc, char **argv, options *o)
         if (!strcmp(a, "--split")) { o->split = 1; continue; }
         if (!strcmp(a, "--tools-history")) { o->tools_history = 1; continue; }
         if (!strcmp(a, "--ro-crate")) { o->ro_crate = 1; continue; }
-        if (!strcmp(a, "--final")) { o->final = 1; continue; }
+        if (!strcmp(a, "--keep")) { o->keep = 1; continue; }
         if (!strcmp(a, "-y") || !strcmp(a, "--yes")) { o->yes = 1; continue; }
         if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             fputs(HELP, stdout);
@@ -965,7 +965,8 @@ static rec_record *revision_record(const maker *mk)
     rec_add(r, "Tree", tree);
     if (parent) rec_add(r, "Parent", parent);
     rec_add(r, "Date", mk->today);
-    rec_add(r, "Stage", o->final ? "final" : "provisional");
+    rec_add(r, "Stage", "edition");
+    if (o->keep) rec_add(r, "Keep", "yes");
     char *n = xprintf("%d", collection_editions(mk->cat, uuid) + 1);
     rec_add(r, "Edition", n);
     free(n);
@@ -1562,8 +1563,8 @@ static int make_discs(maker *mk)
         *strrchr(dir, '/') = 0;
         if (mkdirs(dir)) die("cannot create %s", dir);
         write_text(path, mk->tree_text);
-        fprintf(stderr, "%s: edition %s (%s), revision %.12s, %s\n", rec_get(mk->collection, "Code"),
-                rec_get(mk->revision, "Edition"), rec_get(mk->revision, "Stage"), rec_get(mk->revision, "Node"),
+        fprintf(stderr, "%s: edition %s%s, revision %.12s, %s\n", rec_get(mk->collection, "Code"),
+                rec_get(mk->revision, "Edition"), rec_get(mk->revision, "Keep") ? " (kept)" : "", rec_get(mk->revision, "Node"),
                 rec_get(mk->revision, "Changes"));
         free(path);
         free(dir);
@@ -1622,8 +1623,8 @@ int cmd_make(int argc, char **argv)
                 if (!strcmp(coll->fields[i].name, "Category")) strlist_add(&o.categories, coll->fields[i].value);
         if (!o.access_given && rec_get(coll, "Access")) o.access = rec_get(coll, "Access");
         fprintf(stderr, "Collection %s (%s): its next edition\n", rec_get(coll, "Code"), rec_get(coll, "Title"));
-    } else if (o.final || o.message) {
-        die("%s", "--final and --message are for a collection's workflow folder (arv collection init)");
+    } else if (o.keep || o.message) {
+        die("%s", "--keep and --message are for a collection's workflow folder (arv collection init)");
     }
 
     fprintf(stderr, "Scanning and hashing %s ...\n", src);

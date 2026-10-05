@@ -490,7 +490,7 @@ static const rec_record *find_revision(const archive *cat, const char *spec)
 
 static void describe_revision(const rec_record *r, sbuf *out)
 {
-    if (rec_get(r, "Edition")) sb_printf(out, "edition %s (%s)", rec_get(r, "Edition"), get_or(r, "Stage", ""));
+    if (rec_get(r, "Edition")) sb_printf(out, "edition %s%s", rec_get(r, "Edition"), rec_get(r, "Keep") ? " (kept)" : "");
     else sb_puts(out, "checkpoint");
     sb_printf(out, ", %s, revision %.12s", get_or(r, "Date", ""), get_or(r, "Node", ""));
 }

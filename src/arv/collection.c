@@ -5,6 +5,7 @@
  *                       [--access LEVEL] [--description TEXT]
  *   arv collection list
  *   arv collection show CODE
+ *   arv collection keep CODE N        edition N is never offered for retiring
  *
  * The workflow folder's .arv marker is a pointer file with one more line, "Collection: UUID", so
  * the home is found from it as from any pointer file. arv make on a marked folder makes the
@@ -161,7 +162,7 @@ static void list_line(const archive *cat, const rec_record *c)
     const rec_record *head = collection_head(cat, uuid);
     int editions = collection_editions(cat, uuid);
     printf("%-8s  %s  (%d edition%s", get_or(c, "Code", ""), get_or(c, "Title", ""), editions, editions == 1 ? "" : "s");
-    if (head) printf("; last %s, %s", get_or(head, "Date", ""), get_or(head, "Stage", ""));
+    if (head) printf("; last %s, %s", get_or(head, "Date", ""), rec_get(head, "Edition") ? "an edition" : "a checkpoint");
     puts(")");
 }
 
@@ -259,11 +260,37 @@ int cmd_collection(int argc, char **argv)
     if (i >= argc) return 2;
     const char *action = argv[i++];
     if (!strcmp(action, "init")) return init(argc - i, argv + i, given);
-    if (strcmp(action, "list") && strcmp(action, "show")) return 2;
+    if (strcmp(action, "list") && strcmp(action, "show") && strcmp(action, "keep")) return 2;
     arv_home h;
     home_find(&h, given, NULL);
     archive cat;
     archive_load(&cat, h.rec_path);
+    if (!strcmp(action, "keep")) {          /* an edition that is never offered for retiring */
+        if (i + 2 != argc) return 2;
+        const rec_record *c = archive_collection(&cat, argv[i]);
+        if (!c) die("no collection %s", argv[i]);
+        rec_record *r = NULL;
+        for (size_t k = 0; k < cat.revisions.n; k++)
+            if (!strcmp(get_or(cat.revisions.v[k], "Collection", ""), get_or(c, "Uuid", ""))
+                && !strcmp(get_or(cat.revisions.v[k], "Edition", ""), argv[i + 1]))
+                r = cat.revisions.v[k];
+        if (!r) die("no edition %s of that collection", argv[i + 1]);
+        if (rec_get(r, "Keep")) {
+            printf("%s/%s is already kept\n", get_or(c, "Code", ""), argv[i + 1]);
+            return 0;
+        }
+        rec_add(r, "Keep", "yes");          /* not part of Node: the revision's hash is unchanged */
+        char *who = person(), *obj = xprintf("collection:%s", get_or(c, "Code", "")),
+             *note = xprintf("edition %s kept: never offered for retiring", argv[i + 1]);
+        rec_record *e = new_event(obj, "metadata modification", "success", who, "human", note);
+        free(e->fields[0].name);
+        e->fields[0].name = xstrdup("Object");
+        recs_add(&cat.events, e);
+        archive_save(&cat, h.rec_path);
+        printf("%s/%s: kept (logged)\n", get_or(c, "Code", ""), argv[i + 1]);
+        free(who); free(obj); free(note);
+        return 0;
+    }
     if (!strcmp(action, "list")) {
         if (i != argc) return 2;
         for (size_t k = 0; k < cat.collections.n; k++) list_line(&cat, cat.collections.v[k]);
@@ -284,8 +311,8 @@ int cmd_collection(int argc, char **argv)
         for (size_t f = 0; f < r->nfields; f++)
             if (!strcmp(r->fields[f].name, "Volume")) sb_printf(&vols, "%s%s", vols.len ? " " : "", r->fields[f].value);
         char *what = rec_get(r, "Edition") ? xprintf("edition %s", rec_get(r, "Edition")) : xstrdup("checkpoint");
-        printf("  %.12s  %s  %-10s  %-11s  %s  %s%s%s\n", get_or(r, "Node", ""), get_or(r, "Date", ""), what,
-               get_or(r, "Stage", ""), get_or(r, "Changes", ""), vols.s, rec_get(r, "Message") ? "  " : "",
+        printf("  %.12s  %s  %-10s  %-4s  %s  %s%s%s\n", get_or(r, "Node", ""), get_or(r, "Date", ""), what,
+               rec_get(r, "Keep") ? "kept" : "", get_or(r, "Changes", ""), vols.s, rec_get(r, "Message") ? "  " : "",
                get_or(r, "Message", ""));
         free(what);
         free(vols.s);

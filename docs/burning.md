@@ -73,7 +73,7 @@ the one recorded at creation. Only when they are identical does it record the co
 logged as a fixity check. A copy that differs or will not read is **not** recorded: burn again, on
 a new disc, and keep the bad one out of the archive. An edition of a collection is *safe* once
 each of its discs has a copy read back this way; only then does `arv retire` let earlier
-provisional editions go.
+editions go (except those kept).
 
 `arv burned` without `--device` still records a copy (a disc burned on another machine, say), but
 as not read back: `arv todo` keeps listing it until `arv check --device` reads it.

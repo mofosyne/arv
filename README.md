@@ -29,7 +29,7 @@ and keeps the whole archive's record:
 
 - **What you keep, over time.** A folder you sort and grow becomes a *collection* with its own
   history, like git's but for any files: each state is a revision, and each set of discs made
-  from it is an edition, provisional or final, a full copy every time.
+  from it is an edition, a full copy every time, with as many copies as you make.
 - **What is archived, and where.** Point it at any folder and it says which files are already
   on which discs and which are on none, and what changed since the last edition.
 - **Where every copy is, and whether it still reads.** Locations down to the box, copies per

@@ -485,7 +485,7 @@ folder is where a person sorts and organises something into shape and builds dis
 | Term | What it is |
 |---|---|
 | collection | the thing being kept, e.g. FAMILY: one workflow folder, one code, one log; its settings (title, set, categories, access) are given once, so `arv make` asks nothing |
-| edition | a **full copy** of the collection as it was on a date, numbered 1, 2, 3 ...; `provisional` or `final`; split over as many discs as it needs |
+| edition | a **full copy** of the collection as it was on a date, numbered 1, 2, 3 ...; split over as many discs as it needs; with as many copies as its owner makes; `Keep` for one never to retire |
 | volume (disc) | as now: one bag, one image; belongs to exactly one edition |
 | binding | where an edition's volumes sit: Blu-ray images, and later the same bags as a folder or a zip on the NAS (the binding table above) |
 
@@ -493,11 +493,10 @@ Example:
 
 ```
 FAMILY  (one workflow folder, one log)
-  edition 1  provisional  2024-03  FAMILY-01               BD25, 18 GB
-  edition 2  provisional  2024-11  FAMILY-02               BD25, 20 GB   replaces edition 1
-  edition 3  provisional  2025-06  FAMILY-03 + FAMILY-04   2x BD25       replaces edition 2
-  edition 4  final        2026-01  FAMILY-05 + FAMILY-06   2x BD100      replaces 1-3
-             (and the same bags as a folder on the NAS: a second copy in another medium)
+  edition 1  2024-03  FAMILY-01               BD25, 18 GB    1 disc
+  edition 2  2024-11  FAMILY-02               BD25, 20 GB    1 disc         replaces edition 1
+  edition 3  2025-06  FAMILY-03 + FAMILY-04   2x BD25        2 discs + NAS  replaces edition 2
+  edition 4  2026-01  FAMILY-05 + FAMILY-06   2x BD100, kept 2 copies + NAS replaces 1-3 (4 is never retired)
 ```
 
 **Why full copies.** For a power user, not an institution: any one edition restores the whole
@@ -619,6 +618,10 @@ edition stays a full copy. Any folder in the collection with a `.git` is handled
 **Each home is an archive with its own identity** (2026-10-05): a `Home` record (Uuid, Name, Date)
 heads `archive.rec`; discs name it (`HomeUuid`); archives are separate privacy spheres, and
 `arv rebuild` keeps them apart (`--any-archive` to merge on purpose).
+
+**No provisional and final** (2026-10-05): an edition is an edition, a full copy with as many
+copies as its owner makes (one disc and one NAS copy, say). A newer safe edition replaces older
+ones, except those kept (`arv make --keep`, `arv collection keep CODE N`).
 
 **Decisions this needs**
 - **One workflow folder, one collection** (recommended). An inbox where things wait to be sorted

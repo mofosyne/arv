@@ -118,20 +118,23 @@ Access: public
 %doc: One state of a collection, as git's commits are: appended, never edited. Tree is
 + the SHA-256 of its manifest (every file's path and SHA-256, sorted); Node is the
 + SHA-256 of Tree, Parent(s), Date and Message, and names the revision. A checkpoint
-+ only records the state (the files stay on everyday storage); a provisional or final
-+ revision became discs: Edition numbers it, Volume names each disc. Each edition is a
-+ full copy of the collection; a later safe edition replaces earlier provisional ones.
++ only records the state (the files stay on everyday storage); an edition became discs:
++ Edition numbers it, Volume names each disc. Each edition is a full copy of the
++ collection, with as many copies as its owner makes (discs, NAS); a later safe edition
++ replaces earlier ones, except those with Keep: yes (which may be added later: it is
++ not part of Node).
 %key: Node
 %mandatory: Node Collection Tree Date Stage
 %type: Date date
 %type: Edition int
-%type: Stage enum checkpoint provisional final
+%type: Stage enum checkpoint edition
+%type: Keep enum yes
 
 Node: 1436106577dc489c0d805d34f07fce5c8af9e3fed51904b8c7e368f5ebc1cd7d
 Collection: UUID
 Tree: 8c351f9d3f15c68d437ff4e7046b540ae7b587cb8693c1da450c39fb95c605f8
 Date: 2026-01-01
-Stage: provisional
+Stage: edition
 Edition: 1
 Volume: FAM-01_2019_0
 Changes: +2 ~0 -0 >0 files
@@ -141,7 +144,7 @@ Collection: UUID
 Tree: c4092301849c111763072e3a030ef3dc4d1f4c4ced1a7929ca5145b9115ab718
 Parent: 1436106577dc489c0d805d34f07fce5c8af9e3fed51904b8c7e368f5ebc1cd7d
 Date: 2026-01-01
-Stage: final
+Stage: edition
 Edition: 2
 Volume: FAM-02_2019_Y
 Changes: +1 ~1 -1 >0 files
