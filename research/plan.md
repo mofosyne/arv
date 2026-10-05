@@ -641,6 +641,17 @@ edition stays a full copy. Any folder in the collection with a `.git` is handled
   3. *Where it was*: `Source` (host and path) recorded at `arv make`, home catalogue only (it
      names your machine and folders, so it never goes on a disc): a hint for the report, and
      a fallback when everything changed but the place.
+  - **Only three ways make a link** (decided 2026-10-05): the `.arv` marker; the person saying
+    so (`arv link FOLDER COLLECTION|DISC-ID`, nothing written in the folder, recorded with the
+    folder's path); and, for a git repository, its root commit. Content and place only
+    *suggest* a link; the person confirms it, and the confirmation is a declaration. Name
+    conventions, a chosen file or a pattern in a file are not used: each is one more rule to
+    remember, and a declaration covers the same need.
+  - **Every link is logged**: an `Event` with `Type: identification`, the folder, the
+    collection or disc, `How: marker | declared | git-root | content-confirmed`, the evidence
+    ("92% of TRIP-01_2019_4's files, 40 new"), and the agent (`human:` or `arv`). The same
+    goes for unlinking, a fork, and "this folder is now past": `arv link --past` records that a
+    folder is an older state kept for reference, so `arv status` stops proposing it for discs.
   - **Cheap enough for a NAS**: a file whose path, size and modified time match the disc's
     listing is taken as unchanged without reading it (as rsync and git do); only the rest are
     hashed. Hashes are cached in `<home>/cache/hashes` (path, size, mtime, inode → SHA-256),
