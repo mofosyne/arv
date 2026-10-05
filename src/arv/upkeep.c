@@ -145,7 +145,7 @@ int cmd_todo(int argc, char **argv)
     for (size_t i = 0; i < cat.discs.n; i++) {                  /* images made, never burned */
         const char *id = get_or(cat.discs.v[i], "Id", "");
         if (retired(&cat, id) || burned_at_all(&cat, id)) continue;
-        heading(&s1, "Not burned yet (burn the image, then: arv burned ID --device DRIVE --location PLACE):");
+        heading(&s1, "No copy yet (burn the image and arv burned ID --device DRIVE, or keep it: arv stored ID PATH):");
         printf("  %s  made %s\n", id, get_or(cat.discs.v[i], "Date", ""));
         items++;
     }
@@ -184,7 +184,7 @@ int cmd_todo(int argc, char **argv)
         for (size_t k = 0; k < cat.events.n; k++)
             cold |= is_disc_event(cat.events.v[k], id, "replication") && !strcmp(get_or(cat.events.v[k], "Temperature", ""), "cold");
         if (cold) continue;
-        heading(&s7, "No cold copy: every copy is online or reachable (burn one for the shelf):");
+        heading(&s7, "No cold copy, every copy is online or in use (burn one for the shelf):");
         printf("  %s\n", id);
         items++;
     }
@@ -210,7 +210,7 @@ int cmd_todo(int argc, char **argv)
         printf("  %s  last %s\n", id, last);
         items++;
     }
-    if (!items) printf("Nothing owed: every disc burned, read back, with a cold copy, kept in two places and checked within %d years.\n", years);
+    if (!items) printf("Nothing owed: every disc copied, read back, with a cold copy, kept in two places and checked within %d years.\n", years);
     return 0;
 }
 

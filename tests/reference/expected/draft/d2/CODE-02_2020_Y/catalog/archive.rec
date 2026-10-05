@@ -109,8 +109,9 @@ Ecc: none
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion
 + a person kept as it was), edited (one a person changed), human (a person alone).
-+ A replication records one copy: Temperature (hot, warm, cold: given, else its place's,
-+ else cold for a disc); with ReadBack: identical it is a copy read back against its image before it
++ A replication records one copy: Form (disc, iso: the image as a file, folder: the disc's
++ files), Temperature (hot, warm, cold: given, else its place's, else cold for a disc and
++ warm for a file or folder), Path for a file or folder; with ReadBack: identical it is a copy read back against its image before it
 + was recorded (known good); deaccession retires a disc (its Disc record gets Retired).
 %mandatory: Type Date Outcome
 %type: Outcome enum success failure warning

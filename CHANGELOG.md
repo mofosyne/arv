@@ -30,9 +30,11 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   if identical (arv never drives the burner: `arv make` prints the command). An edition is safe
   once each disc has such a copy; `arv retire CODE` then retires the editions it replaces
   (not kept ones), after listing any files found only on them. `arv todo` lists what is owed.
-- Copies have a temperature: hot (online, writable), warm (reachable, mostly idle) or cold
-  (offline, on a shelf); places carry a default (`arv location add|move --temperature`), and
-  `arv todo` lists discs with no cold copy.
+- Copies have a form (disc, iso, folder) and a temperature: hot (in active use), warm (online
+  or reachable, left alone: an image on a NAS) or cold (offline: discs on a shelf); places carry
+  a default (`arv location add|move --temperature`), and `arv todo` lists discs with no cold copy.
+- `arv stored DISC-ID PATH`: a copy kept on a drive or NAS, as the image file or as a folder,
+  checked (read back, or verified as the bag) and then recorded; warm unless its place says.
 - Each home catalogue (archive) has an identity: a `Home` record with a Uuid, made by `arv init`;
   every disc names it (`HomeUuid`), a home rebuilt from a disc keeps it, and `arv rebuild`
   refuses a disc of another archive unless `--any-archive`. `arv where` shows it.

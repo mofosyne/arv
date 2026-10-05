@@ -239,7 +239,7 @@ int cmd_location(int argc, char **argv)
     }
     if (!code_arg) die("arv location %s needs a location code", action);
     if (temperature && !temperature_ok(temperature))
-        die("--temperature %s: hot (online, writable), warm (reachable, mostly idle) or cold (offline, on a shelf)",
+        die("--temperature %s: hot (in active use), warm (online or reachable, left alone) or cold (offline)",
             temperature);
     char *code = upper_trim_copy(code_arg);
     if (!code_ok(code, 24)) die("location code %s: use 1-24 capital letters, digits, - or _", code_arg);

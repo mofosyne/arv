@@ -338,11 +338,14 @@ Message: the 2025 sort
 
 Revisions are appended, never edited, and merged by `Node`; collections are merged by `Uuid`.
 
-Each copy has a **temperature**, on its `replication` event: `hot` (online and writable, e.g. a
-NAS share), `warm` (reachable but mostly idle: a drive in a drawer, a disc left in a drive) or
-`cold` (offline, write-once or write-protected, on a shelf). It is given when the copy is
-recorded, else taken from its place (`Location.Temperature`, inherited from the place above),
-else `cold` for a disc. An archive is kept cold wherever possible: readers should report discs
+Each copy is one `replication` event, with its **form**: `disc` (burned), `iso` (the image kept
+as a file, read back against `ImageSha256`) or `folder` (the disc's files laid out as on the
+disc, verified as its bag), and its **temperature**: `hot` (in active use: working files, a
+synced folder), `warm` (online or reachable, but left alone: an image or archive folder on a
+NAS) or `cold` (offline: discs on a shelf, unplugged drives). The temperature is given when the
+copy is recorded, else taken from its place (`Location.Temperature`, inherited from the place
+above), else `cold` for a disc and `warm` for an image file or folder (which also records its
+`Path`). An archive is kept cold wherever possible: readers should report discs
 with no cold copy.
 
 A copy is **known good** when its `replication` event carries `ReadBack: identical` (the disc was

@@ -161,7 +161,7 @@ $ --home hc collection keep FAM 9
 Error: no edition 9 of that collection
 rc=1
 $ --home hc todo
-Not burned yet (burn the image, then: arv burned ID --device DRIVE --location PLACE):
+No copy yet (burn the image and arv burned ID --device DRIVE, or keep it: arv stored ID PATH):
   FAM-01_2019_0  made 2026-01-01
   FAM-02_2019_Y  made 2026-01-01
 Editions not safe yet (every disc burned and read back):
@@ -219,20 +219,39 @@ $ --home hc location add NAS The NAS --temperature hot
 NAS: The NAS
 rc=0
 $ --home hc location add DRAWER Desk drawer --temperature tepid
-Error: --temperature tepid: hot (online, writable), warm (reachable, mostly idle) or cold (offline, on a shelf)
+Error: --temperature tepid: hot (in active use), warm (online or reachable, left alone) or cold (offline)
 rc=1
-$ --home hc burned FAM-02_2019_Y --location NAS
-FAM-02_2019_Y: 2 copies recorded (not read back: arv burned --device checks a copy as it records it)
+$ --home hc location move NAS --temperature warm
+NAS: The NAS
+rc=0
+$ --home hc stored FAM-02_2019_Y nas/FAM-02_2019_Y.noecc.iso --location NAS
+Reading ROOT/nas/FAM-02_2019_Y.noecc.iso: the 850 sectors of FAM-02_2019_Y's image ...
+FAM-02_2019_Y: 2 copies recorded (this one: iso, warm, checked)
+rc=0
+$ --home hc stored FAM-02_2019_Y bad.iso
+Reading ROOT/bad.iso: the 850 sectors of FAM-02_2019_Y's image ...
+FAM-02_2019_Y: the iso at ROOT/bad.iso is NOT a good copy (different content from the image); not recorded
+rc=1
+$ --home hc stored FAM-01_2019_0 nas/FAM-02_2019_Y
+FAM-01_2019_0: the folder at ROOT/nas/FAM-02_2019_Y is NOT a good copy (ROOT/nas/FAM-02_2019_Y is not disc FAM-01_2019_0 (its catalog.rec names FAM-02_2019_Y)); not recorded
+rc=1
+$ --home hc stored FAM-02_2019_Y nas/FAM-02_2019_Y --location NAS
+Verifying ROOT/nas/FAM-02_2019_Y (every file against the manifests) ...
+FAM-02_2019_Y: the folder at ROOT/nas/FAM-02_2019_Y is NOT a good copy (2 payload files, 1 failed, 0 missing, 0 extra); not recorded
+rc=1
+$ --home hc stored FAM-02_2019_Y nas/FAM-02-files --location NAS --note unpacked, for quick restores
+Verifying ROOT/nas/FAM-02-files (every file against the manifests) ...
+FAM-02_2019_Y: 3 copies recorded (this one: folder, warm, checked)
 rc=0
 $ --home hc location list
-NAS        The NAS                        1 disc  [hot]
+NAS        The NAS                        1 disc  [warm]
 BOX1       (free text, not a location code)
 rc=0
 $ --home hc todo
-Nothing owed: every disc burned, read back, with a cold copy, kept in two places and checked within 5 years.
+Nothing owed: every disc copied, read back, with a cold copy, kept in two places and checked within 5 years.
 rc=0
 $ --home hc todo
-Nothing owed: every disc burned, read back, with a cold copy, kept in two places and checked within 5 years.
+Nothing owed: every disc copied, read back, with a cold copy, kept in two places and checked within 5 years.
 rc=0
 $ --home hc collection show NOPE
 Error: no collection NOPE

@@ -50,6 +50,8 @@ static void usage(FILE *to)
           "       arv burned [-C HOME] (--device DRIVE | --copies N) [--media-id ID] [--location PLACE] [--note TEXT] [DISC-ID]\n"
           "              (--device: read the disc back against its image first; recorded only if identical)\n"
           "              (--temperature hot|warm|cold: default the place's, else cold)\n"
+          "       arv stored DISC-ID PATH [--location PLACE] [--temperature T]   a copy on a drive or NAS: the .iso, or\n"
+          "              the disc's files as a folder; checked, then recorded (default: warm)\n"
           "       arv note [-C HOME] DISC-ID TEXT\n"
           "       arv locate [-C HOME] [--add] DISC-ID PLACE...\n"
           "       arv access DISC-ID public|private|sealed\n"
@@ -165,7 +167,7 @@ int main(int argc, char **argv)
                  { "burned", cmd_burned }, { "note", cmd_note }, { "locate", cmd_locate },
                  { "access", cmd_access }, { "location", cmd_location }, { "selection", cmd_selection }, { "collection", cmd_collection },
                  { "status", cmd_status }, { "checkpoint", cmd_checkpoint }, { "log", cmd_log }, { "diff", cmd_diff },
-                 { "link", cmd_link }, { "todo", cmd_todo }, { "retire", cmd_retire },
+                 { "link", cmd_link }, { "todo", cmd_todo }, { "retire", cmd_retire }, { "stored", cmd_stored },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
                  { "where", cmd_where }, { "rebuild", cmd_rebuild },
                  { "tags", cmd_tags }, { "keywords", cmd_keywords } };

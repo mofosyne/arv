@@ -290,7 +290,17 @@ log coll.out --home hc collection keep FAM 2
 log coll.out --home hc collection keep FAM 2
 log coll.out --home hc location add NAS "The NAS" --temperature hot
 log coll.out --home hc location add DRAWER "Desk drawer" --temperature tepid
-log coll.out --home hc burned FAM-02_2019_Y --location NAS
+log coll.out --home hc location move NAS --temperature warm
+mkdir -p nas
+cp out-c2/FAM-02_2019_Y.noecc.iso nas/
+log coll.out --home hc stored FAM-02_2019_Y nas/FAM-02_2019_Y.noecc.iso --location NAS
+log coll.out --home hc stored FAM-02_2019_Y bad.iso
+7z x -onas/FAM-02_2019_Y out-c2/FAM-02_2019_Y.noecc.iso >/dev/null
+log coll.out --home hc stored FAM-01_2019_0 nas/FAM-02_2019_Y
+echo tampered >> nas/FAM-02_2019_Y/data/c.txt
+log coll.out --home hc stored FAM-02_2019_Y nas/FAM-02_2019_Y --location NAS
+7z x -onas/FAM-02-files out-c2/FAM-02_2019_Y.noecc.iso >/dev/null
+log coll.out --home hc stored FAM-02_2019_Y nas/FAM-02-files --location NAS --note "unpacked, for quick restores"
 log coll.out --home hc location list
 log coll.out --home hc todo
 log coll.out --home hc todo

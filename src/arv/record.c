@@ -3,6 +3,7 @@
 #define _XOPEN_SOURCE 700
 #include "arv.h"
 #include "../rs03/rs03.h"
+#include "../bagit/bagit.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -367,6 +368,105 @@ int cmd_check(int argc, char **argv)
     return ok ? 0 : 1;
 }
 
+/* ------------------------------------------------------------------ stored: a copy as a file or folder */
+
+/* arv stored DISC-ID PATH [--location PLACE] [--temperature T] [--note TEXT]: a copy kept on a
+   drive or NAS, as the image (an .iso file) or as a folder (the disc's files, laid out as on the
+   disc). arv copies nothing (cp, rsync, 7z x do); it checks the copy, then records it: an image
+   read back against its SHA-256 at creation, a folder verified as this disc's bag. Default
+   temperature: the place's, else warm (online, or reachable, but left alone). */
+int cmd_stored(int argc, char **argv)
+{
+    const char *given = NULL, *disc_id = NULL, *path = NULL, *location = NULL, *temperature = NULL, *note = NULL;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (i + 1 < argc && !strcmp(argv[i], "--location")) location = argv[++i];
+        else if (i + 1 < argc && !strcmp(argv[i], "--temperature")) temperature = argv[++i];
+        else if (i + 1 < argc && !strcmp(argv[i], "--note")) note = argv[++i];
+        else if (argv[i][0] != '-' && !disc_id) disc_id = argv[i];
+        else if (argv[i][0] != '-' && !path) path = argv[i];
+        else return 2;
+    }
+    if (!disc_id || !path) return 2;
+    if (temperature && !temperature_ok(temperature))
+        die("--temperature %s: hot (in active use), warm (online or reachable, left alone) or cold (offline)", temperature);
+    struct stat st;
+    if (stat(path, &st)) die("%s does not exist", path);
+    char *abs = realpath(path, NULL);
+    opened o;
+    rec_record *d = open_disc_record(&o, given, disc_id);
+    int folder = S_ISDIR(st.st_mode), ok;
+    sbuf out = { 0 };
+    if (folder) {               /* this disc's bag: its catalog.rec names it, and every file matches */
+        char *cr = join(abs, "catalog.rec");
+        rec_file f;
+        int bad = 0;
+        const rec_record *arc = access(cr, F_OK) || rec_read(cr, &f, &bad) ? NULL : rec_first(&f, "Archive");
+        const char *named = arc ? rec_get(arc, "Disc") : NULL;
+        if (!named || strcmp(named, disc_id)) {
+            sb_printf(&out, "%s is not disc %s (its catalog.rec names %s)", abs, disc_id, named ? named : "no disc");
+            ok = 0;
+        } else {
+            fprintf(stderr, "Verifying %s (every file against the manifests) ...\n", abs);
+            bagit_report r;
+            ok = !bagit_validate(abs, 0, &r, NULL, NULL);
+            sb_printf(&out, "%zu payload files, %zu failed, %zu missing, %zu extra", r.payload_ok + r.failed,
+                      r.failed, r.missing, r.extra);
+        }
+        free(cr);
+    } else {                    /* the image: read back against its hash at creation */
+        uint64_t sectors = 0;
+        const char *want = image_hash(&o.cat, disc_id, &sectors);
+        if (!want) die("%s has no image hash in the catalogue to check the copy against", disc_id);
+        char hex[65];
+        fprintf(stderr, "Reading %s: the %llu sectors of %s's image ...\n", abs, (unsigned long long)sectors, disc_id);
+        ok = !read_back(abs, sectors, hex, &out) && !strcmp(hex, want);
+        if (!out.len) sb_puts(&out, ok ? "identical to the image" : "different content from the image");
+        if ((uint64_t)st.st_size != sectors * 2048) ok = 0, sb_puts(&out, "; not the same size as the image");
+    }
+    const char *form = folder ? "folder" : "iso";
+    char *what = xprintf("check of a stored copy (%s) at %s: %s", form, abs, out.s ? out.s : "");
+    recs_add(&o.cat.events, new_event(disc_id, "fixity check", ok ? "success" : "failure", VERSION, "automatic", what));
+    free(what);
+    if (!ok) {
+        archive_save(&o.cat, o.h.rec_path);
+        printf("%s: the %s at %s is NOT a good copy (%s); not recorded\n", disc_id, form, abs, out.s ? out.s : "");
+        return 1;
+    }
+    char *count = xprintf("%ld", atol(rec_get(d, "Copies") ? rec_get(d, "Copies") : "0") + 1);
+    rec_set(d, "Copies", count);
+    sbuf text = { 0 };
+    sb_printf(&text, "stored 1 copy as %s", folder ? "a folder" : "an image file");
+    char *code = location ? place(&o.cat, location) : NULL;
+    if (code) {
+        int have = 0;
+        for (size_t i = 0; i < d->nfields; i++) have |= !strcmp(d->fields[i].name, "Location") && !strcmp(d->fields[i].value, code);
+        if (!have) rec_add(d, "Location", code);
+        rec_record probe = { 0 };
+        probe.type = "Disc";
+        rec_add(&probe, "Location", code);
+        char *where = archive_where(&o.cat, &probe);
+        sb_printf(&text, ", kept at %s", where);
+        free(where);
+        rec_clear(&probe);
+    }
+    if (note) sb_printf(&text, "; %s", note);
+    sb_puts(&text, folder ? "; verified: every file matches its manifest" : "; read back: identical to the image");
+    char *who = person();
+    rec_record *ev = new_event(disc_id, "replication", "success", who, "human", text.s);
+    rec_add(ev, "ReadBack", "identical");     /* known good: the image itself, or every file of it */
+    rec_add(ev, "Form", form);
+    const char *t = temperature ? temperature : place_temperature(&o.cat, code);
+    rec_add(ev, "Temperature", t ? t : "warm");
+    rec_add(ev, "Path", abs);
+    recs_add(&o.cat.events, ev);
+    archive_save(&o.cat, o.h.rec_path);
+    printf("%s: %s cop%s recorded (this one: %s, %s, checked)\n", disc_id, count, !strcmp(count, "1") ? "y" : "ies",
+           form, t ? t : "warm");
+    free(who); free(count); free(text.s); free(code); free(abs); free(out.s);
+    return 0;
+}
+
 /* ------------------------------------------------------------------ burned, note, locate */
 
 int cmd_burned(int argc, char **argv)
@@ -399,7 +499,7 @@ int cmd_burned(int argc, char **argv)
     }
     if (!disc_id) return 2;
     if (temperature && !temperature_ok(temperature))
-        die("--temperature %s: hot (online, writable), warm (reachable, mostly idle) or cold (offline, on a shelf)",
+        die("--temperature %s: hot (in active use), warm (online or reachable, left alone) or cold (offline)",
             temperature);
     opened o;
     rec_record *d = open_disc_record(&o, given, disc_id);
@@ -450,6 +550,7 @@ int cmd_burned(int argc, char **argv)
     char *who = person();
     rec_record *ev = new_event(disc_id, "replication", "success", who, "human", text.s);
     if (read_back_note) rec_add(ev, "ReadBack", "identical");     /* the copy is known good */
+    rec_add(ev, "Form", "disc");
     {   /* how reachable the copy is: given, else its place's, else a disc on its own: cold */
         char *code = location ? place(&o.cat, location) : NULL;
         const char *t = temperature ? temperature : place_temperature(&o.cat, code);

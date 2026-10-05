@@ -684,7 +684,11 @@ ones, except those kept (`arv make --keep`, `arv collection keep CODE N`).
 - [x] `arv retire`, with the list of files only on the retiring discs (2026-10-05).
 - [ ] Git repositories: the compacted `.git`, `--git-history since DATE`, per-repo status and
       the retire check for dropped history.
-- [ ] Folder and zip bindings for an edition.
+- [x] Copies on a drive or NAS (2026-10-05): `arv stored DISC-ID PATH` checks and records the image
+      as a file (`Form: iso`) or the disc's files as a folder (`Form: folder`), warm by default; arv
+      copies nothing itself. Every copy has a temperature (hot: in use; warm: online, left alone;
+      cold: offline).
+- [ ] Zip copies (one sealed file, store mode), when someone needs them.
 - [ ] docs/workflow.md rewritten around: init, sort, status, make, burn, retire.
 
 ## Design: discs as nodes in a history graph (2026-10-02, not implemented)

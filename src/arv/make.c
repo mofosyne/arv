@@ -1584,6 +1584,8 @@ static int make_discs(maker *mk)
             sb_puts(&q, "'");
             fprintf(stderr, "  xorriso -as cdrecord -v dev=/dev/sr0 -eject %s\n  arv burned %s --device /dev/sr0 --location PLACE\n",
                     q.s, mk->plans[i].disc_id);
+            fprintf(stderr, "  (and a warm copy, if you like: copy the image to a NAS, then arv stored %s PATH --location PLACE)\n",
+                    mk->plans[i].disc_id);
             free(q.s);
         }
     }

@@ -76,8 +76,20 @@ each of its discs has a copy read back this way; only then does `arv retire` let
 editions go (except those kept).
 
 Each copy also gets a *temperature*: `cold` for a disc on a shelf (the default), or the
-temperature of the place it is kept (`arv location add NAS "The NAS" --temperature hot`), or
+temperature of the place it is kept (`arv location add NAS "The NAS" --temperature warm`), or
 `--temperature hot|warm|cold`. `arv todo` lists discs that have no cold copy.
+
+**Keeping the image, or the files, on a NAS too.** arv copies nothing there itself; copy it
+(`cp`, `rsync`), then let arv check and record it:
+
+```sh
+cp TRIP-01_2019_4.iso /nas/archive/ && arv stored TRIP-01_2019_4 /nas/archive/TRIP-01_2019_4.iso --location NAS
+7z x -o/nas/archive/TRIP-01_2019_4 TRIP-01_2019_4.iso && arv stored TRIP-01_2019_4 /nas/archive/TRIP-01_2019_4 --location NAS
+```
+
+The image is read back against its hash; a folder is verified as the disc's bag (every file
+against its manifest). Either is recorded as a warm copy unless its place says otherwise. A
+NAS copy is a fine second copy, and quick to restore from; it is not a cold one.
 
 `arv burned` without `--device` still records a copy (a disc burned on another machine, say), but
 as not read back: `arv todo` keeps listing it until `arv check --device` reads it.

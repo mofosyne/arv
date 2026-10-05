@@ -54,6 +54,8 @@ arv status [-v] [--deep] [FOLDER]      a workflow folder: what changed since its
 arv checkpoint [--message TEXT] [FOLDER]   record a workflow folder's state (no discs)
 arv log [COLLECTION]                   its revisions;  arv diff REV [REV|FOLDER]: what changed
 arv link FOLDER COLLECTION|DISC-ID [--past]   say what a folder is, writing nothing in it (logged)
+arv stored DISC-ID PATH [--location PLACE] [--temperature T]   a copy on a drive or NAS (the .iso, or the
+                                        files as a folder): checked, then recorded; warm by default
 arv todo [--overdue YEARS]             what is owed: burns, read-backs, safe editions, cold copies, places, checks
 arv retire CODE [--yes]                retire the editions a newer safe one replaces (not kept)
 arv collection keep CODE N            edition N is never offered for retiring

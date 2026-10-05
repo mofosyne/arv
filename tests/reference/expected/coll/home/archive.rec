@@ -63,7 +63,7 @@ Access: public
 Files: 2
 Bytes: 4
 Software: SW
-Copies: 2
+Copies: 3
 Location: BOX1
 Location: NAS
 
@@ -100,15 +100,15 @@ ImageSha256: SHA256
 %doc: Places where discs are kept: site, room, shelf, box. Parent makes a tree,
 + so moving a box moves every disc in it. A Disc's Location field (one per
 + place its copies are kept) names a Code here, or is free text. Temperature says how
-+ reachable copies kept there are: hot (online, writable: a NAS share), warm (reachable,
-+ mostly idle: a drive in a drawer) or cold (offline, write-once or write-protected, on a
-+ shelf); a place without one takes its parent's.
++ copies kept there are used: hot (in active use: working files, a synced folder), warm
++ (online or reachable, but left alone: an .iso or archive folder on a NAS) or cold
++ (offline: discs on a shelf, unplugged drives); a place without one takes its parent's.
 %key: Code
 %mandatory: Code Name
 
 Code: NAS
 Name: The NAS
-Temperature: hot
+Temperature: warm
 
 %rec: Collection
 %doc: Something kept over time and made into discs again and again, e.g. a family's
@@ -182,8 +182,9 @@ Message: renamed c
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion
 + a person kept as it was), edited (one a person changed), human (a person alone).
-+ A replication records one copy: Temperature (hot, warm, cold: given, else its place's,
-+ else cold for a disc); with ReadBack: identical it is a copy read back against its image before it
++ A replication records one copy: Form (disc, iso: the image as a file, folder: the disc's
++ files), Temperature (hot, warm, cold: given, else its place's, else cold for a disc and
++ warm for a file or folder), Path for a file or folder; with ReadBack: identical it is a copy read back against its image before it
 + was recorded (known good); deaccession retires a disc (its Disc record gets Retired).
 %mandatory: Type Date Outcome
 %type: Outcome enum success failure warning
@@ -289,6 +290,7 @@ Authorship: human
 Agent: human:archivist
 Note: burned 1 copy, kept at BOX1; read back: identical to the image
 ReadBack: identical
+Form: disc
 Temperature: cold
 
 Disc: FAM-01_2019_0
@@ -298,6 +300,7 @@ Outcome: success
 Authorship: human
 Agent: human:archivist
 Note: burned 1 copy, kept at BOX1; not read back
+Form: disc
 Temperature: cold
 
 Disc: FAM-01_2019_0
@@ -324,11 +327,74 @@ Authorship: human
 Agent: human:archivist
 Note: created
 
+Object: location:NAS
+Type: metadata modification
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: temperature hot -> warm
+
+Disc: FAM-02_2019_Y
+Type: fixity check
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: arv 0.4
+Note: check of a stored copy (iso) at ROOT/nas/FAM-02_2019_Y.noecc.iso: identical to the image
+
 Disc: FAM-02_2019_Y
 Type: replication
 Date: 2026-01-01
 Outcome: success
 Authorship: human
 Agent: human:archivist
-Note: burned 1 copy, kept at The NAS; not read back
-Temperature: hot
+Note: stored 1 copy as an image file, kept at The NAS; read back: identical to the image
+ReadBack: identical
+Form: iso
+Temperature: warm
+Path: ROOT/nas/FAM-02_2019_Y.noecc.iso
+
+Disc: FAM-02_2019_Y
+Type: fixity check
+Date: 2026-01-01
+Outcome: failure
+Authorship: automatic
+Agent: arv 0.4
+Note: check of a stored copy (iso) at ROOT/bad.iso: different content from the image
+
+Disc: FAM-01_2019_0
+Type: fixity check
+Date: 2026-01-01
+Outcome: failure
+Authorship: automatic
+Agent: arv 0.4
+Note: check of a stored copy (folder) at ROOT/nas/FAM-02_2019_Y: ROOT/nas/FAM-02_2019_Y is not disc FAM-01_2019_0 (its catalog.rec names FAM-02_2019_Y)
+
+Disc: FAM-02_2019_Y
+Type: fixity check
+Date: 2026-01-01
+Outcome: failure
+Authorship: automatic
+Agent: arv 0.4
+Note: check of a stored copy (folder) at ROOT/nas/FAM-02_2019_Y: 2 payload files, 1 failed, 0 missing, 0 extra
+
+Disc: FAM-02_2019_Y
+Type: fixity check
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: arv 0.4
+Note: check of a stored copy (folder) at ROOT/nas/FAM-02-files: 2 payload files, 0 failed, 0 missing, 0 extra
+
+Disc: FAM-02_2019_Y
+Type: replication
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: stored 1 copy as a folder, kept at The NAS; unpacked, for quick restores; verified: every file matches its manifest
+ReadBack: identical
+Form: folder
+Temperature: warm
+Path: ROOT/nas/FAM-02-files

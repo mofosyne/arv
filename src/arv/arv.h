@@ -70,6 +70,7 @@ int cmd_diff(int argc, char **argv);
 int cmd_link(int argc, char **argv);
 int cmd_todo(int argc, char **argv);
 int cmd_retire(int argc, char **argv);
+int cmd_stored(int argc, char **argv);
 int cmd_appraise(int argc, char **argv);
 int cmd_sets(int argc, char **argv);
 int cmd_names(int argc, char **argv);
