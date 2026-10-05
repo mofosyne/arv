@@ -162,6 +162,7 @@ static void show_location(const archive *cat, const rec_record *l, int depth, in
     pad(&line, get_or(l, "Name", "None"), 30);
     sb_printf(&line, " %zu disc%s", direct, direct == 1 ? "" : "s");
     if (inside != direct) sb_printf(&line, " (%zu including inside)", inside);
+    if (rec_get(l, "Temperature")) sb_printf(&line, "  [%s]", rec_get(l, "Temperature"));
     puts(line.s);
     free(line.s);
     if (verbose)
@@ -199,11 +200,13 @@ static char *place_path(const archive *cat, const char *code)
 
 int cmd_location(int argc, char **argv)
 {
-    const char *given = NULL, *action = NULL, *code_arg = NULL, *name = NULL, *within = NULL, *description = NULL;
+    const char *given = NULL, *action = NULL, *code_arg = NULL, *name = NULL, *within = NULL, *description = NULL,
+               *temperature = NULL;
     int verbose = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) verbose = 1;
+        else if (i + 1 < argc && !strcmp(argv[i], "--temperature")) temperature = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--in")) within = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--description")) description = argv[++i];
         else if (!action) action = argv[i];
@@ -235,6 +238,9 @@ int cmd_location(int argc, char **argv)
         return 0;
     }
     if (!code_arg) die("arv location %s needs a location code", action);
+    if (temperature && !temperature_ok(temperature))
+        die("--temperature %s: hot (online, writable), warm (reachable, mostly idle) or cold (offline, on a shelf)",
+            temperature);
     char *code = upper_trim_copy(code_arg);
     if (!code_ok(code, 24)) die("location code %s: use 1-24 capital letters, digits, - or _", code_arg);
     char *parent = within ? upper_trim_copy(within) : NULL;
@@ -247,6 +253,7 @@ int cmd_location(int argc, char **argv)
         rec_add(l, "Name", name ? name : code);
         if (parent) rec_add(l, "Parent", parent);
         if (description) rec_add(l, "Description", description);
+        if (temperature) rec_add(l, "Temperature", temperature);
         recs_add(&cat.locations, l);
         char *obj = xprintf("location:%s", code), *note = parent ? xprintf("created in %s", parent) : xstrdup("created");
         change(&cat, NULL, obj, note);
@@ -269,6 +276,10 @@ int cmd_location(int argc, char **argv)
             sb_printf(&changes, "moved into %s", now ? now : "the top level");
         if (strcmp(get_or(l, "Name", "None"), name_before))
             sb_printf(&changes, "%srenamed %s -> %s", changes.len ? "; " : "", name_before, get_or(l, "Name", "None"));
+        if (temperature && strcmp(get_or(l, "Temperature", ""), temperature)) {
+            sb_printf(&changes, "%stemperature %s -> %s", changes.len ? "; " : "", get_or(l, "Temperature", "none"), temperature);
+            rec_set(l, "Temperature", temperature);
+        }
         if (changes.len) {
             char *obj = xprintf("location:%s", code);
             change(&cat, NULL, obj, changes.s);

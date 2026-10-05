@@ -371,13 +371,15 @@ int cmd_check(int argc, char **argv)
 
 int cmd_burned(int argc, char **argv)
 {
-    const char *given = NULL, *disc_id = NULL, *media_id = NULL, *location = NULL, *note = NULL, *device = NULL;
+    const char *given = NULL, *disc_id = NULL, *media_id = NULL, *location = NULL, *note = NULL, *device = NULL,
+               *temperature = NULL;
     long copies = 1;
     int copies_given = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--copies")) { copies = atol(argv[++i]); copies_given = 1; }
         else if (i + 1 < argc && !strcmp(argv[i], "--device")) device = argv[++i];
+        else if (i + 1 < argc && !strcmp(argv[i], "--temperature")) temperature = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--media-id")) media_id = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--location")) location = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--note")) note = argv[++i];
@@ -396,6 +398,9 @@ int cmd_burned(int argc, char **argv)
         }
     }
     if (!disc_id) return 2;
+    if (temperature && !temperature_ok(temperature))
+        die("--temperature %s: hot (online, writable), warm (reachable, mostly idle) or cold (offline, on a shelf)",
+            temperature);
     opened o;
     rec_record *d = open_disc_record(&o, given, disc_id);
     const char *read_back_note = NULL;
@@ -445,6 +450,12 @@ int cmd_burned(int argc, char **argv)
     char *who = person();
     rec_record *ev = new_event(disc_id, "replication", "success", who, "human", text.s);
     if (read_back_note) rec_add(ev, "ReadBack", "identical");     /* the copy is known good */
+    {   /* how reachable the copy is: given, else its place's, else a disc on its own: cold */
+        char *code = location ? place(&o.cat, location) : NULL;
+        const char *t = temperature ? temperature : place_temperature(&o.cat, code);
+        rec_add(ev, "Temperature", t ? t : "cold");
+        free(code);
+    }
     recs_add(&o.cat.events, ev);
     archive_save(&o.cat, o.h.rec_path);
     printf("%s: %s cop%s recorded%s\n", disc_id, count, !strcmp(count, "1") ? "y" : "ies",

@@ -379,6 +379,21 @@ rec_record *new_event(const char *disc_id, const char *type, const char *outcome
     return r;
 }
 
+const char *place_temperature(const archive *a, const char *code)
+{
+    int guard = 0;
+    for (const rec_record *l = code ? archive_location(a, code) : NULL; l && guard < 64; guard++) {
+        if (rec_get(l, "Temperature")) return rec_get(l, "Temperature");
+        l = rec_get(l, "Parent") ? archive_location(a, rec_get(l, "Parent")) : NULL;
+    }
+    return NULL;
+}
+
+int temperature_ok(const char *t)
+{
+    return t && (!strcmp(t, "hot") || !strcmp(t, "warm") || !strcmp(t, "cold"));
+}
+
 /* human:LOGIN, found as Python's getpass.getuser() finds it */
 char *person(void)
 {

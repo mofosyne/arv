@@ -215,14 +215,29 @@ rc=0
 $ --home hc collection keep FAM 2
 FAM/2 is already kept
 rc=0
+$ --home hc location add NAS The NAS --temperature hot
+NAS: The NAS
+rc=0
+$ --home hc location add DRAWER Desk drawer --temperature tepid
+Error: --temperature tepid: hot (online, writable), warm (reachable, mostly idle) or cold (offline, on a shelf)
+rc=1
+$ --home hc burned FAM-02_2019_Y --location NAS
+FAM-02_2019_Y: 2 copies recorded (not read back: arv burned --device checks a copy as it records it)
+rc=0
+$ --home hc location list
+NAS        The NAS                        1 disc  [hot]
+BOX1       (free text, not a location code)
+rc=0
 $ --home hc todo
-Kept in fewer than two places (arv locate ID PLACE --add):
-  FAM-02_2019_Y  one place
+Nothing owed: every disc burned, read back, with a cold copy, kept in two places and checked within 5 years.
+rc=0
+$ --home hc todo
+Nothing owed: every disc burned, read back, with a cold copy, kept in two places and checked within 5 years.
 rc=0
 $ --home hc collection show NOPE
 Error: no collection NOPE
 rc=1
 $ --home hc list
 FAM-01_2019_0	2026-01-01	Family photos	2 files	public	
-FAM-02_2019_Y	2026-01-01	Family photos	2 files	public	BOX1
+FAM-02_2019_Y	2026-01-01	Family photos	2 files	public	BOX1; The NAS
 rc=0

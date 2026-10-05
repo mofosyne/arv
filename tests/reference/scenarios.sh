@@ -288,6 +288,11 @@ log coll.out --home hc retire FAM --yes
 log coll.out --home hc retire FAM
 log coll.out --home hc collection keep FAM 2
 log coll.out --home hc collection keep FAM 2
+log coll.out --home hc location add NAS "The NAS" --temperature hot
+log coll.out --home hc location add DRAWER "Desk drawer" --temperature tepid
+log coll.out --home hc burned FAM-02_2019_Y --location NAS
+log coll.out --home hc location list
+log coll.out --home hc todo
 log coll.out --home hc todo
 log coll.out --home hc collection show NOPE
 log coll.out --home hc list

@@ -109,6 +109,9 @@ rec_record *new_event(const char *disc_id, const char *type, const char *outcome
                       const char *authorship, const char *note);
 char *person(void);
 char *place(const archive *a, const char *text);
+/* hot, warm or cold: the place's Temperature, or the nearest place above it that has one; NULL */
+const char *place_temperature(const archive *a, const char *code);
+int temperature_ok(const char *t);
 rec_record *new_appraisal(const char *target, const strlist *importance, const char *basis, const char *review);
 size_t archive_merge(archive *home, const archive *other, int prefer_other, strlist *added, strlist *updated);
 

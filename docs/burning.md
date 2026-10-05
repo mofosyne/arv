@@ -75,6 +75,10 @@ a new disc, and keep the bad one out of the archive. An edition of a collection 
 each of its discs has a copy read back this way; only then does `arv retire` let earlier
 editions go (except those kept).
 
+Each copy also gets a *temperature*: `cold` for a disc on a shelf (the default), or the
+temperature of the place it is kept (`arv location add NAS "The NAS" --temperature hot`), or
+`--temperature hot|warm|cold`. `arv todo` lists discs that have no cold copy.
+
 `arv burned` without `--device` still records a copy (a disc burned on another machine, say), but
 as not read back: `arv todo` keeps listing it until `arv check --device` reads it.
 

@@ -176,6 +176,18 @@ int cmd_todo(int argc, char **argv)
         free(eds.v);
         free(old.v);
     }
+    int s7 = 0;
+    for (size_t i = 0; i < cat.discs.n; i++) {                  /* no cold copy */
+        const char *id = get_or(cat.discs.v[i], "Id", "");
+        if (retired(&cat, id) || !burned_at_all(&cat, id)) continue;
+        int cold = 0;
+        for (size_t k = 0; k < cat.events.n; k++)
+            cold |= is_disc_event(cat.events.v[k], id, "replication") && !strcmp(get_or(cat.events.v[k], "Temperature", ""), "cold");
+        if (cold) continue;
+        heading(&s7, "No cold copy: every copy is online or reachable (burn one for the shelf):");
+        printf("  %s\n", id);
+        items++;
+    }
     int s6 = 0;
     for (size_t i = 0; i < cat.discs.n; i++) {                  /* kept in one place */
         const rec_record *d = cat.discs.v[i];
@@ -198,7 +210,7 @@ int cmd_todo(int argc, char **argv)
         printf("  %s  last %s\n", id, last);
         items++;
     }
-    if (!items) printf("Nothing owed: every disc burned, read back, kept in two places, and checked within %d years.\n", years);
+    if (!items) printf("Nothing owed: every disc burned, read back, with a cold copy, kept in two places and checked within %d years.\n", years);
     return 0;
 }
 

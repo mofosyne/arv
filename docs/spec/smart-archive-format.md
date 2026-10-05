@@ -338,6 +338,13 @@ Message: the 2025 sort
 
 Revisions are appended, never edited, and merged by `Node`; collections are merged by `Uuid`.
 
+Each copy has a **temperature**, on its `replication` event: `hot` (online and writable, e.g. a
+NAS share), `warm` (reachable but mostly idle: a drive in a drawer, a disc left in a drive) or
+`cold` (offline, write-once or write-protected, on a shelf). It is given when the copy is
+recorded, else taken from its place (`Location.Temperature`, inherited from the place above),
+else `cold` for a disc. An archive is kept cold wherever possible: readers should report discs
+with no cold copy.
+
 A copy is **known good** when its `replication` event carries `ReadBack: identical` (the disc was
 read back against the image's `ImageSha256` before the copy was recorded). An edition is **safe**
 when each of its discs has a known-good copy. Once a later edition is safe, earlier editions not
