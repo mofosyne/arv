@@ -789,7 +789,10 @@ Found 2026-10-01, both worth starting from:
   are burned from one `.iso`, so they are sector-identical: read one with a map of bad sectors
   (`ddrescue`), fill the gaps from the other, and RS03 repairs what both lost. Parity spread
   across discs (PAR2 sets) only pays without whole-disc copies.
-- **Encryption, when it comes (not now): sealed discs only, opt-in.** The disc stays a normal
+- **Encryption, when it comes (not now).** Reconsidered 2026-10-05 as optional per-item *locking*
+  with key custody in the archive's record (docs/philosophy.md, "Locked, but never lost";
+  issue #21); the whole-payload direction below stays as the alternative for sealed discs.
+  Earlier direction: sealed discs only, opt-in. The disc stays a normal
   disc (bag, README, `catalog.rec` and tools in the clear); only the payload is encrypted, as one
   piece, so no file names leak. Two candidates, chosen at implementation time:
   - **age over a filesystem image** (`data.img.age`). age has a small published spec, several

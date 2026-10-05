@@ -106,7 +106,7 @@ proposes.
   too few copies or only one site, and which files are already on another disc (by SHA-256).
   It never removes a duplicate itself: each disc must still stand alone.
 - **No extra layers that need their own repair.** No PAR2; if encryption comes,
-  it sits on top of RS03, and the simplest option wins.
+  it sits on top of RS03, and the simplest option wins (see "Locked, but never lost" below).
 - **Long bets only:** plain text (recfiles, TSV), BagIt, UDF, and tools in C99 and
   POSIX with no libraries, built with one `cc` line or carried ready to run as one
   portable executable. Every disc carries the source of the tools that made it.
@@ -205,6 +205,37 @@ In practice:
 - **Storage managers stay welcome on the everyday tier** (ZFS, restic, even
   git-annex in unlocked mode): they manage the storage; the archive only
   describes and curates.
+
+## Locked, but never lost: encryption as a recorded exception (open question)
+
+*Under discussion, not built.* A disc on a shelf is out of reach of anything on a network, but
+not of a thief or a seizure. Today the answer is "encrypt before you archive", which puts the
+secret outside the archive's record: nothing in the catalogue knows that something is locked,
+by whom, or how it may be opened. The direction considered ([issue #21](https://github.com/mofosyne/arv/issues/21)):
+
+- **Legible by default, locked by explicit choice.** Plain, readable files stay the path of least
+  resistance. Locking is opt-in, recorded in the catalogue like an appraisal, and visible to every
+  later reader; never silent.
+- **The envelope stays in the clear.** The disc format, manifests (of the ciphertext), catalogue,
+  README.txt, RS03 and the tools stay readable, so a stranger in 2075 can still verify, repair and
+  inventory the disc. A locked item degrades to "it exists, it is intact, it needs a key". Names,
+  listings, tags, captions and `index.html` must not leak what is locked.
+- **Locking creates a duty.** A key that does not outlive its owner turns a self-describing disc
+  into an unreadable one, a worse failure than plain text. So the unit of preservation grows from
+  *data* to **data + key + succession plan**: which key can open what (never the key itself), who
+  holds it or its shares (say two of three among heirs, a lawyer and a bank box), and when opening
+  is allowed. `arv todo` would report locked items whose custody is overdue for review.
+- **The honest trade.** For locked items only, "your grandchildren can read it" becomes "your
+  grandchildren who inherited the key can read it". The succession record is what makes that
+  trade principled instead of self-defeating.
+- **Crypto is not ours to write.** arv's own code is C99 with no libraries; cryptography written
+  for it would be the least trustworthy part of the archive. As with burning, arv would delegate
+  to an established tool with an open standard and several independent implementations
+  (OpenPGP's `gpg --symmetric`, or age), record what was done, and print how to undo it.
+
+The word is **lock**, not seal: `sealed` already names an access level (other discs carry only a
+sealed disc's identity). research/plan.md keeps the earlier, narrower direction (a whole sealed
+disc's payload encrypted as one piece) for comparison.
 
 ## Help is optional and local (principle 5)
 
