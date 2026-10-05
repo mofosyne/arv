@@ -675,8 +675,10 @@ heads `archive.rec`; discs name it (`HomeUuid`); archives are separate privacy s
       recording each edition (2026-10-05).
 - [x] `arv status` (a workflow folder: changes since the last revision; any folder: archived or
       not, and the discs it most resembles) and `arv link` (2026-10-05).
-- [ ] `arv burn` (burn, read back, record the copy, ask where it lives) and edition safety.
-- [ ] `arv retire`, with the list of files only on the retiring discs.
+- [x] No `arv burn` (decided 2026-10-05: arv never drives the burner; it prints the command).
+      `arv burned --device` reads a copy back and records it only if identical; edition safety;
+      `arv todo`.
+- [x] `arv retire`, with the list of files only on the retiring discs (2026-10-05).
 - [ ] Git repositories: the compacted `.git`, `--git-history since DATE`, per-repo status and
       the retire check for dropped history.
 - [ ] Folder and zip bindings for an edition.

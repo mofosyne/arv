@@ -26,6 +26,10 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - A *collection* is something kept and made into discs again and again, from one workflow
   folder with one history: `Collection` records (with a Uuid) and `Revision` records (git-like:
   `Tree` and `Node` hashes; checkpoints, and provisional or final editions, each a full copy).
+- `arv burned --device DRIVE` reads a burned copy back against its image and records it only
+  if identical (arv never drives the burner: `arv make` prints the command). An edition is safe
+  once each disc has such a copy; `arv retire CODE` then retires the provisional editions it
+  replaces, after listing any files found only on them. `arv todo` lists what is owed.
 - Each home catalogue (archive) has an identity: a `Home` record with a Uuid, made by `arv init`;
   every disc names it (`HomeUuid`), a home rebuilt from a disc keeps it, and `arv rebuild`
   refuses a disc of another archive unless `--any-archive`. `arv where` shows it.

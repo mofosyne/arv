@@ -335,6 +335,12 @@ Message: the 2025 sort, final
 | `Changes` | since the parent: files new (`+`), changed (`~`), removed (`-`) and moved (`>`: the same content under a new path) |
 
 Revisions are appended, never edited, and merged by `Node`; collections are merged by `Uuid`.
+
+A copy is **known good** when its `replication` event carries `ReadBack: identical` (the disc was
+read back against the image's `ImageSha256` before the copy was recorded). An edition is **safe**
+when each of its discs has a known-good copy. Once a later edition is safe, earlier provisional
+editions may be retired: each of their discs gets `Retired: DATE` (and loses its `Location`
+fields) and a `deaccession` event saying what replaced it. Nothing is deleted.
 A disc carries its collection and its own edition's `Revision` in `catalog.rec`; a full catalogue
 snapshot carries every collection and revision, a `set` or `disc` snapshot those of the disc's
 own collection. Each revision's manifest is kept in the home catalogue as

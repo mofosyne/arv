@@ -371,20 +371,56 @@ int cmd_check(int argc, char **argv)
 
 int cmd_burned(int argc, char **argv)
 {
-    const char *given = NULL, *disc_id = NULL, *media_id = NULL, *location = NULL, *note = NULL;
+    const char *given = NULL, *disc_id = NULL, *media_id = NULL, *location = NULL, *note = NULL, *device = NULL;
     long copies = 1;
+    int copies_given = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
-        else if (i + 1 < argc && !strcmp(argv[i], "--copies")) copies = atol(argv[++i]);
+        else if (i + 1 < argc && !strcmp(argv[i], "--copies")) { copies = atol(argv[++i]); copies_given = 1; }
+        else if (i + 1 < argc && !strcmp(argv[i], "--device")) device = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--media-id")) media_id = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--location")) location = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--note")) note = argv[++i];
         else if (argv[i][0] != '-' && !disc_id) disc_id = argv[i];
         else return 2;
     }
+    char *from_label = NULL;
+    if (device) {           /* the disc in the drive: read it back before recording it */
+        if (copies_given && copies != 1) die("%s", "--device reads one disc: record each copy as it is burned");
+        if (access(device, F_OK)) die("%s does not exist", device);
+        if (!disc_id) {
+            char *label = read_volume_label(device), *word = label ? strtok(label, " \t") : NULL;
+            if (!word) die("no volume label on %s; pass the disc id explicitly", device);
+            disc_id = from_label = xstrdup(word);
+            free(label);
+        }
+    }
     if (!disc_id) return 2;
     opened o;
     rec_record *d = open_disc_record(&o, given, disc_id);
+    const char *read_back_note = NULL;
+    if (device) {
+        uint64_t sectors = 0;
+        const char *want = image_hash(&o.cat, disc_id, &sectors);
+        if (!want) die("%s has no image hash in the catalogue to read the disc back against (arv burned without --device "
+                       "records it unchecked)", disc_id);
+        sbuf out = { 0 };
+        char hex[65];
+        fprintf(stderr, "Reading back %s (%s): the %llu sectors of its image ...\n", disc_id, device, (unsigned long long)sectors);
+        int ok = !read_back(device, sectors, hex, &out) && !strcmp(hex, want);
+        char *what = xprintf("read-back after burning, from %s, against the image's SHA-256 at creation%s%s", device,
+                             out.len ? ": " : "", out.len ? out.s : "");
+        recs_add(&o.cat.events, new_event(disc_id, "fixity check", ok ? "success" : "failure", VERSION, "automatic", what));
+        free(what);
+        if (!ok) {
+            archive_save(&o.cat, o.h.rec_path);
+            printf("%s%s: this burn is NOT the image (%s); not recorded as a copy. Burn it again, and keep this disc "
+                   "out of the archive.\n", out.len ? out.s : "", disc_id, out.len ? "unreadable" : "different content");
+            return 1;
+        }
+        read_back_note = "read back: identical to the image";
+        free(out.s);
+    }
     char *count = xprintf("%ld", atol(rec_get(d, "Copies") ? rec_get(d, "Copies") : "0") + copies);
     rec_set(d, "Copies", count);
     if (media_id) rec_add(d, "MediaId", media_id);
@@ -405,10 +441,16 @@ int cmd_burned(int argc, char **argv)
         free(where);
     }
     if (note) sb_printf(&text, "; %s", note);
+    sb_printf(&text, "; %s", read_back_note ? read_back_note : "not read back");
     char *who = person();
-    recs_add(&o.cat.events, new_event(disc_id, "replication", "success", who, "human", text.s));
+    rec_record *ev = new_event(disc_id, "replication", "success", who, "human", text.s);
+    if (read_back_note) rec_add(ev, "ReadBack", "identical");     /* the copy is known good */
+    recs_add(&o.cat.events, ev);
     archive_save(&o.cat, o.h.rec_path);
-    printf("%s: %s copies recorded\n", disc_id, count);
+    printf("%s: %s cop%s recorded%s\n", disc_id, count, !strcmp(count, "1") ? "y" : "ies",
+           read_back_note ? " (this one read back: identical to the image)"
+                          : " (not read back: arv burned --device checks a copy as it records it)");
+    free(from_label);
     free(who);
     free(count);
     free(text.s);

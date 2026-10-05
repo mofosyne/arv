@@ -57,42 +57,43 @@ another system with arv: `arv.com check --device`).
 Not suitable: burning programs' data-disc modes (Brasero's and K3b's projects, the Finder's
 *Burn folder*), and anything that offers to "finalize later" or write a multi-session disc.
 
-## 3. Check the burn, from the disc itself
+## 3. Read it back, and record it
 
-Eject the disc and put it back (the system then forgets what it cached while writing). Then:
+Eject the disc and put it back (the system then forgets what it cached while writing). Then, for
+each copy as it is burned:
 
 ```sh
-arv check --device /dev/sr0
+arv burned --device /dev/sr0 --location HOME-PUB-2026 --media-id "VERBATIM-MDISC-LOT-1234"
 ```
 
 arv reads the disc's volume label to know which disc it is, reads exactly the image's sectors
 from the drive (after asking the system to drop anything cached), and compares the SHA-256 with
-the one recorded at creation. `the disc holds exactly the image arv made` and `OK` mean the burn
-is good; the check is logged as a fixity check event. Anything else: burn again, on a new disc.
+the one recorded at creation. Only when they are identical does it record the copy (a
+`replication` event with `ReadBack: identical`, and where it is kept); either way the read-back is
+logged as a fixity check. A copy that differs or will not read is **not** recorded: burn again, on
+a new disc, and keep the bad one out of the archive. An edition of a collection is *safe* once
+each of its discs has a copy read back this way; only then does `arv retire` let earlier
+provisional editions go.
 
-Without arv at hand, the same by hand:
+`arv burned` without `--device` still records a copy (a disc burned on another machine, say), but
+as not read back: `arv todo` keeps listing it until `arv check --device` reads it.
+
+Without arv at hand, the same check by hand:
 
 ```sh
 dd if=/dev/sr0 bs=2048 count=IMAGESECTORS iflag=direct | sha256sum     # must equal ImageSha256
 ```
 
 (`iflag=direct` reads past the cache; a burned disc may hold a few sectors more than the image,
-hence `count`.) A home catalogue made before arv recorded image hashes (October 2026) has none;
-then `arv check --device` scans the disc with dvdisaster Light (`dvdisaster -s`) instead, or read
-the disc into an image and run `arv check --image disc.iso`.
-
-## 4. Record it
-
-```sh
-arv burned TRIP-01_2019_4 --copies 1 --media-id "VERBATIM-MDISC-LOT-1234" --location HOME-PUB-2026
-arv burned TRIP-01_2019_4 --copies 1 --location OFFSITE-PUB-2026
-```
+hence `count`.)
 
 Write the disc id on the hub (a CD/DVD marker made for discs, not a ballpoint) and on the case.
 Then the `.iso` can go, or stay on a drive as one more copy.
 
 ## Later: checking and reading damaged discs
 
+- `arv todo` lists what is owed: images not burned, copies not read back, editions not yet safe,
+  replaced editions to retire, discs kept in one place, checks overdue.
 - Every few years, per copy: `arv check --device /dev/sr0` (logged). `arv list --unchecked-since 5y`
   lists the discs due one, with the date of their last check; `arv list --one-place` those kept in
   only one place. (A check is recorded per disc, not per copy: note which copy in `--note`.)
@@ -111,7 +112,7 @@ burning program. Record the results in issue #5 and in `src/udfwrite/README.md`'
 1. **Make** a test disc from a folder with awkward names (long, non-ASCII, emoji, deep folders,
    a file over 4 GiB): `arv make --set TEST FOLDER`.
 2. **Burn** it (step 2), noting the program, its version, drive, media and speed.
-3. **Read back** (step 3): `arv check --device /dev/sr0` must say the disc holds exactly the image.
+3. **Read back** (step 3): `arv burned --device /dev/sr0` must say the disc is identical to the image.
 4. **Open it on every system you may use one day:**
    - Linux: mount it, `sha256sum -c manifest-sha256.txt` from its root, and `tools/arv.com verify .`
      (copied off the disc first, as its README says);

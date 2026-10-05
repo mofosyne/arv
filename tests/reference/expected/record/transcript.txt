@@ -1,5 +1,5 @@
 $ --home rec burned TRIP-01_2019_4 --copies 2 --location box1 --media-id MEI-T02 --note for the attic
-TRIP-01_2019_4: 4 copies recorded
+TRIP-01_2019_4: 4 copies recorded (not read back: arv burned --device checks a copy as it records it)
 rc=0
 $ --home rec note PROJ-01_2020-2023_L A long note that goes on about the weather station, its board revisions and the spare parts
 rc=0

@@ -28,7 +28,7 @@ flowchart TD
     end
     subgraph keep [Keep]
         M7 --> B[burn the .iso yourself]
-        B --> R[arv burned / locate<br/>copies, where they are]
+        B --> R[arv burned --device<br/>read back, copy recorded]
         R --> S[(discs on shelves)]
     end
     subgraph live [Live with it]
@@ -179,9 +179,9 @@ pitfalls, and the drill to run before trusting a new drive or media. In short:
 
 ```sh
 xorriso -as cdrecord -v dev=/dev/sr0 -eject TRIP-01_2019_4.iso
-arv check --device /dev/sr0          # after re-inserting: the disc must hold exactly the image (logged)
-arv burned TRIP-01_2019_4 --copies 1 --location HOME-PUB-2026
-arv burned TRIP-01_2019_4 --copies 1 --location OFFSITE --note "for the parents"
+arv burned --device /dev/sr0 --location HOME-PUB-2026        # after re-inserting: read back, then recorded
+arv burned --device /dev/sr0 --location OFFSITE --note "for the parents"   # the second copy, the same way
+arv todo                                                       # what is still owed
 ```
 
 Write the disc id on the disc and the case. The id's last character is a check

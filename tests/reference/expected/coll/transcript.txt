@@ -157,10 +157,63 @@ FAM       Family photos  (2 editions; last 2026-01-01, checkpoint)
   95a366ff6ab0  2026-01-01  edition 2   final        +1 ~1 -1 >0 files  FAM-02_2019_Y  the 2019 sort
   266394586162  2026-01-01  checkpoint  checkpoint   +1 ~1 -0 >1 files    renamed c
 rc=0
+$ --home hc todo
+Not burned yet (burn the image, then: arv burned ID --device DRIVE --location PLACE):
+  FAM-01_2019_0  made 2026-01-01
+  FAM-02_2019_Y  made 2026-01-01
+Editions not safe yet (every disc burned and read back):
+  FAM/2 (final)
+rc=0
+$ --home hc retire FAM
+FAM: no edition is safe yet (each of its discs burned and read back: arv burned --device); nothing to retire
+rc=0
+$ --home hc burned FAM-02_2019_Y --device bad.iso --location BOX1
+Reading back FAM-02_2019_Y (bad.iso): the 850 sectors of its image ...
+FAM-02_2019_Y: this burn is NOT the image (different content); not recorded as a copy. Burn it again, and keep this disc out of the archive.
+rc=1
+$ --home hc burned --device out-c2/FAM-02_2019_Y.noecc.iso --location BOX1
+Reading back FAM-02_2019_Y (out-c2/FAM-02_2019_Y.noecc.iso): the 850 sectors of its image ...
+FAM-02_2019_Y: 1 copy recorded (this one read back: identical to the image)
+rc=0
+$ --home hc burned FAM-01_2019_0 --location BOX1
+FAM-01_2019_0: 1 copy recorded (not read back: arv burned --device checks a copy as it records it)
+rc=0
+$ --home hc todo
+Burned, never read back (arv check --device DRIVE ID):
+  FAM-01_2019_0
+Replaced by a safe edition, ready to retire (arv retire CODE):
+  FAM: edition 1 (replaced by edition 2)
+Kept in fewer than two places (arv locate ID PLACE --add):
+  FAM-01_2019_0  one place
+  FAM-02_2019_Y  one place
+rc=0
+$ --home hc retire FAM
+FAM: edition 2 (final, 2026-01-01) is safe; it replaces:
+  edition 1 (provisional, 2026-01-01): FAM-01_2019_0
+2 files are only on these discs (removed from the collection since):
+  2019/a.txt
+  b.txt
+Nothing recorded. arv retire FAM --yes records them as retired (arv deletes nothing: the discs are yours to keep or destroy).
+rc=0
+$ --home hc retire FAM --yes
+FAM: edition 2 (final, 2026-01-01) is safe; it replaces:
+  edition 1 (provisional, 2026-01-01): FAM-01_2019_0
+2 files are only on these discs (removed from the collection since):
+  2019/a.txt
+  b.txt
+1 disc retired (logged)
+rc=0
+$ --home hc retire FAM
+FAM: nothing to retire (edition 2 is safe; no earlier provisional edition is left)
+rc=0
+$ --home hc todo
+Kept in fewer than two places (arv locate ID PLACE --add):
+  FAM-02_2019_Y  one place
+rc=0
 $ --home hc collection show NOPE
 Error: no collection NOPE
 rc=1
 $ --home hc list
 FAM-01_2019_0	2026-01-01	Family photos	2 files	public	
-FAM-02_2019_Y	2026-01-01	Family photos	2 files	public	
+FAM-02_2019_Y	2026-01-01	Family photos	2 files	public	BOX1
 rc=0

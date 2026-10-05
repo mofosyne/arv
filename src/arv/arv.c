@@ -47,7 +47,8 @@ static void usage(FILE *to)
           "       arv make [-C HOME] [--set CODE] [--title T] [--no-ecc] [--output-dir DIR] ... FOLDER\n"
           "              (arv make --help lists every option)\n"
           "       arv check [-C HOME] (--image FILE [--repair] | --device DRIVE) [--note TEXT] [-v] [DISC-ID]\n"
-          "       arv burned [-C HOME] [--copies N] [--media-id ID] [--location PLACE] [--note TEXT] DISC-ID\n"
+          "       arv burned [-C HOME] (--device DRIVE | --copies N) [--media-id ID] [--location PLACE] [--note TEXT] [DISC-ID]\n"
+          "              (--device: read the disc back against its image first; recorded only if identical)\n"
           "       arv note [-C HOME] DISC-ID TEXT\n"
           "       arv locate [-C HOME] [--add] DISC-ID PLACE...\n"
           "       arv access DISC-ID public|private|sealed\n"
@@ -57,6 +58,8 @@ static void usage(FILE *to)
           "       arv checkpoint [--message TEXT] [FOLDER]   record a workflow folder's state (no discs)\n"
           "       arv log [COLLECTION]   arv diff REV [REV]   (REV: a revision's first digits, or CODE/N)\n"
           "       arv link FOLDER COLLECTION|DISC-ID [--past]   say what a folder is (logged)\n"
+          "       arv todo [--overdue YEARS]   what is owed: burns, read-backs, safe editions, places, checks\n"
+          "       arv retire CODE [--yes]   retire provisional editions a safe edition replaces\n"
           "       arv selection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]\n"
           "       arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]\n"
           "       arv sets [-v]\n"
@@ -160,7 +163,7 @@ int main(int argc, char **argv)
                  { "burned", cmd_burned }, { "note", cmd_note }, { "locate", cmd_locate },
                  { "access", cmd_access }, { "location", cmd_location }, { "selection", cmd_selection }, { "collection", cmd_collection },
                  { "status", cmd_status }, { "checkpoint", cmd_checkpoint }, { "log", cmd_log }, { "diff", cmd_diff },
-                 { "link", cmd_link },
+                 { "link", cmd_link }, { "todo", cmd_todo }, { "retire", cmd_retire },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
                  { "where", cmd_where }, { "rebuild", cmd_rebuild },
                  { "tags", cmd_tags }, { "keywords", cmd_keywords } };

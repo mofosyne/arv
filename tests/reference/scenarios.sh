@@ -274,6 +274,18 @@ log coll.out --home hc link coll/loose FAM-01_2019_0
 log coll.out --home hc status coll/loose
 log coll.out --home hc collection list
 log coll.out --home hc collection show FAM
+log coll.out --home hc todo
+log coll.out --home hc retire FAM
+cp out-c2/FAM-02_2019_Y.noecc.iso bad.iso
+printf X | dd of=bad.iso bs=1 seek=40000 conv=notrunc 2>/dev/null
+log coll.out --home hc burned FAM-02_2019_Y --device bad.iso --location BOX1
+log coll.out --home hc burned --device out-c2/FAM-02_2019_Y.noecc.iso --location BOX1
+log coll.out --home hc burned FAM-01_2019_0 --location BOX1
+log coll.out --home hc todo
+log coll.out --home hc retire FAM
+log coll.out --home hc retire FAM --yes
+log coll.out --home hc retire FAM
+log coll.out --home hc todo
 log coll.out --home hc collection show NOPE
 log coll.out --home hc list
 keep coll.out coll/transcript.txt

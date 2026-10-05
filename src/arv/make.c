@@ -1573,6 +1573,19 @@ static int make_discs(maker *mk)
     if (o->keep_stage) fprintf(stderr, "Kept staging directory %s\n", mk->workdir);
     else remove_tree(mk->workdir);
     for (size_t i = 0; i < mk->nplans; i++) printf("%s\t%s\t%s\n", mk->plans[i].disc_id, mk->plans[i].out, mk->title);
+    if (!failed && !o->no_ecc) {    /* what comes next: arv does not burn; it reads back and records */
+        fputs("Next: burn each image as it is (one session, closed: docs/burning.md), then read it back and record it:\n",
+              stderr);
+        for (size_t i = 0; i < mk->nplans; i++) {
+            sbuf q = { 0 };
+            sb_puts(&q, "'");
+            for (const char *c = mk->plans[i].out; *c; c++) sb_puts(&q, *c == '\'' ? "'\\''" : (char[]){ *c, 0 });
+            sb_puts(&q, "'");
+            fprintf(stderr, "  xorriso -as cdrecord -v dev=/dev/sr0 -eject %s\n  arv burned %s --device /dev/sr0 --location PLACE\n",
+                    q.s, mk->plans[i].disc_id);
+            free(q.s);
+        }
+    }
     return failed;
 }
 

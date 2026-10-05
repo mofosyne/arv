@@ -4,7 +4,7 @@ CFLAGS  ?= -O2
 WARN     = -std=c99 -Wall -Wextra -Wpedantic -Wshadow
 BUILD    = build
 LIB      = $(BUILD)/rec.o $(BUILD)/bagit.o $(BUILD)/edtf.o $(BUILD)/discid.o $(BUILD)/vocab.o $(BUILD)/data.o
-OBJS     = $(BUILD)/arv.o $(BUILD)/util.o $(BUILD)/disc.o $(BUILD)/catalogue.o $(BUILD)/names.o $(BUILD)/home.o $(BUILD)/archive.o $(BUILD)/bag.o $(BUILD)/html.o $(BUILD)/make.o $(BUILD)/record.o $(BUILD)/edit.o $(BUILD)/tags.o $(BUILD)/formats.o $(BUILD)/rocrate.o $(BUILD)/json.o $(BUILD)/draft.o $(BUILD)/collection.o $(BUILD)/status.o $(BUILD)/udfwrite.o $(BUILD)/rs03.o $(LIB)
+OBJS     = $(BUILD)/arv.o $(BUILD)/util.o $(BUILD)/disc.o $(BUILD)/catalogue.o $(BUILD)/names.o $(BUILD)/home.o $(BUILD)/archive.o $(BUILD)/bag.o $(BUILD)/html.o $(BUILD)/make.o $(BUILD)/record.o $(BUILD)/edit.o $(BUILD)/tags.o $(BUILD)/formats.o $(BUILD)/rocrate.o $(BUILD)/json.o $(BUILD)/draft.o $(BUILD)/collection.o $(BUILD)/status.o $(BUILD)/upkeep.o $(BUILD)/udfwrite.o $(BUILD)/rs03.o $(LIB)
 
 DATA     = DATA_DESCRIPTORS=data/descriptors.rec DATA_README=data/readme.txt \
            DATA_DEFAULT_SETS=data/default_sets.rec DATA_INDEX_CSS=data/index.css \

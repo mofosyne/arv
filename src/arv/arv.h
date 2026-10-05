@@ -68,6 +68,8 @@ int cmd_checkpoint(int argc, char **argv);
 int cmd_log(int argc, char **argv);
 int cmd_diff(int argc, char **argv);
 int cmd_link(int argc, char **argv);
+int cmd_todo(int argc, char **argv);
+int cmd_retire(int argc, char **argv);
 int cmd_appraise(int argc, char **argv);
 int cmd_sets(int argc, char **argv);
 int cmd_names(int argc, char **argv);
@@ -139,6 +141,8 @@ char *revision_manifest_path(const arv_home *h, const char *node);
 char *manifest_changes(const char *before, const char *after);
 rec_record *folder_collection(const archive *cat, const char *abs, const char **how);
 void hash_cache_note(const arv_home *h, const entries *files);   /* after arv make */
+const char *disc_read_back(const archive *cat, const char *id);   /* upkeep.c: a copy known good */
+int edition_safe(const archive *cat, const rec_record *rev);
 
 /* formats.c: Siegfried (PRONOM) format identification */
 typedef struct {

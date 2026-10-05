@@ -26,6 +26,7 @@ Date: 2026-01-01
 %type: Files int
 %type: Bytes int
 %type: Access enum public private sealed
+%type: Retired date
 
 Id: FAM-01_2019_0
 Uuid: UUID
@@ -43,6 +44,8 @@ Access: public
 Files: 2
 Bytes: 4
 Software: SW
+Copies: 1
+Retired: 2026-01-01
 
 Id: FAM-02_2019_Y
 Uuid: UUID
@@ -60,6 +63,8 @@ Access: public
 Files: 2
 Bytes: 4
 Software: SW
+Copies: 1
+Location: BOX1
 
 %rec: Binding
 %doc: How one volume is stored on its medium: the container (filesystem) and the
@@ -158,6 +163,8 @@ Message: renamed c
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion
 + a person kept as it was), edited (one a person changed), human (a person alone).
++ A replication with ReadBack: identical is a copy read back against its image before it
++ was recorded (known good); deaccession retires a disc (its Disc record gets Retired).
 %mandatory: Type Date Outcome
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
@@ -237,3 +244,44 @@ Note: ROOT/coll/loose declared the source of this disc
 Folder: ROOT/coll/loose
 How: declared
 State: present
+
+Disc: FAM-02_2019_Y
+Type: fixity check
+Date: 2026-01-01
+Outcome: failure
+Authorship: automatic
+Agent: arv 0.4
+Note: read-back after burning, from bad.iso, against the image's SHA-256 at creation
+
+Disc: FAM-02_2019_Y
+Type: fixity check
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: arv 0.4
+Note: read-back after burning, from out-c2/FAM-02_2019_Y.noecc.iso, against the image's SHA-256 at creation
+
+Disc: FAM-02_2019_Y
+Type: replication
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: burned 1 copy, kept at BOX1; read back: identical to the image
+ReadBack: identical
+
+Disc: FAM-01_2019_0
+Type: replication
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: burned 1 copy, kept at BOX1; not read back
+
+Disc: FAM-01_2019_0
+Type: deaccession
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: retired: edition 1 of FAM, replaced by edition 2 (revision 95a366ff6ab0); was kept at BOX1; files only on retired discs were listed and accepted

@@ -174,8 +174,8 @@ The whole cycle, as the C arv runs it:
 ```sh
 arv init ~/archive                                          # a .arv home
 arv make -y --set trip --location BOX1 ~/archive/2019-kyoto # disc image, recorded in the home
-arv burned TRIP-01_2019_4 --copies 2                        # after burning
-arv check --device /dev/sr0                                 # fixity check of a burned disc, logged
+arv burned --device /dev/sr0 --location HOME               # after burning: read back, then recorded
+arv todo                                                    # what is owed: burns, read-backs, places, checks
 arv find kyoto                                              # which disc, and where it is
 arv verify /media/cdrom                                     # every file against its checksum
 arv restore /media/cdrom ~/restored                         # copy back; links and execute bits too
@@ -257,7 +257,7 @@ arv list --in MEMORIES          # discs anywhere under a vocabulary entry
 arv id PHOTOS-07_2015-2024_Q   # explain / check an id (catches typos)
 arv note 2020-2025_PROJECTS_01 "Only copy of the 2019 PCB gerbers"
 arv locate 2020-2025_PROJECTS_01 BOX3 OFFSITE   # one location per place a copy is kept
-arv burned 2020-2025_PROJECTS_01 --copies 1 --location OFFSITE  # after burning the ISO yourself
+arv burned --device /dev/sr0 --location OFFSITE  # after burning the ISO yourself: read back, recorded
 arv location move BOX3 --in OFFSITE             # moving a box moves its discs
 arv location list -v                            # places as a tree, with the discs in each
 arv selection add KYOTO-BEST --name "Best of Kyoto" TRIP-01_2019_4:"day2 Kinkaku-ji/"
