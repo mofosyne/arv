@@ -603,6 +603,25 @@ edition stays a full copy. Any folder in the collection with a `.git` is handled
   the thing in a workflow folder.
 - **Tracked folders** get `arv status PATH` too: for each file, archived on which discs, or
   not yet; the first part of the organiser below.
+- **Recognising a plain folder (no git) as the same but changed**, strongest evidence first:
+  1. *Declared*: a workflow folder's marker names its collection. Exact; no guessing.
+  2. *Content*: otherwise the folder's files are matched against the discs' manifests by
+     SHA-256. Each file is **unchanged** (same path, same hash), **changed** (same path, new
+     hash), **moved** (same hash, new path), **new** or **removed**. The folder as a whole is
+     reported against its best-matching discs with the numbers, never a silent verdict:
+     "probably TRIP-01_2019_4: 92% of its files here, 40 new, 3 changed, 1 moved, 2 removed".
+     Shapes: identical; grown (the disc's files are a subset); partial (the folder is a
+     subset of a disc); changed (they share at least half); unrelated.
+  3. *Where it was*: `Source` (host and path) recorded at `arv make`, home catalogue only (it
+     names your machine and folders, so it never goes on a disc): a hint for the report, and
+     a fallback when everything changed but the place.
+  - **Cheap enough for a NAS**: a file whose path, size and modified time match the disc's
+    listing is taken as unchanged without reading it (as rsync and git do); only the rest are
+    hashed. Hashes are cached in `<home>/cache/hashes` (path, size, mtime, inode → SHA-256),
+    so a second `arv status` reads almost nothing. `--deep` rehashes everything (bit rot on
+    the NAS shows up as "changed" with an unchanged modified time: reported as such).
+  - Expected noise, reported not hidden: photo tools writing tags into JPEGs change their
+    hashes (changed, same path); an edited file that was also renamed is new + removed.
 
 **Steps**
 - [ ] Format 0.5: `Collection` (the kept thing), `Edition`, `Selection`, the `Retired` event; the
