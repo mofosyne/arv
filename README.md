@@ -258,6 +258,8 @@ arv names ./Photos                      # names the image cannot hold, or Window
 # --label TEXT to choose the text, --label '' for the id alone
 arv make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: only this set's catalogue
 arv make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
+arv plan new trip --set TRIP && arv plan add trip ~/Videos/film.mkv /nas/photos/2025 --disc new
+arv plan show trip && arv plan make trip   # discs composed by hand from anywhere (docs/workflow.md)
 arv make ./my-git-clone --links record   # links: file links copied, the rest noted in the listing
 #   (default: links leaving the folder are refused; copy: copy what every link points to)
 arv make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03

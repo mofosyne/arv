@@ -53,12 +53,44 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 .browser { border:1px solid var(--line); border-radius:6px; max-height:220px; overflow:auto; margin-top:6px; }
 .browser div { padding:4px 10px; cursor:pointer; font-family:ui-monospace, monospace; font-size:13px; }
 .browser div:hover { background:var(--panel); }
+/* the mastering window: the plan's discs (the compilation) beside a file browser, as in Nero */
+.master { display:grid; grid-template-columns:minmax(0, 3fr) minmax(0, 2fr); gap:16px; margin-top:12px; }
+@media (max-width: 760px) { .master { grid-template-columns:minmax(0, 1fr); } }
+.discs { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; align-content:start; }
+.disc { border:1px solid var(--line); border-radius:8px; padding:10px 12px; min-height:140px; background:var(--bg); }
+.disc.target { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent) inset; }
+.disc.add { border-style:dashed; display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:pointer; }
+.disc h3 { font-size:15px; margin:0 0 6px; display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
+.cap { height:12px; border-radius:6px; background:var(--panel); border:1px solid var(--line); overflow:hidden; }
+.cap > div { height:100%; background:var(--ok); }
+.cap.warn > div { background:var(--warn); } .cap.bad > div { background:var(--bad); }
+.capnote { font-size:12px; color:var(--muted); margin:2px 0 8px; }
+.item { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:2px 8px; align-items:center; padding:6px 0;
+        border-top:1px solid var(--line); cursor:grab; }
+.item .path { overflow-wrap:anywhere; }
+.item .src { grid-column:1 / -1; font-size:11px; color:var(--muted); overflow-wrap:anywhere; font-family:ui-monospace, monospace; }
+.item .ctl { grid-column:1 / -1; justify-self:end; white-space:nowrap; }
+.item select { width:auto; padding:2px 4px; font-size:12px; }
+.item button, .disc h3 button { font:inherit; font-size:12px; padding:2px 6px; border:1px solid var(--line); border-radius:4px;
+        background:var(--panel); color:var(--fg); cursor:pointer; }
+.item.missing .path { color:var(--bad); }
+.files { border:1px solid var(--line); border-radius:8px; padding:10px 12px; align-self:start; }
+.files .list { max-height:460px; overflow:auto; margin-top:6px; }
+.files .list > div { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:8px; align-items:center; padding:3px 4px;
+        font-family:ui-monospace, monospace; font-size:13px; cursor:grab; border-radius:4px; }
+.files .list > div:hover { background:var(--panel); }
+.files .list .name { overflow-wrap:anywhere; }
+.files .list .size { color:var(--muted); font-size:12px; white-space:nowrap; }
+.files .list .on { color:var(--accent); }
+.files .here { font-family:ui-monospace, monospace; font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
+.banner { background:var(--panel); border-radius:6px; padding:8px 12px; margin-top:12px; }
 </style></head><body>
 <header><h1>Disc Archive</h1><span class="home" id="home"></span></header>
 <nav role="tablist">
   <button role="tab" data-tab="discs" aria-selected="true">Discs</button>
   <button role="tab" data-tab="search">Search</button>
   <button role="tab" data-tab="make">Make disc</button>
+  <button role="tab" data-tab="master">Mastering</button>
   <button role="tab" data-tab="tools">Check &amp; tools</button>
   <button role="tab" data-tab="jobs">Jobs</button>
 </nav>
@@ -119,6 +151,48 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   </form>
 </section>
 
+<section id="tab-master" hidden>
+  <p class="muted">Compose discs by hand from files and folders anywhere: drag them from the right onto a disc, or tick
+    them and press Add. A plan only points at the files; nothing is copied until the images are made.</p>
+  <div class="inline">
+    <div><label for="p-pick">Disc plan</label><select id="p-pick"></select></div>
+    <button class="plain" type="button" id="p-new-btn">New plan…</button>
+    <button class="plain" type="button" id="p-delete">Delete plan</button>
+  </div>
+  <form id="p-new" class="card" hidden>
+    <div class="row">
+      <div><label for="p-name">Name (letters, digits, - _ .)</label><input type="text" id="p-name" required pattern="[A-Za-z0-9_\-][A-Za-z0-9._\-]*"></div>
+      <div><label for="p-title">Title</label><input type="text" id="p-title"></div>
+      <div><label for="p-set">Set</label><input type="text" id="p-set" placeholder="e.g. TRIP"></div>
+      <div><label for="p-medium">Disc</label><select id="p-medium">
+        <option value="bd25">BD-R 25 GB</option><option value="bd50">BD-R DL 50 GB</option>
+        <option value="bd100">BD-R XL 100 GB</option><option value="bd128">BD-R XL 128 GB</option></select></div>
+    </div>
+    <button class="primary" type="submit">Create plan</button>
+  </form>
+  <div id="p-status" class="banner" hidden></div>
+  <div class="master">
+    <div class="discs" id="p-discs"></div>
+    <div class="files">
+      <div class="inline"><button class="plain" type="button" id="f-up">⬑ Up</button>
+        <input type="text" id="f-path" aria-label="Folder"></div>
+      <div class="here" id="f-here"></div>
+      <div class="list" id="f-list"></div>
+      <div class="inline">
+        <div><label for="f-to">Put the ticked ones on</label><select id="f-to"></select></div>
+        <button class="primary" type="button" id="f-add">Add</button>
+      </div>
+    </div>
+  </div>
+  <div class="card" id="p-make">
+    <div class="row">
+      <div><label for="p-outdir">Save images in</label><input type="text" id="p-outdir" placeholder="default: GUI start folder"></div>
+    </div>
+    <div class="checks row"><label><input type="checkbox" id="p-noecc"> No error correction (quicker; for trying a plan out)</label></div>
+    <button class="primary" type="button" id="p-make-btn">Make the disc images</button>
+  </div>
+</section>
+
 <section id="tab-tools" hidden>
   <h2>Check a disc or image</h2>
   <form id="check-form" class="inline">
@@ -175,6 +249,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     document.querySelectorAll("main > section").forEach(function (s) { s.hidden = s.id !== "tab-" + name; });
     if (name === "discs") loadDiscs();
     if (name === "jobs") loadJobs();
+    if (name === "master") loadPlans();
   }
   document.querySelectorAll("nav button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
 
@@ -415,6 +490,158 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     fields.appendChild(apply);
     box.appendChild(fields);
   }
+
+  // ---------------------------------------------------------------- mastering: disc plans
+  var plan = null, folder = null;
+  function planName() { return $("p-pick").value; }
+  function say(text, bad) {
+    var s = $("p-status"); s.hidden = !text; s.textContent = text || ""; s.className = "banner" + (bad ? " bad" : "");
+  }
+  function planDo(body) {      // arv plan ACTION NAME ..., then the plan again
+    body.name = body.name || planName();
+    return api("/api/plan", body).then(function (res) {
+      say(res.output, res.returncode !== 0);
+      return loadPlan();
+    }).catch(function (e) { say("Error: " + e.message, true); });
+  }
+  function loadPlans(choose) {
+    return api("/api/plans").then(function (res) {
+      var pick = $("p-pick"), keep = choose || pick.value;
+      pick.textContent = "";
+      res.plans.forEach(function (n) { pick.appendChild(el("option", { value: n, text: n })); });
+      if (!res.plans.length) pick.appendChild(el("option", { value: "", text: "(no plans yet)" }));
+      if (keep && res.plans.indexOf(keep) >= 0) pick.value = keep;
+      $("p-new").hidden = res.plans.length > 0;
+      if (!folder) browseFiles("");
+      return loadPlan();
+    });
+  }
+  function loadPlan() {
+    if (!planName()) { plan = null; renderPlan(); return Promise.resolve(); }
+    return api("/api/plan?name=" + encodeURIComponent(planName())).then(function (p) { plan = p; renderPlan(); })
+      .catch(function (e) { plan = null; renderPlan(); say("Error: " + e.message, true); });
+  }
+  function dropTarget(node, disc) {   // a disc takes files from the browser, and items from other discs
+    node.ondragover = function (ev) { if (plan && !plan.made) { ev.preventDefault(); node.classList.add("target"); } };
+    node.ondragleave = function () { node.classList.remove("target"); };
+    node.ondrop = function (ev) {
+      ev.preventDefault(); node.classList.remove("target");
+      var data = JSON.parse(ev.dataTransfer.getData("application/x-arv") || "{}");
+      if (data.sources) planDo({ action: "add", sources: data.sources, disc: disc });
+      else if (data.path && String(data.from) !== String(disc)) planDo({ action: "move", paths: [data.path], from: data.from, disc: disc });
+    };
+  }
+  function renderPlan() {
+    var box = $("p-discs"); box.textContent = "";
+    var to = $("f-to"); to.textContent = "";
+    to.appendChild(el("option", { value: "auto", text: "the first disc with room" }));
+    $("p-make").hidden = !plan || !!plan.made;
+    $("p-delete").hidden = !plan;
+    if (!plan) return;
+    if (plan.made) say("Made " + plan.made + " as " + plan.volumes.join(", ") + ". Burn and record them from the Discs tab; " +
+                       "a new plan starts the next discs.");
+    var room = plan.room;
+    plan.discs.forEach(function (d) {
+      to.appendChild(el("option", { value: String(d.disc), text: "disc " + d.disc }));
+      var pct = room ? Math.round(d.used * 100 / room) : 0;
+      var card = el("div", { class: "disc" });
+      var head = el("h3", {}, [el("span", { text: "Disc " + d.disc + (plan.made ? " — " + (plan.volumes[d.disc - 1] || "") : "") })]);
+      if (!d.items.length && plan.discs.length > 1 && !plan.made) {
+        var dropDisc = el("button", { type: "button", text: "Remove disc" });
+        dropDisc.onclick = function () { planDo({ action: "disc", op: "drop", disc: d.disc }); };
+        head.appendChild(dropDisc);
+      }
+      card.appendChild(head);
+      var bar = el("div", { class: "cap" + (pct > 100 ? " bad" : pct > 90 ? " warn" : "") }, [el("div", {})]);
+      bar.firstChild.style.width = Math.min(pct, 100) + "%";
+      card.appendChild(bar);
+      card.appendChild(el("div", { class: "capnote", text: room ? human(d.bytes) + " of about " + human(room) + " (" + pct + "%)" +
+        (pct > 100 ? " — too full: move something" : "") : human(d.bytes) + " (medium chosen when made)" }));
+      if (!d.items.length) card.appendChild(el("div", { class: "muted", text: "Empty: drop files or folders here." }));
+      d.items.forEach(function (it) {
+        var row = el("div", { class: "item" + (it.kind === "missing" ? " missing" : ""), draggable: plan.made ? "false" : "true" }, [
+          el("span", { class: "path mono", text: it.path + (it.kind === "folder" ? "/" : "") }),
+          el("span", { class: "muted", text: it.kind === "missing" ? "missing" : human(it.bytes) + (it.kind === "folder" ? ", " + it.files + " files" : "") }),
+          el("span", { class: "src", text: it.source })]);
+        if (!plan.made) {
+          var move = el("select", { "aria-label": "Move to disc" });
+          move.appendChild(el("option", { value: "", text: "move…" }));
+          plan.discs.forEach(function (o) { if (o.disc !== d.disc) move.appendChild(el("option", { value: String(o.disc), text: "to disc " + o.disc })); });
+          move.appendChild(el("option", { value: "new", text: "to a new disc" }));
+          move.onchange = function () { if (move.value) planDo({ action: "move", paths: [it.path], from: d.disc, disc: move.value }); };
+          var drop = el("button", { type: "button", text: "✕", title: "Take off the disc (the file stays where it is)" });
+          drop.onclick = function () { planDo({ action: "drop", paths: [it.path], from: d.disc }); };
+          row.appendChild(el("span", { class: "ctl" }, [move, drop]));
+        }
+        row.ondragstart = function (ev) { ev.dataTransfer.setData("application/x-arv", JSON.stringify({ path: it.path, from: d.disc })); };
+        card.appendChild(row);
+      });
+      dropTarget(card, d.disc);
+      box.appendChild(card);
+    });
+    to.appendChild(el("option", { value: "new", text: "a new disc" }));
+    if (!plan.made) {
+      var add = el("div", { class: "disc add", text: "+ New disc (or drop here)" });
+      add.onclick = function () { planDo({ action: "disc", op: "add" }); };
+      dropTarget(add, "new");
+      box.appendChild(add);
+    }
+    if (folder) browseFiles(folder.path);     // the browser marks what is on a disc now
+  }
+  function onDisc(path) {      // the disc of the plan a source is on, or 0
+    var found = 0;
+    (plan ? plan.discs : []).forEach(function (d) { d.items.forEach(function (it) { if (it.source === path) found = d.disc; }); });
+    return found;
+  }
+  function browseFiles(path) {
+    api("/api/browse?files=1&path=" + encodeURIComponent(path || "")).then(function (res) {
+      folder = res; $("f-path").value = res.path; $("f-here").textContent = res.error || "";
+      var list = $("f-list"); list.textContent = "";
+      function row(name, isDir, bytes) {
+        var full = res.path.replace(/\/$/, "") + "/" + name;
+        var tick = el("input", { type: "checkbox", "aria-label": "Tick " + name });
+        tick.dataset.path = full;
+        var on = onDisc(full);
+        var r = el("div", { draggable: "true" }, [tick, el("span", { class: "name", text: (isDir ? "📁 " : "📄 ") + name }),
+                                                  el("span", { class: "size" + (on ? " on" : ""), text: on ? "on disc " + on : isDir ? "" : human(bytes) })]);
+        if (isDir) r.querySelector(".name").onclick = function () { browseFiles(full); };
+        r.ondragstart = function (ev) {
+          var ticked = Array.prototype.map.call(list.querySelectorAll("input:checked"), function (c) { return c.dataset.path; });
+          if (ticked.indexOf(full) < 0) ticked = [full];
+          ev.dataTransfer.setData("application/x-arv", JSON.stringify({ sources: ticked }));
+        };
+        list.appendChild(r);
+      }
+      res.dirs.forEach(function (n) { row(n, true); });
+      (res.files || []).forEach(function (f) { row(f.name, false, f.bytes); });
+      if (!res.dirs.length && !(res.files || []).length) list.appendChild(el("div", { class: "muted", text: "(empty)" }));
+    });
+  }
+  $("f-up").onclick = function () { if (folder) browseFiles(folder.parent); };
+  $("f-path").onchange = function () { browseFiles($("f-path").value); };
+  $("f-add").onclick = function () {
+    var ticked = Array.prototype.map.call($("f-list").querySelectorAll("input:checked"), function (c) { return c.dataset.path; });
+    if (!plan) { say("Create a plan first (New plan…).", true); return; }
+    if (!ticked.length) { say("Tick the files or folders to add first.", true); return; }
+    planDo({ action: "add", sources: ticked, disc: $("f-to").value });
+  };
+  $("p-pick").onchange = function () { say(""); loadPlan(); };
+  $("p-new-btn").onclick = function () { $("p-new").hidden = !$("p-new").hidden; };
+  $("p-new").onsubmit = function (ev) {
+    ev.preventDefault();
+    var name = $("p-name").value.trim();
+    api("/api/plan", { action: "new", name: name, title: $("p-title").value, set: $("p-set").value, medium: $("p-medium").value })
+      .then(function (res) { say(res.output, res.returncode !== 0); if (res.returncode === 0) loadPlans(name); })
+      .catch(function (e) { say("Error: " + e.message, true); });
+  };
+  $("p-delete").onclick = function () {
+    if (!plan || !confirm("Delete the plan " + plan.name + "? The files it points to are not touched.")) return;
+    api("/api/plan", { action: "delete", name: plan.name }).then(function (res) { say(res.output, res.returncode !== 0); loadPlans(); });
+  };
+  $("p-make-btn").onclick = function () {
+    if (!plan) return;
+    run({ action: "make", name: plan.name, output_dir: $("p-outdir").value, no_ecc: $("p-noecc").checked }, false, "/api/plan");
+  };
 
   // ---------------------------------------------------------------- tools
   $("check-form").onsubmit = function (ev) {

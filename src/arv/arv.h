@@ -55,6 +55,9 @@ int cmd_tags(int argc, char **argv);
 void tags_canonical(const arv_home *h, strlist *tags);
 int cmd_keywords(int argc, char **argv);
 int cmd_make(int argc, char **argv);
+long medium_budget(const char *medium, const char **label);
+long file_sectors(uint64_t size, const char *path);
+
 int cmd_check(int argc, char **argv);
 int cmd_burned(int argc, char **argv);
 int cmd_note(int argc, char **argv);
@@ -125,12 +128,31 @@ typedef struct {
     uint64_t size;
     time_t mtime;
     int via_folder;         /* reached through a copied folder link */
+    int bin;                /* arv make --plan: which disc of the plan (0 = the first) */
     char sha256[65], sha512[129];
 } entry;
 typedef struct {
     entry *v;
     size_t n;
 } entries;
+
+/* plan.c: disc plans, discs composed by hand from files and folders anywhere (arv plan) */
+typedef struct {
+    int disc;               /* 1, 2, ... */
+    char *source;           /* absolute: a file or folder, read when the discs are made */
+    char *path;             /* where it goes under data/ ("." : a folder's contents at the top) */
+} plan_item;
+typedef struct {
+    char *file, *name;
+    int discs;
+    plan_item *v;
+    size_t n;
+    rec_file rec;           /* the plan as read: the Plan record gives make's defaults */
+} disc_plan;
+int cmd_plan(int argc, char **argv);
+void plan_load(const char *file, disc_plan *out);
+void plan_scan(const disc_plan *p, const char *links, entries *files, entries *noted, size_t *left_out);
+void plan_made(const char *file, const strlist *disc_ids, const char *date);
 
 /* collection.c: collections kept over time, their workflow folders and revisions */
 char *marker_path(const char *folder);
@@ -211,6 +233,7 @@ char *rocrate_metadata(const rec_record *disc, const entries *files, const forma
 char *rocrate_preview(const rec_record *disc, const entries *files);
 
 void scan_payload(const char *src, const char *policy, entries *files, entries *noted);
+void scan_file(const char *path, const char *as, entry *out);   /* one file, as data/<as> */
 char *link_summary(const entries *files, const entries *noted, const char *policy);
 void write_listing(const char *path, const entries *files, const entries *noted);
 void write_manifest(const char *path, const entries *files, int sha512);

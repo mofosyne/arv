@@ -1,0 +1,112 @@
+$ --home hp plan list
+No plans (arv plan new NAME)
+rc=0
+$ --home hp plan new trip --title Holiday 2025 --set TRIP
+Plan trip: 1 empty disc (hp/drafts/plans/trip.rec). Next: arv plan add trip FILE-OR-FOLDER...
+rc=0
+$ --home hp plan new trip
+Error: there is a plan trip already (arv plan show)
+rc=1
+$ --home hp plan new bad name
+Error: bad name is not a plan name (letters, digits, - _ and .; not starting with .)
+rc=1
+$ --home hp plan add trip plan-pc/Videos/wedding.mkv --as video/wedding.mkv
+video/wedding.mkv: disc 1, now 1% full
+rc=0
+$ --home hp plan add trip plan-nas/photos/2025 --as photos --disc new
+photos/: disc 2, now 1% full
+rc=0
+$ --home hp plan add trip plan-pc/notes.txt
+notes.txt: disc 1, now 1% full
+rc=0
+$ --home hp plan add trip plan-pc/notes.txt --disc 2
+Error: ROOT/plan-pc/notes.txt is in the plan already, on disc 1
+rc=1
+$ --home hp plan add trip plan-pc/Videos --as ../up
+Error: ../up cannot be a path under data/ (relative, no . or .. parts; . only for a folder's contents)
+rc=1
+$ --home hp plan add trip plan-pc/gone.txt --as video/wedding.mkv --disc 1
+Error: disc 1 already has something at video/wedding.mkv (--as another name)
+rc=1
+$ --home hp plan disc trip add
+Disc 3 added, empty
+rc=0
+$ --home hp plan disc trip drop 1
+Error: disc 1 is not empty: move or drop what is on it first
+rc=1
+$ --home hp plan disc trip drop 3
+Disc 3 dropped; the discs after it moved up one
+rc=0
+$ --home hp plan move trip notes.txt --disc 2
+notes.txt: disc 2, now 1% full
+rc=0
+$ --home hp plan show trip
+Plan trip  "Holiday 2025"  set TRIP  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  7 B in 1 item
+  video/wedding.mkv  7 B  ROOT/plan-pc/Videos/wedding.mkv
+Disc 2  [#-------------------]    1%  20 B in 2 items
+  notes.txt  6 B  ROOT/plan-pc/notes.txt
+  photos/  14 B, 2 files  ROOT/plan-nas/photos/2025
+Next: arv plan make trip (one image a disc; arv make's options apply)
+rc=0
+$ --home hp plan show trip --json
+{"name": "trip", "title": "Holiday 2025", "set": "TRIP", "medium": "bd25", "description": null, "access": null, "mediumLabel": "BD-R 25GB", "room": 19804278784, "made": null, "volumes": [], "discs": [{"disc": 1, "bytes": 7, "used": 6144, "items": [{"path": "video/wedding.mkv", "source": "ROOT/plan-pc/Videos/wedding.mkv", "kind": "file", "bytes": 7, "files": 1}]}, {"disc": 2, "bytes": 20, "used": 20480, "items": [{"path": "notes.txt", "source": "ROOT/plan-pc/notes.txt", "kind": "file", "bytes": 6, "files": 1}, {"path": "photos", "source": "ROOT/plan-nas/photos/2025", "kind": "folder", "bytes": 14, "files": 2}]}]}
+rc=0
+$ --home hp plan list
+trip  2 discs, 3 items  "Holiday 2025"
+rc=0
+$ --home hp plan make trip -y --no-ecc --formats no --split
+Error: --split is not for a plan: the plan says which disc each item goes on
+rc=1
+$ --home hp plan make trip -y --no-ecc --formats no --keep-stage --output-dir out-plan
+Plan trip: scanning and hashing its 3 items ...
+Categories from Match rules in hp/config/sets.rec: MEDIA (--category to choose, --no-rules to skip)
+Classified as: MEMORIES/PHOTO/TRIP, COLLECT/MEDIA
+Building ROOT/out-plan/TRIP-01_2025_B.noecc.iso (1 of 2, 1.7 MiB) ...
+Building ROOT/out-plan/TRIP-02_2025_9.noecc.iso (2 of 2, 1.7 MiB) ...
+Hashing ROOT/out-plan/TRIP-01_2025_B.noecc.iso ...
+Hashing ROOT/out-plan/TRIP-02_2025_9.noecc.iso ...
+Kept staging directory ROOT/out-plan/.archive-make-XXXXXX
+TRIP-01_2025_B	ROOT/out-plan/TRIP-01_2025_B.noecc.iso	Holiday 2025
+TRIP-02_2025_9	ROOT/out-plan/TRIP-02_2025_9.noecc.iso	Holiday 2025
+rc=0
+$ --home hp plan show trip
+Plan trip  "Holiday 2025"  set TRIP  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  7 B in 1 item
+  video/wedding.mkv  7 B  ROOT/plan-pc/Videos/wedding.mkv
+Disc 2  [#-------------------]    1%  20 B in 2 items
+  notes.txt  6 B  ROOT/plan-pc/notes.txt
+  photos/  14 B, 2 files  ROOT/plan-nas/photos/2025
+Made 2026-01-01: TRIP-01_2025_B TRIP-02_2025_9
+rc=0
+$ --home hp plan add trip plan-pc/gone.txt
+Error: plan trip was made into discs already (arv plan show); start another with arv plan new
+rc=1
+$ --home hp find wedding
+TRIP-01_2025_B  [?]  data/video/wedding.mkv
+rc=0
+$ --home hp plan new later --medium bd100
+Plan later: 1 empty disc (hp/drafts/plans/later.rec). Next: arv plan add later FILE-OR-FOLDER...
+rc=0
+$ --home hp plan add later plan-pc/gone.txt
+gone.txt: disc 1, now 1% full
+rc=0
+$ --home hp plan show later
+Plan later  BD-R XL 100GB: about 74.2 GiB a disc for files
+Disc 1  [--------------------]    0%  0 B in 1 item
+  gone.txt  MISSING  ROOT/plan-pc/gone.txt
+1 item is missing: put it back, or arv plan drop later PATH
+rc=0
+$ --home hp plan make later -y --no-ecc --formats no
+Error: ROOT/plan-pc/gone.txt is gone (arv plan show)
+rc=1
+$ --home hp plan drop later gone.txt
+gone.txt: off disc 1 (the source is untouched)
+rc=0
+$ --home hp plan delete later
+Plan later deleted (its sources are untouched)
+rc=0
+$ --home hp plan list
+trip  2 discs, 3 items  "Holiday 2025"
+    made 2026-01-01
+rc=0

@@ -1,0 +1,25 @@
+%rec: Plan
+
+Name: trip
+Created: 2026-01-01
+Medium: bd25
+Title: Holiday 2025
+Set: TRIP
+Discs: 2
+Made: 2026-01-01
+Volume: TRIP-01_2025_B
+Volume: TRIP-02_2025_9
+
+%rec: Item
+
+Disc: 1
+Source: ROOT/plan-pc/Videos/wedding.mkv
+Path: video/wedding.mkv
+
+Disc: 2
+Source: ROOT/plan-pc/notes.txt
+Path: notes.txt
+
+Disc: 2
+Source: ROOT/plan-nas/photos/2025
+Path: photos

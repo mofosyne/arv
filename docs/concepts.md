@@ -72,12 +72,17 @@ is the collection**: it is where you sort, and it stays. Deleting it does not lo
 record of the collection (that is in the catalogue, and `arv restore` writes the marker back), but
 the folder is the thing you keep — not a scratch area to throw away.
 
+To compose discs by hand from files and folders in different places (a film from the PC, photos
+from the NAS), a **disc plan** (`arv plan`, the GUI's Mastering tab) says which goes on which
+disc, and where under `data/`. It only points at them: nothing is copied until `arv plan make`
+reads them into the images, so a plan costs no space and shows each source as it is now.
+
 What is transient is the **output**, not the folder:
 
 | Transient | What it is | Safe to delete? |
 |---|---|---|
 | the `.iso` images | `arv make`'s output (`--output-dir`, default: the current folder) | yes, once every copy is burned or stored and recorded |
-| `drafts/` | work in progress: the JSON `arv describe` and `arv tag` save, taken by `arv make --draft` | yes, once applied |
+| `drafts/` | work in progress: the JSON `arv describe` and `arv tag` save, taken by `arv make --draft`; disc plans (`drafts/plans/NAME.rec`) | yes, once applied or made |
 | `cache/` | rebuildable indexes (marked `CACHEDIR.TAG`) | yes, always |
 
 ## The archive is a collective of copies
@@ -109,7 +114,8 @@ those files and refuses to retire discs holding the only copy: keep that edition
 (`arv collection keep CODE N`), or say the loss is accepted (`--yes --accept-loss`), and the files
 are recorded as **lost** on the edition (`arv log`, `arv find`), so the catalogue still says what
 was given up and when. arv chooses which files go on which disc of an edition
-(`--split` fills discs in order); choosing that by hand, across folders, is not built yet.
+(`--split` fills discs in order). To choose that by hand, across folders, use a disc plan; its
+discs are one-off discs of a set, not an edition.
 
 ## The catalogue is spread across every disc
 

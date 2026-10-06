@@ -850,9 +850,12 @@ about 430 bytes per file in the archive. Up to about a million files that is und
   discs only. Decided 2026-10-06: `arv retire --yes` refuses while any file is only on the
   retiring discs; `--accept-loss` overrides, and records each such file as `Lost: SHA256  PATH`
   on the retired edition's revision (`arv log`, `arv find`; unioned on rebuild). Done.
-- **Disc plan / mastering window** (not built). Choose objects from PC/NAS folders by hand and
-  arrange them onto one or more discs, Nero-style; the plan references source paths until the
-  images are made (no staging copy). Today only `arv make --split` exists (fills discs in order).
+- **Disc plan / mastering window** (built 2026-10-06). `arv plan new|list|show|add|move|drop|disc|make|delete`
+  keeps `drafts/plans/NAME.rec` (a Plan record, Item records: Disc, Source, Path); it points at
+  the sources, copies nothing, and `arv plan make` runs `arv make --plan FILE` (each entry's
+  bytes read from its own source; one image a disc; no rebalancing). The GUI's Mastering tab
+  drives it (drag and drop, a fill bar a disc). Open: `--formats` for a plan; whether a plan can
+  make an edition of a collection; `plan show` marking what is already on discs (by hash).
 - **Snapshot fallback.** `--snapshot full` is the default with no automatic step down when it does
   not fit; the intent is full where it fits, partial only when needed. What "partial" keeps (this
   set, this edition, recent discs) and how it treats access levels is undecided.

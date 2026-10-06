@@ -182,6 +182,35 @@ arv always made. The choices that matter then:
 | `--snapshot` | `full`: every disc carries the whole catalogue | `set` for a disc given to someone else |
 | `--split` | off: stop if it does not fit | the folder needs several discs |
 
+### Discs composed by hand: disc plans
+
+When what goes on a disc is not one folder (a large film on one disc, the year's photos from the
+NAS and some scans on another), compose the discs by hand, as Nero's compilation window did. A
+**disc plan** says which file or folder goes on which disc, and where under `data/`; it copies
+nothing, and the sources are read where they are when the images are made.
+
+```sh
+arv plan new family --title "Family 2025" --set FAMILY [--medium bd25]
+arv plan add family ~/Videos/wedding.mkv                    # --disc auto: the first disc with room
+arv plan add family /nas/photos/2025 --as photos --disc new # a folder, as data/photos/, on a new disc
+arv plan move family photos --disc 1                        # by its path under data/
+arv plan drop family photos                                 # off the disc; the source is untouched
+arv plan show family                                        # each disc's fill, its items and sources
+arv plan make family [--output-dir DIR] [arv make's options]
+```
+
+`arv plan show` measures the sources each time, against about what a disc has for files once
+`tools/` and the catalogue are on it, and says which discs are over and which sources are gone.
+`arv plan make` runs `arv make --plan` once for all the plan's discs: one image a disc (parts 1 of N),
+recorded as usual. A disc that does not fit is an error that names it (move something; arv does
+not move files for a plan), and the plan then records the discs it became and takes no more changes.
+The GUI's **Mastering** tab is the same, with drag and drop: the discs on the left, each with
+its fill bar, and a file browser on the right.
+
+A plan's discs are one-off discs of its set, not an edition of a collection. The plan file is
+`drafts/plans/NAME.rec` in the home (a Plan record, then an Item record per thing: `Disc`,
+`Source`, `Path`); it never goes on a disc. Not yet: `--formats` (Siegfried) for a plan.
+
 ### What `arv make` does, step by step
 
 1. **Scan and hash** every file (SHA-256 and SHA-512); stop on names the image cannot hold.

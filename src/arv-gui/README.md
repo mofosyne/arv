@@ -3,6 +3,9 @@
 `arv gui`: the interface, in your web browser. Optional, in Python 3 (standard library only);
 everything it does can be done with arv in a terminal.
 
+Its tabs: the discs, search, making a disc from a folder, **Mastering** (a disc plan: discs composed
+by hand with drag and drop from a file browser, each with a fill bar; `arv plan`), checks and jobs.
+
 It serves one page on 127.0.0.1 and opens it. Every action runs arv itself (and arv-assist for
 the local model's suggestions), so it adds no behaviour of its own; it only reads the catalogue
 to show it. The page and every request carry a per-session token, and the Host header must be

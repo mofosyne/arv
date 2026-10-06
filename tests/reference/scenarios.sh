@@ -386,4 +386,49 @@ log query.out --home q sets -v
 log query.out --home q where
 keep query.out query/transcript.txt
 
+# ------------------------------------------------------------------ disc plans: discs composed by hand
+mkdir -p plan-pc/Videos plan-nas/photos/2025
+echo "a film" > plan-pc/Videos/wedding.mkv
+echo "jpeg a" > plan-nas/photos/2025/a.jpg
+echo "jpeg b" > plan-nas/photos/2025/b.jpg
+echo "notes" > plan-pc/notes.txt
+echo "soon gone" > plan-pc/gone.txt
+for f in plan-pc/Videos/wedding.mkv plan-nas/photos/2025/a.jpg plan-nas/photos/2025/b.jpg plan-pc/notes.txt plan-pc/gone.txt; do
+    stamp 1751328000 "$f"
+done
+log plan.out --home hp plan list
+log plan.out --home hp plan new trip --title "Holiday 2025" --set TRIP
+log plan.out --home hp plan new trip
+log plan.out --home hp plan new "bad name"
+log plan.out --home hp plan add trip plan-pc/Videos/wedding.mkv --as video/wedding.mkv
+log plan.out --home hp plan add trip plan-nas/photos/2025 --as photos --disc new
+log plan.out --home hp plan add trip plan-pc/notes.txt
+log plan.out --home hp plan add trip plan-pc/notes.txt --disc 2
+log plan.out --home hp plan add trip plan-pc/Videos --as ../up
+log plan.out --home hp plan add trip plan-pc/gone.txt --as video/wedding.mkv --disc 1
+log plan.out --home hp plan disc trip add
+log plan.out --home hp plan disc trip drop 1
+log plan.out --home hp plan disc trip drop 3
+log plan.out --home hp plan move trip notes.txt --disc 2
+log plan.out --home hp plan show trip
+log plan.out --home hp plan show trip --json
+log plan.out --home hp plan list
+log plan.out --home hp plan make trip -y --no-ecc --formats no --split
+log plan.out --home hp plan make trip -y --no-ecc --formats no --keep-stage --output-dir out-plan
+log plan.out --home hp plan show trip
+log plan.out --home hp plan add trip plan-pc/gone.txt
+log plan.out --home hp find wedding
+log plan.out --home hp plan new later --medium bd100
+log plan.out --home hp plan add later plan-pc/gone.txt
+rm plan-pc/gone.txt
+log plan.out --home hp plan show later
+log plan.out --home hp plan make later -y --no-ecc --formats no
+log plan.out --home hp plan drop later gone.txt
+log plan.out --home hp plan delete later
+log plan.out --home hp plan list
+keep plan.out plan/transcript.txt
+keep hp/drafts/plans/trip.rec plan/trip.rec
+keep_stages out-plan plan/discs
+keep_home hp plan/home
+
 echo "scenarios: $(find "$out" -type f | wc -l) files in $out"

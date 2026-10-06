@@ -22,6 +22,15 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Disc plans: discs composed by hand** (no format change)
+- `arv plan` composes discs from files and folders anywhere (a film on the PC, photos on the
+  NAS): which goes on which disc, and where under `data/`. A plan points at its sources and copies
+  nothing; `arv plan show` measures them against each disc's room, and `arv plan make` makes
+  one image a disc (`arv make --plan`). The GUI's new Mastering tab is the same, with drag and drop.
+- `arv retire --yes` refuses while any file is on the retiring discs only; `--accept-loss`
+  retires anyway and records those files as `Lost:` on the edition (`arv log`, `arv find`).
+  `arv find` marks files on retired discs `[retired DATE]`.
+
 **Collections over time** (format 0.5; design in research/plan.md, being built)
 - A *collection* is something kept and made into discs again and again, from one workflow
   folder with one history: `Collection` records (with a Uuid) and `Revision` records (git-like:

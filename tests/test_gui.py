@@ -148,6 +148,33 @@ class GuiTest(unittest.TestCase):
         with open(os.path.join(self.tmp, "log")) as f:
             self.assertIn("Kyoto", f.read())
 
+    @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
+    def test_mastering_plan(self):
+        self.start()
+        video, photos = os.path.join(self.tmp, "pc", "wedding.mkv"), os.path.join(self.tmp, "nas", "photos")
+        write(video, "film", 2025)
+        write(os.path.join(photos, "a.jpg"), "jpeg", 2025)
+        listing = json.loads(self.request("/api/browse?files=1&path=" + os.path.join(self.tmp, "pc"))[1])
+        self.assertEqual(listing["files"], [{"name": "wedding.mkv", "bytes": 4}])
+        post = lambda body: json.loads(self.request("/api/plan", body)[1])
+        self.assertEqual(post({"action": "new", "name": "trip", "title": "Trip", "set": "TRIP", "medium": "bd25"})["returncode"], 0)
+        self.assertEqual(json.loads(self.request("/api/plans")[1]), {"plans": ["trip"]})
+        self.assertEqual(post({"action": "add", "name": "trip", "sources": [video, photos], "disc": "auto"})["returncode"], 0)
+        self.assertEqual(post({"action": "move", "name": "trip", "paths": ["photos"], "from": 1, "disc": "new"})["returncode"], 0)
+        shown = json.loads(self.request("/api/plan?name=trip")[1])
+        self.assertEqual([[i["path"] for i in d["items"]] for d in shown["discs"]], [["wedding.mkv"], ["photos"]])
+        self.assertEqual(shown["discs"][1]["items"][0]["files"], 1)
+        refused = post({"action": "add", "name": "trip", "sources": [video], "disc": "1"})
+        self.assertNotEqual(refused["returncode"], 0)
+        self.assertIn("in the plan already", refused["output"])
+        job = post({"action": "make", "name": "trip", "no_ecc": True, "output_dir": os.path.join(self.tmp, "out")})
+        result = self.wait(job)
+        self.assertEqual(result["returncode"], 0, "\n".join(result["lines"]))
+        self.assertEqual(len(json.loads(self.request("/api/plan?name=trip")[1])["volumes"]), 2)
+        self.assertEqual(len(json.loads(self.request("/api/discs")[1])["discs"]), 2)
+        self.assertEqual(self.request("/api/plan", {"action": "new", "name": "../x"})[0], 400)
+        self.assertEqual(self.request("/api/plan?name=nope")[0], 404)
+
     def test_bad_requests(self):
         self.start()
         self.assertEqual(self.request("/api/command", {"command": "rm -rf"})[0], 400)

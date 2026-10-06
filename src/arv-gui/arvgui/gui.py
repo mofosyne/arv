@@ -10,6 +10,7 @@ web pages and other local users cannot drive it.
 
 import json
 import os
+import re
 import secrets
 import shutil
 import subprocess
@@ -24,6 +25,7 @@ DISC_FIELDS = ("Id", "Part", "Title", "Set", "Category", "Path", "Coverage", "Da
 
 
 DRAFT_FIELDS = ("title", "description", "subjects", "folder_tags")
+PLAN_NAME = re.compile(r"^[A-Za-z0-9_-][A-Za-z0-9._-]{0,63}$")   # as arv plan takes them
 
 def disc_summary(disc):
     out = {}
@@ -118,10 +120,87 @@ class App:
         if not os.path.isdir(path):
             path = os.path.dirname(path)
         try:
-            names = sorted(n for n in os.listdir(path) if not n.startswith(".") and os.path.isdir(os.path.join(path, n)))
+            all_names = sorted(n for n in os.listdir(path) if not n.startswith("."))
         except OSError as err:
-            return {"path": path, "parent": os.path.dirname(path), "dirs": [], "error": str(err)}
-        return {"path": path, "parent": os.path.dirname(path), "dirs": names}
+            return {"path": path, "parent": os.path.dirname(path), "dirs": [], "files": [], "error": str(err)}
+        names = [n for n in all_names if os.path.isdir(os.path.join(path, n))]
+        out = {"path": path, "parent": os.path.dirname(path), "dirs": names}
+        if params.get("files"):             # the mastering window: files too, with their sizes
+            files = []
+            for n in all_names:
+                full = os.path.join(path, n)
+                if os.path.isfile(full) and not os.path.islink(full):
+                    files.append({"name": n, "bytes": os.path.getsize(full)})
+            out["files"] = files
+        return out
+
+    # ------------------------------------------------------------ disc plans (the mastering window)
+
+    def arv_now(self, argv):
+        """arv run to its end (quick commands): its exit status and what it printed."""
+        proc = subprocess.run([ARV, "--home", self.home.path] + argv, stdin=subprocess.DEVNULL,
+                              capture_output=True, text=True)
+        return proc.returncode, (proc.stdout + proc.stderr).strip()
+
+    def plans(self, _params):
+        folder = os.path.join(self.home.drafts_dir, "plans")
+        try:
+            names = sorted(n[:-4] for n in os.listdir(folder) if n.endswith(".rec") and not n.startswith("."))
+        except OSError:
+            names = []
+        return {"plans": names}
+
+    def plan(self, params):
+        name = params.get("name", "")
+        if not PLAN_NAME.match(name):
+            raise LookupError("no such plan")
+        code, text = self.arv_now(["plan", "show", name, "--json"])
+        if code:
+            raise LookupError(text)
+        return json.loads(text)
+
+    def post_plan(self, body):
+        """arv plan new / add / move / drop / disc / delete (answered at once), or make (a job)."""
+        action, name = body["action"], body["name"]
+        if not PLAN_NAME.match(name):
+            raise ValueError("not a plan name: %r" % name)
+        argv = ["plan", action, name]
+        if action == "new":
+            for key in ("title", "set", "medium", "description"):
+                if str(body.get(key) or "").strip():
+                    argv += ["--" + key, str(body[key]).strip()]
+        elif action == "add":
+            sources = [os.path.abspath(os.path.expanduser(s)) for s in body["sources"]]
+            if not sources:
+                raise ValueError("nothing to add")
+            argv += sources + ["--disc", str(body.get("disc") or "auto")]
+            if body.get("as"):
+                argv += ["--as", body["as"]]
+        elif action in ("move", "drop"):
+            paths = [p for p in body["paths"] if p and not p.startswith("-")]
+            if not paths:
+                raise ValueError("no paths")
+            argv += paths
+            if body.get("from"):
+                argv += ["--from", str(int(body["from"]))]
+            if action == "move":
+                argv += ["--disc", str(body["disc"]) if str(body["disc"]) == "new" else str(int(body["disc"]))]
+        elif action == "disc":
+            argv += ["add"] if body.get("op") == "add" else ["drop", str(int(body["disc"]))]
+        elif action == "make":
+            argv += ["-y"]
+            for key in ("output_dir", "min_redundancy", "snapshot"):
+                value = str(body.get(key) or "").strip()
+                if value:
+                    argv += ["--" + key.replace("_", "-"), value]
+            for flag in ("no_ecc", "no_defect_management"):
+                if body.get(flag):
+                    argv.append("--" + flag.replace("_", "-"))
+            return self.start_job(argv).as_dict()
+        elif action != "delete":
+            raise LookupError("unknown plan action %r" % action)
+        code, text = self.arv_now(argv)
+        return {"returncode": code, "output": text}
 
     def job(self, params):
         job = self.jobs.get(params.get("id", ""))
@@ -240,8 +319,10 @@ class App:
 
 def make_handler(app, port_holder):
     get_routes = {"/api/discs": app.discs, "/api/find": app.find, "/api/browse": app.browse,
-                  "/api/job": app.job, "/api/jobs": app.jobs_list, "/api/llm/status": app.llm_status}
+                  "/api/job": app.job, "/api/jobs": app.jobs_list, "/api/llm/status": app.llm_status,
+                  "/api/plans": app.plans, "/api/plan": app.plan}
     post_routes = {"/api/make": app.post_make, "/api/check": app.post_check, "/api/command": app.post_simple,
+                   "/api/plan": app.post_plan,
                    "/api/llm/suggest": app.post_llm_suggest}
 
     class Handler(BaseHTTPRequestHandler):

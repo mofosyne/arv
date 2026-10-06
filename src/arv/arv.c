@@ -64,6 +64,8 @@ static void usage(FILE *to)
           "       arv link FOLDER COLLECTION|DISC-ID [--past]   say what a folder is (logged)\n"
           "       arv todo [--overdue YEARS]   what is owed: burns, read-backs, safe editions, places, checks\n"
           "       arv retire CODE [--yes [--accept-loss]]   retire the editions a newer safe one replaces (not kept ones)\n"
+          "       arv plan new|list|show|add|move|drop|disc|make|delete NAME ...   compose discs by hand from files\n"
+          "                and folders anywhere, then make them (docs/workflow.md, Disc plans)\n"
           "       arv selection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]\n"
           "       arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]\n"
           "       arv sets [-v]\n"
@@ -170,7 +172,7 @@ int main(int argc, char **argv)
                  { "link", cmd_link }, { "todo", cmd_todo }, { "retire", cmd_retire }, { "stored", cmd_stored },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
                  { "where", cmd_where }, { "rebuild", cmd_rebuild },
-                 { "tags", cmd_tags }, { "keywords", cmd_keywords } };
+                 { "tags", cmd_tags }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
     arv_argv0 = argv[0];
     if (argc >= 2 && (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-V"))) {
         puts(VERSION);
