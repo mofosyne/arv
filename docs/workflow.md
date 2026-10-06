@@ -257,6 +257,11 @@ exist only on the discs being retired (not in the newer edition: they left the w
 until `--yes`. Then each disc is marked retired, leaves its places, and gets an event saying what
 replaced it. arv deletes nothing: the discs are yours to keep or destroy.
 
+If any file is on the retiring discs only, `--yes` refuses: keep that edition
+(`arv collection keep FAMILY 1`), or retire it anyway with `--yes --accept-loss`. The files are then
+recorded as **lost** on that edition (a `Lost:` line each, carried on every later disc's catalogue):
+`arv log FAMILY` counts them and `arv find` lists them as `LOST`.
+
 **Checking** every few years: `arv check --device /dev/sr0` reads a disc back against its
 image's hash and logs it. A disc that needed repair is a warning: make a new copy.
 

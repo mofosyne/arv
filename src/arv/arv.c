@@ -63,7 +63,7 @@ static void usage(FILE *to)
           "       arv log [COLLECTION]   arv diff REV [REV]   (REV: a revision's first digits, or CODE/N)\n"
           "       arv link FOLDER COLLECTION|DISC-ID [--past]   say what a folder is (logged)\n"
           "       arv todo [--overdue YEARS]   what is owed: burns, read-backs, safe editions, places, checks\n"
-          "       arv retire CODE [--yes]   retire the editions a newer safe one replaces (not kept ones)\n"
+          "       arv retire CODE [--yes [--accept-loss]]   retire the editions a newer safe one replaces (not kept ones)\n"
           "       arv selection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]\n"
           "       arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]\n"
           "       arv sets [-v]\n"

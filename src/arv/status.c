@@ -884,6 +884,9 @@ int cmd_log(int argc, char **argv)
             if (!strcmp(r->fields[f].name, "Volume")) printf("  %s", r->fields[f].value);
         putchar('\n');
         if (rec_get(r, "Message")) printf("    %s\n", rec_get(r, "Message"));
+        size_t lost = 0;
+        for (size_t f = 0; f < r->nfields; f++) lost += !strcmp(r->fields[f].name, "Lost");
+        if (lost) printf("    %zu file%s lost: retired with no other copy\n", lost, lost == 1 ? "" : "s");
         free(line.s);
     }
     free(abs);

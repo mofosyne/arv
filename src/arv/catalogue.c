@@ -307,6 +307,23 @@ int cmd_find(int argc, char **argv)
         free(line);
         free(path);
     }
+    for (size_t i = 0; i < c.rec.nrecords; i++) {          /* files lost: retired with no other copy */
+        const rec_record *r = &c.rec.records[i];
+        if (!is_type(r, "Revision")) continue;
+        for (size_t f = 0; f < r->nfields; f++) {
+            const char *rel = strcmp(r->fields[f].name, "Lost") ? NULL : strstr(r->fields[f].value, "  ");
+            if (!rel || !matches(pat, glob, rel + 2)) continue;
+            const char *code = "?";
+            for (size_t k = 0; k < c.rec.nrecords; k++)
+                if (is_type(&c.rec.records[k], "Collection") && rec_get(r, "Collection") && rec_get(&c.rec.records[k], "Uuid")
+                    && !strcmp(rec_get(&c.rec.records[k], "Uuid"), rec_get(r, "Collection")) && rec_get(&c.rec.records[k], "Code"))
+                    code = rec_get(&c.rec.records[k], "Code");
+            if (!limit || files < limit)
+                printf("LOST  %s/%s  %s  (retired with no other copy)\n", code, rec_get(r, "Edition") ? rec_get(r, "Edition") : "?", rel + 2);
+            files++;
+            any = 1;
+        }
+    }
     if (limit && files > limit) printf("... %ld more file matches (use --limit 0 for all)\n", files - limit);
     free(pat);
     return any ? 0 : 1;

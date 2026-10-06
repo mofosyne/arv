@@ -847,9 +847,9 @@ about 430 bytes per file in the archive. Up to about a million files that is und
   workflow folder, warm images and cold discs; a disc holds a selection plus a catalogue copy
   ([concepts.md](../docs/concepts.md)). But "a newer safe edition replaces older ones" still
   assumes the workflow folder holds everything: anything moved out of it is then on retirable
-  discs only. `arv retire` lists those files, but `--yes` retires them anyway. Options: retire
-  only discs whose files are all on newer discs; or count "only on these discs" files as a reason
-  to keep, as for git history. Undecided.
+  discs only. Decided 2026-10-06: `arv retire --yes` refuses while any file is only on the
+  retiring discs; `--accept-loss` overrides, and records each such file as `Lost: SHA256  PATH`
+  on the retired edition's revision (`arv log`, `arv find`; unioned on rebuild). Done.
 - **Disc plan / mastering window** (not built). Choose objects from PC/NAS folders by hand and
   arrange them onto one or more discs, Nero-style; the plan references source paths until the
   images are made (no staging copy). Today only `arv make --split` exists (fills discs in order).

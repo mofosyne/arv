@@ -4,8 +4,10 @@
  *   arv todo [--overdue YEARS]   what needs doing: images not burned, copies not read back,
  *                                editions not yet safe, replaced editions, discs kept in one place,
  *                                checks overdue (default: 5 years)
- *   arv retire CODE [--yes] [-v] the editions a later safe edition replaces (not those kept): lists the
- *                                files found only on them, and records nothing without --yes
+ *   arv retire CODE [--yes [--accept-loss]] [-v]
+ *                                the editions a later safe edition replaces (not those kept): lists the
+ *                                files found only on them, and records nothing without --yes; refuses
+ *                                while any file is only on them, unless --accept-loss
  *
  * arv never burns and never deletes: a copy is known good when arv burned --device read it back
  * identical to its image; an edition is safe when each of its discs has such a copy. */
@@ -219,10 +221,11 @@ int cmd_todo(int argc, char **argv)
 int cmd_retire(int argc, char **argv)
 {
     const char *given = NULL, *code = NULL;
-    int yes = 0, verbose = 0;
+    int yes = 0, accept_loss = 0, verbose = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (!strcmp(argv[i], "--yes")) yes = 1;
+        else if (!strcmp(argv[i], "--accept-loss")) accept_loss = 1;
         else if (!strcmp(argv[i], "-v")) verbose = 1;
         else if (argv[i][0] != '-' && !code) code = argv[i];
         else return 2;
@@ -248,6 +251,8 @@ int cmd_retire(int argc, char **argv)
     }
     /* files on the discs being retired that no kept edition holds (by content) */
     strlist keep_hashes = { 0 }, at_risk = { 0 };
+    strlist *only = xmalloc(old.n * sizeof *only);  /* per edition: its files on no disc that stays */
+    memset(only, 0, old.n * sizeof *only);
     recs eds = { 0 };
     editions(&cat, c, &eds);
     for (size_t i = 0; i < eds.n; i++) {
@@ -276,7 +281,10 @@ int cmd_retire(int argc, char **argv)
                 char hash[65];
                 memcpy(hash, l, 64);
                 hash[64] = 0;
-                if (!strlist_has(&keep_hashes, hash) && !strlist_has(&at_risk, l + 66)) strlist_add(&at_risk, l + 66);
+                if (!strlist_has(&keep_hashes, hash)) {
+                    strlist_add(&only[i], l);
+                    if (!strlist_has(&at_risk, l + 66)) strlist_add(&at_risk, l + 66);
+                }
             }
             l = nl ? nl + 1 : l + strlen(l);
         }
@@ -290,6 +298,7 @@ int cmd_retire(int argc, char **argv)
         volumes(old.v[i], &v);
         printf("  edition %s (%s):", get_or(old.v[i], "Edition", ""), get_or(old.v[i], "Date", ""));
         for (size_t k = 0; k < v.n; k++) printf(" %s", v.v[k]);
+        if (only[i].n) printf("  (%zu file%s on no disc that stays)", only[i].n, only[i].n == 1 ? "" : "s");
         putchar('\n');
         strlist_free(&v);
     }
@@ -300,11 +309,23 @@ int cmd_retire(int argc, char **argv)
         for (size_t i = 0; i < limit; i++) printf("  %s\n", at_risk.v[i]);
         if (limit < at_risk.n) printf("  ... %zu more (-v for all)\n", at_risk.n - limit);
     }
+    if (at_risk.n && !accept_loss) {
+        /* these discs hold the only copy: refuse, unless the person says the loss is accepted */
+        printf("%s: these discs hold the only copy of %s. Keep the edition%s holding them (arv collection keep "
+               "%s %s), or arv retire %s --yes --accept-loss to retire them anyway.\n",
+               yes ? "Refused" : "Nothing recorded", at_risk.n == 1 ? "that file" : "those files",
+               old.n == 1 ? "" : "s", get_or(c, "Code", ""), old.n == 1 ? get_or(old.v[0], "Edition", "N") : "N",
+               get_or(c, "Code", ""));
+        return yes ? 1 : 0;
+    }
     if (!yes) {
-        printf("Nothing recorded. arv retire %s --yes records them as retired (arv deletes nothing: the discs are "
-               "yours to keep or destroy).\n", get_or(c, "Code", ""));
+        printf("Nothing recorded. arv retire %s --yes%s records them as retired%s (arv deletes nothing: the discs are "
+               "yours to keep or destroy).\n", get_or(c, "Code", ""), at_risk.n ? " --accept-loss" : "",
+               at_risk.n ? ", and those files as lost" : "");
         return 0;
     }
+    for (size_t i = 0; i < old.n; i++)                  /* the loss, on the edition: "Lost: SHA256  PATH" */
+        for (size_t k = 0; k < only[i].n; k++) rec_add(old.v[i], "Lost", only[i].v[k]);
     char today[11], *who = person();
     today_iso(today);
     size_t n = 0;
@@ -329,7 +350,7 @@ int cmd_retire(int argc, char **argv)
             char *note = xprintf("retired: edition %s of %s, replaced by edition %s (revision %.12s)%s%s%s",
                                  get_or(old.v[i], "Edition", ""), get_or(c, "Code", ""), get_or(by, "Edition", ""),
                                  get_or(by, "Node", ""), *where ? "; was kept at " : "", where,
-                                 at_risk.n ? "; files only on retired discs were listed and accepted" : "");
+                                 at_risk.n ? "; files only on retired discs recorded as lost (Lost:)" : "");
             recs_add(&cat.events, new_event(v.v[k], "deaccession", "success", who, "human", note));
             free(note);
             free(where);
@@ -339,6 +360,10 @@ int cmd_retire(int argc, char **argv)
     }
     archive_save(&cat, h.rec_path);
     printf("%zu disc%s retired (logged)\n", n, n == 1 ? "" : "s");
+    if (at_risk.n) printf("%zu file%s recorded as lost (arv log %s, arv find)\n", at_risk.n, at_risk.n == 1 ? "" : "s",
+                          get_or(c, "Code", ""));
+    for (size_t i = 0; i < old.n; i++) strlist_free(&only[i]);
+    free(only);
     free(who);
     return 0;
 }

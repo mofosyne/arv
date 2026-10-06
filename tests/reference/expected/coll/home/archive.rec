@@ -151,6 +151,8 @@ Stage: edition
 Edition: 1
 Volume: FAM-01_2019_0
 Changes: +2 ~0 -0 >0 files
+Lost: 87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7  2019/a.txt
+Lost: 0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f  b.txt
 
 Node: 95a366ff6ab057524819f4269e38c7d31178aefdd18888fdd07fc629a4554183
 Collection: UUID
@@ -309,7 +311,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: human
 Agent: human:archivist
-Note: retired: edition 1 of FAM, replaced by edition 2 (revision 95a366ff6ab0); was kept at BOX1; files only on retired discs were listed and accepted
+Note: retired: edition 1 of FAM, replaced by edition 2 (revision 95a366ff6ab0); was kept at BOX1; files only on retired discs recorded as lost (Lost:)
 
 Object: collection:FAM
 Type: metadata modification

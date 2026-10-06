@@ -576,9 +576,21 @@ size_t archive_merge(archive *home, const archive *other, int prefer_other, strl
         if (!existing) recs_add(&home->collections, c);
         else if (prefer_other) replace_fields(existing, c);
     }
-    for (size_t i = 0; i < other->revisions.n; i++)          /* a log: revisions are added, never edited */
-        if (!by_key(&home->revisions, "Node", rec_get(other->revisions.v[i], "Node"), 0))
-            recs_add(&home->revisions, other->revisions.v[i]);
+    for (size_t i = 0; i < other->revisions.n; i++) {        /* a log: revisions are added, never edited */
+        rec_record *r = other->revisions.v[i], *existing = by_key(&home->revisions, "Node", rec_get(r, "Node"), 0);
+        if (!existing) {
+            recs_add(&home->revisions, r);
+            continue;
+        }
+        for (size_t f = 0; f < r->nfields; f++) {           /* except Keep and Lost, added later: unioned */
+            const char *name = r->fields[f].name, *value = r->fields[f].value;
+            if (strcmp(name, "Keep") && strcmp(name, "Lost")) continue;
+            int have = 0;
+            for (size_t g = 0; g < existing->nfields && !have; g++)
+                have = !strcmp(existing->fields[g].name, name) && (!strcmp(name, "Keep") || !strcmp(existing->fields[g].value, value));
+            if (!have) rec_add(existing, name, value);
+        }
+    }
     for (size_t i = 0; i < other->events.n; i++)
         if (!in_recs(&home->events, other->events.v[i])) {
             recs_add(&home->events, other->events.v[i]);

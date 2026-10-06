@@ -337,10 +337,12 @@ Message: the 2025 sort
 | `Parent`* | the revision(s) it follows (two for a merge); none for the first |
 | `Stage` | `checkpoint` (state recorded, no discs) or `edition` |
 | `Keep` | `yes`: never offered for retiring; may be added later (it is not part of `Node`) |
+| `Lost`* | `SHA256  PATH` (as in `manifest-sha256.txt`): a file of this edition that was on no other disc when it was retired, and whose loss was accepted; added later (not part of `Node`) |
 | `Edition`, `Volume`* | for an edition: its number and its discs |
 | `Changes` | since the parent: files new (`+`), changed (`~`), removed (`-`) and moved (`>`: the same content under a new path) |
 
-Revisions are appended, never edited, and merged by `Node`; collections are merged by `Uuid`.
+Revisions are appended, never edited, and merged by `Node` (the fields added later, `Keep` and
+`Lost`, are unioned); collections are merged by `Uuid`.
 
 Each copy is one `replication` event, with its **form**: `disc` (burned), `iso` (the image kept
 as a file, read back against `ImageSha256`) or `folder` (the disc's files laid out as on the

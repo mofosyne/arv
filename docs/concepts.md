@@ -105,8 +105,10 @@ left it is still on earlier discs, and the catalogue still says where.
 
 Today a newer safe edition **replaces** the earlier ones (unless they are kept), so a file that left
 the folder before the newer edition was made is then on the older discs only. `arv retire` lists
-those files and records nothing until `--yes`; keep an edition (`arv collection keep CODE N`)
-whose discs hold something you still want. arv chooses which files go on which disc of an edition
+those files and refuses to retire discs holding the only copy: keep that edition
+(`arv collection keep CODE N`), or say the loss is accepted (`--yes --accept-loss`), and the files
+are recorded as **lost** on the edition (`arv log`, `arv find`), so the catalogue still says what
+was given up and when. arv chooses which files go on which disc of an edition
 (`--split` fills discs in order); choosing that by hand, across folders, is not built yet.
 
 ## The catalogue is spread across every disc
