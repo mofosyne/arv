@@ -309,6 +309,8 @@ log coll.out --home hc todo
 log coll.out --home hc todo
 log coll.out --home hc collection show NOPE
 log coll.out --home hc list
+log coll.out --home hc objects
+log coll.out --home hc objects FAM
 keep coll.out coll/transcript.txt
 keep coll/fam/.arv coll/marker
 for k in 1 2; do keep_stages out-c$k coll/c$k; done
@@ -432,6 +434,15 @@ log plan.out --home hp status plan-nas/photos/2025
 mv plan-copy plan-moved
 log plan.out --home hp status plan-moved
 log plan.out --home hp find photos
+log plan.out --home hp objects
+log plan.out --home hp burned TRIP-03_2025_7 --location BOX1
+log plan.out --home hp stored TRIP-04_2025_5 out-plan2/TRIP-04_2025_5.noecc.iso
+log plan.out --home hp stored TRIP-01_2025_B out-plan/TRIP-01_2025_B.noecc.iso
+mv plan-pc/Videos/wedding.mkv plan-pc/wedding-moved.mkv
+log plan.out --home hp objects 2025
+log plan.out --home hp objects wedding.mkv
+log plan.out --home hp objects nothing-called-this
+log plan.out --home hp todo
 log plan.out --home hp plan new later --medium bd100
 log plan.out --home hp plan add later plan-pc/gone.txt
 rm plan-pc/gone.txt

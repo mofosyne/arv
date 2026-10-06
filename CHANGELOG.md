@@ -31,6 +31,10 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   the hash of its content, in linked versions, with no `.arv` marker. `arv status` says whether
   each object archived from a folder is unchanged, changed or gone, and recognises a moved folder
   by content; `arv find` lists objects. Source paths stay in the home catalogue.
+- `arv objects [NAME]`: everything kept and where every copy of it is (each data object's
+  versions, each collection's newest edition; their discs, every copy's form and temperature,
+  read back or not; the original on the PC/NAS). `arv todo` also lists data objects whose newest
+  version has no cold copy, or that are no longer where they came from with fewer than two copies.
 - `arv retire --yes` refuses while any file is on the retiring discs only; `--accept-loss`
   retires anyway and records those files as `Lost:` on the edition (`arv log`, `arv find`).
   `arv find` marks files on retired discs `[retired DATE]`.

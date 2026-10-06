@@ -46,6 +46,7 @@ Access: private
 Files: 1
 Bytes: 7
 Software: SW
+Copies: 1
 
 Id: TRIP-02_2025_9
 Uuid: UUID
@@ -82,6 +83,8 @@ Access: private
 Files: 3
 Bytes: 21
 Software: SW
+Copies: 1
+Location: BOX1
 
 Id: TRIP-04_2025_5
 Uuid: UUID
@@ -99,6 +102,7 @@ Access: private
 Files: 3
 Bytes: 21
 Software: SW
+Copies: 1
 
 %rec: Binding
 %doc: How one volume is stored on its medium: the container (filesystem) and the
@@ -303,3 +307,53 @@ Outcome: success
 Authorship: automatic
 Agent: SW
 Note: image TRIP-04_2025_5.noecc.iso, 882 sectors
+
+Disc: TRIP-03_2025_7
+Type: replication
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: burned 1 copy, kept at BOX1; not read back
+Form: disc
+Temperature: cold
+
+Disc: TRIP-04_2025_5
+Type: fixity check
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: arv 0.4
+Note: check of a stored copy (iso) at ROOT/out-plan2/TRIP-04_2025_5.noecc.iso: identical to the image
+
+Disc: TRIP-04_2025_5
+Type: replication
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: stored 1 copy as an image file; read back: identical to the image
+ReadBack: identical
+Form: iso
+Temperature: warm
+Path: ROOT/out-plan2/TRIP-04_2025_5.noecc.iso
+
+Disc: TRIP-01_2025_B
+Type: fixity check
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: arv 0.4
+Note: check of a stored copy (iso) at ROOT/out-plan/TRIP-01_2025_B.noecc.iso: identical to the image
+
+Disc: TRIP-01_2025_B
+Type: replication
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: stored 1 copy as an image file; read back: identical to the image
+ReadBack: identical
+Form: iso
+Temperature: warm
+Path: ROOT/out-plan/TRIP-01_2025_B.noecc.iso

@@ -862,6 +862,12 @@ about 430 bytes per file in the archive. Up to about a million files that is und
   `arv status` reports objects from a folder exactly, and a folder whose whole Tree matches an
   object by content; `arv find` lists them. Open: objects for `arv make FOLDER` too (the whole
   folder as one object); `arv retire`-like care for an object's last version.
+- **The union view** (built 2026-10-06). `arv objects [NAME]`: per data object (each version)
+  and per collection (its newest edition), the discs holding it, every copy of them (form,
+  temperature, read back) and whether the original is still there. `arv todo` adds: a newest
+  version with no cold copy; one no longer where it came from with fewer than two copies.
+  Open: the same in the GUI; a hot original counted as a copy only once `arv status` has
+  checked it unchanged.
 - **Snapshot fallback.** `--snapshot full` is the default with no automatic step down when it does
   not fit; the intent is full where it fits, partial only when needed. What "partial" keeps (this
   set, this edition, recent discs) and how it treats access levels is undecided.

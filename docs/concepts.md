@@ -114,9 +114,13 @@ The full data object collection is the **union** of all of them: the PC/NAS and 
 together. The catalogue is the map — it records where every copy is, so the union can be found,
 and `arv status` on a folder says which of its files are on which discs and which are on none.
 
-Completeness is a property of the union, not of any one place. `arv todo` watches the union's
-health: discs with no copy, copies never read back, discs with no cold copy, discs in fewer than
-two places, checks overdue.
+Completeness is a property of the union, not of any one place. `arv objects` shows it per thing
+kept: each data object's versions and each collection's newest edition, the discs holding them,
+every copy of those discs (disc, iso or folder; hot, warm or cold; read back or not) and whether
+the original is still on the PC/NAS. `arv todo` watches the union's health: discs with no copy,
+copies never read back, discs with no cold copy, discs in fewer than two places, checks overdue,
+and per data object, a newest version with no cold copy, or one no longer where it came from
+with fewer than two copies left.
 
 ### What an edition covers
 

@@ -285,7 +285,23 @@ arv location list -v                                 # places, their temperature
 - editions a newer safe edition replaces, ready to retire;
 - discs with no cold copy;
 - discs kept in fewer than two places;
-- checks overdue (5 years by default; `--overdue YEARS`).
+- checks overdue (5 years by default; `--overdue YEARS`);
+- data objects whose newest version has no cold copy, or that are no longer where they came
+  from with fewer than two copies left.
+
+**`arv objects [NAME]`** is the whole picture, per thing kept rather than per disc:
+
+```
+Data objects (disc plans):
+  2025/  folder, 2 versions; newest: 2 copies on 2 discs, 1 cold, 1 read back
+    from /nas/photos/2025 (there now: arv status says if it changed)
+    version 2  TRIP-03_2025_7  data/photos/  disc cold; at BOX1
+    version 2  TRIP-04_2025_5  data/plan-copy/  iso warm (read back)
+    version 1  TRIP-02_2025_9  data/photos/  no copy yet
+Collections:
+  FAM  "Family photos": 2 editions; newest: FAM/2, 3 copies on 1 disc, 1 cold, 3 read back
+    FAM-02_2019_Y  disc cold (read back), iso warm (read back), folder warm (read back); at BOX1; The NAS
+```
 
 **Retiring** an edition a newer safe one replaces (`arv retire FAMILY`) lists any files that
 exist only on the discs being retired (not in the newer edition: they left the workflow folder), and records nothing

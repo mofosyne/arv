@@ -284,3 +284,15 @@ $ --home hc list
 FAM-01_2019_0	2026-01-01	Family photos	2 files	public	
 FAM-02_2019_Y	2026-01-01	Family photos	2 files	public	BOX1; The NAS
 rc=0
+$ --home hc objects
+Collections:
+  FAM  "Family photos": 2 editions; newest: FAM/2, 3 copies on 1 disc, 1 cold, 3 read back
+    FAM-02_2019_Y  disc cold (read back), iso warm (read back), folder warm (read back); at BOX1; The NAS
+    workflow folder ROOT/coll/plain (there now)
+rc=0
+$ --home hc objects FAM
+Collections:
+  FAM  "Family photos": 2 editions; newest: FAM/2, 3 copies on 1 disc, 1 cold, 3 read back
+    FAM-02_2019_Y  disc cold (read back), iso warm (read back), folder warm (read back); at BOX1; The NAS
+    workflow folder ROOT/coll/plain (there now)
+rc=0

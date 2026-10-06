@@ -63,6 +63,8 @@ static void usage(FILE *to)
           "       arv log [COLLECTION]   arv diff REV [REV]   (REV: a revision's first digits, or CODE/N)\n"
           "       arv link FOLDER COLLECTION|DISC-ID [--past]   say what a folder is (logged)\n"
           "       arv todo [--overdue YEARS]   what is owed: burns, read-backs, safe editions, places, checks\n"
+          "       arv objects [NAME]   what you keep and where every copy is: data objects (versions, discs,\n"
+          "                copies, hot/warm/cold) and collections (the newest edition), and the originals\n"
           "       arv retire CODE [--yes [--accept-loss]]   retire the editions a newer safe one replaces (not kept ones)\n"
           "       arv plan new|list|show|add|move|drop|disc|make|delete NAME ...   compose discs by hand from files\n"
           "                and folders anywhere, then make them (docs/workflow.md, Disc plans)\n"
@@ -169,7 +171,7 @@ int main(int argc, char **argv)
                  { "burned", cmd_burned }, { "note", cmd_note }, { "locate", cmd_locate },
                  { "access", cmd_access }, { "location", cmd_location }, { "selection", cmd_selection }, { "collection", cmd_collection },
                  { "status", cmd_status }, { "checkpoint", cmd_checkpoint }, { "log", cmd_log }, { "diff", cmd_diff },
-                 { "link", cmd_link }, { "todo", cmd_todo }, { "retire", cmd_retire }, { "stored", cmd_stored },
+                 { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
                  { "where", cmd_where }, { "rebuild", cmd_rebuild },
                  { "tags", cmd_tags }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };

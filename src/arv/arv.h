@@ -170,6 +170,8 @@ void revision_hashes(const char *text, const char *parent, const char *date, con
 char *revision_manifest_path(const arv_home *h, const char *node);
 char *manifest_changes(const char *before, const char *after);
 rec_record *folder_collection(const archive *cat, const char *abs, const char **how);
+const char *collection_folder(const archive *cat, const rec_record *c);   /* its workflow folder now, or NULL */
+int cmd_objects(int argc, char **argv);
 void hash_cache_note(const arv_home *h, const entries *files);   /* after arv make */
 
 /* gitrepo.c: git repositories in a folder being archived */

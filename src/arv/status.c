@@ -441,7 +441,7 @@ rec_record *folder_collection(const archive *cat, const char *abs, const char **
 }
 
 /* the collection's workflow folder now: the newest folder linked to it as present, or NULL */
-static const char *collection_folder(const archive *cat, const rec_record *c)
+const char *collection_folder(const archive *cat, const rec_record *c)
 {
     char *want = xprintf("collection:%s", get_or(c, "Code", ""));
     const char *found = NULL;
