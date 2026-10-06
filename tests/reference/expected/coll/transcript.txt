@@ -230,7 +230,7 @@ FAM/-  checkpoint, 2026-01-01, revision 266394586162
     renamed c
 rc=0
 $ --home hc find a.txt
-FAM-01_2019_0  [?]  data/2019/a.txt
+FAM-01_2019_0  [retired 2026-01-01]  data/2019/a.txt
 LOST  FAM/1  2019/a.txt  (retired with no other copy)
 rc=0
 $ --home hc collection keep FAM 2

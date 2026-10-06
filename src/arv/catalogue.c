@@ -169,6 +169,12 @@ char *catalogue_volume(const catalogue *c, const char *id, const char *name)
 static const char *const SEARCH_FIELDS[] = { "Id", "Title", "Description", "Subject", "Note", "Coverage",
                                             "Category", "Path", "Location", NULL };
 
+/* where a found disc is, or that it was retired (a retired disc has left every place) */
+static char *found_at(const catalogue *c, const rec_record *d)
+{
+    return rec_get(d, "Retired") ? xprintf("retired %s", rec_get(d, "Retired")) : where(c, d);
+}
+
 int cmd_find(int argc, char **argv)
 {
     const char *given = NULL, *pattern = NULL;
@@ -194,7 +200,7 @@ int cmd_find(int argc, char **argv)
             for (int k = 0; SEARCH_FIELDS[k] && !hit; k++)
                 if (!strcmp(d->fields[j].name, SEARCH_FIELDS[k]) && matches(pat, glob, d->fields[j].value)) hit = 1;
         if (hit) {
-            char *w = where(&c, d);
+            char *w = found_at(&c, d);
             printf("DISC  %s  %s  [%s]\n", rec_get(d, "Id"), rec_get(d, "Title") ? rec_get(d, "Title") : "None",
                    *w ? w : "location unknown");
             free(w);
@@ -234,7 +240,7 @@ int cmd_find(int argc, char **argv)
                 }
             }
             for (size_t k = 0; k < repos.n; k++) {
-                char *w = where(&c, d);
+                char *w = found_at(&c, d);
                 printf("GIT   %s  %s  commit %s%s  [%s]\n", rec_get(d, "Id"), repos.v[k], shown.v[k],
                        strchr(shown.v[k], '(') ? ")" : "", *w ? w : "location unknown");
                 free(w);
@@ -276,7 +282,7 @@ int cmd_find(int argc, char **argv)
             }
             free(tags);
             if (!hit) continue;
-            char *w = where(&c, d);
+            char *w = found_at(&c, d);
             if (!strcmp(cols[0], ".")) printf("TAG   %s  [%s]  data/  (%s)\n", rec_get(d, "Id"), *w ? w : "?", shown);
             else printf("TAG   %s  [%s]  data/%s/  (%s)\n", rec_get(d, "Id"), *w ? w : "?", cols[0], shown);
             free(w);
@@ -293,7 +299,7 @@ int cmd_find(int argc, char **argv)
         size_t cap = 0;
         ssize_t len;
         FILE *fp = fopen(path, "r");
-        char *w = where(&c, d);
+        char *w = found_at(&c, d);
         while (fp && (len = getline(&line, &cap, fp)) >= 0) {
             while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) line[--len] = 0;
             char *rel = strstr(line, "  ");
