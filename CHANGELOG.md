@@ -27,6 +27,10 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   NAS): which goes on which disc, and where under `data/`. A plan points at its sources and copies
   nothing; `arv plan show` measures them against each disc's room, and `arv plan make` makes
   one image a disc (`arv make --plan`). The GUI's new Mastering tab is the same, with drag and drop.
+- Each planned file or folder becomes a **data object** (`Object` record, format 0.5): known by
+  the hash of its content, in linked versions, with no `.arv` marker. `arv status` says whether
+  each object archived from a folder is unchanged, changed or gone, and recognises a moved folder
+  by content; `arv find` lists objects. Source paths stay in the home catalogue.
 - `arv retire --yes` refuses while any file is on the retiring discs only; `--accept-loss`
   retires anyway and records those files as `Lost:` on the edition (`arv log`, `arv find`).
   `arv find` marks files on retired discs `[retired DATE]`.

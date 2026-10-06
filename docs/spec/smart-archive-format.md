@@ -410,6 +410,34 @@ Readers turn this into a date span (uncertain digits widen it: `199X` is
 without reading any listings. The id carries at most year and month; the
 record keeps full precision.
 
+### `Object` records: data objects (format 0.5)
+
+A file or folder that a disc plan (`arv plan`) put on a disc as a whole is a **data object**, with
+an `Object` record in the disc's `catalog.rec` (its own) and in snapshots (earlier discs').
+
+```
+%rec: Object
+
+Uuid: 1c9e...            the lineage: every version of the same object
+Version: 2
+Name: 2025               its name where it was read from
+Kind: folder             file, folder, or git (a folder holding a repository)
+Tree: 36ea...            SHA-256 of its manifest (below); for a file, the file's SHA-256
+Disc: TRIP-03_2025_7
+Path: photos             where it is under data/ ("." for the whole of data/)
+Files: 3
+Bytes: 21
+Date: 2026-01-01
+```
+
+The manifest is each file's SHA-256 and its path within the object, sorted by path, in
+`manifest-sha256.txt` form, without a repository's `.git` (`git.tsv` describes that). The same
+`Tree` on several discs is the same version, copied. Each version is recorded when it is archived:
+the same content as an earlier version is that version; from the same place but changed, the
+next version; else a new `Uuid`. The home catalogue adds `Source` (the absolute path it was read
+from) and keeps each manifest in `catalog/objects/<Tree>.sha256`; neither goes on a disc.
+Readers merge objects by `Uuid`, `Version` and `Disc`.
+
 ### `Event` records (recfile)
 
 `Disc` (or, for a change to a place or a selection, `Object`: `location:CODE`,

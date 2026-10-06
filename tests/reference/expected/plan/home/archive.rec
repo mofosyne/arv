@@ -66,6 +66,40 @@ Files: 3
 Bytes: 20
 Software: SW
 
+Id: TRIP-03_2025_7
+Uuid: UUID
+IdScheme: set-seq-coverage/1
+Label: TRIP-03_2025_7 Again
+Title: Again
+Set: TRIP
+Path: MEMORIES/PHOTO/TRIP
+Sequence: 3
+Coverage: 2025
+Date: 2026-01-01
+Part: 1 of 2
+Creator: archivist
+Access: private
+Files: 3
+Bytes: 21
+Software: SW
+
+Id: TRIP-04_2025_5
+Uuid: UUID
+IdScheme: set-seq-coverage/1
+Label: TRIP-04_2025_5 Again
+Title: Again
+Set: TRIP
+Path: MEMORIES/PHOTO/TRIP
+Sequence: 4
+Coverage: 2025
+Date: 2026-01-01
+Part: 2 of 2
+Creator: archivist
+Access: private
+Files: 3
+Bytes: 21
+Software: SW
+
 %rec: Binding
 %doc: How one volume is stored on its medium: the container (filesystem) and the
 + protection (error correction) it was made with. These change with the medium;
@@ -94,6 +128,100 @@ Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (a
 Ecc: none
 ImageSectors: 850
 ImageSha256: SHA256
+
+Volume: TRIP-03_2025_7
+Container: udf-2.50
+Protection: none
+Media: M-DISC BD-R 25GB
+Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
+Ecc: none
+ImageSectors: 882
+ImageSha256: SHA256
+
+Volume: TRIP-04_2025_5
+Container: udf-2.50
+Protection: none
+Media: M-DISC BD-R 25GB
+Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
+Ecc: none
+ImageSectors: 882
+ImageSha256: SHA256
+
+%rec: Object
+%doc: A data object: one file or folder put on a disc as a whole (by a disc plan), with no
++ .arv marker of its own. Uuid is its lineage: every version of the same object shares it.
++ Tree is the SHA-256 of its manifest (each file's SHA-256 and path within the object,
++ sorted; a repository's .git aside, as git.tsv describes it); Version counts its versions,
++ and the same Tree on another disc is the same version. Disc and Path say where it is
++ (Path under data/; "." for the whole of data/). Source is where it was read from: it is
++ kept in the home catalogue only, and discs carry their objects without it.
+%mandatory: Uuid Version Tree Disc Path Kind Date
+%type: Uuid uuid
+%type: Version int
+%type: Files int
+%type: Bytes int
+%type: Date date
+%type: Kind enum file folder git
+
+Uuid: UUID
+Version: 1
+Name: wedding.mkv
+Kind: file
+Tree: cbe575977d8b2daf0ade62b71065f34e86dab5c5787433515d4f9053e5ca417a
+Disc: TRIP-01_2025_B
+Path: video/wedding.mkv
+Files: 1
+Bytes: 7
+Date: 2026-01-01
+Source: ROOT/plan-pc/Videos/wedding.mkv
+
+Uuid: UUID
+Version: 1
+Name: notes.txt
+Kind: file
+Tree: 444e0fffbd825e9610ff5b199485707a0c895339ae80c15cc8a8aee41b106fda
+Disc: TRIP-02_2025_9
+Path: notes.txt
+Files: 1
+Bytes: 6
+Date: 2026-01-01
+Source: ROOT/plan-pc/notes.txt
+
+Uuid: UUID
+Version: 1
+Name: 2025
+Kind: folder
+Tree: dbfbcd823eab3716e2af573d93ab9e04b6d8f4622e7cffeb827ec2ee98468f99
+Disc: TRIP-02_2025_9
+Path: photos
+Files: 2
+Bytes: 14
+Date: 2026-01-01
+Source: ROOT/plan-nas/photos/2025
+
+Uuid: UUID
+Version: 2
+Name: 2025
+Kind: folder
+Tree: 4414f104c28c0469b6d531b81cca4b384e7f149a217c1d3c90915edf62f8aa8e
+Disc: TRIP-03_2025_7
+Path: photos
+Files: 3
+Bytes: 21
+Date: 2026-01-01
+Source: ROOT/plan-nas/photos/2025
+
+Uuid: UUID
+Version: 2
+Name: plan-copy
+Kind: folder
+Tree: 4414f104c28c0469b6d531b81cca4b384e7f149a217c1d3c90915edf62f8aa8e
+Disc: TRIP-04_2025_5
+Path: plan-copy
+Files: 3
+Bytes: 21
+Date: 2026-01-01
+Source: ROOT/plan-copy
 
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
@@ -143,3 +271,35 @@ Outcome: success
 Authorship: automatic
 Agent: SW
 Note: image TRIP-02_2025_9.noecc.iso, 850 sectors
+
+Disc: TRIP-03_2025_7
+Type: message digest calculation
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: SW
+Note: sha256 and sha512 manifests of 3 files
+
+Disc: TRIP-03_2025_7
+Type: creation
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: SW
+Note: image TRIP-03_2025_7.noecc.iso, 882 sectors
+
+Disc: TRIP-04_2025_5
+Type: message digest calculation
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: SW
+Note: sha256 and sha512 manifests of 3 files
+
+Disc: TRIP-04_2025_5
+Type: creation
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: SW
+Note: image TRIP-04_2025_5.noecc.iso, 882 sectors

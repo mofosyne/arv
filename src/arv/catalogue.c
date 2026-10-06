@@ -207,6 +207,19 @@ int cmd_find(int argc, char **argv)
             any = 1;
         }
     }
+    for (size_t i = 0; i < c.rec.nrecords; i++) {          /* data objects (disc plans), by name or path */
+        const rec_record *o = &c.rec.records[i];
+        if (!is_type(o, "Object") || !rec_get(o, "Disc")) continue;
+        const char *name = rec_get(o, "Name") ? rec_get(o, "Name") : "", *path = rec_get(o, "Path") ? rec_get(o, "Path") : "";
+        if (!matches(pat, glob, name) && !matches(pat, glob, path)) continue;
+        const rec_record *d = find_disc(&c, rec_get(o, "Disc"));
+        char *w = d ? found_at(&c, d) : xstrdup("");
+        int folder = strcmp(rec_get(o, "Kind") ? rec_get(o, "Kind") : "", "file");
+        printf("OBJECT  %s%s  version %s  %s  data/%s%s  [%s]\n", name, folder ? "/" : "", rec_get(o, "Version") ? rec_get(o, "Version") : "?",
+               rec_get(o, "Disc"), strcmp(path, ".") ? path : "", folder && strcmp(path, ".") ? "/" : "", *w ? w : "?");
+        free(w);
+        any = 1;
+    }
     size_t hexlen = strspn(pat, "0123456789abcdef");
     if (hexlen == strlen(pat) && hexlen >= 7 && hexlen <= 40)  /* a git commit: the discs holding it */
         for (size_t i = 0; i < c.rec.nrecords; i++) {

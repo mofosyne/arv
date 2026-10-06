@@ -99,6 +99,55 @@ Media: M-DISC BD-R 25GB
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
 
+%rec: Object
+%doc: A data object: one file or folder put on a disc as a whole (by a disc plan), with no
++ .arv marker of its own. Uuid is its lineage: every version of the same object shares it.
++ Tree is the SHA-256 of its manifest (each file's SHA-256 and path within the object,
++ sorted; a repository's .git aside, as git.tsv describes it); Version counts its versions,
++ and the same Tree on another disc is the same version. Disc and Path say where it is
++ (Path under data/; "." for the whole of data/). Source is where it was read from: it is
++ kept in the home catalogue only, and discs carry their objects without it.
+%mandatory: Uuid Version Tree Disc Path Kind Date
+%type: Uuid uuid
+%type: Version int
+%type: Files int
+%type: Bytes int
+%type: Date date
+%type: Kind enum file folder git
+
+Uuid: UUID
+Version: 1
+Name: wedding.mkv
+Kind: file
+Tree: cbe575977d8b2daf0ade62b71065f34e86dab5c5787433515d4f9053e5ca417a
+Disc: TRIP-01_2025_B
+Path: video/wedding.mkv
+Files: 1
+Bytes: 7
+Date: 2026-01-01
+
+Uuid: UUID
+Version: 1
+Name: notes.txt
+Kind: file
+Tree: 444e0fffbd825e9610ff5b199485707a0c895339ae80c15cc8a8aee41b106fda
+Disc: TRIP-02_2025_9
+Path: notes.txt
+Files: 1
+Bytes: 6
+Date: 2026-01-01
+
+Uuid: UUID
+Version: 1
+Name: 2025
+Kind: folder
+Tree: dbfbcd823eab3716e2af573d93ab9e04b6d8f4622e7cffeb827ec2ee98468f99
+Disc: TRIP-02_2025_9
+Path: photos
+Files: 2
+Bytes: 14
+Date: 2026-01-01
+
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType

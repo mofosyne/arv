@@ -43,11 +43,27 @@ A disc is plain files: the folder tree is preserved as it is, under `data/`. Con
 therefore **implicit in the paths** — a repository at `data/projects/foo/` is inside `projects/`
 because the path says so.
 
-The format does not turn folders into objects. There is no `Object` record; a folder is a path
-prefix. Objecthood is asserted in only two places:
+The format does not turn every folder into an object; a folder is a path prefix. Objecthood is
+asserted in only three places:
 
 - the **collection** a disc is an edition of (`Disc.Collection`);
-- **git repositories** (`git.tsv`: roots, heads, shallow boundary, every commit).
+- **git repositories** (`git.tsv`: roots, heads, shallow boundary, every commit);
+- **data objects**: each file or folder a disc plan put on a disc as a whole (`Object` records).
+
+A data object needs no `.arv` marker. It is known by its content: its **Tree** is the SHA-256 of
+its manifest (each file's SHA-256 and path within it; a file object's Tree is the file's own
+SHA-256), so the same content is the same object version wherever it is and whatever it is
+called, and a changed folder archived again from the same place is its next **version** (one
+`Uuid` for the lineage). The home catalogue also keeps where each was read from (`Source`); discs
+carry their objects without it. So `arv status FOLDER` says of each object archived from there
+whether it is unchanged, changed (and how), or gone, and recognises a folder that moved, or a
+home rebuilt from discs, by content alone. Objects may share files (versions do) and may nest (a
+folder, and later a subfolder of it on its own): each is its own Tree.
+
+| | Needs a marker? | Over time |
+|---|---|---|
+| **collection** | yes: a UUID that survives reorganising | editions, a history, retiring |
+| **data object** | no: its Tree; its source path a hint, at home | versions, linked by source or content |
 
 Everything else is observation, not assertion. The planned **Notable objects**
 ([plan.md](../research/plan.md)) adds records for the folders and files an archivist must treat
@@ -133,6 +149,7 @@ limited by `--snapshot` (`full`, `set`, `disc`) and by each disc's access level.
 | Word | Meaning |
 |---|---|
 | **collection** | something kept over time: one workflow folder, one code, one history. *What you keep.* |
+| **data object** | a file or folder a disc plan put on a disc as a whole; known by its content (Tree), in versions |
 | **set** | a vocabulary classification (`PHOTO`, `TRIP`), not a thing you keep; the id prefix |
 | **revision** | one recorded state of a collection: a **checkpoint** (hashes only) or an **edition** |
 | **edition** | a set of discs made together from what a collection's workflow folder holds at the time; each disc holds part of it and a copy of the catalogue; numbered; replaced by a newer safe edition unless kept |

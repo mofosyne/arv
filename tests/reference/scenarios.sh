@@ -418,6 +418,20 @@ log plan.out --home hp plan make trip -y --no-ecc --formats no --keep-stage --ou
 log plan.out --home hp plan show trip
 log plan.out --home hp plan add trip plan-pc/gone.txt
 log plan.out --home hp find wedding
+log plan.out --home hp status plan-nas/photos/2025
+log plan.out --home hp status plan-pc
+echo "jpeg c" > plan-nas/photos/2025/c.jpg
+stamp 1751328000 plan-nas/photos/2025/c.jpg
+log plan.out --home hp status -v plan-nas/photos/2025
+log plan.out --home hp plan new again --set TRIP
+log plan.out --home hp plan add again plan-nas/photos/2025 --as photos
+cp -Rp plan-nas/photos/2025 plan-copy
+log plan.out --home hp plan add again plan-copy --disc new
+log plan.out --home hp plan make again -y --no-ecc --formats no --output-dir out-plan2
+log plan.out --home hp status plan-nas/photos/2025
+mv plan-copy plan-moved
+log plan.out --home hp status plan-moved
+log plan.out --home hp find photos
 log plan.out --home hp plan new later --medium bd100
 log plan.out --home hp plan add later plan-pc/gone.txt
 rm plan-pc/gone.txt

@@ -207,6 +207,12 @@ not move files for a plan), and the plan then records the discs it became and ta
 The GUI's **Mastering** tab is the same, with drag and drop: the discs on the left, each with
 its fill bar, and a file browser on the right.
 
+Each item becomes a **data object** on its disc, with no `.arv` marker needed: `arv status` on
+the folder it came from then says whether it is unchanged since, changed (`+1 ~0 -0`, and `-v`
+lists the files) or gone, and a later plan of the same folder archives its next version. A
+folder that moved is still recognised, by its content ([concepts.md](concepts.md)).
+`arv find NAME` lists objects (`OBJECT`) as well as files.
+
 A plan's discs are one-off discs of its set, not an edition of a collection. The plan file is
 `drafts/plans/NAME.rec` in the home (a Plan record, then an Item record per thing: `Disc`,
 `Source`, `Path`); it never goes on a disc. Not yet: `--formats` (Siegfried) for a plan.

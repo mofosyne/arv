@@ -87,7 +87,7 @@ typedef struct {
 } recs;
 typedef struct {
     rec_file file;          /* what was read; new records are allocated one by one */
-    recs homes, discs, bindings, locations, selections, collections, revisions, events, appraisals;
+    recs homes, discs, bindings, locations, selections, collections, revisions, objects, events, appraisals;
 } archive;
 void recs_add(recs *l, rec_record *r);
 int recs_has(const recs *l, const rec_record *r);
@@ -108,6 +108,7 @@ void archive_selections_for(const archive *a, const strlist *disc_ids, recs *out
 const char *selection_target(const char *target);
 rec_record *sealed_view(const rec_record *d);
 void archive_shared_subset(const archive *a, const strlist *ids, archive *out);
+rec_record *object_disc_view(const rec_record *o);
 char *archive_where(const archive *a, const rec_record *d);
 rec_record *new_event(const char *disc_id, const char *type, const char *outcome, const char *agent,
                       const char *authorship, const char *note);
@@ -153,6 +154,9 @@ int cmd_plan(int argc, char **argv);
 void plan_load(const char *file, disc_plan *out);
 void plan_scan(const disc_plan *p, const char *links, entries *files, entries *noted, size_t *left_out);
 void plan_made(const char *file, const strlist *disc_ids, const char *date);
+void text_sha256(const char *text, char hex[65]);
+void plan_objects(const disc_plan *dp, int disc, const entries *files, const archive *cat, const recs *made_now,
+                  const char *disc_id, const char *today, recs *out, strlist *manifests);
 
 /* collection.c: collections kept over time, their workflow folders and revisions */
 char *marker_path(const char *folder);

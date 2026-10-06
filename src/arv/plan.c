@@ -676,3 +676,123 @@ int cmd_plan(int argc, char **argv)
     }
     return 2;
 }
+
+/* ------------------------------------------------------------------ data objects (arv make --plan) */
+
+void text_sha256(const char *text, char hex[65])
+{
+    sha256_ctx c;
+    unsigned char d[32];
+    sha256_init(&c);
+    sha256_update(&c, text, strlen(text));
+    sha256_final(&c, d);
+    sha256_hex(d, hex);
+}
+
+static int by_line_path(const void *a, const void *b)
+{
+    return strcmp(*(char *const *)a + 66, *(char *const *)b + 66);
+}
+
+/* is path inside item path p ("." holds what no other item on its disc holds) */
+static int in_item(const char *path, const char *p)
+{
+    size_t n = strlen(p);
+    return !strcmp(path, p) || (!strncmp(path, p, n) && path[n] == '/');
+}
+
+void plan_objects(const disc_plan *dp, int disc, const entries *files, const archive *cat, const recs *made_now,
+                  const char *disc_id, const char *today, recs *out, strlist *manifests)
+{
+    for (size_t k = 0; k < dp->n; k++) {
+        const plan_item *it = &dp->v[k];
+        if (it->disc != disc) continue;
+        int top = !strcmp(it->path, ".");
+        struct stat st;
+        int is_file = !stat(it->source, &st) && S_ISREG(st.st_mode);
+        strlist lines = { 0 };
+        uint64_t bytes = 0;
+        int git = 0;
+        for (size_t i = 0; i < files->n; i++) {
+            const char *p = files->v[i].path, *rel;
+            if (top) {
+                int other = 0;
+                for (size_t j = 0; j < dp->n && !other; j++)
+                    other = dp->v[j].disc == disc && j != k && in_item(p, dp->v[j].path);
+                if (other) continue;
+                rel = p;
+            } else if (in_item(p, it->path)) {
+                rel = p[strlen(it->path)] ? p + strlen(it->path) + 1 : p;
+            } else {
+                continue;
+            }
+            if (!strcmp(rel, ".git/HEAD")) git = 1;
+            if (git_internal(rel)) continue;    /* the history: git.tsv says what it holds */
+            char *line = xprintf("%s  %s", files->v[i].sha256, is_file ? (strrchr(it->source, '/') + 1) : rel);
+            strlist_add(&lines, line);
+            free(line);
+            bytes += files->v[i].size;
+        }
+        if (lines.n) qsort(lines.v, lines.n, sizeof *lines.v, by_line_path);
+        sbuf text = { 0 };
+        sb_puts(&text, "");
+        for (size_t i = 0; i < lines.n; i++) sb_printf(&text, "%s\n", lines.v[i]);
+        char tree[65];
+        if (is_file && lines.n) {           /* a file's Tree is its own SHA-256: its name is not part of it */
+            memcpy(tree, lines.v[0], 64);
+            tree[64] = 0;
+        } else {
+            text_sha256(text.s, tree);
+        }
+        /* its lineage: the same content is the same version (a copy); from the same source,
+         * the next version; else a new object. An empty one is never the same as another. */
+        const rec_record *same = NULL, *from = NULL;
+        long latest = 0;
+        const recs *both[2] = { &cat->objects, made_now };
+        for (int b = 0; b < 2; b++)
+            for (size_t i = 0; i < both[b]->n; i++) {
+                const rec_record *o = both[b]->v[i];
+                if (lines.n && rec_get(o, "Tree") && !strcmp(rec_get(o, "Tree"), tree)) same = o;
+                if (rec_get(o, "Source") && !strcmp(rec_get(o, "Source"), it->source)) from = o;
+            }
+        char uuid[37], version[24];
+        if (same) {
+            snprintf(uuid, sizeof uuid, "%s", rec_get(same, "Uuid"));
+            snprintf(version, sizeof version, "%s", rec_get(same, "Version"));
+        } else if (from) {
+            snprintf(uuid, sizeof uuid, "%s", rec_get(from, "Uuid"));
+            for (int b = 0; b < 2; b++)
+                for (size_t i = 0; i < both[b]->n; i++)
+                    if (rec_get(both[b]->v[i], "Uuid") && !strcmp(rec_get(both[b]->v[i], "Uuid"), uuid)
+                        && atol(rec_get(both[b]->v[i], "Version") ? rec_get(both[b]->v[i], "Version") : "0") > latest)
+                        latest = atol(rec_get(both[b]->v[i], "Version"));
+            snprintf(version, sizeof version, "%ld", latest + 1);
+        } else {
+            uuid4(uuid);
+            snprintf(version, sizeof version, "1");
+        }
+        rec_record *r = rec_alloc("Object");
+        const char *slash = strrchr(it->source, '/');
+        char n_files[24], n_bytes[24];
+        snprintf(n_files, sizeof n_files, "%zu", lines.n);
+        snprintf(n_bytes, sizeof n_bytes, "%llu", (unsigned long long)bytes);
+        rec_add(r, "Uuid", uuid);
+        rec_add(r, "Version", version);
+        rec_add(r, "Name", slash && slash[1] ? slash + 1 : it->source);
+        rec_add(r, "Kind", is_file ? "file" : git ? "git" : "folder");
+        rec_add(r, "Tree", tree);
+        rec_add(r, "Disc", disc_id);
+        rec_add(r, "Path", it->path);
+        rec_add(r, "Files", n_files);
+        rec_add(r, "Bytes", n_bytes);
+        rec_add(r, "Date", today);
+        rec_add(r, "Source", it->source);
+        recs_add(out, r);
+        strlist_add(manifests, text.s);
+        fprintf(stderr, "Object %s%s (data/%s on %s): %s\n", rec_get(r, "Name"), is_file ? "" : "/", it->path, disc_id,
+                same ? "the same as a version already archived (another copy of it)"
+                : from ? "a new version of what was archived from there before" : "new");
+        free(text.s);
+        strlist_free(&lines);
+    }
+}

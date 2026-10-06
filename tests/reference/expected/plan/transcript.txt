@@ -62,6 +62,9 @@ $ --home hp plan make trip -y --no-ecc --formats no --keep-stage --output-dir ou
 Plan trip: scanning and hashing its 3 items ...
 Categories from Match rules in hp/config/sets.rec: MEDIA (--category to choose, --no-rules to skip)
 Classified as: MEMORIES/PHOTO/TRIP, COLLECT/MEDIA
+Object wedding.mkv (data/video/wedding.mkv on TRIP-01_2025_B): new
+Object notes.txt (data/notes.txt on TRIP-02_2025_9): new
+Object 2025/ (data/photos on TRIP-02_2025_9): new
 Building ROOT/out-plan/TRIP-01_2025_B.noecc.iso (1 of 2, 1.7 MiB) ...
 Building ROOT/out-plan/TRIP-02_2025_9.noecc.iso (2 of 2, 1.7 MiB) ...
 Hashing ROOT/out-plan/TRIP-01_2025_B.noecc.iso ...
@@ -83,7 +86,89 @@ $ --home hp plan add trip plan-pc/gone.txt
 Error: plan trip was made into discs already (arv plan show); start another with arv plan new
 rc=1
 $ --home hp find wedding
+OBJECT  wedding.mkv  version 1  TRIP-01_2025_B  data/video/wedding.mkv  [?]
 TRIP-01_2025_B  [?]  data/video/wedding.mkv
+rc=0
+$ --home hp status plan-nas/photos/2025
+2 files: 0 read, 2 unchanged since last read (hash cache)
+ROOT/plan-nas/photos/2025: not a collection's workflow folder
+  2 of its 2 files are on discs; 0 on none
+  most like TRIP-02_2025_9: 66% of its files are here (2 of 3)
+  data objects archived from here (disc plans):
+  2025/: version 1 on TRIP-02_2025_9; unchanged
+rc=0
+$ --home hp status plan-pc
+3 files: 1 read, 2 unchanged since last read (hash cache)
+ROOT/plan-pc: not a collection's workflow folder
+  2 of its 3 files are on discs; 1 on none
+  most like TRIP-01_2025_B: 100% of its files are here (1 of 1)
+  also TRIP-02_2025_9: 33% of its files are here (1 of 3)
+  + gone.txt
+  (arv link FOLDER COLLECTION|DISC-ID says what it is; arv collection init makes it a collection)
+  data objects archived from here (disc plans):
+  wedding.mkv (Videos/wedding.mkv): version 1 on TRIP-01_2025_B; unchanged
+  notes.txt (notes.txt): version 1 on TRIP-02_2025_9; unchanged
+rc=0
+$ --home hp status -v plan-nas/photos/2025
+3 files: 1 read, 2 unchanged since last read (hash cache)
+ROOT/plan-nas/photos/2025: not a collection's workflow folder
+  2 of its 3 files are on discs; 1 on none
+  most like TRIP-02_2025_9: 66% of its files are here (2 of 3)
+  + c.jpg
+  (arv link FOLDER COLLECTION|DISC-ID says what it is; arv collection init makes it a collection)
+  data objects archived from here (disc plans):
+  2025/: version 1 on TRIP-02_2025_9; changed since: +1 ~0 -0 >0 files (a plan archives it as version 2)
+  +1 new, ~0 changed, -0 removed, >0 moved
+  + c.jpg
+rc=0
+$ --home hp plan new again --set TRIP
+Plan again: 1 empty disc (hp/drafts/plans/again.rec). Next: arv plan add again FILE-OR-FOLDER...
+rc=0
+$ --home hp plan add again plan-nas/photos/2025 --as photos
+photos/: disc 1, now 1% full
+rc=0
+$ --home hp plan add again plan-copy --disc new
+plan-copy/: disc 2, now 1% full
+rc=0
+$ --home hp plan make again -y --no-ecc --formats no --output-dir out-plan2
+Plan again: scanning and hashing its 2 items ...
+Classified as: MEMORIES/PHOTO/TRIP
+Object 2025/ (data/photos on TRIP-03_2025_7): a new version of what was archived from there before
+Object plan-copy/ (data/plan-copy on TRIP-04_2025_5): the same as a version already archived (another copy of it)
+Building ROOT/out-plan2/TRIP-03_2025_7.noecc.iso (1 of 2, 1.7 MiB) ...
+Building ROOT/out-plan2/TRIP-04_2025_5.noecc.iso (2 of 2, 1.7 MiB) ...
+Hashing ROOT/out-plan2/TRIP-03_2025_7.noecc.iso ...
+Hashing ROOT/out-plan2/TRIP-04_2025_5.noecc.iso ...
+TRIP-03_2025_7	ROOT/out-plan2/TRIP-03_2025_7.noecc.iso	Again
+TRIP-04_2025_5	ROOT/out-plan2/TRIP-04_2025_5.noecc.iso	Again
+rc=0
+$ --home hp status plan-nas/photos/2025
+3 files: 0 read, 3 unchanged since last read (hash cache)
+ROOT/plan-nas/photos/2025: not a collection's workflow folder
+  3 of its 3 files are on discs; 0 on none
+  most like TRIP-03_2025_7: 100% of its files are here (3 of 3)
+  also TRIP-04_2025_5: 100% of its files are here (3 of 3)
+  also TRIP-02_2025_9: 66% of its files are here (2 of 3)
+  data objects archived from here (disc plans):
+  2025/: version 2 on TRIP-03_2025_7, TRIP-04_2025_5; unchanged
+rc=0
+$ --home hp status plan-moved
+3 files: 3 read, 0 unchanged since last read (hash cache)
+ROOT/plan-moved: not a collection's workflow folder
+  3 of its 3 files are on discs; 0 on none
+  most like TRIP-03_2025_7: 100% of its files are here (3 of 3)
+  also TRIP-04_2025_5: 100% of its files are here (3 of 3)
+  also TRIP-02_2025_9: 66% of its files are here (2 of 3)
+  this folder is the data object 2025/, version 2 (data/photos on TRIP-03_2025_7), unchanged
+rc=0
+$ --home hp find photos
+OBJECT  2025/  version 1  TRIP-02_2025_9  data/photos/  [?]
+OBJECT  2025/  version 2  TRIP-03_2025_7  data/photos/  [?]
+TRIP-02_2025_9  [?]  data/photos/a.jpg
+TRIP-02_2025_9  [?]  data/photos/b.jpg
+TRIP-03_2025_7  [?]  data/photos/a.jpg
+TRIP-03_2025_7  [?]  data/photos/b.jpg
+TRIP-03_2025_7  [?]  data/photos/c.jpg
 rc=0
 $ --home hp plan new later --medium bd100
 Plan later: 1 empty disc (hp/drafts/plans/later.rec). Next: arv plan add later FILE-OR-FOLDER...
@@ -107,6 +192,8 @@ $ --home hp plan delete later
 Plan later deleted (its sources are untouched)
 rc=0
 $ --home hp plan list
+again  2 discs, 2 items
+    made 2026-01-01
 trip  2 discs, 3 items  "Holiday 2025"
     made 2026-01-01
 rc=0

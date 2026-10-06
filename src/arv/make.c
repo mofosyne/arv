@@ -755,6 +755,8 @@ typedef struct {
     char *out, *label, *stage, *built, *extents, *b_manifest, *b_listing, *b_formats, *b_tags;
     rec_record *disc, *binding;
     recs events, appraisals;
+    recs objects;                   /* --plan: the data objects on this disc (with Source: home only) */
+    strlist object_manifests;       /* and each one's manifest, for catalog/objects/ at home */
     uint64_t sectors;
 } plan;
 
@@ -775,6 +777,7 @@ typedef struct {
     const char *id_prefix;      /* the collection's code, else the set code */
     char *tree_text;            /* the collection's revision manifest */
     int plan_discs;             /* arv make --plan: its discs (files carry theirs in bin); else 0 */
+    const disc_plan *dplan;     /* and the plan itself */
     rec_record *revision;       /* this edition, once the discs are assigned */
     size_t left_out;            /* files arv keeps off the disc (its own .arv) */
     gitrepos git;               /* repositories in the folder, their .git compacted */
@@ -1124,6 +1127,14 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
         }
     }
     if (mk->collection) mk->revision = revision_record(mk);
+    for (size_t i = 0; mk->dplan && i < nbins; i++) {   /* a plan's items: each a data object */
+        recs made_now = { 0 };
+        for (size_t k = 0; k < i; k++)
+            for (size_t j = 0; j < mk->plans[k].objects.n; j++) recs_add(&made_now, mk->plans[k].objects.v[j]);
+        plan_objects(mk->dplan, (int)i + 1, &mk->plans[i].files, mk->cat, &made_now, mk->plans[i].disc_id, mk->today,
+                     &mk->plans[i].objects, &mk->plans[i].object_manifests);
+        free(made_now.v);
+    }
 }
 
 static void batch_files(maker *mk)
@@ -1231,6 +1242,7 @@ static void stage_plan(maker *mk, size_t idx)
     for (size_t b = b0; b < b1; b++) recs_add(&snap.bindings, mk->plans[b].binding);
     for (size_t b = b0; b < b1; b++) for (size_t i = 0; i < mk->plans[b].events.n; i++) recs_add(&snap.events, mk->plans[b].events.v[i]);
     for (size_t b = b0; b < b1; b++) for (size_t i = 0; i < mk->plans[b].appraisals.n; i++) recs_add(&snap.appraisals, mk->plans[b].appraisals.v[i]);
+    for (size_t b = b0; b < b1; b++) for (size_t i = 0; i < mk->plans[b].objects.n; i++) recs_add(&snap.objects, object_disc_view(mk->plans[b].objects.v[i]));
     if (!strcmp(o->snapshot, "full")) for (size_t i = 0; i < cat->locations.n; i++) recs_add(&snap.locations, cat->locations.v[i]);
     else archive_locations_for(cat, &snap.discs, &snap.locations);
     strlist snap_ids = { 0 };
@@ -1411,6 +1423,7 @@ static void stage_plan(maker *mk, size_t idx)
         recs_add(&own.bindings, p->binding);
         for (size_t i = 0; i < p->events.n; i++) recs_add(&own.events, p->events.v[i]);
         for (size_t i = 0; i < p->appraisals.n; i++) recs_add(&own.appraisals, p->appraisals.v[i]);
+        for (size_t i = 0; i < p->objects.n; i++) recs_add(&own.objects, object_disc_view(p->objects.v[i]));
         if (mk->collection) {                   /* the collection, and the edition this disc is part of */
             recs_add(&own.collections, mk->collection);
             recs_add(&own.revisions, mk->revision);
@@ -1633,6 +1646,14 @@ static int make_discs(maker *mk)
         recs_add(&mk->cat->bindings, p->binding);
         for (size_t k = 0; k < p->events.n; k++) recs_add(&mk->cat->events, p->events.v[k]);
         for (size_t k = 0; k < p->appraisals.n; k++) recs_add(&mk->cat->appraisals, p->appraisals.v[k]);
+        for (size_t k = 0; k < p->objects.n; k++) {     /* its data objects, and their manifests (catalog/objects/) */
+            recs_add(&mk->cat->objects, p->objects.v[k]);
+            char *dir = join(mk->h->catalog_dir, "objects"), *f = xprintf("%s/%s.sha256", dir, rec_get(p->objects.v[k], "Tree"));
+            if (mkdirs(dir)) die("cannot create %s", dir);
+            write_text(f, p->object_manifests.v[k]);
+            free(dir);
+            free(f);
+        }
         char *home_vol = xprintf("%s/volumes/%s", mk->h->catalog_dir, p->disc_id);
         if (mkdirs(home_vol)) die("cannot create %s", home_vol);
         const char *kinds[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", "git.tsv" };
@@ -1663,7 +1684,7 @@ static int make_discs(maker *mk)
         free(dir);
     }
     archive_save(mk->cat, mk->h->rec_path);
-    if (mk->collection) hash_cache_note(mk->h, mk->files);
+    if (mk->collection || mk->dplan) hash_cache_note(mk->h, mk->files);
     if (o->plan) {                  /* the plan says what became of it */
         strlist ids = { 0 };
         for (size_t i = 0; i < mk->nplans; i++) strlist_add(&ids, mk->plans[i].disc_id);
@@ -1921,6 +1942,7 @@ int cmd_make(int argc, char **argv)
         mk.cat = &cat;
         mk.src = o.plan ? NULL : src;
         mk.plan_discs = o.plan ? dp.discs : 0;
+        mk.dplan = o.plan ? &dp : NULL;
         mk.files = &files;
         mk.noted = &noted;
         mk.draft = o.draft ? &dr : NULL;

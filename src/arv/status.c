@@ -614,6 +614,123 @@ static void tracked_status(const arv_home *h, const archive *cat, const scan *s,
     free(disc_here);
 }
 
+/* ------------------------------------------------------------------ data objects read from here */
+
+static int ml_line_by_path(const void *a, const void *b)
+{
+    return strcmp(strchr(*(char *const *)a, ' ') + 2, strchr(*(char *const *)b, ' ') + 2);
+}
+
+/* the data objects a disc plan archived from this folder or below it (their Source, at home):
+ * each one's newest version against what is here now, by its Tree */
+static void objects_status(const arv_home *h, const archive *cat, const char *abs, const scan *s, int verbose)
+{
+    strlist seen = { 0 };
+    int heading = 0;
+    size_t n = strlen(abs);
+    for (size_t i = 0; i < cat->objects.n; i++) {
+        const rec_record *o = cat->objects.v[i];
+        const char *src = rec_get(o, "Source"), *uuid = rec_get(o, "Uuid");
+        if (!src || !uuid || strlist_has(&seen, uuid)) continue;
+        if (strcmp(src, abs) && (strncmp(src, abs, n) || src[n] != '/')) continue;
+        strlist_add(&seen, uuid);
+        const rec_record *latest = o;           /* its newest version, and the discs holding it */
+        for (size_t k = 0; k < cat->objects.n; k++)
+            if (!strcmp(get_or(cat->objects.v[k], "Uuid", ""), uuid)
+                && atol(get_or(cat->objects.v[k], "Version", "0")) > atol(get_or(latest, "Version", "0")))
+                latest = cat->objects.v[k];
+        sbuf discs = { 0 };
+        sb_puts(&discs, "");
+        for (size_t k = 0; k < cat->objects.n; k++) {
+            const rec_record *x = cat->objects.v[k];
+            if (strcmp(get_or(x, "Uuid", ""), uuid) || strcmp(get_or(x, "Version", ""), get_or(latest, "Version", ""))) continue;
+            const rec_record *d = archive_disc(cat, get_or(x, "Disc", ""));
+            sb_printf(&discs, "%s%s%s", discs.len ? ", " : "", get_or(x, "Disc", "?"), d && rec_get(d, "Retired") ? " (retired)" : "");
+        }
+        const char *rel = src[n] ? src + n + 1 : "";
+        int is_file = !strcmp(get_or(latest, "Kind", ""), "file");
+        strlist lines = { 0 };
+        char tree[65] = "";
+        size_t rl = strlen(rel);
+        for (size_t f = 0; f < s->files.n; f++) {
+            const char *p = s->files.v[f].path;
+            if (is_file) {
+                if (strcmp(p, rel)) continue;
+                snprintf(tree, sizeof tree, "%s", s->files.v[f].hash);
+                strlist_add(&lines, p);
+            } else if (!rl || (!strncmp(p, rel, rl) && p[rl] == '/')) {
+                char *line = xprintf("%s  %s", s->files.v[f].hash, rl ? p + rl + 1 : p);
+                strlist_add(&lines, line);
+                free(line);
+            }
+        }
+        sbuf text = { 0 };
+        sb_puts(&text, "");
+        if (!is_file) {
+            if (lines.n) qsort(lines.v, lines.n, sizeof *lines.v, ml_line_by_path);
+            for (size_t k = 0; k < lines.n; k++) sb_printf(&text, "%s\n", lines.v[k]);
+            text_sha256(text.s, tree);
+        }
+        if (!heading) {
+            puts("  data objects archived from here (disc plans):");
+            heading = 1;
+        }
+        printf("  %s%s%s%s%s: version %s on %s", get_or(latest, "Name", "?"), is_file ? "" : "/", *rel ? " (" : "", rel,
+               *rel ? ")" : "", get_or(latest, "Version", "?"), discs.s);
+        if (!lines.n) printf("; not here any more\n");
+        else if (!strcmp(tree, get_or(latest, "Tree", ""))) printf("; unchanged\n");
+        else {
+            char *f = xprintf("%s/objects/%s.sha256", h->catalog_dir, get_or(latest, "Tree", "")), *before = access(f, F_OK) ? NULL : read_text(f);
+            if (is_file || !before) printf("; changed since (a plan archives it as version %ld)\n", atol(get_or(latest, "Version", "0")) + 1);
+            else {
+                char *c = manifest_changes(before, text.s);
+                printf("; changed since: %s (a plan archives it as version %ld)\n", c, atol(get_or(latest, "Version", "0")) + 1);
+                if (verbose) {
+                    mlist b = { 0 }, a = { 0 };
+                    ml_parse(&b, before);
+                    ml_parse(&a, text.s);
+                    mdiff d;
+                    diff_manifests(&b, &a, &d);
+                    diff_print(&d, 1);
+                    diff_free(&d);
+                    ml_free(&b);
+                    ml_free(&a);
+                }
+                free(c);
+            }
+            free(before);
+            free(f);
+        }
+        free(text.s);
+        free(discs.s);
+        strlist_free(&lines);
+    }
+    /* by content alone: this folder as an object archived from elsewhere (moved, renamed, or a
+     * home rebuilt from discs, which carry no Source) */
+    strlist all = { 0 };
+    for (size_t f = 0; f < s->files.n; f++) {
+        char *line = xprintf("%s  %s", s->files.v[f].hash, s->files.v[f].path);
+        strlist_add(&all, line);
+        free(line);
+    }
+    if (all.n) qsort(all.v, all.n, sizeof *all.v, ml_line_by_path);
+    sbuf text = { 0 };
+    sb_puts(&text, "");
+    for (size_t k = 0; k < all.n; k++) sb_printf(&text, "%s\n", all.v[k]);
+    char tree[65];
+    text_sha256(text.s, tree);
+    for (size_t i = 0; all.n && i < cat->objects.n; i++) {
+        const rec_record *o = cat->objects.v[i];
+        if (strcmp(get_or(o, "Tree", ""), tree) || strlist_has(&seen, get_or(o, "Uuid", ""))) continue;
+        strlist_add(&seen, get_or(o, "Uuid", ""));
+        printf("  this folder is the data object %s/, version %s (data/%s on %s), unchanged\n", get_or(o, "Name", "?"),
+               get_or(o, "Version", "?"), get_or(o, "Path", "?"), get_or(o, "Disc", "?"));
+    }
+    free(text.s);
+    strlist_free(&all);
+    strlist_free(&seen);
+}
+
 /* ------------------------------------------------------------------ git repositories, by their history */
 
 typedef struct {
@@ -833,6 +950,7 @@ int cmd_status(int argc, char **argv)
         printf("%s: not a collection's workflow folder\n", abs);
         tracked_status(&h, &cat, &s, verbose, 1);
     }
+    if (!coll) objects_status(&h, &cat, abs, &s, verbose);
     git_report(&h, &cat, abs, &s.repos);
     if (s.links || s.unreadable) printf("  (%zu symbolic links not compared, %zu unreadable)\n", s.links, s.unreadable);
     for (size_t i = 0; i < s.silent_paths.n; i++)

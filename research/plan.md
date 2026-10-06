@@ -856,6 +856,12 @@ about 430 bytes per file in the archive. Up to about a million files that is und
   bytes read from its own source; one image a disc; no rebalancing). The GUI's Mastering tab
   drives it (drag and drop, a fill bar a disc). Open: `--formats` for a plan; whether a plan can
   make an edition of a collection; `plan show` marking what is already on discs (by hash).
+- **Data objects** (built 2026-10-06). Each plan item becomes an `Object` record (Uuid lineage,
+  Version, Tree, Disc, Path, Kind); `Source` and the manifests (`catalog/objects/`) stay at home.
+  Same Tree = same version; same Source, new Tree = next version; empty objects never match.
+  `arv status` reports objects from a folder exactly, and a folder whose whole Tree matches an
+  object by content; `arv find` lists them. Open: objects for `arv make FOLDER` too (the whole
+  folder as one object); `arv retire`-like care for an object's last version.
 - **Snapshot fallback.** `--snapshot full` is the default with no automatic step down when it does
   not fit; the intent is full where it fits, partial only when needed. What "partial" keeps (this
   set, this edition, recent discs) and how it treats access levels is undecided.

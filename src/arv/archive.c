@@ -51,13 +51,13 @@ rec_record *descriptor(const char *type)
 }
 
 static const char *const TYPES[] = { "Home", "Disc", "Binding", "Location", "Selection", "Collection", "Revision",
-                                     "Event", "Appraisal" };
-enum { NTYPES = 9, DISC_TYPE = 1, EVENT_TYPE = 7 };
+                                     "Object", "Event", "Appraisal" };
+enum { NTYPES = 10, DISC_TYPE = 1, EVENT_TYPE = 8 };
 
 static recs *group(archive *a, const char *type)
 {
     recs *g[] = { &a->homes, &a->discs, &a->bindings, &a->locations, &a->selections, &a->collections, &a->revisions,
-                  &a->events, &a->appraisals };
+                  &a->objects, &a->events, &a->appraisals };
     for (int i = 0; i < NTYPES; i++)
         if (!strcmp(type, TYPES[i])) return g[i];
     return NULL;
@@ -86,7 +86,7 @@ void archive_load(archive *a, const char *path)
 void archive_records(const archive *a, recs *out)
 {
     const recs *g[] = { &a->homes, &a->discs, &a->bindings, &a->locations, &a->selections, &a->collections,
-                        &a->revisions, &a->events, &a->appraisals };
+                        &a->revisions, &a->objects, &a->events, &a->appraisals };
     for (int i = 0; i < NTYPES; i++) {
         int always = i == DISC_TYPE || i == EVENT_TYPE;     /* Disc and Event descriptors are always written */
         if (!always && !g[i]->n) continue;
@@ -334,7 +334,26 @@ void archive_shared_subset(const archive *a, const strlist *ids, archive *out)
         const char *d = target_disc(rec_get(a->appraisals.v[i], "Target"), buf, sizeof buf);
         if (in_list(ids, d) && !in_list(&sealed, d)) recs_add(&out->appraisals, a->appraisals.v[i]);
     }
+    for (size_t i = 0; i < a->objects.n; i++) {          /* without Source: that stays at home */
+        const char *d = rec_get(a->objects.v[i], "Disc");
+        if (in_list(ids, d) && !in_list(&sealed, d)) recs_add(&out->objects, object_disc_view(a->objects.v[i]));
+    }
     strlist_free(&sealed);
+}
+
+static const char *get_or(const rec_record *r, const char *name, const char *dflt)
+{
+    const char *v = rec_get(r, name);
+    return v ? v : dflt;
+}
+
+/* an object as discs carry it: every field but Source (where it was read from: home only) */
+rec_record *object_disc_view(const rec_record *o)
+{
+    rec_record *r = rec_alloc("Object");
+    for (size_t f = 0; f < o->nfields; f++)
+        if (strcmp(o->fields[f].name, "Source")) rec_add(r, o->fields[f].name, o->fields[f].value);
+    return r;
 }
 
 /* every place a disc's copies are kept, as readable paths ("" when not recorded) */
@@ -590,6 +609,16 @@ size_t archive_merge(archive *home, const archive *other, int prefer_other, strl
                 have = !strcmp(existing->fields[g].name, name) && (!strcmp(name, "Keep") || !strcmp(existing->fields[g].value, value));
             if (!have) rec_add(existing, name, value);
         }
+    }
+    for (size_t i = 0; i < other->objects.n; i++) {       /* one object version on one disc: Uuid, Version, Disc */
+        const rec_record *o = other->objects.v[i];
+        int have = 0;
+        for (size_t k = 0; k < home->objects.n && !have; k++) {
+            const rec_record *x = home->objects.v[k];
+            have = !strcmp(get_or(x, "Uuid", ""), get_or(o, "Uuid", "")) && !strcmp(get_or(x, "Version", ""), get_or(o, "Version", ""))
+                   && !strcmp(get_or(x, "Disc", ""), get_or(o, "Disc", ""));
+        }
+        if (!have) recs_add(&home->objects, other->objects.v[i]);
     }
     for (size_t i = 0; i < other->events.n; i++)
         if (!in_recs(&home->events, other->events.v[i])) {
