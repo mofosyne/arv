@@ -148,8 +148,12 @@ else
     grep -q "git bundle failed" hist.txt && ok "--tools-history: git could not bundle this checkout, as warned" \
         || no "--tools-history: no bundle and no warning"
 fi
-# RS03, added and tested by arv itself (src/rs03); no dvdisaster needed
-"$tool" make -C ecc-home --formats no --set CODE --medium-sectors 9600 --output-dir ecc-out src >/dev/null 2>&1 \
+# RS03, added and tested by arv itself (src/rs03); no dvdisaster needed. A small stand-in for
+# tools/: the real checkout is far larger than this test's medium (a real disc carries it all)
+mkdir -p ecc-tools/src/arv
+echo "arv@test" > ecc-tools/VERSION
+printf '/* arv.c stand-in */\n' > ecc-tools/src/arv/arv.c
+"$tool" make -C ecc-home --formats no --set CODE --medium-sectors 9600 --output-dir ecc-out --tools ecc-tools src >/dev/null 2>&1 \
     || no "arv make with RS03"
 iso=$(ls ecc-out/*.iso)
 grep -q "RS03: " ecc-home/catalog/archive.rec && grep -q "Type: fixity check" ecc-home/catalog/archive.rec \
