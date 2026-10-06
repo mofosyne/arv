@@ -843,3 +843,18 @@ about 430 bytes per file in the archive. Up to about a million files that is und
 ## Open decisions
 
 - Licence for this repo (GPLv3 fits if the RS03 library happens)
+- **Editions under a distributed collection** (2026-10-06). The archive is the union of the
+  workflow folder, warm images and cold discs; a disc holds a selection plus a catalogue copy
+  ([concepts.md](../docs/concepts.md)). But "a newer safe edition replaces older ones" still
+  assumes the workflow folder holds everything: anything moved out of it is then on retirable
+  discs only. `arv retire` lists those files, but `--yes` retires them anyway. Options: retire
+  only discs whose files are all on newer discs; or count "only on these discs" files as a reason
+  to keep, as for git history. Undecided.
+- **Disc plan / mastering window** (not built). Choose objects from PC/NAS folders by hand and
+  arrange them onto one or more discs, Nero-style; the plan references source paths until the
+  images are made (no staging copy). Today only `arv make --split` exists (fills discs in order).
+- **Snapshot fallback.** `--snapshot full` is the default with no automatic step down when it does
+  not fit; the intent is full where it fits, partial only when needed. What "partial" keeps (this
+  set, this edition, recent discs) and how it treats access levels is undecided.
+- **Vocabularies on disc.** `arv rebuild` restores catalogue records and indexes but not `config/`
+  vocabularies; whether discs carry them is open.

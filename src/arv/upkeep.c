@@ -294,7 +294,7 @@ int cmd_retire(int argc, char **argv)
         strlist_free(&v);
     }
     if (at_risk.n) {
-        printf("%zu file%s only on these discs (removed from the collection since):\n", at_risk.n,
+        printf("%zu file%s only on these discs (not in the newer edition):\n", at_risk.n,
                at_risk.n == 1 ? " is" : "s are");
         size_t limit = verbose ? at_risk.n : at_risk.n < 20 ? at_risk.n : 20;
         for (size_t i = 0; i < limit; i++) printf("  %s\n", at_risk.v[i]);

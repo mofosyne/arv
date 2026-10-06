@@ -86,7 +86,7 @@ No single place holds everything. The PC or NAS holds the working objects (hot) 
 disc images (warm); the shelf holds the burned discs (cold). Each is partial:
 
 - the **workflow folder** may hold only the objects being worked on;
-- a **disc** holds only its edition's contents;
+- a **disc** holds the part of the collection put on it, and a copy of the catalogue;
 - an **iso** is a warm mirror of a disc.
 
 The full data object collection is the **union** of all of them: the PC/NAS and the cold discs
@@ -96,6 +96,18 @@ and `arv status` on a folder says which of its files are on which discs and whic
 Completeness is a property of the union, not of any one place. `arv todo` watches the union's
 health: discs with no copy, copies never read back, discs with no cold copy, discs in fewer than
 two places, checks overdue.
+
+### What an edition covers
+
+An edition is made from what is in the workflow folder when `arv make` runs: its discs together
+hold that, and no more. The folder does not have to hold everything the collection ever had; what
+left it is still on earlier discs, and the catalogue still says where.
+
+Today a newer safe edition **replaces** the earlier ones (unless they are kept), so a file that left
+the folder before the newer edition was made is then on the older discs only. `arv retire` lists
+those files and records nothing until `--yes`; keep an edition (`arv collection keep CODE N`)
+whose discs hold something you still want. arv chooses which files go on which disc of an edition
+(`--split` fills discs in order); choosing that by hand, across folders, is not built yet.
 
 ## The catalogue is spread across every disc
 
@@ -115,7 +127,7 @@ limited by `--snapshot` (`full`, `set`, `disc`) and by each disc's access level.
 | **collection** | something kept over time: one workflow folder, one code, one history. *What you keep.* |
 | **set** | a vocabulary classification (`PHOTO`, `TRIP`), not a thing you keep; the id prefix |
 | **revision** | one recorded state of a collection: a **checkpoint** (hashes only) or an **edition** |
-| **edition** | a set of discs made together from a collection; each disc holds a selection of it and a copy of the catalogue; numbered; replaced by a newer safe edition unless kept |
+| **edition** | a set of discs made together from what a collection's workflow folder holds at the time; each disc holds part of it and a copy of the catalogue; numbered; replaced by a newer safe edition unless kept |
 | **volume (disc)** | one bag, one image; belongs to exactly one edition |
 | **copy** | one physical or stored copy of a disc: burned, an iso, or a folder; with a place and a temperature |
 | **archive** (home) | one privacy sphere's catalogue: a `.arv` folder |

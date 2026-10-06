@@ -193,7 +193,7 @@ rc=0
 $ --home hc retire FAM
 FAM: edition 2 (2026-01-01) is safe; it replaces (editions marked kept stay):
   edition 1 (2026-01-01): FAM-01_2019_0
-2 files are only on these discs (removed from the collection since):
+2 files are only on these discs (not in the newer edition):
   2019/a.txt
   b.txt
 Nothing recorded. arv retire FAM --yes records them as retired (arv deletes nothing: the discs are yours to keep or destroy).
@@ -201,7 +201,7 @@ rc=0
 $ --home hc retire FAM --yes
 FAM: edition 2 (2026-01-01) is safe; it replaces (editions marked kept stay):
   edition 1 (2026-01-01): FAM-01_2019_0
-2 files are only on these discs (removed from the collection since):
+2 files are only on these discs (not in the newer edition):
   2019/a.txt
   b.txt
 1 disc retired (logged)

@@ -50,7 +50,7 @@ flowchart TD
 | **archive** (home) | one archive's catalogue: a `.arv` folder with its own identity (`arv where` shows it). Each archive is its own privacy sphere: its discs carry its catalogue only |
 | **collection** | something kept over time, e.g. *Family photos*: one **workflow folder**, one code (`FAMILY`), one history |
 | **revision** | one recorded state of a collection, as a git commit: a **checkpoint** (hashes only, nothing copied) or an **edition** |
-| **edition** | a set of discs made together from a collection; each disc holds a selection of it and a copy of the catalogue; numbered; replaced by a newer safe edition unless **kept** |
+| **edition** | a set of discs made together from what a collection's workflow folder holds at the time; each disc holds part of it and a copy of the catalogue; numbered; replaced by a newer safe edition unless **kept** |
 | **copy** | one physical or stored copy of a disc: a burned **disc**, the image as an **iso** file, or the disc's files as a **folder**; each with a place and a **temperature** |
 | **temperature** | **hot**: in active use; **warm**: online or reachable, left alone (an image on a NAS); **cold**: offline (discs on a shelf, unplugged drives) |
 | **safe** | an edition whose every disc has a copy read back identical to its image |
@@ -253,7 +253,7 @@ arv location list -v                                 # places, their temperature
 - checks overdue (5 years by default; `--overdue YEARS`).
 
 **Retiring** an edition a newer safe one replaces (`arv retire FAMILY`) lists any files that
-exist only on the discs being retired (removed from the collection since), and records nothing
+exist only on the discs being retired (not in the newer edition: they left the workflow folder), and records nothing
 until `--yes`. Then each disc is marked retired, leaves its places, and gets an event saying what
 replaced it. arv deletes nothing: the discs are yours to keep or destroy.
 
