@@ -474,8 +474,8 @@ Details and measurements: research-notes.md, sections 7-9.
 ## Design (2026-10-04, agreed in outline): collections, editions and the workflow folder
 
 Not implemented. Supersedes "changed files go on the new disc whole" in the history-graph design
-below: every edition is a full copy. The rest of that design (node hashes, a log on every disc,
-appraisals) carries over.
+below: every edition is a set of discs made together. The rest of that design (node hashes, a log
+on every disc, appraisals) carries over.
 
 **Two kinds of folder.** A *tracked* folder (the NAS, loose drives) holds data objects that stay
 where they are; arv only knows which of its files are on which disc, by SHA-256. A *workflow*
@@ -485,7 +485,7 @@ folder is where a person sorts and organises something into shape and builds dis
 | Term | What it is |
 |---|---|
 | collection | the thing being kept, e.g. FAMILY: one workflow folder, one code, one log; its settings (title, set, categories, access) are given once, so `arv make` asks nothing |
-| edition | a **full copy** of the collection as it was on a date, numbered 1, 2, 3 ...; split over as many discs as it needs; with as many copies as its owner makes; `Keep` for one never to retire |
+| edition | a **set of discs** made together from the collection as it was on a date, numbered 1, 2, 3 ...; each disc holds a selection of it and a copy of the catalogue; with as many copies as its owner makes; `Keep` for one never to retire |
 | volume (disc) | as now: one bag, one image; belongs to exactly one edition |
 | binding | where an edition's volumes sit: Blu-ray images, and later the same bags as a folder or a zip on the NAS (the binding table above) |
 
@@ -499,9 +499,10 @@ FAMILY  (one workflow folder, one log)
   edition 4  2026-01  FAMILY-05 + FAMILY-06   2x BD100, kept 2 copies + NAS replaces 1-3 (4 is never retired)
 ```
 
-**Why full copies.** For a power user, not an institution: any one edition restores the whole
-collection by itself, with no chain to replay and no disc that is useless alone. It costs discs;
-provisional discs are cheap BD-R, and they are retired.
+**Why a set of discs, not a chain.** For a power user, not an institution: the discs of an
+edition together hold what was archived, so there is no chain to replay and no disc that is
+useless alone (each carries a copy of the catalogue). It costs discs; provisional discs are
+cheap BD-R, and they are retired.
 
 **Lifecycle**
 1. `arv collection init FAMILY --title "Family photos" [--set PHOTO] [--access private]` in the
@@ -509,7 +510,7 @@ provisional discs are cheap BD-R, and they are retired.
    marker never goes on a disc, and arv writes nothing else in the folder.
 2. Sort and organise freely. `arv status` in the folder: what changed since the last edition
    (added, changed, removed, renamed: by SHA-256), the size, and the media it fits.
-3. `arv make` in the folder: the next edition, provisional by default, a full copy, split as
+3. `arv make` in the folder: the next edition, provisional by default, a set of discs, split as
    needed. `--final [--medium bd100]` makes the final one.
 4. Burn and check each disc (`arv burn`, see the workflow review). An edition is *safe* once
    every volume has a copy that passed its read-back.
@@ -571,8 +572,9 @@ Message: the 2025 sort, final
 record holds the code, Uuid, title, description and defaults.
 
 **Git repositories in a collection.** A repository already keeps its own provisional history
-(commits); a disc is a snapshot of the working tree **and all history up to that point**, so an
-edition stays a full copy. Any folder in the collection with a `.git` is handled this way:
+(commits); a disc is a snapshot of the working tree **and all history up to that point**, so a
+disc holds the repository's whole history. Any folder in the collection with a `.git` is handled
+this way:
 - **The working tree as plain files**, as now: readable with no git at all, uncommitted changes
   included (and flagged, as arv flags its own `+uncommitted`).
 - **The history as a compacted `.git` in the same place**: `HEAD`, `config`, `packed-refs`, the
@@ -619,7 +621,7 @@ edition stays a full copy. Any folder in the collection with a `.git` is handled
 heads `archive.rec`; discs name it (`HomeUuid`); archives are separate privacy spheres, and
 `arv rebuild` keeps them apart (`--any-archive` to merge on purpose).
 
-**No provisional and final** (2026-10-05): an edition is an edition, a full copy with as many
+**No provisional and final** (2026-10-05): an edition is an edition, a set of discs with as many
 copies as its owner makes (one disc and one NAS copy, say). A newer safe edition replaces older
 ones, except those kept (`arv make --keep`, `arv collection keep CODE N`).
 

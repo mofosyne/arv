@@ -287,10 +287,10 @@ Access: private
 + the SHA-256 of its manifest (every file's path and SHA-256, sorted); Node is the
 + SHA-256 of Tree, Parent(s), Date and Message, and names the revision. A checkpoint
 + only records the state (the files stay on everyday storage); an edition became discs:
-+ Edition numbers it, Volume names each disc. Each edition is a full copy of the
-+ collection, with as many copies as its owner makes (discs, NAS); a later safe edition
-+ replaces earlier ones, except those with Keep: yes (which may be added later: it is
-+ not part of Node).
++ Edition numbers it, Volume names each disc. An edition is a set of discs made together,
++ each holding a selection of the collection and a copy of the catalogue, with as many
++ copies as its owner makes (discs, NAS); a later safe edition replaces earlier ones,
++ except those with Keep: yes (which may be added later: it is not part of Node).
 %key: Node
 %mandatory: Node Collection Tree Date Stage
 %type: Date date

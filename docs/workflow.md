@@ -6,14 +6,15 @@ also says where each part of this repository fits.
 
 **This is archiving, not backup.** Backups (the NAS, restic, Borg, the cloud) hold everything
 as it is now and are replaced by the next one; keep them. The archive holds what you chose to
-keep, in full copies called *editions*, kept **cold** (offline, on a shelf) wherever possible,
-and recorded well enough to outlive the software and the person who made it
-([philosophy.md](philosophy.md)).
+keep, in *editions* — sets of discs, each holding a selection of the collection and a copy of
+the catalogue — kept **cold** (offline, on a shelf) wherever possible, and recorded well enough
+to outlive the software and the person who made it ([philosophy.md](philosophy.md)).
 
-Details live elsewhere and are linked: the command reference in [README.md](../README.md), the
-on-disc format in [smart-archive-format.md](spec/smart-archive-format.md), burning in
-[burning.md](burning.md), shelving in [shelving.md](shelving.md), and the reasons for each choice
-in [research-notes.md](../research/research-notes.md) and [plan.md](../research/plan.md).
+Details live elsewhere and are linked: the model behind the commands in
+[concepts.md](concepts.md), the command reference in [README.md](../README.md), the on-disc format
+in [smart-archive-format.md](spec/smart-archive-format.md), burning in [burning.md](burning.md),
+shelving in [shelving.md](shelving.md), and the reasons for each choice in
+[research-notes.md](../research/research-notes.md) and [plan.md](../research/plan.md).
 
 ## The whole thing on one page
 
@@ -23,7 +24,7 @@ flowchart TD
         W[a workflow folder<br/>arv collection init] --> S[sort, add, rename<br/>arv status, arv checkpoint]
     end
     subgraph make [An edition]
-        S --> M[arv make<br/>a full copy as disc images:<br/>bag, catalogue, tools, RS03]
+        S --> M[arv make<br/>disc images: a selection of the<br/>collection + the catalogue, bag, tools, RS03]
     end
     subgraph copies [Its copies]
         M --> B[burn it yourself, then<br/>arv burned --device: read back, recorded; cold]
@@ -49,7 +50,7 @@ flowchart TD
 | **archive** (home) | one archive's catalogue: a `.arv` folder with its own identity (`arv where` shows it). Each archive is its own privacy sphere: its discs carry its catalogue only |
 | **collection** | something kept over time, e.g. *Family photos*: one **workflow folder**, one code (`FAMILY`), one history |
 | **revision** | one recorded state of a collection, as a git commit: a **checkpoint** (hashes only, nothing copied) or an **edition** |
-| **edition** | a full copy of the collection as it was, made into disc images (one or several discs); numbered; replaced by a newer safe edition unless **kept** |
+| **edition** | a set of discs made together from a collection; each disc holds a selection of it and a copy of the catalogue; numbered; replaced by a newer safe edition unless **kept** |
 | **copy** | one physical or stored copy of a disc: a burned **disc**, the image as an **iso** file, or the disc's files as a **folder**; each with a place and a **temperature** |
 | **temperature** | **hot**: in active use; **warm**: online or reachable, left alone (an image on a NAS); **cold**: offline (discs on a shelf, unplugged drives) |
 | **safe** | an edition whose every disc has a copy read back identical to its image |
@@ -165,9 +166,10 @@ make --git-since DATE` keeps only the history since then (shallow, as git itself
 arv make ~/family [--message "the 2025 sort"] [--keep] [--medium bd25|bd100] [--split]
 ```
 
-Each `make` on a workflow folder is the collection's next **edition**: a full copy, never just
-the changes, so any one edition restores the whole collection by itself. `--keep` marks one that
-must never be retired (a milestone; or later, `arv collection keep FAMILY 4`).
+Each `make` on a workflow folder is the collection's next **edition**: a set of discs made
+together, not just the changes, each holding a selection of the collection and a copy of the
+catalogue. `--keep` marks one that must never be retired (a milestone; or later,
+`arv collection keep FAMILY 4`).
 
 A folder that is not a collection works too (`arv make FOLDER --set TRIP`): a one-off disc, as
 arv always made. The choices that matter then:

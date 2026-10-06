@@ -8,7 +8,9 @@ its database immediately, without scanning or hashing the payload, and a
 person can read every file with a text editor.
 
 This project (`arv make`) writes discs in this format. The format itself is
-independent of the tool.
+independent of the tool. What a folder is, and what an object is (containment is
+implicit in the paths; objecthood is asserted only for a collection and for git
+repositories): [concepts.md](../concepts.md).
 
 The layers and how a disc is made and read, as a picture: [architecture.md](../architecture.md).
 
@@ -294,7 +296,8 @@ because a snapshot's copy may be filtered.
 A **collection** is something kept over time and made into discs again and again, e.g. a
 family's photos: one folder on everyday storage (its *workflow folder*), one history. Each
 **revision** records one state of it, as a git commit does; a revision that became discs is
-an **edition**, a full copy of the collection, with as many copies as its owner makes. A later
+an **edition**, a set of discs made together, each holding a selection of the collection and a
+copy of the catalogue, with as many copies as its owner makes. A later
 edition, once safely burned, replaces earlier ones, except those marked `Keep: yes`. (Format 0.5 defines the records; arv writes
 them from `arv collection init` on. Readers must accept them.)
 

@@ -81,7 +81,7 @@ static const char HELP[] =
     "  --git-since DATE       git repositories keep only the history since DATE (shallow; default: all)\n"
     "  --split                spread the folder over as many discs as needed\n"
     "In a collection's workflow folder (arv collection init), the collection gives the title, set,\n"
-    "categories and access, its code starts the disc ids, and each make is its next edition (a full copy):\n"
+    "categories and access, its code starts the disc ids, and each make is its next edition:\n"
     "  --keep                 keep this edition: never offered for retiring when a newer one is safe\n"
     "  --message TEXT         what this edition is, for the collection's history\n"
     "  --formats auto|yes|no  PRONOM format ids with Siegfried (auto: when sf is on PATH)\n"
