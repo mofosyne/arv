@@ -20,7 +20,7 @@ samples/fetch-discs.sh      # downloads every image and checks it against SHA256
 | `TAXES-01_2019-2020_I` | **sealed**: later discs carry only its id, dates and location, never its title or file list; kept in the fire safe |
 | `SCAN-01_1995-2008_D` | `--set scan --category letters` (under both MEMORIES and RECORDS); made with `--split`, though on this medium it fits on one disc |
 | `FAMILY-01_2020_Q` | **a collection's first edition**: `arv collection init` made the folder the workflow folder of *Family photos*; this edition holds 2020. **Retired**: edition 2 replaced it once a copy of it was checked |
-| `FAMILY-02_2020-2021_I` | the collection's **second edition**, a full copy with 2021 added; a cold copy at the parents' and a **warm** copy "on the NAS" (`arv stored`: the image file, read back and recorded). Made last, so it carries the whole catalogue |
+| `FAMILY-02_2020-2021_I` | the collection's **second edition**, with 2021 added; a cold copy at the parents' and a **warm** copy "on the NAS" (`arv stored`: the image file, read back and recorded). Made last, so it carries the whole catalogue |
 
 `home/` is the archive's catalogue as arv keeps it: its identity, places with their
 temperatures, copies, notes, appraisals, the collection and its revisions, and the events of

@@ -29,7 +29,9 @@ and keeps the whole archive's record:
 
 - **What you keep, over time.** A folder you sort and grow becomes a *collection* with its own
   history, like git's but for any files: each state is a revision, and each set of discs made
-  from it is an edition, a full copy every time, with as many copies as you make.
+  from it is an edition. Each disc holds a selection of the collection and a copy of the
+  catalogue, so the discs together hold what you archived, and any one of them can tell you
+  about the whole archive.
 - **What is archived, and where.** Point it at any folder and it says which files are already
   on which discs and which are on none, and what changed since the last edition.
 - **Where every copy is, and whether it still reads.** Locations down to the box, copies per
@@ -43,7 +45,7 @@ check and repair it, with error correction filling the rest of the disc. All in 
 well-documented formats that can be read decades from now without this tool. Blu-ray (M-DISC
 BD-R) is today's medium; the format does not depend on it.
 
-Why it works the way it does (curated discs on top of everyday storage, plain files, copies): [docs/philosophy.md](docs/philosophy.md).
+Why it works the way it does (curated discs on top of everyday storage, plain files, copies): [docs/philosophy.md](docs/philosophy.md). The model behind the commands — collections, archives, copies, and how objects and folders relate: [docs/concepts.md](docs/concepts.md).
 
 **Start with [docs/workflow.md](docs/workflow.md)**: the whole flow, from a folder to discs on a
 shelf, finding and checking them over the years, and recovering from damage or loss.
@@ -91,7 +93,7 @@ Each layer does its own job:
 | `src/arv-assist/` | **arv-assist**, optional, in C: the local AI helpers (`arv describe`, `arv tag`, `arv models`), against local models only |
 | `src/arv-gui/` | **arv-gui**, optional, in Python (standard library only): `arv gui`, the interface in your web browser; it runs arv for every action |
 | `arv` | runs `src/arv/build/arv` in a checkout (and `tools/arv/arv` on a disc), building it with `make` first if needed |
-| `docs/` | For users: workflow, burning, shelving, architecture, philosophy, and the website |
+| `docs/` | For users: concepts, workflow, burning, shelving, architecture, philosophy, and the website |
 | `docs/spec/` | For implementers, and on every disc: the disc format, the UDF profile, the RS03 error correction |
 | `research/` | Why, and what next: research notes, the standards survey, organising lessons, the plan, RS03 experiments |
 | `samples/` | The sample discs' catalogue and the script that makes them (the images are release downloads) |

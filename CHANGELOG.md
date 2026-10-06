@@ -25,7 +25,8 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 **Collections over time** (format 0.5; design in research/plan.md, being built)
 - A *collection* is something kept and made into discs again and again, from one workflow
   folder with one history: `Collection` records (with a Uuid) and `Revision` records (git-like:
-  `Tree` and `Node` hashes; checkpoints, and editions, each a full copy; `--keep` for one never to retire).
+  `Tree` and `Node` hashes; checkpoints, and editions, each a set of discs holding a selection
+  of the collection and a copy of the catalogue; `--keep` for one never to retire).
 - `arv burned --device DRIVE` reads a burned copy back against its image and records it only
   if identical (arv never drives the burner: `arv make` prints the command). An edition is safe
   once each disc has such a copy; `arv retire CODE` then retires the editions it replaces
