@@ -628,11 +628,17 @@ static void objects_status(const arv_home *h, const archive *cat, const char *ab
     strlist seen = { 0 };
     int heading = 0;
     size_t n = strlen(abs);
+    char *root = home_root(h);
     for (size_t i = 0; i < cat->objects.n; i++) {
         const rec_record *o = cat->objects.v[i];
-        const char *src = rec_get(o, "Source"), *uuid = rec_get(o, "Uuid");
-        if (!src || !uuid || strlist_has(&seen, uuid)) continue;
-        if (strcmp(src, abs) && (strncmp(src, abs, n) || src[n] != '/')) continue;
+        const char *stored = rec_get(o, "Source"), *uuid = rec_get(o, "Uuid");
+        if (!stored || !uuid || strlist_has(&seen, uuid)) continue;
+        char *src_abs = path_abs(root, stored);     /* relative to the home's root when inside it */
+        const char *src = src_abs;
+        if (strcmp(src, abs) && (strncmp(src, abs, n) || src[n] != '/')) {
+            free(src_abs);
+            continue;
+        }
         strlist_add(&seen, uuid);
         const rec_record *latest = o;           /* its newest version, and the discs holding it */
         for (size_t k = 0; k < cat->objects.n; k++)
@@ -704,7 +710,9 @@ static void objects_status(const arv_home *h, const archive *cat, const char *ab
         free(text.s);
         free(discs.s);
         strlist_free(&lines);
+        free(src_abs);
     }
+    free(root);
     /* by content alone: this folder as an object archived from elsewhere (moved, renamed, or a
      * home rebuilt from discs, which carry no Source) */
     strlist all = { 0 };

@@ -171,6 +171,16 @@ echo "$out" | grep -q "changed after it was hashed" && echo "$out" | grep -q "^ 
     && [ -z "$(ls race-out/*.iso 2>/dev/null)" ] && ! grep -q "^Id:" race-home/catalog/archive.rec 2>/dev/null \
     && ok "arv make: a file changed between hashing and writing is refused, and nothing is recorded" \
     || no "a file changed mid-make: $out"
+# portable: arv and a .arv home side by side on a drive, run from anywhere: the drive's home, and
+# nothing written outside the drive (no machine config, no fallback home)
+mkdir -p drive/tools portable-user
+cp "$tool" drive/tools/arv
+(cd drive && HOME="$dir/portable-user" XDG_CONFIG_HOME= XDG_DATA_HOME= ./tools/arv init >/dev/null 2>&1)
+where=$(cd / && HOME="$dir/portable-user" XDG_CONFIG_HOME= XDG_DATA_HOME= "$dir/drive/tools/arv" where 2>&1)
+echo "$where" | grep -q "drive/.arv$" && echo "$where" | grep -q "beside arv itself" \
+    && [ -z "$(ls -A portable-user)" ] \
+    && ok "portable: arv finds the .arv home on its own drive, from anywhere, and writes nothing outside it" \
+    || no "portable home: $where"
 [ "$(sed -n 's/^ImageSha256: //p' ecc-home/catalog/archive.rec)" = "$(sha256sum < "$iso" | cut -d' ' -f1)" ] \
     && [ "$(sed -n 's/^ImageSectors: //p' ecc-home/catalog/archive.rec)" -eq $(($(wc -c < "$iso") / 2048)) ] \
     && ok "the home's Binding records the finished image's size and SHA-256 (to check a burned disc against)" \

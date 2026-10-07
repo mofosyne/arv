@@ -22,11 +22,21 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Safer making, and a portable arv**
+- `arv make` checks each file's bytes against its manifest as they are written to the image; a
+  file changed after hashing stops the make and nothing is recorded (before, the disc would have
+  failed `arv verify` later).
+- arv finds a `.arv` home beside itself (`tools/arv.com` and `.arv/` on one drive), so it runs
+  from a portable drive without a machine config and writes nothing outside the drive.
+
 **Disc plans: discs composed by hand** (no format change)
 - `arv plan` composes discs from files and folders anywhere (a film on the PC, photos on the
   NAS): which goes on which disc, and where under `data/`. A plan points at its sources and copies
   nothing; `arv plan show` measures them against each disc's room, and `arv plan make` makes
   one image a disc (`arv make --plan`). The GUI's new Mastering tab is the same, with drag and drop.
+  Plans point at their sources; `arv plan add --copy` copies an item into the plan instead (an
+  SD card that will not be there at make time), and `plan show`/`plan make` say which items changed
+  since they were planned (`arv plan refresh`). Sources inside the home's drive are kept relative.
   A made plan is kept as a template: `arv plan list` hides it unless `--all`, and `arv plan again
   NAME NEW` starts the same selection again as a new plan (the GUI: "Make it again").
 - Each planned file or folder becomes a **data object** (`Object` record, format 0.5): known by

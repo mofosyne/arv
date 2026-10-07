@@ -240,9 +240,17 @@ without touching any of them. In order:
 3. the nearest `.arv` folder, or `.arv` pointer file, above the folder being archived
    (`arv make FOLDER`) or the current folder; or, from the root of an archive disc, the disc's
    own `catalog/` (so `arv find` works on any disc);
-4. the default home in `~/.config/arv/homes.rec` (paths are per machine; this file never goes on
+4. a `.arv` beside arv itself, walking up from the folder the program is in (portable, below);
+5. the default home in `~/.config/arv/homes.rec` (paths are per machine; this file never goes on
    a disc, and deleting it loses nothing);
-5. `~/.local/share/arv` (or `~/.local/share/bluray-archive` if you used an older version).
+6. `~/.local/share/arv` (or `~/.local/share/bluray-archive` if you used an older version).
+
+**Portable**: put `arv.com` (or `arv`) and a home on the same drive, e.g. `tools/arv.com` and
+`.arv/` at the drive's root (`arv init` there). Run from anywhere, arv uses the drive's home and
+writes nothing outside the drive (no machine config, no fallback home) unless you register it with
+`arv init --name`. Paths that plans and data objects keep inside the drive are relative to the
+folder holding `.arv`, so they still work when the drive is mounted elsewhere or under another
+letter.
 
 ### Commands
 
@@ -260,6 +268,7 @@ arv make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: 
 arv make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
 arv plan new trip --set TRIP && arv plan add trip ~/Videos/film.mkv /nas/photos/2025 --disc new
 arv plan show trip && arv plan make trip   # discs composed by hand from anywhere (docs/workflow.md)
+arv plan add trip /media/sdcard/DCIM --copy  # copied into the plan: the card need not be there at make
 arv make ./my-git-clone --links record   # links: file links copied, the rest noted in the listing
 #   (default: links leaving the folder are refused; copy: copy what every link points to)
 arv make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03

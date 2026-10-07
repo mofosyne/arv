@@ -48,9 +48,10 @@ Disc 2  [#-------------------]    1%  20 B in 2 items
   notes.txt  6 B  ROOT/plan-pc/notes.txt
   photos/  14 B, 2 files  ROOT/plan-nas/photos/2025
 Next: arv plan make trip (one image a disc; arv make's options apply)
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
 rc=0
 $ --home hp plan show trip --json
-{"name": "trip", "title": "Holiday 2025", "set": "TRIP", "medium": "bd25", "description": null, "access": null, "from": null, "mediumLabel": "BD-R 25GB", "room": 19804278784, "made": null, "volumes": [], "discs": [{"disc": 1, "bytes": 7, "used": 6144, "items": [{"path": "video/wedding.mkv", "source": "ROOT/plan-pc/Videos/wedding.mkv", "kind": "file", "bytes": 7, "files": 1}]}, {"disc": 2, "bytes": 20, "used": 20480, "items": [{"path": "notes.txt", "source": "ROOT/plan-pc/notes.txt", "kind": "file", "bytes": 6, "files": 1}, {"path": "photos", "source": "ROOT/plan-nas/photos/2025", "kind": "folder", "bytes": 14, "files": 2}]}]}
+{"name": "trip", "title": "Holiday 2025", "set": "TRIP", "medium": "bd25", "description": null, "access": null, "from": null, "mediumLabel": "BD-R 25GB", "room": 19804278784, "made": null, "volumes": [], "discs": [{"disc": 1, "bytes": 7, "used": 6144, "items": [{"path": "video/wedding.mkv", "source": "ROOT/plan-pc/Videos/wedding.mkv", "origin": null, "changed": false, "kind": "file", "bytes": 7, "files": 1}]}, {"disc": 2, "bytes": 20, "used": 20480, "items": [{"path": "notes.txt", "source": "ROOT/plan-pc/notes.txt", "origin": null, "changed": false, "kind": "file", "bytes": 6, "files": 1}, {"path": "photos", "source": "ROOT/plan-nas/photos/2025", "origin": null, "changed": false, "kind": "folder", "bytes": 14, "files": 2}]}]}
 rc=0
 $ --home hp plan list
 trip  2 discs, 3 items  "Holiday 2025"
@@ -110,6 +111,7 @@ Disc 2  [#-------------------]    1%  20 B in 2 items
   notes.txt  6 B  ROOT/plan-pc/notes.txt
   photos/  14 B, 2 files  ROOT/plan-nas/photos/2025
 Next: arv plan make trip-2026 (one image a disc; arv make's options apply)
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
 rc=0
 $ --home hp find wedding
 OBJECT  wedding.mkv  version 1  TRIP-01_2025_B  data/video/wedding.mkv  [?]
@@ -271,6 +273,7 @@ Plan later  BD-R XL 100GB: about 74.2 GiB a disc for files
 Disc 1  [--------------------]    0%  0 B in 1 item
   gone.txt  MISSING  ROOT/plan-pc/gone.txt
 1 item is missing: put it back, or arv plan drop later PATH
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
 rc=0
 $ --home hp plan make later -y --no-ecc --formats no
 Error: ROOT/plan-pc/gone.txt is gone (arv plan show)
@@ -284,4 +287,73 @@ rc=0
 $ --home hp plan list
 trip-2026  2 discs, 3 items  "Holiday 2026"
 (2 made plans not shown: arv plan list --all)
+rc=0
+$ --home hp plan new card --set TRIP
+Plan card: 1 empty disc (hp/drafts/plans/card.rec). Next: arv plan add card FILE-OR-FOLDER...
+rc=0
+$ --home hp plan add card plan-sd/DCIM --copy --as camera
+Copying ROOT/plan-sd/DCIM into the plan ...
+camera/ (copied into the plan): disc 1, now 1% full
+rc=0
+$ --home hp plan add card plan-docs/letter.txt
+letter.txt: disc 1, now 1% full
+rc=0
+$ --home hp plan show card
+Plan card  set TRIP  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  25 B in 2 items
+  camera/  10 B, 1 file  (the plan's copy)  of ROOT/plan-sd/DCIM
+  letter.txt  15 B  ROOT/plan-docs/letter.txt  CHANGED since planned
+1 item changed since planned: the discs get it as it is now (arv plan refresh card: that is fine)
+Next: arv plan make card (one image a disc; arv make's options apply)
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hp plan add card plan-sd/DCIM
+Error: plan-sd/DCIM is not a file or folder
+rc=1
+$ --home hp plan refresh card
+letter.txt: as it is now
+rc=0
+$ --home hp plan show card
+Plan card  set TRIP  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  25 B in 2 items
+  camera/  10 B, 1 file  (the plan's copy)  of ROOT/plan-sd/DCIM
+  letter.txt  15 B  ROOT/plan-docs/letter.txt
+Next: arv plan make card (one image a disc; arv make's options apply)
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hp plan delete card
+Error: plan card holds copies (arv plan add --copy) that may be the only ones until its discs are burned and read back (arv burned --device); arv plan delete card --yes deletes them anyway
+rc=1
+$ --home hp plan make card -y --no-ecc --formats no --output-dir out-card
+Plan card: scanning and hashing its 2 items ...
+Classified as: MEMORIES/PHOTO/TRIP
+Object DCIM/ (data/camera on TRIP-05_2025_3): new
+Object letter.txt (data/letter.txt on TRIP-05_2025_3): new
+Building ROOT/out-card/TRIP-05_2025_3.noecc.iso (1 of 1, 1.7 MiB) ...
+Hashing ROOT/out-card/TRIP-05_2025_3.noecc.iso ...
+TRIP-05_2025_3	ROOT/out-card/TRIP-05_2025_3.noecc.iso	Card
+rc=0
+$ --home hp objects DCIM
+Data objects (disc plans):
+  DCIM/  folder, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
+    from ROOT/plan-sd/DCIM (not there now)
+    version 1  TRIP-05_2025_3  data/camera/  no copy yet
+rc=0
+$ --home hp plan delete card
+Error: plan card holds copies (arv plan add --copy) that may be the only ones until its discs are burned and read back (arv burned --device); arv plan delete card --yes deletes them anyway
+rc=1
+$ --home hp plan again card card-2
+1 copied item points at its original again (arv plan add --copy to copy afresh)
+Plan card-2: from card, 2 items on 1 disc (some sources are gone: arv plan show). Next: arv plan show card-2, then arv plan make card-2
+rc=0
+$ --home hp plan show card-2
+Plan card-2  set TRIP  (from plan card)  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  15 B in 2 items
+  camera  MISSING  ROOT/plan-sd/DCIM
+  letter.txt  15 B  ROOT/plan-docs/letter.txt
+1 item is missing: put it back, or arv plan drop card-2 PATH
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hp plan delete card --yes
+Plan card deleted (with its copies; the originals are untouched)
 rc=0

@@ -74,6 +74,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 .item button, .disc h3 button { font:inherit; font-size:12px; padding:2px 6px; border:1px solid var(--line); border-radius:4px;
         background:var(--panel); color:var(--fg); cursor:pointer; }
 .item.missing .path { color:var(--bad); }
+.item .flag { font-size:11px; padding:0 6px; border-radius:8px; border:1px solid var(--line); margin-left:4px; }
+.item .flag.changed { color:var(--warn); border-color:var(--warn); }
+.item .flag.copy { color:var(--accent); border-color:var(--accent); }
 .files { border:1px solid var(--line); border-radius:8px; padding:10px 12px; align-self:start; }
 .files .list { max-height:460px; overflow:auto; margin-top:6px; }
 .files .list > div { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:8px; align-items:center; padding:3px 4px;
@@ -185,7 +188,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 
 <section id="tab-master" hidden>
   <p class="muted">Compose discs by hand from files and folders anywhere: drag them from the right onto a disc, or tick
-    them and press Add. A plan only points at the files; nothing is copied until the images are made.</p>
+    them and press Add. A plan points at the files where they are (or keeps its own copy, if you tick Copy below);
+    the images read them when they are made.</p>
   <div class="inline">
     <div><label for="p-pick">Disc plan</label><select id="p-pick"></select></div>
     <button class="plain" type="button" id="p-new-btn">New plan…</button>
@@ -204,6 +208,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     <button class="primary" type="submit">Create plan</button>
   </form>
   <div id="p-status" class="banner" hidden></div>
+  <p id="p-note" class="warn" hidden>Planned, not archived: keep the originals until the discs are burned and read back.</p>
   <div class="master">
     <div class="discs" id="p-discs"></div>
     <div class="files">
@@ -215,6 +220,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         <div><label for="f-to">Put the ticked ones on</label><select id="f-to"></select></div>
         <button class="primary" type="button" id="f-add">Add</button>
       </div>
+      <div class="checks"><label><input type="checkbox" id="f-copy"> Copy them into the plan (an SD card, a phone, a USB
+        stick: anything that will not be here when the images are made)</label></div>
     </div>
   </div>
   <div class="card" id="p-make">
@@ -643,7 +650,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     node.ondrop = function (ev) {
       ev.preventDefault(); node.classList.remove("target");
       var data = JSON.parse(ev.dataTransfer.getData("application/x-arv") || "{}");
-      if (data.sources) planDo({ action: "add", sources: data.sources, disc: disc });
+      if (data.sources) planDo({ action: "add", sources: data.sources, disc: disc, copy: $("f-copy").checked });
       else if (data.path && String(data.from) !== String(disc)) planDo({ action: "move", paths: [data.path], from: data.from, disc: disc });
     };
   }
@@ -654,6 +661,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     $("p-make").hidden = !plan || !!plan.made;
     $("p-delete").hidden = !plan;
     $("p-again").hidden = !plan || !plan.made;
+    $("p-note").hidden = true;
     if (!plan) return;
     if (plan.made) say("Made " + plan.made + " as " + plan.volumes.join(", ") + ". Burn and record them from the Discs tab. " +
                        "To archive the same selection again later, make it again as a new plan; deleting this one is safe.");
@@ -676,10 +684,14 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         (pct > 100 ? " — too full: move something" : "") : human(d.bytes) + " (medium chosen when made)" }));
       if (!d.items.length) card.appendChild(el("div", { class: "muted", text: "Empty: drop files or folders here." }));
       d.items.forEach(function (it) {
+        var name = el("span", { class: "path mono", text: it.path + (it.kind === "folder" ? "/" : "") });
+        if (it.origin) name.appendChild(el("span", { class: "flag copy", text: "copied", title: "the plan's own copy of " + it.origin }));
+        if (it.changed) name.appendChild(el("span", { class: "flag changed", text: "changed since planned",
+          title: "the disc gets it as it is now" }));
         var row = el("div", { class: "item" + (it.kind === "missing" ? " missing" : ""), draggable: plan.made ? "false" : "true" }, [
-          el("span", { class: "path mono", text: it.path + (it.kind === "folder" ? "/" : "") }),
+          name,
           el("span", { class: "muted", text: it.kind === "missing" ? "missing" : human(it.bytes) + (it.kind === "folder" ? ", " + it.files + " files" : "") }),
-          el("span", { class: "src", text: it.source })]);
+          el("span", { class: "src", text: it.origin ? "copy of " + it.origin : it.source })]);
         if (!plan.made) {
           var move = el("select", { "aria-label": "Move to disc" });
           move.appendChild(el("option", { value: "", text: "move…" }));
@@ -703,11 +715,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       dropTarget(add, "new");
       box.appendChild(add);
     }
+    $("p-note").hidden = !!plan.made || !plan.discs.some(function (d) { return d.items.length; });
     if (folder) browseFiles(folder.path);     // the browser marks what is on a disc now
   }
   function onDisc(path) {      // the disc of the plan a source is on, or 0
     var found = 0;
-    (plan ? plan.discs : []).forEach(function (d) { d.items.forEach(function (it) { if (it.source === path) found = d.disc; }); });
+    (plan ? plan.discs : []).forEach(function (d) { d.items.forEach(function (it) { if (it.source === path || it.origin === path) found = d.disc; }); });
     return found;
   }
   function browseFiles(path) {
@@ -740,7 +753,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var ticked = Array.prototype.map.call($("f-list").querySelectorAll("input:checked"), function (c) { return c.dataset.path; });
     if (!plan) { say("Create a plan first (New plan…).", true); return; }
     if (!ticked.length) { say("Tick the files or folders to add first.", true); return; }
-    planDo({ action: "add", sources: ticked, disc: $("f-to").value });
+    planDo({ action: "add", sources: ticked, disc: $("f-to").value, copy: $("f-copy").checked });
   };
   $("p-pick").onchange = function () { say(""); loadPlan(); };
   $("p-new-btn").onclick = function () { $("p-new").hidden = !$("p-new").hidden; };

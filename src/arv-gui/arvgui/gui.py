@@ -190,6 +190,8 @@ class App:
             argv += sources + ["--disc", str(body.get("disc") or "auto")]
             if body.get("as"):
                 argv += ["--as", body["as"]]
+            if body.get("copy"):
+                argv.append("--copy")
         elif action in ("move", "drop"):
             paths = [p for p in body["paths"] if p and not p.startswith("-")]
             if not paths:
@@ -201,6 +203,8 @@ class App:
                 argv += ["--disc", str(body["disc"]) if str(body["disc"]) == "new" else str(int(body["disc"]))]
         elif action == "disc":
             argv += ["add"] if body.get("op") == "add" else ["drop", str(int(body["disc"]))]
+        elif action == "refresh":
+            pass
         elif action == "again":
             if not PLAN_NAME.match(body["new"]):
                 raise ValueError("not a plan name: %r" % body["new"])

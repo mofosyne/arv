@@ -104,6 +104,22 @@ Bytes: 21
 Software: SW
 Copies: 1
 
+Id: TRIP-05_2025_3
+Uuid: UUID
+IdScheme: set-seq-coverage/1
+Label: TRIP-05_2025_3 Card
+Title: Card
+Set: TRIP
+Path: MEMORIES/PHOTO/TRIP
+Sequence: 5
+Coverage: 2025
+Date: 2026-01-01
+Creator: archivist
+Access: private
+Files: 2
+Bytes: 25
+Software: SW
+
 %rec: Binding
 %doc: How one volume is stored on its medium: the container (filesystem) and the
 + protection (error correction) it was made with. These change with the medium;
@@ -151,6 +167,15 @@ Ecc: none
 ImageSectors: 882
 ImageSha256: SHA256
 
+Volume: TRIP-05_2025_3
+Container: udf-2.50
+Protection: none
+Media: M-DISC BD-R 25GB
+Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
+Ecc: none
+ImageSectors: 882
+ImageSha256: SHA256
+
 %rec: Object
 %doc: A data object: one file or folder put on a disc as a whole (by a disc plan), with no
 + .arv marker of its own. Uuid is its lineage: every version of the same object shares it.
@@ -177,7 +202,7 @@ Path: video/wedding.mkv
 Files: 1
 Bytes: 7
 Date: 2026-01-01
-Source: ROOT/plan-pc/Videos/wedding.mkv
+Source: plan-pc/Videos/wedding.mkv
 
 Uuid: UUID
 Version: 1
@@ -189,7 +214,7 @@ Path: notes.txt
 Files: 1
 Bytes: 6
 Date: 2026-01-01
-Source: ROOT/plan-pc/notes.txt
+Source: plan-pc/notes.txt
 
 Uuid: UUID
 Version: 1
@@ -201,7 +226,7 @@ Path: photos
 Files: 2
 Bytes: 14
 Date: 2026-01-01
-Source: ROOT/plan-nas/photos/2025
+Source: plan-nas/photos/2025
 
 Uuid: UUID
 Version: 2
@@ -213,7 +238,7 @@ Path: photos
 Files: 3
 Bytes: 21
 Date: 2026-01-01
-Source: ROOT/plan-nas/photos/2025
+Source: plan-nas/photos/2025
 
 Uuid: UUID
 Version: 2
@@ -225,7 +250,31 @@ Path: plan-copy
 Files: 3
 Bytes: 21
 Date: 2026-01-01
-Source: ROOT/plan-copy
+Source: plan-copy
+
+Uuid: UUID
+Version: 1
+Name: DCIM
+Kind: folder
+Tree: ede560777c2480cec2356fc25b9c065b6c0fe658a3cf1daab949593d752e85e9
+Disc: TRIP-05_2025_3
+Path: camera
+Files: 1
+Bytes: 10
+Date: 2026-01-01
+Source: plan-sd/DCIM
+
+Uuid: UUID
+Version: 1
+Name: letter.txt
+Kind: file
+Tree: eaff1c9dc8fa3aabf4065c49a4e4ebbbe4a7ca7e16fdafabc7fc0b75ac0afa01
+Disc: TRIP-05_2025_3
+Path: letter.txt
+Files: 1
+Bytes: 15
+Date: 2026-01-01
+Source: plan-docs/letter.txt
 
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
@@ -357,3 +406,19 @@ ReadBack: identical
 Form: iso
 Temperature: warm
 Path: ROOT/out-plan/TRIP-01_2025_B.noecc.iso
+
+Disc: TRIP-05_2025_3
+Type: message digest calculation
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: SW
+Note: sha256 and sha512 manifests of 2 files
+
+Disc: TRIP-05_2025_3
+Type: creation
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: SW
+Note: image TRIP-05_2025_3.noecc.iso, 882 sectors

@@ -50,6 +50,9 @@ extern const char *home_archive_name;   /* --archive NAME: a home from the machi
 void home_at(arv_home *h, const char *path);
 void home_ensure(const arv_home *h);
 char *home_volume_file(const arv_home *h, const char *disc_id, const char *name);
+char *home_root(const arv_home *h);                     /* the folder holding the home */
+char *path_rel(const char *root, const char *abs);      /* relative to root when inside it, else as it is */
+char *path_abs(const char *root, const char *stored);   /* back to absolute */
 int cmd_init(int argc, char **argv);
 int cmd_tags(int argc, char **argv);
 void tags_canonical(const arv_home *h, strlist *tags);
@@ -142,9 +145,12 @@ typedef struct {
     int disc;               /* 1, 2, ... */
     char *source;           /* absolute: a file or folder, read when the discs are made */
     char *path;             /* where it goes under data/ ("." : a folder's contents at the top) */
+    char *origin;           /* --copy: where it was copied from (source is then the plan's copy); else NULL */
+    char *seen;             /* "FILES BYTES STAMP" when planned (names, sizes, dates), or NULL */
 } plan_item;
 typedef struct {
     char *file, *name;
+    char *root;             /* sources are kept relative to it: the home's root, or the plan's folder */
     int discs;
     plan_item *v;
     size_t n;

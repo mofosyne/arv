@@ -458,8 +458,33 @@ log plan.out --home hp plan make later -y --no-ecc --formats no
 log plan.out --home hp plan drop later gone.txt
 log plan.out --home hp plan delete later
 log plan.out --home hp plan list
+# a card that will not be here at make: copied into the plan; a linked item that changes after planning
+mkdir -p plan-sd/DCIM plan-docs
+echo "raw image" > plan-sd/DCIM/IMG_0001.JPG
+echo "letter" > plan-docs/letter.txt
+stamp 1751328000 plan-sd/DCIM/IMG_0001.JPG
+stamp 1751328000 plan-sd/DCIM
+stamp 1751328000 plan-docs/letter.txt
+log plan.out --home hp plan new card --set TRIP
+log plan.out --home hp plan add card plan-sd/DCIM --copy --as camera
+log plan.out --home hp plan add card plan-docs/letter.txt
+rm -r plan-sd
+echo "letter, signed" > plan-docs/letter.txt
+stamp 1751414400 plan-docs/letter.txt
+log plan.out --home hp plan show card
+log plan.out --home hp plan add card plan-sd/DCIM
+log plan.out --home hp plan refresh card
+log plan.out --home hp plan show card
+log plan.out --home hp plan delete card
+log plan.out --home hp plan make card -y --no-ecc --formats no --output-dir out-card
+log plan.out --home hp objects DCIM
+log plan.out --home hp plan delete card
+log plan.out --home hp plan again card card-2
+log plan.out --home hp plan show card-2
+log plan.out --home hp plan delete card --yes
 keep plan.out plan/transcript.txt
 keep hp/drafts/plans/trip.rec plan/trip.rec
+keep hp/drafts/plans/card-2.rec plan/card-2.rec
 keep_stages out-plan plan/discs
 keep_home hp plan/home
 

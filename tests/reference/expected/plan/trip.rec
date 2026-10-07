@@ -13,13 +13,16 @@ Volume: TRIP-02_2025_9
 %rec: Item
 
 Disc: 1
-Source: ROOT/plan-pc/Videos/wedding.mkv
+Source: plan-pc/Videos/wedding.mkv
 Path: video/wedding.mkv
+Seen: 1 7 cbbce0f0d98cb1b9
 
 Disc: 2
-Source: ROOT/plan-pc/notes.txt
+Source: plan-pc/notes.txt
 Path: notes.txt
+Seen: 1 6 48b7697649922c2b
 
 Disc: 2
-Source: ROOT/plan-nas/photos/2025
+Source: plan-nas/photos/2025
 Path: photos
+Seen: 2 14 366dc0157dcfe1a9

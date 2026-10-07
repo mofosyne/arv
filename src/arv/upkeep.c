@@ -185,16 +185,19 @@ static long newest(const archive *cat, const char *uuid, recs *out, holding *h)
 
 /* where an object's newest version was read from, as the home knows it (one place, or more for
  * copies); returns how many of them are there now */
-static size_t object_sources(const archive *cat, const recs *top, strlist *out)
+static size_t object_sources(const char *root, const recs *top, strlist *out)
 {
     size_t there = 0;
     for (size_t i = 0; i < top->n; i++) {
-        const char *src = rec_get(top->v[i], "Source");
-        if (!src || strlist_has(out, src)) continue;
-        strlist_add(out, src);
-        there += !access(src, F_OK);
+        const char *stored = rec_get(top->v[i], "Source");
+        if (!stored) continue;
+        char *src = path_abs(root, stored);     /* kept relative to the home's root when inside it */
+        if (!strlist_has(out, src)) {
+            strlist_add(out, src);
+            there += !access(src, F_OK);
+        }
+        free(src);
     }
-    (void)cat;
     return there;
 }
 
@@ -235,7 +238,7 @@ static void holding_json(const holding *h, sbuf *b)
 }
 
 /* arv objects --json: the same as the text, for arv gui's Objects tab */
-static void objects_json(const archive *cat)
+static void objects_json(const archive *cat, const char *root)
 {
     sbuf b = { 0 };
     strlist seen = { 0 };
@@ -249,7 +252,7 @@ static void objects_json(const archive *cat)
         long last = newest(cat, uuid, &top, &hd);
         const rec_record *o = top.v[0];
         strlist src = { 0 };
-        size_t there = object_sources(cat, &top, &src);
+        size_t there = object_sources(root, &top, &src);
         sb_puts(&b, seen.n > 1 ? ", {\"uuid\": " : "{\"uuid\": ");
         json_str(&b, uuid);
         sb_puts(&b, ", \"name\": ");
@@ -349,7 +352,9 @@ int cmd_objects(int argc, char **argv)
     archive_load(&cat, h.rec_path);
     if (as_json) {
         if (want) return 2;
-        objects_json(&cat);
+        char *root = home_root(&h);
+        objects_json(&cat, root);
+        free(root);
         return 0;
     }
     size_t shown = 0;
@@ -375,7 +380,9 @@ int cmd_objects(int argc, char **argv)
                line.s);
         free(line.s);
         strlist src = { 0 };
-        object_sources(&cat, &top, &src);
+        char *root = home_root(&h);
+        object_sources(root, &top, &src);
+        free(root);
         for (size_t k = 0; k < src.n; k++)
             printf("    %s %s (%s)\n", k ? "and" : "from", src.v[k], access(src.v[k], F_OK) ? "not there now" : "there now: arv status says if it changed");
         strlist_free(&src);
@@ -537,7 +544,9 @@ int cmd_todo(int argc, char **argv)
         long v = newest(&cat, uuid, &top, &hd);
         const rec_record *o = top.v[0];
         strlist src = { 0 };
-        size_t there = object_sources(&cat, &top, &src);
+        char *root = home_root(&h);
+        size_t there = object_sources(root, &top, &src);
+        free(root);
         int file = !strcmp(get_or(o, "Kind", ""), "file");
         if (hd.discs && hd.copies && !hd.cold) {
             heading(&s8, "Data objects with no cold copy of their newest version (burn one for the shelf):");

@@ -205,6 +205,22 @@ arv plan make family [--output-dir DIR] [arv make's options]
 recorded as usual. A disc that does not fit is an error that names it (move something; arv does
 not move files for a plan), and the plan then records the discs it became and takes no more changes.
 
+Planned is not archived: keep the originals until the discs are burned and read back (`plan show`
+says so). By default a plan points at its sources (as Nero's compilations did), so nothing is
+copied, and what is there at `plan make` is what goes on the disc:
+
+- `plan add` notes each item's names, sizes and dates (`Seen:`, quick: contents are not read);
+  `plan show` and `plan make` say which changed since (`arv plan refresh NAME` accepts them).
+- `arv plan add NAME SOURCE --copy` copies an item into the plan's own folder
+  (`drafts/plans/NAME/`, dates and permissions kept), for a source that will not be there at make
+  time: an SD card, a phone, a friend's USB stick. Its object still records where it came from.
+  `arv plan delete` refuses to delete those copies until every disc of the plan has a copy read back
+  (`--yes` to delete them anyway).
+- `arv make` (every make, not only a plan's) checks each file's bytes against its manifest as the
+  image is written: a file that changed after it was hashed stops the make, and nothing is recorded.
+- Sources inside the home's drive are kept relative to the folder holding `.arv`, so a plan on a
+  portable drive still works when the drive is mounted elsewhere.
+
 A made plan is kept as a template: `arv plan list` shows open plans (`--all` shows made ones too),
 and `arv plan again NAME NEW` starts a new open plan with the same settings, discs and items, for
 archiving the same selection again later (each item becomes its object's next version if it
