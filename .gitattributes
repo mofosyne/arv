@@ -2,3 +2,4 @@
 samples/discs export-ignore
 samples/home export-ignore
 docs/screenshots export-ignore
+docs/demo export-ignore

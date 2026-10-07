@@ -41,6 +41,7 @@
   ul { padding-left: 22px; }
   footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
 </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/asciinema-player@3.17.0/dist/bundle/asciinema-player.css">
 </head>
 <body>
 <main>
@@ -98,6 +99,17 @@ same way.</p>
   <figcaption>How a disc is built, and how it is read back.
   <a href="https://github.com/mofosyne/arv/blob/main/docs/architecture.md">More on the layers</a>.</figcaption>
 </figure>
+
+<h2 id="see-it">See it</h2>
+<p>A typical session, run for real (about a minute and a half): a disc composed from a video and a
+camera card, recorded on the shelf and the NAS, then checked. <a href="demo/arv.cast">The recording</a>
+is plain text; <code>asciinema play docs/demo/arv.cast</code> plays it in a terminal.</p>
+<div id="demo"></div>
+<script src="https://cdn.jsdelivr.net/npm/asciinema-player@3.17.0/dist/bundle/asciinema-player.min.js"></script>
+<script>
+  AsciinemaPlayer.create("demo/arv.cast", document.getElementById("demo"),
+                         { cols: 112, rows: 32, idleTimeLimit: 2, fit: "width", poster: "npt:0:20" });
+</script>
 
 <h2 id="try-it">Try it</h2>
 <p>You need Linux, <code>git</code> and a C compiler. Nothing is installed and nothing is burned

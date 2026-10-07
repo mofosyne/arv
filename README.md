@@ -43,6 +43,8 @@ what it does:
   the catalogue to rebuild the record from (`arv check`, `arv verify`, `arv restore`, `arv rebuild`).
 
 `arv --help`, the GUI's three tabs and [docs/workflow.md](docs/workflow.md) are arranged the same way.
+**See it**: a [recorded session](https://mofosyne.github.io/arv/#see-it) of all three, run for real
+([docs/demo/arv.cast](docs/demo/arv.cast); `asciinema play docs/demo/arv.cast` in a terminal).
 
 What it writes are self-describing archive discs: your files untouched, a hash of every file,
 a catalogue of the whole archive so far, the source of the tools that made it, and the steps to
