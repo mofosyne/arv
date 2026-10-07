@@ -239,19 +239,21 @@ The script:
    `usr.sbin/mtree`, `sbin/newfs_udf`, `sbin/fsck`, `sys/fs/udf`);
 2. copies out the 17 files makefs -t udf uses, **unmodified**;
 3. builds them with the Linux glue in `upstream/netbsd-makefs/` (compat headers, stubs for the other filesystems, `main` renamed). None of the glue touches the UDF code;
-4. runs the four checks on unmodified upstream, then with each patch in `patches/` on
-   its own (it should fix only its own bug), then with all of them.
+4. runs the checks on unmodified upstream, then with each patch in `patches/` on
+   its own (it should fix only its own bug), then with all of them. Column 5 and patch 04 are
+   not part of this report: they are the metadata mirror change offered after it (`MIRROR.md`).
 
 Expected output: the details of each run, then this summary (`shows`: the bug shows):
 
 ```
-                       1 fortify    2 asan       3 padding    4 long name
-                       (bug 2)      (bug 1)      (bug 1)      (bug 3)
-upstream               shows        shows        shows        shows
-only-01                shows        ok           ok           shows
-only-02                ok           shows        shows        shows
-only-03                shows        shows        shows        ok
-all-patches            ok           ok           ok           ok
+                       1 fortify    2 asan       3 padding    4 long name  5 no mirror
+                       (bug 2)      (bug 1)      (bug 1)      (bug 3)      (patch 04)
+upstream               shows        shows        shows        shows        shows
+only-01                shows        ok           ok           shows        shows
+only-02                ok           shows        shows        shows        shows
+only-03                shows        shows        shows        ok           shows
+only-04                shows        shows        shows        shows        ok
+all-patches            ok           ok           ok           ok           ok
 ```
 
 For unmodified upstream, the details include:
@@ -266,7 +268,7 @@ For unmodified upstream, the details include:
 ```
 
 The patches are independent. Each applies to unmodified upstream on its own, and
-all three apply in any order (at most a line offset, no fuzz).
+all of them apply in any order (at most a line offset, no fuzz).
 
 You can also confirm by reading the code alone:
 - **Bug 1:** compare the `malloc` size at udf.c:838 with the byte count written through udf.c:653-655.

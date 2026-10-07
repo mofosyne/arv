@@ -15,8 +15,10 @@ modified copy**. The bug report, patches and reproduction against unmodified ups
 | `patches/01-udf_copy_file-padding-overread.patch` | Bug 1: heap bytes written into file padding (`usr.sbin/makefs/udf.c`) |
 | `patches/02-udf_set_regid-strcpy-overrun.patch` | Bug 2: 1-byte `strcpy` overrun (`sbin/newfs_udf/udf_core.c`) |
 | `patches/03-unix_to_udf_name-l_fi-overflow.patch` | Bug 3: over-long names corrupt the image (`sbin/newfs_udf/udf_core.c`) |
+| `MIRROR.md`, `patches/04-metadata-mirror-readonly.patch` | **Draft, not sent**: a change, not a bug: a real metadata mirror for read-only images (issue #7), to follow the bug report |
 | `repro/repro.sh` | Fetches **unmodified** upstream at the pinned commit, builds it with the glue here, shows each bug, then shows each patch fixes its own bug and only that one |
 | `repro/padding.py` | Test files, and the image check used by `repro.sh` |
+| `repro/mirror.py` | Checks that an image's metadata mirror is a real copy, and makes a copy with the main metadata zeroed that reads only through the mirror |
 
 Each patch has a short description at the top, is against upstream paths (`patch -p1` in a
 NetBSD src tree), and applies on its own or together with the others in any order. Pinned
