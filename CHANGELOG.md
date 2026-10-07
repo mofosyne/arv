@@ -44,6 +44,12 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   vocabulary, the folders that are not. Folders named by a year count as facts; a repository's
   own tree is left alone. Nothing is recorded, so the format does not change.
 
+**Icons for kinds of file in the GUI**
+- The Mastering file browser, the plan's discs, Search results and Objects show an icon for the
+  kind of file (📷 image, 🎬 video, 🎵 audio, 📄 document, 📊 spreadsheet, 🗜️ archive, 💿 disc
+  image, ⌨️ code; 📁 folder), with a label for screen readers. Guessed from the extension, as a
+  hint only: nothing is recorded, and Siegfried's `formats.csv` stays the record of formats.
+
 **Appraise first: the levels ask for care** (issue #24)
 - Each importance level now asks for a number of copies and places: essential, 3 copies in 3
   places; important, 2 in 2; useful, 1; incidental, none (everyday storage is enough).

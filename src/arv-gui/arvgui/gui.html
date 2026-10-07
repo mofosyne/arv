@@ -98,6 +98,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         font-family:ui-monospace, monospace; font-size:13px; cursor:grab; border-radius:4px; }
 .files .list > div:hover { background:var(--panel); }
 .files .list .name { overflow-wrap:anywhere; }
+.icon { display:inline-block; width:1.5em; text-align:center; }
 .files .list .size { color:var(--muted); font-size:12px; white-space:nowrap; }
 .files .list .on { color:var(--accent); }
 .files .here { font-family:ui-monospace, monospace; font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
@@ -327,6 +328,27 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     return e;
   }
   function $(id) { return document.getElementById(id); }
+  // what kind of file a name looks like: a hint for the eye, from the extension only (the disc's
+  // formats.csv, from Siegfried, is the record of formats)
+  var FAMILIES = [
+    ["📷", "image", "jpg jpeg png gif tif tiff heic heif webp avif jxl bmp svg psd xcf dng cr2 cr3 nef arw orf rw2 raf"],
+    ["🎬", "video", "mp4 m4v mov mkv webm avi mts m2ts mpg mpeg wmv 3gp"],
+    ["🎵", "audio", "mp3 wav flac m4a aac ogg opus wma aif aiff mid midi"],
+    ["📄", "document", "pdf doc docx odt rtf txt md epub djvu"],
+    ["📊", "spreadsheet", "xls xlsx ods csv tsv"],
+    ["🗜️", "archive", "zip 7z rar tar gz tgz bz2 xz zst"],
+    ["💿", "disc image", "iso img dmg vhd vhdx vmdk"],
+    ["⌨️", "code", "c h cpp hpp py js ts rs go java sh rb pl html css json xml yaml yml toml rec"]
+  ];
+  var FAMILY = {};
+  FAMILIES.forEach(function (f) { f[2].split(" ").forEach(function (x) { FAMILY[x] = f; }); });
+  function icon(name, kind) {           // kind: "folder", "git", or anything else for a file
+    var ext = /\.([^.\/]+)$/.exec(name || "");
+    var f = kind === "folder" ? ["📁", "folder"] : kind === "git" ? ["📁", "git repository"]
+          : ext ? FAMILY[ext[1].toLowerCase()] : null;
+    return f ? el("span", { class: "icon", role: "img", "aria-label": f[1], title: f[1], text: f[0] })
+             : el("span", { class: "icon", "aria-hidden": "true" });
+  }
   function human(n) {
     n = Number(n || 0); var u = ["B", "KiB", "MiB", "GiB", "TiB"], i = 0;
     while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
@@ -466,7 +488,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       var t = el("table");
       t.appendChild(el("tr", {}, ["Disc", "Location", "Path"].map(function (h) { return el("th", { text: h }); })));
       res.files.forEach(function (f) {
-        t.appendChild(el("tr", {}, [el("td", { class: "mono", text: f.disc }), el("td", { text: f.location || "" }), el("td", { class: "mono", text: f.path })]));
+        t.appendChild(el("tr", {}, [el("td", { class: "mono", text: f.disc }), el("td", { text: f.location || "" }), el("td", { class: "mono" }, [icon(f.path), document.createTextNode(f.path)])]));
       });
       out.appendChild(el("div", { class: "scroll" }, [t]));
     }).catch(function (e) { out.textContent = "Error: " + e.message; });
@@ -657,7 +679,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     objs.forEach(function (o) {
       shown++; attention += o.todo.length ? 1 : 0;
       var card = el("div", { class: "card kept" });
-      card.appendChild(el("h3", {}, [el("span", { class: "mono", text: o.name + (o.kind === "file" ? "" : "/") }),
+      card.appendChild(el("h3", {}, [icon(o.name, o.kind), el("span", { class: "mono", text: o.name + (o.kind === "file" ? "" : "/") }),
         el("span", { class: "facts", text: o.kind + ", " + o.versions + (o.versions === 1 ? " version" : " versions") +
                                              "; newest: " + facts(o.newest) })]));
       o.todo.forEach(function (t) { card.appendChild(el("div", { class: "todo", text: t })); });
@@ -772,7 +794,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         (pct > 100 ? " — too full: move something" : "") : human(d.bytes) + " (medium chosen when made)" }));
       if (!d.items.length) card.appendChild(el("div", { class: "muted", text: "Empty: drop files or folders here." }));
       d.items.forEach(function (it) {
-        var name = el("span", { class: "path mono", text: it.path + (it.kind === "folder" ? "/" : "") });
+        var name = el("span", { class: "path mono" }, [it.kind === "missing" ? null : icon(it.path, it.kind),
+                                                       document.createTextNode(it.path + (it.kind === "folder" ? "/" : ""))]);
         if (it.origin) name.appendChild(el("span", { class: "flag copy", text: "copied", title: "the plan's own copy of " + it.origin }));
         if (it.changed) name.appendChild(el("span", { class: "flag changed", text: "changed since planned",
           title: "the disc gets it as it is now" }));
@@ -820,7 +843,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         var tick = el("input", { type: "checkbox", "aria-label": "Tick " + name });
         tick.dataset.path = full;
         var on = onDisc(full);
-        var r = el("div", { draggable: "true" }, [tick, el("span", { class: "name", text: (isDir ? "📁 " : "📄 ") + name }),
+        var r = el("div", { draggable: "true" }, [tick, el("span", { class: "name" }, [icon(name, isDir ? "folder" : "file"), document.createTextNode(name)]),
                                                   el("span", { class: "size" + (on ? " on" : ""), text: on ? "on disc " + on : isDir ? "" : human(bytes) })]);
         if (isDir) r.querySelector(".name").onclick = function () { browseFiles(full); };
         r.ondragstart = function (ev) {
