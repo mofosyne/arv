@@ -250,7 +250,7 @@ static long room(const arv_home *h, const rec_record *hd, const char **label)
 
 /* ------------------------------------------------------------------ showing it */
 
-static void json_str(sbuf *b, const char *s)
+void json_str(sbuf *b, const char *s)
 {
     sb_puts(b, "\"");
     for (const unsigned char *c = (const unsigned char *)s; *c; c++) {

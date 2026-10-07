@@ -289,7 +289,9 @@ arv location list -v                                 # places, their temperature
 - data objects whose newest version has no cold copy, or that are no longer where they came
   from with fewer than two copies left.
 
-**`arv objects [NAME]`** is the whole picture, per thing kept rather than per disc:
+**`arv objects [NAME]`** is the whole picture, per thing kept rather than per disc (the GUI's
+**Objects** tab shows the same, from `arv objects --json`, with each copy as a cold, warm or hot
+chip):
 
 ```
 Data objects (disc plans):

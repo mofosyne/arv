@@ -155,6 +155,7 @@ void plan_load(const char *file, disc_plan *out);
 void plan_scan(const disc_plan *p, const char *links, entries *files, entries *noted, size_t *left_out);
 void plan_made(const char *file, const strlist *disc_ids, const char *date);
 void text_sha256(const char *text, char hex[65]);
+void json_str(sbuf *b, const char *s);     /* a JSON string, quoted */
 void plan_objects(const disc_plan *dp, int disc, const entries *files, const archive *cat, const recs *made_now,
                   const char *disc_id, const char *today, recs *out, strlist *manifests);
 

@@ -172,6 +172,11 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(result["returncode"], 0, "\n".join(result["lines"]))
         self.assertEqual(len(json.loads(self.request("/api/plan?name=trip")[1])["volumes"]), 2)
         self.assertEqual(len(json.loads(self.request("/api/discs")[1])["discs"]), 2)
+        kept = json.loads(self.request("/api/objects")[1])
+        self.assertEqual(sorted((o["name"], o["kind"], o["versions"]) for o in kept["objects"]),
+                         [("photos", "folder", 1), ("wedding.mkv", "file", 1)])
+        self.assertEqual({o["name"]: [s["there"] for s in o["sources"]] for o in kept["objects"]},
+                         {"photos": [True], "wedding.mkv": [True]})
         self.assertEqual(self.request("/api/plan", {"action": "new", "name": "../x"})[0], 400)
         self.assertEqual(self.request("/api/plan?name=nope")[0], 404)
 

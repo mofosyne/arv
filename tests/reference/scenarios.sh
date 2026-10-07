@@ -443,6 +443,7 @@ log plan.out --home hp objects 2025
 log plan.out --home hp objects wedding.mkv
 log plan.out --home hp objects nothing-called-this
 log plan.out --home hp todo
+log plan.out --home hp objects --json
 log plan.out --home hp plan new later --medium bd100
 log plan.out --home hp plan add later plan-pc/gone.txt
 rm plan-pc/gone.txt

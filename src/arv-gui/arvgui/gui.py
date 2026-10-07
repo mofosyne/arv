@@ -142,6 +142,13 @@ class App:
                               capture_output=True, text=True)
         return proc.returncode, (proc.stdout + proc.stderr).strip()
 
+    def objects(self, _params):
+        """arv objects --json: what is kept, and where every copy of it is (the Objects tab)."""
+        code, text = self.arv_now(["objects", "--json"])
+        if code:
+            raise LookupError(text)
+        return json.loads(text)
+
     def plans(self, _params):
         folder = os.path.join(self.home.drafts_dir, "plans")
         try:
@@ -320,7 +327,7 @@ class App:
 def make_handler(app, port_holder):
     get_routes = {"/api/discs": app.discs, "/api/find": app.find, "/api/browse": app.browse,
                   "/api/job": app.job, "/api/jobs": app.jobs_list, "/api/llm/status": app.llm_status,
-                  "/api/plans": app.plans, "/api/plan": app.plan}
+                  "/api/plans": app.plans, "/api/plan": app.plan, "/api/objects": app.objects}
     post_routes = {"/api/make": app.post_make, "/api/check": app.post_check, "/api/command": app.post_simple,
                    "/api/plan": app.post_plan,
                    "/api/llm/suggest": app.post_llm_suggest}

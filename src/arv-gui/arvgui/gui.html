@@ -84,10 +84,32 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 .files .list .on { color:var(--accent); }
 .files .here { font-family:ui-monospace, monospace; font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
 .banner { background:var(--panel); border-radius:6px; padding:8px 12px; margin-top:12px; }
+/* the objects tab: what is kept, and where every copy is */
+.kept h3 { font-size:15px; margin:0; display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; }
+.kept .facts { font-size:13px; color:var(--muted); }
+.kept .todo { color:var(--warn); font-size:13px; margin-top:4px; }
+.kept .todo::before { content:"⚠ "; }
+.kept .src { font-size:12px; font-family:ui-monospace, monospace; overflow-wrap:anywhere; margin-top:4px; }
+.kept .src .gone { color:var(--bad); } .kept .src .here { color:var(--ok); }
+.chip { display:inline-block; font-size:12px; padding:1px 8px; border-radius:10px; border:1px solid var(--line);
+        margin:1px 4px 1px 0; white-space:nowrap; }
+.chip.cold { border-color:var(--accent); color:var(--accent); }
+.chip.warm { border-color:var(--warn); color:var(--warn); }
+.chip.hot { border-color:var(--bad); color:var(--bad); }
+.chip.none { color:var(--muted); border-style:dashed; }
+.kept td { font-size:13px; }
+.kept td.mono { white-space:nowrap; }
+@media (max-width: 600px) {      /* each row a wrapped line: version, disc, path, copies, place */
+  .kept table th { display:none; }
+  .kept table tr { display:flex; flex-wrap:wrap; gap:2px 10px; padding:6px 0; border-bottom:1px solid var(--line); }
+  .kept table td { border:none; padding:0; }
+  .kept td.mono { white-space:normal; overflow-wrap:anywhere; }
+}
 </style></head><body>
 <header><h1>Disc Archive</h1><span class="home" id="home"></span></header>
 <nav role="tablist">
   <button role="tab" data-tab="discs" aria-selected="true">Discs</button>
+  <button role="tab" data-tab="objects">Objects</button>
   <button role="tab" data-tab="search">Search</button>
   <button role="tab" data-tab="make">Make disc</button>
   <button role="tab" data-tab="master">Mastering</button>
@@ -102,6 +124,16 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   </tr></thead><tbody></tbody></table></div>
   <p class="muted" id="disc-empty" hidden>No discs yet. Use <b>Make disc</b> to create one.</p>
   <div class="card" id="disc-detail" hidden></div>
+</section>
+
+<section id="tab-objects" hidden>
+  <p class="muted">Everything kept, and where every copy of it is: each data object's versions and each collection's newest
+    edition, the discs holding them, each copy (disc, image or folder; <span class="chip cold">cold</span>
+    <span class="chip warm">warm</span> <span class="chip hot">hot</span>; ✓ read back) and whether the original is still on
+    the PC/NAS.</p>
+  <div class="inline"><div><label for="o-filter">Show only names containing</label><input type="text" id="o-filter"></div></div>
+  <p id="o-summary"></p>
+  <div id="o-list"></div>
 </section>
 
 <section id="tab-search" hidden>
@@ -250,6 +282,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (name === "discs") loadDiscs();
     if (name === "jobs") loadJobs();
     if (name === "master") loadPlans();
+    if (name === "objects") loadObjects();
   }
   document.querySelectorAll("nav button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
 
@@ -490,6 +523,80 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     fields.appendChild(apply);
     box.appendChild(fields);
   }
+
+  // ---------------------------------------------------------------- objects: what is kept, and its copies
+  var kept = null;
+  function chips(on) {
+    var span = el("span");
+    if (on.retired) { span.appendChild(el("span", { class: "chip none", text: "retired" })); return span; }
+    if (!on.copies.length) span.appendChild(el("span", { class: "chip none", text: "no copy yet" }));
+    on.copies.forEach(function (c) {
+      span.appendChild(el("span", { class: "chip " + c.temperature, title: c.readBack ? "read back identical" : "not read back",
+                                    text: c.form + " " + c.temperature + (c.readBack ? " ✓" : "") }));
+    });
+    return span;
+  }
+  function facts(h) {
+    return h.copies + (h.copies === 1 ? " copy" : " copies") + " on " + h.discs + (h.discs === 1 ? " disc" : " discs") +
+           ", " + h.cold + " cold, " + h.readBack + " read back";
+  }
+  function heldTable(rows) {     // rows: [version or "", disc entry, path or null, bytes or null]
+    var t = el("table");
+    t.appendChild(el("tr", {}, ["", "Disc", "On the disc", "Copies", "Kept at"].map(function (x) { return el("th", { text: x }); })));
+    rows.forEach(function (r) {
+      t.appendChild(el("tr", {}, [el("td", { text: r[0] }), el("td", { class: "mono", text: r[1].disc }),
+        el("td", { class: "mono", text: r[2] === null ? "" : "data/" + (r[2] === "." ? "" : r[2]) }),
+        el("td", {}, [chips(r[1])]), el("td", { text: r[1].where || "" })]));
+    });
+    return el("div", { class: "scroll" }, [t]);
+  }
+  function renderObjects() {
+    var list = $("o-list"); list.textContent = "";
+    if (!kept) return;
+    var want = $("o-filter").value.trim().toLowerCase(), attention = 0, shown = 0;
+    function match(name) { return !want || name.toLowerCase().indexOf(want) >= 0; }
+    var objs = kept.objects.filter(function (o) { return match(o.name); });
+    var colls = kept.collections.filter(function (c) { return match(c.code) || match(c.title); });
+    if (objs.length) list.appendChild(el("h2", { text: "Data objects (disc plans)" }));
+    objs.forEach(function (o) {
+      shown++; attention += o.todo.length ? 1 : 0;
+      var card = el("div", { class: "card kept" });
+      card.appendChild(el("h3", {}, [el("span", { class: "mono", text: o.name + (o.kind === "file" ? "" : "/") }),
+        el("span", { class: "facts", text: o.kind + ", " + o.versions + (o.versions === 1 ? " version" : " versions") +
+                                             "; newest: " + facts(o.newest) })]));
+      o.todo.forEach(function (t) { card.appendChild(el("div", { class: "todo", text: t })); });
+      o.sources.forEach(function (s, i) {
+        card.appendChild(el("div", { class: "src" }, [document.createTextNode((i ? "and " : "from ") + s.path + " "),
+          el("span", { class: s.there ? "here" : "gone", text: s.there ? "(there now)" : "(not there now)" })]));
+      });
+      card.appendChild(heldTable(o.held.map(function (h) {
+        return ["version " + h.version, h.on, h.path + (o.kind === "file" || h.path === "." ? "" : "/")]; })));
+      list.appendChild(card);
+    });
+    if (colls.length) list.appendChild(el("h2", { text: "Collections" }));
+    colls.forEach(function (c) {
+      shown++;
+      var card = el("div", { class: "card kept" });
+      card.appendChild(el("h3", {}, [el("span", { class: "mono", text: c.code }), el("span", { text: c.title }),
+        el("span", { class: "facts", text: c.editions + (c.editions === 1 ? " edition" : " editions") +
+          (c.newest ? "; newest: " + c.code + "/" + c.newest.edition + ", " + facts(c.newest.holding) : "") })]));
+      if (c.folder) card.appendChild(el("div", { class: "src" }, [document.createTextNode("workflow folder " + c.folder.path + " "),
+        el("span", { class: c.folder.there ? "here" : "gone", text: c.folder.there ? "(there now)" : "(not there now)" })]));
+      if (c.newest && c.newest.holding.copies && !c.newest.holding.cold) card.appendChild(el("div", { class: "todo", text: "no cold copy of the newest edition" }));
+      if (c.newest) card.appendChild(heldTable(c.newest.discs.map(function (d) { return ["", d, null]; })));
+      list.appendChild(card);
+    });
+    $("o-summary").textContent = kept.objects.length + " data object" + (kept.objects.length === 1 ? "" : "s") + ", " +
+      kept.collections.length + " collection" + (kept.collections.length === 1 ? "" : "s") +
+      (attention ? "; " + attention + " data object" + (attention === 1 ? " needs" : "s need") + " attention" : "");
+    if (!shown) list.appendChild(el("p", { class: "muted", text: kept.objects.length + kept.collections.length ?
+      "Nothing matches." : "Nothing kept as a data object or collection yet: make discs from a plan (Mastering), or a collection." }));
+  }
+  function loadObjects() {
+    return api("/api/objects").then(function (res) { kept = res; renderObjects(); })
+      .catch(function (e) { $("o-list").textContent = "Error: " + e.message; });
+  }
+  $("o-filter").oninput = renderObjects;
 
   // ---------------------------------------------------------------- mastering: disc plans
   var plan = null, folder = null;

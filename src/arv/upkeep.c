@@ -4,7 +4,7 @@
  *   arv todo [--overdue YEARS]   what needs doing: images not burned, copies not read back,
  *                                editions not yet safe, replaced editions, discs kept in one place,
  *                                checks overdue (default: 5 years)
- *   arv objects [NAME]           what you keep, and where all its copies are: each data object's versions
+ *   arv objects [NAME] [--json]  what you keep, and where all its copies are: each data object's versions
  *                                and each collection's newest edition, the discs holding them and
  *                                every copy of those discs (form, temperature, read back), and
  *                                whether the original is still where it came from
@@ -204,11 +204,142 @@ static void holding_text(const holding *h, sbuf *b)
               h->discs == 1 ? "" : "s", h->cold, h->good);
 }
 
+/* a disc as the union view shows it: its copies (form, temperature, read back) and places */
+static void disc_json(const archive *cat, const char *id, sbuf *b)
+{
+    const rec_record *d = archive_disc(cat, id);
+    char *where = d ? archive_where(cat, d) : xstrdup("");
+    sb_puts(b, "{\"disc\": ");
+    json_str(b, id);
+    sb_printf(b, ", \"retired\": %s, \"where\": ", retired(cat, id) ? "true" : "false");
+    json_str(b, where);
+    sb_puts(b, ", \"copies\": [");
+    int first = 1;
+    for (size_t i = 0; i < cat->events.n; i++) {
+        const rec_record *e = cat->events.v[i];
+        if (!is_disc_event(e, id, "replication") || !strcmp(get_or(e, "Outcome", ""), "failure")) continue;
+        sb_puts(b, first ? "{\"form\": " : ", {\"form\": ");
+        json_str(b, get_or(e, "Form", "disc"));
+        sb_puts(b, ", \"temperature\": ");
+        json_str(b, get_or(e, "Temperature", ""));
+        sb_printf(b, ", \"readBack\": %s}", !strcmp(get_or(e, "ReadBack", ""), "identical") ? "true" : "false");
+        first = 0;
+    }
+    sb_puts(b, "]}");
+    free(where);
+}
+
+static void holding_json(const holding *h, sbuf *b)
+{
+    sb_printf(b, "{\"copies\": %zu, \"cold\": %zu, \"readBack\": %zu, \"discs\": %zu}", h->copies, h->cold, h->good, h->discs);
+}
+
+/* arv objects --json: the same as the text, for arv gui's Objects tab */
+static void objects_json(const archive *cat)
+{
+    sbuf b = { 0 };
+    strlist seen = { 0 };
+    sb_puts(&b, "{\"objects\": [");
+    for (size_t i = 0; i < cat->objects.n; i++) {
+        const char *uuid = get_or(cat->objects.v[i], "Uuid", "");
+        if (strlist_has(&seen, uuid)) continue;
+        strlist_add(&seen, uuid);
+        recs top = { 0 };
+        holding hd = { 0 };
+        long last = newest(cat, uuid, &top, &hd);
+        const rec_record *o = top.v[0];
+        strlist src = { 0 };
+        size_t there = object_sources(cat, &top, &src);
+        sb_puts(&b, seen.n > 1 ? ", {\"uuid\": " : "{\"uuid\": ");
+        json_str(&b, uuid);
+        sb_puts(&b, ", \"name\": ");
+        json_str(&b, get_or(o, "Name", "?"));
+        sb_puts(&b, ", \"kind\": ");
+        json_str(&b, get_or(o, "Kind", "?"));
+        sb_printf(&b, ", \"versions\": %ld, \"newest\": ", last);
+        holding_json(&hd, &b);
+        sb_puts(&b, ", \"sources\": [");
+        for (size_t k = 0; k < src.n; k++) {
+            sb_puts(&b, k ? ", {\"path\": " : "{\"path\": ");
+            json_str(&b, src.v[k]);
+            sb_printf(&b, ", \"there\": %s}", access(src.v[k], F_OK) ? "false" : "true");
+        }
+        sb_printf(&b, "], \"todo\": [%s%s%s], \"held\": [",
+                  hd.discs && hd.copies && !hd.cold ? "\"no cold copy\"" : "",
+                  hd.discs && hd.copies && !hd.cold && hd.discs && hd.copies < 2 && !there ? ", " : "",
+                  hd.discs && hd.copies < 2 && !there ? "\"no longer where it came from, fewer than two copies\"" : "");
+        int first = 1;
+        for (long v = last; v >= 1; v--)
+            for (size_t k = 0; k < cat->objects.n; k++) {
+                const rec_record *x = cat->objects.v[k];
+                if (strcmp(get_or(x, "Uuid", ""), uuid) || version_of(x) != v) continue;
+                sb_printf(&b, "%s{\"version\": %ld, \"path\": ", first ? "" : ", ", v);
+                json_str(&b, get_or(x, "Path", ""));
+                sb_puts(&b, ", \"files\": ");
+                sb_puts(&b, get_or(x, "Files", "0"));
+                sb_puts(&b, ", \"bytes\": ");
+                sb_puts(&b, get_or(x, "Bytes", "0"));
+                sb_puts(&b, ", \"on\": ");
+                disc_json(cat, get_or(x, "Disc", ""), &b);
+                sb_puts(&b, "}");
+                first = 0;
+            }
+        sb_puts(&b, "]}");
+        strlist_free(&src);
+        free(top.v);
+    }
+    sb_puts(&b, "], \"collections\": [");
+    for (size_t i = 0; i < cat->collections.n; i++) {
+        const rec_record *c = cat->collections.v[i];
+        recs eds = { 0 };
+        editions(cat, c, &eds);
+        sb_puts(&b, i ? ", {\"code\": " : "{\"code\": ");
+        json_str(&b, get_or(c, "Code", ""));
+        sb_puts(&b, ", \"title\": ");
+        json_str(&b, get_or(c, "Title", ""));
+        sb_printf(&b, ", \"editions\": %zu, \"folder\": ", eds.n);
+        const char *folder = collection_folder(cat, c);
+        if (folder) {
+            sb_puts(&b, "{\"path\": ");
+            json_str(&b, folder);
+            sb_printf(&b, ", \"there\": %s}", access(folder, F_OK) ? "false" : "true");
+        } else {
+            sb_puts(&b, "null");
+        }
+        sb_puts(&b, ", \"newest\": ");
+        if (!eds.n) sb_puts(&b, "null");
+        else {
+            const rec_record *e = eds.v[eds.n - 1];
+            strlist v = { 0 };
+            volumes(e, &v);
+            holding hd = { 0 };
+            for (size_t k = 0; k < v.n; k++) hold(cat, v.v[k], &hd);
+            sb_printf(&b, "{\"edition\": %s, \"holding\": ", get_or(e, "Edition", "0"));
+            holding_json(&hd, &b);
+            sb_puts(&b, ", \"discs\": [");
+            for (size_t k = 0; k < v.n; k++) {
+                if (k) sb_puts(&b, ", ");
+                disc_json(cat, v.v[k], &b);
+            }
+            sb_puts(&b, "]}");
+            strlist_free(&v);
+        }
+        sb_puts(&b, "}");
+        free(eds.v);
+    }
+    sb_puts(&b, "]}\n");
+    fputs(b.s, stdout);
+    free(b.s);
+    strlist_free(&seen);
+}
+
 int cmd_objects(int argc, char **argv)
 {
     const char *given = NULL, *want = NULL;
+    int as_json = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (!strcmp(argv[i], "--json")) as_json = 1;
         else if (argv[i][0] != '-' && !want) want = argv[i];
         else return 2;
     }
@@ -216,6 +347,11 @@ int cmd_objects(int argc, char **argv)
     home_find(&h, given, NULL);
     archive cat;
     archive_load(&cat, h.rec_path);
+    if (as_json) {
+        if (want) return 2;
+        objects_json(&cat);
+        return 0;
+    }
     size_t shown = 0;
     strlist seen = { 0 };
     for (size_t i = 0; i < cat.objects.n; i++) {          /* data objects, each lineage once */
