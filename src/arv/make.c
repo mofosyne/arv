@@ -576,14 +576,23 @@ static char *review_date(const char *text)
 
 typedef struct {
     char **paths;               /* disk path of each file, by index */
+    const entry **want;         /* the payload file each one is (its manifest hash), or NULL */
+    char *checked;              /* each payload file: its bytes in the image hashed and compared */
     size_t n;
     FILE *open_fp;
     size_t open_index;
     FILE *out, *extents;
     uint64_t written;
+    sha256_ctx hash;            /* the payload file being written, hashed as it goes */
+    size_t hash_index;
+    uint64_t hashed;
+    strlist changed;            /* payload files whose bytes in the image differ from the manifest */
+    const entries *payload;     /* a whole folder added as it is: its manifest, and which were found */
+    char *found;
 } image_ctx;
 
 static image_ctx *ictx;
+static const char *work_to_remove;   /* the work folder, removed when an image is refused */
 
 static long read_cb(void *file, uint64_t offset, void *buf, size_t len)
 {
@@ -594,7 +603,28 @@ static long read_cb(void *file, uint64_t offset, void *buf, size_t len)
         if (!(ictx->open_fp = fopen(ictx->paths[i], "rb"))) return -1;
     }
     if (fseeko(ictx->open_fp, (off_t)offset, SEEK_SET)) return -1;
-    return (long)fread(buf, 1, len, ictx->open_fp);
+    long got = (long)fread(buf, 1, len, ictx->open_fp);
+    const entry *e = ictx->want[i];
+    if (e && got > 0) {          /* what goes into the image, against what the manifest says it is */
+        if (!offset) {
+            sha256_init(&ictx->hash);
+            ictx->hash_index = i;
+            ictx->hashed = 0;
+        }
+        if (ictx->hash_index == i && offset == ictx->hashed) {
+            sha256_update(&ictx->hash, buf, (size_t)got);
+            ictx->hashed += (uint64_t)got;
+            if (ictx->hashed == e->size) {
+                unsigned char d[32];
+                char hex[65];
+                sha256_final(&ictx->hash, d);
+                sha256_hex(d, hex);
+                if (strcmp(hex, e->sha256)) strlist_add(&ictx->changed, e->path);
+                ictx->checked[i] = 1;
+            }
+        }
+    }
+    return got;
 }
 
 static int write_cb(void *ctx, const void *buf, size_t count)
@@ -610,15 +640,25 @@ static void extent_cb(void *ctx, const char *path, uint64_t sector, uint64_t siz
     fprintf(ictx->extents, "%llu\t%llu\t%s\n", (unsigned long long)sector, (unsigned long long)size, path);
 }
 
-static size_t add_source(image_ctx *c, const char *path)
+static size_t add_source(image_ctx *c, const char *path, const entry *e)
 {
     c->paths = xrealloc(c->paths, (c->n + 1) * sizeof *c->paths);
+    c->want = xrealloc(c->want, (c->n + 1) * sizeof *c->want);
+    c->checked = xrealloc(c->checked, c->n + 1);
     c->paths[c->n] = xstrdup(path);
+    c->want[c->n] = e;
+    c->checked[c->n] = e && !e->size;       /* an empty file: nothing to read */
     return c->n++;
 }
 
-/* adds everything under disk folder dir as image path rel */
-static void add_tree(udfw *w, image_ctx *c, const char *dir, const char *rel)
+static int path_vs_entry(const void *key, const void *e)
+{
+    return strcmp((const char *)key, ((const entry *)e)->path);
+}
+
+/* adds everything under disk folder dir as image path rel; files under data/ are found in the
+ * payload (sorted by path) so the image is checked against the manifest as it is written */
+static void add_tree(udfw *w, image_ctx *c, const char *dir, const char *rel, const entries *payload)
 {
     DIR *d = opendir(dir);
     struct dirent *e;
@@ -630,10 +670,17 @@ static void add_tree(udfw *w, image_ctx *c, const char *dir, const char *rel)
         if (stat(disk, &st)) die("cannot read %s", disk);
         if (S_ISDIR(st.st_mode)) {
             if (udfw_add_dir(w, path, (int64_t)st.st_mtime)) die("udfwrite: %s", udfw_error(w));
-            add_tree(w, c, disk, path);
-        } else if (udfw_add_file(w, path, (uint64_t)st.st_size, (int64_t)st.st_mtime, (unsigned)st.st_mode, read_cb,
-                                 (void *)(uintptr_t)add_source(c, disk))) {
-            die("udfwrite: %s", udfw_error(w));
+            add_tree(w, c, disk, path, payload);
+        } else {
+            const entry *pe = NULL;
+            if (payload && !strncmp(path, "data/", 5)) {    /* the payload, as hashed: the same file, same size */
+                pe = bsearch(path + 5, payload->v, payload->n, sizeof *payload->v, path_vs_entry);
+                if (!pe || pe->size != (uint64_t)st.st_size) strlist_add(&c->changed, path + 5);
+                if (pe) c->found[pe - payload->v] = 1;
+            }
+            if (udfw_add_file(w, path, (uint64_t)st.st_size, (int64_t)st.st_mtime, (unsigned)st.st_mode, read_cb,
+                              (void *)(uintptr_t)add_source(c, disk, pe)))
+                die("udfwrite: %s", udfw_error(w));
         }
         free(disk);
         free(path);
@@ -652,18 +699,24 @@ static uint64_t build_image(const char *stage, const char *src, const entries *f
     udfw_options opt = { disc_id, label, volume_set, when };
     udfw *w = udfw_new(&opt);
     if (!w) die("%s", "out of memory");
-    add_tree(w, &c, stage, "");
+    add_tree(w, &c, stage, "", NULL);
     struct stat st;
     if (src && stat(src, &st)) die("cannot read %s", src);      /* a plan has no one folder: the recording time */
     if (udfw_add_dir(w, "data", src ? (int64_t)st.st_mtime : when)) die("udfwrite: %s", udfw_error(w));
-    if (whole_folder) add_tree(w, &c, src, "data");     /* empty folders included */
+    if (whole_folder) {         /* empty folders included */
+        c.found = xmalloc(files->n + 1);
+        memset(c.found, 0, files->n + 1);
+        add_tree(w, &c, src, "data", files);
+        for (size_t i = 0; i < files->n; i++)       /* gone since it was hashed */
+            if (!c.found[i]) strlist_add(&c.changed, files->v[i].path);
+    }
     for (int pass = whole_folder; pass < 2; pass++) {   /* a folder with links: exactly the listed files */
         const entries *list = pass ? extras : files;    /* then the files added to data/ */
         for (size_t i = 0; i < list->n; i++) {
             char *path = join("data", list->v[i].path);
             if (stat(list->v[i].source, &st)) die("cannot read %s", list->v[i].source);
             if (udfw_add_file(w, path, list->v[i].size, (int64_t)st.st_mtime, (unsigned)st.st_mode, read_cb,
-                              (void *)(uintptr_t)add_source(&c, list->v[i].source)))
+                              (void *)(uintptr_t)add_source(&c, list->v[i].source, pass ? NULL : &list->v[i])))
                 die("udfwrite: %s", udfw_error(w));
             free(path);
         }
@@ -675,9 +728,25 @@ static uint64_t build_image(const char *stage, const char *src, const entries *f
     if (c.open_fp) fclose(c.open_fp);
     if (rc) die("udfwrite: %s", udfw_error(w));
     if (fclose(c.out) || fclose(c.extents)) die("cannot write %s", out);
+    for (size_t i = 0; i < c.n; i++)       /* a size that changed: never read to its manifest end */
+        if (c.want[i] && !c.checked[i] && !strlist_has(&c.changed, c.want[i]->path)) strlist_add(&c.changed, c.want[i]->path);
+    if (c.changed.n) {          /* the disc would not match its own manifest: never record it */
+        fprintf(stderr, "Error: %zu file%s changed after %s hashed, while the image was being written; the image "
+                        "would not match its manifest:\n", c.changed.n, c.changed.n == 1 ? "" : "s",
+                c.changed.n == 1 ? "it was" : "they were");
+        for (size_t i = 0; i < c.changed.n && i < 20; i++) fprintf(stderr, "  %s\n", c.changed.v[i]);
+        fputs("Nothing was recorded. Let them settle (a sync, a download, an editor) and run arv make again.\n", stderr);
+        unlink(out);
+        if (work_to_remove) remove_tree(work_to_remove);
+        exit(1);
+    }
     udfw_free(w);
     for (size_t i = 0; i < c.n; i++) free(c.paths[i]);
     free(c.paths);
+    free(c.want);
+    free(c.checked);
+    free(c.found);
+    strlist_free(&c.changed);
     return c.written;
 }
 
@@ -1565,6 +1634,7 @@ static int make_discs(maker *mk)
     out_dir = abs_out;
     mk->workdir = xprintf("%s/.archive-make-XXXXXX", out_dir);
     if (!mkdtemp(mk->workdir)) die("cannot create a work folder in %s", out_dir);
+    if (!o->keep_stage) work_to_remove = mk->workdir;
     git_prepare(mk->src, mk->workdir, o->git_since, mk->files, &mk->git);   /* .git: compacted copies */
     for (size_t k = 0; k < mk->git.n; k++) mk->left_out += mk->git.v[k].tsv != NULL;
     if (o->ro_crate) {
@@ -1587,6 +1657,9 @@ static int make_discs(maker *mk)
         else fprintf(stderr, "Warning: skipping format identification, Siegfried failed: %s\n", error);
         free(error);
     }
+    if (getenv("ARV_TEST_AFTER_HASH") && *getenv("ARV_TEST_AFTER_HASH")   /* tests only: change a file mid-make */
+        && system(getenv("ARV_TEST_AFTER_HASH")))
+        die("%s", "ARV_TEST_AFTER_HASH failed");
     fit(mk);
     int failed = 0;
     for (size_t i = 0; i < mk->nplans; i++) {          /* build: move the measured image into place, then RS03 */

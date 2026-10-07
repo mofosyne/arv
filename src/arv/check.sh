@@ -160,6 +160,17 @@ grep -q "RS03: " ecc-home/catalog/archive.rec && grep -q "Type: fixity check" ec
     && grep -q "Outcome: success" ecc-home/catalog/archive.rec \
     && [ $(($(wc -c < "$iso") / 2048)) -eq $((9600 / 255 * 255)) ] \
     && ok "arv make with RS03 error correction: image filled to the medium and tested" || no "RS03 make"
+# a file that changes after it was hashed, before its bytes reach the image: refused, nothing recorded
+# (ARV_TEST_AFTER_HASH: a command arv make runs between the two, for this test only)
+mkdir -p race-src
+echo "first" > race-src/a.txt
+echo "steady" > race-src/b.txt
+out=$(ARV_TEST_AFTER_HASH="echo second > race-src/a.txt" "$tool" make -y -C race-home --formats no --no-ecc --set CODE \
+      --output-dir race-out --tools ecc-tools race-src 2>&1) && no "a file changed mid-make was not refused"
+echo "$out" | grep -q "changed after it was hashed" && echo "$out" | grep -q "^  a.txt$" \
+    && [ -z "$(ls race-out/*.iso 2>/dev/null)" ] && ! grep -q "^Id:" race-home/catalog/archive.rec 2>/dev/null \
+    && ok "arv make: a file changed between hashing and writing is refused, and nothing is recorded" \
+    || no "a file changed mid-make: $out"
 [ "$(sed -n 's/^ImageSha256: //p' ecc-home/catalog/archive.rec)" = "$(sha256sum < "$iso" | cut -d' ' -f1)" ] \
     && [ "$(sed -n 's/^ImageSectors: //p' ecc-home/catalog/archive.rec)" -eq $(($(wc -c < "$iso") / 2048)) ] \
     && ok "the home's Binding records the finished image's size and SHA-256 (to check a burned disc against)" \
