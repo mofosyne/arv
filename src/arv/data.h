@@ -1,4 +1,5 @@
-/* Files shared with the Python arv (src/arv/), compiled in: see dev-tools/embed.c and data.c. */
+/* The files in data/, compiled in: dev-tools/embed.c writes data.c (make data after editing them;
+ * make check fails while it is out of date). */
 #ifndef ARV_DATA_H
 #define ARV_DATA_H
 

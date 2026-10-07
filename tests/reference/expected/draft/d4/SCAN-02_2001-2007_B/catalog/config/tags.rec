@@ -1,6 +1,6 @@
-# Default tag vocabulary for `archive tag`.
+# Default tag vocabulary for `arv tag`.
 #
-# Copied to <home>/tags.rec on first use; edit that copy freely. Each tag's
+# Copied to <home>/config/tags.rec on first use; edit that copy freely. Each tag's
 # Description is what the embedding model compares folders against, so write
 # it as the kinds of things such a folder contains. Several phrasings help.
 # Describe content, not the medium: words like "photos" or "files" make every
@@ -10,7 +10,7 @@
 #   Alias   other words for the same tag (repeatable); when you type one while
 #           reviewing it is replaced by the Name, so tags don't drift.
 #   Match   file or folder name glob (repeatable): folders with such files get
-#           the tag without any model (`archive tag --rules-only`).
+#           the tag without any model (`arv tag --rules-only`).
 #
 # Tags may be namespaced as namespace:value, e.g. person:alice, place:kyoto,
 # event:wedding-2019, source:pixel-7, project:weather-station. Namespaces keep

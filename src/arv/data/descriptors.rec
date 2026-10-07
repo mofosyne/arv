@@ -1,5 +1,6 @@
 # Record descriptors of the arv catalogue (GNU recutils), in the order the records are
-# written. Read by src/arv/catalog.py and compiled into src/arv: one definition for both.
+# written. Compiled into arv (data.c) and read by its interface (src/arv-gui/arvgui/catalog.py):
+# one definition for both.
 # Specification: docs/spec/smart-archive-format.md
 
 %rec: Home

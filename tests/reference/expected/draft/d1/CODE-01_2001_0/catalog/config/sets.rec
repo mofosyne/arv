@@ -1,6 +1,6 @@
 # Default set vocabulary: words, not numbers.
 #
-# Copied to <home>/sets.rec on first use; edit that copy and add codes as you
+# Copied to <home>/config/sets.rec on first use; edit that copy and add codes as you
 # need them. Each entry has a Code (2-8 capital letters or digits, used in disc
 # ids such as TRIP-01_201907_Q) and any number of Parent codes, so the
 # vocabulary is a directed acyclic graph (a polyhierarchy, like SKOS
@@ -18,7 +18,7 @@
 #              beats a code, so "Projects" means PROJ, not the PROJECTS group.
 #   ScopeNote  what belongs here and what goes elsewhere.
 #   Match      file or folder name glob (repeatable) that suggests this code
-#              when `archive make` sees such files: "*.kicad_pcb", "*.git".
+#              when `arv make` sees such files: "*.kicad_pcb", "*.git".
 #              A pattern with "/" is matched against the whole path.
 
 %rec: Set
