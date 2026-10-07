@@ -88,7 +88,7 @@ Protection: none
 Media: M-DISC BD-R 25GB
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 850
+ImageSectors: 882
 ImageSha256: SHA256
 
 %rec: Object
@@ -187,7 +187,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image CODE-02_2001_Y.noecc.iso, 850 sectors
+Note: image CODE-02_2001_Y.noecc.iso, 882 sectors
 
 %rec: Appraisal
 %doc: The archivist log: how much something matters, to whom, and why. Appended and

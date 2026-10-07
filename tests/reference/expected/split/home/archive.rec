@@ -90,7 +90,7 @@ Protection: none
 Media: M-DISC custom medium
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 1586
+ImageSectors: 1618
 ImageSha256: SHA256
 
 %rec: Event
@@ -140,4 +140,4 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image SCAN-02_2001-2007_B.noecc.iso, 1586 sectors
+Note: image SCAN-02_2001-2007_B.noecc.iso, 1618 sectors

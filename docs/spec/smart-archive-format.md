@@ -107,6 +107,7 @@ catalogue rebuilt from a disc takes the disc's archive identity.
 | `catalog/volumes/<id>/formats.csv` | CSV | PRONOM format identification per file (optional) |
 | `catalog/volumes/<id>/manifest.sha256` | BagIt manifest | Copy of the disc's `manifest-sha256.txt` |
 | `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Binding`, `Location`, `Selection`, `Collection`, `Revision`, `Event` and `Appraisal` records (limited by [Access](#access)) |
+| `catalog/config/sets.rec`, `catalog/config/tags.rec` | recfile | The archive's vocabularies at burn time: the set codes (`Set`, `Category`) and the tag words its records use, with their names, parents and aliases. Full snapshots only; optional (format 0.5) |
 | `catalog/volumes/<other-id>/` | as above | The same per-volume index files for the other discs in the snapshot: one folder per volume, as LTFS keeps one index per tape |
 | `index.html` | HTML | Offline viewer (for people; readers can ignore) |
 | `README.txt` | text | How to browse, search, verify, restore and repair the disc, for people |

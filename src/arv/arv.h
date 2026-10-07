@@ -51,6 +51,7 @@ void home_at(arv_home *h, const char *path);
 void home_ensure(const arv_home *h);
 char *home_volume_file(const arv_home *h, const char *disc_id, const char *name);
 char *home_root(const arv_home *h);                     /* the folder holding the home */
+extern const char *const HOME_VOCABULARIES[];           /* config/'s files that discs carry: sets.rec, tags.rec */
 char *path_rel(const char *root, const char *abs);      /* relative to root when inside it, else as it is */
 char *path_abs(const char *root, const char *stored);   /* back to absolute */
 int cmd_init(int argc, char **argv);

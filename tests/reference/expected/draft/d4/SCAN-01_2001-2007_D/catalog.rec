@@ -47,8 +47,8 @@ Date: 2026-01-01
 Part: 1 of 2
 Creator: archivist
 Access: private
-Files: 55
-Bytes: 5500000
+Files: 54
+Bytes: 5400000
 Software: SW
 
 %rec: Binding
@@ -92,7 +92,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: sha256 and sha512 manifests of 55 files
+Note: sha256 and sha512 manifests of 54 files
 
 Disc: SCAN-01_2001-2007_D
 Type: metadata modification

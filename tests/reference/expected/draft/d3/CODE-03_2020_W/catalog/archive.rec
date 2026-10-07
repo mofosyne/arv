@@ -107,7 +107,7 @@ Protection: none
 Media: M-DISC BD-R 25GB
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 850
+ImageSectors: 882
 ImageSha256: SHA256
 
 Volume: CODE-02_2020_Y
@@ -116,7 +116,7 @@ Protection: none
 Media: M-DISC BD-R 25GB
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 850
+ImageSectors: 882
 ImageSha256: SHA256
 
 Volume: CODE-03_2020_W
@@ -216,7 +216,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image CODE-01_2001_0.noecc.iso, 850 sectors
+Note: image CODE-01_2001_0.noecc.iso, 882 sectors
 
 Disc: CODE-02_2020_Y
 Type: message digest calculation
@@ -248,7 +248,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image CODE-02_2020_Y.noecc.iso, 850 sectors
+Note: image CODE-02_2020_Y.noecc.iso, 882 sectors
 
 Disc: CODE-03_2020_W
 Type: message digest calculation

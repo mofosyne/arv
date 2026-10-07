@@ -1,0 +1,341 @@
+# Default set vocabulary: words, not numbers.
+#
+# Copied to <home>/sets.rec on first use; edit that copy and add codes as you
+# need them. Each entry has a Code (2-8 capital letters or digits, used in disc
+# ids such as TRIP-01_201907_Q) and any number of Parent codes, so the
+# vocabulary is a directed acyclic graph (a polyhierarchy, like SKOS
+# "broader"): SCAN sits under both RECORDS and PHOTO. Entries without a Parent
+# are top-level groups. Order (optional) sorts siblings for display.
+#
+# A disc has one Set (its id prefix and numbering) and any number of extra
+# Category codes; it records every vocabulary path of both (Path fields), so
+# the disc stays understandable without this file. Never reuse a code for a
+# different meaning: add a new one instead.
+#
+# Optional fields:
+#   Alias      other words for it (repeatable). `--set holidays` and a folder
+#              named "Holidays" both resolve to TRIP. For folder names an alias
+#              beats a code, so "Projects" means PROJ, not the PROJECTS group.
+#   ScopeNote  what belongs here and what goes elsewhere.
+#   Match      file or folder name glob (repeatable) that suggests this code
+#              when `archive make` sees such files: "*.kicad_pcb", "*.git".
+#              A pattern with "/" is matched against the whole path.
+
+%rec: Set
+%key: Code
+%mandatory: Code Name
+%type: Order int
+%allowed: Code Name Description Parent Order Alias ScopeNote Match
+
+Code: MEMORIES
+Name: Memories
+Description: personal photos, video and audio
+Order: 1
+
+Code: PHOTO
+Name: Photos
+Description: photographs from cameras and phones
+Parent: MEMORIES
+Alias: pictures
+Alias: pics
+Alias: camera
+Match: *.jpg
+Match: *.jpeg
+Match: *.heic
+Match: *.dng
+Match: *.cr2
+Match: *.nef
+Match: *.arw
+ScopeNote: photos that are not from a trip or event; scans of prints go in SCAN
+
+Code: TRIP
+Name: Trips and holidays
+Description: photos and video from travel
+Parent: PHOTO
+Alias: holiday
+Alias: holidays
+Alias: travel
+Alias: vacation
+
+Code: FAMILY
+Name: Family
+Description: family life, children, relatives
+Parent: PHOTO
+
+Code: EVENT
+Name: Events
+Description: weddings, birthdays, celebrations, gatherings
+Parent: PHOTO
+Alias: wedding
+Alias: birthday
+Alias: party
+
+Code: VIDEO
+Name: Home video
+Description: video recordings and home movies
+Parent: MEMORIES
+Alias: videos
+Alias: movies
+Alias: footage
+Match: *.mp4
+Match: *.mov
+Match: *.mts
+Match: *.m2ts
+ScopeNote: your own recordings; bought or downloaded films go in MEDIA
+
+Code: AUDIO
+Name: Audio recordings
+Description: voice memos, recordings, own music
+Parent: MEMORIES
+Alias: recordings
+Alias: voice
+Match: *.wav
+Match: *.m4a
+
+Code: RECORDS
+Name: Records
+Description: documents and paperwork
+Order: 2
+Alias: documents
+Alias: paperwork
+Alias: docs
+
+Code: SCAN
+Name: Scans
+Description: scanned paper documents and photo prints
+Parent: RECORDS
+Parent: PHOTO
+Alias: scanned
+Alias: scanner
+
+Code: LETTERS
+Name: Letters and correspondence
+Description: letters, cards, email printouts
+Parent: RECORDS
+Alias: correspondence
+Alias: mail
+
+Code: LEGAL
+Name: Legal and identity
+Description: contracts, certificates, passports, wills, deeds
+Parent: RECORDS
+Alias: identity
+Alias: contracts
+Alias: certificates
+
+Code: TAXES
+Name: Taxes
+Description: tax returns and supporting documents
+Parent: FINANCE
+Alias: tax
+Alias: taxreturn
+
+Code: FINANCE
+Name: Finance
+Description: bank statements, invoices, insurance, payslips
+Parent: RECORDS
+Alias: bank
+Alias: banking
+Alias: invoices
+Alias: receipts
+Alias: money
+
+Code: HEALTH
+Name: Health
+Description: medical records, prescriptions, test results
+Parent: RECORDS
+Alias: medical
+
+Code: HOME
+Name: Home and property
+Description: house, renovations, manuals, warranties
+Parent: RECORDS
+Alias: house
+Alias: property
+
+Code: CAREER
+Name: Work and study
+Order: 3
+
+Code: WORK
+Name: Work
+Description: job and career material
+Parent: CAREER
+Alias: job
+Alias: career
+
+Code: SCHOOL
+Name: School and study
+Description: courses, notes, theses
+Parent: CAREER
+Alias: study
+Alias: university
+Alias: uni
+Alias: college
+
+Code: PROJECTS
+Name: Projects
+Description: things you made
+Order: 4
+
+Code: PROJ
+Name: Personal projects
+Description: a project's files of every kind together (code, designs, notes, photos)
+Parent: PROJECTS
+Alias: projects
+Alias: project
+ScopeNote: one project with all its kinds of files; add CODE, ELEC or DESIGN as Categories
+
+Code: CODE
+Name: Software
+Description: source code and programming projects
+Parent: PROJECTS
+Alias: software
+Alias: source
+Alias: src
+Alias: repos
+Alias: programming
+Match: *.git
+Match: *.py
+Match: *.c
+Match: *.h
+Match: *.cpp
+Match: *.rs
+Match: *.go
+Match: *.js
+Match: *.ts
+Match: *.java
+Match: Makefile
+Match: CMakeLists.txt
+Match: Cargo.toml
+Match: package.json
+
+Code: ELEC
+Name: Electronics
+Description: circuits, PCBs, firmware, hardware projects
+Parent: PROJECTS
+Alias: electronics
+Alias: hardware
+Alias: pcb
+Alias: firmware
+Match: *.kicad_pcb
+Match: *.kicad_sch
+Match: *.sch
+Match: *.brd
+Match: *.gbr
+Match: *.ino
+
+Code: DESIGN
+Name: Design and art
+Description: drawings, CAD, 3D printing, graphics
+Parent: PROJECTS
+Alias: art
+Alias: cad
+Alias: drawings
+Alias: graphics
+Match: *.stl
+Match: *.step
+Match: *.stp
+Match: *.scad
+Match: *.f3d
+Match: *.blend
+Match: *.svg
+Match: *.psd
+Match: *.xcf
+Match: *.kra
+
+Code: WRITING
+Name: Writing
+Description: articles, stories, blogs, books
+Parent: PROJECTS
+Alias: blog
+Alias: articles
+Alias: stories
+
+Code: COLLECT
+Name: Collections
+Description: things you gathered rather than made
+Order: 5
+
+Code: BOOKS
+Name: Books and papers
+Description: e-books, articles, reference material
+Parent: COLLECT
+Alias: ebooks
+Alias: papers
+Alias: library
+Match: *.epub
+Match: *.mobi
+Match: *.azw3
+Match: *.djvu
+
+Code: MEDIA
+Name: Media library
+Description: films, music albums, podcasts
+Parent: COLLECT
+Alias: music
+Alias: films
+Alias: podcasts
+Match: *.flac
+Match: *.mkv
+
+Code: GAMES
+Name: Games
+Description: games, saves, mods
+Parent: COLLECT
+Alias: saves
+Alias: roms
+Alias: mods
+
+Code: BACKUPS
+Name: Backups and exports
+Order: 6
+Alias: backup
+Alias: exports
+
+Code: SYSTEM
+Name: System backups
+Description: computer backups and disk images
+Parent: BACKUPS
+Alias: disk images
+Alias: os
+Match: *.img
+Match: *.vhd
+Match: *.vhdx
+Match: *.vmdk
+Match: *.qcow2
+
+Code: PHONE
+Name: Phone backups
+Description: phone backups and exports
+Parent: BACKUPS
+Alias: mobile
+Alias: android
+Alias: iphone
+Alias: whatsapp
+
+Code: EMAIL
+Name: Email and messages
+Description: mailbox exports, chat exports
+Parent: BACKUPS
+Alias: emails
+Alias: inbox
+Match: *.mbox
+Match: *.eml
+Match: *.pst
+
+Code: WEB
+Name: Web archives
+Description: saved websites (WARC), social media exports
+Parent: BACKUPS
+Alias: websites
+Alias: social
+Match: *.warc
+Match: *.warc.gz
+
+Code: MISC
+Name: Miscellaneous
+Description: material that fits nowhere else yet
+Order: 9
+Alias: other
+Alias: stuff

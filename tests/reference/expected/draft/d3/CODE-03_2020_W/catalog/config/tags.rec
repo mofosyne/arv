@@ -1,0 +1,172 @@
+# Default tag vocabulary for `archive tag`.
+#
+# Copied to <home>/tags.rec on first use; edit that copy freely. Each tag's
+# Description is what the embedding model compares folders against, so write
+# it as the kinds of things such a folder contains. Several phrasings help.
+# Describe content, not the medium: words like "photos" or "files" make every
+# photo folder look alike.
+#
+# Optional fields:
+#   Alias   other words for the same tag (repeatable); when you type one while
+#           reviewing it is replaced by the Name, so tags don't drift.
+#   Match   file or folder name glob (repeatable): folders with such files get
+#           the tag without any model (`archive tag --rules-only`).
+#
+# Tags may be namespaced as namespace:value, e.g. person:alice, place:kyoto,
+# event:wedding-2019, source:pixel-7, project:weather-station. Namespaces keep
+# facets apart (who, where, which occasion, which device) and export as
+# hierarchical keywords (place|kyoto) with `archive keywords`.
+
+%rec: Tag
+%key: Name
+%mandatory: Name Description
+%allowed: Name Description Alias Match
+
+Name: family
+Description: family life: relatives, children, babies, parents, grandparents, family gatherings at home
+Alias: relatives
+Alias: kids
+
+Name: travel
+Description: travel and holidays: trips, sightseeing, landmarks, temples, beaches, mountains, foreign cities and countries
+Alias: holiday
+Alias: holidays
+Alias: trip
+Alias: trips
+Alias: vacation
+
+Name: celebration
+Description: celebrations and events: christmas, birthdays, weddings, anniversaries, parties, graduations
+Alias: party
+Alias: birthday
+Alias: wedding
+Alias: christmas
+
+Name: pets
+Description: pets and animals: cats, dogs, puppies, kittens, birds, horses
+Alias: pet
+Alias: cat
+Alias: dog
+
+Name: nature
+Description: nature and outdoors: landscapes, gardens, flowers, hiking, wildlife, sunsets
+
+Name: food
+Description: food, cooking, recipes, restaurants, meals, baking
+Alias: recipes
+Alias: cooking
+
+Name: vehicles
+Description: cars, motorbikes, bicycles, trains, planes and other vehicles
+
+Name: home
+Description: house and home: renovation, furniture, rooms, moving house, garden projects
+Alias: house
+Alias: renovation
+
+Name: people
+Description: friends and people: portraits, groups, gatherings, reunions
+Alias: friends
+
+Name: work
+Description: work and career: jobs, office, meetings, presentations, business documents
+Alias: job
+Alias: career
+
+Name: school
+Description: school and study: university, courses, homework, lecture notes, theses
+Alias: study
+Alias: university
+Alias: uni
+
+Name: code
+Description: software source code and programming projects, scripts, repositories
+Alias: software
+Alias: programming
+Alias: source
+Match: *.git
+Match: *.py
+Match: *.c
+Match: *.h
+Match: *.cpp
+Match: *.rs
+Match: *.go
+Match: *.js
+Match: *.ts
+Match: *.java
+Match: Makefile
+Match: CMakeLists.txt
+
+Name: electronics
+Description: electronics and hardware projects: circuits, schematics, PCBs, firmware, microcontrollers
+Alias: hardware
+Alias: pcb
+Alias: firmware
+Match: *.kicad_pcb
+Match: *.kicad_sch
+Match: *.sch
+Match: *.brd
+Match: *.gbr
+Match: *.ino
+
+Name: design
+Description: design and art files: drawings, CAD models, 3D printing, graphics, illustrations
+Alias: cad
+Alias: art
+Alias: 3d printing
+Match: *.stl
+Match: *.step
+Match: *.scad
+Match: *.f3d
+Match: *.blend
+Match: *.psd
+Match: *.xcf
+Match: *.kra
+
+Name: music
+Description: music and audio: songs, recordings, albums, podcasts, sound files
+Alias: audio
+Alias: songs
+Match: *.flac
+Match: *.mp3
+
+Name: video
+Description: video recordings, films, movies, home movies
+Alias: videos
+Alias: movies
+Alias: films
+
+Name: documents
+Description: scanned documents and paperwork: letters, forms, manuals, receipts
+Alias: paperwork
+Alias: docs
+Alias: scans
+
+Name: legal
+Description: legal and identity documents: contracts, certificates, passports, wills, deeds
+
+Name: finance
+Description: money and finance: bank statements, taxes, invoices, insurance, payslips
+Alias: tax
+Alias: taxes
+Alias: bank
+Alias: receipts
+
+Name: health
+Description: health and medical records, prescriptions, test results
+Alias: medical
+
+Name: backup
+Description: backups and exports: phone backups, email archives, account exports, ISO files, zip archives
+Alias: backups
+Alias: exports
+Match: *.mbox
+Match: *.pst
+Match: *.vhd
+Match: *.vmdk
+Match: *.qcow2
+
+Name: games
+Description: games and gaming: save files, mods, screenshots, game projects
+Alias: gaming
+Alias: saves

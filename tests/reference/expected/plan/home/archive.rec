@@ -146,7 +146,7 @@ Protection: none
 Media: M-DISC BD-R 25GB
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 850
+ImageSectors: 882
 ImageSha256: SHA256
 
 Volume: TRIP-03_2025_7
@@ -324,7 +324,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image TRIP-02_2025_9.noecc.iso, 850 sectors
+Note: image TRIP-02_2025_9.noecc.iso, 882 sectors
 
 Disc: TRIP-03_2025_7
 Type: message digest calculation

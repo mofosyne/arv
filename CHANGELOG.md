@@ -22,6 +22,11 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Discs carry the vocabularies** (format 0.5)
+- A disc with a full catalogue snapshot carries the home's `config/sets.rec` and
+  `config/tags.rec` in `catalog/config/`, so the words its records use travel with it.
+  `arv rebuild` restores them into a home that has none, and says so when the home's differ.
+
 **`arv make FOLDER` records a data object**
 - A folder that is not a collection's workflow folder and fits on one disc is a data object, as
   a plan's items are: `arv objects` lists it, `arv status FOLDER` says whether it changed since,

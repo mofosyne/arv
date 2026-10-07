@@ -944,6 +944,12 @@ static long snapshot_estimate(const maker *mk)
         }
     }
     for (size_t i = 0; i < mk->files->n; i++) total += 4 * (long)(utf8_chars(mk->files->v[i].path) + 200);
+    for (int k = 0; HOME_VOCABULARIES[k]; k++) {
+        char *p = join(mk->h->config_dir, HOME_VOCABULARIES[k]);
+        struct stat st;
+        if (!stat(p, &st)) total += (long)st.st_size + SECTOR;
+        free(p);
+    }
     return total / SECTOR + 256;
 }
 
@@ -1381,6 +1387,17 @@ static void stage_plan(maker *mk, size_t idx)
         free(path);
         free(n);
         free(all.v);
+    }
+    for (int k = 0; !strcmp(o->snapshot, "full") && HOME_VOCABULARIES[k]; k++) {   /* the words it uses: catalog/config/ */
+        char *from = join(mk->h->config_dir, HOME_VOCABULARIES[k]), *dir = join(cat_dir, "config");
+        if (!access(from, F_OK)) {
+            char *to = join(dir, HOME_VOCABULARIES[k]);
+            if (mkdirs(dir)) die("cannot create %s", dir);
+            copy_file(from, to);
+            free(to);
+        }
+        free(from);
+        free(dir);
     }
     static const char *const KINDS[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", "git.tsv",
                                          NULL };

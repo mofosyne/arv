@@ -1179,6 +1179,22 @@ int cmd_rebuild(int argc, char **argv)
             free(to);
         }
     }
+    for (int k = 0; HOME_VOCABULARIES[k]; k++) {         /* the vocabularies, when the home has none yet */
+        char *from = xprintf("%s/config/%s", snap_dir, HOME_VOCABULARIES[k]), *to = join(h.config_dir, HOME_VOCABULARIES[k]);
+        if (!access(from, F_OK) && access(to, F_OK)) {
+            if (mkdirs(h.config_dir)) die("cannot create %s", h.config_dir);
+            copy_file(from, to);
+            printf("Restored config/%s from the disc\n", HOME_VOCABULARIES[k]);
+        } else if (!access(from, F_OK)) {
+            char *a = read_text(from), *b = read_text(to);
+            if (strcmp(a, b))
+                printf("Kept the home's config/%s; the disc's differs (%s)\n", HOME_VOCABULARIES[k], from);
+            free(a);
+            free(b);
+        }
+        free(from);
+        free(to);
+    }
     if (mkdirs(h.catalog_dir)) die("cannot create %s", h.catalog_dir);
     archive_save(&cat, h.rec_path);
     sbuf list = { 0 };

@@ -171,11 +171,11 @@ $ --home hc retire FAM
 FAM: no edition is safe yet (each of its discs burned and read back: arv burned --device); nothing to retire
 rc=0
 $ --home hc burned FAM-02_2019_Y --device bad.iso --location BOX1
-Reading back FAM-02_2019_Y (bad.iso): the 850 sectors of its image ...
+Reading back FAM-02_2019_Y (bad.iso): the 882 sectors of its image ...
 FAM-02_2019_Y: this burn is NOT the image (different content); not recorded as a copy. Burn it again, and keep this disc out of the archive.
 rc=1
 $ --home hc burned --device out-c2/FAM-02_2019_Y.noecc.iso --location BOX1
-Reading back FAM-02_2019_Y (out-c2/FAM-02_2019_Y.noecc.iso): the 850 sectors of its image ...
+Reading back FAM-02_2019_Y (out-c2/FAM-02_2019_Y.noecc.iso): the 882 sectors of its image ...
 FAM-02_2019_Y: 1 copy recorded (this one read back: identical to the image)
 rc=0
 $ --home hc burned FAM-01_2019_0 --location BOX1
@@ -249,11 +249,11 @@ $ --home hc location move NAS --temperature warm
 NAS: The NAS
 rc=0
 $ --home hc stored FAM-02_2019_Y nas/FAM-02_2019_Y.noecc.iso --location NAS
-Reading ROOT/nas/FAM-02_2019_Y.noecc.iso: the 850 sectors of FAM-02_2019_Y's image ...
+Reading ROOT/nas/FAM-02_2019_Y.noecc.iso: the 882 sectors of FAM-02_2019_Y's image ...
 FAM-02_2019_Y: 2 copies recorded (this one: iso, warm, checked)
 rc=0
 $ --home hc stored FAM-02_2019_Y bad.iso
-Reading ROOT/bad.iso: the 850 sectors of FAM-02_2019_Y's image ...
+Reading ROOT/bad.iso: the 882 sectors of FAM-02_2019_Y's image ...
 FAM-02_2019_Y: the iso at ROOT/bad.iso is NOT a good copy (different content from the image); not recorded
 rc=1
 $ --home hc stored FAM-01_2019_0 nas/FAM-02_2019_Y

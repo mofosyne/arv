@@ -3,5 +3,5 @@ External-Identifier: SCAN-01_2001-2007_D
 External-Description: Big
 Bag-Group-Identifier: SCAN-01-02
 Bag-Count: 1 of 2
-Payload-Oxum: 5500000.55
+Payload-Oxum: 5400000.54
 Bag-Software-Agent: SW <https://github.com/mofosyne/arv>
