@@ -137,7 +137,9 @@ two names that differ in letter case.
 
 **Laying the folder out.** A disc found decades from now, with no catalogue and no arv, is read
 by its folders alone, so its layout should be one a stranger can follow. arv never moves your
-files, so this is advice, not something it enforces:
+files, so this is advice, not something it enforces. `arv status` and `arv make` note top-level
+folders whose names say nothing (`misc/`, `New folder/`), and, when most of the top level is
+kinds, the folders that are not (a repository's own tree is left alone):
 
 - **The top level is kinds**, named with the words of your set vocabulary (`photos/`,
   `records/`, `projects/`; `arv sets -v`). Kinds age well; interpretations do not.

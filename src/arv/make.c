@@ -2015,6 +2015,7 @@ int cmd_make(int argc, char **argv)
             fprintf(stderr, "Classified as: %s\n", l.s);
             free(l.s);
         }
+        if (!o.plan) layout_notes(&h, src, stderr, "Note: layout: ");   /* advice only: the disc gets it as it is */
 
         /* the questions after classifying (cli.cmd_make's meta), when asking */
         if (interactive) {

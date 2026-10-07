@@ -293,6 +293,13 @@ rc=0
 $ --home hc collection show NOPE
 Error: no collection NOPE
 rc=1
+$ --home hc status lay
+0 files: 0 read, 0 unchanged since last read (hash cache)
+ROOT/lay: not a collection's workflow folder
+  0 of its 0 files are on discs; 0 on none
+  layout: New folder (2)/, misc/: say nothing about what they hold; a disc is read by its folders when no catalogue is left (name by kind or by a fact, such as a year)
+  layout: Grandma/: not a kind from your vocabulary, beside 3 that are (arv sets -v)
+rc=0
 $ --home hc list
 FAM-01_2019_0	2026-01-01	Family photos	2 files	public	
 FAM-02_2019_Y	2026-01-01	Family photos	2 files	public	BOX1; The NAS

@@ -39,6 +39,10 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   only a boundary that already exists. Interpretation stays virtual, and a disc's layout changes
   only with a new edition of its content. docs/philosophy.md calls the disc's layout the third
   order, beside the shelf and the catalogue. Advice only: arv still never moves files.
+- `arv status FOLDER` and `arv make` note top-level folders whose names say nothing about what
+  they hold (`misc/`, `New folder (2)/`), and, when most of the top level is kinds from the set
+  vocabulary, the folders that are not. Folders named by a year count as facts; a repository's
+  own tree is left alone. Nothing is recorded, so the format does not change.
 
 **Appraise first: the levels ask for care** (issue #24)
 - Each importance level now asks for a number of copies and places: essential, 3 copies in 3

@@ -16,7 +16,9 @@
  * everything, and reports a file whose content changed while its time did not). */
 #define _XOPEN_SOURCE 700
 #include "arv.h"
+#include "data.h"
 
+#include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
@@ -900,6 +902,81 @@ static void git_report(const arv_home *h, const archive *cat, const char *root, 
     free(rows);
 }
 
+/* ------------------------------------------------------------------ the folder's layout (advice) */
+
+/* a name that says nothing about what it holds */
+static int vague_name(const char *name)
+{
+    static const char *const VAGUE[] = { "MISC", "MISCELLANEOUS", "STUFF", "OTHER", "OTHERS", "UNSORTED", "TOSORT",
+                                         "NEWFOLDER", "UNTITLED", "UNTITLEDFOLDER", "TEMP", "TMP", "RANDOM", "OLD", "NEW", NULL };
+    char *w = xmalloc(strlen(name) + 1);
+    vocab_word(name, w);
+    int vague = 0;
+    for (int k = 0; VAGUE[k] && !vague; k++) {
+        size_t n = strlen(VAGUE[k]);
+        vague = !strncmp(w, VAGUE[k], n) && strspn(w + n, "0123456789") == strlen(w + n);   /* "New folder (2)" */
+    }
+    free(w);
+    return vague;
+}
+
+/* starts with a year: "2019", "2019-07 Kyoto", "1998 scans" */
+static int dated_name(const char *name)
+{
+    return strspn(name, "0123456789") == 4 && (name[0] == '1' || name[0] == '2') && !isdigit((unsigned char)name[4]);
+}
+
+/* docs/workflow.md, "Laying the folder out": the top level is kinds (the set vocabulary) or facts
+ * (years). Advice, printed with prefix: folders whose names say nothing (misc/), and, when most of
+ * the top level is kinds, the folders that are not. A repository is left alone. arv never moves files. */
+void layout_notes(const arv_home *h, const char *abs, FILE *out, const char *prefix)
+{
+    vocab v;
+    char err[512], *sets_path = join(h->config_dir, "sets.rec");
+    int ok = !access(sets_path, F_OK) ? !vocab_load(&v, sets_path, NULL, err, sizeof err)
+                                      : !vocab_load(&v, NULL, DATA_DEFAULT_SETS, err, sizeof err);
+    free(sets_path);
+    char *git = join(abs, ".git");
+    DIR *d = ok && access(git, F_OK) ? opendir(abs) : NULL;      /* a repository's own tree is left alone */
+    free(git);
+    if (!d) {
+        if (ok) vocab_free(&v);
+        return;
+    }
+    strlist kinds = { 0 }, vague = { 0 }, others = { 0 };
+    struct dirent *e;
+    while ((e = readdir(d))) {
+        if (e->d_name[0] == '.') continue;
+        char *p = join(abs, e->d_name);
+        struct stat st;
+        int dir = !lstat(p, &st) && S_ISDIR(st.st_mode);     /* links are not folders of their own */
+        free(p);
+        if (!dir) continue;
+        if (vague_name(e->d_name)) strlist_add(&vague, e->d_name);
+        else if (vocab_guess(&v, e->d_name) && !dated_name(e->d_name)) strlist_add(&kinds, e->d_name);
+        else if (!dated_name(e->d_name)) strlist_add(&others, e->d_name);
+    }
+    closedir(d);
+    if (vague.n) qsort(vague.v, vague.n, sizeof *vague.v, by_str);
+    if (others.n) qsort(others.v, others.n, sizeof *others.v, by_str);
+    if (vague.n) {
+        fprintf(out, "%s", prefix);
+        for (size_t i = 0; i < vague.n; i++) fprintf(out, "%s%s/", i ? ", " : "", vague.v[i]);
+        fprintf(out, ": %s nothing about what %s; a disc is read by its folders when no catalogue is left "
+                     "(name by kind or by a fact, such as a year)\n", vague.n == 1 ? "says" : "say", vague.n == 1 ? "it holds" : "they hold");
+    }
+    if (kinds.n >= 2 && kinds.n >= others.n && others.n) {   /* most of the top level is kinds: the rest should be too */
+        fprintf(out, "%s", prefix);
+        for (size_t i = 0; i < others.n; i++) fprintf(out, "%s%s/", i ? ", " : "", others.v[i]);
+        fprintf(out, ": not %s from your vocabulary, beside %zu that %s (arv sets -v)\n", others.n == 1 ? "a kind" : "kinds",
+                kinds.n, kinds.n == 1 ? "is" : "are");
+    }
+    strlist_free(&kinds);
+    strlist_free(&vague);
+    strlist_free(&others);
+    vocab_free(&v);
+}
+
 int cmd_status(int argc, char **argv)
 {
     const char *given = NULL, *folder = NULL, *message = NULL;
@@ -960,6 +1037,7 @@ int cmd_status(int argc, char **argv)
     }
     if (!coll) objects_status(&h, &cat, abs, &s, verbose);
     git_report(&h, &cat, abs, &s.repos);
+    layout_notes(&h, abs, stdout, "  layout: ");
     if (s.links || s.unreadable) printf("  (%zu symbolic links not compared, %zu unreadable)\n", s.links, s.unreadable);
     for (size_t i = 0; i < s.silent_paths.n; i++)
         printf("  ! %s: content changed but its modified time did not (bit rot, or a tool that keeps times)\n",
