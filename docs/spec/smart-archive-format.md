@@ -337,10 +337,12 @@ Message: the 2025 sort
 | `Parent`* | the revision(s) it follows (two for a merge); none for the first |
 | `Stage` | `checkpoint` (state recorded, no discs) or `edition` |
 | `Keep` | `yes`: never offered for retiring; may be added later (it is not part of `Node`) |
+| `Lost`* | `SHA256  PATH` (as in `manifest-sha256.txt`): a file of this edition that was on no other disc when it was retired, and whose loss was accepted; added later (not part of `Node`) |
 | `Edition`, `Volume`* | for an edition: its number and its discs |
 | `Changes` | since the parent: files new (`+`), changed (`~`), removed (`-`) and moved (`>`: the same content under a new path) |
 
-Revisions are appended, never edited, and merged by `Node`; collections are merged by `Uuid`.
+Revisions are appended, never edited, and merged by `Node` (the fields added later, `Keep` and
+`Lost`, are unioned); collections are merged by `Uuid`.
 
 Each copy is one `replication` event, with its **form**: `disc` (burned), `iso` (the image kept
 as a file, read back against `ImageSha256`) or `folder` (the disc's files laid out as on the
@@ -407,6 +409,34 @@ Readers turn this into a date span (uncertain digits widen it: `199X` is
 1990-01-01 to 1999-12-31) and can answer "which discs cover 15 July 2019?"
 without reading any listings. The id carries at most year and month; the
 record keeps full precision.
+
+### `Object` records: data objects (format 0.5)
+
+A file or folder that a disc plan (`arv plan`) put on a disc as a whole is a **data object**, with
+an `Object` record in the disc's `catalog.rec` (its own) and in snapshots (earlier discs').
+
+```
+%rec: Object
+
+Uuid: 1c9e...            the lineage: every version of the same object
+Version: 2
+Name: 2025               its name where it was read from
+Kind: folder             file, folder, or git (a folder holding a repository)
+Tree: 36ea...            SHA-256 of its manifest (below); for a file, the file's SHA-256
+Disc: TRIP-03_2025_7
+Path: photos             where it is under data/ ("." for the whole of data/)
+Files: 3
+Bytes: 21
+Date: 2026-01-01
+```
+
+The manifest is each file's SHA-256 and its path within the object, sorted by path, in
+`manifest-sha256.txt` form, without a repository's `.git` (`git.tsv` describes that). The same
+`Tree` on several discs is the same version, copied. Each version is recorded when it is archived:
+the same content as an earlier version is that version; from the same place but changed, the
+next version; else a new `Uuid`. The home catalogue adds `Source` (the absolute path it was read
+from) and keeps each manifest in `catalog/objects/<Tree>.sha256`; neither goes on a disc.
+Readers merge objects by `Uuid`, `Version` and `Disc`.
 
 ### `Event` records (recfile)
 

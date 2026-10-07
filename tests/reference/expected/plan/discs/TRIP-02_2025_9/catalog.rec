@@ -1,0 +1,133 @@
+%rec: Archive
+%doc: Entry point of a smart-archive disc: which format and version this is, which disc,
++ and where its other catalogue files are (paths relative to the disc root).
++ Specification: tools/arv/docs/spec/smart-archive-format.md
+%mandatory: Format Version Disc Uuid
+
+Format: smart-archive
+Version: 0.5
+Disc: TRIP-02_2025_9
+Uuid: UUID
+HomeUuid: UUID
+Manifest: manifest-sha256.txt
+Listing: catalog/volumes/TRIP-02_2025_9/listing.tsv
+Snapshot: catalog/archive.rec
+Viewer: index.html
+Payload: data/
+
+%rec: Disc
+%doc: One record per physical disc image (an OAIS AIP). Field names follow
++ Dublin Core terms where one fits: Title, Creator, Date, Description,
++ Subject, Coverage, Rights. Uuid is the machine identity of the image
++ (copies burned from one image share it); Id is for people and is
++ derived from Set, Sequence and Coverage (EDTF) under IdScheme, so it
++ can always be regenerated and checked (see docs/spec/smart-archive-format.md).
+%key: Id
+%mandatory: Id Title Date
+%type: Uuid uuid
+%type: Sequence int
+%type: Date date
+%type: Files int
+%type: Bytes int
+%type: Access enum public private sealed
+%type: Retired date
+
+Id: TRIP-02_2025_9
+Uuid: UUID
+IdScheme: set-seq-coverage/1
+Label: TRIP-02_2025_9 Holiday 2025
+Title: Holiday 2025
+Set: TRIP
+Category: MEDIA
+Path: MEMORIES/PHOTO/TRIP
+Path: COLLECT/MEDIA
+Sequence: 2
+Coverage: 2025
+Date: 2026-01-01
+Part: 2 of 2
+Creator: archivist
+Access: private
+Files: 3
+Bytes: 20
+Software: SW
+
+%rec: Binding
+%doc: How one volume is stored on its medium: the container (filesystem) and the
++ protection (error correction) it was made with. These change with the medium;
++ the files and the rest of the catalogue do not (research/plan.md, four layers).
++ Container: iso9660+udf-1.02, udf-2.50 (later perhaps ltfs, exfat, tar, afs).
++ Protection: rs03 or none. Media, Filesystem and Ecc describe them for people
++ (format 0.2 and earlier kept those three in the Disc record).
+%key: Volume
+%mandatory: Volume Container Protection
+%type: MediumSectors int
+
+Volume: TRIP-02_2025_9
+Container: udf-2.50
+Protection: none
+Media: M-DISC BD-R 25GB
+Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
+Ecc: none
+
+%rec: Object
+%doc: A data object: one file or folder put on a disc as a whole (by a disc plan), with no
++ .arv marker of its own. Uuid is its lineage: every version of the same object shares it.
++ Tree is the SHA-256 of its manifest (each file's SHA-256 and path within the object,
++ sorted; a repository's .git aside, as git.tsv describes it); Version counts its versions,
++ and the same Tree on another disc is the same version. Disc and Path say where it is
++ (Path under data/; "." for the whole of data/). Source is where it was read from: it is
++ kept in the home catalogue only, and discs carry their objects without it.
+%mandatory: Uuid Version Tree Disc Path Kind Date
+%type: Uuid uuid
+%type: Version int
+%type: Files int
+%type: Bytes int
+%type: Date date
+%type: Kind enum file folder git
+
+Uuid: UUID
+Version: 1
+Name: notes.txt
+Kind: file
+Tree: 444e0fffbd825e9610ff5b199485707a0c895339ae80c15cc8a8aee41b106fda
+Disc: TRIP-02_2025_9
+Path: notes.txt
+Files: 1
+Bytes: 6
+Date: 2026-01-01
+
+Uuid: UUID
+Version: 1
+Name: 2025
+Kind: folder
+Tree: dbfbcd823eab3716e2af573d93ab9e04b6d8f4622e7cffeb827ec2ee98468f99
+Disc: TRIP-02_2025_9
+Path: photos
+Files: 2
+Bytes: 14
+Date: 2026-01-01
+
+%rec: Event
+%doc: Preservation actions and metadata changes, appended and never edited. Type uses
++ the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
++ Disc names the disc; a change to a location or a selection names it in Object
++ (location:CODE, selection:CODE) instead.
++ Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
++ Authorship says how people and machines shared the work: automatic (software
++ following rules), suggested (a model, not reviewed), accepted (a model's suggestion
++ a person kept as it was), edited (one a person changed), human (a person alone).
++ A replication records one copy: Form (disc, iso: the image as a file, folder: the disc's
++ files), Temperature (hot, warm, cold: given, else its place's, else cold for a disc and
++ warm for a file or folder), Path for a file or folder; with ReadBack: identical it is a copy read back against its image before it
++ was recorded (known good); deaccession retires a disc (its Disc record gets Retired).
+%mandatory: Type Date Outcome
+%type: Outcome enum success failure warning
+%type: Authorship enum automatic suggested accepted edited human
+
+Disc: TRIP-02_2025_9
+Type: message digest calculation
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: SW
+Note: sha256 and sha512 manifests of 3 files

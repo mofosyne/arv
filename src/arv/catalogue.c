@@ -169,6 +169,12 @@ char *catalogue_volume(const catalogue *c, const char *id, const char *name)
 static const char *const SEARCH_FIELDS[] = { "Id", "Title", "Description", "Subject", "Note", "Coverage",
                                             "Category", "Path", "Location", NULL };
 
+/* where a found disc is, or that it was retired (a retired disc has left every place) */
+static char *found_at(const catalogue *c, const rec_record *d)
+{
+    return rec_get(d, "Retired") ? xprintf("retired %s", rec_get(d, "Retired")) : where(c, d);
+}
+
 int cmd_find(int argc, char **argv)
 {
     const char *given = NULL, *pattern = NULL;
@@ -194,12 +200,25 @@ int cmd_find(int argc, char **argv)
             for (int k = 0; SEARCH_FIELDS[k] && !hit; k++)
                 if (!strcmp(d->fields[j].name, SEARCH_FIELDS[k]) && matches(pat, glob, d->fields[j].value)) hit = 1;
         if (hit) {
-            char *w = where(&c, d);
+            char *w = found_at(&c, d);
             printf("DISC  %s  %s  [%s]\n", rec_get(d, "Id"), rec_get(d, "Title") ? rec_get(d, "Title") : "None",
                    *w ? w : "location unknown");
             free(w);
             any = 1;
         }
+    }
+    for (size_t i = 0; i < c.rec.nrecords; i++) {          /* data objects (disc plans), by name or path */
+        const rec_record *o = &c.rec.records[i];
+        if (!is_type(o, "Object") || !rec_get(o, "Disc")) continue;
+        const char *name = rec_get(o, "Name") ? rec_get(o, "Name") : "", *path = rec_get(o, "Path") ? rec_get(o, "Path") : "";
+        if (!matches(pat, glob, name) && !matches(pat, glob, path)) continue;
+        const rec_record *d = find_disc(&c, rec_get(o, "Disc"));
+        char *w = d ? found_at(&c, d) : xstrdup("");
+        int folder = strcmp(rec_get(o, "Kind") ? rec_get(o, "Kind") : "", "file");
+        printf("OBJECT  %s%s  version %s  %s  data/%s%s  [%s]\n", name, folder ? "/" : "", rec_get(o, "Version") ? rec_get(o, "Version") : "?",
+               rec_get(o, "Disc"), strcmp(path, ".") ? path : "", folder && strcmp(path, ".") ? "/" : "", *w ? w : "?");
+        free(w);
+        any = 1;
     }
     size_t hexlen = strspn(pat, "0123456789abcdef");
     if (hexlen == strlen(pat) && hexlen >= 7 && hexlen <= 40)  /* a git commit: the discs holding it */
@@ -234,7 +253,7 @@ int cmd_find(int argc, char **argv)
                 }
             }
             for (size_t k = 0; k < repos.n; k++) {
-                char *w = where(&c, d);
+                char *w = found_at(&c, d);
                 printf("GIT   %s  %s  commit %s%s  [%s]\n", rec_get(d, "Id"), repos.v[k], shown.v[k],
                        strchr(shown.v[k], '(') ? ")" : "", *w ? w : "location unknown");
                 free(w);
@@ -276,7 +295,7 @@ int cmd_find(int argc, char **argv)
             }
             free(tags);
             if (!hit) continue;
-            char *w = where(&c, d);
+            char *w = found_at(&c, d);
             if (!strcmp(cols[0], ".")) printf("TAG   %s  [%s]  data/  (%s)\n", rec_get(d, "Id"), *w ? w : "?", shown);
             else printf("TAG   %s  [%s]  data/%s/  (%s)\n", rec_get(d, "Id"), *w ? w : "?", cols[0], shown);
             free(w);
@@ -293,7 +312,7 @@ int cmd_find(int argc, char **argv)
         size_t cap = 0;
         ssize_t len;
         FILE *fp = fopen(path, "r");
-        char *w = where(&c, d);
+        char *w = found_at(&c, d);
         while (fp && (len = getline(&line, &cap, fp)) >= 0) {
             while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) line[--len] = 0;
             char *rel = strstr(line, "  ");
@@ -306,6 +325,23 @@ int cmd_find(int argc, char **argv)
         if (fp) fclose(fp);
         free(line);
         free(path);
+    }
+    for (size_t i = 0; i < c.rec.nrecords; i++) {          /* files lost: retired with no other copy */
+        const rec_record *r = &c.rec.records[i];
+        if (!is_type(r, "Revision")) continue;
+        for (size_t f = 0; f < r->nfields; f++) {
+            const char *rel = strcmp(r->fields[f].name, "Lost") ? NULL : strstr(r->fields[f].value, "  ");
+            if (!rel || !matches(pat, glob, rel + 2)) continue;
+            const char *code = "?";
+            for (size_t k = 0; k < c.rec.nrecords; k++)
+                if (is_type(&c.rec.records[k], "Collection") && rec_get(r, "Collection") && rec_get(&c.rec.records[k], "Uuid")
+                    && !strcmp(rec_get(&c.rec.records[k], "Uuid"), rec_get(r, "Collection")) && rec_get(&c.rec.records[k], "Code"))
+                    code = rec_get(&c.rec.records[k], "Code");
+            if (!limit || files < limit)
+                printf("LOST  %s/%s  %s  (retired with no other copy)\n", code, rec_get(r, "Edition") ? rec_get(r, "Edition") : "?", rel + 2);
+            files++;
+            any = 1;
+        }
     }
     if (limit && files > limit) printf("... %ld more file matches (use --limit 0 for all)\n", files - limit);
     free(pat);

@@ -39,6 +39,27 @@ Everything else follows from six principles:
 
 The sections below say what each principle means in practice.
 
+## Archive, Record, Verify: the name is the work
+
+The three words are the three things an archivist does, in order, and the tool, its interface and
+these documents are arranged by them:
+
+- **Archive: choose what goes on discs, and make them.** Curation is the first act (principle 1):
+  a collection's editions, or discs composed by hand from wherever the things are. Every disc is
+  made to stand alone (principle 2), and planned is not archived: a thing counts only once it is
+  on a disc that has been read back.
+- **Record: write down what exists, and where.** Every copy, its place and its temperature; which
+  file and which object is on which disc; what each thing is and why it matters. The record
+  describes the files and never takes them over (principle 6), and it travels: every disc carries
+  the catalogue, so the record survives the home that kept it.
+- **Verify: keep checking that it is still good, and that it can be got back.** A copy is recorded
+  only once it reads back identical; checks come round every few years; `arv todo` says what is
+  owed; and repair, restore and rebuild need nothing but a disc (principle 3). An archive that is
+  never verified is a hope, not an archive.
+
+Archiving without recording loses things on the shelf; recording without verifying keeps a
+confident list of discs that no longer read. All three, or it is not yet an archive.
+
 ## Not everything goes on Blu-ray (principle 1)
 
 A Blu-ray holds 25 GB. A household's data does not fit, and most of it does not

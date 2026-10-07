@@ -121,6 +121,8 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(disc["Note"], ["hello"])
         job = json.loads(self.request("/api/command", {"command": "note", "disc_id": disc["Id"], "text": "second"})[1])
         self.assertEqual(self.wait(job)["returncode"], 0)
+        owed = json.loads(self.request("/api/todo")[1])["text"]
+        self.assertIn("No copy yet", owed)          # made, not burned: Verify says so
         found = json.loads(self.request("/api/find?q=img_0001")[1])
         self.assertEqual(found["total"], 1)
         self.assertEqual(json.loads(self.request("/api/discs")[1])["discs"][0]["Note"], ["hello", "second"])
@@ -147,6 +149,52 @@ class GuiTest(unittest.TestCase):
         self.assertEqual((got["title"], got["subjects"], got["agent"]), ("Holiday photos", ["travel"], "llm:fake-model"))
         with open(os.path.join(self.tmp, "log")) as f:
             self.assertIn("Kyoto", f.read())
+
+    @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
+    def test_mastering_plan(self):
+        self.start()
+        video, photos = os.path.join(self.tmp, "pc", "wedding.mkv"), os.path.join(self.tmp, "nas", "photos")
+        write(video, "film", 2025)
+        write(os.path.join(photos, "a.jpg"), "jpeg", 2025)
+        listing = json.loads(self.request("/api/browse?files=1&path=" + os.path.join(self.tmp, "pc"))[1])
+        self.assertEqual(listing["files"], [{"name": "wedding.mkv", "bytes": 4}])
+        post = lambda body: json.loads(self.request("/api/plan", body)[1])
+        self.assertEqual(post({"action": "new", "name": "trip", "title": "Trip", "set": "TRIP", "medium": "bd25"})["returncode"], 0)
+        self.assertEqual(json.loads(self.request("/api/plans")[1]), {"plans": [{"name": "trip", "made": None}]})
+        self.assertEqual(post({"action": "add", "name": "trip", "sources": [video, photos], "disc": "auto"})["returncode"], 0)
+        self.assertEqual(post({"action": "move", "name": "trip", "paths": ["photos"], "from": 1, "disc": "new"})["returncode"], 0)
+        shown = json.loads(self.request("/api/plan?name=trip")[1])
+        self.assertEqual([[i["path"] for i in d["items"]] for d in shown["discs"]], [["wedding.mkv"], ["photos"]])
+        self.assertEqual(shown["discs"][1]["items"][0]["files"], 1)
+        refused = post({"action": "add", "name": "trip", "sources": [video], "disc": "1"})
+        self.assertNotEqual(refused["returncode"], 0)
+        self.assertIn("in the plan already", refused["output"])
+        job = post({"action": "make", "name": "trip", "no_ecc": True, "output_dir": os.path.join(self.tmp, "out")})
+        result = self.wait(job)
+        self.assertEqual(result["returncode"], 0, "\n".join(result["lines"]))
+        self.assertEqual(len(json.loads(self.request("/api/plan?name=trip")[1])["volumes"]), 2)
+        self.assertIsNotNone(json.loads(self.request("/api/plans")[1])["plans"][0]["made"])
+        again = post({"action": "again", "name": "trip", "new": "trip2"})
+        self.assertEqual(again["returncode"], 0, again["output"])
+        copy = json.loads(self.request("/api/plan?name=trip2")[1])
+        self.assertEqual((copy["made"], copy["from"], [[i["path"] for i in d["items"]] for d in copy["discs"]]),
+                         (None, "trip", [["wedding.mkv"], ["photos"]]))
+        card = os.path.join(self.tmp, "card", "IMG_0001.JPG")
+        write(card, "raw", 2025)
+        added = post({"action": "add", "name": "trip2", "sources": [card], "disc": "1", "copy": True})
+        self.assertEqual(added["returncode"], 0, added["output"])
+        item = [i for d in json.loads(self.request("/api/plan?name=trip2")[1])["discs"] for i in d["items"]
+                if i["path"] == "IMG_0001.JPG"][0]
+        self.assertEqual(item["origin"], card)
+        self.assertTrue(item["source"].startswith(os.path.join(self.home, "drafts", "plans", "trip2")))
+        self.assertEqual(len(json.loads(self.request("/api/discs")[1])["discs"]), 2)
+        kept = json.loads(self.request("/api/objects")[1])
+        self.assertEqual(sorted((o["name"], o["kind"], o["versions"]) for o in kept["objects"]),
+                         [("photos", "folder", 1), ("wedding.mkv", "file", 1)])
+        self.assertEqual({o["name"]: [s["there"] for s in o["sources"]] for o in kept["objects"]},
+                         {"photos": [True], "wedding.mkv": [True]})
+        self.assertEqual(self.request("/api/plan", {"action": "new", "name": "../x"})[0], 400)
+        self.assertEqual(self.request("/api/plan?name=nope")[0], 404)
 
     def test_bad_requests(self):
         self.start()

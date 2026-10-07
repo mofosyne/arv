@@ -22,6 +22,44 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Archive, Record, Verify: the interface follows the name**
+- `arv --help` groups every command under Archive (what goes on discs), Record (what exists, and
+  where) and Verify (still good, and can be got back); the commands themselves are unchanged.
+- The GUI has three tabs to match, each with its views (Archive: Mastering, From a folder; Record:
+  Objects, Discs, Search; Verify: Owed, Check, Restore). It opens on Verify's Owed (`arv todo`), and
+  a count of what is owed sits above the tabs. Jobs open from the header. New in the GUI: verifying
+  and restoring a disc's files.
+
+**Safer making, and a portable arv**
+- `arv make` checks each file's bytes against its manifest as they are written to the image; a
+  file changed after hashing stops the make and nothing is recorded (before, the disc would have
+  failed `arv verify` later).
+- arv finds a `.arv` home beside itself (`tools/arv.com` and `.arv/` on one drive), so it runs
+  from a portable drive without a machine config and writes nothing outside the drive.
+
+**Disc plans: discs composed by hand** (no format change)
+- `arv plan` composes discs from files and folders anywhere (a film on the PC, photos on the
+  NAS): which goes on which disc, and where under `data/`. A plan points at its sources and copies
+  nothing; `arv plan show` measures them against each disc's room, and `arv plan make` makes
+  one image a disc (`arv make --plan`). The GUI's new Mastering tab is the same, with drag and drop.
+  Plans point at their sources; `arv plan add --copy` copies an item into the plan instead (an
+  SD card that will not be there at make time), and `plan show`/`plan make` say which items changed
+  since they were planned (`arv plan refresh`). Sources inside the home's drive are kept relative.
+  A made plan is kept as a template: `arv plan list` hides it unless `--all`, and `arv plan again
+  NAME NEW` starts the same selection again as a new plan (the GUI: "Make it again").
+- Each planned file or folder becomes a **data object** (`Object` record, format 0.5): known by
+  the hash of its content, in linked versions, with no `.arv` marker. `arv status` says whether
+  each object archived from a folder is unchanged, changed or gone, and recognises a moved folder
+  by content; `arv find` lists objects. Source paths stay in the home catalogue.
+- `arv objects [NAME]`: everything kept and where every copy of it is (each data object's
+  versions, each collection's newest edition; their discs, every copy's form and temperature,
+  read back or not; the original on the PC/NAS). `arv todo` also lists data objects whose newest
+  version has no cold copy, or that are no longer where they came from with fewer than two copies.
+  The GUI's new Objects tab shows the same (`arv objects --json`).
+- `arv retire --yes` refuses while any file is on the retiring discs only; `--accept-loss`
+  retires anyway and records those files as `Lost:` on the edition (`arv log`, `arv find`).
+  `arv find` marks files on retired discs `[retired DATE]`.
+
 **Collections over time** (format 0.5; design in research/plan.md, being built)
 - A *collection* is something kept and made into discs again and again, from one workflow
   folder with one history: `Collection` records (with a Uuid) and `Revision` records (git-like:

@@ -3,6 +3,11 @@
 `arv gui`: the interface, in your web browser. Optional, in Python 3 (standard library only);
 everything it does can be done with arv in a terminal.
 
+Its three tabs follow the name: **Archive** (Mastering: discs by hand, `arv plan`; From a folder,
+`arv make`), **Record** (Objects: everything kept and where every copy is, `arv objects --json`;
+Discs; Search) and **Verify** (Owed: `arv todo`, also counted above the tabs; Check; Restore,
+verify and rebuild). Jobs, the commands it ran, open from the header.
+
 It serves one page on 127.0.0.1 and opens it. Every action runs arv itself (and arv-assist for
 the local model's suggestions), so it adds no behaviour of its own; it only reads the catalogue
 to show it. The page and every request carry a per-session token, and the Host header must be

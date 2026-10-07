@@ -843,3 +843,38 @@ about 430 bytes per file in the archive. Up to about a million files that is und
 ## Open decisions
 
 - Licence for this repo (GPLv3 fits if the RS03 library happens)
+- **Editions under a distributed collection** (2026-10-06). The archive is the union of the
+  workflow folder, warm images and cold discs; a disc holds a selection plus a catalogue copy
+  ([concepts.md](../docs/concepts.md)). But "a newer safe edition replaces older ones" still
+  assumes the workflow folder holds everything: anything moved out of it is then on retirable
+  discs only. Decided 2026-10-06: `arv retire --yes` refuses while any file is only on the
+  retiring discs; `--accept-loss` overrides, and records each such file as `Lost: SHA256  PATH`
+  on the retired edition's revision (`arv log`, `arv find`; unioned on rebuild). Done.
+- **Disc plan / mastering window** (built 2026-10-06). `arv plan new|list|show|add|move|drop|disc|make|delete`
+  keeps `drafts/plans/NAME.rec` (a Plan record, Item records: Disc, Source, Path); it points at
+  the sources, copies nothing, and `arv plan make` runs `arv make --plan FILE` (each entry's
+  bytes read from its own source; one image a disc; no rebalancing). The GUI's Mastering tab
+  drives it (drag and drop, a fill bar a disc). Made plans are kept as templates (2026-10-07):
+  `list` hides them unless `--all`; `arv plan again NAME NEW` copies one into a new open plan
+  (`From: NAME`); deleting one is always safe. Links stay the default (2026-10-07), with
+  `plan add --copy` (the plan's own copy, `Origin:`), `Seen:` stamps and `plan refresh`, relative
+  sources, a home beside arv (portable), and make checking bytes against the manifest as written.
+  Open: `--formats` for a plan; whether a plan can
+  make an edition of a collection; `plan show` marking what is already on discs (by hash).
+- **Data objects** (built 2026-10-06). Each plan item becomes an `Object` record (Uuid lineage,
+  Version, Tree, Disc, Path, Kind); `Source` and the manifests (`catalog/objects/`) stay at home.
+  Same Tree = same version; same Source, new Tree = next version; empty objects never match.
+  `arv status` reports objects from a folder exactly, and a folder whose whole Tree matches an
+  object by content; `arv find` lists them. Open: objects for `arv make FOLDER` too (the whole
+  folder as one object); `arv retire`-like care for an object's last version.
+- **The union view** (built 2026-10-06). `arv objects [NAME]`: per data object (each version)
+  and per collection (its newest edition), the discs holding it, every copy of them (form,
+  temperature, read back) and whether the original is still there. `arv todo` adds: a newest
+  version with no cold copy; one no longer where it came from with fewer than two copies.
+  Open: the same in the GUI; a hot original counted as a copy only once `arv status` has
+  checked it unchanged.
+- **Snapshot fallback.** `--snapshot full` is the default with no automatic step down when it does
+  not fit; the intent is full where it fits, partial only when needed. What "partial" keeps (this
+  set, this edition, recent discs) and how it treats access levels is undecided.
+- **Vocabularies on disc.** `arv rebuild` restores catalogue records and indexes but not `config/`
+  vocabularies; whether discs carry them is open.

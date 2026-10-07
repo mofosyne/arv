@@ -192,22 +192,46 @@ Kept in fewer than two places (arv locate ID PLACE --add):
 rc=0
 $ --home hc retire FAM
 FAM: edition 2 (2026-01-01) is safe; it replaces (editions marked kept stay):
-  edition 1 (2026-01-01): FAM-01_2019_0
-2 files are only on these discs (removed from the collection since):
+  edition 1 (2026-01-01): FAM-01_2019_0  (2 files on no disc that stays)
+2 files are only on these discs (not in the newer edition):
   2019/a.txt
   b.txt
-Nothing recorded. arv retire FAM --yes records them as retired (arv deletes nothing: the discs are yours to keep or destroy).
+Nothing recorded: these discs hold the only copy of those files. Keep the edition holding them (arv collection keep FAM 1), or arv retire FAM --yes --accept-loss to retire them anyway.
 rc=0
 $ --home hc retire FAM --yes
 FAM: edition 2 (2026-01-01) is safe; it replaces (editions marked kept stay):
-  edition 1 (2026-01-01): FAM-01_2019_0
-2 files are only on these discs (removed from the collection since):
+  edition 1 (2026-01-01): FAM-01_2019_0  (2 files on no disc that stays)
+2 files are only on these discs (not in the newer edition):
+  2019/a.txt
+  b.txt
+Refused: these discs hold the only copy of those files. Keep the edition holding them (arv collection keep FAM 1), or arv retire FAM --yes --accept-loss to retire them anyway.
+rc=1
+$ --home hc retire FAM --yes --accept-loss
+FAM: edition 2 (2026-01-01) is safe; it replaces (editions marked kept stay):
+  edition 1 (2026-01-01): FAM-01_2019_0  (2 files on no disc that stays)
+2 files are only on these discs (not in the newer edition):
   2019/a.txt
   b.txt
 1 disc retired (logged)
+2 files recorded as lost (arv log FAM, arv find)
 rc=0
 $ --home hc retire FAM
 FAM: nothing to retire (edition 2 is safe; every earlier edition is kept or retired)
+rc=0
+$ --home hc log FAM
+FAM/1  edition 1, 2026-01-01, revision 1436106577dc
+    +2 ~0 -0 >0 files  FAM-01_2019_0
+    2 files lost: retired with no other copy
+FAM/2  edition 2, 2026-01-01, revision 95a366ff6ab0
+    +1 ~1 -1 >0 files  FAM-02_2019_Y
+    the 2019 sort
+FAM/-  checkpoint, 2026-01-01, revision 266394586162
+    +1 ~1 -0 >1 files
+    renamed c
+rc=0
+$ --home hc find a.txt
+FAM-01_2019_0  [retired 2026-01-01]  data/2019/a.txt
+LOST  FAM/1  2019/a.txt  (retired with no other copy)
 rc=0
 $ --home hc collection keep FAM 2
 FAM/2: kept (logged)
@@ -259,4 +283,16 @@ rc=1
 $ --home hc list
 FAM-01_2019_0	2026-01-01	Family photos	2 files	public	
 FAM-02_2019_Y	2026-01-01	Family photos	2 files	public	BOX1; The NAS
+rc=0
+$ --home hc objects
+Collections:
+  FAM  "Family photos": 2 editions; newest: FAM/2, 3 copies on 1 disc, 1 cold, 3 read back
+    FAM-02_2019_Y  disc cold (read back), iso warm (read back), folder warm (read back); at BOX1; The NAS
+    workflow folder ROOT/coll/plain (there now)
+rc=0
+$ --home hc objects FAM
+Collections:
+  FAM  "Family photos": 2 editions; newest: FAM/2, 3 copies on 1 disc, 1 cold, 3 read back
+    FAM-02_2019_Y  disc cold (read back), iso warm (read back), folder warm (read back); at BOX1; The NAS
+    workflow folder ROOT/coll/plain (there now)
 rc=0

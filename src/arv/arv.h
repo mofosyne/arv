@@ -50,11 +50,17 @@ extern const char *home_archive_name;   /* --archive NAME: a home from the machi
 void home_at(arv_home *h, const char *path);
 void home_ensure(const arv_home *h);
 char *home_volume_file(const arv_home *h, const char *disc_id, const char *name);
+char *home_root(const arv_home *h);                     /* the folder holding the home */
+char *path_rel(const char *root, const char *abs);      /* relative to root when inside it, else as it is */
+char *path_abs(const char *root, const char *stored);   /* back to absolute */
 int cmd_init(int argc, char **argv);
 int cmd_tags(int argc, char **argv);
 void tags_canonical(const arv_home *h, strlist *tags);
 int cmd_keywords(int argc, char **argv);
 int cmd_make(int argc, char **argv);
+long medium_budget(const char *medium, const char **label);
+long file_sectors(uint64_t size, const char *path);
+
 int cmd_check(int argc, char **argv);
 int cmd_burned(int argc, char **argv);
 int cmd_note(int argc, char **argv);
@@ -84,7 +90,7 @@ typedef struct {
 } recs;
 typedef struct {
     rec_file file;          /* what was read; new records are allocated one by one */
-    recs homes, discs, bindings, locations, selections, collections, revisions, events, appraisals;
+    recs homes, discs, bindings, locations, selections, collections, revisions, objects, events, appraisals;
 } archive;
 void recs_add(recs *l, rec_record *r);
 int recs_has(const recs *l, const rec_record *r);
@@ -105,6 +111,7 @@ void archive_selections_for(const archive *a, const strlist *disc_ids, recs *out
 const char *selection_target(const char *target);
 rec_record *sealed_view(const rec_record *d);
 void archive_shared_subset(const archive *a, const strlist *ids, archive *out);
+rec_record *object_disc_view(const rec_record *o);
 char *archive_where(const archive *a, const rec_record *d);
 rec_record *new_event(const char *disc_id, const char *type, const char *outcome, const char *agent,
                       const char *authorship, const char *note);
@@ -125,12 +132,38 @@ typedef struct {
     uint64_t size;
     time_t mtime;
     int via_folder;         /* reached through a copied folder link */
+    int bin;                /* arv make --plan: which disc of the plan (0 = the first) */
     char sha256[65], sha512[129];
 } entry;
 typedef struct {
     entry *v;
     size_t n;
 } entries;
+
+/* plan.c: disc plans, discs composed by hand from files and folders anywhere (arv plan) */
+typedef struct {
+    int disc;               /* 1, 2, ... */
+    char *source;           /* absolute: a file or folder, read when the discs are made */
+    char *path;             /* where it goes under data/ ("." : a folder's contents at the top) */
+    char *origin;           /* --copy: where it was copied from (source is then the plan's copy); else NULL */
+    char *seen;             /* "FILES BYTES STAMP" when planned (names, sizes, dates), or NULL */
+} plan_item;
+typedef struct {
+    char *file, *name;
+    char *root;             /* sources are kept relative to it: the home's root, or the plan's folder */
+    int discs;
+    plan_item *v;
+    size_t n;
+    rec_file rec;           /* the plan as read: the Plan record gives make's defaults */
+} disc_plan;
+int cmd_plan(int argc, char **argv);
+void plan_load(const char *file, disc_plan *out);
+void plan_scan(const disc_plan *p, const char *links, entries *files, entries *noted, size_t *left_out);
+void plan_made(const char *file, const strlist *disc_ids, const char *date);
+void text_sha256(const char *text, char hex[65]);
+void json_str(sbuf *b, const char *s);     /* a JSON string, quoted */
+void plan_objects(const disc_plan *dp, int disc, const entries *files, const archive *cat, const recs *made_now,
+                  const char *disc_id, const char *today, recs *out, strlist *manifests);
 
 /* collection.c: collections kept over time, their workflow folders and revisions */
 char *marker_path(const char *folder);
@@ -144,6 +177,8 @@ void revision_hashes(const char *text, const char *parent, const char *date, con
 char *revision_manifest_path(const arv_home *h, const char *node);
 char *manifest_changes(const char *before, const char *after);
 rec_record *folder_collection(const archive *cat, const char *abs, const char **how);
+const char *collection_folder(const archive *cat, const rec_record *c);   /* its workflow folder now, or NULL */
+int cmd_objects(int argc, char **argv);
 void hash_cache_note(const arv_home *h, const entries *files);   /* after arv make */
 
 /* gitrepo.c: git repositories in a folder being archived */
@@ -211,6 +246,7 @@ char *rocrate_metadata(const rec_record *disc, const entries *files, const forma
 char *rocrate_preview(const rec_record *disc, const entries *files);
 
 void scan_payload(const char *src, const char *policy, entries *files, entries *noted);
+void scan_file(const char *path, const char *as, entry *out);   /* one file, as data/<as> */
 char *link_summary(const entries *files, const entries *noted, const char *policy);
 void write_listing(const char *path, const entries *files, const entries *noted);
 void write_manifest(const char *path, const entries *files, int sha512);

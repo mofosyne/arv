@@ -1,0 +1,7 @@
+Bagging-Date: 2026-01-01
+External-Identifier: TRIP-01_2025_B
+External-Description: Holiday 2025
+Bag-Group-Identifier: TRIP-01-02
+Bag-Count: 1 of 2
+Payload-Oxum: 7.1
+Bag-Software-Agent: SW <https://github.com/mofosyne/arv>

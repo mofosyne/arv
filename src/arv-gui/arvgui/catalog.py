@@ -4,7 +4,7 @@ Home layout (the working copy: a .arv folder, found as described in homes.py):
 
     config/         what you set up: sets.rec (vocabulary), tags.rec (tag vocabulary)
     catalog/        the catalogue, laid out exactly like catalog/ on every disc:
-      archive.rec                       Disc / Binding / Location / Selection / Collection / Revision / Event / Appraisal records
+      archive.rec                       Disc / Binding / Location / Selection / Collection / Revision / Object / Event / Appraisal records
       volumes/<disc-id>/manifest.sha256 that disc's manifest-sha256.txt
       volumes/<disc-id>/listing.tsv     size, modification time and path of each file
       volumes/<disc-id>/formats.csv     PRONOM format of each file (when Siegfried is installed)
@@ -27,7 +27,8 @@ from . import homes, recfile
 
 # The record descriptors (the catalogue's TYPES, in the order written, then the Archive and Snapshot
 # records on discs) live in arv's data/descriptors.rec (src/arv/data), shared with arv.
-TYPES = ("Home", "Disc", "Binding", "Location", "Selection", "Collection", "Revision", "Event", "Appraisal")
+TYPES = ("Home", "Disc", "Binding", "Location", "Selection", "Collection", "Revision", "Object", "Event",
+         "Appraisal")
 _ALL_DESCRIPTORS = recfile.read(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "arv", "data",
                                              "descriptors.rec"))
 DESCRIPTORS = _ALL_DESCRIPTORS[:len(TYPES)]
@@ -98,7 +99,7 @@ class Catalog:
             if r.type in self.groups:
                 self.groups[r.type].append(r)
         (self.homes, self.discs, self.bindings, self.locations, self.selections, self.collections, self.revisions,
-         self.events, self.appraisals) = (self.groups[t] for t in TYPES)
+         self.objects, self.events, self.appraisals) = (self.groups[t] for t in TYPES)
 
     def records(self):
         """Records in file order: each type's descriptor is followed by its records (Disc and

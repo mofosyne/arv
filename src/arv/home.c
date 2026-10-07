@@ -148,6 +148,15 @@ void home_find(arv_home *h, const char *given, const char *source)
         }
     if (!found && source && is_dir(source)) found = walk_up(source, &how);
     if (!found) found = walk_up(".", &how);
+    if (!found) {               /* portable: a home on the same drive as arv itself (arv.com and .arv/ side by side) */
+        char *beside = exe_dir();
+        if (beside && (found = walk_up(beside, &how))) {
+            char *t = how;
+            how = xprintf("%s, beside arv itself", t);
+            free(t);
+        }
+        free(beside);
+    }
     if (!found && (found = configured_home())) {
         char *cp = config_path();
         how = xprintf("the default home in %s", cp);
@@ -167,6 +176,33 @@ void home_find(arv_home *h, const char *given, const char *source)
     home_at(h, found);
     h->how = how;
     free(found);
+}
+
+/* Paths kept relative to a root (a home's: the folder holding it), so a portable drive mounted
+ * elsewhere, or under another letter, still finds them; a path outside the root stays absolute. */
+char *home_root(const arv_home *h)
+{
+    char *root = realpath(h->path, NULL), *slash;
+    if (!root) root = absolute(h->path);
+    slash = strrchr(root, '/');
+    if (slash && slash != root) *slash = 0;
+    else if (slash) slash[1] = 0;
+    return root;
+}
+
+char *path_rel(const char *root, const char *abs)
+{
+    size_t n = strlen(root);
+    if (!strcmp(abs, root)) return xstrdup(".");
+    if (n > 1 && !strncmp(abs, root, n) && abs[n] == '/') return xstrdup(abs + n + 1);
+    return xstrdup(abs);
+}
+
+char *path_abs(const char *root, const char *stored)
+{
+    if (stored[0] == '/') return xstrdup(stored);
+    if (!strcmp(stored, ".")) return xstrdup(root);
+    return join(root, stored);
 }
 
 char *home_volume_file(const arv_home *h, const char *disc_id, const char *name)

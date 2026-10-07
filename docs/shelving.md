@@ -121,7 +121,7 @@ arv location add PARENTS-PRV-2026 "Private copies, made 2026" --in PARENTS
 ## Copies: same image, different places
 
 Burn every copy from the **same `.iso`**, so the copies are sector-identical and
-can repair each other (see [workflow.md](workflow.md#6-recover)). Keep at least
+can repair each other (see [workflow.md](workflow.md#8-recover)). Keep at least
 two copies, in two places: the usual 3-2-1 idea, with an off-site copy.
 
 ```sh

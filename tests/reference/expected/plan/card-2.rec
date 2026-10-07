@@ -1,0 +1,19 @@
+%rec: Plan
+
+Name: card-2
+Created: 2026-01-01
+From: card
+Medium: bd25
+Set: TRIP
+Discs: 1
+
+%rec: Item
+
+Disc: 1
+Source: plan-sd/DCIM
+Path: camera
+
+Disc: 1
+Source: plan-docs/letter.txt
+Path: letter.txt
+Seen: 1 15 2f4aac3a102a8f20

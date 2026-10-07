@@ -24,20 +24,27 @@
 
 Keep your backups (the NAS, restic, Borg, the cloud): arv sits on top of them, for the photos,
 video, documents and source code that should outlive them, and puts them in cold storage
-(write-once discs today) whenever it can. It is a personal archivist's tool,
-and keeps the whole archive's record:
+(write-once discs today) whenever it can. It is a personal archivist's tool, and its name is
+what it does:
 
-- **What you keep, over time.** A folder you sort and grow becomes a *collection* with its own
-  history, like git's but for any files: each state is a revision, and each set of discs made
-  from it is an edition. Each disc holds a selection of the collection and a copy of the
-  catalogue, so the discs together hold what you archived, and any one of them can tell you
-  about the whole archive.
-- **What is archived, and where.** Point it at any folder and it says which files are already
-  on which discs and which are on none, and what changed since the last edition.
-- **Where every copy is, and whether it still reads.** Locations down to the box, copies per
-  place, when each disc was last checked, what is overdue, what is kept in one place only.
-- **Why it matters.** Appraisals (how important, to whom, why) and a log of every change,
-  people's and machines' told apart.
+- **Archive: what goes on discs.** A folder you sort and grow becomes a *collection* with its
+  own history, like git's but for any files: each state is a revision, and each set of discs made
+  from it is an edition. Or compose discs by hand from files and folders anywhere, as Nero's
+  compilation window did (`arv plan`). Each disc holds a selection and a copy of the catalogue,
+  so any one of them can tell you about the whole archive.
+- **Record: what exists, and where.** Which files are on which discs and which are on none; each
+  thing you archived as a *data object*, in versions, recognised by its content; every copy, its
+  place down to the box, and its temperature (hot, warm, cold); appraisals (how important, to
+  whom, why) and a log of every change, people's and machines' told apart (`arv objects`,
+  `arv find`, `arv status`).
+- **Verify: still good, and can be got back.** A copy is recorded only once it reads back
+  identical; checks come round every few years; `arv todo` says what is owed: copies, read-backs,
+  cold copies, places, checks. Every disc carries error correction, the tools to repair it, and
+  the catalogue to rebuild the record from (`arv check`, `arv verify`, `arv restore`, `arv rebuild`).
+
+`arv --help`, the GUI's three tabs and [docs/workflow.md](docs/workflow.md) are arranged the same way.
+**See it**: a [recorded session](https://mofosyne.github.io/arv/#see-it) of all three, run for real
+([docs/demo/arv.cast](docs/demo/arv.cast); `asciinema play docs/demo/arv.cast` in a terminal).
 
 What it writes are self-describing archive discs: your files untouched, a hash of every file,
 a catalogue of the whole archive so far, the source of the tools that made it, and the steps to
@@ -240,13 +247,22 @@ without touching any of them. In order:
 3. the nearest `.arv` folder, or `.arv` pointer file, above the folder being archived
    (`arv make FOLDER`) or the current folder; or, from the root of an archive disc, the disc's
    own `catalog/` (so `arv find` works on any disc);
-4. the default home in `~/.config/arv/homes.rec` (paths are per machine; this file never goes on
+4. a `.arv` beside arv itself, walking up from the folder the program is in (portable, below);
+5. the default home in `~/.config/arv/homes.rec` (paths are per machine; this file never goes on
    a disc, and deleting it loses nothing);
-5. `~/.local/share/arv` (or `~/.local/share/bluray-archive` if you used an older version).
+6. `~/.local/share/arv` (or `~/.local/share/bluray-archive` if you used an older version).
+
+**Portable**: put `arv.com` (or `arv`) and a home on the same drive, e.g. `tools/arv.com` and
+`.arv/` at the drive's root (`arv init` there). Run from anywhere, arv uses the drive's home and
+writes nothing outside the drive (no machine config, no fallback home) unless you register it with
+`arv init --name`. Paths that plans and data objects keep inside the drive are relative to the
+folder holding `.arv`, so they still work when the drive is mounted elsewhere or under another
+letter.
 
 ### Commands
 
 ```sh
+# Archive: what goes on discs (the places first, so discs can name them)
 arv location add HOME Home
 arv location add BOX3 "Box 3, blue lid" --in HOME
 arv make ./2025-01-13_Projects_2020_-_2025 --location BOX3
@@ -258,14 +274,20 @@ arv names ./Photos                      # names the image cannot hold, or Window
 # --label TEXT to choose the text, --label '' for the id alone
 arv make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: only this set's catalogue
 arv make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
+arv plan new trip --set TRIP && arv plan add trip ~/Videos/film.mkv /nas/photos/2025 --disc new
+arv plan show trip && arv plan make trip   # discs composed by hand from anywhere (docs/workflow.md)
+arv plan add trip /media/sdcard/DCIM --copy  # copied into the plan: the card need not be there at make
 arv make ./my-git-clone --links record   # links: file links copied, the rest noted in the listing
 #   (default: links leaving the folder are refused; copy: copy what every link points to)
 arv make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03
 arv make ./Kyoto --importance "essential for self" --importance "important for family" --basis "first trip together"
+
+# Record: what exists, and where
 arv appraise TRIP-01_2019_4:day1/ --importance "essential for family" --review 5y   # the archivist log
 arv appraise TRIP-01_2019_4:day1/IMG_0001.JPG   # the appraisal in force (inherited from day1/)
 arv appraise --due                              # appraisals due for review
 arv find IMG_2019            # which disc holds it, and where the disc is
+arv objects                     # everything kept, and every copy of it: discs, places, hot/warm/cold
 arv list --covers 2019-07-15    # discs whose date range includes that day (or 2019, 2019-07)
 arv sets -v                     # the vocabulary tree with disc counts, aliases and match rules
 arv list --in MEMORIES          # discs anywhere under a vocabulary entry
@@ -279,23 +301,31 @@ arv selection add KYOTO-BEST --name "Best of Kyoto" TRIP-01_2019_4:"day2 Kinkaku
 arv selection show KYOTO-BEST                   # virtual folders across discs, with where each disc is
 arv list --at HOME                              # discs anywhere inside a place
 arv list --access private --made 2026          # what belongs in this year's private box
-arv list --unchecked-since 5y                  # discs due a check (last checked, or never)
-arv list --one-place                           # discs kept in only one place
 arv access 2020-2025_PROJECTS_01 public          # public / private (default) / sealed
 arv tags                                         # every folder tag in use, by namespace
 arv keywords PROJ-01_2020-2025_K --format exiftool > kw.args  # tags as XMP keywords
+
+# Verify: still good, and can be got back
+arv todo                                           # what is owed: copies, read-backs, cold copies, places, checks
+arv list --unchecked-since 5y                  # discs due a check (last checked, or never)
+arv list --one-place                           # discs kept in only one place
 arv check --device /dev/sr0                        # read a disc back against its image hash, logged
 arv check --image 2020-2025_PROJECTS_01.iso
 arv rebuild /media/disc                            # recreate/merge the home catalogue from a disc
+arv verify /media/disc                             # every file against its checksum
+arv restore /media/disc ~/restored                 # copy everything back, links and execute bits too
+
 arv gui                                            # the same, in your web browser
 ```
 
-`arv gui` opens a local page (127.0.0.1 only, per-session token) with tabs for
-the disc list and history, notes, location and burned copies, search, making a
-disc (with a folder picker), checking discs and rebuilding the catalogue. Every
-action runs the same `arv` command as the terminal and shows its output.
+`arv gui` opens a local page (127.0.0.1 only, per-session token) with three tabs, as the commands
+are grouped: **Archive** (Mastering: discs composed by hand, with drag and drop and a fill bar a
+disc; making a disc from a folder), **Record** (Objects: everything kept and where every copy is;
+the discs, with notes, places and copies; search) and **Verify** (what is owed, counted in the
+header; checking a disc or image; verifying, restoring and rebuilding from a disc). Every action
+runs the same `arv` command as the terminal and shows its output.
 
-![arv gui: the sample discs, with where each is kept and when it was last checked](docs/screenshots/gui.png)
+![arv gui, Record › Discs: the sample discs, with where each is kept and when it was last checked, under the Archive, Record and Verify tabs](docs/screenshots/gui.png)
 
 On the disc, `index.html` browses the disc without JavaScript:
 

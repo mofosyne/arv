@@ -285,7 +285,10 @@ log coll.out --home hc burned FAM-01_2019_0 --location BOX1
 log coll.out --home hc todo
 log coll.out --home hc retire FAM
 log coll.out --home hc retire FAM --yes
+log coll.out --home hc retire FAM --yes --accept-loss
 log coll.out --home hc retire FAM
+log coll.out --home hc log FAM
+log coll.out --home hc find a.txt
 log coll.out --home hc collection keep FAM 2
 log coll.out --home hc collection keep FAM 2
 log coll.out --home hc location add NAS "The NAS" --temperature hot
@@ -306,6 +309,8 @@ log coll.out --home hc todo
 log coll.out --home hc todo
 log coll.out --home hc collection show NOPE
 log coll.out --home hc list
+log coll.out --home hc objects
+log coll.out --home hc objects FAM
 keep coll.out coll/transcript.txt
 keep coll/fam/.arv coll/marker
 for k in 1 2; do keep_stages out-c$k coll/c$k; done
@@ -382,5 +387,105 @@ log query.out --home q sets
 log query.out --home q sets -v
 log query.out --home q where
 keep query.out query/transcript.txt
+
+# ------------------------------------------------------------------ disc plans: discs composed by hand
+mkdir -p plan-pc/Videos plan-nas/photos/2025
+echo "a film" > plan-pc/Videos/wedding.mkv
+echo "jpeg a" > plan-nas/photos/2025/a.jpg
+echo "jpeg b" > plan-nas/photos/2025/b.jpg
+echo "notes" > plan-pc/notes.txt
+echo "soon gone" > plan-pc/gone.txt
+for f in plan-pc/Videos/wedding.mkv plan-nas/photos/2025/a.jpg plan-nas/photos/2025/b.jpg plan-pc/notes.txt plan-pc/gone.txt; do
+    stamp 1751328000 "$f"
+done
+log plan.out --home hp plan list
+log plan.out --home hp plan new trip --title "Holiday 2025" --set TRIP
+log plan.out --home hp plan new trip
+log plan.out --home hp plan new "bad name"
+log plan.out --home hp plan add trip plan-pc/Videos/wedding.mkv --as video/wedding.mkv
+log plan.out --home hp plan add trip plan-nas/photos/2025 --as photos --disc new
+log plan.out --home hp plan add trip plan-pc/notes.txt
+log plan.out --home hp plan add trip plan-pc/notes.txt --disc 2
+log plan.out --home hp plan add trip plan-pc/Videos --as ../up
+log plan.out --home hp plan add trip plan-pc/gone.txt --as video/wedding.mkv --disc 1
+log plan.out --home hp plan disc trip add
+log plan.out --home hp plan disc trip drop 1
+log plan.out --home hp plan disc trip drop 3
+log plan.out --home hp plan move trip notes.txt --disc 2
+log plan.out --home hp plan show trip
+log plan.out --home hp plan show trip --json
+log plan.out --home hp plan list
+log plan.out --home hp plan make trip -y --no-ecc --formats no --split
+log plan.out --home hp plan make trip -y --no-ecc --formats no --keep-stage --output-dir out-plan
+log plan.out --home hp plan show trip
+log plan.out --home hp plan add trip plan-pc/gone.txt
+log plan.out --home hp plan show trip --medium bd100
+log plan.out --home hp plan list
+log plan.out --home hp plan list --all
+log plan.out --home hp plan again trip trip-2026 --title "Holiday 2026"
+log plan.out --home hp plan again trip trip-2026
+log plan.out --home hp plan show trip-2026
+log plan.out --home hp find wedding
+log plan.out --home hp status plan-nas/photos/2025
+log plan.out --home hp status plan-pc
+echo "jpeg c" > plan-nas/photos/2025/c.jpg
+stamp 1751328000 plan-nas/photos/2025/c.jpg
+log plan.out --home hp status -v plan-nas/photos/2025
+log plan.out --home hp plan new again --set TRIP
+log plan.out --home hp plan add again plan-nas/photos/2025 --as photos
+cp -Rp plan-nas/photos/2025 plan-copy
+log plan.out --home hp plan add again plan-copy --disc new
+log plan.out --home hp plan make again -y --no-ecc --formats no --output-dir out-plan2
+log plan.out --home hp status plan-nas/photos/2025
+mv plan-copy plan-moved
+log plan.out --home hp status plan-moved
+log plan.out --home hp find photos
+log plan.out --home hp objects
+log plan.out --home hp burned TRIP-03_2025_7 --location BOX1
+log plan.out --home hp stored TRIP-04_2025_5 out-plan2/TRIP-04_2025_5.noecc.iso
+log plan.out --home hp stored TRIP-01_2025_B out-plan/TRIP-01_2025_B.noecc.iso
+mv plan-pc/Videos/wedding.mkv plan-pc/wedding-moved.mkv
+log plan.out --home hp objects 2025
+log plan.out --home hp objects wedding.mkv
+log plan.out --home hp objects nothing-called-this
+log plan.out --home hp todo
+log plan.out --home hp objects --json
+log plan.out --home hp plan new later --medium bd100
+log plan.out --home hp plan add later plan-pc/gone.txt
+rm plan-pc/gone.txt
+log plan.out --home hp plan show later
+log plan.out --home hp plan make later -y --no-ecc --formats no
+log plan.out --home hp plan drop later gone.txt
+log plan.out --home hp plan delete later
+log plan.out --home hp plan list
+# a card that will not be here at make: copied into the plan; a linked item that changes after planning
+mkdir -p plan-sd/DCIM plan-docs
+echo "raw image" > plan-sd/DCIM/IMG_0001.JPG
+echo "letter" > plan-docs/letter.txt
+stamp 1751328000 plan-sd/DCIM/IMG_0001.JPG
+stamp 1751328000 plan-sd/DCIM
+stamp 1751328000 plan-docs/letter.txt
+log plan.out --home hp plan new card --set TRIP
+log plan.out --home hp plan add card plan-sd/DCIM --copy --as camera
+log plan.out --home hp plan add card plan-docs/letter.txt
+rm -r plan-sd
+echo "letter, signed" > plan-docs/letter.txt
+stamp 1751414400 plan-docs/letter.txt
+log plan.out --home hp plan show card
+log plan.out --home hp plan add card plan-sd/DCIM
+log plan.out --home hp plan refresh card
+log plan.out --home hp plan show card
+log plan.out --home hp plan delete card
+log plan.out --home hp plan make card -y --no-ecc --formats no --output-dir out-card
+log plan.out --home hp objects DCIM
+log plan.out --home hp plan delete card
+log plan.out --home hp plan again card card-2
+log plan.out --home hp plan show card-2
+log plan.out --home hp plan delete card --yes
+keep plan.out plan/transcript.txt
+keep hp/drafts/plans/trip.rec plan/trip.rec
+keep hp/drafts/plans/card-2.rec plan/card-2.rec
+keep_stages out-plan plan/discs
+keep_home hp plan/home
 
 echo "scenarios: $(find "$out" -type f | wc -l) files in $out"

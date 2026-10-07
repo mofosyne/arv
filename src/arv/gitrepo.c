@@ -283,13 +283,21 @@ static int by_entry(const void *a, const void *b)
 void git_prepare(const char *src, const char *workdir, const char *since, entries *files, gitrepos *out)
 {
     memset(out, 0, sizeof *out);
-    strlist repos = { 0 };
+    strlist repos = { 0 }, heads = { 0 };      /* each repository, and its .git/HEAD on disk */
+    int *bins = xmalloc((files->n + 1) * sizeof *bins);
     for (size_t i = 0; i < files->n; i++) {
         char *r = repo_of(files->v[i].path);
-        if (r && !strlist_has(&repos, r)) strlist_add(&repos, r);
+        if (r && !strlist_has(&repos, r)) {
+            bins[repos.n] = files->v[i].bin;
+            strlist_add(&repos, r);
+            strlist_add(&heads, files->v[i].source);
+        }
         free(r);
     }
-    if (!repos.n) return;
+    if (!repos.n) {
+        free(bins);
+        return;
+    }
     out->v = xmalloc(repos.n * sizeof *out->v);
     int have_git = on_path("git");
     for (size_t k = 0; k < repos.n; k++) {
@@ -301,7 +309,15 @@ void git_prepare(const char *src, const char *workdir, const char *since, entrie
                               "credentials in its config are on the disc", *g->path ? g->path : ".");
             continue;
         }
-        char *abs = *g->path ? join(src, g->path) : xstrdup(src), *dir = xprintf("%s/git-%zu", workdir, k);
+        /* the repository on disk: where its .git/HEAD is read from (src/PATH, or a disc plan's item) */
+        char *abs = xstrdup(heads.v[k]), *dir = xprintf("%s/git-%zu", workdir, k);
+        size_t al = strlen(abs);
+        if (al >= 10 && !strcmp(abs + al - 10, "/.git/HEAD")) abs[al - 10] = 0;
+        else {
+            free(abs);
+            if (!src) die("cannot tell where the git repository %s is on disk", *g->path ? g->path : ".");
+            abs = *g->path ? join(src, g->path) : xstrdup(src);
+        }
         sbuf tsv = { 0 };
         sb_puts(&tsv, "");
         fprintf(stderr, "Compacting the git history of %s ...\n", *g->path ? g->path : ".");
@@ -320,6 +336,7 @@ void git_prepare(const char *src, const char *workdir, const char *since, entrie
             entry e = add.v[i];
             char *p = *g->path ? xprintf("%s/%s", g->path, e.path) : xstrdup(e.path);
             e.path = p;
+            e.bin = bins[k];
             files->v[files->n++] = e;
         }
         free(prefix);
@@ -328,6 +345,8 @@ void git_prepare(const char *src, const char *workdir, const char *since, entrie
     }
     qsort(files->v, files->n, sizeof *files->v, by_entry);
     strlist_free(&repos);
+    strlist_free(&heads);
+    free(bins);
 }
 
 /* the rows of git.tsv for the repositories whose .git/HEAD is on this disc, or NULL */

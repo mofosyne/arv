@@ -18,6 +18,21 @@ nav { display:flex; gap:4px; padding:8px 16px 0; border-bottom:1px solid var(--l
 nav button { font:inherit; background:none; border:none; border-bottom:2px solid transparent; color:var(--muted);
              padding:8px 12px; cursor:pointer; white-space:nowrap; }
 nav button[aria-selected=true] { color:var(--fg); border-bottom-color:var(--accent); }
+/* Archive, Record, Verify: the three main tabs, each with its own views */
+nav.groups button { font-size:16px; font-weight:600; padding:8px 16px; }
+nav.groups .hint { font-weight:400; font-size:12px; color:var(--muted); margin-left:4px; }
+nav.sub { border-bottom:none; padding:8px 16px; gap:6px; background:var(--panel); }
+nav[hidden] { display:none; }
+@media (max-width: 600px) { nav.groups .hint { display:none; } nav.groups button { padding:8px 12px; } }
+nav.sub button { border:1px solid var(--line); border-radius:16px; padding:4px 12px; font-size:14px; background:var(--bg); }
+nav.sub button[aria-selected=true] { border-color:var(--accent); color:var(--accent); }
+header .spacer { flex:1 1 auto; }
+header button.link { font:inherit; font-size:13px; background:none; border:1px solid var(--line); border-radius:14px;
+                     padding:3px 10px; color:var(--fg); cursor:pointer; }
+header button.link.owed { border-color:var(--warn); color:var(--warn); }
+header button.link.clear { border-color:var(--ok); color:var(--ok); }
+.owed h3 { font-size:15px; margin:16px 0 4px; }
+.owed li { font-family:ui-monospace, monospace; font-size:13px; overflow-wrap:anywhere; }
 main { max-width:1100px; margin:0 auto; padding:16px 16px 64px; }
 section[hidden] { display:none; }
 h2 { font-size:1.05rem; margin:24px 0 8px; }
@@ -53,23 +68,109 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 .browser { border:1px solid var(--line); border-radius:6px; max-height:220px; overflow:auto; margin-top:6px; }
 .browser div { padding:4px 10px; cursor:pointer; font-family:ui-monospace, monospace; font-size:13px; }
 .browser div:hover { background:var(--panel); }
+/* the mastering window: the plan's discs (the compilation) beside a file browser, as in Nero */
+.master { display:grid; grid-template-columns:minmax(0, 3fr) minmax(0, 2fr); gap:16px; margin-top:12px; }
+@media (max-width: 760px) { .master { grid-template-columns:minmax(0, 1fr); } }
+.discs { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; align-content:start; }
+.disc { border:1px solid var(--line); border-radius:8px; padding:10px 12px; min-height:140px; background:var(--bg); }
+.disc.target { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent) inset; }
+.disc.add { border-style:dashed; display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:pointer; }
+.disc h3 { font-size:15px; margin:0 0 6px; display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
+.cap { height:12px; border-radius:6px; background:var(--panel); border:1px solid var(--line); overflow:hidden; }
+.cap > div { height:100%; background:var(--ok); }
+.cap.warn > div { background:var(--warn); } .cap.bad > div { background:var(--bad); }
+.capnote { font-size:12px; color:var(--muted); margin:2px 0 8px; }
+.item { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:2px 8px; align-items:center; padding:6px 0;
+        border-top:1px solid var(--line); cursor:grab; }
+.item .path { overflow-wrap:anywhere; }
+.item .src { grid-column:1 / -1; font-size:11px; color:var(--muted); overflow-wrap:anywhere; font-family:ui-monospace, monospace; }
+.item .ctl { grid-column:1 / -1; justify-self:end; white-space:nowrap; }
+.item select { width:auto; padding:2px 4px; font-size:12px; }
+.item button, .disc h3 button { font:inherit; font-size:12px; padding:2px 6px; border:1px solid var(--line); border-radius:4px;
+        background:var(--panel); color:var(--fg); cursor:pointer; }
+.item.missing .path { color:var(--bad); }
+.item .flag { font-size:11px; padding:0 6px; border-radius:8px; border:1px solid var(--line); margin-left:4px; }
+.item .flag.changed { color:var(--warn); border-color:var(--warn); }
+.item .flag.copy { color:var(--accent); border-color:var(--accent); }
+.files { border:1px solid var(--line); border-radius:8px; padding:10px 12px; align-self:start; }
+.files .list { max-height:460px; overflow:auto; margin-top:6px; }
+.files .list > div { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:8px; align-items:center; padding:3px 4px;
+        font-family:ui-monospace, monospace; font-size:13px; cursor:grab; border-radius:4px; }
+.files .list > div:hover { background:var(--panel); }
+.files .list .name { overflow-wrap:anywhere; }
+.files .list .size { color:var(--muted); font-size:12px; white-space:nowrap; }
+.files .list .on { color:var(--accent); }
+.files .here { font-family:ui-monospace, monospace; font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
+.banner { background:var(--panel); border-radius:6px; padding:8px 12px; margin-top:12px; }
+/* the objects tab: what is kept, and where every copy is */
+.kept h3 { font-size:15px; margin:0; display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; }
+.kept .facts { font-size:13px; color:var(--muted); }
+.kept .todo { color:var(--warn); font-size:13px; margin-top:4px; }
+.kept .todo::before { content:"⚠ "; }
+.kept .src { font-size:12px; font-family:ui-monospace, monospace; overflow-wrap:anywhere; margin-top:4px; }
+.kept .src .gone { color:var(--bad); } .kept .src .here { color:var(--ok); }
+.chip { display:inline-block; font-size:12px; padding:1px 8px; border-radius:10px; border:1px solid var(--line);
+        margin:1px 4px 1px 0; white-space:nowrap; }
+.chip.cold { border-color:var(--accent); color:var(--accent); }
+.chip.warm { border-color:var(--warn); color:var(--warn); }
+.chip.hot { border-color:var(--bad); color:var(--bad); }
+.chip.none { color:var(--muted); border-style:dashed; }
+.kept td { font-size:13px; }
+.kept td.mono { white-space:nowrap; }
+@media (max-width: 600px) {      /* each row a wrapped line: version, disc, path, copies, place */
+  .kept table th { display:none; }
+  .kept table tr { display:flex; flex-wrap:wrap; gap:2px 10px; padding:6px 0; border-bottom:1px solid var(--line); }
+  .kept table td { border:none; padding:0; }
+  .kept td.mono { white-space:normal; overflow-wrap:anywhere; }
+}
 </style></head><body>
-<header><h1>Disc Archive</h1><span class="home" id="home"></span></header>
-<nav role="tablist">
-  <button role="tab" data-tab="discs" aria-selected="true">Discs</button>
-  <button role="tab" data-tab="search">Search</button>
-  <button role="tab" data-tab="make">Make disc</button>
-  <button role="tab" data-tab="tools">Check &amp; tools</button>
-  <button role="tab" data-tab="jobs">Jobs</button>
+<header><h1>Disc Archive</h1><span class="home" id="home"></span><span class="spacer"></span>
+  <button class="link" type="button" id="owed-line" title="What arv todo says is owed">…</button>
+  <button class="link" type="button" id="jobs-btn">Jobs</button></header>
+<nav role="tablist" class="groups">
+  <button role="tab" data-group="archive">Archive<span class="hint">onto discs</span></button>
+  <button role="tab" data-group="record">Record<span class="hint">what, and where</span></button>
+  <button role="tab" data-group="verify">Verify<span class="hint">still good, and back</span></button>
+</nav>
+<nav class="sub" data-group="archive" hidden>
+  <button data-tab="master">Mastering: discs by hand</button>
+  <button data-tab="make">From a folder</button>
+</nav>
+<nav class="sub" data-group="record" hidden>
+  <button data-tab="objects">Objects</button>
+  <button data-tab="discs">Discs</button>
+  <button data-tab="search">Search</button>
+</nav>
+<nav class="sub" data-group="verify" hidden>
+  <button data-tab="owed">Owed</button>
+  <button data-tab="tools">Check</button>
+  <button data-tab="restore">Restore</button>
 </nav>
 <main>
 
-<section id="tab-discs">
+<section id="tab-owed" hidden>
+  <p class="muted">What is owed, from <span class="mono">arv todo</span>: copies to make, copies to read back, cold copies,
+    places, checks overdue. Each line says what to do; Record and Check do most of it.</p>
+  <div id="owed" class="owed"></div>
+  <button class="plain" type="button" id="owed-refresh">Look again</button>
+</section>
+
+<section id="tab-discs" hidden>
   <div class="scroll"><table id="disc-table"><thead><tr>
     <th>Id</th><th>Title</th><th>Date</th><th>Files</th><th>Copies</th><th>Location</th><th>Last check</th>
   </tr></thead><tbody></tbody></table></div>
   <p class="muted" id="disc-empty" hidden>No discs yet. Use <b>Make disc</b> to create one.</p>
   <div class="card" id="disc-detail" hidden></div>
+</section>
+
+<section id="tab-objects" hidden>
+  <p class="muted">Everything kept, and where every copy of it is: each data object's versions and each collection's newest
+    edition, the discs holding them, each copy (disc, image or folder; <span class="chip cold">cold</span>
+    <span class="chip warm">warm</span> <span class="chip hot">hot</span>; ✓ read back) and whether the original is still on
+    the PC/NAS.</p>
+  <div class="inline"><div><label for="o-filter">Show only names containing</label><input type="text" id="o-filter"></div></div>
+  <p id="o-summary"></p>
+  <div id="o-list"></div>
 </section>
 
 <section id="tab-search" hidden>
@@ -119,6 +220,53 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   </form>
 </section>
 
+<section id="tab-master" hidden>
+  <p class="muted">Compose discs by hand from files and folders anywhere: drag them from the right onto a disc, or tick
+    them and press Add. A plan points at the files where they are (or keeps its own copy, if you tick Copy below);
+    the images read them when they are made.</p>
+  <div class="inline">
+    <div><label for="p-pick">Disc plan</label><select id="p-pick"></select></div>
+    <button class="plain" type="button" id="p-new-btn">New plan…</button>
+    <button class="plain" type="button" id="p-again" hidden>Make it again as a new plan…</button>
+    <button class="plain" type="button" id="p-delete">Delete plan</button>
+  </div>
+  <form id="p-new" class="card" hidden>
+    <div class="row">
+      <div><label for="p-name">Name (letters, digits, - _ .)</label><input type="text" id="p-name" required pattern="[A-Za-z0-9_\-][A-Za-z0-9._\-]*"></div>
+      <div><label for="p-title">Title</label><input type="text" id="p-title"></div>
+      <div><label for="p-set">Set</label><input type="text" id="p-set" placeholder="e.g. TRIP"></div>
+      <div><label for="p-medium">Disc</label><select id="p-medium">
+        <option value="bd25">BD-R 25 GB</option><option value="bd50">BD-R DL 50 GB</option>
+        <option value="bd100">BD-R XL 100 GB</option><option value="bd128">BD-R XL 128 GB</option></select></div>
+    </div>
+    <button class="primary" type="submit">Create plan</button>
+  </form>
+  <div id="p-status" class="banner" hidden></div>
+  <p id="p-note" class="warn" hidden>Planned, not archived: keep the originals until the discs are burned and read back.</p>
+  <div class="master">
+    <div class="discs" id="p-discs"></div>
+    <div class="files">
+      <div class="inline"><button class="plain" type="button" id="f-up">⬑ Up</button>
+        <input type="text" id="f-path" aria-label="Folder"></div>
+      <div class="here" id="f-here"></div>
+      <div class="list" id="f-list"></div>
+      <div class="inline">
+        <div><label for="f-to">Put the ticked ones on</label><select id="f-to"></select></div>
+        <button class="primary" type="button" id="f-add">Add</button>
+      </div>
+      <div class="checks"><label><input type="checkbox" id="f-copy"> Copy them into the plan (an SD card, a phone, a USB
+        stick: anything that will not be here when the images are made)</label></div>
+    </div>
+  </div>
+  <div class="card" id="p-make">
+    <div class="row">
+      <div><label for="p-outdir">Save images in</label><input type="text" id="p-outdir" placeholder="default: GUI start folder"></div>
+    </div>
+    <div class="checks row"><label><input type="checkbox" id="p-noecc"> No error correction (quicker; for trying a plan out)</label></div>
+    <button class="primary" type="button" id="p-make-btn">Make the disc images</button>
+  </div>
+</section>
+
 <section id="tab-tools" hidden>
   <h2>Check a disc or image</h2>
   <form id="check-form" class="inline">
@@ -126,7 +274,23 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     <div><label for="c-image">…or image file</label><input type="text" id="c-image"></div>
     <button class="primary" type="submit">Check</button>
   </form>
+</section>
+
+<section id="tab-restore" hidden>
+  <h2>Verify a disc's files</h2>
+  <p class="muted">Every file on a mounted disc (or an extracted image) against its checksum.</p>
+  <form id="verify-form" class="inline">
+    <div><label for="v-path">Mounted disc folder</label><input type="text" id="v-path" placeholder="/media/disc"></div>
+    <button class="primary" type="submit">Verify</button>
+  </form>
+  <h2>Restore files from a disc</h2>
+  <form id="restore-form" class="inline">
+    <div><label for="rs-path">Mounted disc folder</label><input type="text" id="rs-path" placeholder="/media/disc"></div>
+    <div><label for="rs-dest">Copy them to (a new or empty folder)</label><input type="text" id="rs-dest"></div>
+    <button class="primary" type="submit">Restore</button>
+  </form>
   <h2>Rebuild the catalogue from a disc</h2>
+  <p class="muted">Every disc carries the catalogue as it was when the disc was made.</p>
   <form id="rebuild-form" class="inline">
     <div><label for="r-path">Mounted disc folder</label><input type="text" id="r-path" placeholder="/media/disc"></div>
     <button class="primary" type="submit">Rebuild</button>
@@ -170,13 +334,53 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   }
 
   // ---------------------------------------------------------------- tabs
+  // Archive, Record, Verify: each view belongs to one of the three
+  var GROUP = { master: "archive", make: "archive", objects: "record", discs: "record", search: "record",
+                owed: "verify", tools: "verify", restore: "verify" };
+  var lastView = { archive: "master", record: "objects", verify: "owed" };
   function showTab(name) {
-    document.querySelectorAll("nav button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.tab === name); });
+    var group = GROUP[name];
+    if (group) lastView[group] = name;
+    document.querySelectorAll("nav.groups button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.group === group); });
+    document.querySelectorAll("nav.sub").forEach(function (n) { n.hidden = n.dataset.group !== group; });
+    document.querySelectorAll("nav.sub button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.tab === name); });
+    $("jobs-btn").setAttribute("aria-pressed", name === "jobs");
     document.querySelectorAll("main > section").forEach(function (s) { s.hidden = s.id !== "tab-" + name; });
+    if (name === "owed") loadOwed();
     if (name === "discs") loadDiscs();
     if (name === "jobs") loadJobs();
+    if (name === "master") loadPlans();
+    if (name === "objects") loadObjects();
   }
-  document.querySelectorAll("nav button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
+  document.querySelectorAll("nav.sub button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
+  document.querySelectorAll("nav.groups button").forEach(function (b) { b.onclick = function () { showTab(lastView[b.dataset.group]); }; });
+  $("jobs-btn").onclick = function () { showTab("jobs"); };
+  $("owed-line").onclick = function () { showTab("owed"); };
+
+  // ---------------------------------------------------------------- verify: what is owed (arv todo)
+  function owedLine(text) {
+    var items = text.split("\n").filter(function (l) { return /^  \S/.test(l); }).length, b = $("owed-line");
+    b.textContent = items ? items + (items === 1 ? " thing owed" : " things owed") : "Nothing owed";
+    b.className = "link " + (items ? "owed" : "clear");
+  }
+  function loadOwed() {
+    return api("/api/todo").then(function (res) {
+      owedLine(res.text);
+      var box = $("owed"); box.textContent = "";
+      var list = null;
+      res.text.split("\n").forEach(function (line) {
+        if (!line.trim()) return;
+        if (/^  /.test(line)) {
+          if (!list) { list = el("ul"); box.appendChild(list); }
+          list.appendChild(el("li", { text: line.trim() }));
+        } else {
+          box.appendChild(el(/^Nothing owed/.test(line) ? "p" : "h3", { class: /^Nothing owed/.test(line) ? "ok" : "", text: line }));
+          list = null;
+        }
+      });
+    }).catch(function (e) { $("owed").textContent = "Error: " + e.message; });
+  }
+  $("owed-refresh").onclick = loadOwed;
 
   // ---------------------------------------------------------------- discs
   function lastCheck(d) {
@@ -416,12 +620,265 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     box.appendChild(fields);
   }
 
+  // ---------------------------------------------------------------- objects: what is kept, and its copies
+  var kept = null;
+  function chips(on) {
+    var span = el("span");
+    if (on.retired) { span.appendChild(el("span", { class: "chip none", text: "retired" })); return span; }
+    if (!on.copies.length) span.appendChild(el("span", { class: "chip none", text: "no copy yet" }));
+    on.copies.forEach(function (c) {
+      span.appendChild(el("span", { class: "chip " + c.temperature, title: c.readBack ? "read back identical" : "not read back",
+                                    text: c.form + " " + c.temperature + (c.readBack ? " ✓" : "") }));
+    });
+    return span;
+  }
+  function facts(h) {
+    return h.copies + (h.copies === 1 ? " copy" : " copies") + " on " + h.discs + (h.discs === 1 ? " disc" : " discs") +
+           ", " + h.cold + " cold, " + h.readBack + " read back";
+  }
+  function heldTable(rows) {     // rows: [version or "", disc entry, path or null, bytes or null]
+    var t = el("table");
+    t.appendChild(el("tr", {}, ["", "Disc", "On the disc", "Copies", "Kept at"].map(function (x) { return el("th", { text: x }); })));
+    rows.forEach(function (r) {
+      t.appendChild(el("tr", {}, [el("td", { text: r[0] }), el("td", { class: "mono", text: r[1].disc }),
+        el("td", { class: "mono", text: r[2] === null ? "" : "data/" + (r[2] === "." ? "" : r[2]) }),
+        el("td", {}, [chips(r[1])]), el("td", { text: r[1].where || "" })]));
+    });
+    return el("div", { class: "scroll" }, [t]);
+  }
+  function renderObjects() {
+    var list = $("o-list"); list.textContent = "";
+    if (!kept) return;
+    var want = $("o-filter").value.trim().toLowerCase(), attention = 0, shown = 0;
+    function match(name) { return !want || name.toLowerCase().indexOf(want) >= 0; }
+    var objs = kept.objects.filter(function (o) { return match(o.name); });
+    var colls = kept.collections.filter(function (c) { return match(c.code) || match(c.title); });
+    if (objs.length) list.appendChild(el("h2", { text: "Data objects (disc plans)" }));
+    objs.forEach(function (o) {
+      shown++; attention += o.todo.length ? 1 : 0;
+      var card = el("div", { class: "card kept" });
+      card.appendChild(el("h3", {}, [el("span", { class: "mono", text: o.name + (o.kind === "file" ? "" : "/") }),
+        el("span", { class: "facts", text: o.kind + ", " + o.versions + (o.versions === 1 ? " version" : " versions") +
+                                             "; newest: " + facts(o.newest) })]));
+      o.todo.forEach(function (t) { card.appendChild(el("div", { class: "todo", text: t })); });
+      o.sources.forEach(function (s, i) {
+        card.appendChild(el("div", { class: "src" }, [document.createTextNode((i ? "and " : "from ") + s.path + " "),
+          el("span", { class: s.there ? "here" : "gone", text: s.there ? "(there now)" : "(not there now)" })]));
+      });
+      card.appendChild(heldTable(o.held.map(function (h) {
+        return ["version " + h.version, h.on, h.path + (o.kind === "file" || h.path === "." ? "" : "/")]; })));
+      list.appendChild(card);
+    });
+    if (colls.length) list.appendChild(el("h2", { text: "Collections" }));
+    colls.forEach(function (c) {
+      shown++;
+      var card = el("div", { class: "card kept" });
+      card.appendChild(el("h3", {}, [el("span", { class: "mono", text: c.code }), el("span", { text: c.title }),
+        el("span", { class: "facts", text: c.editions + (c.editions === 1 ? " edition" : " editions") +
+          (c.newest ? "; newest: " + c.code + "/" + c.newest.edition + ", " + facts(c.newest.holding) : "") })]));
+      if (c.folder) card.appendChild(el("div", { class: "src" }, [document.createTextNode("workflow folder " + c.folder.path + " "),
+        el("span", { class: c.folder.there ? "here" : "gone", text: c.folder.there ? "(there now)" : "(not there now)" })]));
+      if (c.newest && c.newest.holding.copies && !c.newest.holding.cold) card.appendChild(el("div", { class: "todo", text: "no cold copy of the newest edition" }));
+      if (c.newest) card.appendChild(heldTable(c.newest.discs.map(function (d) { return ["", d, null]; })));
+      list.appendChild(card);
+    });
+    $("o-summary").textContent = kept.objects.length + " data object" + (kept.objects.length === 1 ? "" : "s") + ", " +
+      kept.collections.length + " collection" + (kept.collections.length === 1 ? "" : "s") +
+      (attention ? "; " + attention + " data object" + (attention === 1 ? " needs" : "s need") + " attention" : "");
+    if (!shown) list.appendChild(el("p", { class: "muted", text: kept.objects.length + kept.collections.length ?
+      "Nothing matches." : "Nothing kept as a data object or collection yet: make discs from a plan (Mastering), or a collection." }));
+  }
+  function loadObjects() {
+    return api("/api/objects").then(function (res) { kept = res; renderObjects(); })
+      .catch(function (e) { $("o-list").textContent = "Error: " + e.message; });
+  }
+  $("o-filter").oninput = renderObjects;
+
+  // ---------------------------------------------------------------- mastering: disc plans
+  var plan = null, folder = null;
+  function planName() { return $("p-pick").value; }
+  function say(text, bad) {
+    var s = $("p-status"); s.hidden = !text; s.textContent = text || ""; s.className = "banner" + (bad ? " bad" : "");
+  }
+  function planDo(body) {      // arv plan ACTION NAME ..., then the plan again
+    body.name = body.name || planName();
+    return api("/api/plan", body).then(function (res) {
+      say(res.output, res.returncode !== 0);
+      return loadPlan();
+    }).catch(function (e) { say("Error: " + e.message, true); });
+  }
+  function loadPlans(choose) {
+    return api("/api/plans").then(function (res) {
+      var pick = $("p-pick"), keep = choose || pick.value;
+      pick.textContent = "";
+      var open = res.plans.filter(function (p) { return !p.made; }), made = res.plans.filter(function (p) { return p.made; });
+      [["Open", open], ["Made", made]].forEach(function (g) {
+        if (!g[1].length) return;
+        var group = el("optgroup", { label: g[0] });
+        g[1].forEach(function (p) { group.appendChild(el("option", { value: p.name, text: p.name + (p.made ? " (made " + p.made + ")" : "") })); });
+        pick.appendChild(group);
+      });
+      if (!res.plans.length) pick.appendChild(el("option", { value: "", text: "(no plans yet)" }));
+      var names = res.plans.map(function (p) { return p.name; });
+      if (keep && names.indexOf(keep) >= 0) pick.value = keep;
+      else if (open.length) pick.value = open[0].name;
+      $("p-new").hidden = res.plans.length > 0;
+      if (!folder) browseFiles("");
+      return loadPlan();
+    });
+  }
+  function loadPlan() {
+    if (!planName()) { plan = null; renderPlan(); return Promise.resolve(); }
+    return api("/api/plan?name=" + encodeURIComponent(planName())).then(function (p) { plan = p; renderPlan(); })
+      .catch(function (e) { plan = null; renderPlan(); say("Error: " + e.message, true); });
+  }
+  function dropTarget(node, disc) {   // a disc takes files from the browser, and items from other discs
+    node.ondragover = function (ev) { if (plan && !plan.made) { ev.preventDefault(); node.classList.add("target"); } };
+    node.ondragleave = function () { node.classList.remove("target"); };
+    node.ondrop = function (ev) {
+      ev.preventDefault(); node.classList.remove("target");
+      var data = JSON.parse(ev.dataTransfer.getData("application/x-arv") || "{}");
+      if (data.sources) planDo({ action: "add", sources: data.sources, disc: disc, copy: $("f-copy").checked });
+      else if (data.path && String(data.from) !== String(disc)) planDo({ action: "move", paths: [data.path], from: data.from, disc: disc });
+    };
+  }
+  function renderPlan() {
+    var box = $("p-discs"); box.textContent = "";
+    var to = $("f-to"); to.textContent = "";
+    to.appendChild(el("option", { value: "auto", text: "the first disc with room" }));
+    $("p-make").hidden = !plan || !!plan.made;
+    $("p-delete").hidden = !plan;
+    $("p-again").hidden = !plan || !plan.made;
+    $("p-note").hidden = true;
+    if (!plan) return;
+    if (plan.made) say("Made " + plan.made + " as " + plan.volumes.join(", ") + ". Burn and record them from the Discs tab. " +
+                       "To archive the same selection again later, make it again as a new plan; deleting this one is safe.");
+    var room = plan.room;
+    plan.discs.forEach(function (d) {
+      to.appendChild(el("option", { value: String(d.disc), text: "disc " + d.disc }));
+      var pct = room ? Math.round(d.used * 100 / room) : 0;
+      var card = el("div", { class: "disc" });
+      var head = el("h3", {}, [el("span", { text: "Disc " + d.disc + (plan.made ? " — " + (plan.volumes[d.disc - 1] || "") : "") })]);
+      if (!d.items.length && plan.discs.length > 1 && !plan.made) {
+        var dropDisc = el("button", { type: "button", text: "Remove disc" });
+        dropDisc.onclick = function () { planDo({ action: "disc", op: "drop", disc: d.disc }); };
+        head.appendChild(dropDisc);
+      }
+      card.appendChild(head);
+      var bar = el("div", { class: "cap" + (pct > 100 ? " bad" : pct > 90 ? " warn" : "") }, [el("div", {})]);
+      bar.firstChild.style.width = Math.min(pct, 100) + "%";
+      card.appendChild(bar);
+      card.appendChild(el("div", { class: "capnote", text: room ? human(d.bytes) + " of about " + human(room) + " (" + pct + "%)" +
+        (pct > 100 ? " — too full: move something" : "") : human(d.bytes) + " (medium chosen when made)" }));
+      if (!d.items.length) card.appendChild(el("div", { class: "muted", text: "Empty: drop files or folders here." }));
+      d.items.forEach(function (it) {
+        var name = el("span", { class: "path mono", text: it.path + (it.kind === "folder" ? "/" : "") });
+        if (it.origin) name.appendChild(el("span", { class: "flag copy", text: "copied", title: "the plan's own copy of " + it.origin }));
+        if (it.changed) name.appendChild(el("span", { class: "flag changed", text: "changed since planned",
+          title: "the disc gets it as it is now" }));
+        var row = el("div", { class: "item" + (it.kind === "missing" ? " missing" : ""), draggable: plan.made ? "false" : "true" }, [
+          name,
+          el("span", { class: "muted", text: it.kind === "missing" ? "missing" : human(it.bytes) + (it.kind === "folder" ? ", " + it.files + " files" : "") }),
+          el("span", { class: "src", text: it.origin ? "copy of " + it.origin : it.source })]);
+        if (!plan.made) {
+          var move = el("select", { "aria-label": "Move to disc" });
+          move.appendChild(el("option", { value: "", text: "move…" }));
+          plan.discs.forEach(function (o) { if (o.disc !== d.disc) move.appendChild(el("option", { value: String(o.disc), text: "to disc " + o.disc })); });
+          move.appendChild(el("option", { value: "new", text: "to a new disc" }));
+          move.onchange = function () { if (move.value) planDo({ action: "move", paths: [it.path], from: d.disc, disc: move.value }); };
+          var drop = el("button", { type: "button", text: "✕", title: "Take off the disc (the file stays where it is)" });
+          drop.onclick = function () { planDo({ action: "drop", paths: [it.path], from: d.disc }); };
+          row.appendChild(el("span", { class: "ctl" }, [move, drop]));
+        }
+        row.ondragstart = function (ev) { ev.dataTransfer.setData("application/x-arv", JSON.stringify({ path: it.path, from: d.disc })); };
+        card.appendChild(row);
+      });
+      dropTarget(card, d.disc);
+      box.appendChild(card);
+    });
+    to.appendChild(el("option", { value: "new", text: "a new disc" }));
+    if (!plan.made) {
+      var add = el("div", { class: "disc add", text: "+ New disc (or drop here)" });
+      add.onclick = function () { planDo({ action: "disc", op: "add" }); };
+      dropTarget(add, "new");
+      box.appendChild(add);
+    }
+    $("p-note").hidden = !!plan.made || !plan.discs.some(function (d) { return d.items.length; });
+    if (folder) browseFiles(folder.path);     // the browser marks what is on a disc now
+  }
+  function onDisc(path) {      // the disc of the plan a source is on, or 0
+    var found = 0;
+    (plan ? plan.discs : []).forEach(function (d) { d.items.forEach(function (it) { if (it.source === path || it.origin === path) found = d.disc; }); });
+    return found;
+  }
+  function browseFiles(path) {
+    api("/api/browse?files=1&path=" + encodeURIComponent(path || "")).then(function (res) {
+      folder = res; $("f-path").value = res.path; $("f-here").textContent = res.error || "";
+      var list = $("f-list"); list.textContent = "";
+      function row(name, isDir, bytes) {
+        var full = res.path.replace(/\/$/, "") + "/" + name;
+        var tick = el("input", { type: "checkbox", "aria-label": "Tick " + name });
+        tick.dataset.path = full;
+        var on = onDisc(full);
+        var r = el("div", { draggable: "true" }, [tick, el("span", { class: "name", text: (isDir ? "📁 " : "📄 ") + name }),
+                                                  el("span", { class: "size" + (on ? " on" : ""), text: on ? "on disc " + on : isDir ? "" : human(bytes) })]);
+        if (isDir) r.querySelector(".name").onclick = function () { browseFiles(full); };
+        r.ondragstart = function (ev) {
+          var ticked = Array.prototype.map.call(list.querySelectorAll("input:checked"), function (c) { return c.dataset.path; });
+          if (ticked.indexOf(full) < 0) ticked = [full];
+          ev.dataTransfer.setData("application/x-arv", JSON.stringify({ sources: ticked }));
+        };
+        list.appendChild(r);
+      }
+      res.dirs.forEach(function (n) { row(n, true); });
+      (res.files || []).forEach(function (f) { row(f.name, false, f.bytes); });
+      if (!res.dirs.length && !(res.files || []).length) list.appendChild(el("div", { class: "muted", text: "(empty)" }));
+    });
+  }
+  $("f-up").onclick = function () { if (folder) browseFiles(folder.parent); };
+  $("f-path").onchange = function () { browseFiles($("f-path").value); };
+  $("f-add").onclick = function () {
+    var ticked = Array.prototype.map.call($("f-list").querySelectorAll("input:checked"), function (c) { return c.dataset.path; });
+    if (!plan) { say("Create a plan first (New plan…).", true); return; }
+    if (!ticked.length) { say("Tick the files or folders to add first.", true); return; }
+    planDo({ action: "add", sources: ticked, disc: $("f-to").value, copy: $("f-copy").checked });
+  };
+  $("p-pick").onchange = function () { say(""); loadPlan(); };
+  $("p-new-btn").onclick = function () { $("p-new").hidden = !$("p-new").hidden; };
+  $("p-new").onsubmit = function (ev) {
+    ev.preventDefault();
+    var name = $("p-name").value.trim();
+    api("/api/plan", { action: "new", name: name, title: $("p-title").value, set: $("p-set").value, medium: $("p-medium").value })
+      .then(function (res) { say(res.output, res.returncode !== 0); if (res.returncode === 0) loadPlans(name); })
+      .catch(function (e) { say("Error: " + e.message, true); });
+  };
+  $("p-again").onclick = function () {
+    if (!plan) return;
+    var name = prompt("Name for the new plan (letters, digits, - _ .)", plan.name + "-again");
+    if (!name) return;
+    api("/api/plan", { action: "again", name: plan.name, new: name.trim() })
+      .then(function (res) { say(res.output, res.returncode !== 0); if (res.returncode === 0) loadPlans(name.trim()); })
+      .catch(function (e) { say("Error: " + e.message, true); });
+  };
+  $("p-delete").onclick = function () {
+    if (!plan || !confirm("Delete the plan " + plan.name + "? The files it points to are not touched.")) return;
+    api("/api/plan", { action: "delete", name: plan.name }).then(function (res) { say(res.output, res.returncode !== 0); loadPlans(); });
+  };
+  $("p-make-btn").onclick = function () {
+    if (!plan) return;
+    run({ action: "make", name: plan.name, output_dir: $("p-outdir").value, no_ecc: $("p-noecc").checked }, false, "/api/plan");
+  };
+
   // ---------------------------------------------------------------- tools
   $("check-form").onsubmit = function (ev) {
     ev.preventDefault();
     run({ device: $("c-device").value, image: $("c-image").value }, false, "/api/check");
   };
   $("rebuild-form").onsubmit = function (ev) { ev.preventDefault(); run({ command: "rebuild", path: $("r-path").value }); };
+  $("verify-form").onsubmit = function (ev) { ev.preventDefault(); run({ command: "verify", path: $("v-path").value }); };
+  $("restore-form").onsubmit = function (ev) {
+    ev.preventDefault(); run({ command: "restore", path: $("rs-path").value, dest: $("rs-dest").value });
+  };
 
   // ---------------------------------------------------------------- jobs
   function run(body, quiet, path) {
@@ -430,6 +887,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         poll(job.id, 0, null, function (j) {
           if (j.returncode !== 0) alert(j.lines.join("\n"));
           loadDiscs();
+          loadOwed();
         });
       } else { showTab("jobs"); }
     }).catch(function (e) { alert("Error: " + e.message); });
@@ -461,7 +919,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   }
 
   api("/api/llm/status").then(function (st) { llmStatus = st; }).catch(function () { llmStatus = null; })
-    .then(function () { setupMakeLLM(); loadDiscs(); });
+    .then(function () {           // a view named in the address (#discs, #master...), else Verify's Owed
+      var want = location.hash.slice(1);
+      setupMakeLLM(); loadDiscs(); loadOwed(); showTab(GROUP[want] ? want : "owed");
+    });
 })();
 </script>
 </body></html>

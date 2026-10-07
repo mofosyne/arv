@@ -40,7 +40,7 @@ static void say(const char *fmt, const char *arg)
 typedef struct {
     const char *source, *home, *output, *output_dir, *id, *set, *coverage, *title, *label, *description;
     const char *creator, *location, *access, *rights, *links, *medium, *media, *snapshot, *tools;
-    const char *basis, *review, *formats, *sf_home, *extra_tools, *draft, *message, *git_since;
+    const char *basis, *review, *formats, *sf_home, *extra_tools, *draft, *message, *git_since, *plan;
     strlist categories, subjects, notes, importance;
     long medium_sectors;
     double min_redundancy;
@@ -50,6 +50,7 @@ typedef struct {
 
 static const char HELP[] =
     "usage: arv make [options] FOLDER\n"
+    "       arv make [options] --plan FILE   (arv plan make NAME runs this)\n"
     "Makes archive disc images of FOLDER and records them in the home catalogue.\n"
     "  -y, --yes              ask nothing (in a terminal, make asks what the options leave open)\n"
     "  -C, --home HOME        the home (default: $ARV_HOME, a .arv above FOLDER or here, ...)\n"
@@ -80,6 +81,8 @@ static const char HELP[] =
     "  --extra-tools DIR      a folder copied to tools/extra/ (dvdisaster binaries, say)\n"
     "  --git-since DATE       git repositories keep only the history since DATE (shallow; default: all)\n"
     "  --split                spread the folder over as many discs as needed\n"
+    "  --plan FILE            the discs of a disc plan instead of FOLDER: each holds the files and folders\n"
+    "                         the plan puts on it, read from where they are (arv plan)\n"
     "In a collection's workflow folder (arv collection init), the collection gives the title, set,\n"
     "categories and access, its code starts the disc ids, and each make is its next edition:\n"
     "  --keep                 keep this edition: never offered for retiring when a newer one is safe\n"
@@ -154,6 +157,7 @@ static int parse_options(int argc, char **argv, options *o)
         else if (!strcmp(a, "--sf-home")) str = &o->sf_home;
         else if (!strcmp(a, "--extra-tools")) str = &o->extra_tools;
         else if (!strcmp(a, "--draft")) str = &o->draft;
+        else if (!strcmp(a, "--plan")) str = &o->plan;
         else if (!strcmp(a, "--category")) list = &o->categories;
         else if (!strcmp(a, "--subject")) list = &o->subjects;
         else if (!strcmp(a, "--note")) list = &o->notes;
@@ -167,7 +171,7 @@ static int parse_options(int argc, char **argv, options *o)
         if (str) *str = v;
         else strlist_add(list, v);
     }
-    if (!o->source) return 2;
+    if (!o->source == !o->plan) return 2;            /* a folder, or a plan */
     const char *ok[][5] = { { "private", "public", "sealed", NULL }, { "default", "record", "copy", NULL },
                             { "full", "set", "disc", NULL }, { "bd25", "bd50", "bd100", "bd128", "auto" },
                             { "auto", "yes", "no", NULL } };
@@ -307,6 +311,24 @@ static long data_budget(long medium_sectors, double min_redundancy)
     if (max_ndata > GF_FIELDMAX - 1 - 8) max_ndata = GF_FIELDMAX - 1 - 8;
     if (max_ndata < 1) die("redundancy %s%% is not possible", "requested");
     return max_ndata * per_layer - 2;
+}
+
+/* a medium's sectors for everything on the disc at the default 20% RS03, or 0 (auto, unknown) */
+long medium_budget(const char *medium, const char **label)
+{
+    for (int i = 0; i < 4; i++)
+        if (!strcmp(MEDIA[i].name, medium)) {
+            if (label) *label = MEDIA[i].label;
+            return data_budget(MEDIA[i].dm, 20);
+        }
+    if (label) *label = "auto";
+    return 0;
+}
+
+/* a file's rough image cost in sectors, as make estimates it (its data, a file entry, its name) */
+long file_sectors(uint64_t size, const char *path)
+{
+    return (long)((size + SECTOR - 1) / SECTOR) + 1 + (long)(3 * (utf8_chars(path) + 64)) / SECTOR + 1;
 }
 
 /* ------------------------------------------------------------------ text */
@@ -554,14 +576,23 @@ static char *review_date(const char *text)
 
 typedef struct {
     char **paths;               /* disk path of each file, by index */
+    const entry **want;         /* the payload file each one is (its manifest hash), or NULL */
+    char *checked;              /* each payload file: its bytes in the image hashed and compared */
     size_t n;
     FILE *open_fp;
     size_t open_index;
     FILE *out, *extents;
     uint64_t written;
+    sha256_ctx hash;            /* the payload file being written, hashed as it goes */
+    size_t hash_index;
+    uint64_t hashed;
+    strlist changed;            /* payload files whose bytes in the image differ from the manifest */
+    const entries *payload;     /* a whole folder added as it is: its manifest, and which were found */
+    char *found;
 } image_ctx;
 
 static image_ctx *ictx;
+static const char *work_to_remove;   /* the work folder, removed when an image is refused */
 
 static long read_cb(void *file, uint64_t offset, void *buf, size_t len)
 {
@@ -572,7 +603,28 @@ static long read_cb(void *file, uint64_t offset, void *buf, size_t len)
         if (!(ictx->open_fp = fopen(ictx->paths[i], "rb"))) return -1;
     }
     if (fseeko(ictx->open_fp, (off_t)offset, SEEK_SET)) return -1;
-    return (long)fread(buf, 1, len, ictx->open_fp);
+    long got = (long)fread(buf, 1, len, ictx->open_fp);
+    const entry *e = ictx->want[i];
+    if (e && got > 0) {          /* what goes into the image, against what the manifest says it is */
+        if (!offset) {
+            sha256_init(&ictx->hash);
+            ictx->hash_index = i;
+            ictx->hashed = 0;
+        }
+        if (ictx->hash_index == i && offset == ictx->hashed) {
+            sha256_update(&ictx->hash, buf, (size_t)got);
+            ictx->hashed += (uint64_t)got;
+            if (ictx->hashed == e->size) {
+                unsigned char d[32];
+                char hex[65];
+                sha256_final(&ictx->hash, d);
+                sha256_hex(d, hex);
+                if (strcmp(hex, e->sha256)) strlist_add(&ictx->changed, e->path);
+                ictx->checked[i] = 1;
+            }
+        }
+    }
+    return got;
 }
 
 static int write_cb(void *ctx, const void *buf, size_t count)
@@ -588,15 +640,25 @@ static void extent_cb(void *ctx, const char *path, uint64_t sector, uint64_t siz
     fprintf(ictx->extents, "%llu\t%llu\t%s\n", (unsigned long long)sector, (unsigned long long)size, path);
 }
 
-static size_t add_source(image_ctx *c, const char *path)
+static size_t add_source(image_ctx *c, const char *path, const entry *e)
 {
     c->paths = xrealloc(c->paths, (c->n + 1) * sizeof *c->paths);
+    c->want = xrealloc(c->want, (c->n + 1) * sizeof *c->want);
+    c->checked = xrealloc(c->checked, c->n + 1);
     c->paths[c->n] = xstrdup(path);
+    c->want[c->n] = e;
+    c->checked[c->n] = e && !e->size;       /* an empty file: nothing to read */
     return c->n++;
 }
 
-/* adds everything under disk folder dir as image path rel */
-static void add_tree(udfw *w, image_ctx *c, const char *dir, const char *rel)
+static int path_vs_entry(const void *key, const void *e)
+{
+    return strcmp((const char *)key, ((const entry *)e)->path);
+}
+
+/* adds everything under disk folder dir as image path rel; files under data/ are found in the
+ * payload (sorted by path) so the image is checked against the manifest as it is written */
+static void add_tree(udfw *w, image_ctx *c, const char *dir, const char *rel, const entries *payload)
 {
     DIR *d = opendir(dir);
     struct dirent *e;
@@ -608,10 +670,17 @@ static void add_tree(udfw *w, image_ctx *c, const char *dir, const char *rel)
         if (stat(disk, &st)) die("cannot read %s", disk);
         if (S_ISDIR(st.st_mode)) {
             if (udfw_add_dir(w, path, (int64_t)st.st_mtime)) die("udfwrite: %s", udfw_error(w));
-            add_tree(w, c, disk, path);
-        } else if (udfw_add_file(w, path, (uint64_t)st.st_size, (int64_t)st.st_mtime, (unsigned)st.st_mode, read_cb,
-                                 (void *)(uintptr_t)add_source(c, disk))) {
-            die("udfwrite: %s", udfw_error(w));
+            add_tree(w, c, disk, path, payload);
+        } else {
+            const entry *pe = NULL;
+            if (payload && !strncmp(path, "data/", 5)) {    /* the payload, as hashed: the same file, same size */
+                pe = bsearch(path + 5, payload->v, payload->n, sizeof *payload->v, path_vs_entry);
+                if (!pe || pe->size != (uint64_t)st.st_size) strlist_add(&c->changed, path + 5);
+                if (pe) c->found[pe - payload->v] = 1;
+            }
+            if (udfw_add_file(w, path, (uint64_t)st.st_size, (int64_t)st.st_mtime, (unsigned)st.st_mode, read_cb,
+                              (void *)(uintptr_t)add_source(c, disk, pe)))
+                die("udfwrite: %s", udfw_error(w));
         }
         free(disk);
         free(path);
@@ -630,18 +699,24 @@ static uint64_t build_image(const char *stage, const char *src, const entries *f
     udfw_options opt = { disc_id, label, volume_set, when };
     udfw *w = udfw_new(&opt);
     if (!w) die("%s", "out of memory");
-    add_tree(w, &c, stage, "");
+    add_tree(w, &c, stage, "", NULL);
     struct stat st;
-    if (stat(src, &st)) die("cannot read %s", src);
-    if (udfw_add_dir(w, "data", (int64_t)st.st_mtime)) die("udfwrite: %s", udfw_error(w));
-    if (whole_folder) add_tree(w, &c, src, "data");     /* empty folders included */
+    if (src && stat(src, &st)) die("cannot read %s", src);      /* a plan has no one folder: the recording time */
+    if (udfw_add_dir(w, "data", src ? (int64_t)st.st_mtime : when)) die("udfwrite: %s", udfw_error(w));
+    if (whole_folder) {         /* empty folders included */
+        c.found = xmalloc(files->n + 1);
+        memset(c.found, 0, files->n + 1);
+        add_tree(w, &c, src, "data", files);
+        for (size_t i = 0; i < files->n; i++)       /* gone since it was hashed */
+            if (!c.found[i]) strlist_add(&c.changed, files->v[i].path);
+    }
     for (int pass = whole_folder; pass < 2; pass++) {   /* a folder with links: exactly the listed files */
         const entries *list = pass ? extras : files;    /* then the files added to data/ */
         for (size_t i = 0; i < list->n; i++) {
             char *path = join("data", list->v[i].path);
             if (stat(list->v[i].source, &st)) die("cannot read %s", list->v[i].source);
             if (udfw_add_file(w, path, list->v[i].size, (int64_t)st.st_mtime, (unsigned)st.st_mode, read_cb,
-                              (void *)(uintptr_t)add_source(&c, list->v[i].source)))
+                              (void *)(uintptr_t)add_source(&c, list->v[i].source, pass ? NULL : &list->v[i])))
                 die("udfwrite: %s", udfw_error(w));
             free(path);
         }
@@ -653,9 +728,25 @@ static uint64_t build_image(const char *stage, const char *src, const entries *f
     if (c.open_fp) fclose(c.open_fp);
     if (rc) die("udfwrite: %s", udfw_error(w));
     if (fclose(c.out) || fclose(c.extents)) die("cannot write %s", out);
+    for (size_t i = 0; i < c.n; i++)       /* a size that changed: never read to its manifest end */
+        if (c.want[i] && !c.checked[i] && !strlist_has(&c.changed, c.want[i]->path)) strlist_add(&c.changed, c.want[i]->path);
+    if (c.changed.n) {          /* the disc would not match its own manifest: never record it */
+        fprintf(stderr, "Error: %zu file%s changed after %s hashed, while the image was being written; the image "
+                        "would not match its manifest:\n", c.changed.n, c.changed.n == 1 ? "" : "s",
+                c.changed.n == 1 ? "it was" : "they were");
+        for (size_t i = 0; i < c.changed.n && i < 20; i++) fprintf(stderr, "  %s\n", c.changed.v[i]);
+        fputs("Nothing was recorded. Let them settle (a sync, a download, an editor) and run arv make again.\n", stderr);
+        unlink(out);
+        if (work_to_remove) remove_tree(work_to_remove);
+        exit(1);
+    }
     udfw_free(w);
     for (size_t i = 0; i < c.n; i++) free(c.paths[i]);
     free(c.paths);
+    free(c.want);
+    free(c.checked);
+    free(c.found);
+    strlist_free(&c.changed);
     return c.written;
 }
 
@@ -733,6 +824,8 @@ typedef struct {
     char *out, *label, *stage, *built, *extents, *b_manifest, *b_listing, *b_formats, *b_tags;
     rec_record *disc, *binding;
     recs events, appraisals;
+    recs objects;                   /* --plan: the data objects on this disc (with Source: home only) */
+    strlist object_manifests;       /* and each one's manifest, for catalog/objects/ at home */
     uint64_t sectors;
 } plan;
 
@@ -752,6 +845,8 @@ typedef struct {
     rec_record *collection;     /* the workflow folder's collection, or NULL */
     const char *id_prefix;      /* the collection's code, else the set code */
     char *tree_text;            /* the collection's revision manifest */
+    int plan_discs;             /* arv make --plan: its discs (files carry theirs in bin); else 0 */
+    const disc_plan *dplan;     /* and the plan itself */
     rec_record *revision;       /* this edition, once the discs are assigned */
     size_t left_out;            /* files arv keeps off the disc (its own .arv) */
     gitrepos git;               /* repositories in the folder, their .git compacted */
@@ -782,7 +877,7 @@ static int by_entry_path(const void *a, const void *b)
 /* rough image cost of one file: its data, a file entry and directory records (make.estimate_sectors) */
 static long estimate_sectors(const entry *e)
 {
-    return (long)((e->size + SECTOR - 1) / SECTOR) + 1 + (long)(3 * (utf8_chars(e->path) + 64)) / SECTOR + 1;
+    return file_sectors(e->size, e->path);
 }
 
 /* files in path order, a disc filled before the next; bins[i] holds counts */
@@ -853,8 +948,41 @@ static long snapshot_estimate(const maker *mk)
 }
 
 /* the first bins: one, or (--split) as many as the estimates need */
+static int by_bin_path(const void *a, const void *b)
+{
+    const entry *x = a, *y = b;
+    return x->bin != y->bin ? (x->bin < y->bin ? -1 : 1) : strcmp(x->path, y->path);
+}
+
+/* a disc plan's discs: its files in disc order, each disc in path order; one name, one thing */
+static size_t plan_bins(maker *mk, size_t **counts)
+{
+    entries *f = mk->files;
+    if (f->n) qsort(f->v, f->n, sizeof *f->v, by_bin_path);
+    *counts = xmalloc(((size_t)mk->plan_discs + 1) * sizeof **counts);
+    for (int b = 0; b < mk->plan_discs; b++) (*counts)[b] = 0;
+    for (size_t i = 0; i < f->n; i++) {
+        (*counts)[f->v[i].bin]++;
+        if (i && f->v[i].bin == f->v[i - 1].bin) {
+            const char *a = f->v[i - 1].path, *b = f->v[i].path;
+            size_t n = strlen(a);
+            if (!strcmp(a, b)) die("two things in the plan go to %s on one disc (arv plan show; give one --as another name)", a);
+            if (!strncmp(a, b, n) && b[n] == '/')
+                die("%s is a file on the plan's disc, and a folder too (arv plan show; give one --as another name)", a);
+        }
+    }
+    for (int b = 0; b < mk->plan_discs; b++)
+        if (!(*counts)[b]) {
+            char n[16];
+            snprintf(n, sizeof n, "%d", b + 1);
+            die("disc %s of the plan holds nothing (put something on it, or arv plan disc NAME drop it)", n);
+        }
+    return (size_t)mk->plan_discs;
+}
+
 static size_t initial_bins(maker *mk, size_t **counts)
 {
+    if (mk->plan_discs) return plan_bins(mk, counts);
     if (!mk->o->split || !mk->budget) {
         if (mk->o->split) die("%s", "--split needs a target --medium (not auto)");
         *counts = xmalloc(sizeof **counts);
@@ -875,6 +1003,10 @@ static void links_for(const maker *mk, const size_t *counts, size_t nbins, size_
     out->v = xmalloc((mk->noted->n + 1) * sizeof *out->v);
     out->n = 0;
     for (size_t k = 0; k < mk->noted->n; k++) {
+        if (mk->plan_discs) {               /* a plan's: on the disc of the item they are in */
+            if ((size_t)mk->noted->v[k].bin == i) out->v[out->n++] = mk->noted->v[k];
+            continue;
+        }
         size_t at = 0, first = 0;
         if (nbins > 1)
             for (size_t j = 0; j < nbins; j++) {
@@ -1064,6 +1196,14 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
         }
     }
     if (mk->collection) mk->revision = revision_record(mk);
+    for (size_t i = 0; mk->dplan && i < nbins; i++) {   /* a plan's items: each a data object */
+        recs made_now = { 0 };
+        for (size_t k = 0; k < i; k++)
+            for (size_t j = 0; j < mk->plans[k].objects.n; j++) recs_add(&made_now, mk->plans[k].objects.v[j]);
+        plan_objects(mk->dplan, (int)i + 1, &mk->plans[i].files, mk->cat, &made_now, mk->plans[i].disc_id, mk->today,
+                     &mk->plans[i].objects, &mk->plans[i].object_manifests);
+        free(made_now.v);
+    }
 }
 
 static void batch_files(maker *mk)
@@ -1171,6 +1311,7 @@ static void stage_plan(maker *mk, size_t idx)
     for (size_t b = b0; b < b1; b++) recs_add(&snap.bindings, mk->plans[b].binding);
     for (size_t b = b0; b < b1; b++) for (size_t i = 0; i < mk->plans[b].events.n; i++) recs_add(&snap.events, mk->plans[b].events.v[i]);
     for (size_t b = b0; b < b1; b++) for (size_t i = 0; i < mk->plans[b].appraisals.n; i++) recs_add(&snap.appraisals, mk->plans[b].appraisals.v[i]);
+    for (size_t b = b0; b < b1; b++) for (size_t i = 0; i < mk->plans[b].objects.n; i++) recs_add(&snap.objects, object_disc_view(mk->plans[b].objects.v[i]));
     if (!strcmp(o->snapshot, "full")) for (size_t i = 0; i < cat->locations.n; i++) recs_add(&snap.locations, cat->locations.v[i]);
     else archive_locations_for(cat, &snap.discs, &snap.locations);
     strlist snap_ids = { 0 };
@@ -1351,6 +1492,7 @@ static void stage_plan(maker *mk, size_t idx)
         recs_add(&own.bindings, p->binding);
         for (size_t i = 0; i < p->events.n; i++) recs_add(&own.events, p->events.v[i]);
         for (size_t i = 0; i < p->appraisals.n; i++) recs_add(&own.appraisals, p->appraisals.v[i]);
+        for (size_t i = 0; i < p->objects.n; i++) recs_add(&own.objects, object_disc_view(p->objects.v[i]));
         if (mk->collection) {                   /* the collection, and the edition this disc is part of */
             recs_add(&own.collections, mk->collection);
             recs_add(&own.revisions, mk->revision);
@@ -1374,7 +1516,7 @@ static void measure(maker *mk, plan *p)
 {
     p->built = xprintf("%s.udf", p->stage);
     p->extents = xprintf("%s.extents.tsv", p->stage);
-    int whole = p->parts == 1 && !mk->noted->n && !mk->left_out;     /* the whole folder: empty folders too */
+    int whole = !mk->plan_discs && p->parts == 1 && !mk->noted->n && !mk->left_out;   /* the whole folder: empty folders too */
     for (size_t i = 0; i < p->files.n && whole; i++) whole = !*p->files.v[i].link && !p->files.v[i].via_folder;
     char volume_set[17];
     size_t k = 0;
@@ -1430,6 +1572,16 @@ static void fit(maker *mk)
         }
         plan *p = &mk->plans[over];
         if (p->files.n == 1) die("%s does not fit on one disc together with the catalogue and tools", p->files.v[0].path);
+        if (mk->plan_discs) {               /* the plan says which disc: no moving files for it */
+            char need[32], room[32];
+            human_size(p->sectors * SECTOR, need);
+            human_size((uint64_t)mk->budget * SECTOR, room);
+            fprintf(stderr, "Error: disc %d of the plan needs %s with its catalogue and tools, but a %s holds %s.\n"
+                            "Move something to another disc (arv plan move), or use a larger --medium.\n",
+                    p->part, need, mk->medium_label, room);
+            if (!mk->o->keep_stage) remove_tree(mk->workdir);
+            exit(1);
+        }
         if (!mk->o->split) {
             char need[32], room[32], *red = redundancy_text(mk->o);
             human_size(p->sectors * SECTOR, need);
@@ -1482,6 +1634,7 @@ static int make_discs(maker *mk)
     out_dir = abs_out;
     mk->workdir = xprintf("%s/.archive-make-XXXXXX", out_dir);
     if (!mkdtemp(mk->workdir)) die("cannot create a work folder in %s", out_dir);
+    if (!o->keep_stage) work_to_remove = mk->workdir;
     git_prepare(mk->src, mk->workdir, o->git_since, mk->files, &mk->git);   /* .git: compacted copies */
     for (size_t k = 0; k < mk->git.n; k++) mk->left_out += mk->git.v[k].tsv != NULL;
     if (o->ro_crate) {
@@ -1494,7 +1647,8 @@ static int make_discs(maker *mk)
             die("--ro-crate would overwrite %s in the source folder", clash.s);
         }
     }
-    if (!strcmp(o->formats, "yes") || (!strcmp(o->formats, "auto") && on_path("sf"))) {
+    if (mk->plan_discs && !strcmp(o->formats, "yes")) die("%s", "--formats yes: not for a plan yet (Siegfried reads one folder)");
+    if (!mk->plan_discs && (!strcmp(o->formats, "yes") || (!strcmp(o->formats, "auto") && on_path("sf")))) {
         if (!on_path("sf")) die("%s", "--formats yes needs Siegfried (sf) on PATH");
         fputs("Identifying file formats with Siegfried ...\n", stderr);
         char *error = NULL;
@@ -1503,6 +1657,9 @@ static int make_discs(maker *mk)
         else fprintf(stderr, "Warning: skipping format identification, Siegfried failed: %s\n", error);
         free(error);
     }
+    if (getenv("ARV_TEST_AFTER_HASH") && *getenv("ARV_TEST_AFTER_HASH")   /* tests only: change a file mid-make */
+        && system(getenv("ARV_TEST_AFTER_HASH")))
+        die("%s", "ARV_TEST_AFTER_HASH failed");
     fit(mk);
     int failed = 0;
     for (size_t i = 0; i < mk->nplans; i++) {          /* build: move the measured image into place, then RS03 */
@@ -1562,6 +1719,14 @@ static int make_discs(maker *mk)
         recs_add(&mk->cat->bindings, p->binding);
         for (size_t k = 0; k < p->events.n; k++) recs_add(&mk->cat->events, p->events.v[k]);
         for (size_t k = 0; k < p->appraisals.n; k++) recs_add(&mk->cat->appraisals, p->appraisals.v[k]);
+        for (size_t k = 0; k < p->objects.n; k++) {     /* its data objects, and their manifests (catalog/objects/) */
+            recs_add(&mk->cat->objects, p->objects.v[k]);
+            char *dir = join(mk->h->catalog_dir, "objects"), *f = xprintf("%s/%s.sha256", dir, rec_get(p->objects.v[k], "Tree"));
+            if (mkdirs(dir)) die("cannot create %s", dir);
+            write_text(f, p->object_manifests.v[k]);
+            free(dir);
+            free(f);
+        }
         char *home_vol = xprintf("%s/volumes/%s", mk->h->catalog_dir, p->disc_id);
         if (mkdirs(home_vol)) die("cannot create %s", home_vol);
         const char *kinds[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", "git.tsv" };
@@ -1592,7 +1757,13 @@ static int make_discs(maker *mk)
         free(dir);
     }
     archive_save(mk->cat, mk->h->rec_path);
-    if (mk->collection) hash_cache_note(mk->h, mk->files);
+    if (mk->collection || mk->dplan) hash_cache_note(mk->h, mk->files);
+    if (o->plan) {                  /* the plan says what became of it */
+        strlist ids = { 0 };
+        for (size_t i = 0; i < mk->nplans; i++) strlist_add(&ids, mk->plans[i].disc_id);
+        plan_made(o->plan, &ids, mk->today);
+        strlist_free(&ids);
+    }
     if (o->keep_stage) fprintf(stderr, "Kept staging directory %s\n", mk->workdir);
     else remove_tree(mk->workdir);
     for (size_t i = 0; i < mk->nplans; i++) printf("%s\t%s\t%s\n", mk->plans[i].disc_id, mk->plans[i].out, mk->title);
@@ -1619,9 +1790,17 @@ int cmd_make(int argc, char **argv)
     options o;
     if (parse_options(argc, argv, &o)) return 2;
     interactive = isatty(0) && !o.yes;
-    char *src = realpath(o.source, NULL);
+    disc_plan dp;
+    memset(&dp, 0, sizeof dp);
+    if (o.plan) {                   /* its folder is in the home it belongs to */
+        plan_load(o.plan, &dp);
+        if (!dp.discs) die("plan %s has no discs", dp.name);
+        if (o.split) die("%s", "--split is not for a plan: the plan says which disc each item goes on");
+    }
+    char *src = o.plan ? realpath(o.plan, NULL) : realpath(o.source, NULL);
+    if (src && o.plan) *strrchr(src, '/') = 0;
     struct stat st;
-    if (!src || stat(src, &st) || !S_ISDIR(st.st_mode)) die("%s is not a directory", abs_path(o.source));
+    if (!src || stat(src, &st) || !S_ISDIR(st.st_mode)) die("%s is not a directory", abs_path(o.plan ? o.plan : o.source));
     if (o.output && o.output_dir) die("%s", "use either --output or --output-dir");
     char *review = o.review ? review_date(o.review) : NULL;
     if (o.importance.n || o.basis) (void)new_appraisal("X", &o.importance, o.basis, review);   /* checked early */
@@ -1635,8 +1814,8 @@ int cmd_make(int argc, char **argv)
     archive_home_uuid(&cat);            /* every disc names the home it belongs to */
 
     /* a collection's workflow folder: the collection gives what the options leave open */
-    char *coll_uuid = marker_collection(src);
-    rec_record *coll = folder_collection(&cat, src, NULL);   /* its marker, or a declaration (arv link) */
+    char *coll_uuid = o.plan ? NULL : marker_collection(src);
+    rec_record *coll = o.plan ? NULL : folder_collection(&cat, src, NULL);   /* its marker, or a declaration (arv link) */
     if (coll_uuid && !coll) die("this folder's .arv marker names collection %s, which is not in the home catalogue", coll_uuid);
     if (coll) {
         if (!o.title || !*o.title) o.title = rec_get(coll, "Title");
@@ -1651,11 +1830,16 @@ int cmd_make(int argc, char **argv)
         die("%s", "--keep and --message are for a collection's workflow folder (arv collection init)");
     }
 
-    fprintf(stderr, "Scanning and hashing %s ...\n", src);
     size_t left_out = 0;
     entries files, noted;
-    scan_payload(src, o.links, &files, &noted);
-    {   /* the .arv at the folder's root is arv's own (a marker, pointer or home), never content */
+    if (o.plan) {
+        fprintf(stderr, "Plan %s: scanning and hashing its %zu items ...\n", dp.name, dp.n);
+        plan_scan(&dp, o.links, &files, &noted, &left_out);
+    } else {
+        fprintf(stderr, "Scanning and hashing %s ...\n", src);
+        scan_payload(src, o.links, &files, &noted);
+    }
+    if (!o.plan) {   /* the .arv at the folder's root is arv's own (a marker, pointer or home), never content */
         size_t kept = 0;
         for (size_t i = 0; i < files.n; i++)
             if (strcmp(files.v[i].path, ".arv") && strncmp(files.v[i].path, ".arv/", 5)) files.v[kept++] = files.v[i];
@@ -1744,7 +1928,7 @@ int cmd_make(int argc, char **argv)
         if (vocab_load(&v, sets_path, NULL, err, sizeof err)) die("%s", err);
         strlist rules = { 0 };
         if (!o.no_rules) vocab_rule_suggestions(&v, paths, files.n, &rules);
-        char *default_set, *default_title = folder_default_title(src, &default_set);
+        char *default_set, *default_title = folder_default_title(o.plan ? dp.name : src, &default_set);
         const char *guessed = vocab_guess(&v, default_set);
         const char *set_default = guessed ? guessed : rules.n ? rules.v[0] : default_set;
         char *set_asked = o.set && *o.set ? NULL : ask("Set code (see 'arv sets')", set_default);
@@ -1829,7 +2013,9 @@ int cmd_make(int argc, char **argv)
         mk.o = &o;
         mk.h = &h;
         mk.cat = &cat;
-        mk.src = src;
+        mk.src = o.plan ? NULL : src;
+        mk.plan_discs = o.plan ? dp.discs : 0;
+        mk.dplan = o.plan ? &dp : NULL;
         mk.files = &files;
         mk.noted = &noted;
         mk.draft = o.draft ? &dr : NULL;

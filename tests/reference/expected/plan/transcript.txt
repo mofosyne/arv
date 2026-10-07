@@ -1,0 +1,359 @@
+$ --home hp plan list
+No plans (arv plan new NAME)
+rc=0
+$ --home hp plan new trip --title Holiday 2025 --set TRIP
+Plan trip: 1 empty disc (hp/drafts/plans/trip.rec). Next: arv plan add trip FILE-OR-FOLDER...
+rc=0
+$ --home hp plan new trip
+Error: there is a plan trip already (arv plan show)
+rc=1
+$ --home hp plan new bad name
+Error: bad name is not a plan name (letters, digits, - _ and .; not starting with .)
+rc=1
+$ --home hp plan add trip plan-pc/Videos/wedding.mkv --as video/wedding.mkv
+video/wedding.mkv: disc 1, now 1% full
+rc=0
+$ --home hp plan add trip plan-nas/photos/2025 --as photos --disc new
+photos/: disc 2, now 1% full
+rc=0
+$ --home hp plan add trip plan-pc/notes.txt
+notes.txt: disc 1, now 1% full
+rc=0
+$ --home hp plan add trip plan-pc/notes.txt --disc 2
+Error: ROOT/plan-pc/notes.txt is in the plan already, on disc 1
+rc=1
+$ --home hp plan add trip plan-pc/Videos --as ../up
+Error: ../up cannot be a path under data/ (relative, no . or .. parts; . only for a folder's contents)
+rc=1
+$ --home hp plan add trip plan-pc/gone.txt --as video/wedding.mkv --disc 1
+Error: disc 1 already has something at video/wedding.mkv (--as another name)
+rc=1
+$ --home hp plan disc trip add
+Disc 3 added, empty
+rc=0
+$ --home hp plan disc trip drop 1
+Error: disc 1 is not empty: move or drop what is on it first
+rc=1
+$ --home hp plan disc trip drop 3
+Disc 3 dropped; the discs after it moved up one
+rc=0
+$ --home hp plan move trip notes.txt --disc 2
+notes.txt: disc 2, now 1% full
+rc=0
+$ --home hp plan show trip
+Plan trip  "Holiday 2025"  set TRIP  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  7 B in 1 item
+  video/wedding.mkv  7 B  ROOT/plan-pc/Videos/wedding.mkv
+Disc 2  [#-------------------]    1%  20 B in 2 items
+  notes.txt  6 B  ROOT/plan-pc/notes.txt
+  photos/  14 B, 2 files  ROOT/plan-nas/photos/2025
+Next: arv plan make trip (one image a disc; arv make's options apply)
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hp plan show trip --json
+{"name": "trip", "title": "Holiday 2025", "set": "TRIP", "medium": "bd25", "description": null, "access": null, "from": null, "mediumLabel": "BD-R 25GB", "room": 19804278784, "made": null, "volumes": [], "discs": [{"disc": 1, "bytes": 7, "used": 6144, "items": [{"path": "video/wedding.mkv", "source": "ROOT/plan-pc/Videos/wedding.mkv", "origin": null, "changed": false, "kind": "file", "bytes": 7, "files": 1}]}, {"disc": 2, "bytes": 20, "used": 20480, "items": [{"path": "notes.txt", "source": "ROOT/plan-pc/notes.txt", "origin": null, "changed": false, "kind": "file", "bytes": 6, "files": 1}, {"path": "photos", "source": "ROOT/plan-nas/photos/2025", "origin": null, "changed": false, "kind": "folder", "bytes": 14, "files": 2}]}]}
+rc=0
+$ --home hp plan list
+trip  2 discs, 3 items  "Holiday 2025"
+rc=0
+$ --home hp plan make trip -y --no-ecc --formats no --split
+Error: --split is not for a plan: the plan says which disc each item goes on
+rc=1
+$ --home hp plan make trip -y --no-ecc --formats no --keep-stage --output-dir out-plan
+Plan trip: scanning and hashing its 3 items ...
+Categories from Match rules in hp/config/sets.rec: MEDIA (--category to choose, --no-rules to skip)
+Classified as: MEMORIES/PHOTO/TRIP, COLLECT/MEDIA
+Object wedding.mkv (data/video/wedding.mkv on TRIP-01_2025_B): new
+Object notes.txt (data/notes.txt on TRIP-02_2025_9): new
+Object 2025/ (data/photos on TRIP-02_2025_9): new
+Building ROOT/out-plan/TRIP-01_2025_B.noecc.iso (1 of 2, 1.7 MiB) ...
+Building ROOT/out-plan/TRIP-02_2025_9.noecc.iso (2 of 2, 1.7 MiB) ...
+Hashing ROOT/out-plan/TRIP-01_2025_B.noecc.iso ...
+Hashing ROOT/out-plan/TRIP-02_2025_9.noecc.iso ...
+Kept staging directory ROOT/out-plan/.archive-make-XXXXXX
+TRIP-01_2025_B	ROOT/out-plan/TRIP-01_2025_B.noecc.iso	Holiday 2025
+TRIP-02_2025_9	ROOT/out-plan/TRIP-02_2025_9.noecc.iso	Holiday 2025
+rc=0
+$ --home hp plan show trip
+Plan trip  "Holiday 2025"  set TRIP  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  7 B in 1 item
+  video/wedding.mkv  7 B  ROOT/plan-pc/Videos/wedding.mkv
+Disc 2  [#-------------------]    1%  20 B in 2 items
+  notes.txt  6 B  ROOT/plan-pc/notes.txt
+  photos/  14 B, 2 files  ROOT/plan-nas/photos/2025
+Made 2026-01-01: TRIP-01_2025_B TRIP-02_2025_9
+The same again, as a new plan: arv plan again trip NEW (this one is kept as it was; deleting it is safe)
+rc=0
+$ --home hp plan add trip plan-pc/gone.txt
+Error: plan trip was made into discs already (arv plan show); the same again as a new plan: arv plan again trip NEW
+rc=1
+$ --home hp plan show trip --medium bd100
+Error: plan trip was made into discs already (arv plan show); the same again as a new plan: arv plan again trip NEW
+rc=1
+$ --home hp plan list
+(1 made plan not shown: arv plan list --all)
+rc=0
+$ --home hp plan list --all
+trip  2 discs, 3 items  "Holiday 2025"
+    made 2026-01-01 (arv plan again trip NEW: the same again, as a new plan)
+rc=0
+$ --home hp plan again trip trip-2026 --title Holiday 2026
+Plan trip-2026: from trip, 3 items on 2 discs. Next: arv plan show trip-2026, then arv plan make trip-2026
+rc=0
+$ --home hp plan again trip trip-2026
+Error: there is a plan trip-2026 already (arv plan show)
+rc=1
+$ --home hp plan show trip-2026
+Plan trip-2026  "Holiday 2026"  set TRIP  (from plan trip)  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  7 B in 1 item
+  video/wedding.mkv  7 B  ROOT/plan-pc/Videos/wedding.mkv
+Disc 2  [#-------------------]    1%  20 B in 2 items
+  notes.txt  6 B  ROOT/plan-pc/notes.txt
+  photos/  14 B, 2 files  ROOT/plan-nas/photos/2025
+Next: arv plan make trip-2026 (one image a disc; arv make's options apply)
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hp find wedding
+OBJECT  wedding.mkv  version 1  TRIP-01_2025_B  data/video/wedding.mkv  [?]
+TRIP-01_2025_B  [?]  data/video/wedding.mkv
+rc=0
+$ --home hp status plan-nas/photos/2025
+2 files: 0 read, 2 unchanged since last read (hash cache)
+ROOT/plan-nas/photos/2025: not a collection's workflow folder
+  2 of its 2 files are on discs; 0 on none
+  most like TRIP-02_2025_9: 66% of its files are here (2 of 3)
+  data objects archived from here (disc plans):
+  2025/: version 1 on TRIP-02_2025_9; unchanged
+rc=0
+$ --home hp status plan-pc
+3 files: 1 read, 2 unchanged since last read (hash cache)
+ROOT/plan-pc: not a collection's workflow folder
+  2 of its 3 files are on discs; 1 on none
+  most like TRIP-01_2025_B: 100% of its files are here (1 of 1)
+  also TRIP-02_2025_9: 33% of its files are here (1 of 3)
+  + gone.txt
+  (arv link FOLDER COLLECTION|DISC-ID says what it is; arv collection init makes it a collection)
+  data objects archived from here (disc plans):
+  wedding.mkv (Videos/wedding.mkv): version 1 on TRIP-01_2025_B; unchanged
+  notes.txt (notes.txt): version 1 on TRIP-02_2025_9; unchanged
+rc=0
+$ --home hp status -v plan-nas/photos/2025
+3 files: 1 read, 2 unchanged since last read (hash cache)
+ROOT/plan-nas/photos/2025: not a collection's workflow folder
+  2 of its 3 files are on discs; 1 on none
+  most like TRIP-02_2025_9: 66% of its files are here (2 of 3)
+  + c.jpg
+  (arv link FOLDER COLLECTION|DISC-ID says what it is; arv collection init makes it a collection)
+  data objects archived from here (disc plans):
+  2025/: version 1 on TRIP-02_2025_9; changed since: +1 ~0 -0 >0 files (a plan archives it as version 2)
+  +1 new, ~0 changed, -0 removed, >0 moved
+  + c.jpg
+rc=0
+$ --home hp plan new again --set TRIP
+Plan again: 1 empty disc (hp/drafts/plans/again.rec). Next: arv plan add again FILE-OR-FOLDER...
+rc=0
+$ --home hp plan add again plan-nas/photos/2025 --as photos
+photos/: disc 1, now 1% full
+rc=0
+$ --home hp plan add again plan-copy --disc new
+plan-copy/: disc 2, now 1% full
+rc=0
+$ --home hp plan make again -y --no-ecc --formats no --output-dir out-plan2
+Plan again: scanning and hashing its 2 items ...
+Classified as: MEMORIES/PHOTO/TRIP
+Object 2025/ (data/photos on TRIP-03_2025_7): a new version of what was archived from there before
+Object plan-copy/ (data/plan-copy on TRIP-04_2025_5): the same as a version already archived (another copy of it)
+Building ROOT/out-plan2/TRIP-03_2025_7.noecc.iso (1 of 2, 1.7 MiB) ...
+Building ROOT/out-plan2/TRIP-04_2025_5.noecc.iso (2 of 2, 1.7 MiB) ...
+Hashing ROOT/out-plan2/TRIP-03_2025_7.noecc.iso ...
+Hashing ROOT/out-plan2/TRIP-04_2025_5.noecc.iso ...
+TRIP-03_2025_7	ROOT/out-plan2/TRIP-03_2025_7.noecc.iso	Again
+TRIP-04_2025_5	ROOT/out-plan2/TRIP-04_2025_5.noecc.iso	Again
+rc=0
+$ --home hp status plan-nas/photos/2025
+3 files: 0 read, 3 unchanged since last read (hash cache)
+ROOT/plan-nas/photos/2025: not a collection's workflow folder
+  3 of its 3 files are on discs; 0 on none
+  most like TRIP-03_2025_7: 100% of its files are here (3 of 3)
+  also TRIP-04_2025_5: 100% of its files are here (3 of 3)
+  also TRIP-02_2025_9: 66% of its files are here (2 of 3)
+  data objects archived from here (disc plans):
+  2025/: version 2 on TRIP-03_2025_7, TRIP-04_2025_5; unchanged
+rc=0
+$ --home hp status plan-moved
+3 files: 3 read, 0 unchanged since last read (hash cache)
+ROOT/plan-moved: not a collection's workflow folder
+  3 of its 3 files are on discs; 0 on none
+  most like TRIP-03_2025_7: 100% of its files are here (3 of 3)
+  also TRIP-04_2025_5: 100% of its files are here (3 of 3)
+  also TRIP-02_2025_9: 66% of its files are here (2 of 3)
+  this folder is the data object 2025/, version 2 (data/photos on TRIP-03_2025_7), unchanged
+rc=0
+$ --home hp find photos
+OBJECT  2025/  version 1  TRIP-02_2025_9  data/photos/  [?]
+OBJECT  2025/  version 2  TRIP-03_2025_7  data/photos/  [?]
+TRIP-02_2025_9  [?]  data/photos/a.jpg
+TRIP-02_2025_9  [?]  data/photos/b.jpg
+TRIP-03_2025_7  [?]  data/photos/a.jpg
+TRIP-03_2025_7  [?]  data/photos/b.jpg
+TRIP-03_2025_7  [?]  data/photos/c.jpg
+rc=0
+$ --home hp objects
+Data objects (disc plans):
+  wedding.mkv  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
+    from ROOT/plan-pc/Videos/wedding.mkv (there now: arv status says if it changed)
+    version 1  TRIP-01_2025_B  data/video/wedding.mkv  no copy yet
+  notes.txt  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
+    from ROOT/plan-pc/notes.txt (there now: arv status says if it changed)
+    version 1  TRIP-02_2025_9  data/notes.txt  no copy yet
+  2025/  folder, 2 versions; newest: 0 copies on 2 discs, 0 cold, 0 read back
+    from ROOT/plan-nas/photos/2025 (there now: arv status says if it changed)
+    and ROOT/plan-copy (not there now)
+    version 2  TRIP-03_2025_7  data/photos/  no copy yet
+    version 2  TRIP-04_2025_5  data/plan-copy/  no copy yet
+    version 1  TRIP-02_2025_9  data/photos/  no copy yet
+rc=0
+$ --home hp burned TRIP-03_2025_7 --location BOX1
+TRIP-03_2025_7: 1 copy recorded (not read back: arv burned --device checks a copy as it records it)
+rc=0
+$ --home hp stored TRIP-04_2025_5 out-plan2/TRIP-04_2025_5.noecc.iso
+Reading ROOT/out-plan2/TRIP-04_2025_5.noecc.iso: the 882 sectors of TRIP-04_2025_5's image ...
+TRIP-04_2025_5: 1 copy recorded (this one: iso, warm, checked)
+rc=0
+$ --home hp stored TRIP-01_2025_B out-plan/TRIP-01_2025_B.noecc.iso
+Reading ROOT/out-plan/TRIP-01_2025_B.noecc.iso: the 850 sectors of TRIP-01_2025_B's image ...
+TRIP-01_2025_B: 1 copy recorded (this one: iso, warm, checked)
+rc=0
+$ --home hp objects 2025
+Data objects (disc plans):
+  2025/  folder, 2 versions; newest: 2 copies on 2 discs, 1 cold, 1 read back
+    from ROOT/plan-nas/photos/2025 (there now: arv status says if it changed)
+    and ROOT/plan-copy (not there now)
+    version 2  TRIP-03_2025_7  data/photos/  disc cold; at BOX1
+    version 2  TRIP-04_2025_5  data/plan-copy/  iso warm (read back)
+    version 1  TRIP-02_2025_9  data/photos/  no copy yet
+rc=0
+$ --home hp objects wedding.mkv
+Data objects (disc plans):
+  wedding.mkv  file, 1 version; newest: 1 copy on 1 disc, 0 cold, 1 read back
+    from ROOT/plan-pc/Videos/wedding.mkv (not there now)
+    version 1  TRIP-01_2025_B  data/video/wedding.mkv  iso warm (read back)
+rc=0
+$ --home hp objects nothing-called-this
+Error: nothing kept is called nothing-called-this (arv objects lists them)
+rc=1
+$ --home hp todo
+No copy yet (burn the image and arv burned ID --device DRIVE, or keep it: arv stored ID PATH):
+  TRIP-02_2025_9  made 2026-01-01
+Burned, never read back (arv check --device DRIVE ID):
+  TRIP-03_2025_7
+No cold copy, every copy is online or in use (burn one for the shelf):
+  TRIP-01_2025_B
+  TRIP-04_2025_5
+Kept in fewer than two places (arv locate ID PLACE --add):
+  TRIP-01_2025_B  no place recorded
+  TRIP-03_2025_7  one place
+  TRIP-04_2025_5  no place recorded
+Data objects with no cold copy of their newest version (burn one for the shelf):
+  wedding.mkv  version 1
+Data objects no longer where they came from, with fewer than two copies of their newest version:
+  wedding.mkv  version 1: 1 copy; was at ROOT/plan-pc/Videos/wedding.mkv
+rc=0
+$ --home hp objects --json
+{"objects": [{"uuid": "UUID", "name": "wedding.mkv", "kind": "file", "versions": 1, "newest": {"copies": 1, "cold": 0, "readBack": 1, "discs": 1}, "sources": [{"path": "ROOT/plan-pc/Videos/wedding.mkv", "there": false}], "todo": ["no cold copy", "no longer where it came from, fewer than two copies"], "held": [{"version": 1, "path": "video/wedding.mkv", "files": 1, "bytes": 7, "on": {"disc": "TRIP-01_2025_B", "retired": false, "where": "", "copies": [{"form": "iso", "temperature": "warm", "readBack": true}]}}]}, {"uuid": "UUID", "name": "notes.txt", "kind": "file", "versions": 1, "newest": {"copies": 0, "cold": 0, "readBack": 0, "discs": 1}, "sources": [{"path": "ROOT/plan-pc/notes.txt", "there": true}], "todo": [], "held": [{"version": 1, "path": "notes.txt", "files": 1, "bytes": 6, "on": {"disc": "TRIP-02_2025_9", "retired": false, "where": "", "copies": []}}]}, {"uuid": "UUID", "name": "2025", "kind": "folder", "versions": 2, "newest": {"copies": 2, "cold": 1, "readBack": 1, "discs": 2}, "sources": [{"path": "ROOT/plan-nas/photos/2025", "there": true}, {"path": "ROOT/plan-copy", "there": false}], "todo": [], "held": [{"version": 2, "path": "photos", "files": 3, "bytes": 21, "on": {"disc": "TRIP-03_2025_7", "retired": false, "where": "BOX1", "copies": [{"form": "disc", "temperature": "cold", "readBack": false}]}}, {"version": 2, "path": "plan-copy", "files": 3, "bytes": 21, "on": {"disc": "TRIP-04_2025_5", "retired": false, "where": "", "copies": [{"form": "iso", "temperature": "warm", "readBack": true}]}}, {"version": 1, "path": "photos", "files": 2, "bytes": 14, "on": {"disc": "TRIP-02_2025_9", "retired": false, "where": "", "copies": []}}]}], "collections": []}
+rc=0
+$ --home hp plan new later --medium bd100
+Plan later: 1 empty disc (hp/drafts/plans/later.rec). Next: arv plan add later FILE-OR-FOLDER...
+rc=0
+$ --home hp plan add later plan-pc/gone.txt
+gone.txt: disc 1, now 1% full
+rc=0
+$ --home hp plan show later
+Plan later  BD-R XL 100GB: about 74.2 GiB a disc for files
+Disc 1  [--------------------]    0%  0 B in 1 item
+  gone.txt  MISSING  ROOT/plan-pc/gone.txt
+1 item is missing: put it back, or arv plan drop later PATH
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hp plan make later -y --no-ecc --formats no
+Error: ROOT/plan-pc/gone.txt is gone (arv plan show)
+rc=1
+$ --home hp plan drop later gone.txt
+gone.txt: off disc 1 (the source is untouched)
+rc=0
+$ --home hp plan delete later
+Plan later deleted (its sources are untouched)
+rc=0
+$ --home hp plan list
+trip-2026  2 discs, 3 items  "Holiday 2026"
+(2 made plans not shown: arv plan list --all)
+rc=0
+$ --home hp plan new card --set TRIP
+Plan card: 1 empty disc (hp/drafts/plans/card.rec). Next: arv plan add card FILE-OR-FOLDER...
+rc=0
+$ --home hp plan add card plan-sd/DCIM --copy --as camera
+Copying ROOT/plan-sd/DCIM into the plan ...
+camera/ (copied into the plan): disc 1, now 1% full
+rc=0
+$ --home hp plan add card plan-docs/letter.txt
+letter.txt: disc 1, now 1% full
+rc=0
+$ --home hp plan show card
+Plan card  set TRIP  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  25 B in 2 items
+  camera/  10 B, 1 file  (the plan's copy)  of ROOT/plan-sd/DCIM
+  letter.txt  15 B  ROOT/plan-docs/letter.txt  CHANGED since planned
+1 item changed since planned: the discs get it as it is now (arv plan refresh card: that is fine)
+Next: arv plan make card (one image a disc; arv make's options apply)
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hp plan add card plan-sd/DCIM
+Error: plan-sd/DCIM is not a file or folder
+rc=1
+$ --home hp plan refresh card
+letter.txt: as it is now
+rc=0
+$ --home hp plan show card
+Plan card  set TRIP  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  25 B in 2 items
+  camera/  10 B, 1 file  (the plan's copy)  of ROOT/plan-sd/DCIM
+  letter.txt  15 B  ROOT/plan-docs/letter.txt
+Next: arv plan make card (one image a disc; arv make's options apply)
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hp plan delete card
+Error: plan card holds copies (arv plan add --copy) that may be the only ones until its discs are burned and read back (arv burned --device); arv plan delete card --yes deletes them anyway
+rc=1
+$ --home hp plan make card -y --no-ecc --formats no --output-dir out-card
+Plan card: scanning and hashing its 2 items ...
+Classified as: MEMORIES/PHOTO/TRIP
+Object DCIM/ (data/camera on TRIP-05_2025_3): new
+Object letter.txt (data/letter.txt on TRIP-05_2025_3): new
+Building ROOT/out-card/TRIP-05_2025_3.noecc.iso (1 of 1, 1.7 MiB) ...
+Hashing ROOT/out-card/TRIP-05_2025_3.noecc.iso ...
+TRIP-05_2025_3	ROOT/out-card/TRIP-05_2025_3.noecc.iso	Card
+rc=0
+$ --home hp objects DCIM
+Data objects (disc plans):
+  DCIM/  folder, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
+    from ROOT/plan-sd/DCIM (not there now)
+    version 1  TRIP-05_2025_3  data/camera/  no copy yet
+rc=0
+$ --home hp plan delete card
+Error: plan card holds copies (arv plan add --copy) that may be the only ones until its discs are burned and read back (arv burned --device); arv plan delete card --yes deletes them anyway
+rc=1
+$ --home hp plan again card card-2
+1 copied item points at its original again (arv plan add --copy to copy afresh)
+Plan card-2: from card, 2 items on 1 disc (some sources are gone: arv plan show). Next: arv plan show card-2, then arv plan make card-2
+rc=0
+$ --home hp plan show card-2
+Plan card-2  set TRIP  (from plan card)  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  15 B in 2 items
+  camera  MISSING  ROOT/plan-sd/DCIM
+  letter.txt  15 B  ROOT/plan-docs/letter.txt
+1 item is missing: put it back, or arv plan drop card-2 PATH
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hp plan delete card --yes
+Plan card deleted (with its copies; the originals are untouched)
+rc=0

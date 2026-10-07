@@ -43,11 +43,27 @@ A disc is plain files: the folder tree is preserved as it is, under `data/`. Con
 therefore **implicit in the paths** — a repository at `data/projects/foo/` is inside `projects/`
 because the path says so.
 
-The format does not turn folders into objects. There is no `Object` record; a folder is a path
-prefix. Objecthood is asserted in only two places:
+The format does not turn every folder into an object; a folder is a path prefix. Objecthood is
+asserted in only three places:
 
 - the **collection** a disc is an edition of (`Disc.Collection`);
-- **git repositories** (`git.tsv`: roots, heads, shallow boundary, every commit).
+- **git repositories** (`git.tsv`: roots, heads, shallow boundary, every commit);
+- **data objects**: each file or folder a disc plan put on a disc as a whole (`Object` records).
+
+A data object needs no `.arv` marker. It is known by its content: its **Tree** is the SHA-256 of
+its manifest (each file's SHA-256 and path within it; a file object's Tree is the file's own
+SHA-256), so the same content is the same object version wherever it is and whatever it is
+called, and a changed folder archived again from the same place is its next **version** (one
+`Uuid` for the lineage). The home catalogue also keeps where each was read from (`Source`); discs
+carry their objects without it. So `arv status FOLDER` says of each object archived from there
+whether it is unchanged, changed (and how), or gone, and recognises a folder that moved, or a
+home rebuilt from discs, by content alone. Objects may share files (versions do) and may nest (a
+folder, and later a subfolder of it on its own): each is its own Tree.
+
+| | Needs a marker? | Over time |
+|---|---|---|
+| **collection** | yes: a UUID that survives reorganising | editions, a history, retiring |
+| **data object** | no: its Tree; its source path a hint, at home | versions, linked by source or content |
 
 Everything else is observation, not assertion. The planned **Notable objects**
 ([plan.md](../research/plan.md)) adds records for the folders and files an archivist must treat
@@ -72,12 +88,17 @@ is the collection**: it is where you sort, and it stays. Deleting it does not lo
 record of the collection (that is in the catalogue, and `arv restore` writes the marker back), but
 the folder is the thing you keep — not a scratch area to throw away.
 
+To compose discs by hand from files and folders in different places (a film from the PC, photos
+from the NAS), a **disc plan** (`arv plan`, the GUI's Mastering tab) says which goes on which
+disc, and where under `data/`. It only points at them: nothing is copied until `arv plan make`
+reads them into the images, so a plan costs no space and shows each source as it is now.
+
 What is transient is the **output**, not the folder:
 
 | Transient | What it is | Safe to delete? |
 |---|---|---|
 | the `.iso` images | `arv make`'s output (`--output-dir`, default: the current folder) | yes, once every copy is burned or stored and recorded |
-| `drafts/` | work in progress: the JSON `arv describe` and `arv tag` save, taken by `arv make --draft` | yes, once applied |
+| `drafts/` | work in progress: the JSON `arv describe` and `arv tag` save, taken by `arv make --draft`; disc plans (`drafts/plans/NAME.rec`) | yes, once applied or made |
 | `cache/` | rebuildable indexes (marked `CACHEDIR.TAG`) | yes, always |
 
 ## The archive is a collective of copies
@@ -86,16 +107,35 @@ No single place holds everything. The PC or NAS holds the working objects (hot) 
 disc images (warm); the shelf holds the burned discs (cold). Each is partial:
 
 - the **workflow folder** may hold only the objects being worked on;
-- a **disc** holds only its edition's contents;
+- a **disc** holds the part of the collection put on it, and a copy of the catalogue;
 - an **iso** is a warm mirror of a disc.
 
 The full data object collection is the **union** of all of them: the PC/NAS and the cold discs
 together. The catalogue is the map — it records where every copy is, so the union can be found,
 and `arv status` on a folder says which of its files are on which discs and which are on none.
 
-Completeness is a property of the union, not of any one place. `arv todo` watches the union's
-health: discs with no copy, copies never read back, discs with no cold copy, discs in fewer than
-two places, checks overdue.
+Completeness is a property of the union, not of any one place. `arv objects` shows it per thing
+kept: each data object's versions and each collection's newest edition, the discs holding them,
+every copy of those discs (disc, iso or folder; hot, warm or cold; read back or not) and whether
+the original is still on the PC/NAS. `arv todo` watches the union's health: discs with no copy,
+copies never read back, discs with no cold copy, discs in fewer than two places, checks overdue,
+and per data object, a newest version with no cold copy, or one no longer where it came from
+with fewer than two copies left.
+
+### What an edition covers
+
+An edition is made from what is in the workflow folder when `arv make` runs: its discs together
+hold that, and no more. The folder does not have to hold everything the collection ever had; what
+left it is still on earlier discs, and the catalogue still says where.
+
+Today a newer safe edition **replaces** the earlier ones (unless they are kept), so a file that left
+the folder before the newer edition was made is then on the older discs only. `arv retire` lists
+those files and refuses to retire discs holding the only copy: keep that edition
+(`arv collection keep CODE N`), or say the loss is accepted (`--yes --accept-loss`), and the files
+are recorded as **lost** on the edition (`arv log`, `arv find`), so the catalogue still says what
+was given up and when. arv chooses which files go on which disc of an edition
+(`--split` fills discs in order). To choose that by hand, across folders, use a disc plan; its
+discs are one-off discs of a set, not an edition.
 
 ## The catalogue is spread across every disc
 
@@ -108,14 +148,29 @@ limited by `--snapshot` (`full`, `set`, `disc`) and by each disc's access level.
 - a disc of another archive is refused, because archives are separate privacy spheres
   (`--any-archive` to merge).
 
+## Archive, Record, Verify
+
+The name is the shape of the work, and of the interface (`arv --help` and the GUI's three tabs):
+
+| | What it is for | Commands |
+|---|---|---|
+| **Archive** | what goes on discs | `make`, `plan`, `collection`, `status`, `checkpoint`, `link`, `names`, `describe`, `tag` |
+| **Record** | what exists, and where | `burned`, `stored`, `objects`, `find`, `list`, `note`, `locate`, `location`, `selection`, `appraise`, `log`, `retire` |
+| **Verify** | still good, and can be got back | `todo`, `check`, `verify`, `restore`, `rebuild` |
+
+Recording a burned disc sits between the last two: `arv burned --device` reads the disc back
+against its image before it records the copy, and `arv todo` (Verify) lists the copies never read
+back.
+
 ## The words
 
 | Word | Meaning |
 |---|---|
 | **collection** | something kept over time: one workflow folder, one code, one history. *What you keep.* |
+| **data object** | a file or folder a disc plan put on a disc as a whole; known by its content (Tree), in versions |
 | **set** | a vocabulary classification (`PHOTO`, `TRIP`), not a thing you keep; the id prefix |
 | **revision** | one recorded state of a collection: a **checkpoint** (hashes only) or an **edition** |
-| **edition** | a set of discs made together from a collection; each disc holds a selection of it and a copy of the catalogue; numbered; replaced by a newer safe edition unless kept |
+| **edition** | a set of discs made together from what a collection's workflow folder holds at the time; each disc holds part of it and a copy of the catalogue; numbered; replaced by a newer safe edition unless kept |
 | **volume (disc)** | one bag, one image; belongs to exactly one edition |
 | **copy** | one physical or stored copy of a disc: burned, an iso, or a folder; with a place and a temperature |
 | **archive** (home) | one privacy sphere's catalogue: a `.arv` folder |

@@ -4,8 +4,14 @@
  *   arv todo [--overdue YEARS]   what needs doing: images not burned, copies not read back,
  *                                editions not yet safe, replaced editions, discs kept in one place,
  *                                checks overdue (default: 5 years)
- *   arv retire CODE [--yes] [-v] the editions a later safe edition replaces (not those kept): lists the
- *                                files found only on them, and records nothing without --yes
+ *   arv objects [NAME] [--json]  what you keep, and where all its copies are: each data object's versions
+ *                                and each collection's newest edition, the discs holding them and
+ *                                every copy of those discs (form, temperature, read back), and
+ *                                whether the original is still where it came from
+ *   arv retire CODE [--yes [--accept-loss]] [-v]
+ *                                the editions a later safe edition replaces (not those kept): lists the
+ *                                files found only on them, and records nothing without --yes; refuses
+ *                                while any file is only on them, unless --accept-loss
  *
  * arv never burns and never deletes: a copy is known good when arv burned --device read it back
  * identical to its image; an edition is safe when each of its discs has such a copy. */
@@ -115,6 +121,323 @@ static const rec_record *replaced(const archive *cat, const rec_record *c, recs 
     return by;
 }
 
+/* ------------------------------------------------------------------ the copies of what you keep */
+
+/* what is known of the copies of a set of discs (retired ones aside) */
+typedef struct {
+    size_t copies, cold, good;      /* replications; of them cold; read back identical */
+    size_t discs;                   /* discs not retired */
+} holding;
+
+static void hold(const archive *cat, const char *id, holding *h)
+{
+    if (retired(cat, id)) return;
+    h->discs++;
+    for (size_t i = 0; i < cat->events.n; i++) {
+        const rec_record *e = cat->events.v[i];
+        if (!is_disc_event(e, id, "replication") || !strcmp(get_or(e, "Outcome", ""), "failure")) continue;
+        h->copies++;
+        h->cold += !strcmp(get_or(e, "Temperature", ""), "cold");
+        h->good += !strcmp(get_or(e, "ReadBack", ""), "identical");
+    }
+}
+
+/* "disc cold (read back), iso warm", "retired", or "no copy yet" */
+static char *copies_text(const archive *cat, const char *id)
+{
+    if (retired(cat, id)) return xstrdup("retired");
+    sbuf b = { 0 };
+    sb_puts(&b, "");
+    for (size_t i = 0; i < cat->events.n; i++) {
+        const rec_record *e = cat->events.v[i];
+        if (!is_disc_event(e, id, "replication") || !strcmp(get_or(e, "Outcome", ""), "failure")) continue;
+        sb_printf(&b, "%s%s %s%s", b.len ? ", " : "", get_or(e, "Form", "disc"), get_or(e, "Temperature", "?"),
+                  !strcmp(get_or(e, "ReadBack", ""), "identical") ? " (read back)" : "");
+    }
+    if (!b.len) sb_puts(&b, "no copy yet");
+    const rec_record *d = archive_disc(cat, id);
+    char *where = d ? archive_where(cat, d) : xstrdup("");
+    if (*where) sb_printf(&b, "; at %s", where);
+    free(where);
+    return b.s;
+}
+
+static long version_of(const rec_record *o)
+{
+    return atol(get_or(o, "Version", "0"));
+}
+
+/* an object's newest version: the records holding it, and what is known of their copies */
+static long newest(const archive *cat, const char *uuid, recs *out, holding *h)
+{
+    long top = 0;
+    for (size_t i = 0; i < cat->objects.n; i++)
+        if (!strcmp(get_or(cat->objects.v[i], "Uuid", ""), uuid) && version_of(cat->objects.v[i]) > top)
+            top = version_of(cat->objects.v[i]);
+    for (size_t i = 0; i < cat->objects.n; i++) {
+        const rec_record *o = cat->objects.v[i];
+        if (strcmp(get_or(o, "Uuid", ""), uuid) || version_of(o) != top) continue;
+        if (out) recs_add(out, cat->objects.v[i]);
+        if (h) hold(cat, get_or(o, "Disc", ""), h);
+    }
+    return top;
+}
+
+/* where an object's newest version was read from, as the home knows it (one place, or more for
+ * copies); returns how many of them are there now */
+static size_t object_sources(const char *root, const recs *top, strlist *out)
+{
+    size_t there = 0;
+    for (size_t i = 0; i < top->n; i++) {
+        const char *stored = rec_get(top->v[i], "Source");
+        if (!stored) continue;
+        char *src = path_abs(root, stored);     /* kept relative to the home's root when inside it */
+        if (!strlist_has(out, src)) {
+            strlist_add(out, src);
+            there += !access(src, F_OK);
+        }
+        free(src);
+    }
+    return there;
+}
+
+static void holding_text(const holding *h, sbuf *b)
+{
+    sb_printf(b, "%zu cop%s on %zu disc%s, %zu cold, %zu read back", h->copies, h->copies == 1 ? "y" : "ies", h->discs,
+              h->discs == 1 ? "" : "s", h->cold, h->good);
+}
+
+/* a disc as the union view shows it: its copies (form, temperature, read back) and places */
+static void disc_json(const archive *cat, const char *id, sbuf *b)
+{
+    const rec_record *d = archive_disc(cat, id);
+    char *where = d ? archive_where(cat, d) : xstrdup("");
+    sb_puts(b, "{\"disc\": ");
+    json_str(b, id);
+    sb_printf(b, ", \"retired\": %s, \"where\": ", retired(cat, id) ? "true" : "false");
+    json_str(b, where);
+    sb_puts(b, ", \"copies\": [");
+    int first = 1;
+    for (size_t i = 0; i < cat->events.n; i++) {
+        const rec_record *e = cat->events.v[i];
+        if (!is_disc_event(e, id, "replication") || !strcmp(get_or(e, "Outcome", ""), "failure")) continue;
+        sb_puts(b, first ? "{\"form\": " : ", {\"form\": ");
+        json_str(b, get_or(e, "Form", "disc"));
+        sb_puts(b, ", \"temperature\": ");
+        json_str(b, get_or(e, "Temperature", ""));
+        sb_printf(b, ", \"readBack\": %s}", !strcmp(get_or(e, "ReadBack", ""), "identical") ? "true" : "false");
+        first = 0;
+    }
+    sb_puts(b, "]}");
+    free(where);
+}
+
+static void holding_json(const holding *h, sbuf *b)
+{
+    sb_printf(b, "{\"copies\": %zu, \"cold\": %zu, \"readBack\": %zu, \"discs\": %zu}", h->copies, h->cold, h->good, h->discs);
+}
+
+/* arv objects --json: the same as the text, for arv gui's Objects tab */
+static void objects_json(const archive *cat, const char *root)
+{
+    sbuf b = { 0 };
+    strlist seen = { 0 };
+    sb_puts(&b, "{\"objects\": [");
+    for (size_t i = 0; i < cat->objects.n; i++) {
+        const char *uuid = get_or(cat->objects.v[i], "Uuid", "");
+        if (strlist_has(&seen, uuid)) continue;
+        strlist_add(&seen, uuid);
+        recs top = { 0 };
+        holding hd = { 0 };
+        long last = newest(cat, uuid, &top, &hd);
+        const rec_record *o = top.v[0];
+        strlist src = { 0 };
+        size_t there = object_sources(root, &top, &src);
+        sb_puts(&b, seen.n > 1 ? ", {\"uuid\": " : "{\"uuid\": ");
+        json_str(&b, uuid);
+        sb_puts(&b, ", \"name\": ");
+        json_str(&b, get_or(o, "Name", "?"));
+        sb_puts(&b, ", \"kind\": ");
+        json_str(&b, get_or(o, "Kind", "?"));
+        sb_printf(&b, ", \"versions\": %ld, \"newest\": ", last);
+        holding_json(&hd, &b);
+        sb_puts(&b, ", \"sources\": [");
+        for (size_t k = 0; k < src.n; k++) {
+            sb_puts(&b, k ? ", {\"path\": " : "{\"path\": ");
+            json_str(&b, src.v[k]);
+            sb_printf(&b, ", \"there\": %s}", access(src.v[k], F_OK) ? "false" : "true");
+        }
+        sb_printf(&b, "], \"todo\": [%s%s%s], \"held\": [",
+                  hd.discs && hd.copies && !hd.cold ? "\"no cold copy\"" : "",
+                  hd.discs && hd.copies && !hd.cold && hd.discs && hd.copies < 2 && !there ? ", " : "",
+                  hd.discs && hd.copies < 2 && !there ? "\"no longer where it came from, fewer than two copies\"" : "");
+        int first = 1;
+        for (long v = last; v >= 1; v--)
+            for (size_t k = 0; k < cat->objects.n; k++) {
+                const rec_record *x = cat->objects.v[k];
+                if (strcmp(get_or(x, "Uuid", ""), uuid) || version_of(x) != v) continue;
+                sb_printf(&b, "%s{\"version\": %ld, \"path\": ", first ? "" : ", ", v);
+                json_str(&b, get_or(x, "Path", ""));
+                sb_puts(&b, ", \"files\": ");
+                sb_puts(&b, get_or(x, "Files", "0"));
+                sb_puts(&b, ", \"bytes\": ");
+                sb_puts(&b, get_or(x, "Bytes", "0"));
+                sb_puts(&b, ", \"on\": ");
+                disc_json(cat, get_or(x, "Disc", ""), &b);
+                sb_puts(&b, "}");
+                first = 0;
+            }
+        sb_puts(&b, "]}");
+        strlist_free(&src);
+        free(top.v);
+    }
+    sb_puts(&b, "], \"collections\": [");
+    for (size_t i = 0; i < cat->collections.n; i++) {
+        const rec_record *c = cat->collections.v[i];
+        recs eds = { 0 };
+        editions(cat, c, &eds);
+        sb_puts(&b, i ? ", {\"code\": " : "{\"code\": ");
+        json_str(&b, get_or(c, "Code", ""));
+        sb_puts(&b, ", \"title\": ");
+        json_str(&b, get_or(c, "Title", ""));
+        sb_printf(&b, ", \"editions\": %zu, \"folder\": ", eds.n);
+        const char *folder = collection_folder(cat, c);
+        if (folder) {
+            sb_puts(&b, "{\"path\": ");
+            json_str(&b, folder);
+            sb_printf(&b, ", \"there\": %s}", access(folder, F_OK) ? "false" : "true");
+        } else {
+            sb_puts(&b, "null");
+        }
+        sb_puts(&b, ", \"newest\": ");
+        if (!eds.n) sb_puts(&b, "null");
+        else {
+            const rec_record *e = eds.v[eds.n - 1];
+            strlist v = { 0 };
+            volumes(e, &v);
+            holding hd = { 0 };
+            for (size_t k = 0; k < v.n; k++) hold(cat, v.v[k], &hd);
+            sb_printf(&b, "{\"edition\": %s, \"holding\": ", get_or(e, "Edition", "0"));
+            holding_json(&hd, &b);
+            sb_puts(&b, ", \"discs\": [");
+            for (size_t k = 0; k < v.n; k++) {
+                if (k) sb_puts(&b, ", ");
+                disc_json(cat, v.v[k], &b);
+            }
+            sb_puts(&b, "]}");
+            strlist_free(&v);
+        }
+        sb_puts(&b, "}");
+        free(eds.v);
+    }
+    sb_puts(&b, "]}\n");
+    fputs(b.s, stdout);
+    free(b.s);
+    strlist_free(&seen);
+}
+
+int cmd_objects(int argc, char **argv)
+{
+    const char *given = NULL, *want = NULL;
+    int as_json = 0;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (!strcmp(argv[i], "--json")) as_json = 1;
+        else if (argv[i][0] != '-' && !want) want = argv[i];
+        else return 2;
+    }
+    arv_home h;
+    home_find(&h, given, NULL);
+    archive cat;
+    archive_load(&cat, h.rec_path);
+    if (as_json) {
+        if (want) return 2;
+        char *root = home_root(&h);
+        objects_json(&cat, root);
+        free(root);
+        return 0;
+    }
+    size_t shown = 0;
+    strlist seen = { 0 };
+    for (size_t i = 0; i < cat.objects.n; i++) {          /* data objects, each lineage once */
+        const char *uuid = get_or(cat.objects.v[i], "Uuid", "");
+        if (strlist_has(&seen, uuid)) continue;
+        strlist_add(&seen, uuid);
+        recs top = { 0 };
+        holding hd = { 0 };
+        long last = newest(&cat, uuid, &top, &hd);
+        const rec_record *o = top.v[0];
+        const char *name = get_or(o, "Name", "?");
+        int file = !strcmp(get_or(o, "Kind", ""), "file");
+        if (want && strcmp(want, name) && strcmp(want, uuid)) {
+            free(top.v);
+            continue;
+        }
+        if (!shown++) puts("Data objects (disc plans):");
+        sbuf line = { 0 };
+        holding_text(&hd, &line);
+        printf("  %s%s  %s, %ld version%s; newest: %s\n", name, file ? "" : "/", get_or(o, "Kind", "?"), last, last == 1 ? "" : "s",
+               line.s);
+        free(line.s);
+        strlist src = { 0 };
+        char *root = home_root(&h);
+        object_sources(root, &top, &src);
+        free(root);
+        for (size_t k = 0; k < src.n; k++)
+            printf("    %s %s (%s)\n", k ? "and" : "from", src.v[k], access(src.v[k], F_OK) ? "not there now" : "there now: arv status says if it changed");
+        strlist_free(&src);
+        for (long v = last; v >= 1; v--)
+            for (size_t k = 0; k < cat.objects.n; k++) {
+                const rec_record *x = cat.objects.v[k];
+                if (strcmp(get_or(x, "Uuid", ""), uuid) || version_of(x) != v) continue;
+                char *c = copies_text(&cat, get_or(x, "Disc", "?"));
+                const char *path = get_or(x, "Path", "?");
+                printf("    version %ld  %s  data/%s%s  %s\n", v, get_or(x, "Disc", "?"), strcmp(path, ".") ? path : "",
+                       file || !strcmp(path, ".") ? "" : "/", c);
+                free(c);
+            }
+        free(top.v);
+    }
+    strlist_free(&seen);
+    int heading_shown = 0;
+    for (size_t i = 0; i < cat.collections.n; i++) {       /* collections: the newest edition's discs */
+        const rec_record *c = cat.collections.v[i];
+        if (want && strcmp(want, get_or(c, "Code", "")) && strcmp(want, get_or(c, "Uuid", ""))) continue;
+        recs eds = { 0 };
+        editions(&cat, c, &eds);
+        if (!heading_shown++) puts("Collections:");
+        shown++;
+        const char *folder = collection_folder(&cat, c);
+        if (!eds.n) {
+            printf("  %s  \"%s\": no edition yet\n", get_or(c, "Code", ""), get_or(c, "Title", ""));
+        } else {
+            const rec_record *e = eds.v[eds.n - 1];
+            strlist v = { 0 };
+            volumes(e, &v);
+            holding hd = { 0 };
+            for (size_t k = 0; k < v.n; k++) hold(&cat, v.v[k], &hd);
+            sbuf line = { 0 };
+            holding_text(&hd, &line);
+            printf("  %s  \"%s\": %zu edition%s; newest: %s/%s, %s\n", get_or(c, "Code", ""), get_or(c, "Title", ""), eds.n,
+                   eds.n == 1 ? "" : "s", get_or(c, "Code", ""), get_or(e, "Edition", ""), line.s);
+            free(line.s);
+            for (size_t k = 0; k < v.n; k++) {
+                char *t = copies_text(&cat, v.v[k]);
+                printf("    %s  %s\n", v.v[k], t);
+                free(t);
+            }
+            strlist_free(&v);
+        }
+        if (folder) printf("    workflow folder %s (%s)\n", folder, access(folder, F_OK) ? "not there now" : "there now");
+        free(eds.v);
+    }
+    if (!shown) {
+        if (want) die("nothing kept is called %s (arv objects lists them)", want);
+        puts("Nothing kept as a data object or collection yet (arv plan, arv collection init).");
+    }
+    return 0;
+}
+
 /* ------------------------------------------------------------------ arv todo */
 
 static void heading(int *shown, const char *text)
@@ -210,6 +533,36 @@ int cmd_todo(int argc, char **argv)
         printf("  %s  last %s\n", id, last);
         items++;
     }
+    int s8 = 0, s9 = 0;
+    strlist seen = { 0 };
+    for (size_t i = 0; i < cat.objects.n; i++) {               /* data objects: their newest version */
+        const char *uuid = get_or(cat.objects.v[i], "Uuid", "");
+        if (strlist_has(&seen, uuid)) continue;
+        strlist_add(&seen, uuid);
+        recs top = { 0 };
+        holding hd = { 0 };
+        long v = newest(&cat, uuid, &top, &hd);
+        const rec_record *o = top.v[0];
+        strlist src = { 0 };
+        char *root = home_root(&h);
+        size_t there = object_sources(root, &top, &src);
+        free(root);
+        int file = !strcmp(get_or(o, "Kind", ""), "file");
+        if (hd.discs && hd.copies && !hd.cold) {
+            heading(&s8, "Data objects with no cold copy of their newest version (burn one for the shelf):");
+            printf("  %s%s  version %ld\n", get_or(o, "Name", "?"), file ? "" : "/", v);
+            items++;
+        }
+        if (hd.discs && hd.copies < 2 && !there) {
+            heading(&s9, "Data objects no longer where they came from, with fewer than two copies of their newest version:");
+            printf("  %s%s  version %ld: %zu cop%s%s%s\n", get_or(o, "Name", "?"), file ? "" : "/", v, hd.copies,
+                   hd.copies == 1 ? "y" : "ies", src.n ? "; was at " : "", src.n ? src.v[0] : "");
+            items++;
+        }
+        strlist_free(&src);
+        free(top.v);
+    }
+    strlist_free(&seen);
     if (!items) printf("Nothing owed: every disc copied, read back, with a cold copy, kept in two places and checked within %d years.\n", years);
     return 0;
 }
@@ -219,10 +572,11 @@ int cmd_todo(int argc, char **argv)
 int cmd_retire(int argc, char **argv)
 {
     const char *given = NULL, *code = NULL;
-    int yes = 0, verbose = 0;
+    int yes = 0, accept_loss = 0, verbose = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (!strcmp(argv[i], "--yes")) yes = 1;
+        else if (!strcmp(argv[i], "--accept-loss")) accept_loss = 1;
         else if (!strcmp(argv[i], "-v")) verbose = 1;
         else if (argv[i][0] != '-' && !code) code = argv[i];
         else return 2;
@@ -248,6 +602,8 @@ int cmd_retire(int argc, char **argv)
     }
     /* files on the discs being retired that no kept edition holds (by content) */
     strlist keep_hashes = { 0 }, at_risk = { 0 };
+    strlist *only = xmalloc(old.n * sizeof *only);  /* per edition: its files on no disc that stays */
+    memset(only, 0, old.n * sizeof *only);
     recs eds = { 0 };
     editions(&cat, c, &eds);
     for (size_t i = 0; i < eds.n; i++) {
@@ -276,7 +632,10 @@ int cmd_retire(int argc, char **argv)
                 char hash[65];
                 memcpy(hash, l, 64);
                 hash[64] = 0;
-                if (!strlist_has(&keep_hashes, hash) && !strlist_has(&at_risk, l + 66)) strlist_add(&at_risk, l + 66);
+                if (!strlist_has(&keep_hashes, hash)) {
+                    strlist_add(&only[i], l);
+                    if (!strlist_has(&at_risk, l + 66)) strlist_add(&at_risk, l + 66);
+                }
             }
             l = nl ? nl + 1 : l + strlen(l);
         }
@@ -290,21 +649,34 @@ int cmd_retire(int argc, char **argv)
         volumes(old.v[i], &v);
         printf("  edition %s (%s):", get_or(old.v[i], "Edition", ""), get_or(old.v[i], "Date", ""));
         for (size_t k = 0; k < v.n; k++) printf(" %s", v.v[k]);
+        if (only[i].n) printf("  (%zu file%s on no disc that stays)", only[i].n, only[i].n == 1 ? "" : "s");
         putchar('\n');
         strlist_free(&v);
     }
     if (at_risk.n) {
-        printf("%zu file%s only on these discs (removed from the collection since):\n", at_risk.n,
+        printf("%zu file%s only on these discs (not in the newer edition):\n", at_risk.n,
                at_risk.n == 1 ? " is" : "s are");
         size_t limit = verbose ? at_risk.n : at_risk.n < 20 ? at_risk.n : 20;
         for (size_t i = 0; i < limit; i++) printf("  %s\n", at_risk.v[i]);
         if (limit < at_risk.n) printf("  ... %zu more (-v for all)\n", at_risk.n - limit);
     }
+    if (at_risk.n && !accept_loss) {
+        /* these discs hold the only copy: refuse, unless the person says the loss is accepted */
+        printf("%s: these discs hold the only copy of %s. Keep the edition%s holding them (arv collection keep "
+               "%s %s), or arv retire %s --yes --accept-loss to retire them anyway.\n",
+               yes ? "Refused" : "Nothing recorded", at_risk.n == 1 ? "that file" : "those files",
+               old.n == 1 ? "" : "s", get_or(c, "Code", ""), old.n == 1 ? get_or(old.v[0], "Edition", "N") : "N",
+               get_or(c, "Code", ""));
+        return yes ? 1 : 0;
+    }
     if (!yes) {
-        printf("Nothing recorded. arv retire %s --yes records them as retired (arv deletes nothing: the discs are "
-               "yours to keep or destroy).\n", get_or(c, "Code", ""));
+        printf("Nothing recorded. arv retire %s --yes%s records them as retired%s (arv deletes nothing: the discs are "
+               "yours to keep or destroy).\n", get_or(c, "Code", ""), at_risk.n ? " --accept-loss" : "",
+               at_risk.n ? ", and those files as lost" : "");
         return 0;
     }
+    for (size_t i = 0; i < old.n; i++)                  /* the loss, on the edition: "Lost: SHA256  PATH" */
+        for (size_t k = 0; k < only[i].n; k++) rec_add(old.v[i], "Lost", only[i].v[k]);
     char today[11], *who = person();
     today_iso(today);
     size_t n = 0;
@@ -329,7 +701,7 @@ int cmd_retire(int argc, char **argv)
             char *note = xprintf("retired: edition %s of %s, replaced by edition %s (revision %.12s)%s%s%s",
                                  get_or(old.v[i], "Edition", ""), get_or(c, "Code", ""), get_or(by, "Edition", ""),
                                  get_or(by, "Node", ""), *where ? "; was kept at " : "", where,
-                                 at_risk.n ? "; files only on retired discs were listed and accepted" : "");
+                                 at_risk.n ? "; files only on retired discs recorded as lost (Lost:)" : "");
             recs_add(&cat.events, new_event(v.v[k], "deaccession", "success", who, "human", note));
             free(note);
             free(where);
@@ -339,6 +711,10 @@ int cmd_retire(int argc, char **argv)
     }
     archive_save(&cat, h.rec_path);
     printf("%zu disc%s retired (logged)\n", n, n == 1 ? "" : "s");
+    if (at_risk.n) printf("%zu file%s recorded as lost (arv log %s, arv find)\n", at_risk.n, at_risk.n == 1 ? "" : "s",
+                          get_or(c, "Code", ""));
+    for (size_t i = 0; i < old.n; i++) strlist_free(&only[i]);
+    free(only);
     free(who);
     return 0;
 }

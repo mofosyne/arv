@@ -243,6 +243,23 @@ void scan_payload(const char *src, const char *policy, entries *files, entries *
     *noted = s.noted;
 }
 
+/* one file on its own (a disc plan's item): its bytes from path (a link is followed), as data/<as> */
+void scan_file(const char *path, const char *as, entry *out)
+{
+    struct stat st;
+    memset(out, 0, sizeof *out);
+    char *real = realpath(path, NULL);
+    if (!real || stat(real, &st) || !S_ISREG(st.st_mode)) die("%s is not a file", path);
+    if (ambiguous(as)) die("%s: a name with a line break or %%0A / %%0D / %%25 cannot be listed in BagIt manifests", as);
+    out->path = xstrdup(as);
+    out->source = real;
+    out->link = xstrdup("");
+    out->size = (uint64_t)st.st_size;
+    out->mtime = st.st_mtime;
+    out->kind = xstrdup(st.st_mode & 0111 ? "file executable" : "file");
+    hash_both(real, out->sha256, out->sha512);
+}
+
 /* "links: 2 copied, 1 recorded, 1 broken (policy: default)", or NULL without links */
 char *link_summary(const entries *files, const entries *noted, const char *policy)
 {
