@@ -118,7 +118,8 @@ Completeness is a property of the union, not of any one place. `arv objects` sho
 kept: each data object's versions and each collection's newest edition, the discs holding them,
 every copy of those discs (disc, iso or folder; hot, warm or cold; read back or not) and whether
 the original is still on the PC/NAS. `arv todo` watches the union's health: discs with no copy,
-copies never read back, discs with no cold copy, discs in fewer than two places, checks overdue,
+copies never read back, discs with no cold copy, discs in fewer than two places (or below what
+their appraisal asks for: essential, 3 copies in 3 places), checks overdue,
 and per data object, a newest version with no cold copy, or one no longer where it came from
 with fewer than two copies left.
 

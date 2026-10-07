@@ -272,10 +272,23 @@ NAS        The NAS                        1 disc  [warm]
 BOX1       (free text, not a location code)
 rc=0
 $ --home hc todo
-Nothing owed: every disc copied, read back, with a cold copy, kept in two places and checked within 5 years.
+Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within 5 years.
 rc=0
 $ --home hc todo
-Nothing owed: every disc copied, read back, with a cold copy, kept in two places and checked within 5 years.
+Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within 5 years.
+rc=0
+$ --home hc appraise FAM-02_2019_Y:c.txt --importance essential for family --importance useful for self
+FAM-02_2019_Y:c.txt: essential for family; useful for self
+rc=0
+$ --home hc todo
+Fewer copies or places than its appraisal asks for (essential: 3 copies in 3 places; important: 2 in 2; useful: 1):
+  FAM-02_2019_Y  essential for family: 3 copies in 2 places
+rc=0
+$ --home hc appraise FAM-02_2019_Y:c.txt --importance important for family
+FAM-02_2019_Y:c.txt: important for family
+rc=0
+$ --home hc todo
+Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within 5 years.
 rc=0
 $ --home hc collection show NOPE
 Error: no collection NOPE

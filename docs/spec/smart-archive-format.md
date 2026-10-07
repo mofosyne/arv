@@ -494,12 +494,16 @@ Review: 2031-10-03
 - **Importance**: `<level> for <audience>`, one per audience. Levels, most first, each tied to
   what the archive does about it:
 
-  | Level | Meaning |
-  |---|---|
-  | `essential` | must survive: on disc first, two or more copies, one kept elsewhere |
-  | `important` | goes on disc |
-  | `useful` | on disc if there is room; everyday storage is enough otherwise |
-  | `incidental` | everyday storage is enough |
+  | Level | Meaning | Copies and places a disc holding it should have |
+  |---|---|---|
+  | `essential` | must survive: on disc first | 3 copies in 3 places |
+  | `important` | goes on disc | 2 copies in 2 places |
+  | `useful` | on disc if there is room; everyday storage is enough otherwise | 1 |
+  | `incidental` | everyday storage is enough | none |
+
+  A disc is held to the highest level in force on it, on anything on it, or on its set (a
+  model's unreviewed suggestion aside); a disc with no appraisal, to two copies in two places.
+  These are what `arv todo` checks, not part of the format: a reader may set its own.
 
   Audiences are the owner's words (`self`, `family`, `heirs`, `colleagues`, `public`, or a
   name). Words, not scores: a percentage claims a precision nobody has, and drifts between

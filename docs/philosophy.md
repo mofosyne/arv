@@ -12,7 +12,8 @@ Everything else follows from six principles:
 
 1. **Curate, don't hoard.** Durable media is small and costly in effort, so it
    holds a chosen selection, not everything. What goes on a disc, and who may see
-   it, is decided on purpose. Everyday storage keeps the rest.
+   it, is decided on purpose, by appraisal: essential, important, useful or
+   incidental, for whom. Everyday storage keeps the rest.
 2. **Every disc stands alone.** A disc is ordinary files plus everything needed to
    understand, check and repair it, and a catalogue of every disc before it.
    Any one disc, read with any computer, is enough to start from.
@@ -96,21 +97,51 @@ Here, a file on a disc is the file:
 - **space is not optimised.** No compression, no deduplication. Curating keeps
   the volume small enough that this does not matter.
 
-## Importance decides what is archived, and for whom (principles 1 and 5)
+## Appraise first: most things are not preserved (principles 1 and 5)
+
+An archive that tries to keep everything keeps nothing well: the effort of durable copies, checks
+and records is spent on what nobody will miss, and the irreplaceable is lost among it. So the
+first act is not copying but **appraisal**: deciding how much each thing matters, to whom, and
+therefore how much care it gets. Most of a household's data is meant to be left out.
+
+Four levels, most first. Each one asks for a different amount of care, and `arv todo` reports a
+disc that holds less than its appraisal asks for:
+
+| Level | What it is | Copies | Places | On disc |
+|---|---|---|---|---|
+| **essential** | irreplaceable: its loss would be unacceptable | 3 or more | 3 (one away from the others) | yes, first |
+| **important** | meaningful material, worth a durable copy | 2 | 2 | yes |
+| **useful** | worth keeping, not worth much effort | 1 | 1 | if there is room |
+| **incidental** | can be regenerated, downloaded or recreated | – | – | no: everyday storage is enough |
+
+A disc not yet appraised is held to two copies in two places, as if important. Error correction
+does not change with the level: RS03 already fills every disc's spare room, and a further copy in
+another place protects against fire, theft and a lost box, which no amount of error correction
+does ([issue #20](https://github.com/mofosyne/arv/issues/20) considers putting essential material from other discs in that spare room).
+
+The levels belong to an audience: `essential for family` and `useful for self` can both be true of
+the same folder, and the highest level any audience gives decides the care. The order of the work:
+
+```
+gather → appraise → leave out (incidental, duplicates) → describe → freeze (make) → copy (burned, stored)
+```
+
+What is left out is not deleted: it stays on everyday storage, with its own lifetime. Only a person
+can mark something incidental; a model may suggest any level, but its suggestion counts for nothing
+until a person accepts it.
 
 Data matters differently to different people: some to you, some to family,
-some to whoever inherits the discs, some to anyone. The tool already records
-some of this:
+some to whoever inherits the discs, some to anyone. Besides appraisals, the tool records:
 - **access levels** (`public`, `private`, `sealed`) decide who may see a disc and
   what other discs' catalogues say about it;
 - **sets, categories and tags** say what something is;
 - **collections** gather what belongs together across discs.
 
-**The archivist log** records it: an appraisal says how much something matters, for whom,
-and why, in words that read as English (`essential for self`, `important for family`), with a
-date to review it (`arv appraise`; format: "Appraisals"). Every record says whether a person,
-software following rules, or a model made it, and whether a person reviewed a model's
-suggestion. A model may suggest; only a person can decide that something can be left out.
+**The archivist log** records appraisals: how much something matters, for whom, and why, in words
+that read as English (`essential for self`, `important for family`), with a date to review it
+(`arv appraise`; format: "Appraisals"). An appraisal of a folder holds for everything in it, and
+one of a set for its discs. Every record says whether a person, software following rules, or a
+model made it, and whether a person reviewed a model's suggestion.
 
 **Direction: an archive organiser.** From the everyday storage, propose what is
 worth a disc: rank folders by importance and audience (rules, tags, and

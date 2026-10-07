@@ -748,7 +748,7 @@ Note: Location: OFFSITE -> Somewhere new
 + DISC-ID:folder/file (relative to data/), set:CODE or selection:CODE; a target
 + without an appraisal takes the nearest one above it (file, folder, disc, set).
 + Importance is '<level> for <audience>', one per audience; levels, most first:
-+ essential (must survive: several copies, one elsewhere), important (on disc),
++ essential (must survive: 3 copies in 3 places), important (on disc: 2 in 2),
 + useful (on disc if there is room), incidental (everyday storage is enough).
 + Only a person can mark something incidental. Basis says why; Review is when to
 + look again. Authorship and Agent as in Event.

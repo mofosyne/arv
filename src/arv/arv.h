@@ -121,6 +121,7 @@ char *place(const archive *a, const char *text);
 const char *place_temperature(const archive *a, const char *code);
 int temperature_ok(const char *t);
 rec_record *new_appraisal(const char *target, const strlist *importance, const char *basis, const char *review);
+int disc_importance(const archive *cat, const char *id, char **why);
 size_t archive_merge(archive *home, const archive *other, int prefer_other, strlist *added, strlist *updated);
 
 /* bag.c: the payload, BagIt tag files and the listing */

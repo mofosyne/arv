@@ -22,6 +22,15 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Appraise first: the levels ask for care** (issue #24)
+- Each importance level now asks for a number of copies and places: essential, 3 copies in 3
+  places; important, 2 in 2; useful, 1; incidental, none (everyday storage is enough).
+  `arv todo` reports a disc holding less than the highest level in force on it, on anything on
+  it, or on its set; a model's unreviewed suggestion does not count. A disc not yet appraised is
+  held to two places, as before.
+- docs/philosophy.md: "Appraise first: most things are not preserved", with the levels, what
+  each asks for, and the order of the work.
+
 **Archive, Record, Verify: the interface follows the name**
 - `arv --help` groups every command under Archive (what goes on discs), Record (what exists, and
   where) and Verify (still good, and can be got back); the commands themselves are unchanged.

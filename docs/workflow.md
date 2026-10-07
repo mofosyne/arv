@@ -370,7 +370,8 @@ is lost or damaged.
 - editions not yet safe;
 - editions a newer safe edition replaces, ready to retire;
 - discs with no cold copy;
-- discs kept in fewer than two places;
+- discs kept in fewer than two places, or, once appraised, fewer copies and places than the
+  appraisal asks for (essential: 3 copies in 3 places; important: 2 in 2; useful: 1);
 - checks overdue (5 years by default; `--overdue YEARS`);
 - data objects whose newest version has no cold copy, or that are no longer where they came
   from with fewer than two copies left.

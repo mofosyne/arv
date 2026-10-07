@@ -307,6 +307,10 @@ log coll.out --home hc stored FAM-02_2019_Y nas/FAM-02-files --location NAS --no
 log coll.out --home hc location list
 log coll.out --home hc todo
 log coll.out --home hc todo
+log coll.out --home hc appraise FAM-02_2019_Y:c.txt --importance "essential for family" --importance "useful for self"
+log coll.out --home hc todo
+log coll.out --home hc appraise FAM-02_2019_Y:c.txt --importance "important for family"
+log coll.out --home hc todo
 log coll.out --home hc collection show NOPE
 log coll.out --home hc list
 log coll.out --home hc objects
