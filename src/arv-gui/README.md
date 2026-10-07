@@ -3,8 +3,10 @@
 `arv gui`: the interface, in your web browser. Optional, in Python 3 (standard library only);
 everything it does can be done with arv in a terminal.
 
-Its tabs: the discs, **Objects** (everything kept and where every copy is: `arv objects --json`), search, making a disc from a folder, **Mastering** (a disc plan: discs composed
-by hand with drag and drop from a file browser, each with a fill bar; `arv plan`), checks and jobs.
+Its three tabs follow the name: **Archive** (Mastering: discs by hand, `arv plan`; From a folder,
+`arv make`), **Record** (Objects: everything kept and where every copy is, `arv objects --json`;
+Discs; Search) and **Verify** (Owed: `arv todo`, also counted above the tabs; Check; Restore,
+verify and rebuild). Jobs, the commands it ran, open from the header.
 
 It serves one page on 127.0.0.1 and opens it. Every action runs arv itself (and arv-assist for
 the local model's suggestions), so it adds no behaviour of its own; it only reads the catalogue

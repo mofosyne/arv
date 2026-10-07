@@ -121,6 +121,8 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(disc["Note"], ["hello"])
         job = json.loads(self.request("/api/command", {"command": "note", "disc_id": disc["Id"], "text": "second"})[1])
         self.assertEqual(self.wait(job)["returncode"], 0)
+        owed = json.loads(self.request("/api/todo")[1])["text"]
+        self.assertIn("No copy yet", owed)          # made, not burned: Verify says so
         found = json.loads(self.request("/api/find?q=img_0001")[1])
         self.assertEqual(found["total"], 1)
         self.assertEqual(json.loads(self.request("/api/discs")[1])["discs"][0]["Note"], ["hello", "second"])

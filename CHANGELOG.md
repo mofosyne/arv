@@ -22,6 +22,14 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Archive, Record, Verify: the interface follows the name**
+- `arv --help` groups every command under Archive (what goes on discs), Record (what exists, and
+  where) and Verify (still good, and can be got back); the commands themselves are unchanged.
+- The GUI has three tabs to match, each with its views (Archive: Mastering, From a folder; Record:
+  Objects, Discs, Search; Verify: Owed, Check, Restore). It opens on Verify's Owed (`arv todo`), and
+  a count of what is owed sits above the tabs. Jobs open from the header. New in the GUI: verifying
+  and restoring a disc's files.
+
 **Safer making, and a portable arv**
 - `arv make` checks each file's bytes against its manifest as they are written to the image; a
   file changed after hashing stops the make and nothing is recorded (before, the disc would have

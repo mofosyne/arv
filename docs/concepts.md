@@ -148,6 +148,20 @@ limited by `--snapshot` (`full`, `set`, `disc`) and by each disc's access level.
 - a disc of another archive is refused, because archives are separate privacy spheres
   (`--any-archive` to merge).
 
+## Archive, Record, Verify
+
+The name is the shape of the work, and of the interface (`arv --help` and the GUI's three tabs):
+
+| | What it is for | Commands |
+|---|---|---|
+| **Archive** | what goes on discs | `make`, `plan`, `collection`, `status`, `checkpoint`, `link`, `names`, `describe`, `tag` |
+| **Record** | what exists, and where | `burned`, `stored`, `objects`, `find`, `list`, `note`, `locate`, `location`, `selection`, `appraise`, `log`, `retire` |
+| **Verify** | still good, and can be got back | `todo`, `check`, `verify`, `restore`, `rebuild` |
+
+Recording a burned disc sits between the last two: `arv burned --device` reads the disc back
+against its image before it records the copy, and `arv todo` (Verify) lists the copies never read
+back.
+
 ## The words
 
 | Word | Meaning |

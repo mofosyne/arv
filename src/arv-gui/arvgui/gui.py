@@ -142,6 +142,13 @@ class App:
                               capture_output=True, text=True)
         return proc.returncode, (proc.stdout + proc.stderr).strip()
 
+    def todo(self, _params):
+        """arv todo: what is owed (the Verify tab, and the line above the tabs)."""
+        code, text = self.arv_now(["todo"])
+        if code:
+            raise LookupError(text)
+        return {"text": text}
+
     def objects(self, _params):
         """arv objects --json: what is kept, and where every copy of it is (the Objects tab)."""
         code, text = self.arv_now(["objects", "--json"])
@@ -332,6 +339,10 @@ class App:
                 argv += ["--media-id", body["media_id"]]
         elif command == "rebuild":
             argv = ["rebuild", body["path"]]
+        elif command == "verify":
+            argv = ["verify", body["path"]]
+        elif command == "restore":
+            argv = ["restore", body["path"], body["dest"]]
         elif command == "apply_draft":
             argv = ["describe", body["disc_id"], "--apply", self.write_draft(body["draft"])]
         else:
@@ -342,7 +353,7 @@ class App:
 def make_handler(app, port_holder):
     get_routes = {"/api/discs": app.discs, "/api/find": app.find, "/api/browse": app.browse,
                   "/api/job": app.job, "/api/jobs": app.jobs_list, "/api/llm/status": app.llm_status,
-                  "/api/plans": app.plans, "/api/plan": app.plan, "/api/objects": app.objects}
+                  "/api/plans": app.plans, "/api/plan": app.plan, "/api/objects": app.objects, "/api/todo": app.todo}
     post_routes = {"/api/make": app.post_make, "/api/check": app.post_check, "/api/command": app.post_simple,
                    "/api/plan": app.post_plan,
                    "/api/llm/suggest": app.post_llm_suggest}
