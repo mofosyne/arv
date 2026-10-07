@@ -66,6 +66,35 @@ Ecc: none
 ImageSectors: 850
 ImageSha256: SHA256
 
+%rec: Object
+%doc: A data object: one file or folder put on a disc as a whole (a disc plan's item, or a
++ folder arv make puts on one disc), with no .arv marker of its own. Uuid is its lineage:
++ every version of the same object shares it.
++ Tree is the SHA-256 of its manifest (each file's SHA-256 and path within the object,
++ sorted; a repository's .git aside, as git.tsv describes it); Version counts its versions,
++ and the same Tree on another disc is the same version. Disc and Path say where it is
++ (Path under data/; "." for the whole of data/). Source is where it was read from: it is
++ kept in the home catalogue only, and discs carry their objects without it.
+%mandatory: Uuid Version Tree Disc Path Kind Date
+%type: Uuid uuid
+%type: Version int
+%type: Files int
+%type: Bytes int
+%type: Date date
+%type: Kind enum file folder git
+
+Uuid: UUID
+Version: 1
+Name: Projects_x
+Kind: folder
+Tree: 74b213e9e02a306baf98acdca3804400d55b012f5c0eba4c8ca455f2a7b541a6
+Disc: PROJ-01_2023_P
+Path: .
+Files: 1
+Bytes: 26
+Date: 2026-01-01
+Source: Projects_x
+
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType

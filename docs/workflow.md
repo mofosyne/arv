@@ -202,7 +202,9 @@ catalogue. `--keep` marks one that must never be retired (a milestone; or later,
 `arv collection keep FAMILY 4`).
 
 A folder that is not a collection works too (`arv make FOLDER --set TRIP`): a one-off disc, as
-arv always made. The choices that matter then:
+arv always made. When it fits on one disc, the folder becomes a **data object**, as a plan's
+items do (below): made again after a change, it is that object's next version. The choices that
+matter then:
 
 | Option | Default | Choose otherwise when |
 |---|---|---|
@@ -354,7 +356,7 @@ always a copy of the catalogue**.
 chip):
 
 ```
-Data objects (disc plans):
+Data objects:
   2025/  folder, 2 versions; newest: 2 copies on 2 discs, 1 cold, 1 read back
     from /nas/photos/2025 (there now: arv status says if it changed)
     version 2  TRIP-03_2025_7  data/photos/  disc cold; at BOX1

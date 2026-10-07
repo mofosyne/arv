@@ -412,8 +412,10 @@ record keeps full precision.
 
 ### `Object` records: data objects (format 0.5)
 
-A file or folder that a disc plan (`arv plan`) put on a disc as a whole is a **data object**, with
-an `Object` record in the disc's `catalog.rec` (its own) and in snapshots (earlier discs').
+A file or folder put on a disc as a whole is a **data object**: each item of a disc plan (`arv
+plan`), and a folder `arv make` puts on one disc (not a collection's workflow folder, which has
+editions instead; not a folder split over several discs). It has an `Object` record in the disc's
+`catalog.rec` (its own) and in snapshots (earlier discs').
 
 ```
 %rec: Object
@@ -434,8 +436,8 @@ The manifest is each file's SHA-256 and its path within the object, sorted by pa
 `manifest-sha256.txt` form, without a repository's `.git` (`git.tsv` describes that). The same
 `Tree` on several discs is the same version, copied. Each version is recorded when it is archived:
 the same content as an earlier version is that version; from the same place but changed, the
-next version; else a new `Uuid`. The home catalogue adds `Source` (the absolute path it was read
-from) and keeps each manifest in `catalog/objects/<Tree>.sha256`; neither goes on a disc.
+next version; else a new `Uuid`. The home catalogue adds `Source` (the path it was read
+from, relative to the folder holding the home when inside it) and keeps each manifest in `catalog/objects/<Tree>.sha256`; neither goes on a disc.
 Readers merge objects by `Uuid`, `Version` and `Disc`.
 
 ### `Event` records (recfile)

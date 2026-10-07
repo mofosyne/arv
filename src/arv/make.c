@@ -1204,6 +1204,16 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
                      &mk->plans[i].objects, &mk->plans[i].object_manifests);
         free(made_now.v);
     }
+    if (!mk->dplan && !mk->collection && mk->src && nbins == 1) {   /* a folder on one disc: a data object too */
+        char *abs = realpath(mk->src, NULL);
+        plan_item it = { .disc = 1, .source = abs ? abs : xstrdup(mk->src), .path = (char *)"." };
+        disc_plan one = { .root = home_root(mk->h), .discs = 1, .v = &it, .n = 1 };
+        recs none = { 0 };
+        plan_objects(&one, 1, &mk->plans[0].files, mk->cat, &none, mk->plans[0].disc_id, mk->today, &mk->plans[0].objects,
+                     &mk->plans[0].object_manifests);
+        free(it.source);
+        free(one.root);
+    }
 }
 
 static void batch_files(maker *mk)

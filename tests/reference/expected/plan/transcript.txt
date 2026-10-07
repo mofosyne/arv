@@ -122,7 +122,7 @@ $ --home hp status plan-nas/photos/2025
 ROOT/plan-nas/photos/2025: not a collection's workflow folder
   2 of its 2 files are on discs; 0 on none
   most like TRIP-02_2025_9: 66% of its files are here (2 of 3)
-  data objects archived from here (disc plans):
+  data objects archived from here:
   2025/: version 1 on TRIP-02_2025_9; unchanged
 rc=0
 $ --home hp status plan-pc
@@ -133,7 +133,7 @@ ROOT/plan-pc: not a collection's workflow folder
   also TRIP-02_2025_9: 33% of its files are here (1 of 3)
   + gone.txt
   (arv link FOLDER COLLECTION|DISC-ID says what it is; arv collection init makes it a collection)
-  data objects archived from here (disc plans):
+  data objects archived from here:
   wedding.mkv (Videos/wedding.mkv): version 1 on TRIP-01_2025_B; unchanged
   notes.txt (notes.txt): version 1 on TRIP-02_2025_9; unchanged
 rc=0
@@ -144,8 +144,8 @@ ROOT/plan-nas/photos/2025: not a collection's workflow folder
   most like TRIP-02_2025_9: 66% of its files are here (2 of 3)
   + c.jpg
   (arv link FOLDER COLLECTION|DISC-ID says what it is; arv collection init makes it a collection)
-  data objects archived from here (disc plans):
-  2025/: version 1 on TRIP-02_2025_9; changed since: +1 ~0 -0 >0 files (a plan archives it as version 2)
+  data objects archived from here:
+  2025/: version 1 on TRIP-02_2025_9; changed since: +1 ~0 -0 >0 files (archived again, it is version 2)
   +1 new, ~0 changed, -0 removed, >0 moved
   + c.jpg
 rc=0
@@ -177,7 +177,7 @@ ROOT/plan-nas/photos/2025: not a collection's workflow folder
   most like TRIP-03_2025_7: 100% of its files are here (3 of 3)
   also TRIP-04_2025_5: 100% of its files are here (3 of 3)
   also TRIP-02_2025_9: 66% of its files are here (2 of 3)
-  data objects archived from here (disc plans):
+  data objects archived from here:
   2025/: version 2 on TRIP-03_2025_7, TRIP-04_2025_5; unchanged
 rc=0
 $ --home hp status plan-moved
@@ -199,7 +199,7 @@ TRIP-03_2025_7  [?]  data/photos/b.jpg
 TRIP-03_2025_7  [?]  data/photos/c.jpg
 rc=0
 $ --home hp objects
-Data objects (disc plans):
+Data objects:
   wedding.mkv  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
     from ROOT/plan-pc/Videos/wedding.mkv (there now: arv status says if it changed)
     version 1  TRIP-01_2025_B  data/video/wedding.mkv  no copy yet
@@ -225,7 +225,7 @@ Reading ROOT/out-plan/TRIP-01_2025_B.noecc.iso: the 850 sectors of TRIP-01_2025_
 TRIP-01_2025_B: 1 copy recorded (this one: iso, warm, checked)
 rc=0
 $ --home hp objects 2025
-Data objects (disc plans):
+Data objects:
   2025/  folder, 2 versions; newest: 2 copies on 2 discs, 1 cold, 1 read back
     from ROOT/plan-nas/photos/2025 (there now: arv status says if it changed)
     and ROOT/plan-copy (not there now)
@@ -234,7 +234,7 @@ Data objects (disc plans):
     version 1  TRIP-02_2025_9  data/photos/  no copy yet
 rc=0
 $ --home hp objects wedding.mkv
-Data objects (disc plans):
+Data objects:
   wedding.mkv  file, 1 version; newest: 1 copy on 1 disc, 0 cold, 1 read back
     from ROOT/plan-pc/Videos/wedding.mkv (not there now)
     version 1  TRIP-01_2025_B  data/video/wedding.mkv  iso warm (read back)
@@ -334,7 +334,7 @@ Hashing ROOT/out-card/TRIP-05_2025_3.noecc.iso ...
 TRIP-05_2025_3	ROOT/out-card/TRIP-05_2025_3.noecc.iso	Card
 rc=0
 $ --home hp objects DCIM
-Data objects (disc plans):
+Data objects:
   DCIM/  folder, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
     from ROOT/plan-sd/DCIM (not there now)
     version 1  TRIP-05_2025_3  data/camera/  no copy yet

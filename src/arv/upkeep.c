@@ -374,7 +374,7 @@ int cmd_objects(int argc, char **argv)
             free(top.v);
             continue;
         }
-        if (!shown++) puts("Data objects (disc plans):");
+        if (!shown++) puts("Data objects:");
         sbuf line = { 0 };
         holding_text(&hd, &line);
         printf("  %s%s  %s, %ld version%s; newest: %s\n", name, file ? "" : "/", get_or(o, "Kind", "?"), last, last == 1 ? "" : "s",

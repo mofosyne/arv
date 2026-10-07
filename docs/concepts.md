@@ -48,7 +48,8 @@ asserted in only three places:
 
 - the **collection** a disc is an edition of (`Disc.Collection`);
 - **git repositories** (`git.tsv`: roots, heads, shallow boundary, every commit);
-- **data objects**: each file or folder a disc plan put on a disc as a whole (`Object` records).
+- **data objects**: each file or folder a disc plan put on a disc as a whole, and each folder
+  `arv make` put on one disc (`Object` records).
 
 A data object needs no `.arv` marker. It is known by its content: its **Tree** is the SHA-256 of
 its manifest (each file's SHA-256 and path within it; a file object's Tree is the file's own
@@ -168,7 +169,7 @@ back.
 | Word | Meaning |
 |---|---|
 | **collection** | something kept over time: one workflow folder, one code, one history. *What you keep.* |
-| **data object** | a file or folder a disc plan put on a disc as a whole; known by its content (Tree), in versions |
+| **data object** | a file or folder put on a disc as a whole (a plan's item, or `arv make FOLDER`); known by its content (Tree), in versions |
 | **set** | a vocabulary classification (`PHOTO`, `TRIP`), not a thing you keep; the id prefix |
 | **revision** | one recorded state of a collection: a **checkpoint** (hashes only) or an **edition** |
 | **edition** | a set of discs made together from what a collection's workflow folder holds at the time; each disc holds part of it and a copy of the catalogue; numbered; replaced by a newer safe edition unless kept |

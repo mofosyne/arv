@@ -22,6 +22,12 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**`arv make FOLDER` records a data object**
+- A folder that is not a collection's workflow folder and fits on one disc is a data object, as
+  a plan's items are: `arv objects` lists it, `arv status FOLDER` says whether it changed since,
+  and making it again after a change records the next version. A folder split over several discs
+  is not one (its parts are on different discs).
+
 **Laying a disc out** (issue #23)
 - docs/workflow.md, "Laying the folder out": the top level is kinds, from the set vocabulary; the
   level below is a fact in the data (year of capture, project, record type, source); below that,

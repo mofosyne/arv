@@ -70,8 +70,9 @@ Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (a
 Ecc: none
 
 %rec: Object
-%doc: A data object: one file or folder put on a disc as a whole (by a disc plan), with no
-+ .arv marker of its own. Uuid is its lineage: every version of the same object shares it.
+%doc: A data object: one file or folder put on a disc as a whole (a disc plan's item, or a
++ folder arv make puts on one disc), with no .arv marker of its own. Uuid is its lineage:
++ every version of the same object shares it.
 + Tree is the SHA-256 of its manifest (each file's SHA-256 and path within the object,
 + sorted; a repository's .git aside, as git.tsv describes it); Version counts its versions,
 + and the same Tree on another disc is the same version. Disc and Path say where it is

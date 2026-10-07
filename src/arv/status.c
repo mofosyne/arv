@@ -678,7 +678,7 @@ static void objects_status(const arv_home *h, const archive *cat, const char *ab
             text_sha256(text.s, tree);
         }
         if (!heading) {
-            puts("  data objects archived from here (disc plans):");
+            puts("  data objects archived from here:");
             heading = 1;
         }
         printf("  %s%s%s%s%s: version %s on %s", get_or(latest, "Name", "?"), is_file ? "" : "/", *rel ? " (" : "", rel,
@@ -687,10 +687,10 @@ static void objects_status(const arv_home *h, const archive *cat, const char *ab
         else if (!strcmp(tree, get_or(latest, "Tree", ""))) printf("; unchanged\n");
         else {
             char *f = xprintf("%s/objects/%s.sha256", h->catalog_dir, get_or(latest, "Tree", "")), *before = access(f, F_OK) ? NULL : read_text(f);
-            if (is_file || !before) printf("; changed since (a plan archives it as version %ld)\n", atol(get_or(latest, "Version", "0")) + 1);
+            if (is_file || !before) printf("; changed since (archived again, it is version %ld)\n", atol(get_or(latest, "Version", "0")) + 1);
             else {
                 char *c = manifest_changes(before, text.s);
-                printf("; changed since: %s (a plan archives it as version %ld)\n", c, atol(get_or(latest, "Version", "0")) + 1);
+                printf("; changed since: %s (archived again, it is version %ld)\n", c, atol(get_or(latest, "Version", "0")) + 1);
                 if (verbose) {
                     mlist b = { 0 }, a = { 0 };
                     ml_parse(&b, before);
