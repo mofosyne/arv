@@ -290,11 +290,13 @@ by whom, or how it may be opened. The direction considered ([issue #21](https://
 - **Crypto is not ours to write.** arv's own code is C99 with no libraries; cryptography written
   for it would be the least trustworthy part of the archive. As with burning, arv would delegate
   to an established tool with an open standard and several independent implementations
-  (OpenPGP's `gpg --symmetric`, or age), record what was done, and print how to undo it.
+  (age; not OpenPGP, which has split into two incompatible formats),
+  record what was done, and print how to undo it.
 
 The word is **lock**, not seal: `sealed` already names an access level (other discs carry only a
-sealed disc's identity). research/plan.md keeps the earlier, narrower direction (a whole sealed
-disc's payload encrypted as one piece) for comparison.
+sealed disc's identity). The current direction (research/plan.md, 2026-10-07): the data object is
+the unit, each locked one an age-encrypted SquashFS image, and a sealed disc is the case where
+every object, and the disc's own catalogue, is locked.
 
 ## Help is optional and local (principle 5)
 
