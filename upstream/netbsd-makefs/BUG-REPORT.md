@@ -7,9 +7,13 @@
 > mailing lists. If it is confirmed, it will arrive through the usual channels; until then,
 > treat everything below as unverified.
 
-Status: **draft, not yet sent.** Before sending: confirm every bug yourself with
-`repro/repro.sh` (below), then send to NetBSD (send-pr / gnats, or the tech-kern /
-tech-userlevel lists).
+Status: **draft, not yet sent.** Checked again on 2026-10-07 (still by the AI assistant, on
+Linux): `repro/repro.sh` gave exactly the summary below, every quoted line was read in the
+unmodified source, the bug 3 table and both "also noticed" items were redone by hand, and
+trunk at `5601fdcca316ec9bfdc6a8016d9dae6d41dc03da` (2026-10-07) has all 17 files unchanged
+from the pinned commit. Two corrections came from that check (the bug 3 table's 128-character
+row, and a line number). Still to do before sending: a person confirms it, then it goes to
+NetBSD (send-pr / gnats, or the tech-kern / tech-userlevel lists).
 
 Found while building UDF 2.50 images with makefs on Linux. It was found and
 drafted with the help of an AI assistant, and every claim below comes with the
@@ -175,7 +179,8 @@ per character once any character is above U+00FF. So the most a name can hold
 is 254 characters, or 127 with any wide character. Nothing checks this, and
 the length wraps modulo 256:
 - 255 Latin-1 characters encode to 256 bytes, so `l_fi` becomes 0;
-- 128 wide characters encode to 257 bytes, so `l_fi` becomes 1.
+- 128 wide characters encode to 257 bytes, so `l_fi` becomes 1: only the compression byte,
+  so the name is empty.
 
 Names like this are legal on the source filesystem (Linux allows 255 bytes).
 
@@ -187,7 +192,7 @@ Names like this are legal on the source filesystem (Linux allows 255 bytes).
 |---|---|---|
 | 254 × `a` | exit 0 | correct |
 | 255 × `a` | exit 0 | "Cannot open the file as archive" |
-| 127 × `a` + `日` (128 characters) | exit 0 | wrong 1-character name |
+| 127 × `a` + `日` (128 characters) | exit 0 | an empty name (7-Zip lists it as `[]`) |
 | 200 × `a` + `日` | exit 0 | "Cannot open the file as archive" |
 
 ### Suggested fix
@@ -218,7 +223,7 @@ See `patches/03-unix_to_udf_name-l_fi-overflow.patch`:
   to open files. The UDF backend builds paths from the first directory only
   (`udf.c:1043`/`1059`), so files from the second directory fail to open ("Can't
   open file … for reading") and `udf_populate_walk` then trips
-  `assert(dirlen == ddoff)` (`udf.c:1015`).
+  `assert(dirlen == ddoff)` (`udf.c:1012`).
 
 ---
 
@@ -268,9 +273,14 @@ You can also confirm by reading the code alone:
 - **Bug 2:** `"*UDF Metadata Partition"` has 23 characters, and `strcpy` writes 24 bytes into the 23-byte field.
 - **Bug 3:** `udf_chars` at udf_core.c:767 can exceed 255, and it is stored into the `uint8_t l_fi`.
 
-Before sending, check that trunk hasn't changed these lines since the commit above:
+Before sending, check that trunk hasn't changed these files since the commit above (last
+checked 2026-10-07, trunk `5601fdc`: all 17 unchanged):
 
 ```sh
-git -C /tmp/udf-repro/netbsd-git log --oneline -1   # the pinned commit
-# compare with current trunk: https://github.com/NetBSD/src/blob/trunk/usr.sbin/makefs/udf.c
+cd /tmp/udf-repro/netbsd-git
+git fetch -q --depth 1 --filter=blob:none origin trunk
+for f in $(git ls-tree -r --name-only 477d71b4d1b73a66b61a03b5f6d3dc9212d4f888 -- usr.sbin/makefs/udf.c \
+           usr.sbin/makefs/walk.c sbin/newfs_udf sys/fs/udf); do
+    [ "$(git rev-parse 477d71b4d1b73a66b61a03b5f6d3dc9212d4f888:$f)" = "$(git rev-parse FETCH_HEAD:$f)" ] || echo "changed: $f"
+done
 ```

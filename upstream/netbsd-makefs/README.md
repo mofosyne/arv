@@ -11,7 +11,7 @@ modified copy**. The bug report, patches and reproduction against unmodified ups
 
 | File | What |
 |---|---|
-| `BUG-REPORT.md` | **Unconfirmed draft, not sent**: a report for three bugs in upstream `makefs -t udf`, with the exact commit, file revisions and lines |
+| `BUG-REPORT.md` | **Draft, not sent** (checked again 2026-10-07; a person still to confirm): a report for three bugs in upstream `makefs -t udf`, with the exact commit, file revisions and lines |
 | `patches/01-udf_copy_file-padding-overread.patch` | Bug 1: heap bytes written into file padding (`usr.sbin/makefs/udf.c`) |
 | `patches/02-udf_set_regid-strcpy-overrun.patch` | Bug 2: 1-byte `strcpy` overrun (`sbin/newfs_udf/udf_core.c`) |
 | `patches/03-unix_to_udf_name-l_fi-overflow.patch` | Bug 3: over-long names corrupt the image (`sbin/newfs_udf/udf_core.c`) |
