@@ -307,7 +307,13 @@ log coll.out --home hc stored FAM-02_2019_Y nas/FAM-02-files --location NAS --no
 log coll.out --home hc location list
 log coll.out --home hc todo
 log coll.out --home hc todo
+log coll.out --home hc appraise FAM-02_2019_Y:c.txt --importance "essential for family" --importance "useful for self"
+log coll.out --home hc todo
+log coll.out --home hc appraise FAM-02_2019_Y:c.txt --importance "important for family"
+log coll.out --home hc todo
 log coll.out --home hc collection show NOPE
+mkdir -p lay/Photos lay/Records lay/Taxes lay/misc "lay/New folder (2)" lay/Grandma lay/2019 lay/.hidden
+log coll.out --home hc status lay
 log coll.out --home hc list
 log coll.out --home hc objects
 log coll.out --home hc objects FAM

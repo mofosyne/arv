@@ -93,7 +93,7 @@ Protection: none
 Media: M-DISC BD-R 25GB
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 850
+ImageSectors: 882
 ImageSha256: SHA256
 
 %rec: Location
@@ -233,7 +233,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image FAM-02_2019_Y.noecc.iso, 850 sectors
+Note: image FAM-02_2019_Y.noecc.iso, 882 sectors
 
 Object: collection:FAM
 Type: accession
@@ -400,3 +400,32 @@ ReadBack: identical
 Form: folder
 Temperature: warm
 Path: ROOT/nas/FAM-02-files
+
+%rec: Appraisal
+%doc: The archivist log: how much something matters, to whom, and why. Appended and
++ never edited; the newest appraisal of a target replaces earlier ones, and one a
++ person made or reviewed outranks a machine's. Target is DISC-ID, DISC-ID:folder/,
++ DISC-ID:folder/file (relative to data/), set:CODE or selection:CODE; a target
++ without an appraisal takes the nearest one above it (file, folder, disc, set).
++ Importance is '<level> for <audience>', one per audience; levels, most first:
++ essential (must survive: 3 copies in 3 places), important (on disc: 2 in 2),
++ useful (on disc if there is room), incidental (everyday storage is enough).
++ Only a person can mark something incidental. Basis says why; Review is when to
++ look again. Authorship and Agent as in Event.
+%mandatory: Target Date Authorship
+%type: Date date
+%type: Review date
+%type: Authorship enum automatic suggested accepted edited human
+
+Target: FAM-02_2019_Y:c.txt
+Importance: essential for family
+Importance: useful for self
+Date: 2026-01-01
+Authorship: human
+Agent: human:archivist
+
+Target: FAM-02_2019_Y:c.txt
+Importance: important for family
+Date: 2026-01-01
+Authorship: human
+Agent: human:archivist

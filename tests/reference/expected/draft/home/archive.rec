@@ -96,8 +96,8 @@ Date: 2026-01-01
 Part: 1 of 2
 Creator: archivist
 Access: private
-Files: 55
-Bytes: 5500000
+Files: 54
+Bytes: 5400000
 Software: SW
 
 Id: SCAN-02_2001-2007_B
@@ -114,8 +114,8 @@ Date: 2026-01-01
 Part: 2 of 2
 Creator: archivist
 Access: private
-Files: 15
-Bytes: 1500000
+Files: 16
+Bytes: 1600000
 Software: SW
 
 %rec: Binding
@@ -135,7 +135,7 @@ Protection: none
 Media: M-DISC BD-R 25GB
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 850
+ImageSectors: 882
 ImageSha256: SHA256
 
 Volume: CODE-02_2020_Y
@@ -144,7 +144,7 @@ Protection: none
 Media: M-DISC BD-R 25GB
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 850
+ImageSectors: 882
 ImageSha256: SHA256
 
 Volume: CODE-03_2020_W
@@ -153,7 +153,7 @@ Protection: none
 Media: M-DISC BD-R 25GB
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 850
+ImageSectors: 882
 ImageSha256: SHA256
 
 Volume: SCAN-01_2001-2007_D
@@ -162,7 +162,7 @@ Protection: none
 Media: M-DISC custom medium
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 3698
+ImageSectors: 3666
 ImageSha256: SHA256
 
 Volume: SCAN-02_2001-2007_B
@@ -171,8 +171,61 @@ Protection: none
 Media: M-DISC custom medium
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 1682
+ImageSectors: 1746
 ImageSha256: SHA256
+
+%rec: Object
+%doc: A data object: one file or folder put on a disc as a whole (a disc plan's item, or a
++ folder arv make puts on one disc), with no .arv marker of its own. Uuid is its lineage:
++ every version of the same object shares it.
++ Tree is the SHA-256 of its manifest (each file's SHA-256 and path within the object,
++ sorted; a repository's .git aside, as git.tsv describes it); Version counts its versions,
++ and the same Tree on another disc is the same version. Disc and Path say where it is
++ (Path under data/; "." for the whole of data/). Source is where it was read from: it is
++ kept in the home catalogue only, and discs carry their objects without it.
+%mandatory: Uuid Version Tree Disc Path Kind Date
+%type: Uuid uuid
+%type: Version int
+%type: Files int
+%type: Bytes int
+%type: Date date
+%type: Kind enum file folder git
+
+Uuid: UUID
+Version: 1
+Name: second
+Kind: folder
+Tree: 296fab365bdf00d7bcf6aa0d4b14b22f0f48728873c7e88f3d5443ced01d9c16
+Disc: CODE-01_2001_0
+Path: .
+Files: 2
+Bytes: 25
+Date: 2026-01-01
+Source: second
+
+Uuid: UUID
+Version: 1
+Name: src
+Kind: folder
+Tree: 36964376488f6d65020e7d1e47f7f0cadd67b9093c57f08d3e55d55cfe8cbc75
+Disc: CODE-02_2020_Y
+Path: .
+Files: 3
+Bytes: 30
+Date: 2026-01-01
+Source: src
+
+Uuid: UUID
+Version: 1
+Name: hist-src
+Kind: folder
+Tree: 1676176df7ca9d185cd854471593740fe07d98b5f0e11fefa873f1892cd71c7a
+Disc: CODE-03_2020_W
+Path: .
+Files: 1
+Bytes: 2
+Date: 2026-01-01
+Source: hist-src
 
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
@@ -214,7 +267,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image CODE-01_2001_0.noecc.iso, 850 sectors
+Note: image CODE-01_2001_0.noecc.iso, 882 sectors
 
 Disc: CODE-02_2020_Y
 Type: message digest calculation
@@ -246,7 +299,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image CODE-02_2020_Y.noecc.iso, 850 sectors
+Note: image CODE-02_2020_Y.noecc.iso, 882 sectors
 
 Disc: CODE-03_2020_W
 Type: message digest calculation
@@ -270,7 +323,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image CODE-03_2020_W.noecc.iso, 850 sectors
+Note: image CODE-03_2020_W.noecc.iso, 882 sectors
 
 Disc: SCAN-01_2001-2007_D
 Type: message digest calculation
@@ -278,7 +331,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: sha256 and sha512 manifests of 55 files
+Note: sha256 and sha512 manifests of 54 files
 
 Disc: SCAN-01_2001-2007_D
 Type: metadata modification
@@ -295,7 +348,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image SCAN-01_2001-2007_D.noecc.iso, 3698 sectors
+Note: image SCAN-01_2001-2007_D.noecc.iso, 3666 sectors
 
 Disc: SCAN-02_2001-2007_B
 Type: message digest calculation
@@ -303,7 +356,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: sha256 and sha512 manifests of 15 files
+Note: sha256 and sha512 manifests of 16 files
 
 Disc: SCAN-02_2001-2007_B
 Type: metadata modification
@@ -320,4 +373,4 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image SCAN-02_2001-2007_B.noecc.iso, 1682 sectors
+Note: image SCAN-02_2001-2007_B.noecc.iso, 1746 sectors

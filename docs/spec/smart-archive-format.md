@@ -107,6 +107,7 @@ catalogue rebuilt from a disc takes the disc's archive identity.
 | `catalog/volumes/<id>/formats.csv` | CSV | PRONOM format identification per file (optional) |
 | `catalog/volumes/<id>/manifest.sha256` | BagIt manifest | Copy of the disc's `manifest-sha256.txt` |
 | `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Binding`, `Location`, `Selection`, `Collection`, `Revision`, `Event` and `Appraisal` records (limited by [Access](#access)) |
+| `catalog/config/sets.rec`, `catalog/config/tags.rec` | recfile | The archive's vocabularies at burn time: the set codes (`Set`, `Category`) and the tag words its records use, with their names, parents and aliases. Full snapshots only; optional (format 0.5) |
 | `catalog/volumes/<other-id>/` | as above | The same per-volume index files for the other discs in the snapshot: one folder per volume, as LTFS keeps one index per tape |
 | `index.html` | HTML | Offline viewer (for people; readers can ignore) |
 | `README.txt` | text | How to browse, search, verify, restore and repair the disc, for people |
@@ -412,8 +413,10 @@ record keeps full precision.
 
 ### `Object` records: data objects (format 0.5)
 
-A file or folder that a disc plan (`arv plan`) put on a disc as a whole is a **data object**, with
-an `Object` record in the disc's `catalog.rec` (its own) and in snapshots (earlier discs').
+A file or folder put on a disc as a whole is a **data object**: each item of a disc plan (`arv
+plan`), and a folder `arv make` puts on one disc (not a collection's workflow folder, which has
+editions instead; not a folder split over several discs). It has an `Object` record in the disc's
+`catalog.rec` (its own) and in snapshots (earlier discs').
 
 ```
 %rec: Object
@@ -434,8 +437,8 @@ The manifest is each file's SHA-256 and its path within the object, sorted by pa
 `manifest-sha256.txt` form, without a repository's `.git` (`git.tsv` describes that). The same
 `Tree` on several discs is the same version, copied. Each version is recorded when it is archived:
 the same content as an earlier version is that version; from the same place but changed, the
-next version; else a new `Uuid`. The home catalogue adds `Source` (the absolute path it was read
-from) and keeps each manifest in `catalog/objects/<Tree>.sha256`; neither goes on a disc.
+next version; else a new `Uuid`. The home catalogue adds `Source` (the path it was read
+from, relative to the folder holding the home when inside it) and keeps each manifest in `catalog/objects/<Tree>.sha256`; neither goes on a disc.
 Readers merge objects by `Uuid`, `Version` and `Disc`.
 
 ### `Event` records (recfile)
@@ -494,12 +497,16 @@ Review: 2031-10-03
 - **Importance**: `<level> for <audience>`, one per audience. Levels, most first, each tied to
   what the archive does about it:
 
-  | Level | Meaning |
-  |---|---|
-  | `essential` | must survive: on disc first, two or more copies, one kept elsewhere |
-  | `important` | goes on disc |
-  | `useful` | on disc if there is room; everyday storage is enough otherwise |
-  | `incidental` | everyday storage is enough |
+  | Level | Meaning | Copies and places a disc holding it should have |
+  |---|---|---|
+  | `essential` | must survive: on disc first | 3 copies in 3 places |
+  | `important` | goes on disc | 2 copies in 2 places |
+  | `useful` | on disc if there is room; everyday storage is enough otherwise | 1 |
+  | `incidental` | everyday storage is enough | none |
+
+  A disc is held to the highest level in force on it, on anything on it, or on its set (a
+  model's unreviewed suggestion aside); a disc with no appraisal, to two copies in two places.
+  These are what `arv todo` checks, not part of the format: a reader may set its own.
 
   Audiences are the owner's words (`self`, `family`, `heirs`, `colleagues`, `public`, or a
   name). Words, not scores: a percentage claims a precision nobody has, and drifts between

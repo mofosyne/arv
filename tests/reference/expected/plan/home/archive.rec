@@ -146,7 +146,7 @@ Protection: none
 Media: M-DISC BD-R 25GB
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 850
+ImageSectors: 882
 ImageSha256: SHA256
 
 Volume: TRIP-03_2025_7
@@ -177,8 +177,9 @@ ImageSectors: 882
 ImageSha256: SHA256
 
 %rec: Object
-%doc: A data object: one file or folder put on a disc as a whole (by a disc plan), with no
-+ .arv marker of its own. Uuid is its lineage: every version of the same object shares it.
+%doc: A data object: one file or folder put on a disc as a whole (a disc plan's item, or a
++ folder arv make puts on one disc), with no .arv marker of its own. Uuid is its lineage:
++ every version of the same object shares it.
 + Tree is the SHA-256 of its manifest (each file's SHA-256 and path within the object,
 + sorted; a repository's .git aside, as git.tsv describes it); Version counts its versions,
 + and the same Tree on another disc is the same version. Disc and Path say where it is
@@ -323,7 +324,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image TRIP-02_2025_9.noecc.iso, 850 sectors
+Note: image TRIP-02_2025_9.noecc.iso, 882 sectors
 
 Disc: TRIP-03_2025_7
 Type: message digest calculation

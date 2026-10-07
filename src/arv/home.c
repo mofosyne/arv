@@ -178,6 +178,10 @@ void home_find(arv_home *h, const char *given, const char *source)
     free(found);
 }
 
+/* the vocabularies in config/ that a full catalogue snapshot carries (catalog/config/), so the
+ * words a catalogue uses travel with it and arv rebuild can restore them */
+const char *const HOME_VOCABULARIES[] = { "sets.rec", "tags.rec", NULL };
+
 /* Paths kept relative to a root (a home's: the folder holding it), so a portable drive mounted
  * elsewhere, or under another letter, still finds them; a path outside the root stays absolute. */
 char *home_root(const arv_home *h)

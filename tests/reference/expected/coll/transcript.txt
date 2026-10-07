@@ -171,11 +171,11 @@ $ --home hc retire FAM
 FAM: no edition is safe yet (each of its discs burned and read back: arv burned --device); nothing to retire
 rc=0
 $ --home hc burned FAM-02_2019_Y --device bad.iso --location BOX1
-Reading back FAM-02_2019_Y (bad.iso): the 850 sectors of its image ...
+Reading back FAM-02_2019_Y (bad.iso): the 882 sectors of its image ...
 FAM-02_2019_Y: this burn is NOT the image (different content); not recorded as a copy. Burn it again, and keep this disc out of the archive.
 rc=1
 $ --home hc burned --device out-c2/FAM-02_2019_Y.noecc.iso --location BOX1
-Reading back FAM-02_2019_Y (out-c2/FAM-02_2019_Y.noecc.iso): the 850 sectors of its image ...
+Reading back FAM-02_2019_Y (out-c2/FAM-02_2019_Y.noecc.iso): the 882 sectors of its image ...
 FAM-02_2019_Y: 1 copy recorded (this one read back: identical to the image)
 rc=0
 $ --home hc burned FAM-01_2019_0 --location BOX1
@@ -249,11 +249,11 @@ $ --home hc location move NAS --temperature warm
 NAS: The NAS
 rc=0
 $ --home hc stored FAM-02_2019_Y nas/FAM-02_2019_Y.noecc.iso --location NAS
-Reading ROOT/nas/FAM-02_2019_Y.noecc.iso: the 850 sectors of FAM-02_2019_Y's image ...
+Reading ROOT/nas/FAM-02_2019_Y.noecc.iso: the 882 sectors of FAM-02_2019_Y's image ...
 FAM-02_2019_Y: 2 copies recorded (this one: iso, warm, checked)
 rc=0
 $ --home hc stored FAM-02_2019_Y bad.iso
-Reading ROOT/bad.iso: the 850 sectors of FAM-02_2019_Y's image ...
+Reading ROOT/bad.iso: the 882 sectors of FAM-02_2019_Y's image ...
 FAM-02_2019_Y: the iso at ROOT/bad.iso is NOT a good copy (different content from the image); not recorded
 rc=1
 $ --home hc stored FAM-01_2019_0 nas/FAM-02_2019_Y
@@ -272,14 +272,34 @@ NAS        The NAS                        1 disc  [warm]
 BOX1       (free text, not a location code)
 rc=0
 $ --home hc todo
-Nothing owed: every disc copied, read back, with a cold copy, kept in two places and checked within 5 years.
+Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within 5 years.
 rc=0
 $ --home hc todo
-Nothing owed: every disc copied, read back, with a cold copy, kept in two places and checked within 5 years.
+Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within 5 years.
+rc=0
+$ --home hc appraise FAM-02_2019_Y:c.txt --importance essential for family --importance useful for self
+FAM-02_2019_Y:c.txt: essential for family; useful for self
+rc=0
+$ --home hc todo
+Fewer copies or places than its appraisal asks for (essential: 3 copies in 3 places; important: 2 in 2; useful: 1):
+  FAM-02_2019_Y  essential for family: 3 copies in 2 places
+rc=0
+$ --home hc appraise FAM-02_2019_Y:c.txt --importance important for family
+FAM-02_2019_Y:c.txt: important for family
+rc=0
+$ --home hc todo
+Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within 5 years.
 rc=0
 $ --home hc collection show NOPE
 Error: no collection NOPE
 rc=1
+$ --home hc status lay
+0 files: 0 read, 0 unchanged since last read (hash cache)
+ROOT/lay: not a collection's workflow folder
+  0 of its 0 files are on discs; 0 on none
+  layout: New folder (2)/, misc/: say nothing about what they hold; a disc is read by its folders when no catalogue is left (name by kind or by a fact, such as a year)
+  layout: Grandma/: not a kind from your vocabulary, beside 3 that are (arv sets -v)
+rc=0
 $ --home hc list
 FAM-01_2019_0	2026-01-01	Family photos	2 files	public	
 FAM-02_2019_Y	2026-01-01	Family photos	2 files	public	BOX1; The NAS

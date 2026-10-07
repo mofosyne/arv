@@ -54,6 +54,22 @@ class RecfileTest(unittest.TestCase):
         self.assertEqual([e.get("Type") for e in again.events], ["creation"])
 
 
+class IconTest(unittest.TestCase):
+    def test_each_extension_has_one_family(self):
+        import re
+        with open(os.path.join(REPO, "src", "arv-gui", "arvgui", "gui.html"), encoding="utf-8") as f:
+            page = f.read()
+        table = re.search(r"var FAMILIES = \[(.*?)\n  \];", page, re.S).group(1)
+        rows = re.findall(r'\["([^"]+)", "([^"]+)", "([^"]+)"\]', table)
+        self.assertGreaterEqual(len(rows), 8)
+        seen = {}
+        for _, family, exts in rows:
+            for x in exts.split():
+                self.assertEqual(x, x.lower(), x)
+                self.assertNotIn(x, seen, "%s is both %s and %s" % (x, seen.get(x), family))
+                seen[x] = family
+
+
 class GuiTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()

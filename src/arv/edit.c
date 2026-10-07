@@ -588,6 +588,43 @@ static rec_record *current(const archive *cat, const char *target)
     return best;
 }
 
+/* the most a disc matters: the highest level (0 essential .. 3 incidental) in force on the disc,
+ * anything on it, or its set, with *why its "<level> for <audience>"; -1 when nothing is appraised.
+ * A model's unreviewed suggestion does not count. */
+int disc_importance(const archive *cat, const char *id, char **why)
+{
+    static const char *const levels[] = { "essential", "important", "useful", "incidental" };
+    const rec_record *d = archive_disc(cat, id);
+    char *set = d && rec_get(d, "Set") ? xprintf("set:%s", rec_get(d, "Set")) : NULL;
+    size_t n = strlen(id);
+    strlist done = { 0 };
+    int best = -1;
+    *why = NULL;
+    for (size_t i = 0; i < cat->appraisals.n; i++) {
+        const char *t = rec_get(cat->appraisals.v[i], "Target");
+        if (!t || strlist_has(&done, t)) continue;
+        strlist_add(&done, t);
+        if (!(set && !strcmp(t, set)) && !(!strncmp(t, id, n) && (!t[n] || t[n] == ':'))) continue;
+        const rec_record *a = current(cat, t);
+        if (!standing(a)) continue;
+        for (size_t f = 0; f < a->nfields; f++) {
+            if (strcmp(a->fields[f].name, "Importance")) continue;
+            for (int k = 0; k < 4; k++) {
+                size_t m = strlen(levels[k]);
+                if (strncmp(a->fields[f].value, levels[k], m) || !isspace((unsigned char)a->fields[f].value[m])) continue;
+                if (best < 0 || k < best) {
+                    best = k;
+                    free(*why);
+                    *why = xstrdup(a->fields[f].value);
+                }
+            }
+        }
+    }
+    strlist_free(&done);
+    free(set);
+    return best;
+}
+
 /* the target and everything above it, most specific first: file, folders, disc, set */
 static void chain(const archive *cat, const char *target, strlist *out)
 {
@@ -1141,6 +1178,22 @@ int cmd_rebuild(int argc, char **argv)
             free(from);
             free(to);
         }
+    }
+    for (int k = 0; HOME_VOCABULARIES[k]; k++) {         /* the vocabularies, when the home has none yet */
+        char *from = xprintf("%s/config/%s", snap_dir, HOME_VOCABULARIES[k]), *to = join(h.config_dir, HOME_VOCABULARIES[k]);
+        if (!access(from, F_OK) && access(to, F_OK)) {
+            if (mkdirs(h.config_dir)) die("cannot create %s", h.config_dir);
+            copy_file(from, to);
+            printf("Restored config/%s from the disc\n", HOME_VOCABULARIES[k]);
+        } else if (!access(from, F_OK)) {
+            char *a = read_text(from), *b = read_text(to);
+            if (strcmp(a, b))
+                printf("Kept the home's config/%s; the disc's differs (%s)\n", HOME_VOCABULARIES[k], from);
+            free(a);
+            free(b);
+        }
+        free(from);
+        free(to);
     }
     if (mkdirs(h.catalog_dir)) die("cannot create %s", h.catalog_dir);
     archive_save(&cat, h.rec_path);

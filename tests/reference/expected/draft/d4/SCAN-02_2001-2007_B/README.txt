@@ -4,7 +4,7 @@ Big
 Disc id:  SCAN-02_2001-2007_B  (part 2 of 2)
 Set:      SCAN
 Burned:   2026-01-01
-Contents: 15 files, 1500000 bytes (in data/)
+Contents: 16 files, 1600000 bytes (in data/)
 Made by:  SW
 
 This is an archive disc by archivist, made on 2026-01-01: Big. Its files are

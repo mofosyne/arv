@@ -9,6 +9,7 @@
 #include "vocab.h"
 
 #include <stddef.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <time.h>
 
@@ -50,7 +51,9 @@ extern const char *home_archive_name;   /* --archive NAME: a home from the machi
 void home_at(arv_home *h, const char *path);
 void home_ensure(const arv_home *h);
 char *home_volume_file(const arv_home *h, const char *disc_id, const char *name);
+void layout_notes(const arv_home *h, const char *abs, FILE *out, const char *prefix);   /* status.c */
 char *home_root(const arv_home *h);                     /* the folder holding the home */
+extern const char *const HOME_VOCABULARIES[];           /* config/'s files that discs carry: sets.rec, tags.rec */
 char *path_rel(const char *root, const char *abs);      /* relative to root when inside it, else as it is */
 char *path_abs(const char *root, const char *stored);   /* back to absolute */
 int cmd_init(int argc, char **argv);
@@ -121,6 +124,7 @@ char *place(const archive *a, const char *text);
 const char *place_temperature(const archive *a, const char *code);
 int temperature_ok(const char *t);
 rec_record *new_appraisal(const char *target, const strlist *importance, const char *basis, const char *review);
+int disc_importance(const archive *cat, const char *id, char **why);
 size_t archive_merge(archive *home, const archive *other, int prefer_other, strlist *added, strlist *updated);
 
 /* bag.c: the payload, BagIt tag files and the listing */

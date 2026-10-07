@@ -48,7 +48,8 @@ asserted in only three places:
 
 - the **collection** a disc is an edition of (`Disc.Collection`);
 - **git repositories** (`git.tsv`: roots, heads, shallow boundary, every commit);
-- **data objects**: each file or folder a disc plan put on a disc as a whole (`Object` records).
+- **data objects**: each file or folder a disc plan put on a disc as a whole, and each folder
+  `arv make` put on one disc (`Object` records).
 
 A data object needs no `.arv` marker. It is known by its content: its **Tree** is the SHA-256 of
 its manifest (each file's SHA-256 and path within it; a file object's Tree is the file's own
@@ -118,7 +119,8 @@ Completeness is a property of the union, not of any one place. `arv objects` sho
 kept: each data object's versions and each collection's newest edition, the discs holding them,
 every copy of those discs (disc, iso or folder; hot, warm or cold; read back or not) and whether
 the original is still on the PC/NAS. `arv todo` watches the union's health: discs with no copy,
-copies never read back, discs with no cold copy, discs in fewer than two places, checks overdue,
+copies never read back, discs with no cold copy, discs in fewer than two places (or below what
+their appraisal asks for: essential, 3 copies in 3 places), checks overdue,
 and per data object, a newest version with no cold copy, or one no longer where it came from
 with fewer than two copies left.
 
@@ -167,7 +169,7 @@ back.
 | Word | Meaning |
 |---|---|
 | **collection** | something kept over time: one workflow folder, one code, one history. *What you keep.* |
-| **data object** | a file or folder a disc plan put on a disc as a whole; known by its content (Tree), in versions |
+| **data object** | a file or folder put on a disc as a whole (a plan's item, or `arv make FOLDER`); known by its content (Tree), in versions |
 | **set** | a vocabulary classification (`PHOTO`, `TRIP`), not a thing you keep; the id prefix |
 | **revision** | one recorded state of a collection: a **checkpoint** (hashes only) or an **edition** |
 | **edition** | a set of discs made together from what a collection's workflow folder holds at the time; each disc holds part of it and a copy of the catalogue; numbered; replaced by a newer safe edition unless kept |

@@ -2,8 +2,9 @@
  * retired, and what is owed (research/plan.md, collections; docs/workflow.md).
  *
  *   arv todo [--overdue YEARS]   what needs doing: images not burned, copies not read back,
- *                                editions not yet safe, replaced editions, discs kept in one place,
- *                                checks overdue (default: 5 years)
+ *                                editions not yet safe, replaced editions, discs kept in one place
+ *                                or below their appraisal (essential: 3 copies in 3 places; important:
+ *                                2 in 2; useful: 1), checks overdue (default: 5 years)
  *   arv objects [NAME] [--json]  what you keep, and where all its copies are: each data object's versions
  *                                and each collection's newest edition, the discs holding them and
  *                                every copy of those discs (form, temperature, read back), and
@@ -373,7 +374,7 @@ int cmd_objects(int argc, char **argv)
             free(top.v);
             continue;
         }
-        if (!shown++) puts("Data objects (disc plans):");
+        if (!shown++) puts("Data objects:");
         sbuf line = { 0 };
         holding_text(&hd, &line);
         printf("  %s%s  %s, %ld version%s; newest: %s\n", name, file ? "" : "/", get_or(o, "Kind", "?"), last, last == 1 ? "" : "s",
@@ -511,17 +512,33 @@ int cmd_todo(int argc, char **argv)
         printf("  %s\n", id);
         items++;
     }
-    int s6 = 0;
-    for (size_t i = 0; i < cat.discs.n; i++) {                  /* kept in one place */
+    int s6 = 0, s10 = 0;
+    for (size_t i = 0; i < cat.discs.n; i++) {                  /* kept in one place; below its appraisal */
         const rec_record *d = cat.discs.v[i];
         const char *id = get_or(d, "Id", "");
         if (retired(&cat, id) || !burned_at_all(&cat, id)) continue;
-        int places = 0;
+        size_t places = 0;
         for (size_t f = 0; f < d->nfields; f++) places += !strcmp(d->fields[f].name, "Location");
-        if (places >= 2) continue;
-        heading(&s5, "Kept in fewer than two places (arv locate ID PLACE --add):");
-        printf("  %s  %s\n", id, places ? "one place" : "no place recorded");
-        items++;
+        char *why;
+        int level = disc_importance(&cat, id, &why);
+        if (level < 0) {                                        /* not appraised: two places */
+            if (places >= 2) continue;
+            heading(&s5, "Kept in fewer than two places (arv locate ID PLACE --add):");
+            printf("  %s  %s\n", id, places ? "one place" : "no place recorded");
+            items++;
+            continue;
+        }
+        static const size_t need[] = { 3, 2, 1, 0 };            /* copies, and places, by level */
+        holding hd = { 0 };
+        hold(&cat, id, &hd);
+        if (hd.copies < need[level] || places < need[level]) {
+            heading(&s10, "Fewer copies or places than its appraisal asks for (essential: 3 copies in 3 places; "
+                          "important: 2 in 2; useful: 1):");
+            printf("  %s  %s: %zu cop%s in %zu place%s\n", id, why, hd.copies, hd.copies == 1 ? "y" : "ies", places,
+                   places == 1 ? "" : "s");
+            items++;
+        }
+        free(why);
     }
     for (size_t i = 0; i < cat.discs.n; i++) {                  /* checks overdue */
         const char *id = get_or(cat.discs.v[i], "Id", "");
@@ -563,7 +580,7 @@ int cmd_todo(int argc, char **argv)
         free(top.v);
     }
     strlist_free(&seen);
-    if (!items) printf("Nothing owed: every disc copied, read back, with a cold copy, kept in two places and checked within %d years.\n", years);
+    if (!items) printf("Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within %d years.\n", years);
     return 0;
 }
 

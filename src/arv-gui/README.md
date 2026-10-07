@@ -6,7 +6,9 @@ everything it does can be done with arv in a terminal.
 Its three tabs follow the name: **Archive** (Mastering: discs by hand, `arv plan`; From a folder,
 `arv make`), **Record** (Objects: everything kept and where every copy is, `arv objects --json`;
 Discs; Search) and **Verify** (Owed: `arv todo`, also counted above the tabs; Check; Restore,
-verify and rebuild). Jobs, the commands it ran, open from the header.
+verify and rebuild). Jobs, the commands it ran, open from the header. File lists show a small
+icon for the kind of file (image, video, audio, document, spreadsheet, archive, disc image, code),
+guessed from the extension as a hint only: the disc's `formats.csv` (Siegfried) is the record.
 
 It serves one page on 127.0.0.1 and opens it. Every action runs arv itself (and arv-assist for
 the local model's suggestions), so it adds no behaviour of its own; it only reads the catalogue

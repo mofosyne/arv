@@ -12,7 +12,8 @@ Everything else follows from six principles:
 
 1. **Curate, don't hoard.** Durable media is small and costly in effort, so it
    holds a chosen selection, not everything. What goes on a disc, and who may see
-   it, is decided on purpose. Everyday storage keeps the rest.
+   it, is decided on purpose, by appraisal: essential, important, useful or
+   incidental, for whom. Everyday storage keeps the rest.
 2. **Every disc stands alone.** A disc is ordinary files plus everything needed to
    understand, check and repair it, and a catalogue of every disc before it.
    Any one disc, read with any computer, is enough to start from.
@@ -96,21 +97,51 @@ Here, a file on a disc is the file:
 - **space is not optimised.** No compression, no deduplication. Curating keeps
   the volume small enough that this does not matter.
 
-## Importance decides what is archived, and for whom (principles 1 and 5)
+## Appraise first: most things are not preserved (principles 1 and 5)
+
+An archive that tries to keep everything keeps nothing well: the effort of durable copies, checks
+and records is spent on what nobody will miss, and the irreplaceable is lost among it. So the
+first act is not copying but **appraisal**: deciding how much each thing matters, to whom, and
+therefore how much care it gets. Most of a household's data is meant to be left out.
+
+Four levels, most first. Each one asks for a different amount of care, and `arv todo` reports a
+disc that holds less than its appraisal asks for:
+
+| Level | What it is | Copies | Places | On disc |
+|---|---|---|---|---|
+| **essential** | irreplaceable: its loss would be unacceptable | 3 or more | 3 (one away from the others) | yes, first |
+| **important** | meaningful material, worth a durable copy | 2 | 2 | yes |
+| **useful** | worth keeping, not worth much effort | 1 | 1 | if there is room |
+| **incidental** | can be regenerated, downloaded or recreated | – | – | no: everyday storage is enough |
+
+A disc not yet appraised is held to two copies in two places, as if important. Error correction
+does not change with the level: RS03 already fills every disc's spare room, and a further copy in
+another place protects against fire, theft and a lost box, which no amount of error correction
+does ([issue #20](https://github.com/mofosyne/arv/issues/20) considers putting essential material from other discs in that spare room).
+
+The levels belong to an audience: `essential for family` and `useful for self` can both be true of
+the same folder, and the highest level any audience gives decides the care. The order of the work:
+
+```
+gather → appraise → leave out (incidental, duplicates) → describe → freeze (make) → copy (burned, stored)
+```
+
+What is left out is not deleted: it stays on everyday storage, with its own lifetime. Only a person
+can mark something incidental; a model may suggest any level, but its suggestion counts for nothing
+until a person accepts it.
 
 Data matters differently to different people: some to you, some to family,
-some to whoever inherits the discs, some to anyone. The tool already records
-some of this:
+some to whoever inherits the discs, some to anyone. Besides appraisals, the tool records:
 - **access levels** (`public`, `private`, `sealed`) decide who may see a disc and
   what other discs' catalogues say about it;
 - **sets, categories and tags** say what something is;
 - **collections** gather what belongs together across discs.
 
-**The archivist log** records it: an appraisal says how much something matters, for whom,
-and why, in words that read as English (`essential for self`, `important for family`), with a
-date to review it (`arv appraise`; format: "Appraisals"). Every record says whether a person,
-software following rules, or a model made it, and whether a person reviewed a model's
-suggestion. A model may suggest; only a person can decide that something can be left out.
+**The archivist log** records appraisals: how much something matters, for whom, and why, in words
+that read as English (`essential for self`, `important for family`), with a date to review it
+(`arv appraise`; format: "Appraisals"). An appraisal of a folder holds for everything in it, and
+one of a set for its discs. Every record says whether a person, software following rules, or a
+model made it, and whether a person reviewed a model's suggestion.
 
 **Direction: an archive organiser.** From the everyday storage, propose what is
 worth a disc: rank folders by importance and audience (rules, tags, and
@@ -132,13 +163,20 @@ proposes.
   POSIX with no libraries, built with one `cc` line or carried ready to run as one
   portable executable. Every disc carries the source of the tools that made it.
 
-## Two orders: the shelf and the catalogue (principle 2)
+## Three orders: the shelf, the catalogue and the disc (principle 2)
 
 Physically, discs are kept by access level and the year they were made, so new
 discs only ever go at the end ([shelving.md](shelving.md)). Virtually, the
 catalogue on every disc shows them by kind, by year covered, by place, by
 collection and by tag. The shelf only has to be stable; the catalogue gives
 every other view, and catalogue software such as Katalog can present it.
+
+**The disc's own layout is the third order, and the most lasting.** A disc that outlives every
+catalogue is read by its folders, so their top level is kinds (photos, records, projects, from the
+set vocabulary) and the level below is a fact in the data (a year of capture, a project's name),
+never an interpretation. Interpretation (importance, themes, people, best-of lists) stays in the
+catalogue, where it can be revised for free; a disc's layout changes only with a new edition of
+its content, never by burning again to reorganise (workflow.md, "Laying the folder out").
 
 ## Small tools, run in order (principle 4)
 
@@ -252,11 +290,13 @@ by whom, or how it may be opened. The direction considered ([issue #21](https://
 - **Crypto is not ours to write.** arv's own code is C99 with no libraries; cryptography written
   for it would be the least trustworthy part of the archive. As with burning, arv would delegate
   to an established tool with an open standard and several independent implementations
-  (OpenPGP's `gpg --symmetric`, or age), record what was done, and print how to undo it.
+  (age; not OpenPGP, which has split into two incompatible formats),
+  record what was done, and print how to undo it.
 
 The word is **lock**, not seal: `sealed` already names an access level (other discs carry only a
-sealed disc's identity). research/plan.md keeps the earlier, narrower direction (a whole sealed
-disc's payload encrypted as one piece) for comparison.
+sealed disc's identity). The current direction (research/plan.md, 2026-10-07): the data object is
+the unit, each locked one an age-encrypted SquashFS image, and a sealed disc is the case where
+every object, and the disc's own catalogue, is locked.
 
 ## Help is optional and local (principle 5)
 

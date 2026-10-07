@@ -207,7 +207,7 @@ int cmd_find(int argc, char **argv)
             any = 1;
         }
     }
-    for (size_t i = 0; i < c.rec.nrecords; i++) {          /* data objects (disc plans), by name or path */
+    for (size_t i = 0; i < c.rec.nrecords; i++) {          /* data objects, by name or path */
         const rec_record *o = &c.rec.records[i];
         if (!is_type(o, "Object") || !rec_get(o, "Disc")) continue;
         const char *name = rec_get(o, "Name") ? rec_get(o, "Name") : "", *path = rec_get(o, "Path") ? rec_get(o, "Path") : "";

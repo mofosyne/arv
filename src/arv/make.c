@@ -944,6 +944,12 @@ static long snapshot_estimate(const maker *mk)
         }
     }
     for (size_t i = 0; i < mk->files->n; i++) total += 4 * (long)(utf8_chars(mk->files->v[i].path) + 200);
+    for (int k = 0; HOME_VOCABULARIES[k]; k++) {
+        char *p = join(mk->h->config_dir, HOME_VOCABULARIES[k]);
+        struct stat st;
+        if (!stat(p, &st)) total += (long)st.st_size + SECTOR;
+        free(p);
+    }
     return total / SECTOR + 256;
 }
 
@@ -1204,6 +1210,16 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
                      &mk->plans[i].objects, &mk->plans[i].object_manifests);
         free(made_now.v);
     }
+    if (!mk->dplan && !mk->collection && mk->src && nbins == 1) {   /* a folder on one disc: a data object too */
+        char *abs = realpath(mk->src, NULL);
+        plan_item it = { .disc = 1, .source = abs ? abs : xstrdup(mk->src), .path = (char *)"." };
+        disc_plan one = { .root = home_root(mk->h), .discs = 1, .v = &it, .n = 1 };
+        recs none = { 0 };
+        plan_objects(&one, 1, &mk->plans[0].files, mk->cat, &none, mk->plans[0].disc_id, mk->today, &mk->plans[0].objects,
+                     &mk->plans[0].object_manifests);
+        free(it.source);
+        free(one.root);
+    }
 }
 
 static void batch_files(maker *mk)
@@ -1371,6 +1387,17 @@ static void stage_plan(maker *mk, size_t idx)
         free(path);
         free(n);
         free(all.v);
+    }
+    for (int k = 0; !strcmp(o->snapshot, "full") && HOME_VOCABULARIES[k]; k++) {   /* the words it uses: catalog/config/ */
+        char *from = join(mk->h->config_dir, HOME_VOCABULARIES[k]), *dir = join(cat_dir, "config");
+        if (!access(from, F_OK)) {
+            char *to = join(dir, HOME_VOCABULARIES[k]);
+            if (mkdirs(dir)) die("cannot create %s", dir);
+            copy_file(from, to);
+            free(to);
+        }
+        free(from);
+        free(dir);
     }
     static const char *const KINDS[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", "git.tsv",
                                          NULL };
@@ -1988,6 +2015,7 @@ int cmd_make(int argc, char **argv)
             fprintf(stderr, "Classified as: %s\n", l.s);
             free(l.s);
         }
+        if (!o.plan) layout_notes(&h, src, stderr, "Note: layout: ");   /* advice only: the disc gets it as it is */
 
         /* the questions after classifying (cli.cmd_make's meta), when asking */
         if (interactive) {

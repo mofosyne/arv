@@ -75,7 +75,7 @@ this repository and were not tested in it):
 | What is already archived | **arv status** on any folder | which of its files are on which discs, and which on none |
 
 Organise the NAS in plain folders by the same kinds as the archive vocabulary (photos,
-projects, records ...).
+projects, records ...): see "Laying the folder out" in step 1.
 
 ## 0. One-time setup
 
@@ -135,6 +135,28 @@ Before the first edition, check the names: `arv names ~/family`. UDF 2.50 keeps 
 characters exactly on every system, but Windows shows `< > : " \ | ? *` changed, and only one of
 two names that differ in letter case.
 
+**Laying the folder out.** A disc found decades from now, with no catalogue and no arv, is read
+by its folders alone, so its layout should be one a stranger can follow. arv never moves your
+files, so this is advice, not something it enforces. `arv status` and `arv make` note top-level
+folders whose names say nothing (`misc/`, `New folder/`), and, when most of the top level is
+kinds, the folders that are not (a repository's own tree is left alone):
+
+- **The top level is kinds**, named with the words of your set vocabulary (`photos/`,
+  `records/`, `projects/`; `arv sets -v`). Kinds age well; interpretations do not.
+- **The level below is a fact in the data**, not a judgement: for photos and video, the year of
+  capture (from the camera, not the file's modified time); for projects, the project's name (a
+  git repository's own tree is left alone); for records, the kind of record (`tax/`,
+  `medical/`), then the year; for imports, where they came from (`phone-2026/`,
+  `whatsapp-export/`).
+- **Below that, only a boundary that really exists**: an event or album folder that was already
+  named. Never months made up for the purpose: events straddle months, and cameras disagree on
+  time zones. If the fact is not in the data, leave the file where it is.
+- **Everything interpretive stays virtual**: importance (`arv appraise`), themes, people and
+  ratings (tags), best-of lists (selections). The catalogue can change those freely; a disc
+  cannot.
+- **Ingest at once, curate virtually.** The layout on disc changes only when a new edition is
+  made for its content, never by burning again just to reorganise.
+
 Optional: `arv tag FOLDER --save d.json` suggests folder tags from your vocabulary, and `arv
 describe FOLDER --save d.json` asks a local language model for a title, description and
 questions; `arv make --draft d.json` takes either.
@@ -182,7 +204,9 @@ catalogue. `--keep` marks one that must never be retired (a milestone; or later,
 `arv collection keep FAMILY 4`).
 
 A folder that is not a collection works too (`arv make FOLDER --set TRIP`): a one-off disc, as
-arv always made. The choices that matter then:
+arv always made. When it fits on one disc, the folder becomes a **data object**, as a plan's
+items do (below): made again after a change, it is that object's next version. The choices that
+matter then:
 
 | Option | Default | Choose otherwise when |
 |---|---|---|
@@ -334,7 +358,7 @@ always a copy of the catalogue**.
 chip):
 
 ```
-Data objects (disc plans):
+Data objects:
   2025/  folder, 2 versions; newest: 2 copies on 2 discs, 1 cold, 1 read back
     from /nas/photos/2025 (there now: arv status says if it changed)
     version 2  TRIP-03_2025_7  data/photos/  disc cold; at BOX1
@@ -370,7 +394,8 @@ is lost or damaged.
 - editions not yet safe;
 - editions a newer safe edition replaces, ready to retire;
 - discs with no cold copy;
-- discs kept in fewer than two places;
+- discs kept in fewer than two places, or, once appraised, fewer copies and places than the
+  appraisal asks for (essential: 3 copies in 3 places; important: 2 in 2; useful: 1);
 - checks overdue (5 years by default; `--overdue YEARS`);
 - data objects whose newest version has no cold copy, or that are no longer where they came
   from with fewer than two copies left.
@@ -383,7 +408,7 @@ image's hash and logs it. A disc that needed repair is a warning: make a new cop
 | What happened | What to do |
 |---|---|
 | A disc reads with errors | Follow REPAIR in the disc's `README.txt`: read it into an image (`ddrescue -b 2048 /dev/sr0 disc.iso disc.map`, or dvdisaster Light `-r --rescue`), then `arv check --image disc.iso --repair` (the disc's own `tools/arv.com` works too). Too damaged? Copies are sector-identical: read another copy into the same image (the same map file) and repair again; a stored iso is such a copy. When arv cannot repair, it prints the dvdisaster Light commands to paste, with the disc's medium size from the catalogue. Then make a new copy. |
-| The home catalogue is lost | `arv rebuild /media/disc` with the newest disc: discs, copies, places, collections, their history, file lists, and the archive's identity. A disc of another archive is refused (`--any-archive` to merge it anyway). |
+| The home catalogue is lost | `arv rebuild /media/disc` with the newest disc: discs, copies, places, collections, their history, file lists, the archive's identity, and its vocabularies (`config/sets.rec`, `config/tags.rec`, unless the home has its own). A disc of another archive is refused (`--any-archive` to merge it anyway). |
 | This tool is lost | every disc has `tools/` (the source at that time) and `README.txt`. Without it: `sha256sum -c manifest-sha256.txt` verifies, `index.html` browses, `grep` searches `catalog/volumes/*/listing.tsv`, and `catalog.rec` is plain text. |
 | dvdisaster is lost | arv repairs RS03 itself; the format is written up in [rs03-format.md](spec/rs03-format.md) (on every disc), with test vectors. A copy of dvdisaster can go in `tools/extra/` with `--extra-tools`. |
 | Decades later, unknown software | [smart-archive-format.md](spec/smart-archive-format.md) (on every disc under `tools/`) explains every file; BagIt is RFC 8493; recfiles are plain text. |

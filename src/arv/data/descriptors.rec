@@ -1,5 +1,6 @@
 # Record descriptors of the arv catalogue (GNU recutils), in the order the records are
-# written. Read by src/arv/catalog.py and compiled into src/arv: one definition for both.
+# written. Compiled into arv (data.c) and read by its interface (src/arv-gui/arvgui/catalog.py):
+# one definition for both.
 # Specification: docs/spec/smart-archive-format.md
 
 %rec: Home
@@ -85,8 +86,9 @@
 %type: Keep enum yes
 
 %rec: Object
-%doc: A data object: one file or folder put on a disc as a whole (by a disc plan), with no
-+ .arv marker of its own. Uuid is its lineage: every version of the same object shares it.
+%doc: A data object: one file or folder put on a disc as a whole (a disc plan's item, or a
++ folder arv make puts on one disc), with no .arv marker of its own. Uuid is its lineage:
++ every version of the same object shares it.
 + Tree is the SHA-256 of its manifest (each file's SHA-256 and path within the object,
 + sorted; a repository's .git aside, as git.tsv describes it); Version counts its versions,
 + and the same Tree on another disc is the same version. Disc and Path say where it is
@@ -124,7 +126,7 @@
 + DISC-ID:folder/file (relative to data/), set:CODE or selection:CODE; a target
 + without an appraisal takes the nearest one above it (file, folder, disc, set).
 + Importance is '<level> for <audience>', one per audience; levels, most first:
-+ essential (must survive: several copies, one elsewhere), important (on disc),
++ essential (must survive: 3 copies in 3 places), important (on disc: 2 in 2),
 + useful (on disc if there is room), incidental (everyday storage is enough).
 + Only a person can mark something incidental. Basis says why; Review is when to
 + look again. Authorship and Agent as in Event.

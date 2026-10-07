@@ -113,7 +113,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - Disc ids: **year range of the files + set + number**, e.g. `2020-2025_PROJECTS_01`.
 - Discs for other people or external parties: **minimal catalogue**
   (`--snapshot set`, only this set). Own off-site copies can take `full`.
-- Encryption: optional later, not implemented now (direction: see Decisions 2026-10-01).
+- Encryption: optional later, not implemented now (direction: "Direction (2026-10-07): locking, the data object as the unit").
 - Media: **M-DISC BD-R** as standard.
 - Copies: not managed. The tool makes the ISO; you burn it and record the count with `arv burned`.
 - Physical disc identity: our disc id (volume label + bag-info + written on the disc). Drive-reported
@@ -795,7 +795,8 @@ Found 2026-10-01, both worth starting from:
   are burned from one `.iso`, so they are sector-identical: read one with a map of bad sectors
   (`ddrescue`), fill the gaps from the other, and RS03 repairs what both lost. Parity spread
   across discs (PAR2 sets) only pays without whole-disc copies.
-- **Encryption, when it comes (not now).** Reconsidered 2026-10-05 as optional per-item *locking*
+- **Encryption, when it comes (not now).** Superseded 2026-10-07: see "Direction (2026-10-07):
+  locking, the data object as the unit" below; kept for the comparison. Reconsidered 2026-10-05 as optional per-item *locking*
   with key custody in the archive's record (docs/philosophy.md, "Locked, but never lost";
   issue #21); the whole-payload direction below stays as the alternative for sealed discs.
   Earlier direction: sealed discs only, opt-in. The disc stays a normal
@@ -824,6 +825,64 @@ Found 2026-10-01, both worth starting from:
     decrypted. So the encryption layer does not need to tolerate damage itself, and the choice
     should favour **simplicity of implementation** over self-healing features. VeraCrypt's local
     damage is a bonus, not a requirement, which leans towards age.
+
+## Direction (2026-10-07): locking, the data object as the unit (early days)
+
+Not scheduled; this records where the thinking stands (issues #21 and #13, #22 folded in).
+
+**What practitioners say** (sources checked 2026-10-07):
+- The preservation community's default is not to encrypt archival copies: encryption "should be
+  avoided if possible for archival copies", and lost keys make data inaccessible
+  ([DPC handbook](https://www.dpconline.org/handbook/technical-solutions-and-tools/information-security));
+  long-term content must not be protected in ways that stop custodians copying and migrating it
+  ([LoC, sustainability factors](https://www.loc.gov/preservation/digital/formats/sustain/sustain.shtml)).
+  Data hoarders who do encrypt name forgotten passphrases, not broken crypto, as the risk.
+- Security engineers do recommend encrypting offline backups, and age over PGP for files
+  ([Latacora](https://www.latacora.com/blog/2019/07/16/the-pgp-problem/)). OpenPGP has split in
+  two (LibrePGP in GnuPG, RFC 9580 at the IETF) with newer formats that do not interoperate
+  ([LWN](https://lwn.net/Articles/953797/)): not the stable target it looks like.
+- age: a published spec ([C2SP](https://github.com/C2SP/C2SP/blob/main/age.md)), interoperable
+  implementations in Go, Rust and TypeScript. Its 64 KiB chunks can be seeked by the spec, and the
+  Go library has seeking decryption since v1.3.0 (`DecryptReaderAt`); `rage-mount` mounts only
+  age-encrypted tar and zip. v1.3.0 also adds hybrid post-quantum recipients.
+- Symmetric encryption is not significantly weakened by quantum computers
+  ([NCSC](https://www.ncsc.gov.uk/whitepaper/next-steps-preparing-for-post-quantum-cryptography));
+  public-key recipients (X25519) are exposed to "record now, decrypt later".
+- Failures are about keys and tools, not ciphers: TrueCrypt ended in 2014 and VeraCrypt dropped
+  its format about ten years later (cryptsetup still opens it); an overwritten header is the most
+  common way LUKS volumes are lost (cryptsetup FAQ). Succession practice: split the passphrase,
+  not the data, with Shamir shares (`ssss`, Paperback), on paper, and test that the shares
+  decrypt ([an example](https://sprocketsecurity.com/blog/how-to-securely-share-your-backups-and-passwords-upon-your-death)).
+- **The one active project with the same shape:** [brb](https://github.com/jzbz/brb) (research-notes.md,
+  section on similar projects): SquashFS per disc, age, PAR2 over the ciphertext, ISO to BD-R. Its
+  restore decrypts the whole image, and its path index is encrypted too. Worth watching, and
+  comparing with once arv builds anything here.
+
+**Direction:**
+- **The unit is the data object**, not the file and not, by default, the disc. A locked object
+  goes on a disc as one SquashFS image encrypted with age, under a name made from its id; its
+  `Object` record says it is locked and which key opens it. Getting one thing back decrypts only
+  that object (often a few GB), so no seeking reader is needed. Plain and locked objects can
+  share a disc. Per file is rejected: it leaks counts, sizes and structure for nothing.
+- **A sealed disc is the special case** where every object is locked and the disc's own catalogue
+  is locked too (a small age file); other discs carry only its id and place, as now. One mechanism
+  covers #21 (locking) and #13 (sealed discs). What a mixed disc gives away: that a locked object
+  of about a given size exists.
+- **The envelope stays plain:** README, tools, the disc id, how to open it, and RS03 over the
+  whole image, which repairs the ciphertext before anything is decrypted (brb does the same with
+  PAR2).
+- **One archive passphrase by default** (age's scrypt stanza; symmetric, so no quantum exposure),
+  not a key per object: more keys is more of the risk the sources warn about. Kept on paper and
+  split with Shamir shares; arv would require a test decryption before a locked disc is made.
+  Keys per audience (family, heirs) only later, if wanted.
+- **No PGP; no cryptography of ours.** The disc carries age's spec and a decryptor's source in
+  the clear, and at least two independent tools must be able to open what arv writes.
+- **Locking stays opt-in, with the warning in README.txt:** a locked object lasts only as long as
+  its key arrangements.
+
+Open: whether the inner image is SquashFS (compact; 7-Zip and unsquashfs read it) or UDF (native
+mounts); how `arv verify` and `arv check` treat a locked object (the manifest of the ciphertext,
+and the plaintext manifest inside the lock); the custody record (#21).
 
 ## Later: catalogue snapshot size
 
@@ -865,8 +924,8 @@ about 430 bytes per file in the archive. Up to about a million files that is und
   Version, Tree, Disc, Path, Kind); `Source` and the manifests (`catalog/objects/`) stay at home.
   Same Tree = same version; same Source, new Tree = next version; empty objects never match.
   `arv status` reports objects from a folder exactly, and a folder whose whole Tree matches an
-  object by content; `arv find` lists them. Open: objects for `arv make FOLDER` too (the whole
-  folder as one object); `arv retire`-like care for an object's last version.
+  object by content; `arv find` lists them. `arv make FOLDER` records the folder as one object
+  when it fits on one disc (2026-10-07). Open: `arv retire`-like care for an object's last version.
 - **The union view** (built 2026-10-06). `arv objects [NAME]`: per data object (each version)
   and per collection (its newest edition), the discs holding it, every copy of them (form,
   temperature, read back) and whether the original is still there. `arv todo` adds: a newest
@@ -876,5 +935,5 @@ about 430 bytes per file in the archive. Up to about a million files that is und
 - **Snapshot fallback.** `--snapshot full` is the default with no automatic step down when it does
   not fit; the intent is full where it fits, partial only when needed. What "partial" keeps (this
   set, this edition, recent discs) and how it treats access levels is undecided.
-- **Vocabularies on disc.** `arv rebuild` restores catalogue records and indexes but not `config/`
-  vocabularies; whether discs carry them is open.
+- ~~**Vocabularies on disc.**~~ Done 2026-10-07: full snapshots carry `config/sets.rec` and
+  `config/tags.rec` in `catalog/config/`; `arv rebuild` restores them into a home that has none.
