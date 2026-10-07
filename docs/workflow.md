@@ -10,6 +10,10 @@ keep, in *editions* — sets of discs, each holding a selection of the collectio
 the catalogue — kept **cold** (offline, on a shelf) wherever possible, and recorded well enough
 to outlive the software and the person who made it ([philosophy.md](philosophy.md)).
 
+The steps fall in three parts, as the name says: **Archive** (what goes on discs: 1-3),
+**Record** (what exists, and where: 4-6) and **Verify** (still good, and can be got back: 7-8).
+`arv --help` and the GUI's three tabs are arranged the same way.
+
 Details live elsewhere and are linked: the model behind the commands in
 [concepts.md](concepts.md), the command reference in [README.md](../README.md), the on-disc format
 in [smart-archive-format.md](spec/smart-archive-format.md), burning in [burning.md](burning.md),
@@ -20,23 +24,23 @@ shelving in [shelving.md](shelving.md), and the reasons for each choice in
 
 ```mermaid
 flowchart TD
-    subgraph keep [What you keep]
+    subgraph keep [Archive: what you keep]
         W[a workflow folder<br/>arv collection init] --> S[sort, add, rename<br/>arv status, arv checkpoint]
     end
-    subgraph make [An edition]
+    subgraph make [Archive: an edition]
         S --> M[arv make<br/>disc images: a selection of the<br/>collection + the catalogue, bag, tools, RS03]
     end
-    subgraph copies [Its copies]
+    subgraph copies [Record: its copies]
         M --> B[burn it yourself, then<br/>arv burned --device: read back, recorded; cold]
         M --> N[copy it to the NAS, then<br/>arv stored: checked, recorded; warm]
     end
-    subgraph live [Living with it]
+    subgraph live [Verify: living with it]
         B --> T[arv todo<br/>copies owed, checks due, editions to retire]
         N --> T
         T --> R[arv retire<br/>older editions a safe one replaces]
         T --> C[arv check --device<br/>every few years]
     end
-    subgraph recover [Recover]
+    subgraph recover [Verify: recover]
         C -- damage --> D[ddrescue, then<br/>arv check --image --repair]
         B -- home catalogue lost --> RB[arv rebuild /media/disc]
         B -- tools lost --> P[plain tools:<br/>sha256sum, a browser, a text editor]
@@ -108,7 +112,13 @@ arv location add PARENTS "Parents' house" --temperature cold
 arv location add NAS "The NAS" --temperature warm
 ```
 
-## 1. A collection and its workflow folder
+## Archive: what goes on discs
+
+Choosing what to keep, shaping it, and making disc images of it: a collection's editions from its
+workflow folder (1-3), or discs composed by hand from anywhere (disc plans, in 3). Nothing here
+counts as archived yet: that takes copies, recorded (Record), and read back (Verify).
+
+### 1. A collection and its workflow folder
 
 A **collection** is something you keep over time: the family photos, a project, the tax
 records. Its **workflow folder** is where you sort it. arv writes one small `.arv` marker
@@ -129,7 +139,7 @@ Optional: `arv tag FOLDER --save d.json` suggests folder tags from your vocabula
 describe FOLDER --save d.json` asks a local language model for a title, description and
 questions; `arv make --draft d.json` takes either.
 
-## 2. Sort, and see what changed
+### 2. Sort, and see what changed
 
 Work in the folder as you like. arv tells you what changed since the last edition, and keeps a
 history if you want one between editions:
@@ -160,7 +170,7 @@ repository is its working files plus a compacted `.git` (one pack; no hooks, no 
 stash's, no credentials in remote URLs), so the restored folder is a working repository; `arv
 make --git-since DATE` keeps only the history since then (shallow, as git itself does it).
 
-## 3. Make an edition
+### 3. Make an edition
 
 ```sh
 arv make ~/family [--message "the 2025 sort"] [--keep] [--medium bd25|bd100] [--split]
@@ -182,7 +192,7 @@ arv always made. The choices that matter then:
 | `--snapshot` | `full`: every disc carries the whole catalogue | `set` for a disc given to someone else |
 | `--split` | off: stop if it does not fit | the folder needs several discs |
 
-### Discs composed by hand: disc plans
+#### Discs composed by hand: disc plans
 
 When what goes on a disc is not one folder (a large film on one disc, the year's photos from the
 NAS and some scans on another), compose the discs by hand, as Nero's compilation window did. A
@@ -238,7 +248,7 @@ A plan's discs are one-off discs of its set, not an edition of a collection. The
 `drafts/plans/NAME.rec` in the home (a Plan record, then an Item record per thing: `Disc`,
 `Source`, `Path`); it never goes on a disc. Not yet: `--formats` (Siegfried) for a plan.
 
-### What `arv make` does, step by step
+#### What `arv make` does, step by step
 
 1. **Scan and hash** every file (SHA-256 and SHA-512); stop on names the image cannot hold.
 2. **Classify**: one `Set` and any `Category` codes from `sets.rec`, every vocabulary path
@@ -258,7 +268,13 @@ A plan's discs are one-off discs of its set, not an edition of a collection. The
 
 Output: one `.iso` per disc, and the commands to burn and record it.
 
-## 4. Copies: burned, and stored
+## Record: what exists, and where
+
+What arv writes down: every copy and where it is kept, notes and changes after burning, what is
+on which disc, and what each thing is. The catalogue is the map of the archive; every new disc
+carries a copy of it.
+
+### 4. Copies: burned, and stored
 
 arv never burns and never copies files to a NAS: those are jobs for tools built for them. It
 checks each copy against the image and records it, with its place and temperature.
@@ -282,7 +298,7 @@ Write the disc id on the hub and the case; its last character is a check charact
 mistyped id is caught (`arv id FAMILY-04_2001-2025_Y`). [burning.md](burning.md) has the burning
 commands, the pitfalls and the drill to run before trusting a new drive or media.
 
-## 5. Store
+### 5. Store
 
 How to arrange the discs so the shelf matches the catalogue: **[shelving.md](shelving.md)**.
 In short: physically by access level, a box per year made, in the order made (sealed discs in
@@ -296,19 +312,22 @@ arv location move HOME-2026 --in PARENTS             # moving a box moves its di
 arv location list -v                                 # places, their temperature and their discs
 ```
 
-## 6. Living with the archive
+### 6. Finding things, and the whole picture
 
-**`arv todo`** lists what is owed, and is the one command to run now and then:
+| Question | Answer |
+|---|---|
+| Which disc has this file, and where is it? | `arv find IMG_2019` (a glob works: `'*.kicad_pcb'`) |
+| What do I have from July 2019? | `arv list --covers 2019-07` |
+| Everything under a category or a place | `arv list --in MEMORIES`, `arv list --at PARENTS` |
+| What has this collection been through? | `arv collection show FAMILY`, `arv log FAMILY` |
+| Which tags do I use? | `arv tags`; `arv find place:kyoto` |
+| Group things across discs | `arv selection add BEST --name "Best of" DISC:folder/ DISC:file`: virtual folders, shown as a tree by other software too |
+| Without this tool installed? | every disc carries it: `tools/arv.com find PATTERN` from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
+| Changes after burning | `arv note`, `arv locate`, `arv access` (home catalogue; later discs carry them) |
+| How important is it, and to whom? | `arv appraise` (the archivist's log; `make --importance` at the start) |
 
-- discs with no copy yet;
-- copies never read back;
-- editions not yet safe;
-- editions a newer safe edition replaces, ready to retire;
-- discs with no cold copy;
-- discs kept in fewer than two places;
-- checks overdue (5 years by default; `--overdue YEARS`);
-- data objects whose newest version has no cold copy, or that are no longer where they came
-  from with fewer than two copies left.
+Every new disc carries the whole archive's catalogue as of its making, so **the newest disc is
+always a copy of the catalogue**.
 
 **`arv objects [NAME]`** is the whole picture, per thing kept rather than per disc (the GUI's
 **Objects** tab shows the same, from `arv objects --json`, with each copy as a cold, warm or hot
@@ -337,25 +356,29 @@ recorded as **lost** on that edition (a `Lost:` line each, carried on every late
 `arv log FAMILY` counts them and `arv find` lists them as `LOST`. A retired disc's own files still
 show in `arv find`, marked `[retired DATE]` where a disc's place would be.
 
+## Verify: still good, and can be got back
+
+Whether every copy still reads, what is owed (`arv todo`), and getting things back when something
+is lost or damaged.
+
+### 7. What is owed, and checking
+
+**`arv todo`** lists what is owed, and is the one command to run now and then:
+
+- discs with no copy yet;
+- copies never read back;
+- editions not yet safe;
+- editions a newer safe edition replaces, ready to retire;
+- discs with no cold copy;
+- discs kept in fewer than two places;
+- checks overdue (5 years by default; `--overdue YEARS`);
+- data objects whose newest version has no cold copy, or that are no longer where they came
+  from with fewer than two copies left.
+
 **Checking** every few years: `arv check --device /dev/sr0` reads a disc back against its
 image's hash and logs it. A disc that needed repair is a warning: make a new copy.
 
-| Question | Answer |
-|---|---|
-| Which disc has this file, and where is it? | `arv find IMG_2019` (a glob works: `'*.kicad_pcb'`) |
-| What do I have from July 2019? | `arv list --covers 2019-07` |
-| Everything under a category or a place | `arv list --in MEMORIES`, `arv list --at PARENTS` |
-| What has this collection been through? | `arv collection show FAMILY`, `arv log FAMILY` |
-| Which tags do I use? | `arv tags`; `arv find place:kyoto` |
-| Group things across discs | `arv selection add BEST --name "Best of" DISC:folder/ DISC:file`: virtual folders, shown as a tree by other software too |
-| Without this tool installed? | every disc carries it: `tools/arv.com find PATTERN` from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
-| Changes after burning | `arv note`, `arv locate`, `arv access` (home catalogue; later discs carry them) |
-| How important is it, and to whom? | `arv appraise` (the archivist's log; `make --importance` at the start) |
-
-Every new disc carries the whole archive's catalogue as of its making, so **the newest disc is
-always a copy of the catalogue**.
-
-## 7. Recover
+### 8. Recover
 
 | What happened | What to do |
 |---|---|
@@ -368,7 +391,7 @@ always a copy of the catalogue**.
 The rule behind all of this: **the discs describe themselves**. Nothing on a disc needs this
 tool, the home catalogue or the network to be found, verified, read or repaired.
 
-## 8. How the repository fits together
+## 9. How the repository fits together
 
 ```
 src/arv/                  arv: the C program (C99 and POSIX, no libraries)
@@ -400,7 +423,7 @@ The layers, from most to least durable:
 3. **The optional helpers:** arv-assist (local AI helpers) and arv-gui (the web interface).
    Nothing on a disc needs them.
 
-## 9. Developer flows
+## 10. Developer flows
 
 - **Tests:** `make check` runs bagit (against bagit.py when python3 is there), RS03 (the test
   vectors, and dvdisaster Light when on PATH), arv (`make -C src/arv check`: the reference

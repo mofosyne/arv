@@ -919,7 +919,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   }
 
   api("/api/llm/status").then(function (st) { llmStatus = st; }).catch(function () { llmStatus = null; })
-    .then(function () { setupMakeLLM(); loadDiscs(); showTab("owed"); });
+    .then(function () {           // a view named in the address (#discs, #master...), else Verify's Owed
+      var want = location.hash.slice(1);
+      setupMakeLLM(); loadDiscs(); loadOwed(); showTab(GROUP[want] ? want : "owed");
+    });
 })();
 </script>
 </body></html>
