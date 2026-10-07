@@ -163,13 +163,20 @@ proposes.
   POSIX with no libraries, built with one `cc` line or carried ready to run as one
   portable executable. Every disc carries the source of the tools that made it.
 
-## Two orders: the shelf and the catalogue (principle 2)
+## Three orders: the shelf, the catalogue and the disc (principle 2)
 
 Physically, discs are kept by access level and the year they were made, so new
 discs only ever go at the end ([shelving.md](shelving.md)). Virtually, the
 catalogue on every disc shows them by kind, by year covered, by place, by
 collection and by tag. The shelf only has to be stable; the catalogue gives
 every other view, and catalogue software such as Katalog can present it.
+
+**The disc's own layout is the third order, and the most lasting.** A disc that outlives every
+catalogue is read by its folders, so their top level is kinds (photos, records, projects, from the
+set vocabulary) and the level below is a fact in the data (a year of capture, a project's name),
+never an interpretation. Interpretation (importance, themes, people, best-of lists) stays in the
+catalogue, where it can be revised for free; a disc's layout changes only with a new edition of
+its content, never by burning again to reorganise (workflow.md, "Laying the folder out").
 
 ## Small tools, run in order (principle 4)
 

@@ -22,6 +22,13 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Laying a disc out** (issue #23)
+- docs/workflow.md, "Laying the folder out": the top level is kinds, from the set vocabulary; the
+  level below is a fact in the data (year of capture, project, record type, source); below that,
+  only a boundary that already exists. Interpretation stays virtual, and a disc's layout changes
+  only with a new edition of its content. docs/philosophy.md calls the disc's layout the third
+  order, beside the shelf and the catalogue. Advice only: arv still never moves files.
+
 **Appraise first: the levels ask for care** (issue #24)
 - Each importance level now asks for a number of copies and places: essential, 3 copies in 3
   places; important, 2 in 2; useful, 1; incidental, none (everyday storage is enough).

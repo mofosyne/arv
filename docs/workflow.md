@@ -75,7 +75,7 @@ this repository and were not tested in it):
 | What is already archived | **arv status** on any folder | which of its files are on which discs, and which on none |
 
 Organise the NAS in plain folders by the same kinds as the archive vocabulary (photos,
-projects, records ...).
+projects, records ...): see "Laying the folder out" in step 1.
 
 ## 0. One-time setup
 
@@ -134,6 +134,26 @@ nothing. Its code starts the disc ids (`FAMILY-04_2001-2025_X`).
 Before the first edition, check the names: `arv names ~/family`. UDF 2.50 keeps names up to 254
 characters exactly on every system, but Windows shows `< > : " \ | ? *` changed, and only one of
 two names that differ in letter case.
+
+**Laying the folder out.** A disc found decades from now, with no catalogue and no arv, is read
+by its folders alone, so its layout should be one a stranger can follow. arv never moves your
+files, so this is advice, not something it enforces:
+
+- **The top level is kinds**, named with the words of your set vocabulary (`photos/`,
+  `records/`, `projects/`; `arv sets -v`). Kinds age well; interpretations do not.
+- **The level below is a fact in the data**, not a judgement: for photos and video, the year of
+  capture (from the camera, not the file's modified time); for projects, the project's name (a
+  git repository's own tree is left alone); for records, the kind of record (`tax/`,
+  `medical/`), then the year; for imports, where they came from (`phone-2026/`,
+  `whatsapp-export/`).
+- **Below that, only a boundary that really exists**: an event or album folder that was already
+  named. Never months made up for the purpose: events straddle months, and cameras disagree on
+  time zones. If the fact is not in the data, leave the file where it is.
+- **Everything interpretive stays virtual**: importance (`arv appraise`), themes, people and
+  ratings (tags), best-of lists (selections). The catalogue can change those freely; a disc
+  cannot.
+- **Ingest at once, curate virtually.** The layout on disc changes only when a new edition is
+  made for its content, never by burning again just to reorganise.
 
 Optional: `arv tag FOLDER --save d.json` suggests folder tags from your vocabulary, and `arv
 describe FOLDER --save d.json` asks a local language model for a title, description and
