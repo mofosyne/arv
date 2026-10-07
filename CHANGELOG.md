@@ -27,6 +27,8 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   NAS): which goes on which disc, and where under `data/`. A plan points at its sources and copies
   nothing; `arv plan show` measures them against each disc's room, and `arv plan make` makes
   one image a disc (`arv make --plan`). The GUI's new Mastering tab is the same, with drag and drop.
+  A made plan is kept as a template: `arv plan list` hides it unless `--all`, and `arv plan again
+  NAME NEW` starts the same selection again as a new plan (the GUI: "Make it again").
 - Each planned file or folder becomes a **data object** (`Object` record, format 0.5): known by
   the hash of its content, in linked versions, with no `.arv` marker. `arv status` says whether
   each object archived from a folder is unchanged, changed or gone, and recognises a moved folder

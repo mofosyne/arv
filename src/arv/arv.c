@@ -66,7 +66,7 @@ static void usage(FILE *to)
           "       arv objects [NAME]   what you keep and where every copy is: data objects (versions, discs,\n"
           "                copies, hot/warm/cold) and collections (the newest edition), and the originals\n"
           "       arv retire CODE [--yes [--accept-loss]]   retire the editions a newer safe one replaces (not kept ones)\n"
-          "       arv plan new|list|show|add|move|drop|disc|make|delete NAME ...   compose discs by hand from files\n"
+          "       arv plan new|list|show|add|move|drop|disc|make|again|delete NAME ...   compose discs by hand from files\n"
           "                and folders anywhere, then make them (docs/workflow.md, Disc plans)\n"
           "       arv selection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]\n"
           "       arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]\n"

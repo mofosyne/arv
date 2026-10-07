@@ -189,6 +189,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   <div class="inline">
     <div><label for="p-pick">Disc plan</label><select id="p-pick"></select></div>
     <button class="plain" type="button" id="p-new-btn">New plan…</button>
+    <button class="plain" type="button" id="p-again" hidden>Make it again as a new plan…</button>
     <button class="plain" type="button" id="p-delete">Delete plan</button>
   </div>
   <form id="p-new" class="card" hidden>
@@ -615,9 +616,17 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     return api("/api/plans").then(function (res) {
       var pick = $("p-pick"), keep = choose || pick.value;
       pick.textContent = "";
-      res.plans.forEach(function (n) { pick.appendChild(el("option", { value: n, text: n })); });
+      var open = res.plans.filter(function (p) { return !p.made; }), made = res.plans.filter(function (p) { return p.made; });
+      [["Open", open], ["Made", made]].forEach(function (g) {
+        if (!g[1].length) return;
+        var group = el("optgroup", { label: g[0] });
+        g[1].forEach(function (p) { group.appendChild(el("option", { value: p.name, text: p.name + (p.made ? " (made " + p.made + ")" : "") })); });
+        pick.appendChild(group);
+      });
       if (!res.plans.length) pick.appendChild(el("option", { value: "", text: "(no plans yet)" }));
-      if (keep && res.plans.indexOf(keep) >= 0) pick.value = keep;
+      var names = res.plans.map(function (p) { return p.name; });
+      if (keep && names.indexOf(keep) >= 0) pick.value = keep;
+      else if (open.length) pick.value = open[0].name;
       $("p-new").hidden = res.plans.length > 0;
       if (!folder) browseFiles("");
       return loadPlan();
@@ -644,9 +653,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     to.appendChild(el("option", { value: "auto", text: "the first disc with room" }));
     $("p-make").hidden = !plan || !!plan.made;
     $("p-delete").hidden = !plan;
+    $("p-again").hidden = !plan || !plan.made;
     if (!plan) return;
-    if (plan.made) say("Made " + plan.made + " as " + plan.volumes.join(", ") + ". Burn and record them from the Discs tab; " +
-                       "a new plan starts the next discs.");
+    if (plan.made) say("Made " + plan.made + " as " + plan.volumes.join(", ") + ". Burn and record them from the Discs tab. " +
+                       "To archive the same selection again later, make it again as a new plan; deleting this one is safe.");
     var room = plan.room;
     plan.discs.forEach(function (d) {
       to.appendChild(el("option", { value: String(d.disc), text: "disc " + d.disc }));
@@ -739,6 +749,14 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var name = $("p-name").value.trim();
     api("/api/plan", { action: "new", name: name, title: $("p-title").value, set: $("p-set").value, medium: $("p-medium").value })
       .then(function (res) { say(res.output, res.returncode !== 0); if (res.returncode === 0) loadPlans(name); })
+      .catch(function (e) { say("Error: " + e.message, true); });
+  };
+  $("p-again").onclick = function () {
+    if (!plan) return;
+    var name = prompt("Name for the new plan (letters, digits, - _ .)", plan.name + "-again");
+    if (!name) return;
+    api("/api/plan", { action: "again", name: plan.name, new: name.trim() })
+      .then(function (res) { say(res.output, res.returncode !== 0); if (res.returncode === 0) loadPlans(name.trim()); })
       .catch(function (e) { say("Error: " + e.message, true); });
   };
   $("p-delete").onclick = function () {

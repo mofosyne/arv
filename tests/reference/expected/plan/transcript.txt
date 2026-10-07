@@ -50,7 +50,7 @@ Disc 2  [#-------------------]    1%  20 B in 2 items
 Next: arv plan make trip (one image a disc; arv make's options apply)
 rc=0
 $ --home hp plan show trip --json
-{"name": "trip", "title": "Holiday 2025", "set": "TRIP", "medium": "bd25", "description": null, "access": null, "mediumLabel": "BD-R 25GB", "room": 19804278784, "made": null, "volumes": [], "discs": [{"disc": 1, "bytes": 7, "used": 6144, "items": [{"path": "video/wedding.mkv", "source": "ROOT/plan-pc/Videos/wedding.mkv", "kind": "file", "bytes": 7, "files": 1}]}, {"disc": 2, "bytes": 20, "used": 20480, "items": [{"path": "notes.txt", "source": "ROOT/plan-pc/notes.txt", "kind": "file", "bytes": 6, "files": 1}, {"path": "photos", "source": "ROOT/plan-nas/photos/2025", "kind": "folder", "bytes": 14, "files": 2}]}]}
+{"name": "trip", "title": "Holiday 2025", "set": "TRIP", "medium": "bd25", "description": null, "access": null, "from": null, "mediumLabel": "BD-R 25GB", "room": 19804278784, "made": null, "volumes": [], "discs": [{"disc": 1, "bytes": 7, "used": 6144, "items": [{"path": "video/wedding.mkv", "source": "ROOT/plan-pc/Videos/wedding.mkv", "kind": "file", "bytes": 7, "files": 1}]}, {"disc": 2, "bytes": 20, "used": 20480, "items": [{"path": "notes.txt", "source": "ROOT/plan-pc/notes.txt", "kind": "file", "bytes": 6, "files": 1}, {"path": "photos", "source": "ROOT/plan-nas/photos/2025", "kind": "folder", "bytes": 14, "files": 2}]}]}
 rc=0
 $ --home hp plan list
 trip  2 discs, 3 items  "Holiday 2025"
@@ -81,10 +81,36 @@ Disc 2  [#-------------------]    1%  20 B in 2 items
   notes.txt  6 B  ROOT/plan-pc/notes.txt
   photos/  14 B, 2 files  ROOT/plan-nas/photos/2025
 Made 2026-01-01: TRIP-01_2025_B TRIP-02_2025_9
+The same again, as a new plan: arv plan again trip NEW (this one is kept as it was; deleting it is safe)
 rc=0
 $ --home hp plan add trip plan-pc/gone.txt
-Error: plan trip was made into discs already (arv plan show); start another with arv plan new
+Error: plan trip was made into discs already (arv plan show); the same again as a new plan: arv plan again trip NEW
 rc=1
+$ --home hp plan show trip --medium bd100
+Error: plan trip was made into discs already (arv plan show); the same again as a new plan: arv plan again trip NEW
+rc=1
+$ --home hp plan list
+(1 made plan not shown: arv plan list --all)
+rc=0
+$ --home hp plan list --all
+trip  2 discs, 3 items  "Holiday 2025"
+    made 2026-01-01 (arv plan again trip NEW: the same again, as a new plan)
+rc=0
+$ --home hp plan again trip trip-2026 --title Holiday 2026
+Plan trip-2026: from trip, 3 items on 2 discs. Next: arv plan show trip-2026, then arv plan make trip-2026
+rc=0
+$ --home hp plan again trip trip-2026
+Error: there is a plan trip-2026 already (arv plan show)
+rc=1
+$ --home hp plan show trip-2026
+Plan trip-2026  "Holiday 2026"  set TRIP  (from plan trip)  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  7 B in 1 item
+  video/wedding.mkv  7 B  ROOT/plan-pc/Videos/wedding.mkv
+Disc 2  [#-------------------]    1%  20 B in 2 items
+  notes.txt  6 B  ROOT/plan-pc/notes.txt
+  photos/  14 B, 2 files  ROOT/plan-nas/photos/2025
+Next: arv plan make trip-2026 (one image a disc; arv make's options apply)
+rc=0
 $ --home hp find wedding
 OBJECT  wedding.mkv  version 1  TRIP-01_2025_B  data/video/wedding.mkv  [?]
 TRIP-01_2025_B  [?]  data/video/wedding.mkv
@@ -256,8 +282,6 @@ $ --home hp plan delete later
 Plan later deleted (its sources are untouched)
 rc=0
 $ --home hp plan list
-again  2 discs, 2 items
-    made 2026-01-01
-trip  2 discs, 3 items  "Holiday 2025"
-    made 2026-01-01
+trip-2026  2 discs, 3 items  "Holiday 2026"
+(2 made plans not shown: arv plan list --all)
 rc=0

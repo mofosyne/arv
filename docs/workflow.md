@@ -204,6 +204,11 @@ arv plan make family [--output-dir DIR] [arv make's options]
 `arv plan make` runs `arv make --plan` once for all the plan's discs: one image a disc (parts 1 of N),
 recorded as usual. A disc that does not fit is an error that names it (move something; arv does
 not move files for a plan), and the plan then records the discs it became and takes no more changes.
+
+A made plan is kept as a template: `arv plan list` shows open plans (`--all` shows made ones too),
+and `arv plan again NAME NEW` starts a new open plan with the same settings, discs and items, for
+archiving the same selection again later (each item becomes its object's next version if it
+changed). Deleting a made plan is always safe: its discs and objects record everything it said.
 The GUI's **Mastering** tab is the same, with drag and drop: the discs on the left, each with
 its fill bar, and a file browser on the right.
 

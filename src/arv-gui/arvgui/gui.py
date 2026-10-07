@@ -19,7 +19,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import catalog
+from . import catalog, recfile
 
 DISC_FIELDS = ("Id", "Part", "Title", "Set", "Category", "Path", "Coverage", "Date", "Location", "Description", "Subject", "Note", "Files", "Copies")
 
@@ -155,7 +155,14 @@ class App:
             names = sorted(n[:-4] for n in os.listdir(folder) if n.endswith(".rec") and not n.startswith("."))
         except OSError:
             names = []
-        return {"plans": names}
+        plans = []
+        for name in names:              # open, or made (its Plan record carries Made: DATE)
+            try:
+                head = [r for r in recfile.read(os.path.join(folder, name + ".rec")) if r.type == "Plan" and not r.is_descriptor]
+            except (OSError, ValueError):
+                head = []
+            plans.append({"name": name, "made": head[0].get("Made") if head else None})
+        return {"plans": plans}
 
     def plan(self, params):
         name = params.get("name", "")
@@ -194,6 +201,10 @@ class App:
                 argv += ["--disc", str(body["disc"]) if str(body["disc"]) == "new" else str(int(body["disc"]))]
         elif action == "disc":
             argv += ["add"] if body.get("op") == "add" else ["drop", str(int(body["disc"]))]
+        elif action == "again":
+            if not PLAN_NAME.match(body["new"]):
+                raise ValueError("not a plan name: %r" % body["new"])
+            argv += [body["new"]]
         elif action == "make":
             argv += ["-y"]
             for key in ("output_dir", "min_redundancy", "snapshot"):

@@ -854,7 +854,9 @@ about 430 bytes per file in the archive. Up to about a million files that is und
   keeps `drafts/plans/NAME.rec` (a Plan record, Item records: Disc, Source, Path); it points at
   the sources, copies nothing, and `arv plan make` runs `arv make --plan FILE` (each entry's
   bytes read from its own source; one image a disc; no rebalancing). The GUI's Mastering tab
-  drives it (drag and drop, a fill bar a disc). Open: `--formats` for a plan; whether a plan can
+  drives it (drag and drop, a fill bar a disc). Made plans are kept as templates (2026-10-07):
+  `list` hides them unless `--all`; `arv plan again NAME NEW` copies one into a new open plan
+  (`From: NAME`); deleting one is always safe. Open: `--formats` for a plan; whether a plan can
   make an edition of a collection; `plan show` marking what is already on discs (by hash).
 - **Data objects** (built 2026-10-06). Each plan item becomes an `Object` record (Uuid lineage,
   Version, Tree, Disc, Path, Kind); `Source` and the manifests (`catalog/objects/`) stay at home.

@@ -419,6 +419,12 @@ log plan.out --home hp plan make trip -y --no-ecc --formats no --split
 log plan.out --home hp plan make trip -y --no-ecc --formats no --keep-stage --output-dir out-plan
 log plan.out --home hp plan show trip
 log plan.out --home hp plan add trip plan-pc/gone.txt
+log plan.out --home hp plan show trip --medium bd100
+log plan.out --home hp plan list
+log plan.out --home hp plan list --all
+log plan.out --home hp plan again trip trip-2026 --title "Holiday 2026"
+log plan.out --home hp plan again trip trip-2026
+log plan.out --home hp plan show trip-2026
 log plan.out --home hp find wedding
 log plan.out --home hp status plan-nas/photos/2025
 log plan.out --home hp status plan-pc

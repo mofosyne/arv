@@ -1,14 +1,15 @@
 /* Disc plans: discs composed by hand from files and folders anywhere (the mastering workspace).
  *
  *   arv plan new NAME [--medium M] [--set CODE] [--title TEXT] [--description TEXT] [--access LEVEL] [--discs N]
- *   arv plan list
+ *   arv plan list [--all]           open plans (--all: made ones too)
  *   arv plan show NAME [--json]
  *   arv plan add NAME SOURCE... [--disc N|new|auto] [--as PATH]
  *   arv plan move NAME PATH... --disc N|new [--from N]
  *   arv plan drop NAME PATH... [--from N]
  *   arv plan disc NAME add | drop N
  *   arv plan make NAME [arv make's options]
- *   arv plan delete NAME
+ *   arv plan again NAME NEW         a new open plan from NAME (made or not): its settings, discs and items
+ *   arv plan delete NAME            (always safe for a made plan: its discs and objects keep all it said)
  * --medium, --set, --title, --description and --access given to new or to any other action (but
  * make, where they are arv make's) are kept in the plan as make's defaults.
  *
@@ -284,7 +285,7 @@ static void show(const arv_home *h, disc_plan *p, int as_json)
         used[p->v[i].disc] += m[i].sectors;
         bytes[p->v[i].disc] += m[i].bytes;
     }
-    const char *fields[] = { "Title", "Set", "Medium", "Description", "Access", NULL };
+    const char *fields[] = { "Title", "Set", "Medium", "Description", "Access", "From", NULL };
     if (as_json) {
         sbuf b = { 0 };
         sb_puts(&b, "{\"name\": ");
@@ -333,6 +334,7 @@ static void show(const arv_home *h, disc_plan *p, int as_json)
         printf("Plan %s", p->name);
         if (rec_get(hd, "Title")) printf("  \"%s\"", rec_get(hd, "Title"));
         if (rec_get(hd, "Set")) printf("  set %s", rec_get(hd, "Set"));
+        if (rec_get(hd, "From")) printf("  (from plan %s)", rec_get(hd, "From"));
         if (cap) printf("  %s: about %s a disc for files\n", label, rs);
         else printf("  medium auto: arv make chooses each disc's\n");
         size_t missing = 0;
@@ -366,6 +368,8 @@ static void show(const arv_home *h, disc_plan *p, int as_json)
             for (size_t f = 0; f < hd->nfields; f++)
                 if (!strcmp(hd->fields[f].name, "Volume")) printf(" %s", hd->fields[f].value);
             putchar('\n');
+            printf("The same again, as a new plan: arv plan again %s NEW (this one is kept as it was; deleting it is safe)\n",
+                   p->name);
         } else if (missing) {
             printf("%zu item%s missing: put %s back, or arv plan drop %s PATH\n", missing, missing == 1 ? " is" : "s are",
                    missing == 1 ? "it" : "them", p->name);
@@ -451,13 +455,15 @@ static void say_where(const arv_home *h, disc_plan *p, int disc, const char *wha
 int cmd_plan(int argc, char **argv)
 {
     const char *given = NULL, *action = NULL, *name = NULL, *disc = NULL, *as = NULL, *from_s = NULL;
-    int as_json = 0;
+    int as_json = 0, all = 0;
     strlist args = { 0 }, defaults = { 0 }, rest = { 0 };
     static const char *const SETTINGS[][2] = { { "--medium", "Medium" }, { "--set", "Set" }, { "--title", "Title" },
                                                { "--description", "Description" }, { "--access", "Access" } };
     int i = 0;
     for (; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (!strcmp(argv[i], "--json")) as_json = 1;
+        else if (!strcmp(argv[i], "--all")) all = 1;
         else if (!action) action = argv[i];
         else if (!name) {
             name = argv[i];
@@ -469,7 +475,6 @@ int cmd_plan(int argc, char **argv)
         else if (i + 1 < argc && !strcmp(argv[i], "--as")) as = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--from")) from_s = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--discs")) disc = argv[++i];
-        else if (!strcmp(argv[i], "--json")) as_json = 1;
         else {
             int setting = 0;
             for (int k = 0; k < 5 && !setting; k++)
@@ -499,6 +504,7 @@ int cmd_plan(int argc, char **argv)
         }
         if (d) closedir(d);
         if (!names.n) printf("No plans (arv plan new NAME)\n");
+        size_t hidden = 0;
         for (size_t k = 0; k < names.n; k++)          /* in name order */
             for (size_t j = k + 1; j < names.n; j++)
                 if (strcmp(names.v[j], names.v[k]) < 0) {
@@ -511,12 +517,18 @@ int cmd_plan(int argc, char **argv)
             disc_plan p;
             plan_load(f, &p);
             const rec_record *hd = head(&p);
+            if (rec_get(hd, "Made") && !all) {
+                hidden++;
+                free(f);
+                continue;
+            }
             printf("%s  %d disc%s, %zu item%s%s%s%s\n", p.name, p.discs, p.discs == 1 ? "" : "s", p.n, p.n == 1 ? "" : "s",
                    rec_get(hd, "Title") ? "  \"" : "", rec_get(hd, "Title") ? rec_get(hd, "Title") : "",
                    rec_get(hd, "Title") ? "\"" : "");
-            if (rec_get(hd, "Made")) printf("    made %s\n", rec_get(hd, "Made"));
+            if (rec_get(hd, "Made")) printf("    made %s (arv plan again %s NEW: the same again, as a new plan)\n", rec_get(hd, "Made"), p.name);
             free(f);
         }
+        if (hidden) printf("(%zu made plan%s not shown: arv plan list --all)\n", hidden, hidden == 1 ? "" : "s");
         free(dir);
         return 0;
     }
@@ -560,15 +572,46 @@ int cmd_plan(int argc, char **argv)
     disc_plan p;
     plan_load(file, &p);
     rec_record *hd = head(&p);
-    if (defaults.n) {                         /* settings given to any action: changed in the plan */
-        if (strcmp(action, "new")) {
-            for (size_t k = 0; k + 1 < defaults.n; k += 2) rec_set(hd, defaults.v[k], defaults.v[k + 1]);
-            plan_save(&p);
+    if (!strcmp(action, "again")) {           /* a made plan as a template: the same selection, open again */
+        if (args.n != 1) die("%s", "arv plan again NAME NEW: a new plan with NAME's settings, discs and items");
+        char *to = plan_file(&h, args.v[0]);
+        if (!access(to, F_OK)) die("there is a plan %s already (arv plan show)", args.v[0]);
+        disc_plan q;
+        memset(&q, 0, sizeof q);
+        q.file = to;
+        q.name = xstrdup(args.v[0]);
+        q.discs = p.discs;
+        rec_record *qh = rec_new(&q.rec, "Plan");
+        char today[11];
+        today_iso(today);
+        rec_add(qh, "Name", args.v[0]);
+        rec_add(qh, "Created", today);
+        rec_add(qh, "From", name);
+        hd = head(&p);
+        for (size_t f = 0; f < hd->nfields; f++) {
+            const char *fn = hd->fields[f].name;
+            if (strcmp(fn, "Name") && strcmp(fn, "Created") && strcmp(fn, "From") && strcmp(fn, "Made") && strcmp(fn, "Volume")
+                && strcmp(fn, "Discs"))
+                rec_add(qh, fn, hd->fields[f].value);
         }
+        for (size_t k = 0; k + 1 < defaults.n; k += 2) rec_set(qh, defaults.v[k], defaults.v[k + 1]);
+        q.v = xmalloc((p.n + 1) * sizeof *q.v);
+        for (size_t k = 0; k < p.n; k++) q.v[q.n++] = p.v[k];
+        plan_save(&q);
+        size_t gone = 0;
+        for (size_t k = 0; k < q.n; k++) gone += access(q.v[k].source, F_OK) != 0;
+        printf("Plan %s: from %s, %zu item%s on %d disc%s%s. Next: arv plan show %s, then arv plan make %s\n", q.name, name, q.n,
+               q.n == 1 ? "" : "s", q.discs, q.discs == 1 ? "" : "s",
+               gone ? " (some sources are gone: arv plan show)" : "", q.name, q.name);
+        return 0;
     }
     int made = rec_get(hd, "Made") != NULL;
-    if (made && strcmp(action, "show"))
-        die("plan %s was made into discs already (arv plan show); start another with arv plan new", name);
+    if (made && (strcmp(action, "show") || defaults.n))
+        die2("plan %s was made into discs already (arv plan show); the same again as a new plan: arv plan again %s NEW", name, name);
+    if (defaults.n) {                         /* settings given to any other action: changed in the plan */
+        for (size_t k = 0; k + 1 < defaults.n; k += 2) rec_set(hd, defaults.v[k], defaults.v[k + 1]);
+        plan_save(&p);
+    }
 
     if (!strcmp(action, "show")) {
         if (args.n) return 2;

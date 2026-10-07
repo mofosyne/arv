@@ -158,7 +158,7 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(listing["files"], [{"name": "wedding.mkv", "bytes": 4}])
         post = lambda body: json.loads(self.request("/api/plan", body)[1])
         self.assertEqual(post({"action": "new", "name": "trip", "title": "Trip", "set": "TRIP", "medium": "bd25"})["returncode"], 0)
-        self.assertEqual(json.loads(self.request("/api/plans")[1]), {"plans": ["trip"]})
+        self.assertEqual(json.loads(self.request("/api/plans")[1]), {"plans": [{"name": "trip", "made": None}]})
         self.assertEqual(post({"action": "add", "name": "trip", "sources": [video, photos], "disc": "auto"})["returncode"], 0)
         self.assertEqual(post({"action": "move", "name": "trip", "paths": ["photos"], "from": 1, "disc": "new"})["returncode"], 0)
         shown = json.loads(self.request("/api/plan?name=trip")[1])
@@ -171,6 +171,12 @@ class GuiTest(unittest.TestCase):
         result = self.wait(job)
         self.assertEqual(result["returncode"], 0, "\n".join(result["lines"]))
         self.assertEqual(len(json.loads(self.request("/api/plan?name=trip")[1])["volumes"]), 2)
+        self.assertIsNotNone(json.loads(self.request("/api/plans")[1])["plans"][0]["made"])
+        again = post({"action": "again", "name": "trip", "new": "trip2"})
+        self.assertEqual(again["returncode"], 0, again["output"])
+        copy = json.loads(self.request("/api/plan?name=trip2")[1])
+        self.assertEqual((copy["made"], copy["from"], [[i["path"] for i in d["items"]] for d in copy["discs"]]),
+                         (None, "trip", [["wedding.mkv"], ["photos"]]))
         self.assertEqual(len(json.loads(self.request("/api/discs")[1])["discs"]), 2)
         kept = json.loads(self.request("/api/objects")[1])
         self.assertEqual(sorted((o["name"], o["kind"], o["versions"]) for o in kept["objects"]),
