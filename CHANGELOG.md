@@ -52,6 +52,12 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   `--yes --accept-loss` records the files as `Lost:` on the disc, and `arv find` lists them as
   `LOST`. An edition's disc is refused: editions are retired together (`arv retire CODE`).
 
+**Collections in the GUI**
+- Record › Collections lists each collection's editions: their discs and copies, and whether each
+  edition is safe, replaced (ready to retire), kept or retired (with files lost). Keep runs
+  `arv collection keep`; Retire shows `arv retire`'s own preview first and records nothing until
+  confirmed, and a loss only when "accept the loss" is ticked.
+
 **What of a plan is on discs already**
 - `arv plan show NAME --archived` hashes each item (through the hash cache) and says what is on
   discs already: an item archived before (which data object version, on which discs), every file

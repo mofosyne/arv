@@ -112,6 +112,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 .kept .todo::before { content:"⚠ "; }
 .kept .src { font-size:12px; font-family:ui-monospace, monospace; overflow-wrap:anywhere; margin-top:4px; }
 .kept .src .gone { color:var(--bad); } .kept .src .here { color:var(--ok); }
+#c-list td { vertical-align:top; } #c-list td button { padding:2px 12px; }
 .chip { display:inline-block; font-size:12px; padding:1px 8px; border-radius:10px; border:1px solid var(--line);
         margin:1px 4px 1px 0; white-space:nowrap; }
 .chip.cold { border-color:var(--accent); color:var(--accent); }
@@ -141,6 +142,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 </nav>
 <nav class="sub" data-group="record" hidden>
   <button data-tab="objects">Objects</button>
+  <button data-tab="collections">Collections</button>
   <button data-tab="discs">Discs</button>
   <button data-tab="search">Search</button>
 </nav>
@@ -174,6 +176,13 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   <div class="inline"><div><label for="o-filter">Show only names containing</label><input type="text" id="o-filter"></div></div>
   <p id="o-summary"></p>
   <div id="o-list"></div>
+</section>
+
+<section id="tab-collections" hidden>
+  <p class="muted">Each collection and its editions: an edition is <b>safe</b> once every one of its discs has a copy read back
+    identical; a newer safe edition <b>replaces</b> older ones, unless they are kept. Retiring records nothing until you
+    confirm, and arv deletes nothing: the discs stay yours to keep or destroy.</p>
+  <div id="c-list"></div>
 </section>
 
 <section id="tab-search" hidden>
@@ -360,7 +369,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 
   // ---------------------------------------------------------------- tabs
   // Archive, Record, Verify: each view belongs to one of the three
-  var GROUP = { master: "archive", make: "archive", objects: "record", discs: "record", search: "record",
+  var GROUP = { master: "archive", make: "archive", objects: "record", collections: "record", discs: "record", search: "record",
                 owed: "verify", tools: "verify", restore: "verify" };
   var lastView = { archive: "master", record: "objects", verify: "owed" };
   function showTab(name) {
@@ -376,6 +385,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (name === "jobs") loadJobs();
     if (name === "master") loadPlans();
     if (name === "objects") loadObjects();
+    if (name === "collections") loadCollections();
   }
   document.querySelectorAll("nav.sub button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
   document.querySelectorAll("nav.groups button").forEach(function (b) { b.onclick = function () { showTab(lastView[b.dataset.group]); }; });
@@ -671,6 +681,76 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     });
     return el("div", { class: "scroll" }, [t]);
   }
+  // ---------------------------------------------------------------- collections
+  function loadCollections() {
+    var list = $("c-list");
+    return api("/api/collections").then(function (res) {
+      list.textContent = "";
+      if (!res.collections.length) list.appendChild(el("p", { class: "muted",
+        text: "No collection yet: arv collection init FOLDER --code CODE --title TITLE makes a folder one." }));
+      res.collections.forEach(function (c) { list.appendChild(collectionCard(c)); });
+    }).catch(function (e) { list.textContent = "Error: " + e.message; });
+  }
+  function collectionDo(body, out) {
+    return api("/api/collection", body).then(function (r) {
+      out.hidden = false; out.textContent = r.output; out.className = "log" + (r.returncode ? " bad" : "");
+      return r;
+    }).catch(function (e) { out.hidden = false; out.textContent = "Error: " + e.message; out.className = "log bad"; });
+  }
+  function collectionCard(c) {
+    var card = el("div", { class: "card kept" });
+    var replaced = c.editions.filter(function (e) { return e.replaced; }).length;
+    card.appendChild(el("h3", {}, [el("span", { class: "mono", text: c.code }), el("span", { text: c.title || "" }),
+      el("span", { class: "facts", text: c.editions.length + (c.editions.length === 1 ? " edition" : " editions") +
+        (c.checkpoints ? ", " + c.checkpoints + (c.checkpoints === 1 ? " checkpoint" : " checkpoints") : "") +
+        (c.set ? "; set " + c.set : "") + (c.access ? "; " + c.access : "") })]));
+    var out = el("pre", { class: "log", hidden: "" });
+    var t = el("table");
+    t.appendChild(el("tr", {}, ["Edition", "Made", "Discs", "State", ""].map(function (x) { return el("th", { text: x }); })));
+    c.editions.slice().reverse().forEach(function (e) {
+      var discs = el("td");
+      e.discs.forEach(function (d) {
+        discs.appendChild(el("div", { class: "mono", text: d.id + "  " }, [el("span", { class: "chip " + (d.retired ? "none" : d.readBack ? "cold" : "warm"),
+          title: d.where || "", text: d.retired ? "retired" : d.copies ? d.copies + (d.copies === 1 ? " copy" : " copies") + (d.readBack ? " ✓" : "") : "no copy yet" })]));
+      });
+      var state = e.retired ? "retired" + (e.lost ? "; " + e.lost + (e.lost === 1 ? " file" : " files") + " lost" : "")
+                : e.replaced ? "replaced: can be retired" : e.safe ? "safe" : "not safe yet: read back every disc";
+      if (e.kept) state += "; kept";
+      var act = el("td");
+      if (!e.kept && !e.retired) {
+        var keep = el("button", { class: "plain", type: "button", text: "Keep", title: "Never offer this edition for retiring" });
+        keep.onclick = function () { collectionDo({ action: "keep", code: c.code, edition: e.edition }, out).then(loadCollections); };
+        act.appendChild(keep);
+      }
+      t.appendChild(el("tr", {}, [el("td", { text: c.code + "/" + e.edition }), el("td", { text: (e.date || "") + (e.message ? " — " + e.message : "") }),
+        discs, el("td", { class: e.replaced ? "warn" : e.safe || e.retired ? "" : "warn", text: state }), act]));
+    });
+    card.appendChild(el("div", { class: "scroll" }, [t]));
+    if (replaced) {         // retiring: arv's preview first, then a confirmation; a loss only when ticked
+      var row = el("div", { class: "inline" });
+      var preview = el("button", { class: "plain", type: "button", text: "Retire the replaced editions…" });
+      var confirm = el("button", { class: "primary", type: "button", text: "Retire them", hidden: "" });
+      var lossBox = el("input", { type: "checkbox" });
+      var loss = el("label", { hidden: "" }, [lossBox, document.createTextNode(" accept the loss of files found only on them")]);
+      preview.onclick = function () {
+        collectionDo({ action: "retire", code: c.code }, out).then(function (r) {
+          if (!r) return;
+          confirm.hidden = /nothing to retire|no edition is safe/.test(r.output);
+          loss.hidden = !/--accept-loss/.test(r.output);
+        });
+      };
+      confirm.onclick = function () {
+        collectionDo({ action: "retire", code: c.code, yes: true, accept_loss: lossBox.checked }, out).then(function (r) {
+          if (r && !r.returncode) { confirm.hidden = true; loss.hidden = true; loadCollections(); }
+        });
+      };
+      row.appendChild(preview); row.appendChild(loss); row.appendChild(confirm);
+      card.appendChild(row);
+    }
+    card.appendChild(out);
+    return card;
+  }
+
   function renderObjects() {
     var list = $("o-list"); list.textContent = "";
     if (!kept) return;

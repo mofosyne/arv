@@ -124,6 +124,37 @@ class GuiTest(unittest.TestCase):
         self.assertIn(self.token, page)
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
+    def test_collections(self):
+        self.start()
+        fam, out = os.path.join(self.tmp, "fam"), os.path.join(self.tmp, "out")
+        write(os.path.join(fam, "a.txt"), "a", 2019)
+        arv = lambda *a: subprocess.run([ARV, "--home", self.home] + list(a), capture_output=True, text=True)
+        self.assertEqual(arv("collection", "init", fam, "--code", "FAM", "--title", "Family", "--set", "PHOTO").returncode, 0)
+        for n in (1, 2):
+            if n == 2:
+                write(os.path.join(fam, "b.txt"), "b", 2019)
+            made = arv("make", fam, "-y", "--no-ecc", "--formats", "no", "--output-dir", os.path.join(out, str(n)))
+            self.assertEqual(made.returncode, 0, made.stderr)
+            image = [f for f in os.listdir(os.path.join(out, str(n))) if f.endswith(".iso")][0]
+            burned = arv("burned", "--device", os.path.join(out, str(n), image))
+            self.assertEqual(burned.returncode, 0, burned.stdout + burned.stderr)
+        c = json.loads(self.request("/api/collections")[1])["collections"][0]
+        self.assertEqual((c["code"], [(e["edition"], e["safe"], e["replaced"], e["retired"]) for e in c["editions"]]),
+                         ("FAM", [(1, True, True, False), (2, True, False, False)]))
+        post = lambda body: json.loads(self.request("/api/collection", body)[1])
+        preview = post({"action": "retire", "code": "FAM"})
+        self.assertEqual(preview["returncode"], 0, preview["output"])
+        self.assertIn("Nothing recorded", preview["output"])
+        self.assertTrue(json.loads(self.request("/api/collections")[1])["collections"][0]["editions"][0]["replaced"])
+        done = post({"action": "retire", "code": "FAM", "yes": True})
+        self.assertEqual(done["returncode"], 0, done["output"])
+        c = json.loads(self.request("/api/collections")[1])["collections"][0]
+        self.assertEqual([(e["edition"], e["retired"]) for e in c["editions"]], [(1, True), (2, False)])
+        self.assertEqual(post({"action": "keep", "code": "FAM", "edition": 2})["returncode"], 0)
+        self.assertTrue(json.loads(self.request("/api/collections")[1])["collections"][0]["editions"][1]["kept"])
+        self.assertEqual(self.request("/api/collection", {"action": "retire", "code": "fam; rm"})[0], 400)
+
+    @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
     def test_make_note_find(self):
         self.start()
         src = os.path.join(self.tmp, "Photos")
