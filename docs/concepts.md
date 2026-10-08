@@ -135,7 +135,9 @@ the folder before the newer edition was made is then on the older discs only. `a
 those files and refuses to retire discs holding the only copy: keep that edition
 (`arv collection keep CODE N`), or say the loss is accepted (`--yes --accept-loss`), and the files
 are recorded as **lost** on the edition (`arv log`, `arv find`), so the catalogue still says what
-was given up and when. arv chooses which files go on which disc of an edition
+was given up and when. A disc of no edition is retired on its own (`arv retire DISC-ID`) by the
+same rule, and also names each data object on it: an older version a newer one replaces may go,
+but not the only copy of the newest. arv chooses which files go on which disc of an edition
 (`--split` fills discs in order). To choose that by hand, across folders, use a disc plan; its
 discs are one-off discs of a set, not an edition.
 

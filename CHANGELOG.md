@@ -44,6 +44,14 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   vocabulary, the folders that are not. Folders named by a year count as facts; a repository's
   own tree is left alone. Nothing is recorded, so the format does not change.
 
+**Retiring one disc, and a data object's last copy**
+- `arv retire DISC-ID` retires a disc that is not part of an edition (a disc plan's, or
+  `arv make FOLDER`'s). It refuses while any of its files is on no other disc that stays, and names
+  each data object on it: the version, whether another disc has it, and whether it is the newest.
+  An older version that a newer one replaces may go; the only copy of the newest is refused.
+  `--yes --accept-loss` records the files as `Lost:` on the disc, and `arv find` lists them as
+  `LOST`. An edition's disc is refused: editions are retired together (`arv retire CODE`).
+
 **Icons for kinds of file in the GUI**
 - The Mastering file browser, the plan's discs, Search results and Objects show an icon for the
   kind of file (📷 image, 🎬 video, 🎵 audio, 📄 document, 📊 spreadsheet, 🗜️ archive, 💿 disc

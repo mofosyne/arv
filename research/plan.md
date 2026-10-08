@@ -925,7 +925,9 @@ about 430 bytes per file in the archive. Up to about a million files that is und
   Same Tree = same version; same Source, new Tree = next version; empty objects never match.
   `arv status` reports objects from a folder exactly, and a folder whose whole Tree matches an
   object by content; `arv find` lists them. `arv make FOLDER` records the folder as one object
-  when it fits on one disc (2026-10-07). Open: `arv retire`-like care for an object's last version.
+  when it fits on one disc (2026-10-07). `arv retire DISC-ID` retires one disc of no edition,
+  refusing the only copy of an object's newest version (and any file on no other disc) unless
+  `--accept-loss` (2026-10-08).
 - **The union view** (built 2026-10-06). `arv objects [NAME]`: per data object (each version)
   and per collection (its newest edition), the discs holding it, every copy of them (form,
   temperature, read back) and whether the original is still there. `arv todo` adds: a newest

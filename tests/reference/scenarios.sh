@@ -286,6 +286,7 @@ log coll.out --home hc todo
 log coll.out --home hc retire FAM
 log coll.out --home hc retire FAM --yes
 log coll.out --home hc retire FAM --yes --accept-loss
+log coll.out --home hc retire FAM-02_2019_Y
 log coll.out --home hc retire FAM
 log coll.out --home hc log FAM
 log coll.out --home hc find a.txt
@@ -488,6 +489,15 @@ log plan.out --home hp plan delete card
 log plan.out --home hp plan again card card-2
 log plan.out --home hp plan show card-2
 log plan.out --home hp plan delete card --yes
+log plan.out --home hp retire TRIP-04_2025_5
+log plan.out --home hp retire TRIP-04_2025_5 --yes
+log plan.out --home hp retire TRIP-04_2025_5
+log plan.out --home hp retire TRIP-02_2025_9
+log plan.out --home hp retire TRIP-02_2025_9 --yes
+log plan.out --home hp retire TRIP-02_2025_9 --yes --accept-loss
+log plan.out --home hp find notes
+log plan.out --home hp objects 2025
+log plan.out --home hp retire NOPE-01
 keep plan.out plan/transcript.txt
 keep hp/drafts/plans/trip.rec plan/trip.rec
 keep hp/drafts/plans/card-2.rec plan/card-2.rec

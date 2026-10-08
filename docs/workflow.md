@@ -377,7 +377,13 @@ replaced it. arv deletes nothing: the discs are yours to keep or destroy.
 If any file is on the retiring discs only, `--yes` refuses: keep that edition
 (`arv collection keep FAMILY 1`), or retire it anyway with `--yes --accept-loss`. The files are then
 recorded as **lost** on that edition (a `Lost:` line each, carried on every later disc's catalogue):
-`arv log FAMILY` counts them and `arv find` lists them as `LOST`. A retired disc's own files still
+`arv log FAMILY` counts them and `arv find` lists them as `LOST`.
+
+A disc of no edition (a disc plan's, or `arv make FOLDER`'s) is retired on its own:
+`arv retire DISC-ID`. The same rule holds: it refuses while any of its files is on no other disc
+that stays, and it names each data object on it: which version, whether another disc has it, and
+whether it is the newest (a version a newer one replaces may go; the newest one's only copy is
+refused). `--yes --accept-loss` records the files as lost on the disc. A retired disc's own files still
 show in `arv find`, marked `[retired DATE]` where a disc's place would be.
 
 ## Verify: still good, and can be got back
