@@ -26,8 +26,9 @@ bytes, so this profile makes a real mirror **mandatory**. Ours writes it, and th
 
 So the profile narrows UDF to what an archive needs, and the writer spends what it saves on
 robustness and checkability: a real mirror, contiguous files in a fixed order, and reproducible
-images. The same idea is offered back upstream: a real mirror for makefs's read-only images
-(issue #7).
+images. The same idea is to be offered back upstream: a real mirror for makefs's read-only
+images, written and tested as a patch, not yet sent (issue #7;
+`upstream/netbsd-makefs/MIRROR.md`).
 
 ## Why UDF 2.50, not 2.60
 
@@ -88,8 +89,9 @@ as the metadata (duplicate flag clear); this profile does not. The mirror must b
 in separate sectors**, byte for byte the same as the metadata, with the *duplicate metadata* flag
 set, placed at the far end of the partition so that one scratch cannot take both. A volume
 without one does not conform to this profile, whatever else it gets right.
-*udfmake today does not conform: the flag is clear and the mirror file points at the same blocks
-(issue #7).*
+*udfmake today does not conform: the flag is clear and the mirror file points at the same blocks.
+`upstream/netbsd-makefs/patches/04-metadata-mirror-readonly.patch` makes its read-only images
+conform; it is offered upstream, not applied to udfmake (issue #7).*
 
 **Only regular files and folders.** No symbolic or hard links, devices, sockets, extended
 attributes, named streams or ACLs. (arv copies or notes the source's links before the writer

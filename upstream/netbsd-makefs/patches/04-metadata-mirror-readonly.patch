@@ -1,0 +1,129 @@
+newfs_udf/makefs -t udf: a real metadata mirror on read-only media
+
+UDF 2.50 [2.2.10] keeps a mirror of the metadata file so the file system can
+still be read when the main metadata is damaged. makefs and newfs_udf create
+the mirror file entry but give it the main file's extent with the duplicate
+flag clear ("XXX no support for metadata mirroring yet"): compliant, but no
+second copy.
+
+For read-only images only (FORMAT_READONLY: makefs -t udf -o T=bdrom,
+dvdrom, cdrom), give the mirror its own extent at the end of the partition,
+away from the main one, write every metadata sector to both, and set
+METADATA_DUPLICATED. makefs reserves room for the copy in its size estimate,
+and data allocation refuses to run into it. When the metadata share leaves
+no room for a second copy (metaperc 50 or more), the mirror stays on the
+main extent as before. Rewritable and recordable formats are unchanged: there
+the kernel would have to keep a copy in sync.
+
+Against NetBSD src 477d71b4d1b73a66b61a03b5f6d3dc9212d4f888 (usr.sbin/makefs/udf.c
+v1.31, sbin/newfs_udf/udf_core.c v1.14, udf_core.h). Apply with patch -p1 in the
+src tree. Check: repro/mirror.py (the mirror is a real copy; and with the main
+metadata zeroed, the image still reads through the mirror's extent).
+
+--- a/sbin/newfs_udf/udf_core.c
++++ b/sbin/newfs_udf/udf_core.c
+@@ -474,6 +474,24 @@
+ 
+ 		layout.meta_part_start_lba  = UDF_ROUNDUP(pos, layout.meta_alignment);
+ 		pos = layout.meta_part_start_lba + layout.meta_part_size_lba;
++
++		/*
++		 * Read-only media: the mirror file gets a copy of its own, at
++		 * the end of the partition, away from the main one; written
++		 * along with it (udf_write_virt). Rewritable media keep the
++		 * mirror on the main extent: the kernel would have to keep a
++		 * copy in sync.
++		 */
++		layout.meta_mirror_part_start_lba = layout.meta_part_start_lba;
++		if ((context.format_flags & FORMAT_READONLY) &&
++		    (layout.meta_mirror > pos + layout.meta_part_size_lba)) {
++			layout.meta_mirror_part_start_lba = UDF_ROUNDDOWN(
++			    layout.meta_mirror - layout.meta_part_size_lba,
++			    layout.meta_alignment);
++			if (layout.meta_mirror_part_start_lba < pos)
++				layout.meta_mirror_part_start_lba =
++				    layout.meta_part_start_lba;
++		}
+ 	}
+ 
+ 	if (context.metadata_part == context.data_part) {
+@@ -1412,7 +1430,9 @@
+ 	pmap->pmm.meta_bitmap_file_lbn = udf_rw32(layout.meta_bitmap);
+ 	pmap->pmm.alloc_unit_size      = udf_rw32(layout.meta_blockingnr);
+ 	pmap->pmm.alignment_unit_size  = udf_rw16(layout.meta_alignment);
+-	pmap->pmm.flags                = 0; /* METADATA_DUPLICATED */
++	pmap->pmm.flags                = 0;
++	if (layout.meta_mirror_part_start_lba != layout.meta_part_start_lba)
++		pmap->pmm.flags        = METADATA_DUPLICATED;
+ 
+ 	context.vtop       [log_part] = phys_part;
+ 	context.vtop_tp    [log_part] = UDF_VTOP_TYPE_META;
+@@ -2721,8 +2741,7 @@
+ 	/* restart unique id */
+ 	context.unique_id = 0x10;
+ 
+-	/* XXX no support for metadata mirroring yet */
+-	/* insert extents */
++	/* insert extents; the mirror has its own only on read-only media */
+ 	efe = context.meta_file;
+ 	udf_append_meta_mapping_to_efe(efe, context.data_part,
+ 		layout.meta_part_start_lba,
+@@ -2730,7 +2749,7 @@
+ 
+ 	efe = context.meta_mirror;
+ 	udf_append_meta_mapping_to_efe(efe, context.data_part,
+-		layout.meta_part_start_lba,
++		layout.meta_mirror_part_start_lba,
+ 		(uint64_t) layout.meta_part_size_lba * sector_size);
+ 
+ 	if (context.meta_bitmap) {
+@@ -4112,6 +4131,14 @@
+ 		error = udf_write_phys(data, phys, ext);
+ 		if (error)
+ 			return error;
++		/* a duplicated metadata partition: the same sectors in the mirror */
++		if ((context.vtop_tp[vpart] == UDF_VTOP_TYPE_META) &&
++		    (layout.meta_mirror_part_start_lba != layout.meta_part_start_lba)) {
++			error = udf_write_phys(data, phys +
++			    layout.meta_mirror_part_start_lba - layout.meta_part_start_lba, ext);
++			if (error)
++				return error;
++		}
+ 		location += ext;
+ 		data     += ext * context.sector_size;
+ 		sectors  -= ext;
+@@ -4308,6 +4335,12 @@
+ static void
+ udf_partition_alloc(int nblk, int vpart, struct long_ad *pos)
+ {
++	/* data must stay clear of the metadata mirror's own copy */
++	if ((vpart == context.data_part) &&
++	    (layout.meta_mirror_part_start_lba != layout.meta_part_start_lba) &&
++	    (context.alloc_pos[vpart] + nblk > layout.meta_mirror_part_start_lba))
++		errx(EXIT_FAILURE, "won't fit: data would overwrite the metadata mirror");
++
+ 	memset(pos, 0, sizeof(*pos));
+ 	pos->len	  = udf_rw32(nblk * context.sector_size);
+ 	pos->loc.lb_num   = udf_rw32(context.alloc_pos[vpart]);
+--- a/sbin/newfs_udf/udf_core.h
++++ b/sbin/newfs_udf/udf_core.h
+@@ -133,6 +133,7 @@
+ 	/* metadata partition */
+ 	uint32_t meta_file, meta_mirror, meta_bitmap;
+ 	uint32_t meta_part_start_lba, meta_part_size_lba;
++	uint32_t meta_mirror_part_start_lba;	/* meta_part_start_lba: no copy */
+ 	uint32_t meta_bitmap_dscr_size;
+ 	uint32_t meta_bitmap_space;
+ 
+--- a/usr.sbin/makefs/udf.c
++++ b/usr.sbin/makefs/udf.c
+@@ -1091,6 +1091,9 @@
+ 
+ 		meta_p = (float) context.meta_perc/100.0;
+ 		factor = meta_p / (1.0 - meta_p);
++		/* read-only: room for the metadata mirror's own copy too */
++		if ((context.format_flags & FORMAT_READONLY) && (meta_p < 0.5))
++			factor = 2 * meta_p / (1.0 - 2 * meta_p);
+ 
+ 		/* add space for metadata partition including some slack */
+ 		nmetablk = factor * nblk + 32;

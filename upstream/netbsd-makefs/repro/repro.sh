@@ -10,6 +10,7 @@
 #   2. AddressSanitizer build                  -> expect heap-buffer-overflow via udf_copy_file (bug 1)
 #   3. plain build, image padding scan         -> expect non-zero bytes after file data (bug 1)
 #   4. a 255-character file name               -> expect exit 0 and an unreadable image (bug 3)
+#   5. the metadata mirror (repro/mirror.py)   -> expect no copy of its own (patch 04 adds one)
 #   then the same four with each patch in patches/ on its own (it should fix
 #   only its own bug), and with all of them (everything clean). A summary table
 #   comes last.
@@ -66,7 +67,7 @@ run_all() {  # run_all NB LABEL DESCRIPTION
     b=$work/$label-fortify
     build "$nb" "$b" "-O2 -g -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2"
     rm -f "$work/img"
-    r1=shows r2=shows r3=shows r4=shows
+    r1=shows r2=shows r3=shows r4=shows r5=shows
     if "$b/udfmake" -o T=bdrom,v=2.50,V=2.50 "$work/img" "$work/files" > "$b.run" 2>&1; then
         echo "1. fortified build: OK"; r1=ok
     else
@@ -97,6 +98,21 @@ run_all() {  # run_all NB LABEL DESCRIPTION
     head -3 "$b.scan" | grep '^ ' | sed 's/^ */   /'
     grep -q '^0 of' "$b.scan" && r3=ok
 
+    printf '5. metadata mirror: '                 # patch 04: a real copy, and enough on its own
+    if python3 "$here/mirror.py" check "$work/img" > "$b.mirror" 2>&1; then
+        rm -rf "$work/mirror-only"
+        python3 "$here/mirror.py" only-mirror "$work/img" "$work/img.mirror" > /dev/null
+        if ! command -v 7z > /dev/null; then
+            echo "a real copy (install 7z to read the image through it)"
+        elif 7z x -o"$work/mirror-only" "$work/img.mirror" > /dev/null 2>&1 && diff -r "$work/files" "$work/mirror-only" > /dev/null; then
+            echo "a real copy; with the main metadata zeroed, 7-Zip reads every file through it"; r5=ok
+        else
+            echo "a real copy, but the image does not read through it"
+        fi
+    else
+        echo "no copy of its own: $(sed 's/.*: //' "$b.mirror")"
+    fi
+
     rm -rf "$work/longname" "$work/img"            # bug 3: one file with a 255-character name
     mkdir -p "$work/longname"
     python3 -c "import sys; open(sys.argv[1] + '/' + 'd' * 255, 'w').write('x')" "$work/longname"
@@ -112,7 +128,7 @@ run_all() {  # run_all NB LABEL DESCRIPTION
     else
         echo "makefs refused it: $(grep -o 'file name too long for UDF ([^)]*)' "$b.long")"; r4=ok
     fi
-    printf '%-22s %-12s %-12s %-12s %-12s\n' "$label" "$r1" "$r2" "$r3" "$r4" >> "$work/summary"
+    printf '%-22s %-12s %-12s %-12s %-12s %-12s\n' "$label" "$r1" "$r2" "$r3" "$r4" "$r5" >> "$work/summary"
 }
 
 python3 "$here/padding.py" make "$work/files"
@@ -136,7 +152,7 @@ done
 run_all "$work/all" all-patches "with every patch in patches/"
 
 echo
-echo "=== summary (shows: the bug shows; ok: it does not)"
-printf '%-22s %-12s %-12s %-12s %-12s\n' "" "1 fortify" "2 asan" "3 padding" "4 long name"
-printf '%-22s %-12s %-12s %-12s %-12s\n' "" "(bug 2)" "(bug 1)" "(bug 1)" "(bug 3)"
+echo "=== summary (shows: the bug shows, or no mirror copy; ok: it does not)"
+printf '%-22s %-12s %-12s %-12s %-12s %-12s\n' "" "1 fortify" "2 asan" "3 padding" "4 long name" "5 no mirror"
+printf '%-22s %-12s %-12s %-12s %-12s %-12s\n' "" "(bug 2)" "(bug 1)" "(bug 1)" "(bug 3)" "(patch 04)"
 cat "$work/summary"
