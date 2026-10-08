@@ -1674,14 +1674,37 @@ static int make_discs(maker *mk)
             die("--ro-crate would overwrite %s in the source folder", clash.s);
         }
     }
-    if (mk->plan_discs && !strcmp(o->formats, "yes")) die("%s", "--formats yes: not for a plan yet (Siegfried reads one folder)");
-    if (!mk->plan_discs && (!strcmp(o->formats, "yes") || (!strcmp(o->formats, "auto") && on_path("sf")))) {
+    if (!strcmp(o->formats, "yes") || (!strcmp(o->formats, "auto") && on_path("sf"))) {
         if (!on_path("sf")) die("%s", "--formats yes needs Siegfried (sf) on PATH");
         fputs("Identifying file formats with Siegfried ...\n", stderr);
         char *error = NULL;
-        if (!formats_identify(mk->src, o->sf_home, mk->workdir, &mk->fmt, &error)) mk->have_formats = 1;
-        else if (!strcmp(o->formats, "yes")) die("Siegfried failed: %s", error);
-        else fprintf(stderr, "Warning: skipping format identification, Siegfried failed: %s\n", error);
+        if (!mk->dplan) {
+            if (!formats_identify(mk->src, o->sf_home, mk->workdir, &mk->fmt, &error)) mk->have_formats = 1;
+        } else {                                        /* a plan: each item where it is, at its place under data/ */
+            mk->have_formats = 1;
+            for (size_t k = 0; k < mk->dplan->n && mk->have_formats; k++) {
+                const plan_item *it = &mk->dplan->v[k];
+                struct stat st;
+                int file = !stat(it->source, &st) && S_ISREG(st.st_mode), top = !strcmp(it->path, ".");
+                formats one;
+                if (formats_identify(it->source, o->sf_home, mk->workdir, &one, &error)) {
+                    mk->have_formats = 0;
+                    break;
+                }
+                if (!mk->fmt.header) mk->fmt.header = xstrdup(one.header);
+                for (size_t r = 0; r < one.n; r++) {
+                    char *path = file ? xstrdup(it->path) : top ? xstrdup(one.rows[r][0]) : xprintf("%s/%s", it->path, one.rows[r][0]);
+                    mk->fmt.rows = xrealloc(mk->fmt.rows, (mk->fmt.n + 1) * sizeof *mk->fmt.rows);
+                    mk->fmt.rows[mk->fmt.n][0] = path;
+                    for (int c = 1; c < 7; c++) mk->fmt.rows[mk->fmt.n][c] = xstrdup(one.rows[r][c]);
+                    mk->fmt.n++;
+                }
+                formats_free(&one);
+            }
+            if (!mk->have_formats) formats_free(&mk->fmt);
+        }
+        if (!mk->have_formats && !strcmp(o->formats, "yes")) die("Siegfried failed: %s", error);
+        else if (!mk->have_formats) fprintf(stderr, "Warning: skipping format identification, Siegfried failed: %s\n", error);
         free(error);
     }
     if (getenv("ARV_TEST_AFTER_HASH") && *getenv("ARV_TEST_AFTER_HASH")   /* tests only: change a file mid-make */

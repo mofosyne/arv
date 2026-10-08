@@ -918,8 +918,8 @@ about 430 bytes per file in the archive. Up to about a million files that is und
   (`From: NAME`); deleting one is always safe. Links stay the default (2026-10-07), with
   `plan add --copy` (the plan's own copy, `Origin:`), `Seen:` stamps and `plan refresh`, relative
   sources, a home beside arv (portable), and make checking bytes against the manifest as written.
-  Open: `--formats` for a plan; whether a plan can
-  make an edition of a collection; `plan show` marking what is already on discs (by hash).
+  `--formats` for a plan: Siegfried on each item where it is (2026-10-08). Open: whether a plan
+  can make an edition of a collection; `plan show` marking what is already on discs (by hash).
 - **Data objects** (built 2026-10-06). Each plan item becomes an `Object` record (Uuid lineage,
   Version, Tree, Disc, Path, Kind); `Source` and the manifests (`catalog/objects/`) stay at home.
   Same Tree = same version; same Source, new Tree = next version; empty objects never match.

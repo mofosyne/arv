@@ -265,6 +265,28 @@ if command -v sf >/dev/null && sf -version >/dev/null 2>&1; then
         && ok "Siegfried: formats.csv and the format identification event" || no "Siegfried formats"
 fi
 
+# a disc plan's formats: Siegfried run on each item where it is, its rows at the item's place on the
+# disc (a stand-in sf answering in Siegfried's CSV, so this runs without it)
+mkdir -p fake-sf plan-sf/pc/photos plan-sf/elsewhere
+cat > fake-sf/sf <<'SF'
+#!/bin/sh
+[ "$1" = -version ] && { echo "siegfried 0.0.0 (stand-in for arv's check)"; exit 0; }
+for last; do :; done
+echo "filename,filesize,modified,errors,namespace,id,format,version,mime,basis,warning"
+find "$last" -type f | sort | while read -r f; do echo "$f,1,2020-01-01,,pronom,x-fmt/test,Test format,,text/plain,stand-in,"; done
+SF
+chmod +x fake-sf/sf
+fake_sf=$(pwd)/fake-sf
+echo a > plan-sf/pc/photos/a.jpg; echo b > plan-sf/pc/photos/b.jpg; echo n > plan-sf/elsewhere/notes.txt
+"$tool" init plan-sf >/dev/null 2>&1
+( cd plan-sf && "$tool" plan new sf --set TRIP >/dev/null && "$tool" plan add sf pc/photos >/dev/null \
+    && "$tool" plan add sf elsewhere/notes.txt --as docs/notes.txt >/dev/null \
+    && PATH="$fake_sf:$PATH" "$tool" plan make sf -y --no-ecc --formats yes --output-dir out >/dev/null 2>&1 ) \
+    || no "arv plan make --formats yes"
+f=$(ls plan-sf/.arv/catalog/volumes/*/formats.csv 2>/dev/null | head -1)
+[ -n "$f" ] && grep -q '^photos/a.jpg,x-fmt/test,' "$f" && grep -q '^photos/b.jpg,' "$f" && grep -q '^docs/notes.txt,' "$f" \
+    && ok "a disc plan's formats.csv: each item identified where it is, at its place on the disc" || no "plan formats"
+
 # ------------------------------------------------------------------ SHA-256 and SHA-512 around block boundaries
 mkdir -p lengths/data
 printf '%%rec: Disc\n\nId: LEN-01_2026_X\n' > lengths/catalog.rec

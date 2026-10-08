@@ -52,6 +52,10 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   `--yes --accept-loss` records the files as `Lost:` on the disc, and `arv find` lists them as
   `LOST`. An edition's disc is refused: editions are retired together (`arv retire CODE`).
 
+**Format identification for disc plans**
+- `arv plan make` identifies formats with Siegfried as `arv make` does (`--formats auto|yes|no`):
+  each item is identified where it is, and its rows in `formats.csv` are at its place on the disc.
+
 **Icons for kinds of file in the GUI**
 - The Mastering file browser, the plan's discs, Search results and Objects show an icon for the
   kind of file (📷 image, 🎬 video, 🎵 audio, 📄 document, 📊 spreadsheet, 🗜️ archive, 💿 disc

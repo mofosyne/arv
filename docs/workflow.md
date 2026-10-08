@@ -270,7 +270,8 @@ folder that moved is still recognised, by its content ([concepts.md](concepts.md
 
 A plan's discs are one-off discs of its set, not an edition of a collection. The plan file is
 `drafts/plans/NAME.rec` in the home (a Plan record, then an Item record per thing: `Disc`,
-`Source`, `Path`); it never goes on a disc. Not yet: `--formats` (Siegfried) for a plan.
+`Source`, `Path`); it never goes on a disc. With Siegfried installed, `plan make` identifies formats
+as `arv make` does, each item where it is.
 
 #### What `arv make` does, step by step
 
