@@ -89,9 +89,11 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 .item button, .disc h3 button { font:inherit; font-size:12px; padding:2px 6px; border:1px solid var(--line); border-radius:4px;
         background:var(--panel); color:var(--fg); cursor:pointer; }
 .item.missing .path { color:var(--bad); }
-.item .flag { font-size:11px; padding:0 6px; border-radius:8px; border:1px solid var(--line); margin-left:4px; }
+.item .flag { font-size:11px; padding:0 6px; border-radius:8px; border:1px solid var(--line); margin-left:4px; white-space:nowrap; display:inline-block; }
 .item .flag.changed { color:var(--warn); border-color:var(--warn); }
 .item .flag.copy { color:var(--accent); border-color:var(--accent); }
+.item .flag.on { color:var(--ok); border-color:var(--ok); }
+.item .flag.some { color:var(--accent); border-color:var(--accent); }
 .files { border:1px solid var(--line); border-radius:8px; padding:10px 12px; align-self:start; }
 .files .list { max-height:460px; overflow:auto; margin-top:6px; }
 .files .list > div { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:8px; align-items:center; padding:3px 4px;
@@ -230,6 +232,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     <button class="plain" type="button" id="p-new-btn">New plan…</button>
     <button class="plain" type="button" id="p-again" hidden>Make it again as a new plan…</button>
     <button class="plain" type="button" id="p-delete">Delete plan</button>
+    <button class="plain" type="button" id="p-archived" title="Hashes each item (quick when it was hashed before) and marks what is on discs already">What is on discs already?</button>
   </div>
   <form id="p-new" class="card" hidden>
     <div class="row">
@@ -749,6 +752,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       return loadPlan();
     });
   }
+  $("p-archived").onclick = function () {
+    if (!planName()) return;
+    say("Hashing the plan's items …");
+    api("/api/plan?archived=1&name=" + encodeURIComponent(planName())).then(function (p) { plan = p; renderPlan(); say(""); })
+      .catch(function (e) { say("Error: " + e.message, true); });
+  };
   function loadPlan() {
     if (!planName()) { plan = null; renderPlan(); return Promise.resolve(); }
     return api("/api/plan?name=" + encodeURIComponent(planName())).then(function (p) { plan = p; renderPlan(); })
@@ -797,11 +806,18 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         var name = el("span", { class: "path mono" }, [it.kind === "missing" ? null : icon(it.path, it.kind),
                                                        document.createTextNode(it.path + (it.kind === "folder" ? "/" : ""))]);
         if (it.origin) name.appendChild(el("span", { class: "flag copy", text: "copied", title: "the plan's own copy of " + it.origin }));
+        var a = it.archived;
+        if (a && a.object) name.appendChild(el("span", { class: "flag on", text: "archived: version " + a.version,
+          title: a.object + " version " + a.version + ", on " + a.discs.join(", ") }));
+        else if (a && a.files && a.onDiscs === a.files) name.appendChild(el("span", { class: "flag on", text: "every file on discs",
+          title: "not as one data object: the files are on discs, from elsewhere" }));
+        else if (a && a.onDiscs) name.appendChild(el("span", { class: "flag some", text: a.onDiscs + " of " + a.files + " files on discs" }));
+        else if (a && a.files) name.appendChild(el("span", { class: "flag", text: "on no disc yet" }));
         if (it.changed) name.appendChild(el("span", { class: "flag changed", text: "changed since planned",
           title: "the disc gets it as it is now" }));
         var row = el("div", { class: "item" + (it.kind === "missing" ? " missing" : ""), draggable: plan.made ? "false" : "true" }, [
           name,
-          el("span", { class: "muted", text: it.kind === "missing" ? "missing" : human(it.bytes) + (it.kind === "folder" ? ", " + it.files + " files" : "") }),
+          el("span", { class: "muted", text: it.kind === "missing" ? "missing" : human(it.bytes) + (it.kind === "folder" ? ", " + it.files + (it.files === 1 ? " file" : " files") : "") }),
           el("span", { class: "src", text: it.origin ? "copy of " + it.origin : it.source })]);
         if (!plan.made) {
           var move = el("select", { "aria-label": "Move to disc" });

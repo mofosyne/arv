@@ -175,7 +175,10 @@ class App:
         name = params.get("name", "")
         if not PLAN_NAME.match(name):
             raise LookupError("no such plan")
-        code, text = self.arv_now(["plan", "show", name, "--json"])
+        argv = ["plan", "show", name, "--json"]
+        if params.get("archived") == "1":     # hashes every item (through the hash cache): asked for, not automatic
+            argv.append("--archived")
+        code, text = self.arv_now(argv)
         if code:
             raise LookupError(text)
         return json.loads(text)

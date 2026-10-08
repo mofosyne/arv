@@ -51,7 +51,7 @@ Next: arv plan make trip (one image a disc; arv make's options apply)
 Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
 rc=0
 $ --home hp plan show trip --json
-{"name": "trip", "title": "Holiday 2025", "set": "TRIP", "medium": "bd25", "description": null, "access": null, "from": null, "mediumLabel": "BD-R 25GB", "room": 19804278784, "made": null, "volumes": [], "discs": [{"disc": 1, "bytes": 7, "used": 6144, "items": [{"path": "video/wedding.mkv", "source": "ROOT/plan-pc/Videos/wedding.mkv", "origin": null, "changed": false, "kind": "file", "bytes": 7, "files": 1}]}, {"disc": 2, "bytes": 20, "used": 20480, "items": [{"path": "notes.txt", "source": "ROOT/plan-pc/notes.txt", "origin": null, "changed": false, "kind": "file", "bytes": 6, "files": 1}, {"path": "photos", "source": "ROOT/plan-nas/photos/2025", "origin": null, "changed": false, "kind": "folder", "bytes": 14, "files": 2}]}]}
+{"name": "trip", "title": "Holiday 2025", "set": "TRIP", "medium": "bd25", "description": null, "access": null, "from": null, "mediumLabel": "BD-R 25GB", "room": 19804278784, "made": null, "volumes": [], "discs": [{"disc": 1, "bytes": 7, "used": 6144, "items": [{"path": "video/wedding.mkv", "source": "ROOT/plan-pc/Videos/wedding.mkv", "origin": null, "changed": false, "kind": "file", "bytes": 7, "files": 1, "archived": null}]}, {"disc": 2, "bytes": 20, "used": 20480, "items": [{"path": "notes.txt", "source": "ROOT/plan-pc/notes.txt", "origin": null, "changed": false, "kind": "file", "bytes": 6, "files": 1, "archived": null}, {"path": "photos", "source": "ROOT/plan-nas/photos/2025", "origin": null, "changed": false, "kind": "folder", "bytes": 14, "files": 2, "archived": null}]}]}
 rc=0
 $ --home hp plan list
 trip  2 discs, 3 items  "Holiday 2025"
@@ -353,6 +353,33 @@ Disc 1  [#-------------------]    1%  15 B in 2 items
   letter.txt  15 B  ROOT/plan-docs/letter.txt
 1 item is missing: put it back, or arv plan drop card-2 PATH
 Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hp plan add card-2 plan-pc --as pc
+pc/: disc 1, now 1% full
+rc=0
+$ --home hp plan add card-2 plan-new.txt
+plan-new.txt: disc 1, now 1% full
+rc=0
+$ --home hp plan add card-2 plan-mix
+plan-mix/: disc 1, now 1% full
+rc=0
+$ --home hp plan show card-2 --archived
+Plan card-2  set TRIP  (from plan card)  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  59 B in 5 items
+  camera  MISSING  ROOT/plan-sd/DCIM
+  letter.txt  15 B  ROOT/plan-docs/letter.txt
+      archived already: letter.txt version 1, on TRIP-05_2025_3
+  pc/  13 B, 2 files  ROOT/plan-pc
+      every file on discs already (not as one data object)
+  plan-mix/  25 B, 2 files  ROOT/plan-mix
+      1 of 2 files on discs already
+  plan-new.txt  6 B  ROOT/plan-new.txt
+      on no disc yet
+1 item is missing: put it back, or arv plan drop card-2 PATH
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hp plan show card-2 --archived --json
+{"name": "card-2", "title": null, "set": "TRIP", "medium": "bd25", "description": null, "access": null, "from": "card", "mediumLabel": "BD-R 25GB", "room": 19803955200, "made": null, "volumes": [], "discs": [{"disc": 1, "bytes": 59, "used": 43008, "items": [{"path": "camera", "source": "ROOT/plan-sd/DCIM", "origin": null, "changed": false, "kind": "missing", "bytes": 0, "files": 0, "archived": null}, {"path": "letter.txt", "source": "ROOT/plan-docs/letter.txt", "origin": null, "changed": false, "kind": "file", "bytes": 15, "files": 1, "archived": {"files": 1, "onDiscs": 1, "object": "letter.txt", "version": 1, "discs": ["TRIP-05_2025_3"]}}, {"path": "pc", "source": "ROOT/plan-pc", "origin": null, "changed": false, "kind": "folder", "bytes": 13, "files": 2, "archived": {"files": 2, "onDiscs": 2, "object": null, "version": 0, "discs": []}}, {"path": "plan-mix", "source": "ROOT/plan-mix", "origin": null, "changed": false, "kind": "folder", "bytes": 25, "files": 2, "archived": {"files": 2, "onDiscs": 1, "object": null, "version": 0, "discs": []}}, {"path": "plan-new.txt", "source": "ROOT/plan-new.txt", "origin": null, "changed": false, "kind": "file", "bytes": 6, "files": 1, "archived": {"files": 1, "onDiscs": 0, "object": null, "version": 0, "discs": []}}]}]}
 rc=0
 $ --home hp plan delete card --yes
 Plan card deleted (with its copies; the originals are untouched)

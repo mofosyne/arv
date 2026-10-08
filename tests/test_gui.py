@@ -195,6 +195,10 @@ class GuiTest(unittest.TestCase):
         copy = json.loads(self.request("/api/plan?name=trip2")[1])
         self.assertEqual((copy["made"], copy["from"], [[i["path"] for i in d["items"]] for d in copy["discs"]]),
                          (None, "trip", [["wedding.mkv"], ["photos"]]))
+        self.assertEqual([i["archived"] for d in copy["discs"] for i in d["items"]], [None, None])   # only when asked
+        checked = json.loads(self.request("/api/plan?archived=1&name=trip2")[1])
+        self.assertEqual([(i["archived"]["object"], i["archived"]["version"], i["archived"]["onDiscs"] == i["archived"]["files"])
+                          for d in checked["discs"] for i in d["items"]], [("wedding.mkv", 1, True), ("photos", 1, True)])
         card = os.path.join(self.tmp, "card", "IMG_0001.JPG")
         write(card, "raw", 2025)
         added = post({"action": "add", "name": "trip2", "sources": [card], "disc": "1", "copy": True})

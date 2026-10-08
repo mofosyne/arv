@@ -259,8 +259,11 @@ A made plan is kept as a template: `arv plan list` shows open plans (`--all` sho
 and `arv plan again NAME NEW` starts a new open plan with the same settings, discs and items, for
 archiving the same selection again later (each item becomes its object's next version if it
 changed). Deleting a made plan is always safe: its discs and objects record everything it said.
+`arv plan show NAME --archived` hashes each item (the hash cache makes it quick the second time)
+and says what is on discs already: an item archived before (which version, on which discs), every
+file of it on discs from elsewhere, some of its files, or none.
 The GUI's **Mastering** tab is the same, with drag and drop: the discs on the left, each with
-its fill bar, and a file browser on the right.
+its fill bar, and a file browser on the right; "What is on discs already?" marks each item.
 
 Each item becomes a **data object** on its disc, with no `.arv` marker needed: `arv status` on
 the folder it came from then says whether it is unchanged since, changed (`+1 ~0 -0`, and `-v`

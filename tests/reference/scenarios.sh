@@ -488,6 +488,14 @@ log plan.out --home hp objects DCIM
 log plan.out --home hp plan delete card
 log plan.out --home hp plan again card card-2
 log plan.out --home hp plan show card-2
+log plan.out --home hp plan add card-2 plan-pc --as pc
+echo fresh > plan-new.txt && stamp 1750000000 plan-new.txt
+log plan.out --home hp plan add card-2 plan-new.txt
+mkdir -p plan-mix && cp -p plan-docs/letter.txt plan-mix/ && echo fresh too > plan-mix/new.txt
+for f in plan-mix/new.txt plan-mix; do stamp 1750000000 "$f"; done
+log plan.out --home hp plan add card-2 plan-mix
+log plan.out --home hp plan show card-2 --archived
+log plan.out --home hp plan show card-2 --archived --json
 log plan.out --home hp plan delete card --yes
 log plan.out --home hp retire TRIP-04_2025_5
 log plan.out --home hp retire TRIP-04_2025_5 --yes
