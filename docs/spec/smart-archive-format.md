@@ -369,7 +369,10 @@ read back against the image's `ImageSha256` before the copy was recorded), or wh
 successful `fixity check` names its letter. An edition is **safe**
 when each of its discs has a known-good copy. Once a later edition is safe, earlier editions not
 kept may be retired: each of their discs gets `Retired: DATE` (and loses its `Location`
-fields) and a `deaccession` event saying what replaced it. Nothing is deleted.
+fields) and a `deaccession` event saying what replaced it. Nothing is deleted. A disc of no
+edition (a disc plan's, or one folder's) is retired on its own the same way; a file of it that was
+on no other disc, retired with the loss accepted, is recorded on its `Disc` record as
+`Lost: SHA256  PATH`, as an edition's are on its revision.
 A disc carries its collection and its own edition's `Revision` in `catalog.rec`; a full catalogue
 snapshot carries every collection and revision, a `set` or `disc` snapshot those of the disc's
 own collection. Each revision's manifest is kept in the home catalogue as

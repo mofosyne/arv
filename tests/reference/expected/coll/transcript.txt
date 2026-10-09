@@ -217,6 +217,9 @@ FAM: edition 2 (2026-01-01) is safe; it replaces (editions marked kept stay):
 1 disc retired (logged)
 2 files recorded as lost (arv log FAM, arv find)
 rc=0
+$ --home hc retire FAM-02_2019_Y
+Error: FAM-02_2019_Y is a disc of edition 2 of FAM: editions are retired together (arv retire FAM)
+rc=1
 $ --home hc retire FAM
 FAM: nothing to retire (edition 2 is safe; every earlier edition is kept or retired)
 rc=0

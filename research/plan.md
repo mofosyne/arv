@@ -919,14 +919,16 @@ about 430 bytes per file in the archive. Up to about a million files that is und
   (`From: NAME`); deleting one is always safe. Links stay the default (2026-10-07), with
   `plan add --copy` (the plan's own copy, `Origin:`), `Seen:` stamps and `plan refresh`, relative
   sources, a home beside arv (portable), and make checking bytes against the manifest as written.
-  Open: `--formats` for a plan; whether a plan can
-  make an edition of a collection; `plan show` marking what is already on discs (by hash).
+  `--formats` for a plan: Siegfried on each item where it is (2026-10-08). `plan show --archived` marks what is
+  already on discs, by hash (2026-10-08). Open: whether a plan can make an edition of a collection.
 - **Data objects** (built 2026-10-06). Each plan item becomes an `Object` record (Uuid lineage,
   Version, Tree, Disc, Path, Kind); `Source` and the manifests (`catalog/objects/`) stay at home.
   Same Tree = same version; same Source, new Tree = next version; empty objects never match.
   `arv status` reports objects from a folder exactly, and a folder whose whole Tree matches an
   object by content; `arv find` lists them. `arv make FOLDER` records the folder as one object
-  when it fits on one disc (2026-10-07). Open: `arv retire`-like care for an object's last version.
+  when it fits on one disc (2026-10-07). `arv retire DISC-ID` retires one disc of no edition,
+  refusing the only copy of an object's newest version (and any file on no other disc) unless
+  `--accept-loss` (2026-10-08).
 - **The union view** (built 2026-10-06). `arv objects [NAME]`: per data object (each version)
   and per collection (its newest edition), the discs holding it, every copy of them (form,
   temperature, read back) and whether the original is still there. `arv todo` adds: a newest

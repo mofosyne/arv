@@ -260,8 +260,11 @@ A made plan is kept as a template: `arv plan list` shows open plans (`--all` sho
 and `arv plan again NAME NEW` starts a new open plan with the same settings, discs and items, for
 archiving the same selection again later (each item becomes its object's next version if it
 changed). Deleting a made plan is always safe: its discs and objects record everything it said.
+`arv plan show NAME --archived` hashes each item (the hash cache makes it quick the second time)
+and says what is on discs already: an item archived before (which version, on which discs), every
+file of it on discs from elsewhere, some of its files, or none.
 The GUI's **Mastering** tab is the same, with drag and drop: the discs on the left, each with
-its fill bar, and a file browser on the right.
+its fill bar, and a file browser on the right; "What is on discs already?" marks each item.
 
 Each item becomes a **data object** on its disc, with no `.arv` marker needed: `arv status` on
 the folder it came from then says whether it is unchanged since, changed (`+1 ~0 -0`, and `-v`
@@ -271,7 +274,8 @@ folder that moved is still recognised, by its content ([concepts.md](concepts.md
 
 A plan's discs are one-off discs of its set, not an edition of a collection. The plan file is
 `drafts/plans/NAME.rec` in the home (a Plan record, then an Item record per thing: `Disc`,
-`Source`, `Path`); it never goes on a disc. Not yet: `--formats` (Siegfried) for a plan.
+`Source`, `Path`); it never goes on a disc. With Siegfried installed, `plan make` identifies formats
+as `arv make` does, each item where it is.
 
 #### What `arv make` does, step by step
 
@@ -383,7 +387,13 @@ replaced it. arv deletes nothing: the discs are yours to keep or destroy.
 If any file is on the retiring discs only, `--yes` refuses: keep that edition
 (`arv collection keep FAMILY 1`), or retire it anyway with `--yes --accept-loss`. The files are then
 recorded as **lost** on that edition (a `Lost:` line each, carried on every later disc's catalogue):
-`arv log FAMILY` counts them and `arv find` lists them as `LOST`. A retired disc's own files still
+`arv log FAMILY` counts them and `arv find` lists them as `LOST`.
+
+A disc of no edition (a disc plan's, or `arv make FOLDER`'s) is retired on its own:
+`arv retire DISC-ID`. The same rule holds: it refuses while any of its files is on no other disc
+that stays, and it names each data object on it: which version, whether another disc has it, and
+whether it is the newest (a version a newer one replaces may go; the newest one's only copy is
+refused). `--yes --accept-loss` records the files as lost on the disc. A retired disc's own files still
 show in `arv find`, marked `[retired DATE]` where a disc's place would be.
 
 ## Verify: still good, and can be got back

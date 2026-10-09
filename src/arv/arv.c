@@ -40,7 +40,8 @@
 
 /* ------------------------------------------------------------------ main */
 
-static const char USAGE[] =
+/* in two parts: C99 compilers need take no single string over 4095 characters */
+static const char USAGE_ARCHIVE[] =
           "usage: arv [-C HOME | --archive NAME] COMMAND ...\n"
           "Archive, Record, Verify: put what you keep on discs, record what exists and where, and check that\n"
           "it is still good and can be got back. arv make --help lists its options; docs/workflow.md says more.\n"
@@ -59,7 +60,8 @@ static const char USAGE[] =
           "  arv describe FOLDER|DISC-ID [--save DRAFT] ...   title, description, tags from a local LLM (*)\n"
           "  arv tag FOLDER|DISC-ID [--save DRAFT] ...        folder tags from your vocabulary (*)\n"
           "  arv models fetch|status|build-runtime            the small model arv tag uses (*)\n"
-          "\n"
+          "\n";
+static const char USAGE_REST[] =
           "Record: what exists, and where\n"
           "  arv burned (--device DRIVE | --copies N) [--copy X] [--location PLACE] [--media-id ID] [--bca SERIAL]\n"
           "             [--note TEXT] [DISC-ID]\n"
@@ -79,7 +81,8 @@ static const char USAGE[] =
           "  arv selection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]\n"
           "  arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]\n"
           "  arv log [COLLECTION]   arv diff REV [REV]   (REV: a revision's first digits, or CODE/N)\n"
-          "  arv retire CODE [--yes [--accept-loss]]   retire the editions a newer safe one replaces (not kept ones)\n"
+          "  arv retire CODE|DISC-ID [--yes [--accept-loss]]   retire the editions a newer safe one replaces (not kept\n"
+          "                    ones), or one disc of no edition; refused while a file is on no disc that stays\n"
           "  arv sets [-v]   arv tags [--namespace NS] [--vocab FILE]   arv keywords [--format tsv|exiftool] DISC-ID\n"
           "\n"
           "Verify: still good, and can be got back\n"
@@ -100,10 +103,11 @@ static const char USAGE[] =
 
 static void usage(FILE *to)
 {
-    fputs(USAGE, to);
+    fputs(USAGE_ARCHIVE, to);
+    fputs(USAGE_REST, to);
 }
 
-/* "arv NAME" on a line of USAGE, as a whole word */
+/* "arv NAME" on a line of the usage, as a whole word */
 static int names_command(const char *line, size_t len, const char *name)
 {
     char *word = xprintf("arv %s", name);
@@ -115,19 +119,20 @@ static int names_command(const char *line, size_t len, const char *name)
     return found;
 }
 
-/* arv NAME --help: the lines of USAGE for that command (with the lines continuing them), and the
+/* arv NAME --help: the lines of the usage for that command (with the lines continuing them), and the
  * words they use (DISC, CATALOG) */
 static void command_usage(FILE *to, const char *name)
 {
     sbuf out = { 0 };
     int in = 0;
-    for (const char *line = USAGE, *end; *line; line = end + 1) {
-        end = strchr(line, '\n');
-        size_t len = (size_t)(end - line);
-        if (!strncmp(line, "  arv ", 6)) in = names_command(line, len, name);
-        else if (strncmp(line, "    ", 4)) in = 0;     /* a continuation is indented further */
-        if (in) sb_printf(&out, "%.*s\n", (int)len, line);
-    }
+    for (int part = 0; part < 2; part++)
+        for (const char *line = part ? USAGE_REST : USAGE_ARCHIVE, *end; *line; line = end + 1) {
+            end = strchr(line, '\n');
+            size_t len = (size_t)(end - line);
+            if (!strncmp(line, "  arv ", 6)) in = names_command(line, len, name);
+            else if (strncmp(line, "    ", 4)) in = 0;     /* a continuation is indented further */
+            if (in) sb_printf(&out, "%.*s\n", (int)len, line);
+        }
     if (!out.s) {
         usage(to);
         return;

@@ -65,6 +65,8 @@ Access: private
 Files: 3
 Bytes: 20
 Software: SW
+Lost: 444e0fffbd825e9610ff5b199485707a0c895339ae80c15cc8a8aee41b106fda  notes.txt
+Retired: 2026-01-01
 
 Id: TRIP-03_2025_7
 Uuid: UUID
@@ -100,6 +102,7 @@ Access: private
 Files: 3
 Bytes: 21
 Software: SW
+Retired: 2026-01-01
 
 Id: TRIP-05_2025_3
 Uuid: UUID
@@ -428,3 +431,19 @@ Outcome: success
 Authorship: automatic
 Agent: SW
 Note: image TRIP-05_2025_3.noecc.iso, 882 sectors
+
+Disc: TRIP-04_2025_5
+Type: deaccession
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: retired
+
+Disc: TRIP-02_2025_9
+Type: deaccession
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: retired; files only on it recorded as lost (Lost:)

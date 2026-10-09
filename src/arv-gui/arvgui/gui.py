@@ -156,6 +156,54 @@ class App:
             raise LookupError(text)
         return json.loads(text)
 
+    def collections(self, _params):
+        """Each collection and its editions (the Collections tab): the discs of each, their copies,
+        and whether the edition is safe (every disc read back), kept, replaced, retired."""
+        cat = self.home.load()
+        good = {e.get("Disc") for e in cat.events
+                if e.get("Type") == "replication" and e.get("ReadBack") == "identical" and e.get("Outcome") != "failure"}
+        copies = {}
+        for e in cat.events:
+            if e.get("Type") == "replication" and e.get("Outcome") != "failure":
+                copies[e.get("Disc")] = copies.get(e.get("Disc"), 0) + 1
+        out = []
+        for c in cat.collections:
+            revs = [r for r in cat.revisions if r.get("Collection") == c.get("Uuid")]
+            editions = []
+            for r in sorted((r for r in revs if r.get("Edition")), key=lambda r: int(r.get("Edition"))):
+                discs = []
+                for vol in r.get_all("Volume"):
+                    d = cat.disc(vol)
+                    discs.append({"id": vol, "copies": copies.get(vol, 0), "readBack": vol in good,
+                                  "retired": d.get("Retired") if d is not None else None, "where": cat.where(d) if d is not None else ""})
+                editions.append({"edition": int(r.get("Edition")), "date": r.get("Date"), "message": r.get("Message"),
+                                 "discs": discs, "kept": (r.get("Keep") or "").lower() == "yes",
+                                 "safe": bool(discs) and all(x["readBack"] for x in discs),
+                                 "retired": bool(discs) and all(x["retired"] for x in discs),
+                                 "lost": len(r.get_all("Lost"))})
+            newest_safe = max((e["edition"] for e in editions if e["safe"] and not e["retired"]), default=None)
+            for e in editions:          # what arv retire CODE would offer
+                e["replaced"] = (newest_safe is not None and e["edition"] < newest_safe and not e["kept"]
+                                 and not e["retired"])
+            out.append({"code": c.get("Code"), "title": c.get("Title"), "set": c.get("Set"), "access": c.get("Access"),
+                        "editions": editions, "checkpoints": sum(1 for r in revs if not r.get("Edition"))})
+        return {"collections": out}
+
+    def post_collection(self, body):
+        """arv collection keep CODE N, or arv retire CODE (a preview; --yes, and --accept-loss only
+        when asked): answered at once, with what arv printed."""
+        code = str(body["code"])
+        if not re.match(r"^[A-Z0-9][A-Z0-9_-]*$", code):
+            raise ValueError("not a collection code: %r" % code)
+        if body["action"] == "keep":
+            argv = ["collection", "keep", code, str(int(body["edition"]))]
+        elif body["action"] == "retire":
+            argv = ["retire", code] + (["--yes"] if body.get("yes") else []) + (["--accept-loss"] if body.get("accept_loss") else [])
+        else:
+            raise ValueError("unknown action %r" % body["action"])
+        code_, text = self.arv_now(argv)
+        return {"returncode": code_, "output": text}
+
     def plans(self, _params):
         folder = os.path.join(self.home.drafts_dir, "plans")
         try:
@@ -175,7 +223,10 @@ class App:
         name = params.get("name", "")
         if not PLAN_NAME.match(name):
             raise LookupError("no such plan")
-        code, text = self.arv_now(["plan", "show", name, "--json"])
+        argv = ["plan", "show", name, "--json"]
+        if params.get("archived") == "1":     # hashes every item (through the hash cache): asked for, not automatic
+            argv.append("--archived")
+        code, text = self.arv_now(argv)
         if code:
             raise LookupError(text)
         return json.loads(text)
@@ -353,9 +404,10 @@ class App:
 def make_handler(app, port_holder):
     get_routes = {"/api/discs": app.discs, "/api/find": app.find, "/api/browse": app.browse,
                   "/api/job": app.job, "/api/jobs": app.jobs_list, "/api/llm/status": app.llm_status,
-                  "/api/plans": app.plans, "/api/plan": app.plan, "/api/objects": app.objects, "/api/todo": app.todo}
+                  "/api/plans": app.plans, "/api/plan": app.plan, "/api/objects": app.objects, "/api/todo": app.todo,
+                  "/api/collections": app.collections}
     post_routes = {"/api/make": app.post_make, "/api/check": app.post_check, "/api/command": app.post_simple,
-                   "/api/plan": app.post_plan,
+                   "/api/plan": app.post_plan, "/api/collection": app.post_collection,
                    "/api/llm/suggest": app.post_llm_suggest}
 
     class Handler(BaseHTTPRequestHandler):

@@ -86,6 +86,30 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   vocabulary, the folders that are not. Folders named by a year count as facts; a repository's
   own tree is left alone. Nothing is recorded, so the format does not change.
 
+**Retiring one disc, and a data object's last copy**
+- `arv retire DISC-ID` retires a disc that is not part of an edition (a disc plan's, or
+  `arv make FOLDER`'s). It refuses while any of its files is on no other disc that stays, and names
+  each data object on it: the version, whether another disc has it, and whether it is the newest.
+  An older version that a newer one replaces may go; the only copy of the newest is refused.
+  `--yes --accept-loss` records the files as `Lost:` on the disc, and `arv find` lists them as
+  `LOST`. An edition's disc is refused: editions are retired together (`arv retire CODE`).
+
+**Collections in the GUI**
+- Record › Collections lists each collection's editions: their discs and copies, and whether each
+  edition is safe, replaced (ready to retire), kept or retired (with files lost). Keep runs
+  `arv collection keep`; Retire shows `arv retire`'s own preview first and records nothing until
+  confirmed, and a loss only when "accept the loss" is ticked.
+
+**What of a plan is on discs already**
+- `arv plan show NAME --archived` hashes each item (through the hash cache) and says what is on
+  discs already: an item archived before (which data object version, on which discs), every file
+  of it on discs from elsewhere, some of its files, or none. `--json` carries it as `archived`.
+  The GUI's Mastering tab has a button for it ("What is on discs already?") and flags each item.
+
+**Format identification for disc plans**
+- `arv plan make` identifies formats with Siegfried as `arv make` does (`--formats auto|yes|no`):
+  each item is identified where it is, and its rows in `formats.csv` are at its place on the disc.
+
 **Icons for kinds of file in the GUI**
 - The Mastering file browser, the plan's discs, Search results and Objects show an icon for the
   kind of file (📷 image, 🎬 video, 🎵 audio, 📄 document, 📊 spreadsheet, 🗜️ archive, 💿 disc
