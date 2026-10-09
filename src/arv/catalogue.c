@@ -44,7 +44,12 @@ int find_catalogue(const char *given, catalogue *c, int required)
 {
     int bad = 0;
     arv_home h;
-    home_find(&h, given, NULL);
+    if (required) home_find(&h, given, NULL);
+    else if (home_try(&h, given, NULL)) {       /* no archive: an empty catalogue */
+        memset(&c->rec, 0, sizeof c->rec);
+        c->dir = NULL;
+        return -1;
+    }
     c->dir = h.catalog_dir;
     char *path = join(c->dir, "archive.rec");
     if (!is_file(c->dir, "archive.rec")) {      /* an empty home, as the Python arv reads it */

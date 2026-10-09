@@ -381,8 +381,8 @@ int assist_describe(int argc, char **argv)
     if (!tgt) return 2;
     arv_home h;
     archive cat;
-    home_find(&h, home, NULL);
-    archive_load(&cat, h.rec_path);
+    if (home_try(&h, home, NULL)) memset(&cat, 0, sizeof cat);   /* no archive: a folder can still be described */
+    else archive_load(&cat, h.rec_path);
     rec_record *disc = archive_disc(&cat, tgt);
     char *err = NULL;
     if (apply) {          /* no LLM: a saved (perhaps hand-edited) draft applied to a disc */
@@ -525,8 +525,8 @@ int assist_suggest(int argc, char **argv)
     if (llm_open(&c, o.url, o.model, o.allow_remote, &err)) return print_error(err);
     arv_home h;
     archive cat;
-    home_find(&h, home, NULL);
-    archive_load(&cat, h.rec_path);
+    if (home_try(&h, home, NULL)) memset(&cat, 0, sizeof cat);   /* no archive: a folder can still be described */
+    else archive_load(&cat, h.rec_path);
     const char *disc_id = jstr_of(json_get(req, "disc_id")), *source = jstr_of(json_get(req, "source"));
     target t;
     if (open_target(disc_id ? disc_id : source ? source : "", &h, &cat, NULL, &t, &err)) return print_error(err);

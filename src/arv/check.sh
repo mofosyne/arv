@@ -172,7 +172,7 @@ echo "$out" | grep -q "changed after it was hashed" && echo "$out" | grep -q "^ 
     && ok "arv make: a file changed between hashing and writing is refused, and nothing is recorded" \
     || no "a file changed mid-make: $out"
 # portable: arv and a .arv home side by side on a drive, run from anywhere: the drive's home, and
-# nothing written outside the drive (no machine config, no fallback home)
+# nothing written outside the drive (no machine config)
 mkdir -p drive/tools portable-user
 cp "$tool" drive/tools/arv
 (cd drive && HOME="$dir/portable-user" XDG_CONFIG_HOME= XDG_DATA_HOME= ./tools/arv init >/dev/null 2>&1)

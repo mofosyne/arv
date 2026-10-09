@@ -97,7 +97,8 @@ arv where                                     # which archive is used here, and 
 ```
 
 `arv` finds the home by walking up from the folder it works on or the current folder, then
-falls back to the default home registered on this machine. The home holds `config/` (your
+falls back to the default home registered on this machine; with neither, it stops and says how to
+make one, as git does outside a repository (it never starts one unasked). The home holds `config/` (your
 vocabularies), `catalog/` (`archive.rec`: every disc, copy, place, collection, revision and
 event; `volumes/<disc-id>/`: each disc's manifest and listing; `revisions/`: each revision's
 manifest), `drafts/`, and `cache/` (models and the hash cache; rebuildable). Back it up: it is

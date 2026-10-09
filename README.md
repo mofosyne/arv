@@ -225,8 +225,7 @@ make uninstall PREFIX=~/.local   # or: sudo make uninstall   (use the PREFIX you
 ```
 
 This removes `PREFIX/share/arv` and `PREFIX/bin/arv`, `arv-assist`, `arv-gui`, `udfwrite` and `bagit`, and nothing else. Your
-catalogues are yours and stay where they are: each `.arv` folder (or `~/.local/share/arv`)
-and the list of homes in `~/.config/arv/`. Delete those yourself only if you no longer want
+catalogues are yours and stay where they are: each `.arv` folder and the list of homes in `~/.config/arv/`. Delete those yourself only if you no longer want
 the catalogue; every disc also carries a copy of it.
 
 ### Where the catalogue lives: `.arv`
@@ -249,12 +248,16 @@ without touching any of them. In order:
    own `catalog/` (so `arv find` works on any disc);
 4. a `.arv` beside arv itself, walking up from the folder the program is in (portable, below);
 5. the default home in `~/.config/arv/homes.rec` (paths are per machine; this file never goes on
-   a disc, and deleting it loses nothing);
-6. `~/.local/share/arv` (or `~/.local/share/bluray-archive` if you used an older version).
+   a disc, and deleting it loses nothing).
+
+None of these: arv says there is no archive and how to make one, and stops, as git does outside a
+repository. It never starts an archive you did not ask for: `arv init FOLDER` makes one where you
+choose, and `--name NAME --default` lets arv use it from anywhere on this machine. Reading a disc
+(`arv info`, `ls`, `verify`, `restore`) needs no archive.
 
 **Portable**: put `arv.com` (or `arv`) and a home on the same drive, e.g. `tools/arv.com` and
 `.arv/` at the drive's root (`arv init` there). Run from anywhere, arv uses the drive's home and
-writes nothing outside the drive (no machine config, no fallback home) unless you register it with
+writes nothing outside the drive (no machine config) unless you register it with
 `arv init --name`. Paths that plans and data objects keep inside the drive are relative to the
 folder holding `.arv`, so they still work when the drive is mounted elsewhere or under another
 letter.

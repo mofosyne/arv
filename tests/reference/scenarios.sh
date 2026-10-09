@@ -37,7 +37,7 @@ cd "$root"
 export TZ=UTC LC_ALL=C USER=archivist LOGNAME=archivist HOME="$root/userhome" XDG_CONFIG_HOME="$root/userhome/.config" \
     XDG_DATA_HOME="$root/userhome/.local/share" SOURCE_DATE_EPOCH=1767225600 ARV_SOURCE="$root/arv-source" \
     ARV_APE="$root/arv.com"
-unset ARV_HOME BLURAY_ARCHIVE_HOME
+unset ARV_HOME
 mkdir -p "$HOME"
 
 a() {   # the arv command, with its fixed leading words (python3 path/arv), then the arguments
@@ -396,6 +396,7 @@ log query.out stauts                         # an unknown command: the nearest, 
 log query.out --home q todo --bogus          # arguments a command does not take: named, with its usage
 log query.out --home q burned --help         # a command's own lines of the usage
 log query.out --home q-empty todo            # nothing made yet: not "nothing owed"
+(XDG_CONFIG_HOME="$root/no-config" && export XDG_CONFIG_HOME && cd "$work" && log "$root/query.out" todo)   # no archive: arv init, as git
 keep query.out query/transcript.txt
 
 # ------------------------------------------------------------------ disc plans: discs composed by hand

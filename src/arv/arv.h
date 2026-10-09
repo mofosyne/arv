@@ -46,8 +46,9 @@ typedef struct {
     char *path, *catalog_dir, *config_dir, *drafts_dir, *cache_dir, *rec_path;
     char *how;              /* how it was found, in the Python arv's words */
 } arv_home;
-void home_find(arv_home *h, const char *given, const char *source);
-extern const char *home_fallback;       /* the fallback home, when home_find fell back to it */
+void home_find(arv_home *h, const char *given, const char *source);   /* stops, saying how to make one, when none */
+int home_try(arv_home *h, const char *given, const char *source);     /* -1 when there is none */
+extern const char NO_HOME[];                                            /* what home_find says then */
 extern const char *home_archive_name;   /* --archive NAME: a home from the machine config */
 void home_at(arv_home *h, const char *path);
 void home_ensure(const arv_home *h);

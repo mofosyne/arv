@@ -363,3 +363,9 @@ rc=0
 $ --home q-empty todo
 No discs yet, so nothing is owed. Start with arv collection init FOLDER (or arv make FOLDER for a one-off disc).
 rc=0
+$ todo
+arv: no archive here or in any folder above, and no default archive on this machine.
+  arv init FOLDER                          make one at the root of what it describes (e.g. /nas)
+  arv init FOLDER --name NAME --default    and use it from anywhere on this machine
+  (-C HOME or $ARV_HOME names one for a single command)
+rc=1

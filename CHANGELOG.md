@@ -33,8 +33,10 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   medium, and how much room the output folder has; it stops at once, recording nothing, when they
   would not fit. RS03 (and `arv check --image`'s test) shows a percentage on a terminal.
 - `arv todo` with no discs yet says so, and how to start, rather than "nothing owed".
-- A new home started where nobody chose (no `.arv` found, so the fallback in
-  `~/.local/share/arv`) is announced the first time it is written.
+- No more fallback home: with no `.arv` here or above and no default registered, arv stops and
+  says how to make one (`arv init FOLDER`, `--name NAME --default`), as git does outside a
+  repository, instead of quietly starting an archive in `~/.local/share/arv`. The older
+  `~/.local/share/bluray-archive` and `$BLURAY_ARCHIVE_HOME` are no longer read either.
 - `arv burned` without `--device` says when the disc already had copies recorded that day (run
   twice by mistake counts them twice). A location that looks like a code but is not one of the
   archive's (`--location ATIC`) is noted, on `burned`, `stored`, `locate` and `make`; it is still

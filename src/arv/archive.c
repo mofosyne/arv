@@ -119,11 +119,6 @@ const char *archive_home_uuid(archive *a)
 void archive_save(archive *a, const char *path)
 {
     archive_home_uuid(a);
-    if (home_fallback && access(path, F_OK)) {        /* a new archive nobody chose the place of: say where it is */
-        fprintf(stderr, "Note: no archive found here or above, so a new one was started at %s (arv where says why; "
-                        "arv init FOLDER makes one where you choose).\n", home_fallback);
-        home_fallback = NULL;
-    }
     char *dir = xstrdup(path), *slash = strrchr(dir, '/');   /* a new home: its catalog/ folder first */
     if (slash && slash != dir) {
         *slash = 0;

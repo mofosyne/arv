@@ -34,8 +34,9 @@ arv keeps two things apart, and a third that only points at them:
 | a **pointer file with `Collection: UUID`** | the same, and "this folder is that collection's workflow folder" |
 
 The archive is found the way git finds `.git`: `arv` walks up from the folder it works on, then
-falls back to the default registered on this machine. `arv where` says which archive is used, and
-why.
+falls back to the default registered on this machine. With neither, there is no archive: arv says
+so and how to make one (`arv init`), and never starts one unasked. `arv where` says which archive is
+used, and why.
 
 ## Objects and folders: implicit and explicit
 
