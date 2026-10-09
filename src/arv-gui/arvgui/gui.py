@@ -21,7 +21,7 @@ from urllib.parse import parse_qs, urlparse
 
 from . import catalog, recfile
 
-DISC_FIELDS = ("Id", "Part", "Title", "Set", "Category", "Path", "Coverage", "Date", "Location", "Description", "Subject", "Note", "Files", "Copies")
+DISC_FIELDS = ("Id", "Part", "Title", "Set", "Category", "Path", "Coverage", "Date", "Location", "Description", "Subject", "Note", "Files")
 
 
 DRAFT_FIELDS = ("title", "description", "subjects", "folder_tags")

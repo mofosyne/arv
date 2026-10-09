@@ -48,9 +48,7 @@ Access: public
 Files: 16
 Bytes: 9443
 Software: arv@e8c6358ab75d
-Copies: 4
 Location: OFFSITE
-MediaId: MEI-T02
 
 Id: PROJ-01_2020-2023_L
 Uuid: UUID
@@ -73,7 +71,6 @@ Access: private
 Files: 56
 Bytes: 32142
 Software: arv@e8c6358ab75d
-Copies: 1
 Note: Board rev B; rev A gerbers were never ordered.
 Note: A long note that goes on about the weather station, its board revisions and the spare parts
 
@@ -94,7 +91,6 @@ Access: sealed
 Files: 5
 Bytes: 3196
 Software: arv@e8c6358ab75d
-Copies: 1
 
 Id: SCAN-01_1995-2008_D
 Uuid: UUID
@@ -118,7 +114,6 @@ Access: private
 Files: 25
 Bytes: 2504433
 Software: arv@e8c6358ab75d
-Copies: 1
 
 Id: SCAN-02_1995-2008_B
 Uuid: UUID
@@ -141,7 +136,6 @@ Access: private
 Files: 26
 Bytes: 2604875
 Software: arv@e8c6358ab75d
-Copies: 1
 
 Id: SCAN-03_1995-2008_9
 Uuid: UUID
@@ -164,7 +158,6 @@ Access: private
 Files: 5
 Bytes: 500846
 Software: arv@e8c6358ab75d
-Copies: 1
 
 Id: FAMILY-01_2020-2021_K
 Uuid: UUID
@@ -183,7 +176,6 @@ Access: private
 Files: 16
 Bytes: 8828
 Software: arv@e8c6358ab75d
-Copies: 1
 
 %rec: Binding
 %doc: How one volume is stored on its medium: the container (filesystem) and the
@@ -289,10 +281,14 @@ Name: Parents' house
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion
 + a person kept as it was), edited (one a person changed), human (a person alone).
-+ A replication records one copy: Form (disc, iso: the image as a file, folder: the disc's
++ A replication records one copy: Copy (its letter, A, B ... unique among the disc's copies and
++ written on the disc after its id), Form (disc, iso: the image as a file, folder: the disc's
 + files), Temperature (hot, warm, cold: given, else its place's, else cold for a disc and
-+ warm for a file or folder), Path for a file or folder; with ReadBack: identical it is a copy read back against its image before it
-+ was recorded (known good); deaccession retires a disc (its Disc record gets Retired).
++ warm for a file or folder), Location (where this copy is kept), Path for a file or folder,
++ MediaId (the media's maker and type) and Bca (one disc's factory serial) when known; with
++ ReadBack: identical it is a copy read back against its image before it was recorded (known
++ good), as is one a later fixity check with its Copy passed. A disc's copies are its
++ replications; deaccession retires a disc (its Disc record gets Retired).
 %mandatory: Type Date Outcome
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
@@ -544,6 +540,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy
+Copy: A
 
 Disc: PROJ-01_2020-2023_L
 Type: replication
@@ -552,6 +549,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy
+Copy: A
 
 Disc: TAXES-01_2019-2020_I
 Type: replication
@@ -560,6 +558,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy
+Copy: A
 
 Disc: SCAN-01_1995-2008_D
 Type: replication
@@ -568,6 +567,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy
+Copy: A
 
 Disc: SCAN-02_1995-2008_B
 Type: replication
@@ -576,6 +576,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy
+Copy: A
 
 Disc: SCAN-03_1995-2008_9
 Type: replication
@@ -584,6 +585,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy
+Copy: A
 
 Disc: FAMILY-01_2020-2021_K
 Type: replication
@@ -592,6 +594,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy
+Copy: A
 
 Disc: TRIP-01_2019_4
 Type: replication
@@ -600,6 +603,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy, kept at Parents' house; second copy for the parents
+Copy: B
 
 Disc: PROJ-01_2020-2023_L
 Type: metadata modification
@@ -713,9 +717,25 @@ Date: 2026-01-01
 Outcome: success
 Authorship: human
 Agent: human:archivist
-Note: burned 2 copies, kept at Home / Study / Box 1, blue lid; for the attic; not read back
+Note: burned copy C, kept at Home / Study / Box 1, blue lid; for the attic; not read back
+Copy: C
 Form: disc
 Temperature: cold
+Location: BOX1
+MediaId: MEI-T02
+
+Disc: TRIP-01_2019_4
+Type: replication
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: burned copy D, kept at Home / Study / Box 1, blue lid; for the attic; not read back
+Copy: D
+Form: disc
+Temperature: cold
+Location: BOX1
+MediaId: MEI-T02
 
 Disc: PROJ-01_2020-2023_L
 Type: metadata modification
@@ -740,6 +760,19 @@ Outcome: success
 Authorship: human
 Agent: human:archivist
 Note: Location: OFFSITE -> Somewhere new
+
+Disc: TRIP-01_2019_4
+Type: replication
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: burned copy K, kept at Parents' house; not read back
+Copy: K
+Form: disc
+Temperature: cold
+Location: OFFSITE
+Bca: 0a1b2c
 
 %rec: Appraisal
 %doc: The archivist log: how much something matters, to whom, and why. Appended and

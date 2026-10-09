@@ -355,8 +355,10 @@ arv todo: unexpected or missing arguments: --bogus
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2
 $ --home q burned --help
-  arv burned (--device DRIVE | --copies N) [--media-id ID] [--location PLACE] [--note TEXT] [DISC-ID]
-         a burned copy (--device: read back against its image first; recorded only if identical;
+  arv burned (--device DRIVE | --copies N) [--copy X] [--location PLACE] [--media-id ID] [--bca SERIAL]
+             [--note TEXT] [DISC-ID]
+         a burned copy, named by a letter (A, B ...: write it on the hub and case after the id;
+         --device: read back against its image first, recorded only if identical;
          --temperature hot|warm|cold: default the place's, else cold)
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=0

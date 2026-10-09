@@ -427,13 +427,16 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         var c = lastCheck(d);
         var tr = el("tr", { class: "pick" + (d.Id === selected ? " sel" : "") }, [
           el("td", { class: "mono", text: d.Id }), el("td", { text: d.Title || "" }), el("td", { text: d.Date || "" }),
-          el("td", { text: d.Files || "" }), el("td", { text: d.Copies || "0" }), el("td", { text: d.Where || "" }),
+          el("td", { text: d.Files || "" }), el("td", { text: String(copiesOf(d).length) }), el("td", { text: d.Where || "" }),
           el("td", { class: c ? (c.Outcome === "success" ? "ok" : "bad") : "muted", text: c ? c.Date + " " + c.Outcome : "never" })]);
         tr.onclick = function () { selected = d.Id; loadDiscs(); };
         body.appendChild(tr);
       });
       renderDetail();
     });
+  }
+  function copiesOf(d) {        // each copy is a replication event, named by a letter (Copy: A, B ...)
+    return (d.Events || []).filter(function (e) { return e.Type === "replication" && e.Outcome !== "failure"; });
   }
   function renderDetail() {
     var box = $("disc-detail"), d = discs.filter(function (x) { return x.Id === selected; })[0];
@@ -658,7 +661,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (!on.copies.length) span.appendChild(el("span", { class: "chip none", text: "no copy yet" }));
     on.copies.forEach(function (c) {
       span.appendChild(el("span", { class: "chip " + c.temperature, title: c.readBack ? "read back identical" : "not read back",
-                                    text: c.form + " " + c.temperature + (c.readBack ? " ✓" : "") }));
+                                    text: (c.copy ? c.copy + ": " : "") + c.form + " " + c.temperature + (c.readBack ? " ✓" : "") }));
     });
     return span;
   }

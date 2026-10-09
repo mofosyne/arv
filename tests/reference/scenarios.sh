@@ -330,6 +330,10 @@ log record.out --home rec note PROJ-01_2020-2023_L "A long note that goes on abo
 log record.out --home rec locate SCAN-01_1995-2008_D SAFE --add
 log record.out --home rec locate FAMILY-01_2020-2021_K "Somewhere new"
 log record.out --home rec burned NOPE-01_2000_X
+log record.out --home rec burned TRIP-01_2019_4 --copy K --location OFFSITE --bca 0a1b2c   # a letter chosen, and a serial
+log record.out --home rec burned TRIP-01_2019_4 --copy K                  # taken: refused
+log record.out --home rec burned TRIP-01_2019_4 --copy k2                 # not a letter: refused
+log record.out --home rec todo
 keep record.out record/transcript.txt
 keep rec/catalog/archive.rec record/archive.rec
 

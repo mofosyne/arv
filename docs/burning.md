@@ -66,6 +66,9 @@ each copy as it is burned:
 arv burned --device /dev/sr0 --location HOME-PUB-2026 --media-id "VERBATIM-MDISC-LOT-1234"
 ```
 
+Each copy gets the next letter (A, B ...), and arv says which: write it on the hub and the case
+after the id. `--copy X` names it yourself instead.
+
 arv reads the disc's volume label to know which disc it is, reads exactly the image's sectors
 from the drive (after asking the system to drop anything cached), and compares the SHA-256 with
 the one recorded at creation. Only when they are identical does it record the copy (a
@@ -142,6 +145,11 @@ burning program. Record the results in issue #5 and in `src/udfwrite/README.md`'
    Record how many sectors were unreadable and whether the repair brought back the very image.
 6. **Two damaged copies:** damage the first copy elsewhere, read both into the same image with
    ddrescue and the same map file, repair, compare again.
+7. **Telling copies apart:** `cc -o disc-probe dev-tools/disc-probe.c && ./disc-probe /dev/sr0`,
+   on a blank disc and on two burned discs of the same pack. It prints the drive, the media's
+   maker and type, and whether the drive reads a BCA serial (one disc's own). If two discs give
+   two different serials, `arv burned --bca SERIAL` can record it with each copy; if not, the
+   copy letters do the job. Record what it printed in issue #5.
 
 ## Known pitfalls
 

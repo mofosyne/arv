@@ -138,7 +138,6 @@ Version 0.1 (samples only, never burned) kept these files by kind instead: `cata
 | `Withheld` | What was left out of this record | Only on the cut-down copy of a sealed disc in another disc's snapshot |
 | `Note`* | Free-text notes; Q&A from the owner | Multi-line values continue with `+ ` |
 | `Files`, `Bytes` | Payload totals | integers |
-| `Copies`, `MediaId` | Burned copies and drive-reported media ids | home catalogue only |
 | `Software` | Tool and commit that made the disc | |
 
 ### Disc ids
@@ -355,8 +354,19 @@ above), else `cold` for a disc and `warm` for an image file or folder (which als
 `Path`). An archive is kept cold wherever possible: readers should report discs
 with no cold copy.
 
+Each copy has a **letter**, `Copy: A`, `B` ... `Z`, `AA` ...: unique among the disc's copies, given
+in order as copies are recorded (or chosen), and written on the disc's hub and case after its id,
+so a copy can be told from its twins in the hand. Copies are identical images, so the letter is in
+the catalogue, never on the disc. The event also carries the copy's own `Location` (as the disc's
+`Location`, which lists every place a copy of it is kept), and may carry `MediaId` (the media's
+manufacturer and type, as the drive reports it) and `Bca` (the serial some drives read from a
+BD-R's burst cutting area: one disc's own). A disc's number of copies is its number of
+`replication` events that did not fail; there is no counter. A `fixity check` of one copy names
+it with `Copy` too.
+
 A copy is **known good** when its `replication` event carries `ReadBack: identical` (the disc was
-read back against the image's `ImageSha256` before the copy was recorded). An edition is **safe**
+read back against the image's `ImageSha256` before the copy was recorded), or when a later
+successful `fixity check` names its letter. An edition is **safe**
 when each of its discs has a known-good copy. Once a later edition is safe, earlier editions not
 kept may be retired: each of their discs gets `Retired: DATE` (and loses its `Location`
 fields) and a `deaccession` event saying what replaced it. Nothing is deleted.
@@ -384,7 +394,7 @@ disc itself always carries its own full record):
 |---|---|---|
 | `public` | full record and file lists | full record and file lists |
 | `private` (default; also when absent) | full record and file lists | left out |
-| `sealed` | identity only: `Id`, `Uuid`, `Set`, `Category`, `Path`, `Sequence`, `Coverage`, `Date`, `Part`, `Location`, `Copies`, `Access`; `Title` is `(sealed disc)`, plus a `Withheld` field; no events or file lists | left out |
+| `sealed` | identity only: `Id`, `Uuid`, `Set`, `Category`, `Path`, `Sequence`, `Coverage`, `Date`, `Part`, `Location`, `Access`; `Title` is `(sealed disc)`, plus a `Withheld` field; no events or file lists | left out |
 
 A reader merging snapshots must never replace a full record with one that has
 `Withheld`.

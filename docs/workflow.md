@@ -313,6 +313,11 @@ cp FAMILY-04_2001-2025_X.iso /nas/archive/             # a warm copy, if you lik
 arv stored FAMILY-04_2001-2025_X /nas/archive/FAMILY-04_2001-2025_X.iso --location NAS
 ```
 
+- Each copy gets a letter, A, B, C ... (`arv burned` says which): write it on the hub and the
+  case after the id, `FAMILY-04_2001-2025_X B`. Copies are the same image, so the letter tells
+  them apart only in the catalogue and on the label: each has its own place, and a check names
+  the copy it read (`arv check --device /dev/sr0 --copy B`). `arv todo` lists burned copies never
+  read back, by letter.
 - A burn that does not read back identical is **not** recorded: burn again.
 - `arv stored` takes the image file (read back like a disc) or the disc's files as a folder
   (`7z x` the image; verified file by file). It is warm unless its place says otherwise.

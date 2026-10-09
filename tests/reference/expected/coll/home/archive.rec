@@ -44,7 +44,6 @@ Access: public
 Files: 2
 Bytes: 4
 Software: SW
-Copies: 1
 Retired: 2026-01-01
 
 Id: FAM-02_2019_Y
@@ -63,7 +62,6 @@ Access: public
 Files: 2
 Bytes: 4
 Software: SW
-Copies: 3
 Location: BOX1
 Location: NAS
 
@@ -184,10 +182,14 @@ Message: renamed c
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion
 + a person kept as it was), edited (one a person changed), human (a person alone).
-+ A replication records one copy: Form (disc, iso: the image as a file, folder: the disc's
++ A replication records one copy: Copy (its letter, A, B ... unique among the disc's copies and
++ written on the disc after its id), Form (disc, iso: the image as a file, folder: the disc's
 + files), Temperature (hot, warm, cold: given, else its place's, else cold for a disc and
-+ warm for a file or folder), Path for a file or folder; with ReadBack: identical it is a copy read back against its image before it
-+ was recorded (known good); deaccession retires a disc (its Disc record gets Retired).
++ warm for a file or folder), Location (where this copy is kept), Path for a file or folder,
++ MediaId (the media's maker and type) and Bca (one disc's factory serial) when known; with
++ ReadBack: identical it is a copy read back against its image before it was recorded (known
++ good), as is one a later fixity check with its Copy passed. A disc's copies are its
++ replications; deaccession retires a disc (its Disc record gets Retired).
 %mandatory: Type Date Outcome
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
@@ -290,10 +292,12 @@ Date: 2026-01-01
 Outcome: success
 Authorship: human
 Agent: human:archivist
-Note: burned 1 copy, kept at BOX1; read back: identical to the image
+Note: burned copy A, kept at BOX1; read back: identical to the image
+Copy: A
 ReadBack: identical
 Form: disc
 Temperature: cold
+Location: BOX1
 
 Disc: FAM-01_2019_0
 Type: replication
@@ -301,9 +305,11 @@ Date: 2026-01-01
 Outcome: success
 Authorship: human
 Agent: human:archivist
-Note: burned 1 copy, kept at BOX1; not read back
+Note: burned copy A, kept at BOX1; not read back
+Copy: A
 Form: disc
 Temperature: cold
+Location: BOX1
 
 Disc: FAM-01_2019_0
 Type: deaccession
@@ -351,10 +357,12 @@ Date: 2026-01-01
 Outcome: success
 Authorship: human
 Agent: human:archivist
-Note: stored 1 copy as an image file, kept at The NAS; read back: identical to the image
+Note: stored copy B as an image file, kept at The NAS; read back: identical to the image
+Copy: B
 ReadBack: identical
 Form: iso
 Temperature: warm
+Location: NAS
 Path: ROOT/nas/FAM-02_2019_Y.noecc.iso
 
 Disc: FAM-02_2019_Y
@@ -395,10 +403,12 @@ Date: 2026-01-01
 Outcome: success
 Authorship: human
 Agent: human:archivist
-Note: stored 1 copy as a folder, kept at The NAS; unpacked, for quick restores; verified: every file matches its manifest
+Note: stored copy C as a folder, kept at The NAS; unpacked, for quick restores; verified: every file matches its manifest
+Copy: C
 ReadBack: identical
 Form: folder
 Temperature: warm
+Location: NAS
 Path: ROOT/nas/FAM-02-files
 
 %rec: Appraisal

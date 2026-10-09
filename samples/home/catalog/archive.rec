@@ -48,7 +48,6 @@ Access: public
 Files: 16
 Bytes: 9443
 Software: arv@f4b5548cabfe
-Copies: 2
 Location: OFFSITE
 
 Id: PROJ-01_2020-2023_L
@@ -72,7 +71,6 @@ Access: private
 Files: 27
 Bytes: 9023
 Software: arv@f4b5548cabfe
-Copies: 1
 Note: Board rev B; rev A gerbers were never ordered.
 
 Id: TAXES-01_2019-2020_I
@@ -92,7 +90,6 @@ Access: sealed
 Files: 5
 Bytes: 3196
 Software: arv@f4b5548cabfe
-Copies: 1
 
 Id: SCAN-01_1995-2008_D
 Uuid: f7e6916a-5831-467c-99a2-4cc76192e65d
@@ -114,7 +111,6 @@ Access: private
 Files: 56
 Bytes: 2089113
 Software: arv@f4b5548cabfe
-Copies: 1
 
 Id: FAMILY-01_2020_Q
 Uuid: 915be5de-9eec-41ea-9702-ee2d5eb6b9ae
@@ -133,7 +129,6 @@ Access: private
 Files: 8
 Bytes: 4414
 Software: arv@f4b5548cabfe
-Copies: 1
 Retired: 2026-10-05
 
 Id: FAMILY-02_2020-2021_I
@@ -154,7 +149,6 @@ Access: private
 Files: 16
 Bytes: 8828
 Software: arv@f4b5548cabfe
-Copies: 2
 Location: NAS
 
 %rec: Binding
@@ -594,6 +588,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy; not read back
+Copy: A
 Form: disc
 Temperature: cold
 
@@ -604,6 +599,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy; not read back
+Copy: A
 Form: disc
 Temperature: cold
 
@@ -614,6 +610,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy; not read back
+Copy: A
 Form: disc
 Temperature: cold
 
@@ -624,6 +621,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy; not read back
+Copy: A
 Form: disc
 Temperature: cold
 
@@ -634,6 +632,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy; not read back
+Copy: A
 Form: disc
 Temperature: cold
 
@@ -644,6 +643,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy; not read back
+Copy: A
 Form: disc
 Temperature: cold
 
@@ -662,6 +662,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: stored 1 copy as an image file, kept at Home / The NAS; kept on the NAS for quick restores; read back: identical to the image
+Copy: B
 ReadBack: identical
 Form: iso
 Temperature: warm
@@ -682,6 +683,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy, kept at Parents' house; second copy for the parents; not read back
+Copy: B
 Form: disc
 Temperature: cold
 

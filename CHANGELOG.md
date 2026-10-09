@@ -21,6 +21,23 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Each copy has a letter** (format 0.5)
+- A copy of a disc (burned, an image file, or a folder) is its `replication` event, now named by
+  a letter, `Copy: A`, `B` ...: given in order (or chosen, `arv burned --copy X`), written on the
+  hub and case after the id, and unique among the disc's copies. Copies stay sector-identical
+  images, so two damaged ones can still repair each other; the letter is only on the label and in
+  the catalogue.
+- Each copy keeps its own place (`Location`), and its `MediaId` and `Bca` (a BD-R's factory
+  serial, `--bca`) when known. `arv check --copy X` names the copy it read, and a passed check
+  makes that copy known good. `arv todo` lists burned copies never read back by letter;
+  `arv objects` and the GUI show each copy with its letter and place.
+- `--copies N` records N copies (N events), and the disc's `Copies:` counter is gone: a disc's
+  copies are counted from its events, so two catalogues of one archive can be merged without
+  losing any.
+- `dev-tools/disc-probe.c` asks a drive (Linux) for the media's maker and type and for the BCA
+  serial, read only, blank or burned: step 7 of the first-burn drill finds out whether drives
+  read a serial that tells copies apart.
+
 **Easier to use** (a UX review: arv used from scratch as a new user would)
 - `arv COMMAND --help` prints that command's own lines of the usage (and what DISC and CATALOG
   mean, when it uses them), not the whole of it. `arv make --help` keeps its full list.

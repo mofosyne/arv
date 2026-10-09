@@ -125,10 +125,13 @@ can repair each other (see [workflow.md](workflow.md#8-recover)). Keep at least
 two copies, in two places: the usual 3-2-1 idea, with an off-site copy.
 
 ```sh
-arv burned SCAN-01_1995-2008_D --copies 1 --location HOME-PRV-2026
-arv burned SCAN-01_1995-2008_D --copies 1 --location PARENTS-PRV-2026
+arv burned SCAN-01_1995-2008_D --location HOME-PRV-2026      # copy A
+arv burned SCAN-01_1995-2008_D --location PARENTS-PRV-2026   # copy B
 arv list --at PARENTS          # what the off-site boxes hold
 ```
+
+Each copy has a letter (`arv burned` names it): write it after the id, on the hub and the case
+(`SCAN-01_1995-2008_D B`), so the copies of one image can be told apart.
 
 The off-site boxes follow the same split. Sealed copies need somewhere locked
 there too (a second safe, or a bank's safe deposit box).
@@ -137,8 +140,8 @@ there too (a second safe, or a bank's safe deposit box).
 
 | Where | What | How |
 |---|---|---|
-| On the disc | the **full id**, e.g. `TRIP-01_2019_4` | a solvent-free (water-based) marker meant for discs, on the clear inner hub ring only. No paper labels. |
-| Case spine | the volume label: the id, then the title, e.g. `TRIP-01_2019_4 Kyoto July 2019` | printed or written spine insert |
+| On the disc | the **full id** and the **copy letter**, e.g. `TRIP-01_2019_4 B` | a solvent-free (water-based) marker meant for discs, on the clear inner hub ring only. No paper labels. |
+| Case spine | the volume label: the id, then the title, e.g. `TRIP-01_2019_4 Kyoto July 2019`; and the copy letter | printed or written spine insert |
 | Box | its location code, large, and its contents list | print `arv list --at HOME-PRV-2026` and keep it in the box lid |
 
 The id's last character is a check character, so a smudged or misread id is

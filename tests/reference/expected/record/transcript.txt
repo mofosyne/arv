@@ -1,5 +1,5 @@
 $ --home rec burned TRIP-01_2019_4 --copies 2 --location box1 --media-id MEI-T02 --note for the attic
-TRIP-01_2019_4: 4 copies recorded (not read back: arv burned --device checks a copy as it records it)
+TRIP-01_2019_4: copies C and D recorded, 4 in all (not read back: arv burned --device checks a copy as it records it). Write the letter on the hub and the case, after the id.
 rc=0
 $ --home rec note PROJ-01_2020-2023_L A long note that goes on about the weather station, its board revisions and the spare parts
 rc=0
@@ -13,3 +13,37 @@ rc=0
 $ --home rec burned NOPE-01_2000_X
 Error: no disc NOPE-01_2000_X in rec/catalog/archive.rec
 rc=1
+$ --home rec burned TRIP-01_2019_4 --copy K --location OFFSITE --bca 0a1b2c
+TRIP-01_2019_4: copy K recorded, 5 in all (not read back: arv burned --device checks a copy as it records it). Write the letter on the hub and the case, after the id.
+rc=0
+$ --home rec burned TRIP-01_2019_4 --copy K
+Error: TRIP-01_2019_4 already has a copy K: name this one another letter (or leave --copy out, and arv takes the next)
+rc=1
+$ --home rec burned TRIP-01_2019_4 --copy k2
+Error: --copy k2: 1-3 capital letters, as written on the disc (A, B ... Z, AA)
+rc=1
+$ --home rec todo
+Burned, never read back (arv check --device DRIVE --copy X ID):
+  TRIP-01_2019_4  copies A, B, C, D, K
+  PROJ-01_2020-2023_L  copy A
+  TAXES-01_2019-2020_I  copy A
+  SCAN-01_1995-2008_D  copy A
+  SCAN-02_1995-2008_B  copy A
+  SCAN-03_1995-2008_9  copy A
+  FAMILY-01_2020-2021_K  copy A
+No cold copy, every copy is online or in use (burn one for the shelf):
+  PROJ-01_2020-2023_L
+  TAXES-01_2019-2020_I
+  SCAN-01_1995-2008_D
+  SCAN-02_1995-2008_B
+  SCAN-03_1995-2008_9
+  FAMILY-01_2020-2021_K
+Fewer copies or places than its appraisal asks for (essential: 3 copies in 3 places; important: 2 in 2; useful: 1):
+  TRIP-01_2019_4  essential for self: 5 copies in 2 places
+  PROJ-01_2020-2023_L  important for self: 1 copy in 1 place
+Kept in fewer than two places (arv locate ID PLACE --add):
+  TAXES-01_2019-2020_I  one place
+  SCAN-02_1995-2008_B  one place
+  SCAN-03_1995-2008_9  one place
+  FAMILY-01_2020-2021_K  one place
+rc=0

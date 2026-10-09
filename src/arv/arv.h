@@ -123,6 +123,12 @@ rec_record *new_event(const char *disc_id, const char *type, const char *outcome
 char *person(void);
 char *place(const archive *a, const char *text);
 void place_check(const archive *a, const char *text);
+/* copies: replication events, each named by a letter (Copy: A, B ...) */
+size_t disc_copies(const archive *a, const char *disc_id);
+int copy_exists(const archive *a, const char *disc_id, const char *letter);
+int copy_letter_ok(const char *s);
+char *copy_next(const archive *a, const char *disc_id);
+int copy_read_back(const archive *a, const char *disc_id, const rec_record *copy);
 /* hot, warm or cold: the place's Temperature, or the nearest place above it that has one; NULL */
 const char *place_temperature(const archive *a, const char *code);
 int temperature_ok(const char *t);
