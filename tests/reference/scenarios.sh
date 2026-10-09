@@ -392,6 +392,10 @@ done
 log query.out --home q sets
 log query.out --home q sets -v
 log query.out --home q where
+log query.out stauts                         # an unknown command: the nearest, not the whole usage
+log query.out --home q todo --bogus          # arguments a command does not take: named, with its usage
+log query.out --home q burned --help         # a command's own lines of the usage
+log query.out --home q-empty todo            # nothing made yet: not "nothing owed"
 keep query.out query/transcript.txt
 
 # ------------------------------------------------------------------ disc plans: discs composed by hand

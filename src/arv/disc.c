@@ -504,8 +504,8 @@ int cmd_restore(int argc, char **argv)
         free(dst);
     }
 
-    printf("%s: restored %zu files (%llu bytes) and %zu links to %s", d.id, restored,
-           (unsigned long long)total, made_links, dest);
+    printf("%s: restored %zu file%s (%llu bytes) and %zu link%s to %s", d.id, restored, restored == 1 ? "" : "s",
+           (unsigned long long)total, made_links, made_links == 1 ? "" : "s", dest);
     if (kept) printf("; %zu links kept as copies", kept);
     if (skipped) printf("; %zu skipped", skipped);
     putchar('\n');

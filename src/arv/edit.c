@@ -441,8 +441,14 @@ int cmd_selection(int argc, char **argv)
         return 0;
     }
     sbuf changes = { 0 };
+    if (!strcmp(action, "add") && c) {     /* add to one that exists: its items go in, as put does */
+        if (name || within || description || !items.n)
+            die("selection %s already exists (arv selection put CODE ITEM... adds to it; move changes its name or place)",
+                code);
+        fprintf(stderr, "Note: selection %s already exists: adding to it (as arv selection put does)\n", code);
+        action = "put";
+    }
     if (!strcmp(action, "add")) {
-        if (c) die("selection %s already exists", code);
         if (!code_ok(code, 32)) die("selection code %s: use 1-32 capital letters, digits, - or _", code_arg);
         if (within && !coll(&cat, within)) {
             char *w = upper_trim_copy(within);
@@ -1037,7 +1043,7 @@ int cmd_names(int argc, char **argv)
     name_issues x = { 0 };
     names_check(paths.v, paths.n, &x);
     if (!x.n) printf("all %zu names kept exactly\n", paths.n);
-    else printf("%zu issue(s)\n", x.n);
+    else printf("%zu issue%s\n", x.n, x.n == 1 ? "" : "s");
     report(&x, limit ? (size_t)limit : x.n);
     for (size_t i = 0; i < x.n; i++) errors |= x.v[i].error;
     names_free(&x);

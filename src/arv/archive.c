@@ -119,6 +119,11 @@ const char *archive_home_uuid(archive *a)
 void archive_save(archive *a, const char *path)
 {
     archive_home_uuid(a);
+    if (home_fallback && access(path, F_OK)) {        /* a new archive nobody chose the place of: say where it is */
+        fprintf(stderr, "Note: no archive found here or above, so a new one was started at %s (arv where says why; "
+                        "arv init FOLDER makes one where you choose).\n", home_fallback);
+        home_fallback = NULL;
+    }
     char *dir = xstrdup(path), *slash = strrchr(dir, '/');   /* a new home: its catalog/ folder first */
     if (slash && slash != dir) {
         *slash = 0;
@@ -424,6 +429,15 @@ char *person(void)
 }
 
 /* a Location code when text names one (any case), else the text as given (trimmed) */
+/* a place given on the command line that looks like a code but is none of the archive's locations:
+ * say so (it is kept as written, as text), since it is often a mistyped code */
+void place_check(const archive *a, const char *text)
+{
+    if (!text || !*text || strchr(text, ' ') || archive_location(a, text)) return;   /* words with spaces: meant as text */
+    fprintf(stderr, "Note: %s is not one of the archive's locations (arv location list): recorded as written. "
+                    "arv location add CODE NAME makes a place arv knows.\n", text);
+}
+
 char *place(const archive *a, const char *text)
 {
     rec_record *l = archive_location(a, text);

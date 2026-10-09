@@ -412,6 +412,8 @@ static uint32_t get32(const unsigned char *p)
 
 /* The CRC layer and the parity of the whole image, written (check NULL) or compared with what the
    image holds (check: the counts of what differs). */
+void (*rs03_progress)(uint64_t done, uint64_t total);
+
 static int encode_image(int fd, const char *path, const rs03_layout *lay, const unsigned char fp[16], uint32_t in_last,
                         rs03_report *check, char *err, size_t errlen)
 {
@@ -504,6 +506,7 @@ static int encode_image(int fd, const char *path, const rs03_layout *lay, const 
                     }
             }
         }
+        if (rs03_progress) rs03_progress(c + m, spl);
     }
     if (check && pos0_bad) check->bad_ecc -= pos0_ecc;
     rc = 0;

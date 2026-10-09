@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Disc Archive</title>
+<title>arv</title>
 <style>
 :root { --bg:#fdfdfc; --fg:#1d1d1b; --muted:#6b6b66; --line:#e2e1dc; --accent:#1f5fa8; --panel:#f4f3ef;
         --ok:#2f7d32; --bad:#b3261e; --warn:#9a6700; }
@@ -33,6 +33,7 @@ header button.link.owed { border-color:var(--warn); color:var(--warn); }
 header button.link.clear { border-color:var(--ok); color:var(--ok); }
 .owed h3 { font-size:15px; margin:16px 0 4px; }
 .owed li { font-family:ui-monospace, monospace; font-size:13px; overflow-wrap:anywhere; }
+.owed li button.link { font:inherit; background:none; border:none; padding:0; color:var(--accent); text-decoration:underline; cursor:pointer; }
 main { max-width:1100px; margin:0 auto; padding:16px 16px 64px; }
 section[hidden] { display:none; }
 h2 { font-size:1.05rem; margin:24px 0 8px; }
@@ -125,7 +126,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   .kept td.mono { white-space:normal; overflow-wrap:anywhere; }
 }
 </style></head><body>
-<header><h1>Disc Archive</h1><span class="home" id="home"></span><span class="spacer"></span>
+<header><h1 title="Archive, Record, Verify">arv</h1><span class="home" id="home"></span><span class="spacer"></span>
   <button class="link" type="button" id="owed-line" title="What arv todo says is owed">…</button>
   <button class="link" type="button" id="jobs-btn">Jobs</button></header>
 <nav role="tablist" class="groups">
@@ -134,8 +135,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   <button role="tab" data-group="verify">Verify<span class="hint">still good, and back</span></button>
 </nav>
 <nav class="sub" data-group="archive" hidden>
-  <button data-tab="master">Mastering: discs by hand</button>
   <button data-tab="make">From a folder</button>
+  <button data-tab="master">Mastering: discs by hand</button>
 </nav>
 <nav class="sub" data-group="record" hidden>
   <button data-tab="objects">Objects</button>
@@ -151,7 +152,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 
 <section id="tab-owed" hidden>
   <p class="muted">What is owed, from <span class="mono">arv todo</span>: copies to make, copies to read back, cold copies,
-    places, checks overdue. Each line says what to do; Record and Check do most of it.</p>
+    places, checks overdue. Each heading says what to do; a disc's name opens it, to record copies and places.</p>
   <div id="owed" class="owed"></div>
   <button class="plain" type="button" id="owed-refresh">Look again</button>
 </section>
@@ -359,7 +360,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // Archive, Record, Verify: each view belongs to one of the three
   var GROUP = { master: "archive", make: "archive", objects: "record", discs: "record", search: "record",
                 owed: "verify", tools: "verify", restore: "verify" };
-  var lastView = { archive: "master", record: "objects", verify: "owed" };
+  var lastView = { archive: "make", record: "objects", verify: "owed" };
   function showTab(name) {
     var group = GROUP[name];
     if (group) lastView[group] = name;
@@ -385,8 +386,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     b.textContent = items ? items + (items === 1 ? " thing owed" : " things owed") : "Nothing owed";
     b.className = "link " + (items ? "owed" : "clear");
   }
-  function loadOwed() {
-    return api("/api/todo").then(function (res) {
+  function loadOwed() {     // the discs first, so a disc's name in the list can open it
+    return (discs.length ? Promise.resolve() : loadDiscs()).then(function () { return api("/api/todo"); }).then(function (res) {
       owedLine(res.text);
       var box = $("owed"); box.textContent = "";
       var list = null;
@@ -394,9 +395,14 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         if (!line.trim()) return;
         if (/^  /.test(line)) {
           if (!list) { list = el("ul"); box.appendChild(list); }
-          list.appendChild(el("li", { text: line.trim() }));
+          var item = line.trim(), id = item.split(/\s+/)[0], known = discs.some(function (d) { return d.Id === id; });
+          if (!known) { list.appendChild(el("li", { text: item })); return; }
+          var open = el("button", { class: "link", type: "button", text: id, title: "Open " + id + " in Record › Discs" });
+          open.onclick = function () { selected = id; showTab("discs"); };
+          list.appendChild(el("li", {}, [open, document.createTextNode(item.slice(id.length))]));
         } else {
-          box.appendChild(el(/^Nothing owed/.test(line) ? "p" : "h3", { class: /^Nothing owed/.test(line) ? "ok" : "", text: line }));
+          var fine = /^(Nothing owed|No discs yet)/.test(line);
+          box.appendChild(el(fine ? "p" : "h3", { class: fine ? "ok" : "", text: line }));
           list = null;
         }
       });
@@ -411,7 +417,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   }
   function loadDiscs() {
     return api("/api/discs").then(function (res) {
-      $("home").textContent = "Catalogue: " + res.home;
+      var parts = res.home.split("/");     // a long path: its last folders, the whole of it on hover
+      $("home").textContent = "Catalogue: " + (res.home.length > 40 && parts.length > 3 ? "…/" + parts.slice(-2).join("/") : res.home);
+      $("home").title = res.home;
       discs = res.discs;
       var body = $("disc-table").querySelector("tbody"); body.textContent = "";
       $("disc-empty").hidden = discs.length > 0;
@@ -658,12 +666,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     return h.copies + (h.copies === 1 ? " copy" : " copies") + " on " + h.discs + (h.discs === 1 ? " disc" : " discs") +
            ", " + h.cold + " cold, " + h.readBack + " read back";
   }
-  function heldTable(rows) {     // rows: [version or "", disc entry, path or null, bytes or null]
+  function heldTable(rows) {     // rows: [version or "", disc entry, path or null (then r[3]: what it holds)]
     var t = el("table");
     t.appendChild(el("tr", {}, ["", "Disc", "On the disc", "Copies", "Kept at"].map(function (x) { return el("th", { text: x }); })));
     rows.forEach(function (r) {
       t.appendChild(el("tr", {}, [el("td", { text: r[0] }), el("td", { class: "mono", text: r[1].disc }),
-        el("td", { class: "mono", text: r[2] === null ? "" : "data/" + (r[2] === "." ? "" : r[2]) }),
+        el("td", { class: r[2] === null ? "muted" : "mono", text: r[2] === null ? r[3] || "" : "data/" + (r[2] === "." ? "" : r[2]) }),
         el("td", {}, [chips(r[1])]), el("td", { text: r[1].where || "" })]));
     });
     return el("div", { class: "scroll" }, [t]);
@@ -701,7 +709,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       if (c.folder) card.appendChild(el("div", { class: "src" }, [document.createTextNode("workflow folder " + c.folder.path + " "),
         el("span", { class: c.folder.there ? "here" : "gone", text: c.folder.there ? "(there now)" : "(not there now)" })]));
       if (c.newest && c.newest.holding.copies && !c.newest.holding.cold) card.appendChild(el("div", { class: "todo", text: "no cold copy of the newest edition" }));
-      if (c.newest) card.appendChild(heldTable(c.newest.discs.map(function (d) { return ["", d, null]; })));
+      if (c.newest) card.appendChild(heldTable(c.newest.discs.map(function (d, i, all) {
+        return ["", d, null, "edition " + c.newest.edition + (all.length > 1 ? ", part " + (i + 1) + " of " + all.length : "")]; })));
       list.appendChild(card);
     });
     $("o-summary").textContent = kept.objects.length + " data object" + (kept.objects.length === 1 ? "" : "s") + ", " +

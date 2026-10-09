@@ -345,3 +345,21 @@ homes on this machine (ROOT/userhome/.config/arv/homes.rec):
   main         ROOT/init/a/.arv
   other        ROOT/init/b/.arv  (default)
 rc=0
+$ stauts
+arv: unknown command 'stauts' - did you mean status?
+arv --help lists every command.
+rc=2
+$ --home q todo --bogus
+arv todo: unexpected or missing arguments: --bogus
+  arv todo [--overdue YEARS]   what is owed: copies, read-backs, cold copies, places, checks
+All commands: arv --help. More: README.md and docs/workflow.md.
+rc=2
+$ --home q burned --help
+  arv burned (--device DRIVE | --copies N) [--media-id ID] [--location PLACE] [--note TEXT] [DISC-ID]
+         a burned copy (--device: read back against its image first; recorded only if identical;
+         --temperature hot|warm|cold: default the place's, else cold)
+All commands: arv --help. More: README.md and docs/workflow.md.
+rc=0
+$ --home q-empty todo
+No discs yet, so nothing is owed. Start with arv collection init FOLDER (or arv make FOLDER for a one-off disc).
+rc=0

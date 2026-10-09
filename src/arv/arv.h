@@ -47,6 +47,7 @@ typedef struct {
     char *how;              /* how it was found, in the Python arv's words */
 } arv_home;
 void home_find(arv_home *h, const char *given, const char *source);
+extern const char *home_fallback;       /* the fallback home, when home_find fell back to it */
 extern const char *home_archive_name;   /* --archive NAME: a home from the machine config */
 void home_at(arv_home *h, const char *path);
 void home_ensure(const arv_home *h);
@@ -120,6 +121,7 @@ rec_record *new_event(const char *disc_id, const char *type, const char *outcome
                       const char *authorship, const char *note);
 char *person(void);
 char *place(const archive *a, const char *text);
+void place_check(const archive *a, const char *text);
 /* hot, warm or cold: the place's Temperature, or the nearest place above it that has one; NULL */
 const char *place_temperature(const archive *a, const char *code);
 int temperature_ok(const char *t);
@@ -278,6 +280,11 @@ void names_free(name_issues *x);
 char *volume_label(const char *disc_id, const char *text);
 
 #define VERSION "arv 0.4"
+#define FORMAT_VERSION "0.5"   /* the disc format (docs/spec/smart-archive-format.md) */
+/* arv's source tree (for tools/), and "arv@<commit>" from it (make.c) */
+char *find_source(const char *given);
+char *software_version(const char *source, int *is_git);
+void progress_line(uint64_t done, uint64_t total);   /* a percentage on a terminal (rs03_progress) */
 
 typedef struct {
     char *path;     /* as in the manifest: data/... or a tag file */

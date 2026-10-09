@@ -40,9 +40,8 @@
 
 /* ------------------------------------------------------------------ main */
 
-static void usage(FILE *to)
-{
-    fputs("usage: arv [-C HOME | --archive NAME] COMMAND ...\n"
+static const char USAGE[] =
+          "usage: arv [-C HOME | --archive NAME] COMMAND ...\n"
           "Archive, Record, Verify: put what you keep on discs, record what exists and where, and check that\n"
           "it is still good and can be got back. arv make --help lists its options; docs/workflow.md says more.\n"
           "\n"
@@ -95,8 +94,84 @@ static void usage(FILE *to)
           "(*) when installed: arv-assist (the local AI helpers), arv-gui (the interface)\n"
           "DISC: the root of a mounted arv disc or an extracted image (the folder with catalog.rec)\n"
           "CATALOG: a disc root, its catalog/ folder or a home (.arv); default: $ARV_HOME, or the\n"
-          "first .arv folder or disc root from here up\n",
-          to);
+          "first .arv folder or disc root from here up\n";
+
+static void usage(FILE *to)
+{
+    fputs(USAGE, to);
+}
+
+/* "arv NAME" on a line of USAGE, as a whole word */
+static int names_command(const char *line, size_t len, const char *name)
+{
+    char *word = xprintf("arv %s", name);
+    size_t n = strlen(word);
+    int found = 0;
+    for (const char *p = line; !found && p + n <= line + len; p++)
+        found = !strncmp(p, word, n) && (p + n == line + len || p[n] == ' ');
+    free(word);
+    return found;
+}
+
+/* arv NAME --help: the lines of USAGE for that command (with the lines continuing them), and the
+ * words they use (DISC, CATALOG) */
+static void command_usage(FILE *to, const char *name)
+{
+    sbuf out = { 0 };
+    int in = 0;
+    for (const char *line = USAGE, *end; *line; line = end + 1) {
+        end = strchr(line, '\n');
+        size_t len = (size_t)(end - line);
+        if (!strncmp(line, "  arv ", 6)) in = names_command(line, len, name);
+        else if (strncmp(line, "    ", 4)) in = 0;     /* a continuation is indented further */
+        if (in) sb_printf(&out, "%.*s\n", (int)len, line);
+    }
+    if (!out.s) {
+        usage(to);
+        return;
+    }
+    fputs(out.s, to);
+    for (const char *p = out.s; (p = strstr(p, "DISC")); p += 4)
+        if (p[4] != '-') {
+            fputs("DISC: the root of a mounted arv disc or an extracted image (the folder with catalog.rec)\n", to);
+            break;
+        }
+    if (strstr(out.s, "CATALOG"))
+        fputs("CATALOG: a disc root, its catalog/ folder or a home (.arv); default: $ARV_HOME, or the\n"
+              "first .arv folder or disc root from here up\n", to);
+    fputs("All commands: arv --help. More: README.md and docs/workflow.md.\n", to);
+    free(out.s);
+}
+
+/* arv --version: the release, the commit it was built from when known, and the disc format */
+static int print_version(void)
+{
+    int is_git;
+    char *source = find_source(NULL), *v = software_version(source, &is_git);
+    if (strcmp(v, "arv@unknown")) printf("%s (%s), disc format %s\n", VERSION, v, FORMAT_VERSION);
+    else printf("%s, disc format %s\n", VERSION, FORMAT_VERSION);
+    free(source);
+    free(v);
+    return 0;
+}
+
+static size_t edit_distance(const char *a, const char *b)
+{
+    size_t la = strlen(a), lb = strlen(b), row[64];
+    if (lb >= sizeof row / sizeof *row) return (size_t)-1;
+    for (size_t j = 0; j <= lb; j++) row[j] = j;
+    for (size_t i = 1; i <= la; i++) {
+        size_t diag = row[0];
+        row[0] = i;
+        for (size_t j = 1; j <= lb; j++) {
+            size_t up = row[j], best = diag + (a[i - 1] != b[j - 1]);
+            if (up + 1 < best) best = up + 1;
+            if (row[j - 1] + 1 < best) best = row[j - 1] + 1;
+            diag = up;
+            row[j] = best;
+        }
+    }
+    return row[lb];
 }
 
 /* ------------------------------------------------------------------ the helpers: arv-assist, arv-gui */
@@ -181,8 +256,7 @@ int main(int argc, char **argv)
                  { "tags", cmd_tags }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
     arv_argv0 = argv[0];
     if (argc >= 2 && (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-V"))) {
-        puts(VERSION);
-        return 0;
+        return print_version();
     }
     /* the local AI helpers and the interface are programs of their own */
     const char *word = command_word(argc, argv);
@@ -205,7 +279,7 @@ int main(int argc, char **argv)
             if (strcmp(cmds[i].name, "make"))         /* make has its own help */
                 for (int k = 2; k < argc; k++)
                     if (!strcmp(argv[k], "-h") || !strcmp(argv[k], "--help")) {
-                        usage(stdout);
+                        command_usage(stdout, cmds[i].name);
                         return 0;
                     }
             char **args = argv + 2;
@@ -219,9 +293,33 @@ int main(int argc, char **argv)
                 n += 2;
             }
             int rc = cmds[i].fn(n, args);
-            if (rc == 2) usage(stderr);
+            if (rc == 2) {          /* the command did not take its arguments: say so, and how it is used */
+                fprintf(stderr, "arv %s: unexpected or missing arguments:", cmds[i].name);
+                for (int k = 2; k < argc; k++) fprintf(stderr, " %s", argv[k]);
+                fputs(argc > 2 ? "\n" : " (none given)\n", stderr);
+                command_usage(stderr, cmds[i].name);
+            }
             return rc;
         }
-    usage(stderr);
+    if (argc >= 2 && !strcmp(argv[1], "version")) {
+        return print_version();
+    }
+    if (argc < 2) {
+        usage(stderr);
+        return 2;
+    }
+    /* an unknown command: say which, and the nearest ones */
+    static const char *const helpers[] = { "describe", "tag", "models", "gui" };
+    const char *near[3];
+    size_t nnear = 0, cutoff = strlen(argv[1]) <= 4 ? 1 : 2;
+    for (size_t i = 0; i < sizeof cmds / sizeof *cmds + 4 && nnear < 3; i++) {
+        const char *name = i < sizeof cmds / sizeof *cmds ? cmds[i].name : helpers[i - sizeof cmds / sizeof *cmds];
+        if (edit_distance(argv[1], name) <= cutoff || (strlen(argv[1]) >= 3 && !strncmp(argv[1], name, strlen(argv[1]))))
+            near[nnear++] = name;
+    }
+    fprintf(stderr, "arv: unknown %s '%s'", argv[1][0] == '-' ? "option" : "command", argv[1]);
+    for (size_t k = 0; k < nnear; k++) fprintf(stderr, "%s%s", k ? ", " : " - did you mean ", near[k]);
+    fputs(nnear ? "?\n" : "\n", stderr);
+    fputs("arv --help lists every command.\n", stderr);
     return 2;
 }

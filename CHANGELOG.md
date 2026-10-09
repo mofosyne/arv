@@ -15,12 +15,35 @@ only add fields.
       against the image hash; Linux, Windows and macOS open the disc and run `tools/arv.com`;
       a damaged copy read with ddrescue is repaired to the very image.
 - [ ] The RS03 weak spot (issue #4) is measured on a full-size BD-R image.
-- [ ] `FORMAT_VERSION` becomes `1.0` (src/arv/make.c), `VERSION` becomes `arv 1.0`
-      (src/arv/arv.h), the samples are remade and published, and the commit is tagged `v1.0`.
+- [ ] `FORMAT_VERSION` becomes `1.0` and `VERSION` becomes `arv 1.0` (both in src/arv/arv.h), the samples are remade and published, and the commit is tagged `v1.0`.
 
 ## Unreleased (format 0.5), October 2026
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
+
+**Easier to use** (a UX review: arv used from scratch as a new user would)
+- `arv COMMAND --help` prints that command's own lines of the usage (and what DISC and CATALOG
+  mean, when it uses them), not the whole of it. `arv make --help` keeps its full list.
+- An unknown command says so and names the nearest (`arv stauts`: did you mean status?);
+  arguments a command does not take are named, with that command's usage. Neither prints the
+  whole usage any more.
+- `arv --version` (and `arv version`) names the commit it was built from and the disc format:
+  `arv 0.4 (arv@<commit>), disc format 0.5`.
+- `arv make` says before the long part how big the images will be once RS03 fills them to the
+  medium, and how much room the output folder has; it stops at once, recording nothing, when they
+  would not fit. RS03 (and `arv check --image`'s test) shows a percentage on a terminal.
+- `arv todo` with no discs yet says so, and how to start, rather than "nothing owed".
+- A new home started where nobody chose (no `.arv` found, so the fallback in
+  `~/.local/share/arv`) is announced the first time it is written.
+- `arv burned` without `--device` says when the disc already had copies recorded that day (run
+  twice by mistake counts them twice). A location that looks like a code but is not one of the
+  archive's (`--location ATIC`) is noted, on `burned`, `stored`, `locate` and `make`; it is still
+  recorded as written.
+- `arv selection add` on a selection that exists adds the items, as `put` does (with a note).
+- Plurals: "1 file", "3 issues", "1 link".
+- `arv gui`: named arv; Archive opens on "From a folder"; each disc in Owed opens it in Record ›
+  Discs (to record copies and places); a long catalogue path is shortened in the header (the
+  whole on hover); a collection's discs say which edition they hold.
 
 **Discs carry the vocabularies** (format 0.5)
 - A disc with a full catalogue snapshot carries the home's `config/sets.rec` and

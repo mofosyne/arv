@@ -84,6 +84,8 @@ static char *walk_up(const char *start, char **how)
     }
 }
 
+const char *home_fallback;
+
 static char *config_path(void)
 {
     const char *xdg = getenv("XDG_CONFIG_HOME"), *home = getenv("HOME");
@@ -172,8 +174,11 @@ void home_find(arv_home *h, const char *given, const char *source)
         char *cwd = getcwd(NULL, 4096);
         how = xprintf("the fallback home (no .arv found above %s)", cwd ? cwd : ".");
         free(cwd);
+        home_at(h, found);
+        home_fallback = h->path;
+    } else {
+        home_at(h, found);
     }
-    home_at(h, found);
     h->how = how;
     free(found);
 }

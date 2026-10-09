@@ -258,13 +258,13 @@ edit
   archive UUID
 rc=0
 $ names names
-3 issue(s)
+3 issues
   error: photo 😀.txt: has characters beyond U+FFFF (😀), which UDF cannot store
   warning: star*?.txt: * ? not allowed in Windows names: shown changed there
   warning: sub: differs from 'Sub' only in letter case: Windows shows only one
 rc=1
 $ names --limit 2 names
-3 issue(s)
+3 issues
   error: photo 😀.txt: has characters beyond U+FFFF (😀), which UDF cannot store
   warning: star*?.txt: * ? not allowed in Windows names: shown changed there
   warning: sub: differs from 'Sub' only in letter case: Windows shows only one

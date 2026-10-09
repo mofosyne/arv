@@ -126,7 +126,7 @@ Note: ROOT/coll/fam is FAM's workflow folder too (marker); two folders for one c
 ROOT/coll/plain: linked to collection:FAM (logged)
 rc=0
 $ --home hc status coll/plain
-1 files: 1 read, 0 unchanged since last read (hash cache)
+1 file: 1 read, 0 unchanged since last read (hash cache)
 FAM (Family photos): workflow folder ROOT/coll/plain (declared)
   since checkpoint, 2026-01-01, revision 266394586162:
   +0 new, ~0 changed, -2 removed, >1 moved
@@ -176,9 +176,11 @@ FAM-02_2019_Y: this burn is NOT the image (different content); not recorded as a
 rc=1
 $ --home hc burned --device out-c2/FAM-02_2019_Y.noecc.iso --location BOX1
 Reading back FAM-02_2019_Y (out-c2/FAM-02_2019_Y.noecc.iso): the 882 sectors of its image ...
+Note: BOX1 is not one of the archive's locations (arv location list): recorded as written. arv location add CODE NAME makes a place arv knows.
 FAM-02_2019_Y: 1 copy recorded (this one read back: identical to the image)
 rc=0
 $ --home hc burned FAM-01_2019_0 --location BOX1
+Note: BOX1 is not one of the archive's locations (arv location list): recorded as written. arv location add CODE NAME makes a place arv knows.
 FAM-01_2019_0: 1 copy recorded (not read back: arv burned --device checks a copy as it records it)
 rc=0
 $ --home hc todo

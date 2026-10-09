@@ -580,7 +580,9 @@ int cmd_todo(int argc, char **argv)
         free(top.v);
     }
     strlist_free(&seen);
-    if (!items) printf("Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within %d years.\n", years);
+    if (!items && !cat.discs.n)
+        puts("No discs yet, so nothing is owed. Start with arv collection init FOLDER (or arv make FOLDER for a one-off disc).");
+    else if (!items) printf("Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within %d years.\n", years);
     return 0;
 }
 

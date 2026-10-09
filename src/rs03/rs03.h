@@ -43,6 +43,10 @@ typedef struct {
  * Returns 0, or -1 with *err set. */
 int rs03_layout_for(uint64_t data_sectors, uint64_t medium_sectors, int no_dm, rs03_layout *lay, const char **err);
 
+/* Called, when set, as rs03_augment and rs03_verify go through the image: done of total, in
+ * sectors per layer (for a progress line; it is called from one thread only). */
+extern void (*rs03_progress)(uint64_t done, uint64_t total);
+
 /* Augments the image file at path in place. Returns 0, or -1 with err (errlen bytes) filled in.
  * lay (may be NULL) receives the layout used. */
 int rs03_augment(const char *path, uint64_t medium_sectors, int no_dm, rs03_layout *lay, char *err, size_t errlen);

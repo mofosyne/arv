@@ -20,11 +20,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <time.h>
 #include <unistd.h>
 
 #define FORMAT_NAME "smart-archive"
-#define FORMAT_VERSION "0.5"
 #define URL "https://github.com/mofosyne/arv"
 #define SECTOR 2048
 #define GF_FIELDMAX 255
@@ -400,7 +400,7 @@ static int has(const char *dir, const char *rel)
 
 /* the arv source tree to put in tools/: --tools, $ARV_SOURCE, an installed share/arv, arv/ next to
  * this program (tools/arv.com on a disc), or the checkout it was built in (a few folders up) */
-static char *find_source(const char *given)
+char *find_source(const char *given)
 {
     if (given) return xstrdup(given);
     if (getenv("ARV_SOURCE") && *getenv("ARV_SOURCE")) return xstrdup(getenv("ARV_SOURCE"));
@@ -423,7 +423,7 @@ static char *find_source(const char *given)
 }
 
 /* "arv@<commit>" (+uncommitted), from git in a checkout or VERSION in an installed tree */
-static char *software_version(const char *source, int *is_git)
+char *software_version(const char *source, int *is_git)
 {
     *is_git = 0;
     if (source && has(source, ".git") && on_path("git")) {
@@ -592,6 +592,21 @@ typedef struct {
 } image_ctx;
 
 static image_ctx *ictx;
+
+/* rs03's progress, as "  n%" on one line of a terminal */
+void progress_line(uint64_t done, uint64_t total)
+{
+    static int last = -1;
+    int pct = total ? (int)(done * 100 / total) : 100;
+    if (pct == last) return;
+    last = pct;
+    fprintf(stderr, "\r  %3d%%", pct);
+    if (done >= total) {
+        fputs("\r      \r", stderr);
+        last = -1;
+    }
+}
+
 static const char *work_to_remove;   /* the work folder, removed when an image is refused */
 
 static long read_cb(void *file, uint64_t offset, void *buf, size_t len)
@@ -1688,6 +1703,36 @@ static int make_discs(maker *mk)
         && system(getenv("ARV_TEST_AFTER_HASH")))
         die("%s", "ARV_TEST_AFTER_HASH failed");
     fit(mk);
+    {   /* what the images will be once RS03 fills them to the medium, and whether that fits here */
+        uint64_t final = 0, more = 0;
+        for (size_t i = 0; i < mk->nplans; i++) {
+            uint64_t sectors = mk->plans[i].sectors;
+            rs03_layout lay;
+            const char *why = NULL;
+            if (!o->no_ecc && !rs03_layout_for(sectors, (uint64_t)mk->capacity, o->no_defect_management, &lay, &why))
+                sectors = lay.total_sectors;
+            final += sectors * SECTOR;
+            more += (sectors - mk->plans[i].sectors) * SECTOR;
+        }
+        char total[32], room[32];
+        human_size(final, total);
+        struct statvfs fs;
+        int known = !statvfs(out_dir, &fs);
+        uint64_t avail = known ? (uint64_t)fs.f_bavail * fs.f_frsize : 0;
+        human_size(avail, room);
+        if (!o->no_ecc)
+            fprintf(stderr, "The image%s will take %s in all: RS03 error correction fills %s to its medium "
+                            "(--no-ecc: just the files, to try arv out)%s%s%s\n", mk->nplans == 1 ? "" : "s", total, mk->nplans == 1 ? "it" : "each",
+                    known ? "; " : "", known ? room : "", known ? " free there" : "");
+        if (known && more > avail) {
+            fprintf(stderr, "Error: not enough room in %s: the image%s %s, and %s is free. Choose a folder with room "
+                            "(--output-dir DIR), or a smaller medium (--medium).\n", out_dir, mk->nplans == 1 ? " needs" : "s need",
+                    total, room);
+            if (work_to_remove) remove_tree(work_to_remove);
+            exit(1);
+        }
+    }
+    if (isatty(2)) rs03_progress = progress_line;
     int failed = 0;
     for (size_t i = 0; i < mk->nplans; i++) {          /* build: move the measured image into place, then RS03 */
         plan *p = &mk->plans[i];
@@ -2049,7 +2094,10 @@ int cmd_make(int argc, char **argv)
         mk.draft = o.draft ? &dr : NULL;
         mk.title = o.title ? o.title : default_title;
         mk.creator = o.creator ? o.creator : getenv("USER");
-        if (o.location && *o.location) mk.location = place(&cat, o.location);
+        if (o.location && *o.location) {
+            place_check(&cat, o.location);
+            mk.location = place(&cat, o.location);
+        }
         mk.set_code = set_code;
         mk.collection = coll;
         mk.left_out = left_out;

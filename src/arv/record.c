@@ -117,6 +117,7 @@ static int image_test(const char *image, sbuf *out)
 {
     rs03_report r;
     char err[512], line[200];
+    if (isatty(2)) rs03_progress = progress_line;
     if (rs03_verify(image, &r, err, sizeof err)) {
         sb_printf(out, "%s\n", err);
         return 0;
@@ -437,6 +438,7 @@ int cmd_stored(int argc, char **argv)
     rec_set(d, "Copies", count);
     sbuf text = { 0 };
     sb_printf(&text, "stored 1 copy as %s", folder ? "a folder" : "an image file");
+    place_check(&o.cat, location);
     char *code = location ? place(&o.cat, location) : NULL;
     if (code) {
         int have = 0;
@@ -526,12 +528,29 @@ int cmd_burned(int argc, char **argv)
         read_back_note = "read back: identical to the image";
         free(out.s);
     }
+    if (!device) {          /* run twice by mistake? each run adds copies; say when this disc already had some today */
+        char today[11];
+        today_iso(today);
+        long earlier = 0;
+        for (size_t i = 0; i < o.cat.events.n; i++) {
+            const rec_record *e = o.cat.events.v[i];
+            const char *ed = rec_get(e, "Disc"), *et = rec_get(e, "Type"), *ef = rec_get(e, "Form"), *edate = rec_get(e, "Date");
+            if (ed && et && ef && edate && !strcmp(ed, disc_id) && !strcmp(et, "replication") && !strcmp(ef, "disc")
+                && !strcmp(edate, today))
+                earlier++;
+        }
+        if (earlier)
+            fprintf(stderr, "Note: %s already had burned copies recorded today (%ld time%s); these are counted as more. "
+                            "(arv burned records each copy once, as it is burned.)\n",
+                    disc_id, earlier, earlier == 1 ? "" : "s");
+    }
     char *count = xprintf("%ld", atol(rec_get(d, "Copies") ? rec_get(d, "Copies") : "0") + copies);
     rec_set(d, "Copies", count);
     if (media_id) rec_add(d, "MediaId", media_id);
     sbuf text = { 0 };
     sb_printf(&text, "burned %ld cop%s", copies, copies == 1 ? "y" : "ies");
     if (location) {
+        place_check(&o.cat, location);
         char *where = place(&o.cat, location);
         int have = 0;
         for (size_t i = 0; i < d->nfields; i++) have |= !strcmp(d->fields[i].name, "Location") && !strcmp(d->fields[i].value, where);
@@ -625,6 +644,7 @@ int cmd_locate(int argc, char **argv)
         if (!strcmp(d->fields[i].name, "Location")) strlist_add(&old_all, d->fields[i].value);
     if (add) for (size_t i = 0; i < old_all.n; i++) if (*old_all.v[i]) strlist_add(&keep, old_all.v[i]);
     for (size_t i = 0; i < places.n; i++) {
+        place_check(&o.cat, places.v[i]);
         char *p = place(&o.cat, places.v[i]);
         if (!archive_location(&o.cat, p))
             fprintf(stderr, "Note: %s is not a location code ('arv location add' to define it); stored as text\n", p);

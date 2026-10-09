@@ -308,7 +308,8 @@ static void scan_folder(const char *root, const arv_home *h, int deep, scan *s)
     walk(root, "", &c, deep, s);
     sort_(s->files.v, s->files.n, sizeof *s->files.v, ml_by_path);
     cache_save(&c, h);
-    fprintf(stderr, "%zu files: %zu read, %zu unchanged since last read (hash cache)%s\n", s->files.n, c.read, c.cached,
+    fprintf(stderr, "%zu file%s: %zu read, %zu unchanged since last read (hash cache)%s\n", s->files.n,
+            s->files.n == 1 ? "" : "s", c.read, c.cached,
             deep ? "; --deep: all read" : "");
     for (size_t i = 0; i < c.n; i++) free(c.v[i].path);
     free(c.v);
@@ -1005,7 +1006,8 @@ int cmd_status(int argc, char **argv)
         printf("%s (%s): workflow folder %s (%s)\n", rec_get(coll, "Code"), get_or(coll, "Title", ""), abs, how);
         const rec_record *head = collection_head(&cat, rec_get(coll, "Uuid"));
         if (!head) {
-            printf("  no revision yet: %zu files (arv make for its first edition, arv checkpoint to record it)\n", s.files.n);
+            printf("  no revision yet: %zu file%s (arv make for its first edition, arv checkpoint to record it)\n", s.files.n,
+                   s.files.n == 1 ? "" : "s");
         } else {
             sbuf what = { 0 };
             describe_revision(head, &what);
