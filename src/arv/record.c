@@ -23,8 +23,9 @@ static rec_record *open_disc_record(opened *o, const char *given, const char *di
 {
     home_find(&o->h, given, NULL);
     archive_load(&o->cat, o->h.rec_path);
+    if (!disc_id || !*disc_id) die("%s", "a disc id is needed (arv list shows them)");
     rec_record *d = archive_disc(&o->cat, disc_id);
-    if (!d) die2("no disc %s in %s", disc_id, o->h.rec_path);
+    if (!d) die2("no disc %s in %s (arv list shows them; arv id checks one)", disc_id, o->h.rec_path);
     return d;
 }
 

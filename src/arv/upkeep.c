@@ -147,8 +147,13 @@ static void hold(const archive *cat, const char *id, holding *h)
 static char *copies_text(const archive *cat, const char *id)
 {
     if (retired(cat, id)) return xstrdup("retired");
+    int placed = 0;                 /* some copy says where it is kept */
+    for (size_t i = 0; i < cat->events.n; i++)
+        placed |= is_disc_event(cat->events.v[i], id, "replication") && strcmp(get_or(cat->events.v[i], "Outcome", ""), "failure")
+                  && rec_get(cat->events.v[i], "Location");
     sbuf b = { 0 };
     sb_puts(&b, "");
+    strlist named = { 0 };          /* the places the copies name */
     for (size_t i = 0; i < cat->events.n; i++) {
         const rec_record *e = cat->events.v[i];
         if (!is_disc_event(e, id, "replication") || !strcmp(get_or(e, "Outcome", ""), "failure")) continue;
@@ -163,19 +168,24 @@ static char *copies_text(const archive *cat, const char *id)
             sb_printf(&b, " at %s", at);
             free(at);
             rec_clear(&probe);
+            if (!strlist_has(&named, rec_get(e, "Location"))) strlist_add(&named, rec_get(e, "Location"));
+        } else if (placed) {
+            sb_puts(&b, " (its place not recorded)");
         }
     }
-    int placed = 0, unplaced = 0;    /* the disc's places only when its copies do not each say theirs */
-    for (size_t i = 0; i < cat->events.n; i++)
-        if (is_disc_event(cat->events.v[i], id, "replication") && strcmp(get_or(cat->events.v[i], "Outcome", ""), "failure")) {
-            if (rec_get(cat->events.v[i], "Location")) placed = 1;
-            else unplaced = 1;
-        }
     if (!b.len) sb_puts(&b, "no copy yet");
+    /* the disc's places that no copy names (arv locate, or copies recorded without one) */
     const rec_record *d = archive_disc(cat, id);
-    char *where = d && (unplaced || !placed) ? archive_where(cat, d) : xstrdup("");
-    if (*where) sb_printf(&b, "; at %s", where);
+    rec_record rest = { 0 };
+    rest.type = "Disc";
+    for (size_t f = 0; d && f < d->nfields; f++)
+        if (!strcmp(d->fields[f].name, "Location") && !strlist_has(&named, d->fields[f].value))
+            rec_add(&rest, "Location", d->fields[f].value);
+    char *where = rest.nfields ? archive_where(cat, &rest) : xstrdup("");
+    if (*where) sb_printf(&b, "; %sat %s", placed ? "also " : "", where);
     free(where);
+    rec_clear(&rest);
+    strlist_free(&named);
     return b.s;
 }
 

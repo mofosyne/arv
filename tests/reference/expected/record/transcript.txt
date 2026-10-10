@@ -11,7 +11,7 @@ Note: Somewhere new is not a location code ('arv location add' to define it); st
 FAMILY-01_2020-2021_K: Somewhere new
 rc=0
 $ --home rec burned NOPE-01_2000_X
-Error: no disc NOPE-01_2000_X in rec/catalog/archive.rec
+Error: no disc NOPE-01_2000_X in rec/catalog/archive.rec (arv list shows them; arv id checks one)
 rc=1
 $ --home rec burned TRIP-01_2019_4 --copy K --location OFFSITE --bca 04 1e 10 15 12 62 02 02 24 03 02 14 50 10 48 af
 TRIP-01_2019_4: copy K recorded, 5 in all (not read back: arv burned --device checks a copy as it records it). Write the letter on the hub and the case, after the id.
