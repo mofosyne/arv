@@ -116,6 +116,7 @@ Source: Projects_x
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
 
+EventId: ID
 Disc: PROJ-01_2023_P
 Type: message digest calculation
 Date: 2026-01-01
@@ -124,6 +125,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 1 file
 
+EventId: ID
 Disc: PROJ-01_2023_P
 Type: creation
 Date: 2026-01-01

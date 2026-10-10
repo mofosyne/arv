@@ -106,6 +106,36 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   Discs (to record copies and places); a long catalogue path is shortened in the header (the
   whole on hover); a collection's discs say which edition they hold.
 
+**Event ids, and the discs as witnesses** (format 0.5)
+- Every event has an `EventId`: the hash of what it says, as written (PREMIS's eventIdentifier).
+  The same event has the same id in every catalogue and on every disc, so `arv rebuild` merges
+  events by id; two events with the same content are kept apart by a `Nonce`. Older events get
+  their id when the catalogue is next written.
+- `arv audit` checks every event against its id, and with discs given (`arv audit /media/disc`),
+  the home against what each disc carries: an event changed or lost at home is listed. A burned
+  disc is write-once and kept elsewhere, so it witnesses what was written.
+- `arv rebuild` merges another catalogue of the same archive too (its `.arv`, or the folder that
+  holds one), by event id; notes on a disc add up from both. What both gave out is reported: a
+  disc id naming two different images is not merged (exit 1), and two copies lettered alike are
+  named.
+- **A copy of the catalogue takes no changes.** `config/paths.rec` records where the catalogue
+  lives; a change written to a copy elsewhere stops, with what to do (`arv make` stops before the
+  long part). `arv where --here` accepts a new place (the catalogue moved, or a share is mounted
+  at another path); `arv where` lists the places, and says when this one is not among them.
+- research/plan.md (2026-10-10): the catalogue's history is per thing, not a line; catalogues
+  merge by event id; tampering is made evident, with the discs as witnesses.
+
+**Copies in the GUI, and one disc's copies**
+- `arv objects DISC-ID` lists a disc's copies, each by its letter, with its form, place, when it
+  was last checked and its BCA serial; `--json` gives the same (and `arv objects --json` now
+  carries `at`, `made`, `checked` and `bca` for every copy).
+- `arv gui`, a disc's details: its copies in a table by letter; recording a burned copy (how many,
+  where, the letter, and with a drive named, read back first), a copy on a drive or NAS
+  (`arv stored`), and checking one copy (by letter, or found by its BCA serial; an image can be
+  repaired). The Check tab takes a copy letter and repair too.
+- The GUI's Collections tab counts a disc read back when a copy was checked since it was burned,
+  as `arv objects` does; it used to count only a read-back at burning.
+
 **Describing from anywhere**
 - A draft (the JSON `arv describe --save` writes) is documented as the way in for anything that
   describes the archive: a person, a script, or a model that is not arv's. README, "Describing

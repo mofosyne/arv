@@ -197,6 +197,7 @@ Date: 2026-01-01
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
 
+EventId: ID
 Disc: CODE-01_2001_0
 Type: message digest calculation
 Date: 2026-01-01
@@ -205,6 +206,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 2 files
 
+EventId: ID
 Disc: CODE-01_2001_0
 Type: metadata modification
 Date: 2026-01-01
@@ -214,6 +216,7 @@ Agent: llm:qwen2.5 (local)
 Agent: human:archivist
 Note: title, description, subjects and folder tags taken from a draft (made by: llm:qwen2.5 (local))
 
+EventId: ID
 Disc: CODE-01_2001_0
 Type: creation
 Date: 2026-01-01
@@ -222,6 +225,7 @@ Authorship: automatic
 Agent: SW
 Note: image CODE-01_2001_0.noecc.iso, 882 sectors
 
+EventId: ID
 Disc: CODE-02_2020_Y
 Type: message digest calculation
 Date: 2026-01-01
@@ -230,6 +234,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 3 files
 
+EventId: ID
 Disc: CODE-02_2020_Y
 Type: ingestion
 Date: 2026-01-01
@@ -238,6 +243,7 @@ Authorship: automatic
 Agent: SW
 Note: links: 1 copied, 1 recorded, 1 broken (policy: default)
 
+EventId: ID
 Disc: CODE-02_2020_Y
 Type: metadata modification
 Date: 2026-01-01
@@ -246,6 +252,7 @@ Authorship: human
 Agent: sample script (hand-written)
 Note: title, description, subjects and folder tags taken from a draft (made by: sample script (hand-written))
 
+EventId: ID
 Disc: CODE-02_2020_Y
 Type: creation
 Date: 2026-01-01
@@ -254,6 +261,7 @@ Authorship: automatic
 Agent: SW
 Note: image CODE-02_2020_Y.noecc.iso, 882 sectors
 
+EventId: ID
 Disc: CODE-03_2020_W
 Type: message digest calculation
 Date: 2026-01-01
@@ -262,6 +270,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 1 file
 
+EventId: ID
 Disc: CODE-03_2020_W
 Type: metadata modification
 Date: 2026-01-01

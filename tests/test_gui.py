@@ -203,6 +203,31 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(found["total"], 1)
         self.assertEqual(json.loads(self.request("/api/discs")[1])["discs"][0]["Note"], ["hello", "second"])
 
+    @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
+    def test_copies(self):
+        """A disc's copies by letter: burned with a drive (read back), burned without, stored, then one checked."""
+        self.start()
+        src, out = os.path.join(self.tmp, "Trip"), os.path.join(self.tmp, "out")
+        write(os.path.join(src, "a.txt"), "a", 2019)
+        made = self.wait(json.loads(self.request("/api/make", {"source": src, "set": "PHOTOS", "medium": "auto",
+                                                               "no_ecc": True, "output_dir": out})[1]))
+        self.assertEqual(made["returncode"], 0, "\n".join(made["lines"]))
+        disc = json.loads(self.request("/api/discs")[1])["discs"][0]["Id"]
+        image = os.path.join(out, [f for f in os.listdir(out) if f.endswith(".iso")][0])
+        for body in ({"command": "burned", "disc_id": disc, "device": image, "location": "Shelf"},
+                     {"command": "burned", "disc_id": disc, "copies": 1, "location": "Attic"},
+                     {"command": "stored", "disc_id": disc, "path": image, "location": "NAS"}):
+            done = self.wait(json.loads(self.request("/api/command", body)[1]))
+            self.assertEqual(done["returncode"], 0, "\n".join(done["lines"]))
+        check = self.wait(json.loads(self.request("/api/check", {"disc_id": disc, "device": image, "copy": "B"})[1]))
+        self.assertEqual(check["returncode"], 0, "\n".join(check["lines"]))
+        copies = json.loads(self.request("/api/copies?disc=" + disc)[1])["copies"]
+        self.assertEqual([(c["copy"], c["form"], c["at"], c["readBack"]) for c in copies],
+                         [("A", "disc", "Shelf", True), ("B", "disc", "Attic", True), ("C", "iso", "NAS", True)])
+        self.assertTrue(copies[1]["checked"])        # B: read back only by the check that named it
+        self.assertFalse(copies[0]["checked"])       # A: read back when burned, not checked since
+        self.assertEqual(self.request("/api/copies?disc=NOPE")[0], 404)
+
     @unittest.skipUnless(os.path.exists(FAKE_LLM), "make -C src/arv-assist check builds the fake model server")
     def test_llm_suggestions_through_arv_assist(self):
         replies = os.path.join(self.tmp, "text.reply")

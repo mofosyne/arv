@@ -116,6 +116,7 @@ Date: 2026-01-01
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
 
+EventId: ID
 Disc: CODE-03_2020_W
 Type: message digest calculation
 Date: 2026-01-01
@@ -124,6 +125,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 1 file
 
+EventId: ID
 Disc: CODE-03_2020_W
 Type: metadata modification
 Date: 2026-01-01

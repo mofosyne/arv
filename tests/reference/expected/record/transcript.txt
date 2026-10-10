@@ -55,3 +55,14 @@ Kept in fewer than two places (arv locate ID PLACE --add):
   SCAN-03_1995-2008_9  one place
   FAMILY-01_2020-2021_K  one place
 rc=0
+$ --home rec objects TRIP-01_2019_4
+TRIP-01_2019_4: 5 copies
+  A  disc, made 2026-10-04; its place not recorded; not read back
+  B  disc, made 2026-10-04; its place not recorded; not read back
+  C  disc, cold, made 2026-01-01; Home / Study / Box 1, blue lid; not read back
+  D  disc, cold, made 2026-01-01; Home / Study / Box 1, blue lid; not read back
+  K  disc, cold, made 2026-01-01; Parents' house; not read back; BCA 041e10151262020224030214501048af
+rc=0
+$ --home rec objects TRIP-01_2019_4 --json
+{"disc": "TRIP-01_2019_4", "retired": false, "where": "Home / Study / Box 1, blue lid; Parents' house", "copies": [{"copy": "A", "form": "disc", "temperature": "", "location": "", "at": "", "made": "2026-10-04", "checked": "", "bca": "", "readBack": false}, {"copy": "B", "form": "disc", "temperature": "", "location": "", "at": "", "made": "2026-10-04", "checked": "", "bca": "", "readBack": false}, {"copy": "C", "form": "disc", "temperature": "cold", "location": "BOX1", "at": "Home / Study / Box 1, blue lid", "made": "2026-01-01", "checked": "", "bca": "", "readBack": false}, {"copy": "D", "form": "disc", "temperature": "cold", "location": "BOX1", "at": "Home / Study / Box 1, blue lid", "made": "2026-01-01", "checked": "", "bca": "", "readBack": false}, {"copy": "K", "form": "disc", "temperature": "cold", "location": "OFFSITE", "at": "Parents' house", "made": "2026-01-01", "checked": "", "bca": "041e10151262020224030214501048af", "readBack": false}]}
+rc=0

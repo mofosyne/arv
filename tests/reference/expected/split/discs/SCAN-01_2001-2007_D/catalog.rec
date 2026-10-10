@@ -89,6 +89,7 @@ Ecc: none
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
 
+EventId: ID
 Disc: SCAN-01_2001-2007_D
 Type: message digest calculation
 Date: 2026-01-01

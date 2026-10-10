@@ -179,12 +179,21 @@ class App:
             raise LookupError(text)
         return json.loads(text)
 
+    def copies(self, params):
+        """arv objects DISC-ID --json: a disc's copies, each with its letter, place and last check."""
+        code, text = self.arv_now(["objects", params.get("disc", ""), "--json"])
+        if code:
+            raise LookupError(text)
+        return json.loads(text)
+
     def collections(self, _params):
         """Each collection and its editions (the Collections tab): the discs of each, their copies,
         and whether the edition is safe (every disc read back), kept, replaced, retired."""
         cat = self.home.load()
-        good = {e.get("Disc") for e in cat.events
-                if e.get("Type") == "replication" and e.get("ReadBack") == "identical" and e.get("Outcome") != "failure"}
+        good = {e.get("Disc") for e in cat.events          # a copy read back as burned, or checked since
+                if (e.get("Type") == "replication" and e.get("ReadBack") == "identical" and e.get("Outcome") != "failure")
+                or (e.get("Type") == "fixity check" and e.get("Outcome") == "success"
+                    and (e.get("Copy") or (e.get("Note") or "").startswith(("read-back of the whole image from", "disc scan with"))))}
         copies = {}
         for e in cat.events:
             if e.get("Type") == "replication" and e.get("Outcome") != "failure":
@@ -396,6 +405,12 @@ class App:
     def post_check(self, body):
         argv = ["check"]
         argv += ["--device", body["device"]] if body.get("device") else ["--image", body["image"]]
+        if body.get("repair") and not body.get("device"):
+            argv.append("--repair")
+        if body.get("copy"):
+            argv += ["--copy", body["copy"]]
+        if (body.get("note") or "").strip():
+            argv += ["--note", body["note"].strip()]
         if body.get("disc_id"):
             argv.append(body["disc_id"])
         return self.start_job(argv).as_dict()
@@ -408,9 +423,15 @@ class App:
         elif command == "locate":
             argv = ["locate", body["disc_id"]] + [l.strip() for l in body["location"].split(";") if l.strip()]
         elif command == "burned":
-            argv = ["burned", body["disc_id"], "--copies", str(int(body.get("copies") or 1))]
-            if body.get("media_id"):
-                argv += ["--media-id", body["media_id"]]
+            argv = ["burned", body["disc_id"]]      # with a drive: one copy, read back first
+            argv += ["--device", body["device"]] if body.get("device") else ["--copies", str(int(body.get("copies") or 1))]
+            for key in ("copy", "location", "media_id"):
+                if (body.get(key) or "").strip():
+                    argv += ["--" + key.replace("_", "-"), body[key].strip()]
+        elif command == "stored":
+            argv = ["stored", body["disc_id"], body["path"]]
+            if (body.get("location") or "").strip():
+                argv += ["--location", body["location"].strip()]
         elif command == "rebuild":
             argv = ["rebuild", body["path"]]
         elif command == "verify":
@@ -428,6 +449,7 @@ def make_handler(app, port_holder):
     get_routes = {"/api/discs": app.discs, "/api/find": app.find, "/api/browse": app.browse,
                   "/api/job": app.job, "/api/jobs": app.jobs_list, "/api/llm/status": app.llm_status,
                   "/api/plans": app.plans, "/api/plan": app.plan, "/api/objects": app.objects, "/api/todo": app.todo,
+                  "/api/copies": app.copies,
                   "/api/collections": app.collections, "/api/setup": app.setup}
     post_routes = {"/api/make": app.post_make, "/api/check": app.post_check, "/api/command": app.post_simple,
                    "/api/plan": app.post_plan, "/api/collection": app.post_collection,

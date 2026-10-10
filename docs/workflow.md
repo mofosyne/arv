@@ -106,6 +106,16 @@ event; `volumes/<disc-id>/`: each disc's manifest and listing; `revisions/`: eac
 manifest), `drafts/`, and `cache/` (models and the hash cache; rebuildable). Back it up: it is
 small, and every disc carries a copy of it too.
 
+**One catalogue, written in one place.** `config/paths.rec` records where the catalogue lives
+(never on a disc). A backup or copy elsewhere can be read as usual, but a change written to it
+stops: two catalogues that both take changes drift apart (each gives out "the next" disc number
+and copy letter). If the catalogue moved, or the same one is reached another way (a share mounted
+at another path), `arv where --here` says so. To use the archive on two machines, write on one
+and copy it over with rsync or any sync tool; if the other did take changes, merge them into the
+archive's own catalogue with `arv rebuild OTHER/.arv`. It merges by event id, and reports what
+both gave out: a disc id that names two different images is not merged, and two copies with
+the same letter are named, to be told apart on their labels.
+
 Set up **where copies live** once, with how warm each place is:
 
 ```sh
@@ -381,6 +391,17 @@ Collections:
     FAM-02_2019_Y  disc cold (read back), iso warm (read back), folder warm (read back); at BOX1; The NAS
 ```
 
+Given a disc id, it lists that disc's copies, each by its letter, with its place, when it was last
+checked and its BCA serial (the GUI shows the same in a disc's details, where copies are recorded
+and checked):
+
+```
+TRIP-01_2019_4: 3 copies
+  A  disc, cold, made 2026-10-04; Home / Study / Box 1; last checked 2026-10-10; BCA 041e1015...
+  B  disc, cold, made 2026-10-04; Parents' house; not read back
+  C  iso, warm, made 2026-10-05; The NAS; read back
+```
+
 **Retiring** an edition a newer safe one replaces (`arv retire FAMILY`) lists any files that
 exist only on the discs being retired (not in the newer edition: they left the workflow folder), and records nothing
 until `--yes`. Then each disc is marked retired, leaves its places, and gets an event saying what
@@ -429,6 +450,7 @@ warning: make a new copy.
 |---|---|
 | A disc reads with errors | Follow REPAIR in the disc's `README.txt`: read it into an image (`ddrescue -b 2048 /dev/sr0 disc.iso disc.map`, or dvdisaster Light `-r --rescue`), then `arv check --image disc.iso --repair` (the disc's own `tools/arv.com` works too). Too damaged? Copies are sector-identical: read another copy into the same image (the same map file) and repair again; a stored iso is such a copy. When arv cannot repair, it prints the dvdisaster Light commands to paste, with the disc's medium size from the catalogue. Then make a new copy. |
 | The home catalogue is lost | `arv rebuild /media/disc` with the newest disc: discs, copies, places, collections, their history, file lists, the archive's identity, and its vocabularies (`config/sets.rec`, `config/tags.rec`, unless the home has its own). A disc of another archive is refused (`--any-archive` to merge it anyway). |
+| The home catalogue may have been changed (a bad edit, a script, a failing drive) | `arv audit` checks every event against its id (each id is the hash of what was written), and `arv audit /media/disc ...` checks the home against each disc's copy of the catalogue: an event the disc has that the home lost or changed is listed. The newest discs see the most; `arv rebuild` brings lost events back. |
 | This tool is lost | every disc has `tools/` (the source at that time) and `README.txt`. Without it: `sha256sum -c manifest-sha256.txt` verifies, `index.html` browses, `grep` searches `catalog/volumes/*/listing.tsv`, and `catalog.rec` is plain text. |
 | dvdisaster is lost | arv repairs RS03 itself; the format is written up in [rs03-format.md](spec/rs03-format.md) (on every disc), with test vectors. A copy of dvdisaster can go in `tools/extra/` with `--extra-tools`. |
 | Decades later, unknown software | [smart-archive-format.md](spec/smart-archive-format.md) (on every disc under `tools/`) explains every file; BagIt is RFC 8493; recfiles are plain text. |

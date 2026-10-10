@@ -72,7 +72,7 @@ static const char USAGE_REST[] =
           "         --temperature hot|warm|cold: default the place's, else cold)\n"
           "  arv stored DISC-ID PATH [--location PLACE] [--temperature T]   a copy on a drive or NAS: the .iso,\n"
           "         or the disc's files as a folder; checked, then recorded (default: warm)\n"
-          "  arv objects [NAME] [--json]   what you keep and where every copy is (data objects, collections)\n"
+          "  arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)\n"
           "  arv find [-C CATALOG] [--limit N] PATTERN\n"
           "  arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]\n"
           "           [--unchecked-since AGE|DATE] [--one-place]   (AGE: 5y, 18m, 90d)\n"
@@ -92,10 +92,11 @@ static const char USAGE_REST[] =
           "  arv check (--image FILE [--repair] | --device DRIVE) [--copy X] [--note TEXT] [-v] [DISC-ID]\n"
           "  arv verify [-v] DISC   every file against its checksum (in full: arv verify files DISC)\n"
           "  arv restore [--no-links] DISC DEST\n"
-          "  arv rebuild [--prefer-disc] [--any-archive] DISC   the catalogue back from a disc\n"
+          "  arv rebuild [--prefer-disc] [--any-archive] DISC|CATALOG   merge a disc's, or another .arv's, catalogue\n"
+          "  arv audit [DISC...]   every event as written; with discs, the home against what they carry\n"
           "\n"
           "The home\n"
-          "  arv init [FOLDER] [--pointer HOME] [--name NAME [--default]]   arv where\n"
+          "  arv init [FOLDER] [--pointer HOME] [--name NAME [--default]]   arv where [--here]\n"
           "  arv gui   the interface, in your web browser (*)\n"
           "\n"
           "(*) when installed: arv-assist (the local AI helpers), arv-gui (the interface)\n"
@@ -422,7 +423,7 @@ int main(int argc, char **argv)
                  { "status", cmd_status }, { "checkpoint", cmd_checkpoint }, { "log", cmd_log }, { "diff", cmd_diff },
                  { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
-                 { "where", cmd_where }, { "rebuild", cmd_rebuild },
+                 { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit },
                  { "tags", cmd_tags }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
     arv_argv0 = argv[0];
     if (argc >= 2 && !strcmp(argv[1], "__complete")) {     /* for the shell's completion (completion/) */

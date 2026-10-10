@@ -114,6 +114,7 @@ ImageSha256: SHA256
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
 
+EventId: ID
 Disc: SCAN-01_2001-2007_D
 Type: message digest calculation
 Date: 2026-01-01
@@ -122,6 +123,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 55 files
 
+EventId: ID
 Disc: SCAN-01_2001-2007_D
 Type: creation
 Date: 2026-01-01
@@ -130,6 +132,7 @@ Authorship: automatic
 Agent: SW
 Note: image SCAN-01_2001-2007_D.noecc.iso, 3698 sectors
 
+EventId: ID
 Disc: SCAN-02_2001-2007_B
 Type: message digest calculation
 Date: 2026-01-01
@@ -138,6 +141,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 15 files
 
+EventId: ID
 Disc: SCAN-02_2001-2007_B
 Type: creation
 Date: 2026-01-01

@@ -53,12 +53,13 @@ log() {   # log FILE ARGS...: "$ ARGS", the output (stdout and stderr) and the e
 }
 
 # the normalised copy of a text file: this run's folder, UUIDs, the software name (arv@ or arv@),
-# temporary names, the time stamps of files written while making (the RO-Crate files), and image
-# hashes (an image holds its archive's UUID)
+# temporary names, the time stamps of files written while making (the RO-Crate files), image
+# hashes (an image holds its archive's UUID) and event ids (each hashes its event as written,
+# this run's folder and UUIDs included)
 norm() {
     sed -E -e "s#$root#ROOT#g" -e "s#$repo#REPO#g" \
         -e 's/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/UUID/g' \
-        -e 's/arv?@reference/SW/g' -e 's/^(ImageSha256: ).*/\1SHA256/' \
+        -e 's/arv?@reference/SW/g' -e 's/^(ImageSha256: ).*/\1SHA256/' -e 's/^(EventId: )[0-9a-f]{32}$/\1ID/' \
         -e 's/(stage-[A-Za-z0-9_-]+-)[A-Za-z0-9_]{6,8}/\1XXXXXX/g' \
         -e 's/\.archive-make-[A-Za-z0-9_]{6,8}/.archive-make-XXXXXX/g' \
         -e 's/\t20[0-9-]+T[0-9:]+Z\t(file\t-\tro-crate)/\tTIME\t\1/' "$1"
@@ -193,6 +194,8 @@ for s in out-split/.archive-make-*/stage-*; do
     [ "$id" = "$first" ] && log rebuild.out --home hb rebuild --prefer-disc "$s"
 done
 cp -r h hother                        # a home of another archive: its discs are not merged by accident
+log rebuild.out --home hother location add SHED "The shed"                         # refused: a copy
+log rebuild.out --home hother where --here                                        # it is one of its own now
 for s in out-split/.archive-make-*/stage-*; do
     log rebuild.out --home hother rebuild "$s"
     log rebuild.out --home hother rebuild --any-archive "$s"
@@ -337,6 +340,8 @@ log record.out --home rec burned TRIP-01_2019_4 --bca 0a1b2c                 # n
 log record.out --home rec burned TRIP-01_2019_4 --copy K                  # taken: refused
 log record.out --home rec burned TRIP-01_2019_4 --copy k2                 # not a letter: refused
 log record.out --home rec todo
+log record.out --home rec objects TRIP-01_2019_4                 # one disc's copies, by letter
+log record.out --home rec objects TRIP-01_2019_4 --json
 keep record.out record/transcript.txt
 keep rec/catalog/archive.rec record/archive.rec
 

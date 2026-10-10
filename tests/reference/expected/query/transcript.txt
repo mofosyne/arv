@@ -374,7 +374,7 @@ Record: what exists, and where
          --temperature hot|warm|cold: default the place's, else cold)
   arv stored DISC-ID PATH [--location PLACE] [--temperature T]   a copy on a drive or NAS: the .iso,
          or the disc's files as a folder; checked, then recorded (default: warm)
-  arv objects [NAME] [--json]   what you keep and where every copy is (data objects, collections)
+  arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)
   arv find [-C CATALOG] [--limit N] PATTERN
   arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]
            [--unchecked-since AGE|DATE] [--one-place]   (AGE: 5y, 18m, 90d)

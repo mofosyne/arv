@@ -255,6 +255,7 @@ rc=0
 $ --home edit where
 edit
   found by --home
+  lives at ROOT/edit
   archive UUID
 rc=0
 $ names names

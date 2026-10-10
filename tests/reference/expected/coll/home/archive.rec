@@ -194,6 +194,7 @@ Message: renamed c
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
 
+EventId: ID
 Object: collection:FAM
 Type: accession
 Date: 2026-01-01
@@ -205,6 +206,7 @@ Folder: ROOT/coll/fam
 How: marker
 State: present
 
+EventId: ID
 Disc: FAM-01_2019_0
 Type: message digest calculation
 Date: 2026-01-01
@@ -213,6 +215,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 2 files
 
+EventId: ID
 Disc: FAM-01_2019_0
 Type: creation
 Date: 2026-01-01
@@ -221,6 +224,7 @@ Authorship: automatic
 Agent: SW
 Note: image FAM-01_2019_0.noecc.iso, 850 sectors
 
+EventId: ID
 Disc: FAM-02_2019_Y
 Type: message digest calculation
 Date: 2026-01-01
@@ -229,6 +233,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 2 files
 
+EventId: ID
 Disc: FAM-02_2019_Y
 Type: creation
 Date: 2026-01-01
@@ -237,6 +242,7 @@ Authorship: automatic
 Agent: SW
 Note: image FAM-02_2019_Y.noecc.iso, 882 sectors
 
+EventId: ID
 Object: collection:FAM
 Type: accession
 Date: 2026-01-01
@@ -248,6 +254,7 @@ Folder: ROOT/coll/loose
 How: declared
 State: past
 
+EventId: ID
 Object: collection:FAM
 Type: accession
 Date: 2026-01-01
@@ -259,6 +266,7 @@ Folder: ROOT/coll/plain
 How: declared
 State: present
 
+EventId: ID
 Disc: FAM-01_2019_0
 Type: accession
 Date: 2026-01-01
@@ -270,6 +278,7 @@ Folder: ROOT/coll/loose
 How: declared
 State: present
 
+EventId: ID
 Disc: FAM-02_2019_Y
 Type: fixity check
 Date: 2026-01-01
@@ -278,6 +287,7 @@ Authorship: automatic
 Agent: arv 0.4
 Note: read-back after burning, from bad.iso, against the image's SHA-256 at creation
 
+EventId: ID
 Disc: FAM-02_2019_Y
 Type: fixity check
 Date: 2026-01-01
@@ -286,6 +296,7 @@ Authorship: automatic
 Agent: arv 0.4
 Note: read-back after burning, from out-c2/FAM-02_2019_Y.noecc.iso, against the image's SHA-256 at creation
 
+EventId: ID
 Disc: FAM-02_2019_Y
 Type: replication
 Date: 2026-01-01
@@ -299,6 +310,7 @@ Form: disc
 Temperature: cold
 Location: BOX1
 
+EventId: ID
 Disc: FAM-01_2019_0
 Type: replication
 Date: 2026-01-01
@@ -311,6 +323,7 @@ Form: disc
 Temperature: cold
 Location: BOX1
 
+EventId: ID
 Disc: FAM-01_2019_0
 Type: deaccession
 Date: 2026-01-01
@@ -319,6 +332,7 @@ Authorship: human
 Agent: human:archivist
 Note: retired: edition 1 of FAM, replaced by edition 2 (revision 95a366ff6ab0); was kept at BOX1; files only on retired discs recorded as lost (Lost:)
 
+EventId: ID
 Object: collection:FAM
 Type: metadata modification
 Date: 2026-01-01
@@ -327,6 +341,7 @@ Authorship: human
 Agent: human:archivist
 Note: edition 2 kept: never offered for retiring
 
+EventId: ID
 Object: location:NAS
 Type: metadata modification
 Date: 2026-01-01
@@ -335,6 +350,7 @@ Authorship: human
 Agent: human:archivist
 Note: created
 
+EventId: ID
 Object: location:NAS
 Type: metadata modification
 Date: 2026-01-01
@@ -343,6 +359,7 @@ Authorship: human
 Agent: human:archivist
 Note: temperature hot -> warm
 
+EventId: ID
 Disc: FAM-02_2019_Y
 Type: fixity check
 Date: 2026-01-01
@@ -351,6 +368,7 @@ Authorship: automatic
 Agent: arv 0.4
 Note: check of a stored copy (iso) at ROOT/nas/FAM-02_2019_Y.noecc.iso: identical to the image
 
+EventId: ID
 Disc: FAM-02_2019_Y
 Type: replication
 Date: 2026-01-01
@@ -365,6 +383,7 @@ Temperature: warm
 Location: NAS
 Path: ROOT/nas/FAM-02_2019_Y.noecc.iso
 
+EventId: ID
 Disc: FAM-02_2019_Y
 Type: fixity check
 Date: 2026-01-01
@@ -373,6 +392,7 @@ Authorship: automatic
 Agent: arv 0.4
 Note: check of a stored copy (iso) at ROOT/bad.iso: different content from the image
 
+EventId: ID
 Disc: FAM-01_2019_0
 Type: fixity check
 Date: 2026-01-01
@@ -381,6 +401,7 @@ Authorship: automatic
 Agent: arv 0.4
 Note: check of a stored copy (folder) at ROOT/nas/FAM-02_2019_Y: ROOT/nas/FAM-02_2019_Y is not disc FAM-01_2019_0 (its catalog.rec names FAM-02_2019_Y)
 
+EventId: ID
 Disc: FAM-02_2019_Y
 Type: fixity check
 Date: 2026-01-01
@@ -389,6 +410,7 @@ Authorship: automatic
 Agent: arv 0.4
 Note: check of a stored copy (folder) at ROOT/nas/FAM-02_2019_Y: 2 payload files, 1 failed, 0 missing, 0 extra
 
+EventId: ID
 Disc: FAM-02_2019_Y
 Type: fixity check
 Date: 2026-01-01
@@ -397,6 +419,7 @@ Authorship: automatic
 Agent: arv 0.4
 Note: check of a stored copy (folder) at ROOT/nas/FAM-02-files: 2 payload files, 0 failed, 0 missing, 0 extra
 
+EventId: ID
 Disc: FAM-02_2019_Y
 Type: replication
 Date: 2026-01-01

@@ -319,6 +319,50 @@ while [ $n -le 130 ]; do head -c $n bytes > "lengths/data/$(printf %03d $n)"; n=
 (cd lengths && "$here/build/fixtures" --hash data/* > ../sha512.c.txt && sha512sum data/* > ../sha512.txt)
 cmp -s sha512.c.txt sha512.txt && ok "SHA-512 matches sha512sum for 0 to 130 bytes" || no "SHA-512"
 
+# ------------------------------------------------------------------ event ids and arv audit
+cp -r home aud && "$tool" -C aud where --here >/dev/null   # a copy, made one of its own
+did=$(sed -n 's/^Id: //p' disc/catalog.rec | head -1)
+"$tool" -C aud note "$did" "the same words" >/dev/null && "$tool" -C aud note "$did" "the same words" >/dev/null
+n_ev=$(grep -c '^EventId: ' aud/catalog/archive.rec)
+[ "$(grep -c '^EventId: [0-9a-f]\{32\}$' aud/catalog/archive.rec)" -ge 3 ] && grep -q '^Nonce: 2$' aud/catalog/archive.rec \
+    && grep -q '^EventId: ' disc/catalog/archive.rec \
+    && ok "event ids: every event has one, on discs too; two events alike are kept apart by a Nonce" \
+    || no "event ids"
+"$tool" -C aud audit disc > audit.out && grep -q " 0 changed since written" audit.out && grep -q "0 missing at home, 0 different" audit.out \
+    || { cat audit.out; no "arv audit, untouched"; }
+first=$(sed -n 's/^EventId: //p' disc/catalog/archive.rec | head -1)
+awk -v id="$first" 'BEGIN { RS = ""; ORS = "\n\n" } $0 ~ "EventId: " id { sub(/Outcome: success/, "Outcome: failure") } { print }' \
+    aud/catalog/archive.rec > aud.rec && mv aud.rec aud/catalog/archive.rec
+"$tool" -C aud audit disc > audit.out && no "arv audit passed a changed event"
+grep -q "^CHANGED .*$first" audit.out && grep -q "^DIFFERS .*$first" audit.out || { cat audit.out; no "arv audit, a changed event"; }
+awk -v id="$first" 'BEGIN { RS = ""; ORS = "\n\n" } $0 !~ "EventId: " id { print }' aud/catalog/archive.rec > aud.rec \
+    && mv aud.rec aud/catalog/archive.rec
+"$tool" -C aud audit disc > audit.out || true; grep -q "^MISSING .*$first" audit.out || { cat audit.out; no "arv audit, a lost event"; }
+"$tool" -C aud rebuild disc >/dev/null && "$tool" -C aud rebuild disc >/dev/null || no "rebuild"
+"$tool" -C aud audit disc > audit.out && [ "$(grep -c "^EventId: $first" aud/catalog/archive.rec)" = 1 ] \
+    && [ "$(grep -c '^EventId: ' aud/catalog/archive.rec)" = "$n_ev" ] \
+    && ok "arv audit: an event changed at home, and one lost, are found against the disc; rebuild brings the lost one back once" \
+    || { cat audit.out; no "audit after rebuild"; }
+
+# ------------------------------------------------------------------ two catalogues of one archive: the guard, and merging
+mkdir -p two/a/T1 two/a/T2 two/a/T3
+echo 1 > two/a/T1/f && echo 2 > two/a/T2/f && echo 3 > two/a/T3/f
+(cd two/a && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --formats no --set CODE --output t1.iso T1 >/dev/null 2>&1) || no "make in two/a"
+t1=$(sed -n 's/^Id: //p' two/a/.arv/catalog/archive.rec | head -1)
+cp -r two/a two/b
+"$tool" -C two/b/.arv note "$t1" "from b" 2>guard.err && no "a copied catalogue took a change"
+grep -q "a copy of it" guard.err && grep -q "where --here" guard.err || { cat guard.err; no "the copy guard's message"; }
+"$tool" -C two/b/.arv where --here >/dev/null && "$tool" -C two/b/.arv note "$t1" "from b" >/dev/null || no "where --here"
+"$tool" -C two/b/.arv burned "$t1" --copies 1 --location ATTIC >/dev/null 2>&1 && "$tool" -C two/a/.arv burned "$t1" --copies 1 --location SHELF >/dev/null 2>&1 \
+    || no "burned in both"
+(cd two/b && "$tool" make -y --no-ecc --formats no --set CODE --output t2.iso T2 >/dev/null 2>&1) \
+    && (cd two/a && "$tool" make -y --no-ecc --formats no --set CODE --output t3.iso T3 >/dev/null 2>&1) || no "make in both"
+"$tool" -C two/a/.arv rebuild two/b > merge.out 2> merge.err && no "a clashing disc id was merged"
+grep -q "two copies lettered A" merge.err && grep -q "^Not merged: CODE-02" merge.err && grep -q "^Note: from b" two/a/.arv/catalog/archive.rec \
+    && [ "$(grep -c '^Type: replication' two/a/.arv/catalog/archive.rec)" = 2 ] \
+    && ok "two catalogues of one archive: a copy takes no change until arv where --here; rebuild merges the other by event id (notes too), and reports a copy letter and a disc id both gave out" \
+    || { cat merge.out merge.err; no "merging two catalogues"; }
+
 # ------------------------------------------------------------------ the helpers: arv-assist and arv-gui
 mkdir -p helpers
 printf '#!/bin/sh\necho "assist $*"\n' > helpers/assist
