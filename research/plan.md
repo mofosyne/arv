@@ -1030,6 +1030,33 @@ arv plan add rescue old-2004.iso                         # later: the image onto
   (no image) is recorded by identity alone (`arv found --device DRIVE`, the BCA and label only);
   CD-R and DVD-R have no BCA readable this way, so they are told apart by id and label only.
 
+## Later: an interface for other software (2026-10-10, after arv is stable)
+
+Katalog and other archival software should not have to parse arv's text output, which is
+written for people and may change any time. Not worth building until the commands settle (a
+promise made now would freeze what is still moving), but the shape is clear:
+
+- **Reading: the files are the interface,** and already are: the format spec, versioned and only
+  ever added to, with "Reading a disc", the virtual-tree section and "Mapping to Katalog". The
+  home catalogue (`.arv/catalog/`) is laid out as a disc's `catalog/`; its home-only parts (object
+  sources and manifests, revision manifests, plans) need documenting in one place.
+- **Writing: only through arv.** Nothing locks the catalogue, so another program writing
+  `archive.rec` while arv runs can lose records. To be said in the spec ("For other software"),
+  with documented exit codes (perhaps `sysexits.h`: 64 usage, 65 bad data ...).
+- **Machine output: `--json` on the commands others call** (`list`, `find`, `todo`, `status`, `id`,
+  `where`, and the results of `check`, `burned`, `stored`; `objects --json` and `plan show --json`
+  exist). The stable "ABI" is a versioned contract, not a command id: every reply says
+  `"format": "arv-json 1"`, and within 1 fields are only added, as on discs (COM's rule for its
+  interface GUIDs and D-Bus's for `Name2`, with a readable number). As in FreeBSD's libxo, each
+  command would build one record of its result and render it as text or JSON, so the two cannot
+  drift; text stays free to read better. The GUI could then use these instead of reading the
+  catalogue in Python itself.
+- **Perhaps:** `arv --help --json` (every command, its options and its output format), so other
+  software discovers what this arv offers; a CWL description of the main commands, for research
+  workflow systems. Only if someone asks.
+- Prior art: git `--porcelain`, libxo, jc (which exists because most tools have no machine
+  output), `sysexits.h`, CWL.
+
 ## Later: catalogue snapshot size
 
 Each disc carries every earlier disc's manifests, listings and format IDs:
