@@ -353,7 +353,9 @@ int main(int argc, char **argv)
                     }
             char **args = argv + 2;
             int n = argc - 2;
-            if (home) {             /* the command reads -C HOME first */
+            int reads_disc = !strcmp(cmds[i].name, "info") || !strcmp(cmds[i].name, "verify")
+                             || !strcmp(cmds[i].name, "ls") || !strcmp(cmds[i].name, "restore");
+            if (home && !reads_disc) {      /* the command reads -C HOME first (a disc's own commands need no home) */
                 args = xmalloc(((size_t)n + 3) * sizeof *args);
                 args[0] = "-C";
                 args[1] = (char *)home;

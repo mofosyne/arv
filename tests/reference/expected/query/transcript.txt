@@ -403,11 +403,8 @@ $ --home q record make
 arv record make: make is in archive (arv make, or arv archive make)
 rc=2
 $ --home q verify frob
-arv verify: unexpected or missing arguments: frob
-  arv verify [-v] DISC   every file against its checksum (in full: arv verify files DISC)
-DISC: the root of a mounted arv disc or an extracted image (the folder with catalog.rec)
-All commands: arv --help. More: README.md and docs/workflow.md.
-rc=2
+Error: frob: no catalog.rec here (give the root of a mounted disc or an extracted image)
+rc=1
 $ todo
 arv: no archive here or in any folder above, and no default archive on this machine.
   arv init FOLDER                          make one at the root of what it describes (e.g. /nas)

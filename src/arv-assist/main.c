@@ -13,6 +13,7 @@
 #include "assist.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static const char USAGE[] =
@@ -25,6 +26,24 @@ static const char USAGE[] =
     "       arv models fetch|status|build-runtime [--model NAME] [--from FILE] [--llama-embedding PATH]\n"
     "Local models only: an OpenAI-compatible server on this machine (Ollama: " LLM_DEFAULT_URL "), or\n"
     "llama.cpp's llama-embedding for arv tag. Drafts (--save) are JSON that arv make --draft takes.\n";
+
+/* arv COMMAND --help: that command's lines of the usage, then the note on local models */
+static void command_usage(const char *cmd)
+{
+    char *word = xprintf("arv %s ", cmd);
+    int in = 0;
+    for (const char *line = USAGE, *end; *line; line = end + 1) {
+        end = strchr(line, '\n');
+        size_t len = (size_t)(end - line);
+        int starts = !strncmp(line, "usage: arv ", 11) || !strncmp(line, "       arv ", 11);
+        if (starts) in = strstr(line, word) && strstr(line, word) < line + len;
+        else if (line[0] != ' ') in = 1;            /* the closing note */
+        if (!in) continue;
+        if (starts && line[0] == ' ') printf("usage: %.*s\n", (int)len - 7, line + 7);   /* "       arv ..." */
+        else printf("%.*s\n", (int)len, line);
+    }
+    free(word);
+}
 
 int main(int argc, char **argv)
 {
@@ -46,6 +65,11 @@ int main(int argc, char **argv)
     for (int k = i + 1; k < argc; k++) rest[n++] = argv[k];
     if (home) { rest[n++] = "--home"; rest[n++] = (char *)home; }
     rest[n] = NULL;
+    for (int k = i + 1; k < argc; k++)
+        if (!strcmp(argv[k], "-h") || !strcmp(argv[k], "--help")) {
+            command_usage(cmd);
+            return 0;
+        }
     int rc = !strcmp(cmd, "describe") ? assist_describe(n, rest) : !strcmp(cmd, "tag") ? assist_tag(n, rest)
            : !strcmp(cmd, "models") ? assist_models(n, rest) : !strcmp(cmd, "suggest") ? assist_suggest(n, rest)
            : !strcmp(cmd, "llm-status") ? assist_llm_status(n, rest) : 2;
