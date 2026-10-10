@@ -1125,3 +1125,29 @@ about 430 bytes per file in the archive. Up to about a million files that is und
   set, this edition, recent discs) and how it treats access levels is undecided.
 - ~~**Vocabularies on disc.**~~ Done 2026-10-07: full snapshots carry `config/sets.rec` and
   `config/tags.rec` in `catalog/config/`; `arv rebuild` restores them into a home that has none.
+
+## Decision (2026-10-10): describing from anywhere, without a new record
+
+Asked: can a person or a model going through the archive add descriptions, searchable tags and
+links? Considered: an `Annotation` record (tags, notes and typed relations on any item, keyed by
+content so it follows moved files), written in batches by `arv annotate`.
+
+- **Most of it was there.** A disc's `Title`, `Description`, `Subject`s and `Note`s, folder tags
+  and captions (`tags.tsv`), all searched by `arv find`; and a draft (JSON) that `arv describe
+  --apply` records with an event naming the agent and its authorship. What was missing was the
+  way in from outside, not a place to keep it.
+- **Built instead:** the draft is documented as the interface (README, "Describing from
+  anywhere"); `--apply -` reads it from standard input; `--suggested` keeps an unattended
+  model's draft a suggestion (before, applying always made it `accepted` by a person, which is
+  untrue for a script); folder tags merge into the disc's (applying one folder's used to drop the
+  others'); a folder the disc does not have is skipped with a warning (a model can invent one).
+- **Not built, and why:**
+  - *Tags on single files.* Tens of thousands of rows in a catalogue every disc carries, for what
+    photo tools already keep in the file (XMP, IPTC) and read there. arv describes the
+    folder (an event, a trip, a project) and writes those tags into the files when asked
+    (`arv keywords --format exiftool`).
+  - *Typed links between items* ("scan of", "same event as"). Nothing reads them yet; selections
+    group items, collections and data objects carry lineage. Worth a field when a reader needs
+    it, and `Relation` (Dublin Core) is the name to use then.
+  - *Notes on a data object, following it across moves.* The one real gap; it waits until data
+    objects are used enough to show whether disc and folder notes fall short.

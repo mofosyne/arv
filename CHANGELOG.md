@@ -106,6 +106,19 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   Discs (to record copies and places); a long catalogue path is shortened in the header (the
   whole on hover); a collection's discs say which edition they hold.
 
+**Describing from anywhere**
+- A draft (the JSON `arv describe --save` writes) is documented as the way in for anything that
+  describes the archive: a person, a script, or a model that is not arv's. README, "Describing
+  from anywhere", lists its keys.
+- `arv describe DISC-ID --apply -` reads the draft from standard input. `--suggested` keeps a
+  model's draft a suggestion, for a script that runs without anyone reading it; applying used to
+  always record it as accepted by a person.
+- Applying folder tags merges them into the disc's: the folders named change, the others keep
+  theirs. They used to be replaced, so tagging one folder dropped every other folder's tags.
+  A folder the disc does not have is skipped with a warning.
+- Not added, on purpose: tags on single files and typed links between items
+  (research/plan.md, 2026-10-10).
+
 **Discs carry the vocabularies** (format 0.5)
 - A disc with a full catalogue snapshot carries the home's `config/sets.rec` and
   `config/tags.rec` in `catalog/config/`, so the words its records use travel with it.

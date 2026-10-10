@@ -499,6 +499,44 @@ ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM S
   (qwen2.5-3b, about 1 minute per round) gave useful tags and good questions, and one
   answered question produced a specific title. Use a 7-8B model if your hardware allows.
 
+### Describing from anywhere: drafts
+
+A draft is plain JSON, and anything may write one: you, a script, or a model that is not
+arv's (one that goes through the archive disc by disc, say). `arv describe DISC-ID --apply`
+records it, from a file or from standard input (`-`):
+
+```sh
+arv describe TRIP-01_2019_4 --apply - <<'EOF'
+{"title": "Kyoto, autumn 2019",
+ "description": "Two weeks in Kansai: temples, the Philosopher's Path, a day in Nara.",
+ "subjects": ["travel", "japan"],
+ "notes": ["The Nara photos are on the second camera's card."],
+ "folder_tags": {"photos/nara": ["place:nara", "event:trip-2019"]},
+ "folder_captions": {"photos/nara": "Deer at Todai-ji"},
+ "agent": "llm:some-model"}
+EOF
+```
+
+| Key | What | Applied as |
+|---|---|---|
+| `title`, `description` | text | replace the disc's |
+| `subjects` | list of words | replace the disc's `Subject`s |
+| `notes` | list of texts | added as `Note`s |
+| `folder_tags` | folder (relative to `data/`, `.` for all of it): list of tags | that folder's tags replaced; other folders keep theirs |
+| `folder_captions` | folder: text | that folder's caption |
+| `agent` | who wrote it: `human:NAME`, or a model as `llm:NAME` | names it in the event |
+| `authorship` | `human`, `suggested`, `accepted`, `edited` (as in events) | how it was written |
+
+Every key is optional. A folder the disc does not have is skipped with a warning. Each apply is
+one `metadata modification` event naming the agent. A model's draft applied by you counts as
+`accepted` by you; `--suggested` keeps it a suggestion, for a script that runs without anyone
+reading it, so a person can tell later what nobody checked. `arv make --draft` takes the same
+JSON for a disc not yet made.
+
+What stays out of the catalogue on purpose: tags on single files (a photo's keywords belong in the
+file, where photo tools read them: `arv keywords --format exiftool` writes the folder tags there),
+and links between items (selections group them). research/plan.md, 2026-10-10, says why.
+
 ## Without arv: the original scripts
 
 ```sh

@@ -59,9 +59,9 @@ static const char USAGE_ARCHIVE[] =
           "  arv checkpoint [--message TEXT] [FOLDER]   record a workflow folder's state (no discs)\n"
           "  arv link FOLDER COLLECTION|DISC-ID [--past]   say what a folder is (logged)\n"
           "  arv names [--limit N] FOLDER   names a disc cannot hold, or Windows would show changed\n"
-          "  arv describe FOLDER|DISC-ID [--save DRAFT] ...   title, description, tags from a local LLM (*)\n"
-          "  arv tag FOLDER|DISC-ID [--save DRAFT] ...        folder tags from your vocabulary (*)\n"
-          "  arv models fetch|status|build-runtime            the small model arv tag uses (*)\n"
+          "  arv describe FOLDER|DISC-ID [--save|--apply DRAFT] ...   title, description, tags (*)\n"
+          "  arv tag FOLDER|DISC-ID [--save DRAFT] ...                folder tags from your vocabulary (*)\n"
+          "  arv models fetch|status|build-runtime                    the small model arv tag uses (*)\n"
           "\n";
 static const char USAGE_REST[] =
           "Record: what exists, and where\n"

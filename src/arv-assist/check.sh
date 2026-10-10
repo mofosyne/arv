@@ -86,6 +86,19 @@ grep -q "^Title: New title" home/catalog/archive.rec && grep -q "^Note: Q: Who?"
     && ok "describe --apply: title, subjects, notes and folder tags into the catalogue, accepted by the person" \
     || { cat apply.out; tail -30 home/catalog/archive.rec; no "describe --apply"; }
 
+# a draft from elsewhere, on standard input, left a suggestion: one folder's tags join the others',
+# and a folder the disc does not have is skipped
+printf '{"folder_tags": {"photos/2019 trip": ["event:trip-2019"], "no/such": ["x"]}, "agent": "llm:other"}\n' \
+    | "$tool" --home home describe "$id" --apply - --suggested > apply2.out 2> apply2.err || no "describe --apply -"
+tsv=$(find home -path "*$id*" -name tags.tsv | head -1)
+grep -q "^photos	travel" "$tsv" && grep -q "^photos/2019 trip	event:trip-2019" "$tsv" && ! grep -q "^no/such" "$tsv" \
+    && grep -q "has no folder no/such" apply2.err \
+    && tail -6 home/catalog/archive.rec | grep -q "^Authorship: suggested" \
+    && tail -6 home/catalog/archive.rec | grep -q "^Agent: llm:other" \
+    && ! tail -6 home/catalog/archive.rec | grep -q "^Agent: human:" \
+    && ok "describe --apply - --suggested: from standard input, tags merged, an unknown folder skipped, left a suggestion" \
+    || { cat apply2.out apply2.err; cat "$tsv"; tail -14 home/catalog/archive.rec; no "describe --apply - --suggested"; }
+
 # ------------------------------------------------------------------ vision
 i=0
 while [ $i -lt 5 ]; do
