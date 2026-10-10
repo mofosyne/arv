@@ -4,7 +4,7 @@
 Disc id:  {id}{part}
 Set:      {set}
 Burned:   {date}
-Contents: {files} files, {bytes} bytes (in data/)
+Contents: {files}, {bytes} bytes (in data/)
 Made by:  {software}
 
 {plain}

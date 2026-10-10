@@ -196,7 +196,7 @@ char *render_index(const rec_record *disc, const rec_record *binding, const entr
     human_size(strtoull(rec_get(disc, "Bytes") ? rec_get(disc, "Bytes") : "0", NULL, 10), size);
     t.len = 0;
     html_esc(&t, rec_get(disc, "Files") ? rec_get(disc, "Files") : "None");
-    sb_printf(&out, "\n<tr><th>Contents</th><td>%s files, %s</td></tr>", t.s, size);
+    sb_printf(&out, "\n<tr><th>Contents</th><td>%s file%s, %s</td></tr>", t.s, strcmp(t.s, "1") ? "s" : "", size);
     line(&out, "</table>");
     int notes = 0;
     for (size_t f = 0; f < disc->nfields; f++)

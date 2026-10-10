@@ -206,7 +206,7 @@ char *rocrate_preview(const rec_record *disc, const entries *files)
     html_esc(&b, rec_get(disc, "Description") ? rec_get(disc, "Description") : "");
     sb_puts(&b, "</p><p>Disc ");
     html_esc(&b, rec_get(disc, "Id") ? rec_get(disc, "Id") : "None");
-    sb_printf(&b, " &middot; %zu files, ", files->n);
+    sb_printf(&b, " &middot; %zu file%s, ", files->n, files->n == 1 ? "" : "s");
     html_esc(&b, size);
     sb_puts(&b, "</p><p>See <a href=\"../index.html\">index.html</a> on the disc for the full file list and "
                 "<a href=\"ro-crate-metadata.json\">ro-crate-metadata.json</a> for the machine-readable description.</p>"

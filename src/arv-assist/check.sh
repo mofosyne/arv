@@ -41,7 +41,7 @@ put Trip/README.txt "Pictures from our holiday."
 
 # ------------------------------------------------------------------ describe
 "$tool" describe Trip $llm --show-inventory > inv.txt
-grep -q "Pictures from our holiday." inv.txt && grep -q "photos/2019 trip/ - 1 files" inv.txt \
+grep -q "Pictures from our holiday." inv.txt && grep -q "photos/2019 trip/ - 1 file" inv.txt \
     && grep -q "^File dates (modification time): 2019 to 2019" inv.txt \
     && ok "the inventory: folders, dates, and README text" || { cat inv.txt; no "inventory"; }
 "$tool" --home home describe Trip $llm --save draft.json </dev/null 2>/dev/null || no "describe --save"

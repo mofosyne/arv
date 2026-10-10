@@ -968,7 +968,7 @@
 [82.119, "o", "\r\n"]
 [82.269, "o", "1 file: 0 read, 1 unchanged since last read (hash cache)\r\n"]
 [82.281, "o", "~/Videos: not a collection's workflow folder\r\n"]
-[82.293, "o", "  1 of its 1 files are on discs; 0 on none\r\n"]
+[82.293, "o", "  1 of its 1 file is on discs; 0 on none\r\n"]
 [82.305, "o", "  most like TRIP-01_2025_B: 20% of its files are here (1 of 5)\r\n"]
 [82.317, "o", "  data objects archived from here:\r\n"]
 [82.329, "o", "  kyoto-walk.mp4 (kyoto-walk.mp4): version 1 on TRIP-01_2025_B; unchanged\r\n"]
