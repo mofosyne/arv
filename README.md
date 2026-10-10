@@ -156,6 +156,11 @@ make install PREFIX=~/.local     # or: sudo make install   (/usr/local)
 arv                              # where you are, and the commands to start with
 ```
 
+With [just](https://github.com/casey/just), nothing to remember: `just install` (yourself, in
+`~/.local`), `just install-system` (everyone, `/usr/local`, with sudo), the same with `uninstall`,
+`just where` (which arv runs here), and `just deb` or `just arch` for a package. `just` lists them.
+Uninstalling, either way, removes the programs and never your archives or discs.
+
 Or as a package, so the package manager can remove it again ([packaging/](packaging/README.md)):
 `dpkg-buildpackage -us -uc -b` in the checkout for Debian and Ubuntu, `makepkg -si` in
 `packaging/arch/` for Arch Linux. `make install` works from a release tarball too.

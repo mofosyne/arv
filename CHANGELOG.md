@@ -59,6 +59,9 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   the arv installed, and falls back to file names.
 - `arv gui` with no archive opens on **Make an archive** (a folder, a name, whether to use it from
   anywhere), which runs `arv init`, instead of stopping.
+- `just install` / `just uninstall` (yourself, `~/.local`), `just install-system` /
+  `just uninstall-system` (`/usr/local`, sudo), `just where`, `just deb`, `just arch`: no prefix to
+  remember.
 - Packages: `debian/` (a native Debian package, `dpkg-buildpackage`) and `packaging/arch/PKGBUILD`
   (`arv-git`). `make install` works from a release tarball too (no git: the tree as it is, the
   commit from `COMMIT`, which `git archive` fills in), and `make clean` exists.
