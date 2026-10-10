@@ -708,3 +708,48 @@ operating system's mount or 7-Zip does that.
   the dvdisaster source tarball next to any dvdisaster binary, which GPLv3 asks for anyway.
 - **The written RS03 specification** (LCSAS `docs/DVDISASTER_RS03_FORMAT.md`, 445 lines) on
   every disc next to the repair tools, so RS03 can be re-implemented from the disc alone.
+
+## 10. A new user's first hour (UX review, 2026-10-09)
+
+arv used from scratch as a newcomer would, in a Linux container: build, a collection, an edition,
+copies, `todo`, `retire`, `status`, `find`, then `arv gui` at desktop and phone widths (headless
+Chromium). What it found, and what came of it:
+
+| Found | Now |
+|---|---|
+| Only `make` had its own `--help`; every other `CMD --help`, a typo (`arv stauts`) or a bad flag printed the whole 50-line usage, with no line saying what was wrong | each command prints its own lines; an unknown command names the nearest ones; bad arguments are named with the command's usage |
+| `arv make` on 200 KB wrote a 24.2 GB image (RS03 fills the medium), silent for minutes, with no free-space check; it printed the payload size (79.5 MiB), not the image's | the image size and the room left are said first, and a make that will not fit stops before writing; RS03 shows a percentage |
+| `arv todo` on an empty archive: "Nothing owed: every disc copied, read back ..." | "No discs yet", and how to start |
+| `burned --copies 1` run twice silently counted two copies; `--location ATIC` (no such place) was taken as text | copies have letters and the total is said each time; a code-like place that is not one of the archive's is noted |
+| An archive started in `~/.local/share/arv` without `arv init` | no fallback home (plan.md, 2026-10-09) |
+| `arv --version`: `arv 0.4`, while the format is 0.5; `arv version` printed the usage | both print the commit and the format |
+| `selection add` on an existing selection failed ("already exists"; `put` adds) | it adds, with a note |
+| "1 files", "2 issue(s)" | plurals |
+| GUI: titled "Disc Archive"; Owed listed CLI text with placeholders, no links; Archive opened on the expert path (hand mastering); a four-line catalogue path on a phone; an empty "On the disc" column for collections | titled arv; each disc in Owed opens its record; From a folder first; the path shortened (whole on hover); the column says the edition |
+
+Liked, and kept: the check character catching a mistyped id with a suggestion, `make`'s closing
+commands to burn and record, errors that name the fix, the plain-language `names` warnings, and
+`status`'s layout advice.
+
+**Timing, one data point:** `arv make` of a 200 KB folder for BD-R 25 (`bd25`, 20% minimum
+redundancy) took 10 min 4 s wall clock (9 min 49 s user, 2 min 28 s system) in a cloud
+container: RS03 over the 24.2 GB image, then its test, then the SHA-256 of the whole image. Any
+make for a full medium costs about this much whatever the data, so `--no-ecc` is the way to try
+arv out. A desktop's disk and CPU will differ.
+
+**Still open:**
+- `arv find` names a file's path on its disc, not where it is now, though `status` knows a move
+  (`> photos/a.jpg -> projects/album/a.jpg`).
+- Selections hold only what is on discs already; a project selection cannot start from files not
+  yet archived (a format question: selections travel on discs).
+- One copy moved or lost (`locate --copy`; an event naming the copy).
+- `arv log` of a collection with no revision prints nothing; the final SHA-256 of a full image has
+  no progress line.
+
+## 11. Telling copies apart: the BD-R BCA (measured 2026-10-10)
+
+The burst cutting area, written at the factory, gives each BD-R its own serial; copies of one
+image are otherwise identical. A Pioneer BDR-XD08 (firmware 1.02) returns it for Verbatim BD-R
+(`VERBAT/IMe`) with no AACS authentication, and two discs of one pack gave two serials. The
+method, both probe outputs, the bytes compared and the open questions are in
+[bca/README.md](bca/README.md); the probe is `dev-tools/disc-probe.c`.

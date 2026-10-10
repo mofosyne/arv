@@ -885,6 +885,89 @@ Open: whether the inner image is SquashFS (compact; 7-Zip and unsquashfs read it
 mounts); how `arv verify` and `arv check` treat a locked object (the manifest of the ciphertext,
 and the plaintext manifest inside the lock); the custody record (#21).
 
+## Decision (2026-10-09): no fallback home; a `.arv` says which catalogue, not what is tracked
+
+- **Before:** with no `.arv` here or above and no registered default, arv started an archive in
+  `~/.local/share/arv` without a word. In a first-hour test (research-notes.md, 10) `collection
+  init` and `make` did exactly that: an archive nobody chose, in a folder nobody backs up, and a
+  second one waiting to happen the first time arv runs outside the tree (half the discs in each,
+  `todo` and `find` seeing half).
+- **Now, as git does outside a repository:** no archive found means arv stops and says how to
+  make one (`arv init FOLDER`; `--name NAME --default` to use it from anywhere). `home_try` is the
+  lookup without the stop, for what needs no archive: `arv id`, `arv describe` on a folder, and
+  reading a disc. The older `bluray-archive` folder and `$BLURAY_ARCHIVE_HOME` went too (nobody
+  has arv yet).
+- **Kept:** the registered default, because arv is often run from *outside* the archive (at the
+  drive, a disc in hand: `arv burned`, `arv find`), unlike git, which is run inside the project.
+  It is opt-in and visible (`arv where`), and deleting `homes.rec` loses nothing. Names
+  (`--archive NAME`) stay either way.
+- **Bubbles, not cascades:** the nearest `.arv` wins outright; nothing is inherited from one
+  above. Archives are privacy spheres, so a sealed archive's records must never surface in
+  another's. arv walks past `.git`, so one `.arv` covers many repositories.
+- **A `.arv` decides which catalogue is used, never what is tracked.** Nothing scans the tree:
+  only `collection init`, `make`, `plan add` and `checkpoint` record anything, and `status`,
+  `objects` and `todo` look only at a folder named, or at the source paths already recorded.
+  `~/.arv` with a home full of caches costs nothing.
+- Open: dropping `Default:` for a pure "bubble only" model; what a writing command run from a
+  disc root (found as a read-only catalogue) does.
+
+## Decision (2026-10-09): each copy is a letter; images stay sector-identical
+
+- **Why not a copy id inside each image:** different bytes per copy would end the best recovery
+  there is, reading two damaged copies into one image with ddrescue and one map file, then
+  repairing with RS03; it would also mean an image per copy (25 GB each) and no single hash to
+  check every copy against. So the identity is outside the image: on the label and in the
+  catalogue.
+- **A copy is its `replication` event** (as the spec already said), now with `Copy: A`, `B` ...
+  (the next free letter, or `--copy X`), written on the hub and case after the id. Each copy
+  keeps its own `Location`, `MediaId` and `Bca`; checks name the copy they read; `todo` lists
+  copies never read back by letter. `--copies N` writes N events.
+- **No counter.** The disc's `Copies:` field (which `--copies N` raised by N while writing one
+  event, so the two disagreed) is gone: copies are counted from events, which only grow, so two
+  catalogues of one archive merge without losing any (next section).
+- **The BCA serial** identifies a BD-R by itself where the drive reads it
+  ([research/bca/](bca/README.md)): on Linux `arv burned --device` records it and refuses a disc
+  already recorded, and `arv check --device` knows which copy it holds. The letter stays the
+  name: an image file or folder has no BCA, other systems and USB bridges may not pass the
+  command through, and a person decades from now reads the hub.
+- Open: moving one copy (`locate --copy`), a copy lost or destroyed (an event naming it), and two
+  forked catalogues both giving out the same letter (a merge should flag it, not combine them).
+
+## Design (2026-10-09, not implemented): several catalogues of one archive
+
+Nothing stops two catalogues sharing one archive id: copy a `.arv` folder, or `arv rebuild` from
+a disc into a second place, and both take writes. Merging them back is `archive_merge` (what
+`rebuild` uses).
+
+- **Merges cleanly:** everything that only grows: events, revisions (by `Node`), data object
+  versions, appraisals, selection items. A union, in any order.
+- **Breaks, silently:**
+  - *Numbers.* The next disc sequence and edition number come from the local catalogue
+    (`archive_next_number`), so two forks each make `FAMILY-02_...`, each "edition 2": two discs,
+    one id. The merge matches discs by id and keeps one record; the other's events attach to it.
+  - *Counters.* `Copies:` was one (fixed: copies are events now, previous section).
+  - *Fields that change* (a disc's places, notes, a location's parent): one side wins, by a flag
+    (`--prefer-disc`), with no report that they differed.
+- **What works today is one catalogue written, many read-only copies:** every disc carries a
+  snapshot with the same archive id, but a snapshot never moves on by itself.
+
+The way there, each step useful alone:
+
+1. **"This is a copy" guard.** The catalogue records where it lives; a write to a copy found
+   elsewhere stops ("this is a copy of the archive at /nas/.arv: use a pointer, or
+   `arv init --move-here` if the old one is gone"). Moving becomes deliberate and logged; reading
+   a copy (`find`, `list`) stays fine.
+2. **Remotes you pull from:** `arv remote add NAME PATH` (same archive id only), `remote remove`,
+   `remote -v`; `arv pull [NAME]` (the rebuild merge, the remote's fields winning); `arv clone PATH
+   DEST` (origin set). The local copy stays read-only between pulls, by step 1. A disc is a remote
+   too (`arv pull /media/disc` is `rebuild`). Remotes live in `config/remotes.rec`, which never
+   goes on a disc (only `sets.rec` and `tags.rec` do), so local paths and host names do not leak.
+   Paths only at first (a mounted share); ssh later through `rsync` or `scp`, as `make` runs git.
+3. **Push, only when writing on two machines is needed:** numbers no two catalogues can both give
+   out (a short prefix per catalogue, or a check against every catalogue seen), and conflicts on
+   changing fields reported rather than resolved. Then merging is a union, and `push` is `pull`
+   the other way.
+
 ## Later: catalogue snapshot size
 
 Each disc carries every earlier disc's manifests, listings and format IDs:
