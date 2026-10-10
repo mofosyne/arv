@@ -12,7 +12,7 @@ arv keeps two things apart, and a third that only points at them:
 |---|---|---|---|
 | **collection** | something you keep over time: one workflow folder, one code, one history | a `.arv` marker in the folder (identity only) | `arv collection init` |
 | **archive** (home) | the record of one privacy sphere: every disc, copy, place, collection, revision and event | a `.arv` folder (the catalogue) | `arv init` |
-| **copies** | the physical or stored copies of a disc: burned, an iso, or a folder | recorded in the archive | `arv burned`, `arv stored` |
+| **copies** | the physical or stored copies of a disc: burned, an iso, or a folder, each named by a letter (A, B ...) | recorded in the archive | `arv burned`, `arv stored` |
 | **machine registry** | which archives exist on this computer, and the default | `~/.config/arv/homes.rec` | `arv init --name`, `arv where` |
 
 - A **collection** is *what you keep*. It is a folder you sort, with a small `.arv` marker carrying
@@ -177,7 +177,7 @@ back.
 | **revision** | one recorded state of a collection: a **checkpoint** (hashes only) or an **edition** |
 | **edition** | a set of discs made together from what a collection's workflow folder holds at the time; each disc holds part of it and a copy of the catalogue; numbered; replaced by a newer safe edition unless kept |
 | **volume (disc)** | one bag, one image; belongs to exactly one edition |
-| **copy** | one physical or stored copy of a disc: burned, an iso, or a folder; with a place and a temperature |
+| **copy** | one physical or stored copy of a disc: burned, an iso, or a folder; named by a letter written after the disc id (`TRIP-01_2019_4 B`), with its own place and temperature |
 | **archive** (home) | one privacy sphere's catalogue: a `.arv` folder |
 
 A **collection** and a **set** are different things: a collection is what you keep, a set is how it

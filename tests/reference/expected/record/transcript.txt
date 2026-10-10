@@ -1,5 +1,6 @@
 $ --home rec burned TRIP-01_2019_4 --copies 2 --location box1 --media-id MEI-T02 --note for the attic
-TRIP-01_2019_4: copies C and D recorded, 4 in all (not read back: arv burned --device checks a copy as it records it). Write the letter on the hub and the case, after the id.
+TRIP-01_2019_4: copies C and D recorded, 4 in all (not read back: arv burned --device checks a copy as it records it).
+Write each one's letter on the hub and the case, after the id: TRIP-01_2019_4 C, and so on
 rc=0
 $ --home rec note PROJ-01_2020-2023_L A long note that goes on about the weather station, its board revisions and the spare parts
 rc=0
@@ -14,7 +15,8 @@ $ --home rec burned NOPE-01_2000_X
 Error: no disc NOPE-01_2000_X in rec/catalog/archive.rec (arv list shows them; arv id checks one)
 rc=1
 $ --home rec burned TRIP-01_2019_4 --copy K --location OFFSITE --bca 04 1e 10 15 12 62 02 02 24 03 02 14 50 10 48 af
-TRIP-01_2019_4: copy K recorded, 5 in all (not read back: arv burned --device checks a copy as it records it). Write the letter on the hub and the case, after the id.
+TRIP-01_2019_4: copy K recorded, 5 in all (not read back: arv burned --device checks a copy as it records it).
+Write its letter on the hub and the case, after the id: TRIP-01_2019_4 K
 rc=0
 $ --home rec burned TRIP-01_2019_4 --bca 041e10151262020224030214501048af041e1015
 Error: this disc is already recorded: copy K of TRIP-01_2019_4 (BCA 041e10151262020224030214501048af). Each copy is recorded once.

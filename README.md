@@ -77,7 +77,7 @@ How a disc is built, in one picture: [docs/architecture.md](docs/architecture.md
 ├── index.html               offline viewer (no JavaScript)
 ├── README.txt               plain-text recovery instructions
 │   data/ro-crate-metadata.json  optional RO-Crate description (--ro-crate)
-├── tools/                   this tool (snapshot of the last commit, with its specs) and arv.com: the
+├── tools/                   this tool (its source and specs, as disc-tools.txt lists) and arv.com: the
 │                            reader ready to run on Linux, macOS, Windows and BSD (x86-64, ARM64)
 └── data/                    the payload
 [ dvdisaster RS03 ECC data appended after the filesystem ]
@@ -212,7 +212,7 @@ The whole cycle, as the C arv runs it:
 ```sh
 arv init ~/archive                                          # a .arv home
 arv make -y --set trip --location BOX1 ~/archive/2019-kyoto # disc image, recorded in the home
-arv burned --device /dev/sr0 --location HOME               # after burning: read back, then recorded
+arv burned --device /dev/sr0 --location HOME               # after burning: read back, recorded as copy A
 arv todo                                                    # what is owed: burns, read-backs, places, checks
 arv find kyoto                                              # which disc, and where it is
 arv verify /media/cdrom                                     # every file against its checksum
@@ -329,6 +329,7 @@ arv id PHOTOS-07_2015-2024_Q   # explain / check an id (catches typos)
 arv note 2020-2025_PROJECTS_01 "Only copy of the 2019 PCB gerbers"
 arv locate 2020-2025_PROJECTS_01 BOX3 OFFSITE   # one location per place a copy is kept
 arv burned --device /dev/sr0 --location OFFSITE  # after burning the ISO yourself: read back, recorded
+                                                # (copy B: write the letter on the hub and case)
 arv location move BOX3 --in OFFSITE             # moving a box moves its discs
 arv location list -v                            # places as a tree, with the discs in each
 arv selection add KYOTO-BEST --name "Best of Kyoto" TRIP-01_2019_4:"day2 Kinkaku-ji/"
@@ -344,6 +345,7 @@ arv todo                                           # what is owed: copies, read-
 arv list --unchecked-since 5y                  # discs due a check (last checked, or never)
 arv list --one-place                           # discs kept in only one place
 arv check --device /dev/sr0                        # read a disc back against its image hash, logged
+                                                   # (--copy B names the copy; the BCA serial, if read, finds it)
 arv check --image 2020-2025_PROJECTS_01.iso
 arv rebuild /media/disc                            # recreate/merge the home catalogue from a disc
 arv verify /media/disc                             # every file against its checksum

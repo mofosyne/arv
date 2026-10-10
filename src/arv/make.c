@@ -1804,9 +1804,9 @@ static int make_discs(maker *mk)
         uint64_t avail = known ? (uint64_t)fs.f_bavail * fs.f_frsize : 0;
         human_size(avail, room);
         if (!o->no_ecc)
-            fprintf(stderr, "The image%s will take %s in all: RS03 error correction fills %s to its medium "
-                            "(--no-ecc: just the files, to try arv out)%s%s%s\n", mk->nplans == 1 ? "" : "s", total, mk->nplans == 1 ? "it" : "each",
-                    known ? "; " : "", known ? room : "", known ? " free there" : "");
+            fprintf(stderr, "The image%s will take %s in all%s%s%s: RS03 error correction fills %s to its medium\n"
+                            "  (--no-ecc: just the files, to try arv out)\n", mk->nplans == 1 ? "" : "s", total,
+                    known ? ", with " : "", known ? room : "", known ? " free there" : "", mk->nplans == 1 ? "it" : "each");
         if (known && more > avail) {
             fprintf(stderr, "Error: not enough room in %s: the image%s %s, and %s is free. Choose a folder with room "
                             "(--output-dir DIR), or a smaller medium (--medium).\n", out_dir, mk->nplans == 1 ? " needs" : "s need",

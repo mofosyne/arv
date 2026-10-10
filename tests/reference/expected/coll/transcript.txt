@@ -177,11 +177,13 @@ rc=1
 $ --home hc burned --device out-c2/FAM-02_2019_Y.noecc.iso --location BOX1
 Reading back FAM-02_2019_Y (out-c2/FAM-02_2019_Y.noecc.iso): the 882 sectors of its image ...
 Note: BOX1 is not one of the archive's locations (arv location list): recorded as written. arv location add CODE NAME makes a place arv knows.
-FAM-02_2019_Y: copy A recorded, 1 in all (this one read back: identical to the image). Write the letter on the hub and the case, after the id.
+FAM-02_2019_Y: copy A recorded, 1 in all (read back: identical to the image).
+Write its letter on the hub and the case, after the id: FAM-02_2019_Y A
 rc=0
 $ --home hc burned FAM-01_2019_0 --location BOX1
 Note: BOX1 is not one of the archive's locations (arv location list): recorded as written. arv location add CODE NAME makes a place arv knows.
-FAM-01_2019_0: copy A recorded, 1 in all (not read back: arv burned --device checks a copy as it records it). Write the letter on the hub and the case, after the id.
+FAM-01_2019_0: copy A recorded, 1 in all (not read back: arv burned --device checks a copy as it records it).
+Write its letter on the hub and the case, after the id: FAM-01_2019_0 A
 rc=0
 $ --home hc todo
 Burned, never read back (arv check --device DRIVE --copy X ID):

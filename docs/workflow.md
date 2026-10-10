@@ -57,7 +57,7 @@ flowchart TD
 | **collection** | something kept over time, e.g. *Family photos*: one **workflow folder**, one code (`FAMILY`), one history |
 | **revision** | one recorded state of a collection, as a git commit: a **checkpoint** (hashes only, nothing copied) or an **edition** |
 | **edition** | a set of discs made together from what a collection's workflow folder holds at the time; each disc holds part of it and a copy of the catalogue; numbered; replaced by a newer safe edition unless **kept** |
-| **copy** | one physical or stored copy of a disc: a burned **disc**, the image as an **iso** file, or the disc's files as a **folder**; each with a place and a **temperature** |
+| **copy** | one physical or stored copy of a disc: a burned **disc**, the image as an **iso** file, or the disc's files as a **folder**; each named by a letter (A, B ...), with its own place and **temperature** |
 | **temperature** | **hot**: in active use; **warm**: online or reachable, left alone (an image on a NAS); **cold**: offline (discs on a shelf, unplugged drives) |
 | **safe** | an edition whose every disc has a copy read back identical to its image |
 
@@ -84,7 +84,7 @@ projects, records ...): see "Laying the folder out" in step 1.
 | Need | For | How |
 |---|---|---|
 | a C compiler | building arv (`make`) | usually installed (`build-essential`) |
-| `arv` | everything below | `make install PREFIX=~/.local` in this repository (or run `./arv` from it); `make uninstall PREFIX=~/.local` removes it and leaves your catalogues alone |
+| `arv` | everything below | `make install PREFIX=~/.local` (or `just install`) in this repository, or a package (`just deb`, `just arch`: [packaging/](../packaging/README.md)), or run `./arv` from it; tab completion comes with it. `make uninstall PREFIX=~/.local` (`just uninstall`) removes it and leaves your archives alone |
 | `7z`, `git` | reading images in checks; arv's source in each disc's `tools/` | your distribution |
 | a burning program | burning images (arv never burns) | `xorriso`, or your system's own: see [burning.md](burning.md) |
 | optional | reading damaged discs; format ids; AI help; the interface | GNU ddrescue or [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light); Siegfried (`sf`); arv-assist (`arv describe`, `arv tag`); Python 3 for `arv gui` |
@@ -419,7 +419,9 @@ is lost or damaged.
   from with fewer than two copies left.
 
 **Checking** every few years: `arv check --device /dev/sr0` reads a disc back against its
-image's hash and logs it. A disc that needed repair is a warning: make a new copy.
+image's hash and logs it, for the copy in the drive: named with `--copy B`, found by its BCA
+serial where the drive reads one, or the disc's only copy. A disc that needed repair is a
+warning: make a new copy.
 
 ### 8. Recover
 

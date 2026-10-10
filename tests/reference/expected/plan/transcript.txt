@@ -215,7 +215,8 @@ Data objects:
 rc=0
 $ --home hp burned TRIP-03_2025_7 --location BOX1
 Note: BOX1 is not one of the archive's locations (arv location list): recorded as written. arv location add CODE NAME makes a place arv knows.
-TRIP-03_2025_7: copy A recorded, 1 in all (not read back: arv burned --device checks a copy as it records it). Write the letter on the hub and the case, after the id.
+TRIP-03_2025_7: copy A recorded, 1 in all (not read back: arv burned --device checks a copy as it records it).
+Write its letter on the hub and the case, after the id: TRIP-03_2025_7 A
 rc=0
 $ --home hp stored TRIP-04_2025_5 out-plan2/TRIP-04_2025_5.noecc.iso
 Reading ROOT/out-plan2/TRIP-04_2025_5.noecc.iso: the 882 sectors of TRIP-04_2025_5's image ...

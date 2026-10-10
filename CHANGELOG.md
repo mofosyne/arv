@@ -93,7 +93,12 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   archive's (`--location ATIC`) is noted, on `burned`, `stored`, `locate` and `make`; it is still
   recorded as written.
 - `arv selection add` on a selection that exists adds the items, as `put` does (with a note).
-- Plurals: "1 file", "3 issues", "1 link".
+- Plurals: "1 file", "3 issues", "1 link" (and in `arv list`).
+- `arv burned` ends with what to write on the hub and case: `TRIP-01_2019_4 B`. `arv make`'s
+  size line and the burned line are split in two, so they fit a narrow terminal.
+- The docs follow: the website's demo is re-recorded (bare `arv` first, copies A and B, owed
+  copies by letter), and the site, README, workflow and concepts say how copies are lettered,
+  how `--device` finds the copy in the drive, and how to install, complete and uninstall arv.
 - A logo: a disc from above, its three tracks Archive, Record and Verify, and the clear hub ring
   where the id and copy letter are written (`docs/img/logo.svg`, `logo-mark.svg`; light and dark),
   on the README, the website (and its tab icon) and `arv gui`'s tab.

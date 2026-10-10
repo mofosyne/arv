@@ -90,14 +90,14 @@ these, and arv stops and says how to make one (`arv init`). DISC is the root of 
 | | arv | arv-assist and arv-gui (optional) |
 |---|---|---|
 | Making | UDF 2.50 discs, one or (`--split`) as many as the folder needs: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), Siegfried format ids (`formats.csv`), `--tools-history`, `--extra-tools`, `--ro-crate`, drafts (`--draft`: folder tags, captions), RS03 | the drafts' authors: `describe` (a local LLM), `tag` (a small built-in model) |
-| Recording | `init` (with named homes and pointers; `--archive NAME`), `burned`, `check`, `note`, `locate`, `access`, `location`, `collection`, `appraise`, `rebuild` | `gui` (arv-gui) |
+| Recording | `init` (with named homes and pointers; `--archive NAME`), `burned` and `stored` (each copy a letter; the BCA serial on Linux, `drive.c`), `check`, `note`, `locate`, `access`, `location`, `collection`, `appraise`, `rebuild` | `gui` (arv-gui) |
 | Looking | `sets`, `names`, `where`, `tags`, `keywords` | `models` (the built-in model) |
 | Reading | `find`, `list`, `id`, `info`, `verify`, `ls`, `restore` | |
 
 RS03 error correction is linked in ([../rs03](../rs03/): dvdisaster's format, byte for byte what
 dvdisaster Light writes), and so is udfwrite. Making a disc runs other programs only in a git
-checkout (`git archive` and `tar`, to put arv's last commit in `tools/`; an installed arv copies
-`PREFIX/share/arv` instead). dvdisaster Light is needed only to scan a disc whose image hash
+checkout (`git archive` and `tar`, to put arv's last commit in `tools/`, the paths
+`disc-tools.txt` lists; an installed arv copies `PREFIX/share/arv` instead). dvdisaster Light is needed only to scan a disc whose image hash
 was never recorded (`check --device`); a damaged disc is read into an image with it or GNU
 ddrescue, and arv repairs the image.
 

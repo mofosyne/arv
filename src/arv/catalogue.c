@@ -577,8 +577,9 @@ int cmd_list(int argc, char **argv)
         }
         char *w = where(&c, d);
         const char *files = rec_get(d, "Files");
-        printf("%s\t%s\t%s\t%s files\t%s\t%s", rec_get(d, "Id"), rec_get(d, "Date") ? rec_get(d, "Date") : "None",
-               rec_get(d, "Title") ? rec_get(d, "Title") : "None", files && *files ? files : "?", access_of(d), w);
+        printf("%s\t%s\t%s\t%s file%s\t%s\t%s", rec_get(d, "Id"), rec_get(d, "Date") ? rec_get(d, "Date") : "None",
+               rec_get(d, "Title") ? rec_get(d, "Title") : "None", files && *files ? files : "?",
+               files && !strcmp(files, "1") ? "" : "s", access_of(d), w);
         if (cutoff) printf("\tlast checked %.10s", *checked ? checked : "never");
         putchar('\n');
         free(w);
