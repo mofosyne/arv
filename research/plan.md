@@ -1075,6 +1075,14 @@ about 430 bytes per file in the archive. Up to about a million files that is und
 ## Open decisions
 
 - Licence for this repo (GPLv3 fits if the RS03 library happens)
+- **`archival-udf.md` as a standalone UDF reader's spec** (2026-10-10, a to-do). Today it is a
+  profile: the rules on top of ECMA-167 and UDF 2.50, not the byte layout of their structures, so
+  a reader cannot be written from it alone. It could be: describe only the structures arv writes
+  (anchor, descriptor sequences, partition and metadata maps, file set, extended file entries,
+  identifiers, `short_ad`/`long_ad`), and prove it complete with a reader written from it alone,
+  as `dev-tools/rs03-spec-check.py` does for RS03. Less pressing now that discs can be read
+  without any UDF reader (spec, "Extents"), with `udfwrite`'s source on every disc as the
+  executable description.
 - **What every disc, and the package, carry in `tools/`** (2026-10-10, issue #32). Decided: a
   whitelist, `disc-tools.txt`. The UDF and ECMA standards' zip (69.6 MB, 97% of the old tree, its
   licence and origin not written down) stays in the repository but off the discs and out of the

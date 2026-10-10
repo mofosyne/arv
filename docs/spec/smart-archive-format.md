@@ -718,12 +718,25 @@ MediumSectors: 12219392
 | `MediumSectors` | The medium size RS03 was computed for, in 2048-byte sectors: what dvdisaster's `-n` needs to find the layers when the error correction's own record of its layout is damaged |
 | `ImageSectors`, `ImageSha256` | The finished image as it is to be burned (with RS03): its size in 2048-byte sectors and its SHA-256. The first sectors of a burned disc, read back whole, give the same hash, so a copy can be proven to hold exactly these bits. Only in the home catalogue and later discs' snapshots: an image cannot hold its own hash |
 
-Planned: an optional `Extents` pointer to `catalog/volumes/<id>/extents.tsv` (path, start and
-length of each file in the container's units). It is kept in the home catalogue and in later
-discs' snapshots, not on the volume it describes (a file inside the image can only be found
-through the tree it would replace; the disc's own map is the UDF metadata and its mirror), so a
-volume damaged beyond repair still has its map on its siblings, as Piql's AFS table of contents
-travels apart from the data.
+### Extents: reading a volume without a UDF reader
+
+`catalog/volumes/<id>/extents.tsv` is each volume's map: a header line
+`# arv extents 1<TAB>start sector<TAB>size (bytes)<TAB>path`, then one line per file of the image
+(payload, tag files, catalogue, `tools/`), with its first sector counted from the start of the
+image (2048-byte sectors), its size and its path. The [UDF profile](archival-udf.md) stores
+every file whole, in one run of sectors, so the map is all that is needed to cut any file out of
+the image:
+
+```sh
+dd if=disc.iso bs=2048 skip=START count=$(( (SIZE + 2047) / 2048 )) | head -c SIZE > FILE
+```
+
+and `catalog/volumes/<id>/manifest.sha256` checks it. The map is kept in the home catalogue and
+in later volumes' snapshots, not on the volume it describes (a file inside the image can only be
+found through the tree it would replace; the volume's own map is the UDF metadata and its
+mirror), so a volume whose file system no tool can read still has its map on its siblings, as
+Piql's AFS table of contents travels apart from the data. Each disc's `README.txt` says so
+("WITHOUT A UDF READER"). Planned: an `Extents` field in the Binding naming the file.
 
 Things Katalog would have no place for today (candidates for its developer):
 events (provenance history), multi-line notes, image captions, PRONOM IDs,

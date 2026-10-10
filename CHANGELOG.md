@@ -64,6 +64,11 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   97% of the old tree, its terms not written down: issue #32) no longer goes on every disc or in
   the package, nor do `samples/` and the work for other projects in `upstream/`. A new file goes
   on discs only when it is listed. The trimmed tree builds and passes `make check` on its own.
+- **Reading a disc without a UDF reader:** every disc's `README.txt` says how ("WITHOUT A UDF
+  READER"): each file is stored whole, so `dd` cuts it out of the image at the start sector the
+  map gives (`catalog/volumes/<id>/extents.tsv`, kept at home and on every later disc), and the
+  manifest beside it checks it. The spec documents `extents.tsv`, and `make check` cuts every file
+  of a real image out this way.
 - `arv make` with an installed or copied (not git) source copies only what `disc-tools.txt` lists
   and never build output; it used to copy its own work folder into itself when run from inside
   such a tree. `--tools-history` without git history now says so.

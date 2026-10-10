@@ -70,6 +70,21 @@ if command -v python3 >/dev/null; then
         && ok "the Library of Congress's bagit.py (upstream/bagit-python) agrees the disc is a valid bag" \
         || no "bagit.py says the disc is not a valid bag"
 fi
+# without a UDF reader (README.txt): every payload file cut out of the image with dd alone, from the
+# map the home catalogue keeps (extents.tsv), matches the manifest
+ext=$(ls home/catalog/volumes/*/extents.tsv | head -1)
+man=$(dirname "$ext")/manifest.sha256
+carved=0 wrong=0
+while IFS="$(printf '\t')" read -r start size name; do
+    case "$name" in data/*) ;; *) continue ;; esac
+    got=$(dd if=disc.iso bs=2048 skip="$start" count=$(( (size + 2047) / 2048 )) 2>/dev/null | head -c "$size" \
+          | sha256sum | cut -d' ' -f1)
+    grep -qxF "$got  $name" "$man" || wrong=$((wrong + 1))
+    carved=$((carved + 1))
+done < "$ext"
+[ "$carved" -gt 0 ] && [ "$wrong" -eq 0 ] \
+    && ok "without a UDF reader: $carved files cut out of the image with dd (extents.tsv) match the manifest" \
+    || no "dd from extents.tsv: $wrong of $carved files differ from the manifest"
 cp -r disc bad
 printf X | dd of=bad/data/docs/guide.md bs=1 seek=0 conv=notrunc 2>/dev/null
 if "$tool" verify bad >out.txt; then no "verify missed damage"; fi
