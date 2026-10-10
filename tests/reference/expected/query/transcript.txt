@@ -365,6 +365,49 @@ rc=0
 $ --home q-empty todo
 No discs yet, so nothing is owed. Start with arv collection init FOLDER (or arv make FOLDER for a one-off disc).
 rc=0
+$ --home q record
+Record: what exists, and where
+  arv burned (--device DRIVE | --copies N) [--copy X] [--location PLACE] [--media-id ID] [--bca SERIAL]
+             [--note TEXT] [DISC-ID]
+         a burned copy, named by a letter (A, B ...: write it on the hub and case after the id;
+         --device: read back against its image first, recorded only if identical;
+         --temperature hot|warm|cold: default the place's, else cold)
+  arv stored DISC-ID PATH [--location PLACE] [--temperature T]   a copy on a drive or NAS: the .iso,
+         or the disc's files as a folder; checked, then recorded (default: warm)
+  arv objects [NAME] [--json]   what you keep and where every copy is (data objects, collections)
+  arv find [-C CATALOG] [--limit N] PATTERN
+  arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]
+           [--unchecked-since AGE|DATE] [--one-place]   (AGE: 5y, 18m, 90d)
+  arv id [-C CATALOG] ID   arv info DISC   arv ls DISC
+  arv note DISC-ID TEXT   arv locate [--add] DISC-ID PLACE...   arv access DISC-ID public|private|sealed
+  arv location list [-v] | add CODE [NAME] [--in PARENT] [--description TEXT] [--temperature T]
+               | move CODE [NAME] [--in PARENT] [--temperature T]
+  arv selection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]
+  arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]
+  arv log [COLLECTION]   arv diff REV [REV]   (REV: a revision's first digits, or CODE/N)
+  arv retire CODE|DISC-ID [--yes [--accept-loss]]   retire the editions a newer safe one replaces (not kept
+                    ones), or one disc of no edition; refused while a file is on no disc that stays
+  arv sets [-v]   arv tags [--namespace NS] [--vocab FILE]   arv keywords [--format tsv|exiftool] DISC-ID
+(arv record COMMAND or arv COMMAND; arv COMMAND --help says more; arv --help lists every group)
+rc=0
+$ --home q record id TRIP-01_2019_4
+scheme:    set-seq-coverage/1
+set:       TRIP
+sequence:  1
+coverage:  2019
+check:     4 (correct)
+disc:      Kyoto, July 2019 [Home / Study / Box 1, blue lid; Parents' house]
+fields:    regenerate this id
+rc=0
+$ --home q record make
+arv record make: make is in archive (arv make, or arv archive make)
+rc=2
+$ --home q verify frob
+arv verify: unexpected or missing arguments: frob
+  arv verify [-v] DISC   every file against its checksum (in full: arv verify files DISC)
+DISC: the root of a mounted arv disc or an extracted image (the folder with catalog.rec)
+All commands: arv --help. More: README.md and docs/workflow.md.
+rc=2
 $ todo
 arv: no archive here or in any folder above, and no default archive on this machine.
   arv init FOLDER                          make one at the root of what it describes (e.g. /nas)

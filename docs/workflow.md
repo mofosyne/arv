@@ -12,7 +12,9 @@ to outlive the software and the person who made it ([philosophy.md](philosophy.m
 
 The steps fall in three parts, as the name says: **Archive** (what goes on discs: 1-3),
 **Record** (what exists, and where: 4-6) and **Verify** (still good, and can be got back: 7-8).
-`arv --help` and the GUI's three tabs are arranged the same way.
+`arv --help` and the GUI's three tabs are arranged the same way. The commands below are in their
+short form; forgot one? `arv archive`, `arv record` and `arv verify` (and `arv home`) each list
+their group, and `arv record burned` works as well as `arv burned`.
 
 Details live elsewhere and are linked: the model behind the commands in
 [concepts.md](concepts.md), the command reference in [README.md](../README.md), the on-disc format

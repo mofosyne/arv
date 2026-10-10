@@ -45,6 +45,8 @@ static const char USAGE_ARCHIVE[] =
           "usage: arv [-C HOME | --archive NAME] COMMAND ...\n"
           "Archive, Record, Verify: put what you keep on discs, record what exists and where, and check that\n"
           "it is still good and can be got back. arv make --help lists its options; docs/workflow.md says more.\n"
+          "The commands come in four groups: arv archive, arv record, arv verify and arv home list theirs,\n"
+          "and a group's name may come first (arv record burned is arv burned).\n"
           "\n"
           "Archive: what goes on discs\n"
           "  arv make [--set CODE] [--title T] [--split] [--no-ecc] [--output-dir DIR] ... FOLDER\n"
@@ -88,7 +90,7 @@ static const char USAGE_REST[] =
           "Verify: still good, and can be got back\n"
           "  arv todo [--overdue YEARS]   what is owed: copies, read-backs, cold copies, places, checks\n"
           "  arv check (--image FILE [--repair] | --device DRIVE) [--copy X] [--note TEXT] [-v] [DISC-ID]\n"
-          "  arv verify [-v] DISC   every file against its checksum\n"
+          "  arv verify [-v] DISC   every file against its checksum (in full: arv verify files DISC)\n"
           "  arv restore [--no-links] DISC DEST\n"
           "  arv rebuild [--prefer-disc] [--any-archive] DISC   the catalogue back from a disc\n"
           "\n"
@@ -148,6 +150,30 @@ static void command_usage(FILE *to, const char *name)
               "first .arv folder or disc root from here up\n", to);
     fputs("All commands: arv --help. More: README.md and docs/workflow.md.\n", to);
     free(out.s);
+}
+
+/* ------------------------------------------------------------------ groups: arv archive|record|verify|home */
+
+static const struct {
+    const char *name, *header;          /* the header of its part of the usage */
+} GROUPS[] = { { "archive", "Archive:" }, { "record", "Record:" }, { "verify", "Verify:" }, { "home", "The home" } };
+
+/* a group's part of the usage (its header to the blank line after it); with cmd, only whether a
+ * command line of that part names cmd */
+static int group_lines(const char *header, const char *cmd, sbuf *out)
+{
+    int in = 0, found = 0;
+    for (int part = 0; part < 2; part++)
+        for (const char *line = part ? USAGE_REST : USAGE_ARCHIVE, *end; *line; line = end + 1) {
+            end = strchr(line, '\n');
+            size_t len = (size_t)(end - line);
+            if (!strncmp(line, header, strlen(header))) in = 1;
+            else if (!len) in = 0;
+            if (!in) continue;
+            if (out) sb_printf(out, "%.*s\n", (int)len, line);
+            if (cmd && !strncmp(line, "  arv ", 6) && names_command(line, len, cmd)) found = 1;
+        }
+    return found;
 }
 
 /* arv --version: the release, the commit it was built from when known, and the disc format */
@@ -264,6 +290,42 @@ int main(int argc, char **argv)
     arv_argv0 = argv[0];
     if (argc >= 2 && (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-V"))) {
         return print_version();
+    }
+    /* a group first: arv record burned ... is arv burned ...; arv record alone lists the group */
+    int at = 1;
+    while (at + 1 < argc && (!strcmp(argv[at], "-C") || !strcmp(argv[at], "--home") || !strcmp(argv[at], "--archive"))) at += 2;
+    for (size_t g = 0; at < argc && g < sizeof GROUPS / sizeof *GROUPS; g++) {
+        if (strcmp(argv[at], GROUPS[g].name)) continue;
+        const char *sub = at + 1 < argc ? argv[at + 1] : NULL, *group = GROUPS[g].name;
+        int verify = !strcmp(group, "verify"), known = 0;
+        if (!sub || !strcmp(sub, "-h") || !strcmp(sub, "--help")) {
+            sbuf out = { 0 };
+            group_lines(GROUPS[g].header, NULL, &out);
+            printf("%s(arv %s COMMAND or arv COMMAND; arv COMMAND --help says more; arv --help lists every group)\n",
+                   out.s, group);
+            free(out.s);
+            return 0;
+        }
+        for (size_t i = 0; i < sizeof cmds / sizeof *cmds; i++) known |= !strcmp(sub, cmds[i].name);
+        known |= !strcmp(sub, "describe") || !strcmp(sub, "tag") || !strcmp(sub, "models") || !strcmp(sub, "gui");
+        if (verify && !strcmp(sub, "files")) argv[at + 1] = "verify";     /* arv verify files DISC */
+        else if (group_lines(GROUPS[g].header, sub, NULL)) {
+        } else if (verify && !known) {
+            break;                      /* arv verify DISC: the files check, as before */
+        } else if (known) {
+            for (size_t h = 0; h < sizeof GROUPS / sizeof *GROUPS; h++)
+                if (group_lines(GROUPS[h].header, sub, NULL)) {
+                    fprintf(stderr, "arv %s %s: %s is in %s (arv %s, or arv %s %s)\n", group, sub, sub, GROUPS[h].name, sub,
+                            GROUPS[h].name, sub);
+                    return 2;
+                }
+        } else {
+            fprintf(stderr, "arv %s: no command %s (arv %s lists them)\n", group, sub, group);
+            return 2;
+        }
+        for (int k = at; k + 1 < argc; k++) argv[k] = argv[k + 1];       /* the group's name goes */
+        argv[--argc] = NULL;
+        break;
     }
     /* the local AI helpers and the interface are programs of their own */
     const char *word = command_word(argc, argv);

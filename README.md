@@ -266,6 +266,21 @@ letter.
 
 ### Commands
 
+Every command has a short form, `arv COMMAND`, used throughout these docs. If you forget a
+command's name, its group lists it: the commands come in four groups, as `arv --help` shows them,
+and each group's name on its own lists that group with a line each:
+
+```sh
+arv archive    # make, plan, collection, status, checkpoint, link, names, describe, tag, models
+arv record     # burned, stored, objects, find, list, id, info, ls, note, locate, ... retire
+arv verify     # todo, check, verify, restore, rebuild
+arv home       # init, where, gui
+```
+
+The group's name may also come first: `arv record burned ...` is `arv burned ...`, and a command
+named under the wrong group says which one it is in. (`arv verify DISC`, every file on a disc
+against its checksum, is `arv verify files DISC` in full; `arv verify` alone lists the group.)
+
 ```sh
 # Archive: what goes on discs (the places first, so discs can name them)
 arv location add HOME Home

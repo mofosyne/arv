@@ -47,6 +47,11 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - An unknown command says so and names the nearest (`arv stauts`: did you mean status?);
   arguments a command does not take are named, with that command's usage. Neither prints the
   whole usage any more.
+- Commands come in four groups, as `arv --help` shows them: `arv archive`, `arv record`,
+  `arv verify` and `arv home` each list theirs, and a group's name may come first (`arv record
+  burned` is `arv burned`), for finding a command whose name you forgot; the short form stays the
+  one the docs use. A command named under the wrong group says where it is. `arv verify DISC` is
+  `arv verify files DISC` in full (bare `arv verify` lists the group).
 - `arv --version` (and `arv version`) names the commit it was built from and the disc format:
   `arv 0.4 (arv@<commit>), disc format 0.5`.
 - `arv make` says before the long part how big the images will be once RS03 fills them to the

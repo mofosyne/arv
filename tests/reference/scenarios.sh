@@ -403,6 +403,10 @@ log query.out stauts                         # an unknown command: the nearest, 
 log query.out --home q todo --bogus          # arguments a command does not take: named, with its usage
 log query.out --home q burned --help         # a command's own lines of the usage
 log query.out --home q-empty todo            # nothing made yet: not "nothing owed"
+log query.out --home q record                # a group lists its commands
+log query.out --home q record id TRIP-01_2019_4   # a group's name first: the same command
+log query.out --home q record make           # a command named under the wrong group
+log query.out --home q verify frob           # not a disc, not a command: the old verify says so
 (XDG_CONFIG_HOME="$root/no-config" && export XDG_CONFIG_HOME && cd "$work" && log "$root/query.out" todo)   # no archive: arv init, as git
 keep query.out query/transcript.txt
 
