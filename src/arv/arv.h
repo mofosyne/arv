@@ -52,6 +52,9 @@ extern const char NO_HOME[];                                            /* what 
 extern const char *home_archive_name;   /* --archive NAME: a home from the machine config */
 void home_at(arv_home *h, const char *path);
 void home_ensure(const arv_home *h);
+void home_guard(const char *arv_dir);      /* stops a change to a copy of the catalogue (config/paths.rec) */
+int home_here(const char *arv_dir);        /* records this place as the catalogue's; 1 if new */
+void home_paths(const char *arv_dir, strlist *out);
 char *home_volume_file(const arv_home *h, const char *disc_id, const char *name);
 void layout_notes(const arv_home *h, const char *abs, FILE *out, const char *prefix);   /* status.c */
 char *path_manifest(const arv_home *h, const char *path, size_t *files);                /* status.c */
@@ -144,7 +147,8 @@ const char *place_temperature(const archive *a, const char *code);
 int temperature_ok(const char *t);
 rec_record *new_appraisal(const char *target, const strlist *importance, const char *basis, const char *review);
 int disc_importance(const archive *cat, const char *id, char **why);
-size_t archive_merge(archive *home, const archive *other, int prefer_other, strlist *added, strlist *updated);
+size_t archive_merge(archive *home, const archive *other, int prefer_other, strlist *added, strlist *updated,
+                     strlist *clashes);   /* clashes: disc ids that name another image there: not merged */
 
 /* bag.c: the payload, BagIt tag files and the listing */
 typedef struct {

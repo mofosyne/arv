@@ -1055,13 +1055,26 @@ int cmd_names(int argc, char **argv)
 int cmd_where(int argc, char **argv)
 {
     const char *given = NULL;
+    int here = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (!strcmp(argv[i], "--here")) here = 1;
         else return 2;
     }
     arv_home h;
     home_find(&h, given, NULL);
+    if (here)
+        printf(home_here(h.path) ? "Recorded: this catalogue lives here too; changes may be written to it here.\n"
+                                 : "Already recorded: this catalogue lives here.\n");
     printf("%s\n  found by %s\n", h.path, h.how);
+    strlist places;
+    home_paths(h.path, &places);
+    for (size_t i = 0; i < places.n; i++) printf("  %s %s\n", i ? "and at" : "lives at", places.v[i]);
+    char *real = realpath(h.path, NULL);
+    if (places.n && real && !strlist_has(&places, real))
+        puts("  not here: a copy of it? Changes are refused here (arv where --here if it moved here)");
+    free(real);
+    strlist_free(&places);
     archive cat;
     archive_load(&cat, h.rec_path);
     if (cat.homes.n)
@@ -1112,7 +1125,36 @@ static char *disc_root_id(const char *root)
     return out;
 }
 
-/* Merge the catalogue carried by a disc (mounted or extracted) into the home catalogue. */
+static int a_folder(const char *p)
+{
+    struct stat st;
+    return !stat(p, &st) && S_ISDIR(st.st_mode);
+}
+
+/* copies of one disc that two catalogues each lettered alike (both gave out "the next" letter) */
+static size_t letter_clashes(const archive *cat)
+{
+    size_t n = 0;
+    for (size_t i = 0; i < cat->events.n; i++) {
+        const rec_record *a = cat->events.v[i];
+        if (!rec_get(a, "Copy") || strcmp(get_or(a, "Type", ""), "replication") || !strcmp(get_or(a, "Outcome", ""), "failure")) continue;
+        for (size_t j = i + 1; j < cat->events.n; j++) {
+            const rec_record *b = cat->events.v[j];
+            if (!rec_get(b, "Copy") || strcmp(get_or(b, "Type", ""), "replication") || !strcmp(get_or(b, "Outcome", ""), "failure")
+                || strcmp(get_or(a, "Disc", ""), get_or(b, "Disc", "")) || strcmp(rec_get(a, "Copy"), rec_get(b, "Copy")))
+                continue;
+            fprintf(stderr, "Warning: %s has two copies lettered %s (kept at %s, and at %s), recorded in two catalogues.\n"
+                            "  Tell them apart on their labels; arv objects %s lists both.\n",
+                    get_or(a, "Disc", "?"), rec_get(a, "Copy"), get_or(a, "Location", "an unrecorded place"),
+                    get_or(b, "Location", "an unrecorded place"), get_or(a, "Disc", "?"));
+            n++;
+        }
+    }
+    return n;
+}
+
+/* Merge the catalogue carried by a disc (mounted or extracted), or another catalogue of this archive
+ * (its .arv folder, or the folder holding one), into the home catalogue. */
 int cmd_rebuild(int argc, char **argv)
 {
     const char *given = NULL, *root = NULL;
@@ -1125,13 +1167,19 @@ int cmd_rebuild(int argc, char **argv)
         else return 2;
     }
     if (!root) return 2;
+    char *inner = join(root, ".arv");                   /* the folder an archive's .arv is in */
+    if (a_folder(inner)) root = inner;
     arv_home h;
     archive cat;
     open_home(given, &h, &cat);
+    char *here = realpath(h.path, NULL), *there = realpath(root, NULL);
+    if (here && there && !strcmp(here, there)) die("%s is this archive's own catalogue: nothing to merge", root);
+    free(here);
+    free(there);
     char *snap_dir = join(root, "catalog");
     char *sources[] = { join(snap_dir, "archive.rec"), join(root, "catalog.rec") };
     int any = 0;
-    strlist added = { 0 }, updated = { 0 };
+    strlist added = { 0 }, updated = { 0 }, clashes = { 0 };
     size_t events = 0;
     for (int k = 0; k < 2; k++) {
         if (access(sources[k], F_OK)) continue;
@@ -1157,9 +1205,9 @@ int cmd_rebuild(int argc, char **argv)
             if (!other->homes.n) rec_add(r, "Uuid", theirs);
             recs_add(&cat.homes, r);
         }
-        events += archive_merge(&cat, other, prefer, &added, &updated);
+        events += archive_merge(&cat, other, prefer, &added, &updated, &clashes);
     }
-    if (!any) die("%s has neither catalog/archive.rec nor catalog.rec", root);
+    if (!any) die("%s has neither catalog/archive.rec nor catalog.rec (a disc's root, or an archive's .arv)", root);
     static const char *const KINDS[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", "git.tsv",
                                          NULL };
     char *own_id = disc_root_id(root);
@@ -1186,7 +1234,13 @@ int cmd_rebuild(int argc, char **argv)
         }
     }
     for (int k = 0; HOME_VOCABULARIES[k]; k++) {         /* the vocabularies, when the home has none yet */
-        char *from = xprintf("%s/config/%s", snap_dir, HOME_VOCABULARIES[k]), *to = join(h.config_dir, HOME_VOCABULARIES[k]);
+        char *cfg = xprintf("%s/config", root);         /* a catalogue's own config/, or a disc's catalog/config/ */
+        if (!a_folder(cfg)) {
+            free(cfg);
+            cfg = xprintf("%s/config", snap_dir);
+        }
+        char *from = xprintf("%s/%s", cfg, HOME_VOCABULARIES[k]), *to = join(h.config_dir, HOME_VOCABULARIES[k]);
+        free(cfg);
         if (!access(from, F_OK) && access(to, F_OK)) {
             if (mkdirs(h.config_dir)) die("cannot create %s", h.config_dir);
             copy_file(from, to);
@@ -1213,7 +1267,12 @@ int cmd_rebuild(int argc, char **argv)
     printf("Added %zu disc(s)%s, updated %zu, %zu new event(s), %zu file list(s) copied into %s\n", added.n, list.s,
            updated.n, events, copied, h.path);
     free(list.s);
-    return 0;
+    fflush(stdout);                                     /* the summary, then what needs a person */
+    letter_clashes(&cat);
+    for (size_t i = 0; i < clashes.n; i++)
+        fprintf(stderr, "Not merged: %s names a different disc there (another image: both catalogues made \"the next\" disc).\n"
+                        "  This home's %s is kept; the other's records stay in %s.\n", clashes.v[i], clashes.v[i], root);
+    return clashes.n ? 1 : 0;
 }
 
 /* ------------------------------------------------------------------ audit */

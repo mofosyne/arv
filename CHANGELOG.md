@@ -114,8 +114,16 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - `arv audit` checks every event against its id, and with discs given (`arv audit /media/disc`),
   the home against what each disc carries: an event changed or lost at home is listed. A burned
   disc is write-once and kept elsewhere, so it witnesses what was written.
-- research/plan.md (2026-10-10): the catalogue's history is per thing, not a line; what arv takes
-  from git (its data model, not its commands); `.arv` in git as an option, never a need.
+- `arv rebuild` merges another catalogue of the same archive too (its `.arv`, or the folder that
+  holds one), by event id; notes on a disc add up from both. What both gave out is reported: a
+  disc id naming two different images is not merged (exit 1), and two copies lettered alike are
+  named.
+- **A copy of the catalogue takes no changes.** `config/paths.rec` records where the catalogue
+  lives; a change written to a copy elsewhere stops, with what to do (`arv make` stops before the
+  long part). `arv where --here` accepts a new place (the catalogue moved, or a share is mounted
+  at another path); `arv where` lists the places, and says when this one is not among them.
+- research/plan.md (2026-10-10): the catalogue's history is per thing, not a line; catalogues
+  merge by event id; tampering is made evident, with the discs as witnesses.
 
 **Copies in the GUI, and one disc's copies**
 - `arv objects DISC-ID` lists a disc's copies, each by its letter, with its form, place, when it

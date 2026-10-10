@@ -350,6 +350,7 @@ arv check --device /dev/sr0                        # read a disc back against it
 arv check --image 2020-2025_PROJECTS_01.iso
 arv rebuild /media/disc                            # recreate/merge the home catalogue from a disc
 arv audit /media/disc                              # the home's events as written, and as the disc has them
+arv rebuild /mnt/laptop/.arv                       # merge another catalogue of this archive, by event id
 arv verify /media/disc                             # every file against its checksum
 arv restore /media/disc ~/restored                 # copy everything back, links and execute bits too
 

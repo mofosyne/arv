@@ -1963,6 +1963,7 @@ int cmd_make(int argc, char **argv)
 
     arv_home h;
     home_find(&h, o.home, src);
+    home_guard(h.path);                 /* before the long part: a copy of the catalogue makes no disc */
     archive cat;
     archive_load(&cat, h.rec_path);
 

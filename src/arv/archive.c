@@ -181,6 +181,13 @@ const char *archive_home_uuid(archive *a)
 
 void archive_save(archive *a, const char *path)
 {
+    static const char tail[] = "/catalog/archive.rec";    /* a home's catalogue: not where a copy of it is */
+    size_t n = strlen(path);
+    if (n > sizeof tail - 1 && !strcmp(path + n - (sizeof tail - 1), tail)) {
+        char *arv_dir = xprintf("%.*s", (int)(n - (sizeof tail - 1)), path);
+        home_guard(arv_dir);
+        free(arv_dir);
+    }
     archive_home_uuid(a);
     char *dir = xstrdup(path), *slash = strrchr(dir, '/');   /* a new home: its catalog/ folder first */
     if (slash && slash != dir) {
@@ -722,7 +729,7 @@ static int in_recs(const recs *l, const rec_record *r)
  * prefer_other, existing
  * records take the other's fields (a sealed disc's cut-down record never replaces a full one).
  * Returns the number of new events; added and updated get disc ids. */
-size_t archive_merge(archive *home, const archive *other, int prefer_other, strlist *added, strlist *updated)
+size_t archive_merge(archive *home, const archive *other, int prefer_other, strlist *added, strlist *updated, strlist *clashes)
 {
     size_t events = 0;
     if (!home->homes.n && other->homes.n) recs_add(&home->homes, other->homes.v[0]);   /* a home rebuilt from a disc */
@@ -731,13 +738,26 @@ size_t archive_merge(archive *home, const archive *other, int prefer_other, strl
         if (!existing) {
             recs_add(&home->discs, d);
             strlist_add(added, get_or_empty(d, "Id"));
+        } else if (rec_get(existing, "Uuid") && rec_get(d, "Uuid") && strcmp(rec_get(existing, "Uuid"), rec_get(d, "Uuid"))) {
+            strlist_add(clashes, get_or_empty(d, "Id"));    /* one id, two images: two catalogues each made "the next" disc */
         } else if (prefer_other && !same_fields(existing, d) && !(rec_get(d, "Withheld") && !rec_get(existing, "Withheld"))) {
             replace_fields(existing, d);
             strlist_add(updated, get_or_empty(d, "Id"));
+        } else {                                            /* notes only add up: the other's new ones join */
+            int more = 0;
+            for (size_t f = 0; f < d->nfields; f++) {
+                if (strcmp(d->fields[f].name, "Note")) continue;
+                int have = 0;
+                for (size_t g = 0; g < existing->nfields && !have; g++)
+                    have = !strcmp(existing->fields[g].name, "Note") && !strcmp(existing->fields[g].value, d->fields[f].value);
+                if (!have) rec_add(existing, "Note", d->fields[f].value), more = 1;
+            }
+            if (more) strlist_add(updated, get_or_empty(d, "Id"));
         }
     }
     for (size_t i = 0; i < other->bindings.n; i++) {
         rec_record *b = other->bindings.v[i], *existing = by_key(&home->bindings, "Volume", rec_get(b, "Volume"), 0);
+        if (strlist_has(clashes, get_or_empty(b, "Volume"))) continue;
         if (!existing) recs_add(&home->bindings, b);
         else if (prefer_other) replace_fields(existing, b);
     }
@@ -794,7 +814,7 @@ size_t archive_merge(archive *home, const archive *other, int prefer_other, strl
     }
     for (size_t i = 0; i < other->objects.n; i++) {       /* one object version on one disc: Uuid, Version, Disc */
         const rec_record *o = other->objects.v[i];
-        int have = 0;
+        int have = strlist_has(clashes, get_or(o, "Disc", ""));
         for (size_t k = 0; k < home->objects.n && !have; k++) {
             const rec_record *x = home->objects.v[k];
             have = !strcmp(get_or(x, "Uuid", ""), get_or(o, "Uuid", "")) && !strcmp(get_or(x, "Version", ""), get_or(o, "Version", ""))
@@ -808,6 +828,7 @@ size_t archive_merge(archive *home, const archive *other, int prefer_other, strl
     for (size_t i = 0; i < home->events.n; i++) event_key(home->events.v[i], keys[nkeys++]);
     for (size_t i = 0; i < other->events.n; i++) {
         char k[33];
+        if (rec_get(other->events.v[i], "Disc") && strlist_has(clashes, rec_get(other->events.v[i], "Disc"))) continue;
         event_key(other->events.v[i], k);
         int have = 0;
         for (size_t j = 0; j < nkeys && !have; j++) have = !strcmp(keys[j], k);

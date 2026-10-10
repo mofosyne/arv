@@ -194,6 +194,8 @@ for s in out-split/.archive-make-*/stage-*; do
     [ "$id" = "$first" ] && log rebuild.out --home hb rebuild --prefer-disc "$s"
 done
 cp -r h hother                        # a home of another archive: its discs are not merged by accident
+log rebuild.out --home hother location add SHED "The shed"                         # refused: a copy
+log rebuild.out --home hother where --here                                        # it is one of its own now
 for s in out-split/.archive-make-*/stage-*; do
     log rebuild.out --home hother rebuild "$s"
     log rebuild.out --home hother rebuild --any-archive "$s"
