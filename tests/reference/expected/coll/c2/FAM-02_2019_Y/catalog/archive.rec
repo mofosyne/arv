@@ -171,6 +171,7 @@ Message: the 2019 sort
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
 
+EventId: ID
 Disc: FAM-01_2019_0
 Type: message digest calculation
 Date: 2026-01-01
@@ -179,6 +180,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 2 files
 
+EventId: ID
 Disc: FAM-01_2019_0
 Type: creation
 Date: 2026-01-01
@@ -187,6 +189,7 @@ Authorship: automatic
 Agent: SW
 Note: image FAM-01_2019_0.noecc.iso, 850 sectors
 
+EventId: ID
 Disc: FAM-02_2019_Y
 Type: message digest calculation
 Date: 2026-01-01

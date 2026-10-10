@@ -319,6 +319,31 @@ while [ $n -le 130 ]; do head -c $n bytes > "lengths/data/$(printf %03d $n)"; n=
 (cd lengths && "$here/build/fixtures" --hash data/* > ../sha512.c.txt && sha512sum data/* > ../sha512.txt)
 cmp -s sha512.c.txt sha512.txt && ok "SHA-512 matches sha512sum for 0 to 130 bytes" || no "SHA-512"
 
+# ------------------------------------------------------------------ event ids and arv audit
+cp -r home aud
+did=$(sed -n 's/^Id: //p' disc/catalog.rec | head -1)
+"$tool" -C aud note "$did" "the same words" >/dev/null && "$tool" -C aud note "$did" "the same words" >/dev/null
+n_ev=$(grep -c '^EventId: ' aud/catalog/archive.rec)
+[ "$(grep -c '^EventId: [0-9a-f]\{32\}$' aud/catalog/archive.rec)" -ge 3 ] && grep -q '^Nonce: 2$' aud/catalog/archive.rec \
+    && grep -q '^EventId: ' disc/catalog/archive.rec \
+    && ok "event ids: every event has one, on discs too; two events alike are kept apart by a Nonce" \
+    || no "event ids"
+"$tool" -C aud audit disc > audit.out && grep -q " 0 changed since written" audit.out && grep -q "0 missing at home, 0 different" audit.out \
+    || { cat audit.out; no "arv audit, untouched"; }
+first=$(sed -n 's/^EventId: //p' disc/catalog/archive.rec | head -1)
+awk -v id="$first" 'BEGIN { RS = ""; ORS = "\n\n" } $0 ~ "EventId: " id { sub(/Outcome: success/, "Outcome: failure") } { print }' \
+    aud/catalog/archive.rec > aud.rec && mv aud.rec aud/catalog/archive.rec
+"$tool" -C aud audit disc > audit.out && no "arv audit passed a changed event"
+grep -q "^CHANGED .*$first" audit.out && grep -q "^DIFFERS .*$first" audit.out || { cat audit.out; no "arv audit, a changed event"; }
+awk -v id="$first" 'BEGIN { RS = ""; ORS = "\n\n" } $0 !~ "EventId: " id { print }' aud/catalog/archive.rec > aud.rec \
+    && mv aud.rec aud/catalog/archive.rec
+"$tool" -C aud audit disc > audit.out || true; grep -q "^MISSING .*$first" audit.out || { cat audit.out; no "arv audit, a lost event"; }
+"$tool" -C aud rebuild disc >/dev/null && "$tool" -C aud rebuild disc >/dev/null || no "rebuild"
+"$tool" -C aud audit disc > audit.out && [ "$(grep -c "^EventId: $first" aud/catalog/archive.rec)" = 1 ] \
+    && [ "$(grep -c '^EventId: ' aud/catalog/archive.rec)" = "$n_ev" ] \
+    && ok "arv audit: an event changed at home, and one lost, are found against the disc; rebuild brings the lost one back once" \
+    || { cat audit.out; no "audit after rebuild"; }
+
 # ------------------------------------------------------------------ the helpers: arv-assist and arv-gui
 mkdir -p helpers
 printf '#!/bin/sh\necho "assist $*"\n' > helpers/assist

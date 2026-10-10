@@ -88,6 +88,7 @@ int cmd_sets(int argc, char **argv);
 int cmd_names(int argc, char **argv);
 int cmd_where(int argc, char **argv);
 int cmd_rebuild(int argc, char **argv);
+int cmd_audit(int argc, char **argv);
 
 /* archive.c: the catalogue as arv writes it */
 typedef struct {
@@ -129,6 +130,8 @@ size_t disc_copies(const archive *a, const char *disc_id);
 int copy_exists(const archive *a, const char *disc_id, const char *letter);
 int copy_letter_ok(const char *s);
 char *copy_next(const archive *a, const char *disc_id);
+void event_content_id(const rec_record *e, char out[33]);   /* from its fields, all but EventId */
+void event_key(const rec_record *e, char out[33]);          /* its EventId, else its content's id */
 int copy_read_back(const archive *a, const char *disc_id, const rec_record *copy);
 const char *copy_last_check(const archive *a, const char *disc_id, const rec_record *copy);   /* its date, or NULL */
 const char *copy_bca(const archive *a, const char *disc_id, const rec_record *copy);

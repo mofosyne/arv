@@ -150,6 +150,7 @@ Source: src
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
 
+EventId: ID
 Disc: CODE-01_2020_0
 Type: message digest calculation
 Date: 2026-01-01
@@ -158,6 +159,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 4 files
 
+EventId: ID
 Disc: CODE-01_2020_0
 Type: ingestion
 Date: 2026-01-01
@@ -166,6 +168,7 @@ Authorship: human
 Agent: human:archivist
 Note: links: 2 copied, 1 broken (policy: copy)
 
+EventId: ID
 Disc: CODE-01_2020_0
 Type: creation
 Date: 2026-01-01
@@ -174,6 +177,7 @@ Authorship: automatic
 Agent: SW
 Note: image CODE-01_2020_0.noecc.iso, 850 sectors
 
+EventId: ID
 Disc: CODE-02_2020_Y
 Type: message digest calculation
 Date: 2026-01-01
@@ -182,6 +186,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 3 files
 
+EventId: ID
 Disc: CODE-02_2020_Y
 Type: ingestion
 Date: 2026-01-01
@@ -190,6 +195,7 @@ Authorship: human
 Agent: human:archivist
 Note: links: 1 copied, 1 recorded, 1 broken (policy: record)
 
+EventId: ID
 Disc: CODE-02_2020_Y
 Type: creation
 Date: 2026-01-01

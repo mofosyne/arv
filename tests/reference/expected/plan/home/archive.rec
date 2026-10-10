@@ -298,6 +298,7 @@ Source: plan-docs/letter.txt
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
 
+EventId: ID
 Disc: TRIP-01_2025_B
 Type: message digest calculation
 Date: 2026-01-01
@@ -306,6 +307,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 1 file
 
+EventId: ID
 Disc: TRIP-01_2025_B
 Type: creation
 Date: 2026-01-01
@@ -314,6 +316,7 @@ Authorship: automatic
 Agent: SW
 Note: image TRIP-01_2025_B.noecc.iso, 850 sectors
 
+EventId: ID
 Disc: TRIP-02_2025_9
 Type: message digest calculation
 Date: 2026-01-01
@@ -322,6 +325,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 3 files
 
+EventId: ID
 Disc: TRIP-02_2025_9
 Type: creation
 Date: 2026-01-01
@@ -330,6 +334,7 @@ Authorship: automatic
 Agent: SW
 Note: image TRIP-02_2025_9.noecc.iso, 882 sectors
 
+EventId: ID
 Disc: TRIP-03_2025_7
 Type: message digest calculation
 Date: 2026-01-01
@@ -338,6 +343,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 3 files
 
+EventId: ID
 Disc: TRIP-03_2025_7
 Type: creation
 Date: 2026-01-01
@@ -346,6 +352,7 @@ Authorship: automatic
 Agent: SW
 Note: image TRIP-03_2025_7.noecc.iso, 882 sectors
 
+EventId: ID
 Disc: TRIP-04_2025_5
 Type: message digest calculation
 Date: 2026-01-01
@@ -354,6 +361,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 3 files
 
+EventId: ID
 Disc: TRIP-04_2025_5
 Type: creation
 Date: 2026-01-01
@@ -362,6 +370,7 @@ Authorship: automatic
 Agent: SW
 Note: image TRIP-04_2025_5.noecc.iso, 882 sectors
 
+EventId: ID
 Disc: TRIP-03_2025_7
 Type: replication
 Date: 2026-01-01
@@ -374,6 +383,7 @@ Form: disc
 Temperature: cold
 Location: BOX1
 
+EventId: ID
 Disc: TRIP-04_2025_5
 Type: fixity check
 Date: 2026-01-01
@@ -382,6 +392,7 @@ Authorship: automatic
 Agent: arv 0.4
 Note: check of a stored copy (iso) at ROOT/out-plan2/TRIP-04_2025_5.noecc.iso: identical to the image
 
+EventId: ID
 Disc: TRIP-04_2025_5
 Type: replication
 Date: 2026-01-01
@@ -395,6 +406,7 @@ Form: iso
 Temperature: warm
 Path: ROOT/out-plan2/TRIP-04_2025_5.noecc.iso
 
+EventId: ID
 Disc: TRIP-01_2025_B
 Type: fixity check
 Date: 2026-01-01
@@ -403,6 +415,7 @@ Authorship: automatic
 Agent: arv 0.4
 Note: check of a stored copy (iso) at ROOT/out-plan/TRIP-01_2025_B.noecc.iso: identical to the image
 
+EventId: ID
 Disc: TRIP-01_2025_B
 Type: replication
 Date: 2026-01-01
@@ -416,6 +429,7 @@ Form: iso
 Temperature: warm
 Path: ROOT/out-plan/TRIP-01_2025_B.noecc.iso
 
+EventId: ID
 Disc: TRIP-05_2025_3
 Type: message digest calculation
 Date: 2026-01-01
@@ -424,6 +438,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 2 files
 
+EventId: ID
 Disc: TRIP-05_2025_3
 Type: creation
 Date: 2026-01-01
@@ -432,6 +447,7 @@ Authorship: automatic
 Agent: SW
 Note: image TRIP-05_2025_3.noecc.iso, 882 sectors
 
+EventId: ID
 Disc: TRIP-04_2025_5
 Type: deaccession
 Date: 2026-01-01
@@ -440,6 +456,7 @@ Authorship: human
 Agent: human:archivist
 Note: retired
 
+EventId: ID
 Disc: TRIP-02_2025_9
 Type: deaccession
 Date: 2026-01-01

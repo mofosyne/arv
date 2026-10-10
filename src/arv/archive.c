@@ -95,8 +95,71 @@ void archive_records(const archive *a, recs *out)
     }
 }
 
+/* ------------------------------------------------------------------ event ids */
+
+/* an event's id from its content (PREMIS eventIdentifier): the first 32 hex digits of the SHA-256
+ * of its fields as written, all but EventId. The same event has the same id in every catalogue
+ * and on every disc; an event changed after it was written no longer matches the id it was given. */
+void event_content_id(const rec_record *e, char out[33])
+{
+    rec_record view = *e;
+    view.fields = xmalloc((e->nfields ? e->nfields : 1) * sizeof *view.fields);
+    view.nfields = 0;
+    for (size_t i = 0; i < e->nfields; i++)
+        if (strcmp(e->fields[i].name, "EventId")) view.fields[view.nfields++] = e->fields[i];
+    char *text = NULL, hex[65];
+    size_t len = 0;
+    rec_format(&view, &text, &len);
+    text_sha256(text ? text : "", hex);
+    memcpy(out, hex, 32);
+    out[32] = 0;
+    free(text);
+    free(view.fields);
+}
+
+/* the id an event goes by: the one it was given, else its content's (an event written before ids) */
+void event_key(const rec_record *e, char out[33])
+{
+    const char *id = rec_get(e, "EventId");
+    if (id && strlen(id) == 32) memcpy(out, id, 33);
+    else event_content_id(e, out);
+}
+
+static int is_event(const rec_record *r)
+{
+    return !r->descriptor && r->type && !strcmp(r->type, "Event");
+}
+
+/* each event without an id gets one, as its first field; two events with the same content are
+ * kept apart by a Nonce (2, 3 ...) in the later one */
+static void assign_event_ids(const recs *r)
+{
+    strlist ids = { 0 };
+    for (size_t i = 0; i < r->n; i++)
+        if (is_event(r->v[i]) && rec_get(r->v[i], "EventId")) strlist_add(&ids, rec_get(r->v[i], "EventId"));
+    for (size_t i = 0; i < r->n; i++) {
+        rec_record *e = r->v[i];
+        if (!is_event(e) || rec_get(e, "EventId")) continue;
+        char id[33];
+        event_content_id(e, id);
+        for (int nonce = 2; strlist_has(&ids, id); nonce++) {
+            char n[16];
+            snprintf(n, sizeof n, "%d", nonce);
+            rec_set(e, "Nonce", n);
+            event_content_id(e, id);
+        }
+        rec_add(e, "EventId", id);
+        rec_field mine = e->fields[e->nfields - 1];
+        memmove(e->fields + 1, e->fields, (e->nfields - 1) * sizeof *e->fields);
+        e->fields[0] = mine;
+        strlist_add(&ids, id);
+    }
+    strlist_free(&ids);
+}
+
 void write_records(const char *path, const recs *r)
 {
+    assign_event_ids(r);
     char *tmp = xprintf("%s.tmp", path);
     if (rec_write(tmp, r->v, r->n) || rename(tmp, path)) die("cannot write %s", path);
     free(tmp);
@@ -739,11 +802,21 @@ size_t archive_merge(archive *home, const archive *other, int prefer_other, strl
         }
         if (!have) recs_add(&home->objects, other->objects.v[i]);
     }
-    for (size_t i = 0; i < other->events.n; i++)
-        if (!in_recs(&home->events, other->events.v[i])) {
-            recs_add(&home->events, other->events.v[i]);
-            events++;
-        }
+    /* events, by id: the same event in both is kept once (the home's copy; arv audit says if they differ) */
+    char (*keys)[33] = xmalloc((home->events.n + other->events.n + 1) * sizeof *keys);
+    size_t nkeys = 0;
+    for (size_t i = 0; i < home->events.n; i++) event_key(home->events.v[i], keys[nkeys++]);
+    for (size_t i = 0; i < other->events.n; i++) {
+        char k[33];
+        event_key(other->events.v[i], k);
+        int have = 0;
+        for (size_t j = 0; j < nkeys && !have; j++) have = !strcmp(keys[j], k);
+        if (have) continue;
+        recs_add(&home->events, other->events.v[i]);
+        memcpy(keys[nkeys++], k, 33);
+        events++;
+    }
+    free(keys);
     for (size_t i = 0; i < other->appraisals.n; i++)
         if (!in_recs(&home->appraisals, other->appraisals.v[i])) recs_add(&home->appraisals, other->appraisals.v[i]);
     return events;

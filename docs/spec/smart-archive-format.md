@@ -458,8 +458,8 @@ Readers merge objects by `Uuid`, `Version` and `Disc`.
 
 ### `Event` records (recfile)
 
-`Disc` (or, for a change to a place or a selection, `Object`: `location:CODE`,
-`selection:CODE`), `Type` (PREMIS event type:
+`EventId` (format 0.5), then `Disc` (or, for a change to a place or a selection, `Object`:
+`location:CODE`, `selection:CODE`), `Type` (PREMIS event type:
 `message digest calculation`, `creation`,
 `fixity check`, `format identification`, `metadata modification`, `ingestion`,
 `replication`), `Date`, `Outcome` (`success` / `failure` / `warning`), `Authorship`,
@@ -482,6 +482,16 @@ Applying a saved draft (a file the person can read and edit) counts as accepting
 0.3 had no `Authorship`: there a model's agent ended in `+ owner review` (read as `accepted`;
 whether it was changed was not recorded) or `(unreviewed)` (`suggested`). These map onto
 IPTC's digital source types and PREMIS agent roles when the archive is handed on.
+
+**`EventId`** (PREMIS eventIdentifier) is the event's own hash: the first 32 hex digits of the
+SHA-256 of the event's other fields exactly as written (`Name: value` lines, `+ ` continuations,
+joined by newlines, in their order). The same event has the same id in every catalogue and on
+every disc, so catalogues merge by id; and an event changed after it was written no longer
+matches its id, so a later disc (write-once, kept elsewhere) is a witness to what was written:
+`arv audit` checks both. Two events with the same content are kept apart by `Nonce` (`2`, `3` ...)
+in the later one, which is part of what is hashed. An event without an id (written before 0.5's
+ids) goes by its content's hash, and gets the id when its catalogue is next written. Discs made
+before event ids carry none; readers compute them the same way.
 
 Events are appended, never edited. **Every change to the catalogue leaves one:** a note, an
 access level, where a disc is kept, a place or a selection added, moved or renamed

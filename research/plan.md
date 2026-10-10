@@ -1151,3 +1151,60 @@ content so it follows moved files), written in batches by `arv annotate`.
     it, and `Relation` (Dublin Core) is the name to use then.
   - *Notes on a data object, following it across moves.* The one real gap; it waits until data
     objects are used enough to show whether disc and folder notes fall short.
+
+## Decision (2026-10-10): history is per thing; events get ids; the discs are the witnesses
+
+Talked through: how git syncs, whether arv should copy it, and whether `.arv` should be a git
+repository. This replaces "Remotes you pull from" and "Push" in the 2026-10-09 design above.
+
+**The catalogue's history is not a line.** Git needs one because a commit is a snapshot of the
+whole tree. A catalogue is facts about many separate things, and each has its own history:
+
+| Thing | Its history | Shape |
+|---|---|---|
+| A disc | made, copies burned, checked, moved, retired | events, mostly added; their order barely matters |
+| A data object | versions (`Uuid`, `Version`, each a `Tree` hash) | a line, which can fork |
+| A collection | revisions (`Node`, `Parent`) | already a graph, git's shape |
+
+Facts about different things do not depend on each other's order, so two catalogues that recorded
+different discs, files or copies merge by keeping both. Order matters in two places only: a field
+that changes on one thing (a title, an access level, a place), and numbers handed out (disc
+sequences, versions), where the hash behind the label stays unique but the label can clash. A
+whole-archive log is a view (sorted by date), not a record.
+
+**What to copy from git: its data model, not its commands.**
+1. **Every event has an id derived from its content** (`EventId`: the first 32 hex digits of the
+   SHA-256 of its fields as written, PREMIS's eventIdentifier). The same event has the same id in
+   every catalogue and on every disc, so merging is exact (no matching by text), and an event
+   changed after it was written no longer matches its id. Two events with the same content get a
+   `Nonce` to keep them apart. Built 2026-10-10.
+2. **A field change names the change it replaces** (`Replaces: <EventId>`, later): each field gets
+   its own small history, like git's parents. Two changes that replace the same one are a
+   conflict, reported, never silently resolved. Until then a merge keeps the home's fields
+   (`--prefer-disc` the disc's), as now.
+3. **Duplicate disc ids are reported at merge**, not merged; before burning, one side renames.
+4. **What to skip:** remotes, clone, push and git's transport. Moving files is rsync's or git's job
+   (principle 7, "keep the record").
+
+**`.arv` in git: friendly, never required.** `cd .arv && git init` works today (`cache/` carries
+its own `.gitignore`). To come, each optional: `arv init` writing a `.arv/.gitignore` (cache, and
+the source copies `arv plan add --copy` keeps under `drafts/`); when `.arv/.git` exists, each
+command that changes the catalogue commits, its event's note as the message (a failed commit
+warns, never fails the command); and `arv merge-file`, a git merge driver (`*.rec merge=arv` in
+`.gitattributes`) that merges by event id instead of by line. Then a bare repository on the NAS
+is the "remote", and git refuses a push that would lose work. arv does not run `git init` unless
+asked (`arv init --git`).
+
+**Tampering: evident, not impossible.** Git's hash chain proves nothing unless someone holds an old
+hash elsewhere. arv has those holders already: every disc is write-once, dated, kept in several
+places, and carries the whole catalogue as of its burning, and later discs carry the earlier
+images' SHA-256. So:
+- content-derived event ids (above) make an edited event detectable;
+- **`arv audit`** checks the home's events against their ids, and against each disc's snapshot
+  given to it: an event the disc has that the home lost or changed is reported. Built 2026-10-10.
+- signatures, for who wrote what, come from git when wanted (`git config commit.gpgsign true`
+  under `.arv/.git`); arv handles no keys.
+
+Not done: one hash chain through the whole catalogue. It forces one order on per-thing histories
+(every merge rewrites it), makes a hand edit look like tampering, and without copies held
+elsewhere proves nothing the discs do not already.

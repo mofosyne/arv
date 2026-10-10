@@ -130,6 +130,7 @@ Changes: +2 ~0 -0 >0 files
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
 
+EventId: ID
 Disc: FAM-01_2019_0
 Type: message digest calculation
 Date: 2026-01-01

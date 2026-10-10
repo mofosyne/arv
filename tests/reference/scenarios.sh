@@ -53,12 +53,13 @@ log() {   # log FILE ARGS...: "$ ARGS", the output (stdout and stderr) and the e
 }
 
 # the normalised copy of a text file: this run's folder, UUIDs, the software name (arv@ or arv@),
-# temporary names, the time stamps of files written while making (the RO-Crate files), and image
-# hashes (an image holds its archive's UUID)
+# temporary names, the time stamps of files written while making (the RO-Crate files), image
+# hashes (an image holds its archive's UUID) and event ids (each hashes its event as written,
+# this run's folder and UUIDs included)
 norm() {
     sed -E -e "s#$root#ROOT#g" -e "s#$repo#REPO#g" \
         -e 's/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/UUID/g' \
-        -e 's/arv?@reference/SW/g' -e 's/^(ImageSha256: ).*/\1SHA256/' \
+        -e 's/arv?@reference/SW/g' -e 's/^(ImageSha256: ).*/\1SHA256/' -e 's/^(EventId: )[0-9a-f]{32}$/\1ID/' \
         -e 's/(stage-[A-Za-z0-9_-]+-)[A-Za-z0-9_]{6,8}/\1XXXXXX/g' \
         -e 's/\.archive-make-[A-Za-z0-9_]{6,8}/.archive-make-XXXXXX/g' \
         -e 's/\t20[0-9-]+T[0-9:]+Z\t(file\t-\tro-crate)/\tTIME\t\1/' "$1"

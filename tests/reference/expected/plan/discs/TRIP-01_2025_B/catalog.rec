@@ -118,6 +118,7 @@ Date: 2026-01-01
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
 
+EventId: ID
 Disc: TRIP-01_2025_B
 Type: message digest calculation
 Date: 2026-01-01

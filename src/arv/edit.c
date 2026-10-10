@@ -1215,3 +1215,93 @@ int cmd_rebuild(int argc, char **argv)
     free(list.s);
     return 0;
 }
+
+/* ------------------------------------------------------------------ audit */
+
+static void audit_label(const rec_record *e, sbuf *out)
+{
+    sb_printf(out, "%s  %s  %s", get_or(e, "Date", "?"), rec_get(e, "Disc") ? rec_get(e, "Disc") : get_or(e, "Object", "?"),
+              get_or(e, "Type", "?"));
+}
+
+/* arv audit [DISC...]: every event against the id it was given (an id is its content's hash, so
+ * an event changed since it was written no longer matches); and, for each disc given, the home
+ * against the events that disc carries (a burned disc is a write-once, dated witness) */
+int cmd_audit(int argc, char **argv)
+{
+    const char *given = NULL;
+    strlist roots = { 0 };
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (argv[i][0] != '-') strlist_add(&roots, argv[i]);
+        else return 2;
+    }
+    arv_home h;
+    archive cat;
+    open_home(given, &h, &cat);
+    size_t problems = 0, unnamed = 0, n = cat.events.n;
+    char (*keys)[33] = xmalloc((n + 1) * sizeof *keys), (*content)[33] = xmalloc((n + 1) * sizeof *content);
+    for (size_t i = 0; i < n; i++) {
+        const rec_record *e = cat.events.v[i];
+        event_key(e, keys[i]);
+        event_content_id(e, content[i]);
+        if (!rec_get(e, "EventId")) {
+            unnamed++;
+        } else if (strcmp(keys[i], content[i])) {
+            sbuf l = { 0 };
+            audit_label(e, &l);
+            printf("CHANGED  %s  (event %s: not what was written)\n", l.s, keys[i]);
+            free(l.s);
+            problems++;
+        }
+    }
+    printf("%s: %zu event%s, %zu changed since written%s\n", h.path, n, n == 1 ? "" : "s", problems,
+           unnamed ? " (some written before event ids: the next change to the catalogue gives them one)" : "");
+    for (size_t r = 0; r < roots.n; r++) {
+        char *sources[] = { xprintf("%s/catalog/archive.rec", roots.v[r]), join(roots.v[r], "catalog.rec") };
+        archive disc;
+        memset(&disc, 0, sizeof disc);
+        int loaded = 0;
+        for (int k = 0; k < 2 && !loaded; k++)
+            if (!access(sources[k], F_OK)) {
+                archive_load(&disc, sources[k]);
+                loaded = 1;
+            }
+        free(sources[0]);
+        free(sources[1]);
+        if (!loaded) die("%s has neither catalog/archive.rec nor catalog.rec (the root of a mounted disc or an extracted image)", roots.v[r]);
+        const char *theirs = disc.homes.n ? rec_get(disc.homes.v[0], "Uuid") : NULL;
+        if (!theirs && disc.file.nrecords) {
+            const rec_record *arc = rec_first(&disc.file, "Archive");
+            theirs = arc ? rec_get(arc, "HomeUuid") : NULL;
+        }
+        if (theirs && cat.homes.n && strcmp(theirs, get_or(cat.homes.v[0], "Uuid", "")))
+            die2("%s belongs to another archive (home %s), not to this one", roots.v[r], theirs);
+        size_t missing = 0, differ = 0;
+        for (size_t i = 0; i < disc.events.n; i++) {
+            const rec_record *e = disc.events.v[i];
+            char k[33], c[33];
+            event_key(e, k);
+            event_content_id(e, c);
+            size_t j = 0;
+            while (j < n && strcmp(keys[j], k)) j++;
+            sbuf l = { 0 };
+            audit_label(e, &l);
+            if (j == n) {
+                printf("MISSING  %s  (event %s: on %s, not at home)\n", l.s, k, roots.v[r]);
+                missing++;
+            } else if (strcmp(content[j], c)) {
+                printf("DIFFERS  %s  (event %s: the home's is not what %s carries)\n", l.s, k, roots.v[r]);
+                differ++;
+            }
+            free(l.s);
+        }
+        printf("%s: %zu event%s, %zu missing at home, %zu different\n", roots.v[r], disc.events.n,
+               disc.events.n == 1 ? "" : "s", missing, differ);
+        problems += missing + differ;
+    }
+    free(keys);
+    free(content);
+    strlist_free(&roots);
+    return problems ? 1 : 0;
+}

@@ -93,6 +93,7 @@ static const char USAGE_REST[] =
           "  arv verify [-v] DISC   every file against its checksum (in full: arv verify files DISC)\n"
           "  arv restore [--no-links] DISC DEST\n"
           "  arv rebuild [--prefer-disc] [--any-archive] DISC   the catalogue back from a disc\n"
+          "  arv audit [DISC...]   every event as written; with discs, the home against what they carry\n"
           "\n"
           "The home\n"
           "  arv init [FOLDER] [--pointer HOME] [--name NAME [--default]]   arv where\n"
@@ -422,7 +423,7 @@ int main(int argc, char **argv)
                  { "status", cmd_status }, { "checkpoint", cmd_checkpoint }, { "log", cmd_log }, { "diff", cmd_diff },
                  { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
-                 { "where", cmd_where }, { "rebuild", cmd_rebuild },
+                 { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit },
                  { "tags", cmd_tags }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
     arv_argv0 = argv[0];
     if (argc >= 2 && !strcmp(argv[1], "__complete")) {     /* for the shell's completion (completion/) */

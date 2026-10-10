@@ -106,6 +106,17 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   Discs (to record copies and places); a long catalogue path is shortened in the header (the
   whole on hover); a collection's discs say which edition they hold.
 
+**Event ids, and the discs as witnesses** (format 0.5)
+- Every event has an `EventId`: the hash of what it says, as written (PREMIS's eventIdentifier).
+  The same event has the same id in every catalogue and on every disc, so `arv rebuild` merges
+  events by id; two events with the same content are kept apart by a `Nonce`. Older events get
+  their id when the catalogue is next written.
+- `arv audit` checks every event against its id, and with discs given (`arv audit /media/disc`),
+  the home against what each disc carries: an event changed or lost at home is listed. A burned
+  disc is write-once and kept elsewhere, so it witnesses what was written.
+- research/plan.md (2026-10-10): the catalogue's history is per thing, not a line; what arv takes
+  from git (its data model, not its commands); `.arv` in git as an option, never a need.
+
 **Copies in the GUI, and one disc's copies**
 - `arv objects DISC-ID` lists a disc's copies, each by its letter, with its form, place, when it
   was last checked and its BCA serial; `--json` gives the same (and `arv objects --json` now
