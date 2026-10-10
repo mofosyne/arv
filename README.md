@@ -1,3 +1,5 @@
+<img src="docs/img/logo.svg" alt="arv" height="64">
+
 # ARV: Archive, Record, Verify
 
 > [!WARNING]

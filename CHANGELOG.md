@@ -63,6 +63,9 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   recorded as written.
 - `arv selection add` on a selection that exists adds the items, as `put` does (with a note).
 - Plurals: "1 file", "3 issues", "1 link".
+- A logo: a disc from above, its three tracks Archive, Record and Verify, and the clear hub ring
+  where the id and copy letter are written (`docs/img/logo.svg`, `logo-mark.svg`; light and dark),
+  on the README, the website (and its tab icon) and `arv gui`'s tab.
 - `arv gui`: named arv; Archive opens on "From a folder"; each disc in Owed opens it in Record ›
   Discs (to record copies and places); a long catalogue path is shortened in the header (the
   whole on hover); a collection's discs say which edition they hold.

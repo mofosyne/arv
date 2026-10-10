@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 64" width="196" height="64" role="img" aria-labelledby="t">
+  <title id="t">arv: Archive, Record, Verify</title>
+  <!-- The mark (logo-mark.svg) and "arv" drawn as strokes, so it looks the same without any font. -->
+  <style>
+    .disc { fill: #2f5d8a; }
+    .track { fill: none; stroke: #ffffff; stroke-opacity: .55; stroke-width: 1.6; }
+    .hub { fill: #ffffff; fill-opacity: .9; }
+    .word { fill: none; stroke: #1f2328; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+    @media (prefers-color-scheme: dark) {
+      .disc { fill: #79b8ff; }
+      .track { stroke: #0d1117; }
+      .hub { fill: #0d1117; }
+      .word { stroke: #e6edf3; }
+    }
+  </style>
+  <defs>
+    <mask id="hole">
+      <rect width="64" height="64" fill="#fff"/>
+      <circle cx="32" cy="32" r="5" fill="#000"/>
+    </mask>
+  </defs>
+  <g mask="url(#hole)">
+    <circle class="disc" cx="32" cy="32" r="30"/>
+    <circle class="track" cx="32" cy="32" r="25"/>
+    <circle class="track" cx="32" cy="32" r="20.5"/>
+    <circle class="track" cx="32" cy="32" r="16"/>
+    <circle class="hub" cx="32" cy="32" r="11"/>
+  </g>
+  <!-- a: a bowl and its stem; r: a stem and its shoulder; v: two strokes. x-height 22 to 48 -->
+  <g class="word">
+    <circle cx="95" cy="36" r="12"/>
+    <path d="M107 24 V48"/>
+    <path d="M124 48 V24 M124 34 Q127 24 140 24"/>
+    <path d="M152 24 L163 48 L174 24"/>
+  </g>
+</svg>
