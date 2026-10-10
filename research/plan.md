@@ -209,6 +209,10 @@ All tiers remain optional, suggestion-only, and recorded as PREMIS events with t
   Katalog") instead of scanning. To propose to Katalog's developer
   ([StephaneCouturier/Katalog](https://github.com/StephaneCouturier/Katalog)), with the sample
   discs as test data.
+- **Sharpened 2026-10-10:** the line is the archive's care, not who made the disc. arv records
+  everything in the archive's care, old discs it takes in included (`arv found`, below);
+  Katalog indexes everything else. See "Decision (2026-10-10): keep the record, let other
+  tools do the work" and philosophy.md, principle 7.
 
 ## Design: four layers, and a binding per volume (2026-10-02; Binding done)
 
@@ -967,6 +971,64 @@ The way there, each step useful alone:
    out (a short prefix per catalogue, or a check against every catalogue seen), and conflicts on
    changing fields reported rather than resolved. Then merging is a union, and `push` is `pull`
    the other way.
+
+## Decision (2026-10-10): keep the record, let other tools do the work
+
+- arv is a command-line tool first and keeps to the Unix way. Its one job is **the record** of
+  what is in the archive's care, made trustworthy by checking (read-back, hashes, verification).
+  The work the record describes (burning, copying, imaging, listing, indexing) belongs to tools
+  built for it, which arv already leans on: `burned` checks what a burner wrote, `stored` what
+  cp or rsync copied, `check --repair` an image ddrescue read. Written into philosophy.md as
+  principle 7.
+- **The boundary is care, not maker:** an old disc you keep is the archive's from the day it is
+  found (as an archivist records a box on arrival, before it is sorted); everyday storage is not,
+  until something on it is taken in.
+- **The test for anything new:** does it keep the record, or do the work? Where arv does work
+  itself (writing the image: UDF, BagIt, RS03), it is because the image is the format, and those
+  parts are programs of their own.
+- Talked through first: a custody record that grew a scanner and an index (a listing of every
+  old disc's files, made by arv) was dropped. Listing is `7z l`, `isoinfo -l` or fiwalk's job, and
+  browsing is Katalog's; arv may later *read* a listing they made, never make one.
+
+## Design (2026-10-10, not implemented): `arv found`, an old disc taken into the archive
+
+Old data discs (CD-R and DVD-R from the 2000s, BD-R not made by arv) are often the only copy of
+what is on them, and failing. Born-digital archives handle them in an order arv can follow:
+**record the carrier, image it once, appraise and process later from the image**, never from
+the original. arv does the first and keeps the record of the rest; imaging is ddrescue's.
+
+```sh
+ddrescue -b 2048 /dev/sr0 old-2004.iso old-2004.map      # the work: another tool's
+arv found old-2004.iso --device /dev/sr0 --map old-2004.map --set OLD --title "Holiday 2004" \
+          --location BOX2 --note "CD-R, marker on the label: Holiday 04"
+arv plan add rescue old-2004.iso                         # later: the image onto an arv disc
+```
+
+- **What it reads, all read only:** the image's SHA-256 (one pass, as `stored` reads one); from a
+  few sectors, the volume label and the file system's own creation date and size (ISO 9660's
+  primary volume descriptor, or UDF's); from the drive, if given, the media id and the BCA
+  serial (`drive.c`); from the ddrescue map, if given, whether the image is whole or how many
+  bytes could not be read. No walk through the files, no look inside them.
+- **What it records:** a `Disc` record with `Origin: found` (not made by arv), an id from its set
+  with a check character (`OLD-03_2004_K`, written on the sleeve), the label, a title, the
+  coverage from the file system date, the place, and `ImageSha256` of the image as read, so
+  `arv check --device` can later read the old disc back against it and see it decay. The
+  original disc is its copy A (`Form: disc`, with its `Bca`); the image file, if kept, its copy
+  B (`Form: iso`, `Path`), as `stored` would record it. An event records the capture: the tool,
+  the map's verdict, the note.
+- **Rescue needs nothing new:** `arv plan add NAME old.iso` puts the image on an arv disc as a data
+  object. Its `Tree` is the image's SHA-256, which is the found disc's `ImageSha256`, so arv
+  knows by content alone which arv disc now holds the old disc, and `todo` can list found discs
+  held on no arv disc yet ("not rescued"). Taking files out of the image into a collection is a
+  later, separate step; the image, the disc as it was found, stays.
+- **Snapshots** carry a found disc's identity record like any other disc's, and no file listing
+  (it has none). A listing made by another tool (`7z l`, `isoinfo -l`, fiwalk's DFXML) may come
+  later as `--listing FILE`, kept at home for `arv find`; arv never makes one.
+- **Name:** in the Record group (it records, as `burned` and `stored` do). `arv found` today,
+  `arv record found` if commands get group prefixes (open).
+- Open: the PREMIS event type for the capture; whether a found disc that will not read at all
+  (no image) is recorded by identity alone (`arv found --device DRIVE`, the BCA and label only);
+  CD-R and DVD-R have no BCA readable this way, so they are told apart by id and label only.
 
 ## Later: catalogue snapshot size
 

@@ -8,7 +8,7 @@ What this project is for, and what it deliberately is not. The how is in
 **Keep what matters readable, by the people it matters to, for decades, without
 depending on us, this tool, or any company.**
 
-Everything else follows from six principles:
+Everything else follows from seven principles:
 
 1. **Curate, don't hoard.** Durable media is small and costly in effort, so it
    holds a chosen selection, not everything. What goes on a disc, and who may see
@@ -37,6 +37,10 @@ Everything else follows from six principles:
    be running to give them back. An archive does not. It records, checks and
    copies files, but leaves them as ordinary files under the owner's control,
    wherever they already are.
+7. **Keep the record; let other tools do the work.** arv's one job is the record of
+   what is in the archive's care, whatever carried it, made trustworthy by checking.
+   Burning, copying, imaging, listing and indexing belong to tools built for them;
+   arv checks what they did and writes it down.
 
 The sections below say what each principle means in practice.
 
@@ -264,6 +268,34 @@ In practice:
 - **Storage managers stay welcome on the everyday tier** (ZFS, restic, even
   git-annex in unlocked mode): they manage the storage; the archive only
   describes and curates.
+
+## Keep the record; let other tools do the work (principle 7)
+
+arv is a command-line tool first, and keeps to the Unix way: one job, done well, beside other
+programs that each do theirs. Its job is **the record**: what the archive holds, where every
+copy is, how it was last checked, and what was given up. Making that record trustworthy is part
+of the job, so arv reads back, hashes and verifies. Doing the work the record describes is not:
+
+| The work | Done by | What arv does |
+|---|---|---|
+| Burning a disc | xorriso, cdrecord, your burning program | `arv burned --device`: reads it back against the image, then records the copy |
+| Copying an image to a NAS | cp, rsync | `arv stored`: checks the copy, then records it |
+| Reading a damaged or old disc | GNU ddrescue, dvdisaster Light | `arv check --image --repair` on the image; `arv found` records an old disc's image (planned) |
+| Listing and browsing every drive and disc | Katalog, `7z l`, `isoinfo`, fiwalk | keeps its own discs' listings for `arv find`; indexes nothing else |
+| Format identification | Siegfried | records what it says (`formats.csv`) |
+
+**The boundary is the archive's care, not who made the disc.** An old CD-R of 2004 photos that
+you decide to keep is the archive's from the day it is found, and belongs in the record before
+anyone sorts it, as an archivist records a box on arrival. Everyday storage (the NAS, a laptop)
+is not, until something on it is taken in by a collection, a plan or a make; indexing it is
+catalogue software's job.
+
+**Where arv does work itself, and why:** it writes the disc image (UDF, BagIt, RS03) because the
+image *is* the format (principle 4), and keeps it free of tools that may be gone in thirty years;
+those parts are also programs of their own (`udfwrite`, `bagit`, `rs03`). The hash cache keeps
+`arv status` fast enough to be used. The interface and the local-model helpers are separate
+programs (`arv-gui`, `arv-assist`) that only run arv. Anything new is held to the same test:
+does it keep the record, or do the work?
 
 ## Locked, but never lost: encryption as a recorded exception (open question)
 
