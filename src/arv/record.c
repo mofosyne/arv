@@ -309,6 +309,15 @@ int cmd_check(int argc, char **argv)
     if (!logged && !repair) die("disc %s is not in the catalogue", disc_id);
     if (letter && logged && !copy_exists(&o.cat, disc_id, letter))
         die2("%s has no copy %s in the catalogue (each copy's letter is written on its hub and case)", disc_id, letter);
+    char serial[33] = "";       /* the disc's own serial: which copy is in the drive */
+    if (logged && device && !drive_bca(device, serial)) {
+        const rec_record *seen = copy_by_bca(&o.cat, serial);
+        if (seen && strcmp(rec_get(seen, "Disc"), disc_id))
+            die2("the disc in the drive is a copy of %s, not %s", rec_get(seen, "Disc"), disc_id);
+        if (seen && letter && strcmp(rec_get(seen, "Copy"), letter))
+            die2("the disc in the drive is copy %s, not %s (by its BCA serial)", rec_get(seen, "Copy"), letter);
+        if (seen) letter = rec_get(seen, "Copy");
+    }
     char *only = NULL;          /* a disc with one copy: a check of it is of that copy */
     if (!letter && logged && device && disc_copies(&o.cat, disc_id) == 1) {
         for (size_t i = 0; i < o.cat.events.n && !only; i++) {
@@ -364,11 +373,13 @@ int cmd_check(int argc, char **argv)
         const char *outcome = !ok ? "failure" : repair && !was_whole ? "warning" : "success";
         rec_record *ev = new_event(disc_id, "fixity check", outcome, agent, "automatic", text);
         if (letter) rec_add(ev, "Copy", letter);        /* which copy was in the drive, or is this image */
+        if (letter && *serial) rec_add(ev, "Bca", serial);  /* so a copy recorded without it is known by it next time */
         recs_add(&o.cat.events, ev);
         archive_save(&o.cat, o.h.rec_path);
     }
     printf("%s\n", !ok || verbose || repair ? output : sum);
-    if (disc_id) printf("%s: %s\n", disc_id, ok ? (repair && !was_whole ? "REPAIRED" : "OK") : "FAILED - see output above");
+    if (disc_id) printf("%s%s%s: %s\n", disc_id, letter ? " copy " : "", letter ? letter : "",
+                        ok ? (repair && !was_whole ? "REPAIRED" : "OK") : "FAILED - see output above");
     else printf("%s: %s\n", image, ok ? (was_whole ? "OK" : "REPAIRED") : "FAILED - see output above");
     if (!logged)
         fprintf(stderr, "(not logged: %s)\n", read_only ? "the catalogue found is read-only"
@@ -531,6 +542,23 @@ int cmd_burned(int argc, char **argv)
     if (letter && copy_exists(&o.cat, disc_id, letter))
         die2("%s already has a copy %s: name this one another letter (or leave --copy out, and arv takes the next)",
              disc_id, letter);
+    char serial[33] = "";       /* the disc's own serial: as given, or read from the drive */
+    if (bca && bca_normal(bca, serial)) die("--bca %s: the BCA serial, 32 hex digits (dev-tools/disc-probe prints it)", bca);
+    if (device) {
+        char read[33];
+        if (!drive_bca(device, read)) {
+            if (*serial && strcmp(serial, read)) die2("--bca %s: the disc in the drive says %s", serial, read);
+            memcpy(serial, read, sizeof serial);
+        }
+    }
+    if (*serial) {              /* a disc already recorded is not a new copy */
+        const rec_record *seen = copy_by_bca(&o.cat, serial);
+        if (seen) {
+            fprintf(stderr, "Error: this disc is already recorded: copy %s of %s (BCA %s). Each copy is recorded once.\n",
+                    rec_get(seen, "Copy"), rec_get(seen, "Disc"), serial);
+            exit(1);
+        }
+    }
     const char *read_back_note = NULL;
     if (device) {
         uint64_t sectors = 0;
@@ -585,7 +613,7 @@ int cmd_burned(int argc, char **argv)
         rec_add(ev, "Temperature", t ? t : "cold");
         if (code) rec_add(ev, "Location", code);
         if (media_id) rec_add(ev, "MediaId", media_id);
-        if (bca) rec_add(ev, "Bca", bca);
+        if (*serial) rec_add(ev, "Bca", serial);
         recs_add(&o.cat.events, ev);
         sb_printf(&letters, "%s%s", letters.len ? (k + 1 == copies ? " and " : ", ") : "", name);
         free(name);

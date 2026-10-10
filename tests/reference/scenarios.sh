@@ -331,7 +331,9 @@ log record.out --home rec note PROJ-01_2020-2023_L "A long note that goes on abo
 log record.out --home rec locate SCAN-01_1995-2008_D SAFE --add
 log record.out --home rec locate FAMILY-01_2020-2021_K "Somewhere new"
 log record.out --home rec burned NOPE-01_2000_X
-log record.out --home rec burned TRIP-01_2019_4 --copy K --location OFFSITE --bca 0a1b2c   # a letter chosen, and a serial
+log record.out --home rec burned TRIP-01_2019_4 --copy K --location OFFSITE --bca "04 1e 10 15 12 62 02 02 24 03 02 14 50 10 48 af"   # a letter chosen, and the disc's BCA serial
+log record.out --home rec burned TRIP-01_2019_4 --bca 041e10151262020224030214501048af041e1015   # the same disc again: refused
+log record.out --home rec burned TRIP-01_2019_4 --bca 0a1b2c                 # not a serial: refused
 log record.out --home rec burned TRIP-01_2019_4 --copy K                  # taken: refused
 log record.out --home rec burned TRIP-01_2019_4 --copy k2                 # not a letter: refused
 log record.out --home rec todo

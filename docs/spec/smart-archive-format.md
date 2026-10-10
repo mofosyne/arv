@@ -359,8 +359,10 @@ in order as copies are recorded (or chosen), and written on the disc's hub and c
 so a copy can be told from its twins in the hand. Copies are identical images, so the letter is in
 the catalogue, never on the disc. The event also carries the copy's own `Location` (as the disc's
 `Location`, which lists every place a copy of it is kept), and may carry `MediaId` (the media's
-manufacturer and type, as the drive reports it) and `Bca` (the serial some drives read from a
-BD-R's burst cutting area: one disc's own). A disc's number of copies is its number of
+manufacturer and type, as the drive reports it) and `Bca`: the disc's own factory serial, from
+its burst cutting area, as 32 lowercase hex digits (the BCA's first 16-byte unit; the BCA repeats
+it, then names the media type; [research/bca/](../../research/bca/README.md)). A copy is recognised by its `Bca` when a drive reads it again: a
+`fixity check` that names a copy may carry the `Bca` it read, for a copy recorded without one. A disc's number of copies is its number of
 `replication` events that did not fail; there is no counter. A `fixity check` of one copy names
 it with `Copy` too.
 

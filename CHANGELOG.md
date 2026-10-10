@@ -35,8 +35,11 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   copies are counted from its events, so two catalogues of one archive can be merged without
   losing any.
 - `dev-tools/disc-probe.c` asks a drive (Linux) for the media's maker and type and for the BCA
-  serial, read only, blank or burned: step 7 of the first-burn drill finds out whether drives
-  read a serial that tells copies apart.
+  serial, read only, blank or burned: step 7 of the first-burn drill. A Pioneer BDR-XD08 reads
+  the BCA of Verbatim BD-R without AACS authentication, and two discs of a pack differ.
+- So on Linux `arv burned --device` reads the disc's BCA serial and records it with the copy
+  (`Bca:`, 32 hex digits), refusing a disc already recorded as a copy; `arv check --device` knows
+  which copy is in the drive by it (and says so: `ID copy B: OK`). `--bca` gives it by hand.
 
 **Easier to use** (a UX review: arv used from scratch as a new user would)
 - `arv COMMAND --help` prints that command's own lines of the usage (and what DISC and CATALOG

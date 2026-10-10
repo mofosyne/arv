@@ -83,7 +83,7 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 - [x] `catalog/` snapshot with `--snapshot full|set|disc` (+ `listings/` with sizes and dates)
 - [ ] ~~Snapshot hash chain~~ dropped for integrity (the tagmanifests already cover it); back as a *history* graph, see "Design: discs as nodes in a history graph" (2026-10-02)
 - [x] Per-copy tracking: each copy a letter (`Copy:` on its replication event), its own place; checks name the copy
-- [ ] The BD-R BCA serial as a copy's automatic id (`--bca`; `dev-tools/disc-probe.c` finds out whether drives read it: issue #5)
+- [x] The BD-R BCA serial as a copy's automatic id: read by `arv burned --device` and `arv check --device` (Linux, `drive.c`), or `--bca`; a Pioneer BDR-XD08 reads it from Verbatim BD-R without AACS authentication ([research/bca/](bca/README.md), issue #5)
 - [x] ~~`search.html` across the snapshot~~ (built, then removed 2026-10-01)
 - [x] ~~Generated `archive.sqlite` (`arv index`)~~ retired 2026-10-04: in C, scanning the
       plain-text lists finds a name among 2 million paths in 0.3 s, as fast as Python did with

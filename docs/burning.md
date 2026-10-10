@@ -67,7 +67,9 @@ arv burned --device /dev/sr0 --location HOME-PUB-2026 --media-id "VERBATIM-MDISC
 ```
 
 Each copy gets the next letter (A, B ...), and arv says which: write it on the hub and the case
-after the id. `--copy X` names it yourself instead.
+after the id. `--copy X` names it yourself instead. On Linux, where the drive reads the disc's BCA
+serial (step 7), arv records it with the copy, refuses a disc already recorded, and later
+`arv check --device` knows which copy is in the drive without being told.
 
 arv reads the disc's volume label to know which disc it is, reads exactly the image's sectors
 from the drive (after asking the system to drop anything cached), and compares the SHA-256 with
@@ -146,10 +148,17 @@ burning program. Record the results in issue #5 and in `src/udfwrite/README.md`'
 6. **Two damaged copies:** damage the first copy elsewhere, read both into the same image with
    ddrescue and the same map file, repair, compare again.
 7. **Telling copies apart:** `cc -o disc-probe dev-tools/disc-probe.c && ./disc-probe /dev/sr0`,
-   on a blank disc and on two burned discs of the same pack. It prints the drive, the media's
-   maker and type, and whether the drive reads a BCA serial (one disc's own). If two discs give
-   two different serials, `arv burned --bca SERIAL` can record it with each copy; if not, the
-   copy letters do the job. Record what it printed in issue #5.
+   on two discs of the same pack (blank is fine). It prints the drive, the media's maker and
+   type, and whether the drive reads a BCA serial, one disc's own. Two serials that differ mean
+   arv can tell the copies apart by themselves: on Linux `arv burned --device` records the serial
+   with each copy and refuses a disc already recorded, and `arv check --device` says which copy is
+   in the drive. Record what it printed in issue #5.
+
+   Tried so far: a Pioneer BDR-XD08 (firmware 1.02) reads the BCA of Verbatim BD-R (`VERBAT/IMe`)
+   with no AACS authentication; two discs of one pack gave two serials (a factory time to the
+   second, and a line number). The AACS media identifiers themselves are refused without it
+   (sense 5/6F/02), and arv does not need them. The bytes, compared, and how to add a result:
+   [research/bca/](../research/bca/README.md).
 
 ## Known pitfalls
 

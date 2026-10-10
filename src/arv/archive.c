@@ -497,6 +497,19 @@ int copy_read_back(const archive *a, const char *disc_id, const rec_record *copy
     return 0;
 }
 
+/* the copy a BCA serial belongs to: its replication, or a passed check that named it and read the serial */
+const rec_record *copy_by_bca(const archive *a, const char *bca)
+{
+    for (size_t i = 0; i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        const char *b = rec_get(e, "Bca"), *c = rec_get(e, "Copy"), *t = rec_get(e, "Type"), *o = rec_get(e, "Outcome");
+        if (b && c && t && o && !strcmp(b, bca) && strcmp(o, "failure")
+            && (!strcmp(t, "replication") || !strcmp(t, "fixity check")))
+            return e;
+    }
+    return NULL;
+}
+
 /* a place given on the command line that looks like a code but is none of the archive's locations:
  * say so (it is kept as written, as text), since it is often a mistyped code */
 void place_check(const archive *a, const char *text)

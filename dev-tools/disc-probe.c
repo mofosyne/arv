@@ -189,7 +189,7 @@ int main(int argc, char **argv)
 
     puts("BCA serial (one disc's own, if the media has one and the drive reads it)");
     int got = 0;
-    char serial[2 * 64 + 1] = "";
+    char serial[2 * 16 + 1] = "";
     for (int media = bd ? 1 : 0; media >= 0 && !got; media--) {
         if (structure(fd, media, 0x03, buf, 4 + 64, &r)) {
             why(media ? "BD BCA" : "BCA (DVD form)", &r);
@@ -206,7 +206,7 @@ int main(int argc, char **argv)
         got = 1;
         printf("  BCA (%d bytes):\n", n);
         hex(buf + 4, n);
-        for (int i = 0; i < n; i++) sprintf(serial + 2 * i, "%02x", buf[4 + i]);
+        for (int i = 0; i < 16; i++) sprintf(serial + 2 * i, "%02x", buf[4 + i]);   /* the first unit: the disc's own */
     }
 
     puts("AACS identifiers (usually need AACS authentication; listed to see what the drive says)");
@@ -216,8 +216,10 @@ int main(int argc, char **argv)
     else hex(buf + 4, 16);
 
     close(fd);
-    if (got) printf("\nA BCA was read. Run this again with another disc of the same pack: if the two differ, it is\n"
-                    "each disc's own, and arv burned --bca %s records it with this copy.\n", serial);
+    if (got) printf("\nA BCA was read: serial %s (its first 16 bytes; the rest repeats it, then says BDR).\n"
+                    "On Linux, arv burned --device reads it itself and records it with the copy; elsewhere,\n"
+                    "arv burned --bca %s does. (Two Verbatim discs of one pack gave two serials:\n"
+                    "check yours the same way once.)\n", serial, serial);
     else puts("\nNo BCA read: copies are told apart by their letters (arv burned says which).");
     return 0;
 }
