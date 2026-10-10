@@ -12,11 +12,14 @@ distribution, so the package manager can remove it again and say what it install
 
 ## Debian and Ubuntu
 
-`debian/` (at the top of the tree, where the tools look for it) builds a native package:
+`debian/` builds a native package. It lives here, in `packaging/debian/`, so the top of the tree
+stays tidy and a distribution's own `debian/` never collides with it; Debian's tools look for it at
+the top, so it is copied there only while building:
 
 ```sh
 sudo apt install build-essential debhelper git python3 7zip   # p7zip-full on older releases
-dpkg-buildpackage -us -uc -b                                  # in the checkout
+just deb                                                      # or, by hand:
+cp -r packaging/debian debian && dpkg-buildpackage -us -uc -b; rm -rf debian
 sudo apt install ../arv_*.deb
 ```
 

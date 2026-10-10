@@ -3,7 +3,7 @@
 #   make                       build arv and its parts (needs a C compiler)
 #   make install               install for everyone: /usr/local (run as root)
 #   make install PREFIX=~/.local     install for yourself (~/.local/bin must be on PATH)
-#                              (from a git checkout, or from a release tarball: debian/, packaging/arch/)
+#                              (from a git checkout, or from a release tarball: packaging/)
 #   make uninstall [PREFIX=...]
 #   make check                 run the tests
 #   make ape [COSMOCC=...]     also build arv.com (Cosmopolitan): installed, and carried by every disc

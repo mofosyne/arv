@@ -162,7 +162,7 @@ With [just](https://github.com/casey/just), nothing to remember: `just install` 
 Uninstalling, either way, removes the programs and never your archives or discs.
 
 Or as a package, so the package manager can remove it again ([packaging/](packaging/README.md)):
-`dpkg-buildpackage -us -uc -b` in the checkout for Debian and Ubuntu, `makepkg -si` in
+`just deb` for Debian and Ubuntu (`packaging/debian/`), `makepkg -si` in
 `packaging/arch/` for Arch Linux. `make install` works from a release tarball too.
 
 **Tab completion** is installed with it, for bash and zsh (`arv re<Tab>`, `arv burned --<Tab>`):

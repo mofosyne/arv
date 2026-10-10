@@ -62,7 +62,7 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - `just install` / `just uninstall` (yourself, `~/.local`), `just install-system` /
   `just uninstall-system` (`/usr/local`, sudo), `just where`, `just deb`, `just arch`: no prefix to
   remember.
-- Packages: `debian/` (a native Debian package, `dpkg-buildpackage`) and `packaging/arch/PKGBUILD`
+- Packages: `packaging/debian/` (a native Debian package, `just deb`) and `packaging/arch/PKGBUILD`
   (`arv-git`). `make install` works from a release tarball too (no git: the tree as it is, the
   commit from `COMMIT`, which `git archive` fills in), and `make clean` exists.
 - `arv --version` (and `arv version`) names the commit it was built from and the disc format:

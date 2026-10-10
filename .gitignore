@@ -15,11 +15,5 @@ src/arvc/build/arvc
 src/arvc/build/ptyrun
 src/arvc/build/fixtures
 
-# Debian package builds (dpkg-buildpackage)
-debian/.debhelper/
-debian/arv/
-debian/tmp/
-debian/files
-debian/*.substvars
-debian/*.debhelper.log
-debian/debhelper-build-stamp
+# Debian package builds: packaging/debian is copied to debian/ while building (just deb)
+/debian/

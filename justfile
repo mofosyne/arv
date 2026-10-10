@@ -43,9 +43,11 @@ where:
     @command -v arv || echo "arv is not on PATH (just install, then make sure ~/.local/bin is on PATH)"
     @arv --version 2>/dev/null || true
 
-# Build a Debian/Ubuntu package (../arv_*.deb; then: sudo apt install ../arv_*.deb)
+# Build a Debian/Ubuntu package (../arv_*.deb; then: sudo apt install ../arv_*.deb); its debian/
+# lives in packaging/debian and is copied to the top only while building
 deb:
-    dpkg-buildpackage -us -uc -b
+    test ! -e debian || { echo "debian/ is in the way: remove it, packaging/debian is the one"; exit 1; }
+    cp -r packaging/debian debian && trap 'rm -rf debian' EXIT && dpkg-buildpackage -us -uc -b
 
 # Build and install the Arch Linux package (arv-git, the latest commit pushed to GitHub)
 arch:
