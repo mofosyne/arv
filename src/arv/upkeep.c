@@ -144,6 +144,18 @@ static void hold(const archive *cat, const char *id, holding *h)
 }
 
 /* "disc cold (read back), iso warm", "retired", or "no copy yet" */
+/* where a copy is kept, readable (the place's name), or "" */
+static char *copy_place(const archive *cat, const rec_record *e)
+{
+    if (!rec_get(e, "Location")) return xstrdup("");
+    rec_record probe = { 0 };
+    probe.type = "Disc";
+    rec_add(&probe, "Location", rec_get(e, "Location"));
+    char *at = archive_where(cat, &probe);
+    rec_clear(&probe);
+    return at;
+}
+
 static char *copies_text(const archive *cat, const char *id)
 {
     if (retired(cat, id)) return xstrdup("retired");
@@ -161,13 +173,9 @@ static char *copies_text(const archive *cat, const char *id)
                   rec_get(e, "Copy") ? ": " : "", get_or(e, "Form", "disc"), get_or(e, "Temperature", "?"),
                   copy_read_back(cat, id, e) ? " (read back)" : "");
         if (rec_get(e, "Location")) {
-            rec_record probe = { 0 };
-            probe.type = "Disc";
-            rec_add(&probe, "Location", rec_get(e, "Location"));
-            char *at = archive_where(cat, &probe);
+            char *at = copy_place(cat, e);
             sb_printf(&b, " at %s", at);
             free(at);
-            rec_clear(&probe);
             if (!strlist_has(&named, rec_get(e, "Location"))) strlist_add(&named, rec_get(e, "Location"));
         } else if (placed) {
             sb_puts(&b, " (its place not recorded)");
@@ -256,6 +264,17 @@ static void disc_json(const archive *cat, const char *id, sbuf *b)
         json_str(b, get_or(e, "Temperature", ""));
         sb_puts(b, ", \"location\": ");
         json_str(b, get_or(e, "Location", ""));
+        char *at = copy_place(cat, e);
+        sb_puts(b, ", \"at\": ");
+        json_str(b, at);
+        free(at);
+        sb_puts(b, ", \"made\": ");
+        json_str(b, get_or(e, "Date", ""));
+        const char *checked = copy_last_check(cat, id, e), *bca = copy_bca(cat, id, e);
+        sb_puts(b, ", \"checked\": ");
+        json_str(b, checked ? checked : "");
+        sb_puts(b, ", \"bca\": ");
+        json_str(b, bca ? bca : "");
         sb_printf(b, ", \"readBack\": %s}", copy_read_back(cat, id, e) ? "true" : "false");
         first = 0;
     }
@@ -367,6 +386,39 @@ static void objects_json(const archive *cat, const char *root)
     strlist_free(&seen);
 }
 
+/* arv objects DISC-ID: that disc's copies, each with its letter, form, place, and checks */
+static int disc_copies_shown(const archive *cat, const char *id, int as_json)
+{
+    if (as_json) {
+        sbuf b = { 0 };
+        disc_json(cat, id, &b);
+        puts(b.s);
+        free(b.s);
+        return 0;
+    }
+    size_t n = 0;
+    for (size_t i = 0; i < cat->events.n; i++)
+        n += is_disc_event(cat->events.v[i], id, "replication") && strcmp(get_or(cat->events.v[i], "Outcome", ""), "failure");
+    if (retired(cat, id)) printf("%s: retired\n", id);
+    else if (!n) printf("%s: no copy yet (arv burned, arv stored)\n", id);
+    else printf("%s: %zu cop%s\n", id, n, n == 1 ? "y" : "ies");
+    for (size_t i = 0; i < cat->events.n; i++) {
+        const rec_record *e = cat->events.v[i];
+        if (!is_disc_event(e, id, "replication") || !strcmp(get_or(e, "Outcome", ""), "failure")) continue;
+        char *at = copy_place(cat, e);
+        const char *checked = copy_last_check(cat, id, e), *bca = copy_bca(cat, id, e);
+        const char *temp = rec_get(e, "Temperature");
+        printf("  %-2s %s%s%s, made %s; %s", get_or(e, "Copy", "?"), get_or(e, "Form", "disc"), temp ? ", " : "", temp ? temp : "",
+               get_or(e, "Date", "?"), *at ? at : "its place not recorded");
+        if (checked) printf("; last checked %s", checked);
+        else printf("; %s", copy_read_back(cat, id, e) ? "read back" : "not read back");
+        if (bca) printf("; BCA %s", bca);
+        putchar('\n');
+        free(at);
+    }
+    return 0;
+}
+
 int cmd_objects(int argc, char **argv)
 {
     const char *given = NULL, *want = NULL;
@@ -381,6 +433,7 @@ int cmd_objects(int argc, char **argv)
     home_find(&h, given, NULL);
     archive cat;
     archive_load(&cat, h.rec_path);
+    if (want && archive_disc(&cat, want)) return disc_copies_shown(&cat, want, as_json);
     if (as_json) {
         if (want) return 2;
         char *root = home_root(&h);

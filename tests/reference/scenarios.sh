@@ -337,6 +337,8 @@ log record.out --home rec burned TRIP-01_2019_4 --bca 0a1b2c                 # n
 log record.out --home rec burned TRIP-01_2019_4 --copy K                  # taken: refused
 log record.out --home rec burned TRIP-01_2019_4 --copy k2                 # not a letter: refused
 log record.out --home rec todo
+log record.out --home rec objects TRIP-01_2019_4                 # one disc's copies, by letter
+log record.out --home rec objects TRIP-01_2019_4 --json
 keep record.out record/transcript.txt
 keep rec/catalog/archive.rec record/archive.rec
 

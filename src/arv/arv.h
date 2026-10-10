@@ -130,6 +130,8 @@ int copy_exists(const archive *a, const char *disc_id, const char *letter);
 int copy_letter_ok(const char *s);
 char *copy_next(const archive *a, const char *disc_id);
 int copy_read_back(const archive *a, const char *disc_id, const rec_record *copy);
+const char *copy_last_check(const archive *a, const char *disc_id, const rec_record *copy);   /* its date, or NULL */
+const char *copy_bca(const archive *a, const char *disc_id, const rec_record *copy);
 const rec_record *copy_by_bca(const archive *a, const char *bca);   /* an event naming the copy with that serial */
 /* the BCA serial of the disc in a drive (Linux): 32 hex digits; -1 when there is none (drive.c) */
 int drive_bca(const char *device, char out[33]);

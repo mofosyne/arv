@@ -322,6 +322,7 @@ arv appraise TRIP-01_2019_4:day1/IMG_0001.JPG   # the appraisal in force (inheri
 arv appraise --due                              # appraisals due for review
 arv find IMG_2019            # which disc holds it, and where the disc is
 arv objects                     # everything kept, and every copy of it: discs, places, hot/warm/cold
+arv objects TRIP-01_2019_4      # one disc's copies by letter: place, last check, BCA serial
 arv list --covers 2019-07-15    # discs whose date range includes that day (or 2019, 2019-07)
 arv sets -v                     # the vocabulary tree with disc counts, aliases and match rules
 arv list --in MEMORIES          # discs anywhere under a vocabulary entry

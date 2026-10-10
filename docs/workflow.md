@@ -381,6 +381,17 @@ Collections:
     FAM-02_2019_Y  disc cold (read back), iso warm (read back), folder warm (read back); at BOX1; The NAS
 ```
 
+Given a disc id, it lists that disc's copies, each by its letter, with its place, when it was last
+checked and its BCA serial (the GUI shows the same in a disc's details, where copies are recorded
+and checked):
+
+```
+TRIP-01_2019_4: 3 copies
+  A  disc, cold, made 2026-10-04; Home / Study / Box 1; last checked 2026-10-10; BCA 041e1015...
+  B  disc, cold, made 2026-10-04; Parents' house; not read back
+  C  iso, warm, made 2026-10-05; The NAS; read back
+```
+
 **Retiring** an edition a newer safe one replaces (`arv retire FAMILY`) lists any files that
 exist only on the discs being retired (not in the newer edition: they left the workflow folder), and records nothing
 until `--yes`. Then each disc is marked retired, leaves its places, and gets an event saying what

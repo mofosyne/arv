@@ -72,7 +72,7 @@ static const char USAGE_REST[] =
           "         --temperature hot|warm|cold: default the place's, else cold)\n"
           "  arv stored DISC-ID PATH [--location PLACE] [--temperature T]   a copy on a drive or NAS: the .iso,\n"
           "         or the disc's files as a folder; checked, then recorded (default: warm)\n"
-          "  arv objects [NAME] [--json]   what you keep and where every copy is (data objects, collections)\n"
+          "  arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)\n"
           "  arv find [-C CATALOG] [--limit N] PATTERN\n"
           "  arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]\n"
           "           [--unchecked-since AGE|DATE] [--one-place]   (AGE: 5y, 18m, 90d)\n"

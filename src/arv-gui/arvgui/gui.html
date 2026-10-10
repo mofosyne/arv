@@ -33,6 +33,7 @@ header button.link { font:inherit; font-size:13px; background:none; border:1px s
 header button.link.owed { border-color:var(--warn); color:var(--warn); }
 header button.link.clear { border-color:var(--ok); color:var(--ok); }
 .owed h3 { font-size:15px; margin:16px 0 4px; }
+#disc-detail h3 { font-size:15px; margin:14px 0 4px; }
 .owed li { font-family:ui-monospace, monospace; font-size:13px; overflow-wrap:anywhere; }
 .owed li button.link { font:inherit; background:none; border:none; padding:0; color:var(--accent); text-decoration:underline; cursor:pointer; }
 main { max-width:1100px; margin:0 auto; padding:16px 16px 64px; }
@@ -305,6 +306,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   <form id="check-form" class="inline">
     <div><label for="c-device">Drive (e.g. /dev/sr0)</label><input type="text" id="c-device"></div>
     <div><label for="c-image">…or image file</label><input type="text" id="c-image"></div>
+    <div><label for="c-copy">Copy (optional)</label><input type="text" id="c-copy" size="3" placeholder="A"></div>
+    <label><input type="checkbox" id="c-repair"> repair the image</label>
     <button class="primary" type="submit">Check</button>
   </form>
 </section>
@@ -472,6 +475,62 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   function copiesOf(d) {        // each copy is a replication event, named by a letter (Copy: A, B ...)
     return (d.Events || []).filter(function (e) { return e.Type === "replication" && e.Outcome !== "failure"; });
   }
+  // a disc's copies (arv objects DISC-ID --json): each by its letter, with its place and checks; and
+  // the forms that record a new copy (arv burned, arv stored) or check one (arv check --copy)
+  function field(label, input) { return el("div", {}, [el("label", { text: label }), input]); }
+  function copiesBox(d) {
+    var wrap = el("div"), list = el("div", { class: "muted", text: "Reading the copies…" });
+    wrap.appendChild(list);
+    var letters = el("select", { "aria-label": "Which copy" }, [el("option", { value: "", text: "any (by BCA serial)" })]);
+    api("/api/copies?disc=" + encodeURIComponent(d.Id)).then(function (res) {
+      list.textContent = "";
+      list.className = "";
+      if (res.retired) { list.appendChild(el("p", { class: "muted", text: "Retired: its copies have left every place." })); return; }
+      if (!res.copies.length) { list.appendChild(el("p", { class: "muted", text: "No copy yet: record one below once it is burned or stored." })); return; }
+      var t = el("table");
+      t.appendChild(el("tr", {}, ["Copy", "Form", "Kept at", "Made", "Checked", "BCA serial"].map(function (h) { return el("th", { text: h }); })));
+      res.copies.forEach(function (c) {
+        var checked = c.checked ? "last " + c.checked : c.readBack ? "read back when recorded" : "not read back";
+        t.appendChild(el("tr", {}, [el("td", { class: "mono", text: c.copy || "?" }),
+          el("td", { text: c.form + (c.temperature ? ", " + c.temperature : "") }),
+          el("td", { text: c.at || "not recorded" }), el("td", { text: c.made }),
+          el("td", { class: c.readBack ? "ok" : "warn", text: checked }), el("td", { class: "mono muted", text: c.bca || "" })]));
+        if (c.copy) letters.appendChild(el("option", { value: c.copy, text: "copy " + c.copy }));
+      });
+      list.appendChild(el("div", { class: "scroll" }, [t]));
+      list.appendChild(el("p", { class: "muted", text: "Each copy's letter is written on its hub and case, after the id: " + d.Id + " " + (res.copies[0].copy || "A") + "." }));
+    }).catch(function (e) { list.textContent = "Error: " + e.message; });
+
+    // a burned copy: with a drive, read back against the image before it is recorded
+    var n = el("input", { type: "number", value: "1", min: "1" }), place = el("input", { type: "text", placeholder: "a location code, or text" });
+    var drive = el("input", { type: "text", placeholder: "optional: /dev/sr0" }), letter = el("input", { type: "text", size: "3", placeholder: "next" });
+    var burned = el("button", { class: "plain", text: "Record burned copies" });
+    burned.onclick = function () {
+      var body = { command: "burned", disc_id: d.Id, copies: n.value, location: place.value, device: drive.value.trim(), copy: letter.value };
+      run(body, !body.device);          // reading back takes a while: shown in Jobs
+    };
+    wrap.appendChild(el("h3", { text: "Record a burned copy" }));
+    wrap.appendChild(el("p", { class: "muted", text: "With the drive named, arv reads the copy back against its image first and records it only if identical (one copy; on Linux with its BCA serial). Without it, the copies are recorded as not read back." }));
+    wrap.appendChild(el("div", { class: "inline" }, [field("How many", n), field("Kept at", place), field("Drive", drive), field("Letter", letter), burned]));
+
+    // a copy on a drive or NAS: the .iso, or the disc's files as a folder
+    var path = el("input", { type: "text", placeholder: "/mnt/nas/" + d.Id + ".iso" }), where = el("input", { type: "text", placeholder: "a location code, or text" });
+    var stored = el("button", { class: "plain", text: "Check and record" });
+    stored.onclick = function () { run({ command: "stored", disc_id: d.Id, path: path.value, location: where.value }); };
+    wrap.appendChild(el("h3", { text: "Record a copy on a drive or NAS" }));
+    wrap.appendChild(el("div", { class: "inline" }, [field("Image or folder", path), field("Kept at", where), stored]));
+
+    // a check of one copy: in the drive, or an image read from it
+    var cdrive = el("input", { type: "text", placeholder: "/dev/sr0" }), cimage = el("input", { type: "text", placeholder: "or an image file" });
+    var repair = el("input", { type: "checkbox" }), check = el("button", { class: "plain", text: "Check" });
+    check.onclick = function () {
+      run({ disc_id: d.Id, device: cdrive.value.trim(), image: cimage.value.trim(), copy: letters.value, repair: repair.checked }, false, "/api/check");
+    };
+    wrap.appendChild(el("h3", { text: "Check a copy" }));
+    wrap.appendChild(el("div", { class: "inline" }, [field("Drive", cdrive), field("…or image", cimage), field("Copy", letters),
+      el("label", {}, [repair, document.createTextNode(" repair the image")]), check]));
+    return wrap;
+  }
   function renderDetail() {
     var box = $("disc-detail"), d = discs.filter(function (x) { return x.Id === selected; })[0];
     box.hidden = !d; box.textContent = "";
@@ -479,7 +538,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     box.appendChild(el("h2", { text: d.Title || d.Id }));
     var rows = [["Id", d.Id], ["Part", d.Part], ["Set", d.Set], ["Coverage", d.Coverage], ["Created", d.Date],
                 ["Creator", d.Creator], ["Subjects", [].concat(d.Subject || []).join(", ")], ["Media", d.Media],
-                ["Contents", (d.Files || 0) + " files, " + human(d.Bytes)], ["Error correction", d.Ecc], ["Rights", d.Rights]];
+                ["Contents", (d.Files || 0) + (String(d.Files) === "1" ? " file, " : " files, ") + human(d.Bytes)], ["Error correction", d.Ecc], ["Rights", d.Rights]];
     var t = el("table");
     rows.forEach(function (r) { if (r[1]) t.appendChild(el("tr", {}, [el("th", { text: r[0] }), el("td", { text: r[1] })])); });
     box.appendChild(t);
@@ -492,16 +551,15 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     addNote.onclick = function () { if (note.value.trim()) run({ command: "note", disc_id: d.Id, text: note.value.trim() }, true); };
     box.appendChild(note); box.appendChild(addNote);
 
+    box.appendChild(el("h2", { text: "Copies" }));
+    box.appendChild(copiesBox(d));
     var loc = el("input", { type: "text", value: [].concat(d.Location || []).join("; "),
-                            "aria-label": "Locations (location codes or text, separated by ;)" });
-    var saveLoc = el("button", { class: "plain", text: "Save location" });
+                            "aria-label": "Places (location codes or text, separated by ;)" });
+    var saveLoc = el("button", { class: "plain", text: "Save places" });
     saveLoc.onclick = function () { run({ command: "locate", disc_id: d.Id, location: loc.value }, true); };
-    var copies = el("input", { type: "number", value: "1", min: "1", "aria-label": "Copies burned" });
-    var burned = el("button", { class: "plain", text: "Record burned copies" });
-    burned.onclick = function () { run({ command: "burned", disc_id: d.Id, copies: copies.value }, true); };
-    box.appendChild(el("h2", { text: "Location and copies" }));
+    box.appendChild(el("h2", { text: "Places" }));
+    box.appendChild(el("p", { class: "muted", text: "Where the disc's copies are kept, as arv locate records them; each copy above keeps its own." }));
     box.appendChild(el("div", { class: "inline" }, [loc, saveLoc]));
-    box.appendChild(el("div", { class: "inline" }, [copies, burned]));
 
     box.appendChild(el("h2", { text: "Improve the description" }));
     var llmBox = el("div", { class: "llm" });
@@ -1024,7 +1082,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // ---------------------------------------------------------------- tools
   $("check-form").onsubmit = function (ev) {
     ev.preventDefault();
-    run({ device: $("c-device").value, image: $("c-image").value }, false, "/api/check");
+    run({ device: $("c-device").value.trim(), image: $("c-image").value.trim(), copy: $("c-copy").value.trim(),
+          repair: $("c-repair").checked }, false, "/api/check");
   };
   $("rebuild-form").onsubmit = function (ev) { ev.preventDefault(); run({ command: "rebuild", path: $("r-path").value }); };
   $("verify-form").onsubmit = function (ev) { ev.preventDefault(); run({ command: "verify", path: $("v-path").value }); };

@@ -6,7 +6,9 @@ everything it does can be done with arv in a terminal.
 Its three tabs follow the name: **Archive** (From a folder, `arv make`; Mastering: discs by hand,
 `arv plan`), **Record** (Objects: everything kept and where every copy is, `arv objects --json`;
 Collections: each collection's editions, safe, replaced, kept or retired, with Keep and Retire, which
-show `arv retire`'s preview before anything is recorded; Discs; Search) and **Verify** (Owed: `arv todo`, also counted above the tabs; Check; Restore,
+show `arv retire`'s preview before anything is recorded; Discs, where a disc's copies are listed by
+letter, `arv objects DISC-ID --json`, and recorded (`arv burned`, `arv stored`) or checked (`arv check
+--copy`); Search) and **Verify** (Owed: `arv todo`, also counted above the tabs; Check; Restore,
 verify and rebuild). Jobs, the commands it ran, open from the header. File lists show a small
 icon for the kind of file (image, video, audio, document, spreadsheet, archive, disc image, code),
 guessed from the extension as a hint only: the disc's `formats.csv` (Siegfried) is the record.

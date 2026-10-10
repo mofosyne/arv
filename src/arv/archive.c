@@ -480,21 +480,45 @@ char *copy_next(const archive *a, const char *disc_id)
 }
 
 /* a copy known good: read back identical as it was recorded, or a later check of that copy passed */
-int copy_read_back(const archive *a, const char *disc_id, const rec_record *copy)
+/* the date of the newest passed check of a copy, or NULL: a check that named it, or (of a disc with
+ * one copy, burned) a drive's check that named none */
+const char *copy_last_check(const archive *a, const char *disc_id, const rec_record *copy)
 {
-    if (rec_get(copy, "ReadBack") && !strcmp(rec_get(copy, "ReadBack"), "identical")) return 1;
-    const char *letter = rec_get(copy, "Copy");
-    int only = disc_copies(a, disc_id) == 1;    /* a check that names no copy, of a disc with one: that one */
+    const char *letter = rec_get(copy, "Copy"), *newest = NULL;
+    int only = disc_copies(a, disc_id) == 1;
     for (size_t i = 0; i < a->events.n; i++) {
         const rec_record *e = a->events.v[i];
         const char *d = rec_get(e, "Disc"), *t = rec_get(e, "Type"), *o = rec_get(e, "Outcome"), *c = rec_get(e, "Copy");
         if (!d || !t || !o || strcmp(d, disc_id) || strcmp(t, "fixity check") || strcmp(o, "success")) continue;
         const char *note = get_or(e, "Note", "");     /* a drive's check (arv check --device), not an image file's */
         int of_a_disc = !strncmp(note, "read-back of the whole image from", 33) || !strncmp(note, "disc scan with", 14);
-        if (c ? letter && !strcmp(c, letter) : only && of_a_disc && !strcmp(get_or(copy, "Form", "disc"), "disc"))
-            return 1;
+        if (c ? letter && !strcmp(c, letter) : only && of_a_disc && !strcmp(get_or(copy, "Form", "disc"), "disc")) {
+            const char *date = get_or(e, "Date", "");
+            if (!newest || strcmp(date, newest) >= 0) newest = date;
+        }
     }
-    return 0;
+    return newest;
+}
+
+int copy_read_back(const archive *a, const char *disc_id, const rec_record *copy)
+{
+    if (rec_get(copy, "ReadBack") && !strcmp(rec_get(copy, "ReadBack"), "identical")) return 1;
+    return copy_last_check(a, disc_id, copy) != NULL;
+}
+
+/* a copy's BCA serial: recorded with it, or read by a passed check that named it; NULL if unknown */
+const char *copy_bca(const archive *a, const char *disc_id, const rec_record *copy)
+{
+    if (rec_get(copy, "Bca")) return rec_get(copy, "Bca");
+    const char *letter = rec_get(copy, "Copy");
+    for (size_t i = 0; letter && i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        const char *d = rec_get(e, "Disc"), *t = rec_get(e, "Type"), *o = rec_get(e, "Outcome"), *c = rec_get(e, "Copy");
+        if (d && t && o && c && rec_get(e, "Bca") && !strcmp(d, disc_id) && !strcmp(t, "fixity check")
+            && !strcmp(o, "success") && !strcmp(c, letter))
+            return rec_get(e, "Bca");
+    }
+    return NULL;
 }
 
 /* the copy a BCA serial belongs to: its replication, or a passed check that named it and read the serial */
