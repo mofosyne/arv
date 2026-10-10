@@ -1,0 +1,6 @@
+arv (0.4~git20261010) unstable; urgency=medium
+
+  * First package, from the git tree. Experimental: the disc format is a
+    draft (0.5); see README.md.
+
+ -- mofosyne <mofosyne@gmail.com>  Sat, 10 Oct 2026 00:00:00 +0000

@@ -1,3 +1,6 @@
+# COMMIT: the commit, filled in by git archive (and so in GitHub's release tarballs), for an install
+# from a tarball, where there is no git to ask
+COMMIT export-subst
 # Not part of the tool snapshot that `arv make` puts on every disc (git archive HEAD)
 samples/discs export-ignore
 samples/home export-ignore

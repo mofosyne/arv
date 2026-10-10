@@ -296,7 +296,8 @@ char *volume_label(const char *disc_id, const char *text);
 /* arv's source tree (for tools/), and "arv@<commit>" from it (make.c) */
 char *find_source(const char *given);
 char *software_version(const char *source, int *is_git);
-void progress_line(uint64_t done, uint64_t total);   /* a percentage on a terminal (rs03_progress) */
+void progress_line(uint64_t done, uint64_t total);
+extern const char MAKE_HELP[];                       /* arv make --help (make.c) */   /* a percentage on a terminal (rs03_progress) */
 
 typedef struct {
     char *path;     /* as in the manifest: data/... or a tag file */

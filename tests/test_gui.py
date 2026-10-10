@@ -124,6 +124,35 @@ class GuiTest(unittest.TestCase):
         self.assertIn(self.token, page)
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
+    def test_first_run_makes_an_archive(self):
+        """No archive here or above and no default: the page offers to make one, and nothing else answers."""
+        where = os.path.join(self.tmp, "nas")
+        os.makedirs(where)
+        old = os.getcwd(), {k: os.environ.get(k) for k in ("HOME", "XDG_CONFIG_HOME", "ARV_HOME")}
+        os.environ["HOME"] = os.environ["XDG_CONFIG_HOME"] = self.tmp
+        os.environ.pop("ARV_HOME", None)
+        os.chdir(where)
+        try:
+            self.home = None
+            self.start()
+            setup = json.loads(self.request("/api/setup")[1])
+            self.assertTrue(setup["needed"])
+            self.assertEqual(self.request("/api/discs")[0], 409)
+            self.assertEqual(self.request("/api/init", {"folder": where, "default": True})[0], 400)  # a default needs a name
+            res = json.loads(self.request("/api/init", {"folder": where, "name": "family", "default": True})[1])
+            self.assertEqual(res["returncode"], 0, res["output"])
+            self.assertTrue(os.path.isdir(os.path.join(where, ".arv")))
+            self.assertFalse(json.loads(self.request("/api/setup")[1])["needed"])
+            self.assertEqual(self.request("/api/discs")[0], 200)
+        finally:
+            os.chdir(old[0])
+            for k, v in old[1].items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+
+    @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
     def test_collections(self):
         self.start()
         fam, out = os.path.join(self.tmp, "fam"), os.path.join(self.tmp, "out")

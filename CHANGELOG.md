@@ -52,6 +52,16 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   burned` is `arv burned`), for finding a command whose name you forgot; the short form stays the
   one the docs use. A command named under the wrong group says where it is. `arv verify DISC` is
   `arv verify files DISC` in full (bare `arv verify` lists the group).
+- `arv` on its own says whether there is an archive here, and gives the five commands to start
+  with, the groups and `arv --help`, instead of the whole usage.
+- Tab completion for bash and zsh (`src/arv/completion/`, installed by `make install`): it asks
+  arv itself (`arv __complete`), so it follows the commands, groups, subcommands and options of
+  the arv installed, and falls back to file names.
+- `arv gui` with no archive opens on **Make an archive** (a folder, a name, whether to use it from
+  anywhere), which runs `arv init`, instead of stopping.
+- Packages: `debian/` (a native Debian package, `dpkg-buildpackage`) and `packaging/arch/PKGBUILD`
+  (`arv-git`). `make install` works from a release tarball too (no git: the tree as it is, the
+  commit from `COMMIT`, which `git archive` fills in), and `make clean` exists.
 - `arv --version` (and `arv version`) names the commit it was built from and the disc format:
   `arv 0.4 (arv@<commit>), disc format 0.5`.
 - `arv make` says before the long part how big the images will be once RS03 fills them to the

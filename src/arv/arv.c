@@ -103,6 +103,26 @@ static const char USAGE_REST[] =
           "CATALOG: a disc root, its catalog/ folder or a home (.arv); default: $ARV_HOME, or the\n"
           "first .arv folder or disc root from here up\n";
 
+/* arv alone: where you are, the commands to start with, and how to find the rest */
+static int orientation(void)
+{
+    arv_home h;
+    puts("arv: Archive, Record, Verify. Long-term archiving of what you choose to keep, on discs.\n");
+    if (!home_try(&h, NULL, NULL)) printf("Archive here: %s (arv where says why)\n\n", h.path);
+    else puts("No archive here yet: arv init FOLDER makes one, at the root of what it describes.\n");
+    puts("Start with:\n"
+         "  arv init FOLDER                    an archive (its record: FOLDER/.arv)\n"
+         "  arv collection init FOLDER --code CODE --title TITLE\n"
+         "                                     a folder you keep over time\n"
+         "  arv make FOLDER                    its disc images (--no-ecc to try arv out quickly)\n"
+         "  arv burned --device DRIVE          after burning one: read it back, record the copy\n"
+         "  arv todo                           what is owed: copies, read-backs, checks\n"
+         "\n"
+         "Every command, by group: arv archive, arv record, arv verify, arv home. All of them: arv --help.\n"
+         "In the browser: arv gui. The whole workflow: docs/workflow.md.");
+    return 0;
+}
+
 static void usage(FILE *to)
 {
     fputs(USAGE_ARCHIVE, to);
@@ -174,6 +194,122 @@ static int group_lines(const char *header, const char *cmd, sbuf *out)
             if (cmd && !strncmp(line, "  arv ", 6) && names_command(line, len, cmd)) found = 1;
         }
     return found;
+}
+
+/* ------------------------------------------------------------------ completion (arv __complete)
+ * The shell scripts in completion/ ask arv what fits the word being typed, so completion follows
+ * this arv's own usage and cannot drift: one candidate a line; none means "file names". */
+
+static void candidate(const char *word, size_t len, const char *cur, strlist *seen)
+{
+    char *w = xprintf("%.*s", (int)len, word);
+    if (!strncmp(w, cur, strlen(cur)) && !strlist_has(seen, w)) {
+        strlist_add(seen, w);
+        puts(w);
+    }
+    free(w);
+}
+
+/* the --options in a command's lines of the usage (and make's own help) */
+static void option_candidates(const char *cmd, const char *cur, strlist *seen)
+{
+    sbuf lines = { 0 };
+    int in = 0;
+    for (int part = 0; part < 2; part++)
+        for (const char *line = part ? USAGE_REST : USAGE_ARCHIVE, *end; *line; line = end + 1) {
+            end = strchr(line, '\n');
+            size_t len = (size_t)(end - line);
+            if (!strncmp(line, "  arv ", 6)) in = names_command(line, len, cmd);
+            else if (strncmp(line, "    ", 4)) in = 0;
+            if (in) sb_printf(&lines, "%.*s\n", (int)len, line);
+        }
+    if (!strcmp(cmd, "make")) sb_puts(&lines, MAKE_HELP);
+    for (const char *p = lines.s ? lines.s : ""; *p; p++) {
+        if (!(p[0] == '-' && (p == lines.s || strchr(" [(|", p[-1])))) continue;
+        size_t n = 1;
+        while (p[n] == '-' || (p[n] >= 'a' && p[n] <= 'z') || (p[n] >= 'A' && p[n] <= 'Z') || (p[n] >= '0' && p[n] <= '9')) n++;
+        if (n > 1) candidate(p, n, cur, seen);
+        p += n - 1;
+    }
+    free(lines.s);
+}
+
+/* a command's own words: arv plan new|list|show ..., arv location list ... | add ... | move ...: the
+ * first word of each part, split at | (not a placeholder in capitals, an option or [optional]) */
+static void subcommand_candidates(const char *cmd, const char *cur, strlist *seen)
+{
+    char *word = xprintf("arv %s ", cmd);
+    size_t wl = strlen(word);
+    int in = 0;
+    for (int part = 0; part < 2; part++)
+        for (const char *line = part ? USAGE_REST : USAGE_ARCHIVE, *end; *line; line = end + 1) {
+            end = strchr(line, '\n');
+            const char *p = NULL;
+            if (!strncmp(line, "  arv ", 6)) {
+                in = !strncmp(line + 2, word, wl);      /* this command's own line, not one that names it later */
+                p = in ? line + 2 + wl : NULL;
+            } else if (strncmp(line, "    ", 4)) in = 0;
+            else if (in) {                              /* a continuation: only its "| more" parts */
+                p = line;
+                while (p < end && *p == ' ') p++;
+                if (p >= end || *p != '|') p = NULL;
+            }
+            for (int first = 1; p && p < end; first = 0) {
+                if (!first || *p == '|') {               /* to the next part */
+                    const char *bar = strstr(p, " | ");
+                    if (*p == '|') bar = p - 1;
+                    if (!bar || bar >= end) break;
+                    p = bar + 3;
+                    if (p > end) break;
+                }
+                const char *stop = p;
+                while (stop < end && *stop != ' ') stop++;
+                if (*p >= 'a' && *p <= 'z')
+                    for (const char *q = p; q < stop;) {
+                        const char *bar = memchr(q, '|', (size_t)(stop - q));
+                        const char *e = bar ? bar : stop;
+                        candidate(q, (size_t)(e - q), cur, seen);
+                        q = e + 1;
+                    }
+                p = stop;
+            }
+        }
+    free(word);
+}
+
+/* arv __complete WORD... CURRENT: what fits CURRENT after the words before it */
+static int complete(int argc, char **argv, const char *const *names, size_t nnames)
+{
+    const char *cur = argc ? argv[argc - 1] : "";
+    strlist seen = { 0 };
+    int i = 0, n = argc - 1;                     /* the words before the current one */
+    while (i < n && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home") || !strcmp(argv[i], "--archive"))) i += 2;
+    if (i > n) return 0;                          /* the value of -C or --archive: file names */
+    if (i == n) {                                 /* the command */
+        static const char *const groups[] = { "archive", "record", "verify", "home" };
+        for (size_t k = 0; k < sizeof groups / sizeof *groups; k++) candidate(groups[k], strlen(groups[k]), cur, &seen);
+        for (size_t k = 0; k < nnames; k++) candidate(names[k], strlen(names[k]), cur, &seen);
+        if (*cur == '-') {
+            static const char *const opts[] = { "--help", "--version", "-C", "--archive" };
+            for (size_t k = 0; k < sizeof opts / sizeof *opts; k++) candidate(opts[k], strlen(opts[k]), cur, &seen);
+        }
+        return 0;
+    }
+    for (size_t g = 0; g < sizeof GROUPS / sizeof *GROUPS; g++)
+        if (!strcmp(argv[i], GROUPS[g].name)) {
+            if (i + 1 == n) {                     /* a group's commands */
+                for (size_t k = 0; k < nnames; k++)
+                    if (group_lines(GROUPS[g].header, names[k], NULL)) candidate(names[k], strlen(names[k]), cur, &seen);
+                if (!strcmp(GROUPS[g].name, "verify")) candidate("files", 5, cur, &seen);
+                return 0;
+            }
+            i++;
+            break;
+        }
+    const char *cmd = strcmp(argv[i], "files") ? argv[i] : "verify";
+    if (*cur == '-') option_candidates(cmd, cur, &seen);
+    else if (i + 1 == n) subcommand_candidates(cmd, cur, &seen);
+    return 0;
 }
 
 /* arv --version: the release, the commit it was built from when known, and the disc format */
@@ -257,9 +393,10 @@ static void run_helper(int argc, char **argv, const char *word)
             else given = argv[i + 1];
         }
         arv_home h;
-        home_find(&h, given, NULL);
-        args[n++] = "--home";
-        args[n++] = h.path;
+        if (!home_try(&h, given, NULL)) {   /* none found: the interface offers to make one */
+            args[n++] = "--home";
+            args[n++] = h.path;
+        }
         for (i++; i < argc; i++) args[n++] = argv[i];
     } else {
         for (int k = 1; k < argc; k++) args[n++] = argv[k];
@@ -288,6 +425,13 @@ int main(int argc, char **argv)
                  { "where", cmd_where }, { "rebuild", cmd_rebuild },
                  { "tags", cmd_tags }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
     arv_argv0 = argv[0];
+    if (argc >= 2 && !strcmp(argv[1], "__complete")) {     /* for the shell's completion (completion/) */
+        const char *names[sizeof cmds / sizeof *cmds + 4];
+        size_t nnames = 0;
+        for (size_t i = 0; i < sizeof cmds / sizeof *cmds; i++) names[nnames++] = cmds[i].name;
+        names[nnames++] = "describe", names[nnames++] = "tag", names[nnames++] = "models", names[nnames++] = "gui";
+        return complete(argc - 2, argv + 2, names, nnames);
+    }
     if (argc >= 2 && (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-V"))) {
         return print_version();
     }
@@ -331,9 +475,10 @@ int main(int argc, char **argv)
     const char *word = command_word(argc, argv);
     if (word && (!strcmp(word, "describe") || !strcmp(word, "tag") || !strcmp(word, "models") || !strcmp(word, "gui")))
         run_helper(argc, argv, word);
-    if (argc < 2 || !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) {
-        usage(argc < 2 ? stderr : stdout);
-        return argc < 2 ? 2 : 0;
+    if (argc < 2) return orientation();
+    if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) {
+        usage(stdout);
+        return 0;
     }
     /* "arv -C HOME make ..." (as "arv --home HOME make ..."): the home goes to the command */
     const char *home = NULL;
@@ -374,10 +519,6 @@ int main(int argc, char **argv)
         }
     if (argc >= 2 && !strcmp(argv[1], "version")) {
         return print_version();
-    }
-    if (argc < 2) {
-        usage(stderr);
-        return 2;
     }
     /* an unknown command: say which, and the nearest ones */
     static const char *const helpers[] = { "describe", "tag", "models", "gui" };

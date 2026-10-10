@@ -48,7 +48,7 @@ typedef struct {
     int keep, access_given;
 } options;
 
-static const char HELP[] =
+const char MAKE_HELP[] =
     "usage: arv make [options] FOLDER\n"
     "       arv make [options] --plan FILE   (arv plan make NAME runs this)\n"
     "Makes archive disc images of FOLDER and records them in the home catalogue.\n"
@@ -123,7 +123,7 @@ static int parse_options(int argc, char **argv, options *o)
         if (!strcmp(a, "--keep")) { o->keep = 1; continue; }
         if (!strcmp(a, "-y") || !strcmp(a, "--yes")) { o->yes = 1; continue; }
         if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
-            fputs(HELP, stdout);
+            fputs(MAKE_HELP, stdout);
             exit(0);
         }
         if (!strncmp(a, "--llm", 5) || !strncmp(a, "--vision", 8))

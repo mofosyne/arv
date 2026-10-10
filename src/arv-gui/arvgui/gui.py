@@ -78,7 +78,10 @@ class Job:
 
 class App:
     def __init__(self, home, llm_options=None):
-        self.home = catalog.Home(home)
+        try:
+            self.home = catalog.Home(home)
+        except SystemExit:          # no archive here or above, and no default: the page offers to make one
+            self.home = None
         self.llm_options = llm_options or {}
         self.token = secrets.token_urlsafe(24)
         self.jobs = {}
@@ -114,6 +117,26 @@ class App:
                 "files": [{"disc": d.get("Id"), "title": d.get("Title"), "location": cat.where(d), "path": p}
                           for d, p in file_hits[:500]],
                 "total": len(file_hits)}
+
+    # ------------------------------------------------------------ the first run: no archive yet
+
+    def setup(self, params):
+        return {"needed": self.home is None, "cwd": os.getcwd(), "home": self.home.path if self.home else None}
+
+    def post_init(self, body):
+        """arv init FOLDER [--name NAME [--default]]: an archive where the person chooses, then this one."""
+        folder = os.path.abspath(os.path.expanduser(body.get("folder") or ""))
+        name = (body.get("name") or "").strip()
+        if not os.path.isdir(folder):
+            raise ValueError("%s is not a folder" % folder)
+        if body.get("default") and not name:
+            raise ValueError("a name is needed to use it from anywhere")
+        argv = [ARV, "init", folder] + (["--name", name] if name else []) + (["--default"] if body.get("default") else [])
+        proc = subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=60)
+        if proc.returncode == 0:
+            self.home = catalog.Home(os.path.join(folder, ".arv"))
+        return {"returncode": proc.returncode, "output": (proc.stdout + proc.stderr).strip(),
+                "home": self.home.path if self.home else None}
 
     def browse(self, params):
         path = os.path.abspath(os.path.expanduser(params.get("path") or "~"))
@@ -405,10 +428,11 @@ def make_handler(app, port_holder):
     get_routes = {"/api/discs": app.discs, "/api/find": app.find, "/api/browse": app.browse,
                   "/api/job": app.job, "/api/jobs": app.jobs_list, "/api/llm/status": app.llm_status,
                   "/api/plans": app.plans, "/api/plan": app.plan, "/api/objects": app.objects, "/api/todo": app.todo,
-                  "/api/collections": app.collections}
+                  "/api/collections": app.collections, "/api/setup": app.setup}
     post_routes = {"/api/make": app.post_make, "/api/check": app.post_check, "/api/command": app.post_simple,
                    "/api/plan": app.post_plan, "/api/collection": app.post_collection,
-                   "/api/llm/suggest": app.post_llm_suggest}
+                   "/api/llm/suggest": app.post_llm_suggest, "/api/init": app.post_init}
+    no_archive_ok = ("/api/setup", "/api/init", "/api/browse")     # before the first archive is made
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -446,6 +470,8 @@ def make_handler(app, port_holder):
             handler = get_routes.get(url.path)
             if not handler:
                 return self._send(404, {"error": "not found"})
+            if app.home is None and url.path not in no_archive_ok:
+                return self._send(409, {"error": "no archive yet"})
             params = {k: v[0] for k, v in parse_qs(url.query).items()}
             try:
                 self._send(200, handler(params))
@@ -455,9 +481,12 @@ def make_handler(app, port_holder):
         def do_POST(self):
             if not self._allowed():
                 return self._send(403, {"error": "forbidden"})
-            handler = post_routes.get(urlparse(self.path).path)
+            path = urlparse(self.path).path
+            handler = post_routes.get(path)
             if not handler:
                 return self._send(404, {"error": "not found"})
+            if app.home is None and path not in no_archive_ok:
+                return self._send(409, {"error": "no archive yet"})
             try:
                 length = int(self.headers.get("Content-Length", 0))
                 body = json.loads(self.rfile.read(length) or b"{}")

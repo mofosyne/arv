@@ -155,6 +155,24 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 </nav>
 <main>
 
+<section id="tab-setup" hidden>
+  <h2>Make an archive</h2>
+  <p class="muted">There is no archive here yet. arv keeps an archive's record in a <span class="mono">.arv</span>
+    folder at the root of what it describes: the folder holding your photos and projects, or your NAS share. Nothing
+    else in it is changed, and nothing in it is archived until you choose it.</p>
+  <form id="setup-form">
+    <label for="s-folder">Folder</label>
+    <div class="inline"><input type="text" id="s-folder" required><button class="plain" type="button" id="s-browse">Browse…</button></div>
+    <div class="browser" id="s-browser" hidden></div>
+    <div class="row">
+      <div><label for="s-name">Name (optional, e.g. family)</label><input type="text" id="s-name"></div>
+    </div>
+    <div class="checks"><label><input type="checkbox" id="s-default"> Use it from anywhere on this computer (needs a name)</label></div>
+    <button class="primary" type="submit">Make the archive</button>
+  </form>
+  <div id="s-status" class="banner" hidden></div>
+</section>
+
 <section id="tab-owed" hidden>
   <p class="muted">What is owed, from <span class="mono">arv todo</span>: copies to make, copies to read back, cold copies,
     places, checks overdue. Each heading says what to do; a disc's name opens it, to record copies and places.</p>
@@ -416,6 +434,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
           list.appendChild(el("li", {}, [open, document.createTextNode(item.slice(id.length))]));
         } else {
           var fine = /^(Nothing owed|No discs yet)/.test(line);
+          if (/^No discs yet/.test(line)) line = "No discs yet, so nothing is owed. Start in Archive: From a folder makes " +
+            "discs of one folder (a collection's, or any), Mastering composes them by hand.";
           box.appendChild(el(fine ? "p" : "h3", { class: fine ? "ok" : "", text: line }));
           list = null;
         }
@@ -1050,11 +1070,45 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     });
   }
 
-  api("/api/llm/status").then(function (st) { llmStatus = st; }).catch(function () { llmStatus = null; })
-    .then(function () {           // a view named in the address (#discs, #master...), else Verify's Owed
-      var want = location.hash.slice(1);
-      setupMakeLLM(); loadDiscs(); loadOwed(); showTab(GROUP[want] ? want : "owed");
+  // ---------------------------------------------------------------- the first run: no archive yet
+  function setupBrowse(path) {
+    api("/api/browse?path=" + encodeURIComponent(path || "")).then(function (res) {
+      var box = $("s-browser"); box.hidden = false; box.textContent = "";
+      $("s-folder").value = res.path;
+      var up = el("div", { text: "⬑ " + res.parent }); up.onclick = function () { setupBrowse(res.parent); }; box.appendChild(up);
+      res.dirs.forEach(function (name) {
+        var row = el("div", { text: "📁 " + name });
+        row.onclick = function () { setupBrowse(res.path.replace(/\/$/, "") + "/" + name); };
+        box.appendChild(row);
+      });
     });
+  }
+  function showSetup(st) {
+    document.querySelectorAll("nav, header .link").forEach(function (n) { n.hidden = true; });
+    document.querySelectorAll("main > section").forEach(function (sec) { sec.hidden = sec.id !== "tab-setup"; });
+    $("home").textContent = "No archive yet";
+    $("s-folder").value = st.cwd;
+    $("s-browse").onclick = function () { setupBrowse($("s-folder").value); };
+    $("setup-form").onsubmit = function (ev) {
+      ev.preventDefault();
+      var out = $("s-status");
+      api("/api/init", { folder: $("s-folder").value, name: $("s-name").value, default: $("s-default").checked })
+        .then(function (res) {
+          out.hidden = false; out.textContent = res.output;
+          out.className = "banner" + (res.returncode ? " bad" : "");
+          if (!res.returncode) location.reload();
+        }).catch(function (e) { out.hidden = false; out.className = "banner bad"; out.textContent = "Error: " + e.message; });
+    };
+  }
+  function start() {
+    api("/api/llm/status").then(function (st) { llmStatus = st; }).catch(function () { llmStatus = null; })
+      .then(function () {           // a view named in the address (#discs, #master...), else Verify's Owed
+        var want = location.hash.slice(1);
+        setupMakeLLM(); loadDiscs(); loadOwed(); showTab(GROUP[want] ? want : "owed");
+      });
+  }
+  api("/api/setup").then(function (st) { if (st.needed) showSetup(st); else start(); })
+    .catch(function () { start(); });
 })();
 </script>
 </body></html>

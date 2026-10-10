@@ -11,6 +11,10 @@ verify and rebuild). Jobs, the commands it ran, open from the header. File lists
 icon for the kind of file (image, video, audio, document, spreadsheet, archive, disc image, code),
 guessed from the extension as a hint only: the disc's `formats.csv` (Siegfried) is the record.
 
+With no archive here or above and no default (a first run), it opens on **Make an archive**: a
+folder (where it was started, or browsed to), an optional name, and whether to use it from
+anywhere; that runs `arv init`, and the interface opens on the new archive.
+
 It serves one page on 127.0.0.1 and opens it. Every action runs arv itself (and arv-assist for
 the local model's suggestions), so it adds no behaviour of its own; it only reads the catalogue
 to show it. The page and every request carry a per-session token, and the Host header must be

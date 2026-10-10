@@ -153,8 +153,16 @@ damaged disc into an image is for GNU ddrescue or
 sudo apt install build-essential p7zip-full   # Debian/Ubuntu (python3 too, for arv gui)
 # for reading damaged discs: gddrescue, or dvdisaster Light (https://github.com/teaching-droid/dvdisaster-light)
 make install PREFIX=~/.local     # or: sudo make install   (/usr/local)
-arv --help
+arv                              # where you are, and the commands to start with
 ```
+
+Or as a package, so the package manager can remove it again ([packaging/](packaging/README.md)):
+`dpkg-buildpackage -us -uc -b` in the checkout for Debian and Ubuntu, `makepkg -si` in
+`packaging/arch/` for Arch Linux. `make install` works from a release tarball too.
+
+**Tab completion** is installed with it, for bash and zsh (`arv re<Tab>`, `arv burned --<Tab>`):
+it asks arv itself what fits, so it follows the arv you have. In a checkout:
+`source src/arv/completion/arv.bash`.
 
 To put the ready-to-run reader on every disc, build `arv.com` (an [Actually Portable
 Executable](https://justine.lol/ape.html): one file for Linux, macOS, Windows and the BSDs, x86-64
@@ -164,8 +172,8 @@ and ARM64) with [cosmocc](https://cosmo.zip/pub/cosmocc/) before installing:
 which builds with one `cc` line.
 
 `make install` copies the last commit (exactly the tree every disc carries in `tools/`) to
-`PREFIX/share/arv` (with `arv.com` when it was built), and puts `arv`, `arv-assist`, `arv-gui`,
-`udfwrite` and `bagit` in `PREFIX/bin`.
+`PREFIX/share/arv` (with `arv.com` when it was built), puts `arv`, `arv-assist`, `arv-gui`,
+`udfwrite` and `bagit` in `PREFIX/bin`, and the completion where bash and zsh look for it.
 
 **`arv` does everything itself** ([src/arv/README.md](src/arv/README.md)) except four optional
 commands: `arv describe`, `arv tag` and `arv models` run arv-assist
