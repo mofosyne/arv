@@ -1,3 +1,5 @@
+<img src="docs/img/logo.svg" alt="arv" height="64">
+
 # ARV: Archive, Record, Verify
 
 > [!WARNING]
@@ -151,8 +153,21 @@ damaged disc into an image is for GNU ddrescue or
 sudo apt install build-essential p7zip-full   # Debian/Ubuntu (python3 too, for arv gui)
 # for reading damaged discs: gddrescue, or dvdisaster Light (https://github.com/teaching-droid/dvdisaster-light)
 make install PREFIX=~/.local     # or: sudo make install   (/usr/local)
-arv --help
+arv                              # where you are, and the commands to start with
 ```
+
+With [just](https://github.com/casey/just), nothing to remember: `just install` (yourself, in
+`~/.local`), `just install-system` (everyone, `/usr/local`, with sudo), the same with `uninstall`,
+`just where` (which arv runs here), and `just deb` or `just arch` for a package. `just` lists them.
+Uninstalling, either way, removes the programs and never your archives or discs.
+
+Or as a package, so the package manager can remove it again ([packaging/](packaging/README.md)):
+`just deb` for Debian and Ubuntu (`packaging/debian/`), `makepkg -si` in
+`packaging/arch/` for Arch Linux. `make install` works from a release tarball too.
+
+**Tab completion** is installed with it, for bash and zsh (`arv re<Tab>`, `arv burned --<Tab>`):
+it asks arv itself what fits, so it follows the arv you have. In a checkout:
+`source src/arv/completion/arv.bash`.
 
 To put the ready-to-run reader on every disc, build `arv.com` (an [Actually Portable
 Executable](https://justine.lol/ape.html): one file for Linux, macOS, Windows and the BSDs, x86-64
@@ -161,9 +176,10 @@ and ARM64) with [cosmocc](https://cosmo.zip/pub/cosmocc/) before installing:
 `tools/arv.com`, and their README.txt says how to run it; without it they carry the source,
 which builds with one `cc` line.
 
-`make install` copies the last commit (exactly the tree every disc carries in `tools/`) to
-`PREFIX/share/arv` (with `arv.com` when it was built), and puts `arv`, `arv-assist`, `arv-gui`,
-`udfwrite` and `bagit` in `PREFIX/bin`.
+`make install` copies the last commit (exactly the tree every disc carries in `tools/`: what
+[`disc-tools.txt`](disc-tools.txt) lists, about 5 MB, so not the UDF and ECMA standards) to
+`PREFIX/share/arv` (with `arv.com` when it was built), puts `arv`, `arv-assist`, `arv-gui`,
+`udfwrite` and `bagit` in `PREFIX/bin`, and the completion where bash and zsh look for it.
 
 **`arv` does everything itself** ([src/arv/README.md](src/arv/README.md)) except four optional
 commands: `arv describe`, `arv tag` and `arv models` run arv-assist
@@ -225,8 +241,7 @@ make uninstall PREFIX=~/.local   # or: sudo make uninstall   (use the PREFIX you
 ```
 
 This removes `PREFIX/share/arv` and `PREFIX/bin/arv`, `arv-assist`, `arv-gui`, `udfwrite` and `bagit`, and nothing else. Your
-catalogues are yours and stay where they are: each `.arv` folder (or `~/.local/share/arv`)
-and the list of homes in `~/.config/arv/`. Delete those yourself only if you no longer want
+catalogues are yours and stay where they are: each `.arv` folder and the list of homes in `~/.config/arv/`. Delete those yourself only if you no longer want
 the catalogue; every disc also carries a copy of it.
 
 ### Where the catalogue lives: `.arv`
@@ -249,17 +264,36 @@ without touching any of them. In order:
    own `catalog/` (so `arv find` works on any disc);
 4. a `.arv` beside arv itself, walking up from the folder the program is in (portable, below);
 5. the default home in `~/.config/arv/homes.rec` (paths are per machine; this file never goes on
-   a disc, and deleting it loses nothing);
-6. `~/.local/share/arv` (or `~/.local/share/bluray-archive` if you used an older version).
+   a disc, and deleting it loses nothing).
+
+None of these: arv says there is no archive and how to make one, and stops, as git does outside a
+repository. It never starts an archive you did not ask for: `arv init FOLDER` makes one where you
+choose, and `--name NAME --default` lets arv use it from anywhere on this machine. Reading a disc
+(`arv info`, `ls`, `verify`, `restore`) needs no archive.
 
 **Portable**: put `arv.com` (or `arv`) and a home on the same drive, e.g. `tools/arv.com` and
 `.arv/` at the drive's root (`arv init` there). Run from anywhere, arv uses the drive's home and
-writes nothing outside the drive (no machine config, no fallback home) unless you register it with
+writes nothing outside the drive (no machine config) unless you register it with
 `arv init --name`. Paths that plans and data objects keep inside the drive are relative to the
 folder holding `.arv`, so they still work when the drive is mounted elsewhere or under another
 letter.
 
 ### Commands
+
+Every command has a short form, `arv COMMAND`, used throughout these docs. If you forget a
+command's name, its group lists it: the commands come in four groups, as `arv --help` shows them,
+and each group's name on its own lists that group with a line each:
+
+```sh
+arv archive    # make, plan, collection, status, checkpoint, link, names, describe, tag, models
+arv record     # burned, stored, objects, find, list, id, info, ls, note, locate, ... retire
+arv verify     # todo, check, verify, restore, rebuild
+arv home       # init, where, gui
+```
+
+The group's name may also come first: `arv record burned ...` is `arv burned ...`, and a command
+named under the wrong group says which one it is in. (`arv verify DISC`, every file on a disc
+against its checksum, is `arv verify files DISC` in full; `arv verify` alone lists the group.)
 
 ```sh
 # Archive: what goes on discs (the places first, so discs can name them)
@@ -513,6 +547,12 @@ single-threaded.
 
 The detailed plan and the reasons behind each decision: [research/plan.md](research/plan.md).
 What changed, and what 1.0 waits for: [CHANGELOG.md](CHANGELOG.md).
+
+## Talk about it
+
+- **Feedback and bugs:** [open an issue](https://github.com/mofosyne/arv/issues/new?template=feedback.md)
+  (a step that confused you, something that broke, a disc that would not read back).
+- **Questions and discussion:** the [Telegram group](https://t.me/+_fe3C9hDi1g5Mzll).
 
 ## Licence
 

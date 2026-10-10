@@ -124,6 +124,66 @@ class GuiTest(unittest.TestCase):
         self.assertIn(self.token, page)
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
+    def test_first_run_makes_an_archive(self):
+        """No archive here or above and no default: the page offers to make one, and nothing else answers."""
+        where = os.path.join(self.tmp, "nas")
+        os.makedirs(where)
+        old = os.getcwd(), {k: os.environ.get(k) for k in ("HOME", "XDG_CONFIG_HOME", "ARV_HOME")}
+        os.environ["HOME"] = os.environ["XDG_CONFIG_HOME"] = self.tmp
+        os.environ.pop("ARV_HOME", None)
+        os.chdir(where)
+        try:
+            self.home = None
+            self.start()
+            setup = json.loads(self.request("/api/setup")[1])
+            self.assertTrue(setup["needed"])
+            self.assertEqual(self.request("/api/discs")[0], 409)
+            self.assertEqual(self.request("/api/init", {"folder": where, "default": True})[0], 400)  # a default needs a name
+            res = json.loads(self.request("/api/init", {"folder": where, "name": "family", "default": True})[1])
+            self.assertEqual(res["returncode"], 0, res["output"])
+            self.assertTrue(os.path.isdir(os.path.join(where, ".arv")))
+            self.assertFalse(json.loads(self.request("/api/setup")[1])["needed"])
+            self.assertEqual(self.request("/api/discs")[0], 200)
+        finally:
+            os.chdir(old[0])
+            for k, v in old[1].items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+
+    @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
+    def test_collections(self):
+        self.start()
+        fam, out = os.path.join(self.tmp, "fam"), os.path.join(self.tmp, "out")
+        write(os.path.join(fam, "a.txt"), "a", 2019)
+        arv = lambda *a: subprocess.run([ARV, "--home", self.home] + list(a), capture_output=True, text=True)
+        self.assertEqual(arv("collection", "init", fam, "--code", "FAM", "--title", "Family", "--set", "PHOTO").returncode, 0)
+        for n in (1, 2):
+            if n == 2:
+                write(os.path.join(fam, "b.txt"), "b", 2019)
+            made = arv("make", fam, "-y", "--no-ecc", "--formats", "no", "--output-dir", os.path.join(out, str(n)))
+            self.assertEqual(made.returncode, 0, made.stderr)
+            image = [f for f in os.listdir(os.path.join(out, str(n))) if f.endswith(".iso")][0]
+            burned = arv("burned", "--device", os.path.join(out, str(n), image))
+            self.assertEqual(burned.returncode, 0, burned.stdout + burned.stderr)
+        c = json.loads(self.request("/api/collections")[1])["collections"][0]
+        self.assertEqual((c["code"], [(e["edition"], e["safe"], e["replaced"], e["retired"]) for e in c["editions"]]),
+                         ("FAM", [(1, True, True, False), (2, True, False, False)]))
+        post = lambda body: json.loads(self.request("/api/collection", body)[1])
+        preview = post({"action": "retire", "code": "FAM"})
+        self.assertEqual(preview["returncode"], 0, preview["output"])
+        self.assertIn("Nothing recorded", preview["output"])
+        self.assertTrue(json.loads(self.request("/api/collections")[1])["collections"][0]["editions"][0]["replaced"])
+        done = post({"action": "retire", "code": "FAM", "yes": True})
+        self.assertEqual(done["returncode"], 0, done["output"])
+        c = json.loads(self.request("/api/collections")[1])["collections"][0]
+        self.assertEqual([(e["edition"], e["retired"]) for e in c["editions"]], [(1, True), (2, False)])
+        self.assertEqual(post({"action": "keep", "code": "FAM", "edition": 2})["returncode"], 0)
+        self.assertTrue(json.loads(self.request("/api/collections")[1])["collections"][0]["editions"][1]["kept"])
+        self.assertEqual(self.request("/api/collection", {"action": "retire", "code": "fam; rm"})[0], 400)
+
+    @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
     def test_make_note_find(self):
         self.start()
         src = os.path.join(self.tmp, "Photos")
@@ -195,6 +255,10 @@ class GuiTest(unittest.TestCase):
         copy = json.loads(self.request("/api/plan?name=trip2")[1])
         self.assertEqual((copy["made"], copy["from"], [[i["path"] for i in d["items"]] for d in copy["discs"]]),
                          (None, "trip", [["wedding.mkv"], ["photos"]]))
+        self.assertEqual([i["archived"] for d in copy["discs"] for i in d["items"]], [None, None])   # only when asked
+        checked = json.loads(self.request("/api/plan?archived=1&name=trip2")[1])
+        self.assertEqual([(i["archived"]["object"], i["archived"]["version"], i["archived"]["onDiscs"] == i["archived"]["files"])
+                          for d in checked["discs"] for i in d["items"]], [("wedding.mkv", 1, True), ("photos", 1, True)])
         card = os.path.join(self.tmp, "card", "IMG_0001.JPG")
         write(card, "raw", 2025)
         added = post({"action": "add", "name": "trip2", "sources": [card], "disc": "1", "copy": True})

@@ -51,7 +51,7 @@ Next: arv plan make trip (one image a disc; arv make's options apply)
 Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
 rc=0
 $ --home hp plan show trip --json
-{"name": "trip", "title": "Holiday 2025", "set": "TRIP", "medium": "bd25", "description": null, "access": null, "from": null, "mediumLabel": "BD-R 25GB", "room": 19804278784, "made": null, "volumes": [], "discs": [{"disc": 1, "bytes": 7, "used": 6144, "items": [{"path": "video/wedding.mkv", "source": "ROOT/plan-pc/Videos/wedding.mkv", "origin": null, "changed": false, "kind": "file", "bytes": 7, "files": 1}]}, {"disc": 2, "bytes": 20, "used": 20480, "items": [{"path": "notes.txt", "source": "ROOT/plan-pc/notes.txt", "origin": null, "changed": false, "kind": "file", "bytes": 6, "files": 1}, {"path": "photos", "source": "ROOT/plan-nas/photos/2025", "origin": null, "changed": false, "kind": "folder", "bytes": 14, "files": 2}]}]}
+{"name": "trip", "title": "Holiday 2025", "set": "TRIP", "medium": "bd25", "description": null, "access": null, "from": null, "mediumLabel": "BD-R 25GB", "room": 19804278784, "made": null, "volumes": [], "discs": [{"disc": 1, "bytes": 7, "used": 6144, "items": [{"path": "video/wedding.mkv", "source": "ROOT/plan-pc/Videos/wedding.mkv", "origin": null, "changed": false, "kind": "file", "bytes": 7, "files": 1, "archived": null}]}, {"disc": 2, "bytes": 20, "used": 20480, "items": [{"path": "notes.txt", "source": "ROOT/plan-pc/notes.txt", "origin": null, "changed": false, "kind": "file", "bytes": 6, "files": 1, "archived": null}, {"path": "photos", "source": "ROOT/plan-nas/photos/2025", "origin": null, "changed": false, "kind": "folder", "bytes": 14, "files": 2, "archived": null}]}]}
 rc=0
 $ --home hp plan list
 trip  2 discs, 3 items  "Holiday 2025"
@@ -214,30 +214,31 @@ Data objects:
     version 1  TRIP-02_2025_9  data/photos/  no copy yet
 rc=0
 $ --home hp burned TRIP-03_2025_7 --location BOX1
-TRIP-03_2025_7: 1 copy recorded (not read back: arv burned --device checks a copy as it records it)
+Note: BOX1 is not one of the archive's locations (arv location list): recorded as written. arv location add CODE NAME makes a place arv knows.
+TRIP-03_2025_7: copy A recorded, 1 in all (not read back: arv burned --device checks a copy as it records it). Write the letter on the hub and the case, after the id.
 rc=0
 $ --home hp stored TRIP-04_2025_5 out-plan2/TRIP-04_2025_5.noecc.iso
 Reading ROOT/out-plan2/TRIP-04_2025_5.noecc.iso: the 882 sectors of TRIP-04_2025_5's image ...
-TRIP-04_2025_5: 1 copy recorded (this one: iso, warm, checked)
+TRIP-04_2025_5: copy A recorded (iso, warm, checked), 1 in all
 rc=0
 $ --home hp stored TRIP-01_2025_B out-plan/TRIP-01_2025_B.noecc.iso
 Reading ROOT/out-plan/TRIP-01_2025_B.noecc.iso: the 850 sectors of TRIP-01_2025_B's image ...
-TRIP-01_2025_B: 1 copy recorded (this one: iso, warm, checked)
+TRIP-01_2025_B: copy A recorded (iso, warm, checked), 1 in all
 rc=0
 $ --home hp objects 2025
 Data objects:
   2025/  folder, 2 versions; newest: 2 copies on 2 discs, 1 cold, 1 read back
     from ROOT/plan-nas/photos/2025 (there now: arv status says if it changed)
     and ROOT/plan-copy (not there now)
-    version 2  TRIP-03_2025_7  data/photos/  disc cold; at BOX1
-    version 2  TRIP-04_2025_5  data/plan-copy/  iso warm (read back)
+    version 2  TRIP-03_2025_7  data/photos/  A: disc cold at BOX1
+    version 2  TRIP-04_2025_5  data/plan-copy/  A: iso warm (read back)
     version 1  TRIP-02_2025_9  data/photos/  no copy yet
 rc=0
 $ --home hp objects wedding.mkv
 Data objects:
   wedding.mkv  file, 1 version; newest: 1 copy on 1 disc, 0 cold, 1 read back
     from ROOT/plan-pc/Videos/wedding.mkv (not there now)
-    version 1  TRIP-01_2025_B  data/video/wedding.mkv  iso warm (read back)
+    version 1  TRIP-01_2025_B  data/video/wedding.mkv  A: iso warm (read back)
 rc=0
 $ --home hp objects nothing-called-this
 Error: nothing kept is called nothing-called-this (arv objects lists them)
@@ -245,8 +246,8 @@ rc=1
 $ --home hp todo
 No copy yet (burn the image and arv burned ID --device DRIVE, or keep it: arv stored ID PATH):
   TRIP-02_2025_9  made 2026-01-01
-Burned, never read back (arv check --device DRIVE ID):
-  TRIP-03_2025_7
+Burned, never read back (arv check --device DRIVE --copy X ID):
+  TRIP-03_2025_7  copy A
 No cold copy, every copy is online or in use (burn one for the shelf):
   TRIP-01_2025_B
   TRIP-04_2025_5
@@ -260,7 +261,7 @@ Data objects no longer where they came from, with fewer than two copies of their
   wedding.mkv  version 1: 1 copy; was at ROOT/plan-pc/Videos/wedding.mkv
 rc=0
 $ --home hp objects --json
-{"objects": [{"uuid": "UUID", "name": "wedding.mkv", "kind": "file", "versions": 1, "newest": {"copies": 1, "cold": 0, "readBack": 1, "discs": 1}, "sources": [{"path": "ROOT/plan-pc/Videos/wedding.mkv", "there": false}], "todo": ["no cold copy", "no longer where it came from, fewer than two copies"], "held": [{"version": 1, "path": "video/wedding.mkv", "files": 1, "bytes": 7, "on": {"disc": "TRIP-01_2025_B", "retired": false, "where": "", "copies": [{"form": "iso", "temperature": "warm", "readBack": true}]}}]}, {"uuid": "UUID", "name": "notes.txt", "kind": "file", "versions": 1, "newest": {"copies": 0, "cold": 0, "readBack": 0, "discs": 1}, "sources": [{"path": "ROOT/plan-pc/notes.txt", "there": true}], "todo": [], "held": [{"version": 1, "path": "notes.txt", "files": 1, "bytes": 6, "on": {"disc": "TRIP-02_2025_9", "retired": false, "where": "", "copies": []}}]}, {"uuid": "UUID", "name": "2025", "kind": "folder", "versions": 2, "newest": {"copies": 2, "cold": 1, "readBack": 1, "discs": 2}, "sources": [{"path": "ROOT/plan-nas/photos/2025", "there": true}, {"path": "ROOT/plan-copy", "there": false}], "todo": [], "held": [{"version": 2, "path": "photos", "files": 3, "bytes": 21, "on": {"disc": "TRIP-03_2025_7", "retired": false, "where": "BOX1", "copies": [{"form": "disc", "temperature": "cold", "readBack": false}]}}, {"version": 2, "path": "plan-copy", "files": 3, "bytes": 21, "on": {"disc": "TRIP-04_2025_5", "retired": false, "where": "", "copies": [{"form": "iso", "temperature": "warm", "readBack": true}]}}, {"version": 1, "path": "photos", "files": 2, "bytes": 14, "on": {"disc": "TRIP-02_2025_9", "retired": false, "where": "", "copies": []}}]}], "collections": []}
+{"objects": [{"uuid": "UUID", "name": "wedding.mkv", "kind": "file", "versions": 1, "newest": {"copies": 1, "cold": 0, "readBack": 1, "discs": 1}, "sources": [{"path": "ROOT/plan-pc/Videos/wedding.mkv", "there": false}], "todo": ["no cold copy", "no longer where it came from, fewer than two copies"], "held": [{"version": 1, "path": "video/wedding.mkv", "files": 1, "bytes": 7, "on": {"disc": "TRIP-01_2025_B", "retired": false, "where": "", "copies": [{"copy": "A", "form": "iso", "temperature": "warm", "location": "", "readBack": true}]}}]}, {"uuid": "UUID", "name": "notes.txt", "kind": "file", "versions": 1, "newest": {"copies": 0, "cold": 0, "readBack": 0, "discs": 1}, "sources": [{"path": "ROOT/plan-pc/notes.txt", "there": true}], "todo": [], "held": [{"version": 1, "path": "notes.txt", "files": 1, "bytes": 6, "on": {"disc": "TRIP-02_2025_9", "retired": false, "where": "", "copies": []}}]}, {"uuid": "UUID", "name": "2025", "kind": "folder", "versions": 2, "newest": {"copies": 2, "cold": 1, "readBack": 1, "discs": 2}, "sources": [{"path": "ROOT/plan-nas/photos/2025", "there": true}, {"path": "ROOT/plan-copy", "there": false}], "todo": [], "held": [{"version": 2, "path": "photos", "files": 3, "bytes": 21, "on": {"disc": "TRIP-03_2025_7", "retired": false, "where": "BOX1", "copies": [{"copy": "A", "form": "disc", "temperature": "cold", "location": "BOX1", "readBack": false}]}}, {"version": 2, "path": "plan-copy", "files": 3, "bytes": 21, "on": {"disc": "TRIP-04_2025_5", "retired": false, "where": "", "copies": [{"copy": "A", "form": "iso", "temperature": "warm", "location": "", "readBack": true}]}}, {"version": 1, "path": "photos", "files": 2, "bytes": 14, "on": {"disc": "TRIP-02_2025_9", "retired": false, "where": "", "copies": []}}]}], "collections": []}
 rc=0
 $ --home hp plan new later --medium bd100
 Plan later: 1 empty disc (hp/drafts/plans/later.rec). Next: arv plan add later FILE-OR-FOLDER...
@@ -354,6 +355,88 @@ Disc 1  [#-------------------]    1%  15 B in 2 items
 1 item is missing: put it back, or arv plan drop card-2 PATH
 Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
 rc=0
+$ --home hp plan add card-2 plan-pc --as pc
+pc/: disc 1, now 1% full
+rc=0
+$ --home hp plan add card-2 plan-new.txt
+plan-new.txt: disc 1, now 1% full
+rc=0
+$ --home hp plan add card-2 plan-mix
+plan-mix/: disc 1, now 1% full
+rc=0
+$ --home hp plan show card-2 --archived
+Plan card-2  set TRIP  (from plan card)  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  59 B in 5 items
+  camera  MISSING  ROOT/plan-sd/DCIM
+  letter.txt  15 B  ROOT/plan-docs/letter.txt
+      archived already: letter.txt version 1, on TRIP-05_2025_3
+  pc/  13 B, 2 files  ROOT/plan-pc
+      every file on discs already (not as one data object)
+  plan-mix/  25 B, 2 files  ROOT/plan-mix
+      1 of 2 files on discs already
+  plan-new.txt  6 B  ROOT/plan-new.txt
+      on no disc yet
+1 item is missing: put it back, or arv plan drop card-2 PATH
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hp plan show card-2 --archived --json
+{"name": "card-2", "title": null, "set": "TRIP", "medium": "bd25", "description": null, "access": null, "from": "card", "mediumLabel": "BD-R 25GB", "room": 19803955200, "made": null, "volumes": [], "discs": [{"disc": 1, "bytes": 59, "used": 43008, "items": [{"path": "camera", "source": "ROOT/plan-sd/DCIM", "origin": null, "changed": false, "kind": "missing", "bytes": 0, "files": 0, "archived": null}, {"path": "letter.txt", "source": "ROOT/plan-docs/letter.txt", "origin": null, "changed": false, "kind": "file", "bytes": 15, "files": 1, "archived": {"files": 1, "onDiscs": 1, "object": "letter.txt", "version": 1, "discs": ["TRIP-05_2025_3"]}}, {"path": "pc", "source": "ROOT/plan-pc", "origin": null, "changed": false, "kind": "folder", "bytes": 13, "files": 2, "archived": {"files": 2, "onDiscs": 2, "object": null, "version": 0, "discs": []}}, {"path": "plan-mix", "source": "ROOT/plan-mix", "origin": null, "changed": false, "kind": "folder", "bytes": 25, "files": 2, "archived": {"files": 2, "onDiscs": 1, "object": null, "version": 0, "discs": []}}, {"path": "plan-new.txt", "source": "ROOT/plan-new.txt", "origin": null, "changed": false, "kind": "file", "bytes": 6, "files": 1, "archived": {"files": 1, "onDiscs": 0, "object": null, "version": 0, "discs": []}}]}]}
+rc=0
 $ --home hp plan delete card --yes
 Plan card deleted (with its copies; the originals are untouched)
 rc=0
+$ --home hp retire TRIP-04_2025_5
+TRIP-04_2025_5: Again
+  plan-copy/ version 2: also on TRIP-03_2025_7
+Nothing recorded. arv retire TRIP-04_2025_5 --yes records it as retired (arv deletes nothing: the disc is yours to keep or destroy).
+rc=0
+$ --home hp retire TRIP-04_2025_5 --yes
+TRIP-04_2025_5: Again
+  plan-copy/ version 2: also on TRIP-03_2025_7
+TRIP-04_2025_5 retired (logged)
+rc=0
+$ --home hp retire TRIP-04_2025_5
+TRIP-04_2025_5: retired already (2026-01-01)
+rc=0
+$ --home hp retire TRIP-02_2025_9
+TRIP-02_2025_9: Holiday 2025
+  notes.txt version 1: the newest version, and its only copy is here
+  2025/ version 1: only here; replaced by version 2
+1 file is on no disc that stays:
+  notes.txt
+Nothing recorded: this disc holds the only copy of that file, including the newest version of a data object. Archive it again first, or arv retire TRIP-02_2025_9 --yes --accept-loss to retire it anyway.
+rc=0
+$ --home hp retire TRIP-02_2025_9 --yes
+TRIP-02_2025_9: Holiday 2025
+  notes.txt version 1: the newest version, and its only copy is here
+  2025/ version 1: only here; replaced by version 2
+1 file is on no disc that stays:
+  notes.txt
+Refused: this disc holds the only copy of that file, including the newest version of a data object. Archive it again first, or arv retire TRIP-02_2025_9 --yes --accept-loss to retire it anyway.
+rc=1
+$ --home hp retire TRIP-02_2025_9 --yes --accept-loss
+TRIP-02_2025_9: Holiday 2025
+  notes.txt version 1: the newest version, and its only copy is here
+  2025/ version 1: only here; replaced by version 2
+1 file is on no disc that stays:
+  notes.txt
+TRIP-02_2025_9 retired (logged)
+1 file recorded as lost (arv find lists them)
+rc=0
+$ --home hp find notes
+OBJECT  notes.txt  version 1  TRIP-02_2025_9  data/notes.txt  [retired 2026-01-01]
+TRIP-02_2025_9  [retired 2026-01-01]  data/notes.txt
+LOST  TRIP-02_2025_9  notes.txt  (retired with no other copy)
+rc=0
+$ --home hp objects 2025
+Data objects:
+  2025/  folder, 2 versions; newest: 1 copy on 1 disc, 1 cold, 0 read back
+    from ROOT/plan-nas/photos/2025 (there now: arv status says if it changed)
+    and ROOT/plan-copy (not there now)
+    version 2  TRIP-03_2025_7  data/photos/  A: disc cold at BOX1
+    version 2  TRIP-04_2025_5  data/plan-copy/  retired
+    version 1  TRIP-02_2025_9  data/photos/  retired
+rc=0
+$ --home hp retire NOPE-01
+Error: no collection or disc NOPE-01
+rc=1

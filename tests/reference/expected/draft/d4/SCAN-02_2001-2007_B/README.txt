@@ -74,6 +74,17 @@ REPAIR (fix damage)
      then repair as in step 2.
   Then burn or mount disc.iso and verify as above.
 
+WITHOUT A UDF READER (cut the files out of the image)
+  If nothing can read the disc's file system but its image reads (and
+  repairs, above), every file can still be cut out of it: each one is
+  stored whole, in one run of 2048-byte sectors. Where each starts is in
+  catalog/volumes/SCAN-02_2001-2007_B/extents.tsv (start sector, size in bytes, path),
+  which this disc cannot carry for itself but every later disc of the
+  archive does, and so does the home catalogue. For each line:
+    dd if=disc.iso bs=2048 skip=START count=$(( (SIZE + 2047) / 2048 )) \
+      | head -c SIZE > FILE
+  then check FILE against catalog/volumes/SCAN-02_2001-2007_B/manifest.sha256 (sha256sum).
+
 CATALOGUE
   catalog.rec             this disc's record (GNU recutils format, plain text)
   catalog/archive.rec     all discs in the archive as of the burn date

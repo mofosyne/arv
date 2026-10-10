@@ -82,8 +82,8 @@ arv restore [--no-links] DISC DEST     copy back, checking each file; dates, exe
 
 The home is found so: `-C HOME` (before or after the command, like
 `--home`), `$ARV_HOME`, a `.arv` folder, `.arv` pointer file or disc root from the folder being
-archived or the current folder up, the machine config (`~/.config/arv/homes.rec`), then
-`~/.local/share/arv`. DISC is the root of a mounted disc or an extracted image.
+archived or the current folder up, then the machine config (`~/.config/arv/homes.rec`); none of
+these, and arv stops and says how to make one (`arv init`). DISC is the root of a mounted disc or an extracted image.
 
 ## What is where
 

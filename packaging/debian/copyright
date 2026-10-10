@@ -1,0 +1,27 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: arv
+Source: https://github.com/mofosyne/arv
+
+Files: *
+Copyright: 2026 mofosyne and the arv contributors
+License: GPL-3
+
+Files: upstream/netbsd-makefs/netbsd/*
+Copyright: The NetBSD Foundation, Inc. and contributors
+License: BSD-2-Clause
+ Not built or installed as a program; carried in /usr/share/arv as part of the
+ source every disc holds. See the files themselves for their notices.
+
+Files: upstream/bagit-python/*
+Copyright: Library of Congress and contributors
+License: CC0-1.0
+ Not built or installed as a program; carried in /usr/share/arv as part of the
+ source every disc holds.
+
+License: GPL-3
+ This program is free software: you can redistribute it and/or modify it under
+ the terms of the GNU General Public License as published by the Free Software
+ Foundation, version 3.
+ .
+ On Debian systems, the complete text of the GNU General Public License
+ version 3 can be found in /usr/share/common-licenses/GPL-3.

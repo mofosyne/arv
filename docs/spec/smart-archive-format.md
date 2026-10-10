@@ -138,7 +138,6 @@ Version 0.1 (samples only, never burned) kept these files by kind instead: `cata
 | `Withheld` | What was left out of this record | Only on the cut-down copy of a sealed disc in another disc's snapshot |
 | `Note`* | Free-text notes; Q&A from the owner | Multi-line values continue with `+ ` |
 | `Files`, `Bytes` | Payload totals | integers |
-| `Copies`, `MediaId` | Burned copies and drive-reported media ids | home catalogue only |
 | `Software` | Tool and commit that made the disc | |
 
 ### Disc ids
@@ -355,11 +354,27 @@ above), else `cold` for a disc and `warm` for an image file or folder (which als
 `Path`). An archive is kept cold wherever possible: readers should report discs
 with no cold copy.
 
+Each copy has a **letter**, `Copy: A`, `B` ... `Z`, `AA` ...: unique among the disc's copies, given
+in order as copies are recorded (or chosen), and written on the disc's hub and case after its id,
+so a copy can be told from its twins in the hand. Copies are identical images, so the letter is in
+the catalogue, never on the disc. The event also carries the copy's own `Location` (as the disc's
+`Location`, which lists every place a copy of it is kept), and may carry `MediaId` (the media's
+manufacturer and type, as the drive reports it) and `Bca`: the disc's own factory serial, from
+its burst cutting area, as 32 lowercase hex digits (the BCA's first 16-byte unit; the BCA repeats
+it, then names the media type; [research/bca/](../../research/bca/README.md)). A copy is recognised by its `Bca` when a drive reads it again: a
+`fixity check` that names a copy may carry the `Bca` it read, for a copy recorded without one. A disc's number of copies is its number of
+`replication` events that did not fail; there is no counter. A `fixity check` of one copy names
+it with `Copy` too.
+
 A copy is **known good** when its `replication` event carries `ReadBack: identical` (the disc was
-read back against the image's `ImageSha256` before the copy was recorded). An edition is **safe**
+read back against the image's `ImageSha256` before the copy was recorded), or when a later
+successful `fixity check` names its letter. An edition is **safe**
 when each of its discs has a known-good copy. Once a later edition is safe, earlier editions not
 kept may be retired: each of their discs gets `Retired: DATE` (and loses its `Location`
-fields) and a `deaccession` event saying what replaced it. Nothing is deleted.
+fields) and a `deaccession` event saying what replaced it. Nothing is deleted. A disc of no
+edition (a disc plan's, or one folder's) is retired on its own the same way; a file of it that was
+on no other disc, retired with the loss accepted, is recorded on its `Disc` record as
+`Lost: SHA256  PATH`, as an edition's are on its revision.
 A disc carries its collection and its own edition's `Revision` in `catalog.rec`; a full catalogue
 snapshot carries every collection and revision, a `set` or `disc` snapshot those of the disc's
 own collection. Each revision's manifest is kept in the home catalogue as
@@ -384,7 +399,7 @@ disc itself always carries its own full record):
 |---|---|---|
 | `public` | full record and file lists | full record and file lists |
 | `private` (default; also when absent) | full record and file lists | left out |
-| `sealed` | identity only: `Id`, `Uuid`, `Set`, `Category`, `Path`, `Sequence`, `Coverage`, `Date`, `Part`, `Location`, `Copies`, `Access`; `Title` is `(sealed disc)`, plus a `Withheld` field; no events or file lists | left out |
+| `sealed` | identity only: `Id`, `Uuid`, `Set`, `Category`, `Path`, `Sequence`, `Coverage`, `Date`, `Part`, `Location`, `Access`; `Title` is `(sealed disc)`, plus a `Withheld` field; no events or file lists | left out |
 
 A reader merging snapshots must never replace a full record with one that has
 `Withheld`.
@@ -703,12 +718,25 @@ MediumSectors: 12219392
 | `MediumSectors` | The medium size RS03 was computed for, in 2048-byte sectors: what dvdisaster's `-n` needs to find the layers when the error correction's own record of its layout is damaged |
 | `ImageSectors`, `ImageSha256` | The finished image as it is to be burned (with RS03): its size in 2048-byte sectors and its SHA-256. The first sectors of a burned disc, read back whole, give the same hash, so a copy can be proven to hold exactly these bits. Only in the home catalogue and later discs' snapshots: an image cannot hold its own hash |
 
-Planned: an optional `Extents` pointer to `catalog/volumes/<id>/extents.tsv` (path, start and
-length of each file in the container's units). It is kept in the home catalogue and in later
-discs' snapshots, not on the volume it describes (a file inside the image can only be found
-through the tree it would replace; the disc's own map is the UDF metadata and its mirror), so a
-volume damaged beyond repair still has its map on its siblings, as Piql's AFS table of contents
-travels apart from the data.
+### Extents: reading a volume without a UDF reader
+
+`catalog/volumes/<id>/extents.tsv` is each volume's map: a header line
+`# arv extents 1<TAB>start sector<TAB>size (bytes)<TAB>path`, then one line per file of the image
+(payload, tag files, catalogue, `tools/`), with its first sector counted from the start of the
+image (2048-byte sectors), its size and its path. The [UDF profile](archival-udf.md) stores
+every file whole, in one run of sectors, so the map is all that is needed to cut any file out of
+the image:
+
+```sh
+dd if=disc.iso bs=2048 skip=START count=$(( (SIZE + 2047) / 2048 )) | head -c SIZE > FILE
+```
+
+and `catalog/volumes/<id>/manifest.sha256` checks it. The map is kept in the home catalogue and
+in later volumes' snapshots, not on the volume it describes (a file inside the image can only be
+found through the tree it would replace; the volume's own map is the UDF metadata and its
+mirror), so a volume whose file system no tool can read still has its map on its siblings, as
+Piql's AFS table of contents travels apart from the data. Each disc's `README.txt` says so
+("WITHOUT A UDF READER"). Planned: an `Extents` field in the Binding naming the file.
 
 Things Katalog would have no place for today (candidates for its developer):
 events (provenance history), multi-line notes, image captions, PRONOM IDs,

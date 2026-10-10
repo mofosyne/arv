@@ -34,7 +34,6 @@ Access: public
 Files: 16
 Bytes: 9443
 Software: arv@e8c6358ab75d
-Copies: 2
 Location: OFFSITE
 
 Id: PROJ-01_2020-2023_L
@@ -58,7 +57,6 @@ Access: private
 Files: 56
 Bytes: 32142
 Software: arv@e8c6358ab75d
-Copies: 1
 Note: Board rev B; rev A gerbers were never ordered.
 
 Id: TAXES-01_2019-2020_I
@@ -78,7 +76,6 @@ Access: sealed
 Files: 5
 Bytes: 3196
 Software: arv@e8c6358ab75d
-Copies: 1
 
 Id: SCAN-01_1995-2008_D
 Uuid: ac18782e-52f2-4d60-bf5b-12a08f877683
@@ -101,7 +98,6 @@ Access: private
 Files: 25
 Bytes: 2504433
 Software: arv@e8c6358ab75d
-Copies: 1
 
 Id: SCAN-02_1995-2008_B
 Uuid: e0f4723b-7f8f-452f-837c-f7c551214a2c
@@ -124,7 +120,6 @@ Access: private
 Files: 26
 Bytes: 2604875
 Software: arv@e8c6358ab75d
-Copies: 1
 
 Id: SCAN-03_1995-2008_9
 Uuid: f9367e32-55c5-44fc-af7a-acfc8621fa15
@@ -147,7 +142,6 @@ Access: private
 Files: 5
 Bytes: 500846
 Software: arv@e8c6358ab75d
-Copies: 1
 
 Id: FAMILY-01_2020-2021_K
 Uuid: 5199fb32-b7b5-42ee-9d16-1e7b836fdefe
@@ -166,7 +160,6 @@ Access: private
 Files: 16
 Bytes: 8828
 Software: arv@e8c6358ab75d
-Copies: 1
 
 %rec: Binding
 %doc: How one volume is stored on its medium: the container (filesystem) and the
@@ -520,6 +513,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy
+Copy: A
 
 Disc: PROJ-01_2020-2023_L
 Type: replication
@@ -528,6 +522,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy
+Copy: A
 
 Disc: TAXES-01_2019-2020_I
 Type: replication
@@ -536,6 +531,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy
+Copy: A
 
 Disc: SCAN-01_1995-2008_D
 Type: replication
@@ -544,6 +540,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy
+Copy: A
 
 Disc: SCAN-02_1995-2008_B
 Type: replication
@@ -552,6 +549,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy
+Copy: A
 
 Disc: SCAN-03_1995-2008_9
 Type: replication
@@ -560,6 +558,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy
+Copy: A
 
 Disc: FAMILY-01_2020-2021_K
 Type: replication
@@ -568,6 +567,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy
+Copy: A
 
 Disc: TRIP-01_2019_4
 Type: replication
@@ -576,6 +576,7 @@ Outcome: success
 Authorship: human
 Agent: human:root
 Note: burned 1 copy, kept at Parents' house; second copy for the parents
+Copy: B
 
 Disc: PROJ-01_2020-2023_L
 Type: metadata modification

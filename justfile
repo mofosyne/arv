@@ -21,13 +21,37 @@ test:
 bless:
     sh tests/reference/generate.sh
 
-# Install arv into PREFIX (installs the last commit)
+# Install arv for yourself, in ~/.local (no sudo; ~/.local/bin on PATH), or in PREFIX if given
 install prefix=(env_var("HOME") + "/.local"):
     make install PREFIX="{{prefix}}"
 
-# Remove what `just install` put in PREFIX (never touches catalogues)
+# Remove what `just install` put there (give the same PREFIX if you gave one); never touches archives
 uninstall prefix=(env_var("HOME") + "/.local"):
     make uninstall PREFIX="{{prefix}}"
+
+# Install arv for everyone, in /usr/local (asks for sudo)
+install-system:
+    make
+    sudo make install PREFIX=/usr/local
+
+# Remove what `just install-system` put in /usr/local (asks for sudo); never touches archives
+uninstall-system:
+    sudo make uninstall PREFIX=/usr/local
+
+# Which arv runs here, and which commit it is (a manual install in /usr/local comes before a package)
+where:
+    @command -v arv || echo "arv is not on PATH (just install, then make sure ~/.local/bin is on PATH)"
+    @arv --version 2>/dev/null || true
+
+# Build a Debian/Ubuntu package (../arv_*.deb; then: sudo apt install ../arv_*.deb); its debian/
+# lives in packaging/debian and is copied to the top only while building
+deb:
+    test ! -e debian || { echo "debian/ is in the way: remove it, packaging/debian is the one"; exit 1; }
+    cp -r packaging/debian debian && trap 'rm -rf debian' EXIT && dpkg-buildpackage -us -uc -b
+
+# Build and install the Arch Linux package (arv-git, the latest commit pushed to GitHub)
+arch:
+    cd packaging/arch && makepkg -si
 
 # Rebuild the sample discs (dvdisaster Light on PATH; commit first: discs carry the last commit)
 samples:

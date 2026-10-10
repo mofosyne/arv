@@ -46,12 +46,15 @@ typedef struct {
     char *path, *catalog_dir, *config_dir, *drafts_dir, *cache_dir, *rec_path;
     char *how;              /* how it was found, in the Python arv's words */
 } arv_home;
-void home_find(arv_home *h, const char *given, const char *source);
+void home_find(arv_home *h, const char *given, const char *source);   /* stops, saying how to make one, when none */
+int home_try(arv_home *h, const char *given, const char *source);     /* -1 when there is none */
+extern const char NO_HOME[];                                            /* what home_find says then */
 extern const char *home_archive_name;   /* --archive NAME: a home from the machine config */
 void home_at(arv_home *h, const char *path);
 void home_ensure(const arv_home *h);
 char *home_volume_file(const arv_home *h, const char *disc_id, const char *name);
 void layout_notes(const arv_home *h, const char *abs, FILE *out, const char *prefix);   /* status.c */
+char *path_manifest(const arv_home *h, const char *path, size_t *files);                /* status.c */
 char *home_root(const arv_home *h);                     /* the folder holding the home */
 extern const char *const HOME_VOCABULARIES[];           /* config/'s files that discs carry: sets.rec, tags.rec */
 char *path_rel(const char *root, const char *abs);      /* relative to root when inside it, else as it is */
@@ -120,6 +123,17 @@ rec_record *new_event(const char *disc_id, const char *type, const char *outcome
                       const char *authorship, const char *note);
 char *person(void);
 char *place(const archive *a, const char *text);
+void place_check(const archive *a, const char *text);
+/* copies: replication events, each named by a letter (Copy: A, B ...) */
+size_t disc_copies(const archive *a, const char *disc_id);
+int copy_exists(const archive *a, const char *disc_id, const char *letter);
+int copy_letter_ok(const char *s);
+char *copy_next(const archive *a, const char *disc_id);
+int copy_read_back(const archive *a, const char *disc_id, const rec_record *copy);
+const rec_record *copy_by_bca(const archive *a, const char *bca);   /* an event naming the copy with that serial */
+/* the BCA serial of the disc in a drive (Linux): 32 hex digits; -1 when there is none (drive.c) */
+int drive_bca(const char *device, char out[33]);
+int bca_normal(const char *text, char out[33]);     /* --bca as given: its first 16 bytes, in hex */
 /* hot, warm or cold: the place's Temperature, or the nearest place above it that has one; NULL */
 const char *place_temperature(const archive *a, const char *code);
 int temperature_ok(const char *t);
@@ -278,6 +292,12 @@ void names_free(name_issues *x);
 char *volume_label(const char *disc_id, const char *text);
 
 #define VERSION "arv 0.4"
+#define FORMAT_VERSION "0.5"   /* the disc format (docs/spec/smart-archive-format.md) */
+/* arv's source tree (for tools/), and "arv@<commit>" from it (make.c) */
+char *find_source(const char *given);
+char *software_version(const char *source, int *is_git);
+void progress_line(uint64_t done, uint64_t total);
+extern const char MAKE_HELP[];                       /* arv make --help (make.c) */   /* a percentage on a terminal (rs03_progress) */
 
 typedef struct {
     char *path;     /* as in the manifest: data/... or a tag file */

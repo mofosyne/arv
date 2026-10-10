@@ -1,0 +1,29 @@
+Source: arv
+Section: utils
+Priority: optional
+Maintainer: mofosyne <mofosyne@gmail.com>
+Build-Depends: debhelper-compat (= 13), git, python3, 7zip | p7zip-full
+Standards-Version: 4.6.2
+Homepage: https://github.com/mofosyne/arv
+Vcs-Git: https://github.com/mofosyne/arv.git
+Vcs-Browser: https://github.com/mofosyne/arv
+Rules-Requires-Root: no
+
+Package: arv
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: python3, 7zip | p7zip-full, git, xorriso
+Suggests: gddrescue
+Description: Archive, Record, Verify: long-term personal archiving on discs
+ arv keeps a personal archive's record over decades: collections with their
+ history, what is archived on which disc, every copy's place, and when it was
+ last checked. It makes self-describing Blu-ray disc images: plain files, a
+ BagIt bag, the catalogue of the whole archive, the source of the tools that
+ made it, and dvdisaster-compatible RS03 error correction, readable without arv.
+ .
+ Experimental: the disc format is a draft (0.5). Keep your data where it is
+ and treat discs made with this as an extra copy while you test it.
+ .
+ Recommends python3 for the browser interface (arv gui), 7zip for reading
+ images in checks, git for the tool source on each disc, and xorriso for
+ burning; gddrescue reads damaged discs into images.

@@ -2,7 +2,8 @@
  *
  *   arv plan new NAME [--medium M] [--set CODE] [--title TEXT] [--description TEXT] [--access LEVEL] [--discs N]
  *   arv plan list [--all]           open plans (--all: made ones too)
- *   arv plan show NAME [--json]
+ *   arv plan show NAME [--json] [--archived]   (--archived: hashes each item, through the hash
+ *                                  cache, and says what of it is on discs already)
  *   arv plan add NAME SOURCE... [--disc N|new|auto] [--as PATH]
  *   arv plan move NAME PATH... --disc N|new [--from N]
  *   arv plan drop NAME PATH... [--from N]
@@ -421,7 +422,72 @@ static void bar(char out[23], long used, long cap)
     out[22] = 0;
 }
 
-static void show(const arv_home *h, disc_plan *p, int as_json)
+/* what of a planned item is on discs already: its files there (any disc that is not retired), and
+ * the data object version it is, when its content is one archived before */
+typedef struct {
+    size_t files, on;
+    const rec_record *object;     /* an archived version with the same Tree, or NULL */
+    strlist discs;                /* the discs holding that version (not retired) */
+} archived;
+
+static void item_archived(const arv_home *h, const archive *cat, const strlist *have, const plan_item *it, archived *a)
+{
+    memset(a, 0, sizeof *a);
+    struct stat st;
+    char *text = path_manifest(h, it->source, &a->files);
+    if (!text || !a->files) {
+        free(text);
+        return;
+    }
+    char tree[65];
+    if (!stat(it->source, &st) && S_ISREG(st.st_mode)) {        /* a file's Tree is its own SHA-256 */
+        memcpy(tree, text, 64);
+        tree[64] = 0;
+    } else {
+        text_sha256(text, tree);
+    }
+    for (size_t i = 0; i < cat->objects.n; i++) {
+        const rec_record *o = cat->objects.v[i], *d = archive_disc(cat, rec_get(o, "Disc") ? rec_get(o, "Disc") : "");
+        if (!rec_get(o, "Tree") || strcmp(rec_get(o, "Tree"), tree) || !d || rec_get(d, "Retired")) continue;
+        a->object = o;
+        if (!strlist_has(&a->discs, rec_get(o, "Disc"))) strlist_add(&a->discs, rec_get(o, "Disc"));
+    }
+    for (char *l = text; *l;) {
+        char *nl = strchr(l, '\n');
+        if (nl) *nl = 0;
+        if (strlen(l) > 66) {
+            l[64] = 0;
+            char *key = l;
+            a->on += have->n && bsearch(&key, have->v, have->n, sizeof *have->v, by_str) != NULL;
+        }
+        l = nl ? nl + 1 : l + strlen(l);
+    }
+    free(text);
+}
+
+/* the SHA-256 of every file on a disc that is not retired, sorted */
+static void archived_hashes(const arv_home *h, const archive *cat, strlist *out)
+{
+    for (size_t i = 0; i < cat->discs.n; i++) {
+        const rec_record *d = cat->discs.v[i];
+        if (rec_get(d, "Retired") || !rec_get(d, "Id")) continue;
+        char *m = home_volume_file(h, rec_get(d, "Id"), "manifest.sha256"), *t = access(m, F_OK) ? NULL : read_text(m);
+        for (char *l = t; l && *l;) {
+            char *nl = strchr(l, '\n');
+            if (nl) *nl = 0;
+            if (strlen(l) > 66) {
+                l[64] = 0;
+                strlist_add(out, l);
+            }
+            l = nl ? nl + 1 : l + strlen(l);
+        }
+        free(t);
+        free(m);
+    }
+    if (out->n) qsort(out->v, out->n, sizeof *out->v, by_str);
+}
+
+static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived)
 {
     rec_record *hd = head(p);
     const char *label;
@@ -432,6 +498,15 @@ static void show(const arv_home *h, disc_plan *p, int as_json)
     for (int d = 0; d <= p->discs; d++) used[d] = 0, bytes[d] = 0;
     int *chg = xmalloc((p->n + 1) * sizeof *chg), made = rec_get(hd, "Made") != NULL;
     size_t changed = 0;
+    archived *ar = want_archived ? xmalloc((p->n + 1) * sizeof *ar) : NULL;
+    if (want_archived) {
+        archive cat;
+        strlist have = { 0 };
+        archive_load(&cat, h->rec_path);
+        archived_hashes(h, &cat, &have);
+        for (size_t i = 0; i < p->n; i++) item_archived(h, &cat, &have, &p->v[i], &ar[i]);
+        strlist_free(&have);
+    }
     for (size_t i = 0; i < p->n; i++) {
         changed += (chg[i] = !made && changed_since(&p->v[i]));
         m[i] = item_size(&p->v[i]);
@@ -475,8 +550,20 @@ static void show(const arv_home *h, disc_plan *p, int as_json)
                 sb_puts(&b, ", \"origin\": ");
                 if (p->v[i].origin) json_str(&b, p->v[i].origin);
                 else sb_puts(&b, "null");
-                sb_printf(&b, ", \"changed\": %s, \"kind\": \"%s\", \"bytes\": %llu, \"files\": %ld}", chg[i] ? "true" : "false",
+                sb_printf(&b, ", \"changed\": %s, \"kind\": \"%s\", \"bytes\": %llu, \"files\": %ld, \"archived\": ", chg[i] ? "true" : "false",
                           m[i].missing ? "missing" : m[i].folder ? "folder" : "file", (unsigned long long)m[i].bytes, m[i].files);
+                if (!ar || m[i].missing) sb_puts(&b, "null}");
+                else {
+                    sb_printf(&b, "{\"files\": %zu, \"onDiscs\": %zu, \"object\": ", ar[i].files, ar[i].on);
+                    if (ar[i].object) json_str(&b, (rec_get(ar[i].object, "Name") ? rec_get(ar[i].object, "Name") : "?"));
+                    else sb_puts(&b, "null");
+                    sb_printf(&b, ", \"version\": %ld, \"discs\": [", ar[i].object ? atol((rec_get(ar[i].object, "Version") ? rec_get(ar[i].object, "Version") : "0")) : 0L);
+                    for (size_t k = 0; k < ar[i].discs.n; k++) {
+                        sb_puts(&b, k ? ", " : "");
+                        json_str(&b, ar[i].discs.v[k]);
+                    }
+                    sb_puts(&b, "]}}");
+                }
                 any = 1;
             }
             sb_puts(&b, "]}");
@@ -521,6 +608,16 @@ static void show(const arv_home *h, disc_plan *p, int as_json)
                     if (p->v[i].origin) printf("  of %s", p->v[i].origin);
                     if (chg[i]) printf("  CHANGED since planned");
                     putchar('\n');
+                    if (ar && ar[i].object) {
+                        printf("      archived already: %s version %s, on", (rec_get(ar[i].object, "Name") ? rec_get(ar[i].object, "Name") : "?"),
+                               (rec_get(ar[i].object, "Version") ? rec_get(ar[i].object, "Version") : "0"));
+                        for (size_t k = 0; k < ar[i].discs.n; k++) printf("%s %s", k ? "," : "", ar[i].discs.v[k]);
+                        putchar('\n');
+                    } else if (ar && ar[i].files) {
+                        if (ar[i].on == ar[i].files) printf("      every file on discs already (not as one data object)\n");
+                        else if (ar[i].on) printf("      %zu of %zu files on discs already\n", ar[i].on, ar[i].files);
+                        else printf("      on no disc yet\n");
+                    }
                 }
             }
         }
@@ -622,7 +719,7 @@ static void say_where(const arv_home *h, disc_plan *p, int disc, const char *wha
 int cmd_plan(int argc, char **argv)
 {
     const char *given = NULL, *action = NULL, *name = NULL, *disc = NULL, *as = NULL, *from_s = NULL;
-    int as_json = 0, all = 0, copy = 0, yes = 0;
+    int as_json = 0, all = 0, copy = 0, yes = 0, on_discs = 0;
     strlist args = { 0 }, defaults = { 0 }, rest = { 0 };
     static const char *const SETTINGS[][2] = { { "--medium", "Medium" }, { "--set", "Set" }, { "--title", "Title" },
                                                { "--description", "Description" }, { "--access", "Access" } };
@@ -631,6 +728,7 @@ int cmd_plan(int argc, char **argv)
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (!strcmp(argv[i], "--json")) as_json = 1;
         else if (!strcmp(argv[i], "--all")) all = 1;
+        else if (!strcmp(argv[i], "--archived")) on_discs = 1;
         else if (!strcmp(argv[i], "--copy")) copy = 1;
         else if (!action) action = argv[i];
         else if (!name) {
@@ -815,7 +913,7 @@ int cmd_plan(int argc, char **argv)
 
     if (!strcmp(action, "show")) {
         if (args.n) return 2;
-        show(&h, &p, as_json);
+        show(&h, &p, as_json, on_discs);
         return 0;
     }
     if (!strcmp(action, "add")) {

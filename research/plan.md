@@ -82,7 +82,8 @@ All non-`data/` files are BagIt tag files, covered by the tagmanifests.
 ### Phase 2: whole-archive retrieval
 - [x] `catalog/` snapshot with `--snapshot full|set|disc` (+ `listings/` with sizes and dates)
 - [ ] ~~Snapshot hash chain~~ dropped for integrity (the tagmanifests already cover it); back as a *history* graph, see "Design: discs as nodes in a history graph" (2026-10-02)
-- [ ] Per-copy tracking via the BD-R BCA serial (deferred, low priority)
+- [x] Per-copy tracking: each copy a letter (`Copy:` on its replication event), its own place; checks name the copy
+- [x] The BD-R BCA serial as a copy's automatic id: read by `arv burned --device` and `arv check --device` (Linux, `drive.c`), or `--bca`; a Pioneer BDR-XD08 reads it from Verbatim BD-R without AACS authentication ([research/bca/](bca/README.md), issue #5)
 - [x] ~~`search.html` across the snapshot~~ (built, then removed 2026-10-01)
 - [x] ~~Generated `archive.sqlite` (`arv index`)~~ retired 2026-10-04: in C, scanning the
       plain-text lists finds a name among 2 million paths in 0.3 s, as fast as Python did with
@@ -208,6 +209,10 @@ All tiers remain optional, suggestion-only, and recorded as PREMIS events with t
   Katalog") instead of scanning. To propose to Katalog's developer
   ([StephaneCouturier/Katalog](https://github.com/StephaneCouturier/Katalog)), with the sample
   discs as test data.
+- **Sharpened 2026-10-10:** the line is the archive's care, not who made the disc. arv records
+  everything in the archive's care, old discs it takes in included (`arv found`, below);
+  Katalog indexes everything else. See "Decision (2026-10-10): keep the record, let other
+  tools do the work" and philosophy.md, principle 7.
 
 ## Design: four layers, and a binding per volume (2026-10-02; Binding done)
 
@@ -884,6 +889,174 @@ Open: whether the inner image is SquashFS (compact; 7-Zip and unsquashfs read it
 mounts); how `arv verify` and `arv check` treat a locked object (the manifest of the ciphertext,
 and the plaintext manifest inside the lock); the custody record (#21).
 
+## Decision (2026-10-09): no fallback home; a `.arv` says which catalogue, not what is tracked
+
+- **Before:** with no `.arv` here or above and no registered default, arv started an archive in
+  `~/.local/share/arv` without a word. In a first-hour test (research-notes.md, 10) `collection
+  init` and `make` did exactly that: an archive nobody chose, in a folder nobody backs up, and a
+  second one waiting to happen the first time arv runs outside the tree (half the discs in each,
+  `todo` and `find` seeing half).
+- **Now, as git does outside a repository:** no archive found means arv stops and says how to
+  make one (`arv init FOLDER`; `--name NAME --default` to use it from anywhere). `home_try` is the
+  lookup without the stop, for what needs no archive: `arv id`, `arv describe` on a folder, and
+  reading a disc. The older `bluray-archive` folder and `$BLURAY_ARCHIVE_HOME` went too (nobody
+  has arv yet).
+- **Kept:** the registered default, because arv is often run from *outside* the archive (at the
+  drive, a disc in hand: `arv burned`, `arv find`), unlike git, which is run inside the project.
+  It is opt-in and visible (`arv where`), and deleting `homes.rec` loses nothing. Names
+  (`--archive NAME`) stay either way.
+- **Bubbles, not cascades:** the nearest `.arv` wins outright; nothing is inherited from one
+  above. Archives are privacy spheres, so a sealed archive's records must never surface in
+  another's. arv walks past `.git`, so one `.arv` covers many repositories.
+- **A `.arv` decides which catalogue is used, never what is tracked.** Nothing scans the tree:
+  only `collection init`, `make`, `plan add` and `checkpoint` record anything, and `status`,
+  `objects` and `todo` look only at a folder named, or at the source paths already recorded.
+  `~/.arv` with a home full of caches costs nothing.
+- Open: dropping `Default:` for a pure "bubble only" model; what a writing command run from a
+  disc root (found as a read-only catalogue) does.
+
+## Decision (2026-10-09): each copy is a letter; images stay sector-identical
+
+- **Why not a copy id inside each image:** different bytes per copy would end the best recovery
+  there is, reading two damaged copies into one image with ddrescue and one map file, then
+  repairing with RS03; it would also mean an image per copy (25 GB each) and no single hash to
+  check every copy against. So the identity is outside the image: on the label and in the
+  catalogue.
+- **A copy is its `replication` event** (as the spec already said), now with `Copy: A`, `B` ...
+  (the next free letter, or `--copy X`), written on the hub and case after the id. Each copy
+  keeps its own `Location`, `MediaId` and `Bca`; checks name the copy they read; `todo` lists
+  copies never read back by letter. `--copies N` writes N events.
+- **No counter.** The disc's `Copies:` field (which `--copies N` raised by N while writing one
+  event, so the two disagreed) is gone: copies are counted from events, which only grow, so two
+  catalogues of one archive merge without losing any (next section).
+- **The BCA serial** identifies a BD-R by itself where the drive reads it
+  ([research/bca/](bca/README.md)): on Linux `arv burned --device` records it and refuses a disc
+  already recorded, and `arv check --device` knows which copy it holds. The letter stays the
+  name: an image file or folder has no BCA, other systems and USB bridges may not pass the
+  command through, and a person decades from now reads the hub.
+- Open: moving one copy (`locate --copy`), a copy lost or destroyed (an event naming it), and two
+  forked catalogues both giving out the same letter (a merge should flag it, not combine them).
+
+## Design (2026-10-09, not implemented): several catalogues of one archive
+
+Nothing stops two catalogues sharing one archive id: copy a `.arv` folder, or `arv rebuild` from
+a disc into a second place, and both take writes. Merging them back is `archive_merge` (what
+`rebuild` uses).
+
+- **Merges cleanly:** everything that only grows: events, revisions (by `Node`), data object
+  versions, appraisals, selection items. A union, in any order.
+- **Breaks, silently:**
+  - *Numbers.* The next disc sequence and edition number come from the local catalogue
+    (`archive_next_number`), so two forks each make `FAMILY-02_...`, each "edition 2": two discs,
+    one id. The merge matches discs by id and keeps one record; the other's events attach to it.
+  - *Counters.* `Copies:` was one (fixed: copies are events now, previous section).
+  - *Fields that change* (a disc's places, notes, a location's parent): one side wins, by a flag
+    (`--prefer-disc`), with no report that they differed.
+- **What works today is one catalogue written, many read-only copies:** every disc carries a
+  snapshot with the same archive id, but a snapshot never moves on by itself.
+
+The way there, each step useful alone:
+
+1. **"This is a copy" guard.** The catalogue records where it lives; a write to a copy found
+   elsewhere stops ("this is a copy of the archive at /nas/.arv: use a pointer, or
+   `arv init --move-here` if the old one is gone"). Moving becomes deliberate and logged; reading
+   a copy (`find`, `list`) stays fine.
+2. **Remotes you pull from:** `arv remote add NAME PATH` (same archive id only), `remote remove`,
+   `remote -v`; `arv pull [NAME]` (the rebuild merge, the remote's fields winning); `arv clone PATH
+   DEST` (origin set). The local copy stays read-only between pulls, by step 1. A disc is a remote
+   too (`arv pull /media/disc` is `rebuild`). Remotes live in `config/remotes.rec`, which never
+   goes on a disc (only `sets.rec` and `tags.rec` do), so local paths and host names do not leak.
+   Paths only at first (a mounted share); ssh later through `rsync` or `scp`, as `make` runs git.
+3. **Push, only when writing on two machines is needed:** numbers no two catalogues can both give
+   out (a short prefix per catalogue, or a check against every catalogue seen), and conflicts on
+   changing fields reported rather than resolved. Then merging is a union, and `push` is `pull`
+   the other way.
+
+## Decision (2026-10-10): keep the record, let other tools do the work
+
+- arv is a command-line tool first and keeps to the Unix way. Its one job is **the record** of
+  what is in the archive's care, made trustworthy by checking (read-back, hashes, verification).
+  The work the record describes (burning, copying, imaging, listing, indexing) belongs to tools
+  built for it, which arv already leans on: `burned` checks what a burner wrote, `stored` what
+  cp or rsync copied, `check --repair` an image ddrescue read. Written into philosophy.md as
+  principle 7.
+- **The boundary is care, not maker:** an old disc you keep is the archive's from the day it is
+  found (as an archivist records a box on arrival, before it is sorted); everyday storage is not,
+  until something on it is taken in.
+- **The test for anything new:** does it keep the record, or do the work? Where arv does work
+  itself (writing the image: UDF, BagIt, RS03), it is because the image is the format, and those
+  parts are programs of their own.
+- Talked through first: a custody record that grew a scanner and an index (a listing of every
+  old disc's files, made by arv) was dropped. Listing is `7z l`, `isoinfo -l` or fiwalk's job, and
+  browsing is Katalog's; arv may later *read* a listing they made, never make one.
+
+## Design (2026-10-10, not implemented): `arv found`, an old disc taken into the archive
+
+Old data discs (CD-R and DVD-R from the 2000s, BD-R not made by arv) are often the only copy of
+what is on them, and failing. Born-digital archives handle them in an order arv can follow:
+**record the carrier, image it once, appraise and process later from the image**, never from
+the original. arv does the first and keeps the record of the rest; imaging is ddrescue's.
+
+```sh
+ddrescue -b 2048 /dev/sr0 old-2004.iso old-2004.map      # the work: another tool's
+arv found old-2004.iso --device /dev/sr0 --map old-2004.map --set OLD --title "Holiday 2004" \
+          --location BOX2 --note "CD-R, marker on the label: Holiday 04"
+arv plan add rescue old-2004.iso                         # later: the image onto an arv disc
+```
+
+- **What it reads, all read only:** the image's SHA-256 (one pass, as `stored` reads one); from a
+  few sectors, the volume label and the file system's own creation date and size (ISO 9660's
+  primary volume descriptor, or UDF's); from the drive, if given, the media id and the BCA
+  serial (`drive.c`); from the ddrescue map, if given, whether the image is whole or how many
+  bytes could not be read. No walk through the files, no look inside them.
+- **What it records:** a `Disc` record with `Origin: found` (not made by arv), an id from its set
+  with a check character (`OLD-03_2004_K`, written on the sleeve), the label, a title, the
+  coverage from the file system date, the place, and `ImageSha256` of the image as read, so
+  `arv check --device` can later read the old disc back against it and see it decay. The
+  original disc is its copy A (`Form: disc`, with its `Bca`); the image file, if kept, its copy
+  B (`Form: iso`, `Path`), as `stored` would record it. An event records the capture: the tool,
+  the map's verdict, the note.
+- **Rescue needs nothing new:** `arv plan add NAME old.iso` puts the image on an arv disc as a data
+  object. Its `Tree` is the image's SHA-256, which is the found disc's `ImageSha256`, so arv
+  knows by content alone which arv disc now holds the old disc, and `todo` can list found discs
+  held on no arv disc yet ("not rescued"). Taking files out of the image into a collection is a
+  later, separate step; the image, the disc as it was found, stays.
+- **Snapshots** carry a found disc's identity record like any other disc's, and no file listing
+  (it has none). A listing made by another tool (`7z l`, `isoinfo -l`, fiwalk's DFXML) may come
+  later as `--listing FILE`, kept at home for `arv find`; arv never makes one.
+- **Name:** in the Record group (it records, as `burned` and `stored` do). `arv found` today,
+  `arv record found` if commands get group prefixes (open).
+- Open: the PREMIS event type for the capture; whether a found disc that will not read at all
+  (no image) is recorded by identity alone (`arv found --device DRIVE`, the BCA and label only);
+  CD-R and DVD-R have no BCA readable this way, so they are told apart by id and label only.
+
+## Later: an interface for other software (2026-10-10, after arv is stable)
+
+Katalog and other archival software should not have to parse arv's text output, which is
+written for people and may change any time. Not worth building until the commands settle (a
+promise made now would freeze what is still moving), but the shape is clear:
+
+- **Reading: the files are the interface,** and already are: the format spec, versioned and only
+  ever added to, with "Reading a disc", the virtual-tree section and "Mapping to Katalog". The
+  home catalogue (`.arv/catalog/`) is laid out as a disc's `catalog/`; its home-only parts (object
+  sources and manifests, revision manifests, plans) need documenting in one place.
+- **Writing: only through arv.** Nothing locks the catalogue, so another program writing
+  `archive.rec` while arv runs can lose records. To be said in the spec ("For other software"),
+  with documented exit codes (perhaps `sysexits.h`: 64 usage, 65 bad data ...).
+- **Machine output: `--json` on the commands others call** (`list`, `find`, `todo`, `status`, `id`,
+  `where`, and the results of `check`, `burned`, `stored`; `objects --json` and `plan show --json`
+  exist). The stable "ABI" is a versioned contract, not a command id: every reply says
+  `"format": "arv-json 1"`, and within 1 fields are only added, as on discs (COM's rule for its
+  interface GUIDs and D-Bus's for `Name2`, with a readable number). As in FreeBSD's libxo, each
+  command would build one record of its result and render it as text or JSON, so the two cannot
+  drift; text stays free to read better. The GUI could then use these instead of reading the
+  catalogue in Python itself.
+- **Perhaps:** `arv --help --json` (every command, its options and its output format), so other
+  software discovers what this arv offers; a CWL description of the main commands, for research
+  workflow systems. Only if someone asks.
+- Prior art: git `--porcelain`, libxo, jc (which exists because most tools have no machine
+  output), `sysexits.h`, CWL.
+
 ## Later: catalogue snapshot size
 
 Each disc carries every earlier disc's manifests, listings and format IDs:
@@ -902,6 +1075,19 @@ about 430 bytes per file in the archive. Up to about a million files that is und
 ## Open decisions
 
 - Licence for this repo (GPLv3 fits if the RS03 library happens)
+- **`archival-udf.md` as a standalone UDF reader's spec** (2026-10-10, a to-do). Today it is a
+  profile: the rules on top of ECMA-167 and UDF 2.50, not the byte layout of their structures, so
+  a reader cannot be written from it alone. It could be: describe only the structures arv writes
+  (anchor, descriptor sequences, partition and metadata maps, file set, extended file entries,
+  identifiers, `short_ad`/`long_ad`), and prove it complete with a reader written from it alone,
+  as `dev-tools/rs03-spec-check.py` does for RS03. Less pressing now that discs can be read
+  without any UDF reader (spec, "Extents"), with `udfwrite`'s source on every disc as the
+  executable description.
+- **What every disc, and the package, carry in `tools/`** (2026-10-10, issue #32). Decided: a
+  whitelist, `disc-tools.txt`. The UDF and ECMA standards' zip (69.6 MB, 97% of the old tree, its
+  licence and origin not written down) stays in the repository but off the discs and out of the
+  package; discs carry our profile (`archival-udf.md`). Open: whether to point to the published
+  standards from the profile, and what the zip's terms are.
 - **Editions under a distributed collection** (2026-10-06). The archive is the union of the
   workflow folder, warm images and cold discs; a disc holds a selection plus a catalogue copy
   ([concepts.md](../docs/concepts.md)). But "a newer safe edition replaces older ones" still
@@ -918,14 +1104,16 @@ about 430 bytes per file in the archive. Up to about a million files that is und
   (`From: NAME`); deleting one is always safe. Links stay the default (2026-10-07), with
   `plan add --copy` (the plan's own copy, `Origin:`), `Seen:` stamps and `plan refresh`, relative
   sources, a home beside arv (portable), and make checking bytes against the manifest as written.
-  Open: `--formats` for a plan; whether a plan can
-  make an edition of a collection; `plan show` marking what is already on discs (by hash).
+  `--formats` for a plan: Siegfried on each item where it is (2026-10-08). `plan show --archived` marks what is
+  already on discs, by hash (2026-10-08). Open: whether a plan can make an edition of a collection.
 - **Data objects** (built 2026-10-06). Each plan item becomes an `Object` record (Uuid lineage,
   Version, Tree, Disc, Path, Kind); `Source` and the manifests (`catalog/objects/`) stay at home.
   Same Tree = same version; same Source, new Tree = next version; empty objects never match.
   `arv status` reports objects from a folder exactly, and a folder whose whole Tree matches an
   object by content; `arv find` lists them. `arv make FOLDER` records the folder as one object
-  when it fits on one disc (2026-10-07). Open: `arv retire`-like care for an object's last version.
+  when it fits on one disc (2026-10-07). `arv retire DISC-ID` retires one disc of no edition,
+  refusing the only copy of an object's newest version (and any file on no other disc) unless
+  `--accept-loss` (2026-10-08).
 - **The union view** (built 2026-10-06). `arv objects [NAME]`: per data object (each version)
   and per collection (its newest edition), the discs holding it, every copy of them (form,
   temperature, read back) and whether the original is still there. `arv todo` adds: a newest

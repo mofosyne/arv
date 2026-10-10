@@ -9,6 +9,7 @@ and keep its documentation honest.
 | `fixtures.c` | runs the language-neutral cases in `tests/fixtures/` against arv's C code (`make -C src/arv check`) |
 | `fake-llm.c`, `fake-llama-embedding` | a model server and a `llama-embedding` that answer from files, so `make -C src/arv-assist check` needs no model |
 | `ptyrun.c` | runs a program in a pseudo-terminal, so the checks can answer an interactive `arv make` |
+| `disc-probe.c` | asks an optical drive (Linux) what it reads of the disc in it: the media's maker and type, and the BCA serial that would tell one copy from another. Read only; for the first-burn drill (`cc -o disc-probe dev-tools/disc-probe.c && ./disc-probe /dev/sr0`); results in [research/bca/](../research/bca/README.md) |
 | `rs03-spec-check.py` | RS03 augmenting written from [docs/spec/rs03-format.md](../docs/spec/rs03-format.md) alone, in another language on purpose: it shows the spec is complete (`make -C src/rs03 check` compares it with arv) |
 | `demo-cast.py` | records `docs/demo/arv.cast`, the asciinema demo on the website, by running a typical session (Archive, Record, Verify) for real |
 | `screenshots.sh` | retakes `docs/screenshots/` (arv gui and a disc's index.html) from the samples, with headless Chromium |

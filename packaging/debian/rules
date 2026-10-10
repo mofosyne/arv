@@ -1,0 +1,10 @@
+#!/usr/bin/make -f
+# Builds with the top Makefile: make, make check (unless DEB_BUILD_OPTIONS has nocheck), and
+# make install into the package, with zsh completion where Debian keeps it.
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+%:
+	dh $@
+
+override_dh_auto_install:
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/arv PREFIX=/usr ZSHCOMPDIR=/usr/share/zsh/vendor-completions

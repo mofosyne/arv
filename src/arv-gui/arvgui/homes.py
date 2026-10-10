@@ -5,15 +5,16 @@ the everyday tree, above any git or backup repositories), never inside them. Loo
 first that answers wins:
 
 1. ``--home PATH``, or ``--archive NAME`` (a name from the machine config);
-2. ``$ARV_HOME`` (``$BLURAY_ARCHIVE_HOME`` is still read);
+2. ``$ARV_HOME``;
 3. walking up from the folder being archived (`arv make FOLDER`), then from the current folder:
      ``.arv/`` folder       the catalogue itself;
      ``.arv`` file          a pointer: one line ``Home: PATH`` (relative to the file's folder),
                             for a second tree that belongs to the same archive;
      ``catalog.rec`` and ``catalog/archive.rec``  the root of an archive disc (read in place);
    git's ``.git`` does not stop the walk;
-4. the machine config ``$XDG_CONFIG_HOME/arv/homes.rec``: its ``Default: yes`` home, or its only one;
-5. ``$XDG_DATA_HOME/arv`` (or ``~/.local/share/bluray-archive`` when that older home exists).
+4. the machine config ``$XDG_CONFIG_HOME/arv/homes.rec``: its ``Default: yes`` home, or its only one.
+
+None of these: there is no archive, and nothing makes one unasked (as git: ``arv init``).
 
 Paths are machine-local, so the machine config never travels on discs; deleting it loses
 nothing (the walk-up and --home still work).
@@ -106,12 +107,10 @@ def walk_up(start=None):
         folder = parent
 
 
-def legacy_or_default():
-    base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
-    old = os.path.join(base, "bluray-archive")
-    if os.path.isdir(old):
-        return old
-    return os.path.join(base, "arv")
+NO_HOME = ("arv: no archive here or in any folder above, and no default archive on this machine.\n"
+           "  arv init FOLDER                          make one at the root of what it describes (e.g. /nas)\n"
+           "  arv init FOLDER --name NAME --default    and use it from anywhere on this machine\n"
+           "  (--home HOME or $ARV_HOME names one for a single run)")
 
 
 def find(home=None, archive=None, start=None, source=None):
@@ -127,9 +126,8 @@ def find(home=None, archive=None, start=None, source=None):
             raise SystemExit("Error: no home named %s in %s (`arv init --name %s` adds one)"
                              % (archive, config_path(), archive))
         return rec.get("Path"), "--archive %s (%s)" % (archive, config_path())
-    for var in ("ARV_HOME", "BLURAY_ARCHIVE_HOME"):
-        if os.environ.get(var):
-            return os.environ[var], "$" + var
+    if os.environ.get("ARV_HOME"):
+        return os.environ["ARV_HOME"], "$ARV_HOME"
     found = (source and os.path.isdir(source) and walk_up(source)) or walk_up(start)
     if found:
         return found
@@ -137,4 +135,4 @@ def find(home=None, archive=None, start=None, source=None):
     default = [h for h in homes if (h.get("Default") or "").lower() == "yes"] or (homes if len(homes) == 1 else [])
     if default:
         return default[0].get("Path"), "the default home in %s" % config_path()
-    return legacy_or_default(), "the fallback home (no .arv found above %s)" % os.path.abspath(start or os.getcwd())
+    raise SystemExit(NO_HOME)

@@ -1,6 +1,6 @@
 /* Finding the home catalogue, in the order src/arv/homes.py uses (see its docstring):
  * --home (-C), $ARV_HOME, a .arv folder / .arv pointer file / disc root from the folder being
- * archived or the current folder up, the machine config, then $XDG_DATA_HOME/arv. */
+ * archived or the current folder up, then the machine config; none found: no home (home_try), or a stop (home_find). */
 #define _XOPEN_SOURCE 700
 #include "arv.h"
 
@@ -130,7 +130,7 @@ void home_at(arv_home *h, const char *path)
     h->rec_path = join(h->catalog_dir, "archive.rec");
 }
 
-void home_find(arv_home *h, const char *given, const char *source)
+int home_try(arv_home *h, const char *given, const char *source)
 {
     char *how = NULL;
     char *found = NULL;
@@ -141,11 +141,10 @@ void home_find(arv_home *h, const char *given, const char *source)
     } else if (home_archive_name) {
         found = named_home(home_archive_name, &how);
     }
-    for (const char *const *var = (const char *const[]){ "ARV_HOME", "BLURAY_ARCHIVE_HOME", NULL }; !found && *var; var++)
-        if (getenv(*var) && *getenv(*var)) {
-            found = xstrdup(getenv(*var));
-            how = xprintf("$%s", *var);
-        }
+    if (!found && getenv("ARV_HOME") && *getenv("ARV_HOME")) {
+        found = xstrdup(getenv("ARV_HOME"));
+        how = xstrdup("$ARV_HOME");
+    }
     if (!found && source && is_dir(source)) found = walk_up(source, &how);
     if (!found) found = walk_up(".", &how);
     if (!found) {               /* portable: a home on the same drive as arv itself (arv.com and .arv/ side by side) */
@@ -162,20 +161,25 @@ void home_find(arv_home *h, const char *given, const char *source)
         how = xprintf("the default home in %s", cp);
         free(cp);
     }
-    if (!found) {
-        const char *xdg = getenv("XDG_DATA_HOME"), *home = getenv("HOME");
-        char *base = xdg && *xdg ? xstrdup(xdg) : xprintf("%s/.local/share", home ? home : ".");
-        char *old = join(base, "bluray-archive");
-        found = is_dir(old) ? old : join(base, "arv");
-        if (found != old) free(old);
-        free(base);
-        char *cwd = getcwd(NULL, 4096);
-        how = xprintf("the fallback home (no .arv found above %s)", cwd ? cwd : ".");
-        free(cwd);
-    }
+    if (!found) return -1;      /* no archive: as git, arv never makes one nobody asked for */
     home_at(h, found);
     h->how = how;
     free(found);
+    return 0;
+}
+
+const char NO_HOME[] =
+    "arv: no archive here or in any folder above, and no default archive on this machine.\n"
+    "  arv init FOLDER                          make one at the root of what it describes (e.g. /nas)\n"
+    "  arv init FOLDER --name NAME --default    and use it from anywhere on this machine\n"
+    "  (-C HOME or $ARV_HOME names one for a single command)\n";
+
+void home_find(arv_home *h, const char *given, const char *source)
+{
+    if (home_try(h, given, source)) {
+        fputs(NO_HOME, stderr);
+        exit(1);
+    }
 }
 
 /* the vocabularies in config/ that a full catalogue snapshot carries (catalog/config/), so the

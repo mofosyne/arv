@@ -21,7 +21,7 @@ from urllib.parse import parse_qs, urlparse
 
 from . import catalog, recfile
 
-DISC_FIELDS = ("Id", "Part", "Title", "Set", "Category", "Path", "Coverage", "Date", "Location", "Description", "Subject", "Note", "Files", "Copies")
+DISC_FIELDS = ("Id", "Part", "Title", "Set", "Category", "Path", "Coverage", "Date", "Location", "Description", "Subject", "Note", "Files")
 
 
 DRAFT_FIELDS = ("title", "description", "subjects", "folder_tags")
@@ -78,7 +78,10 @@ class Job:
 
 class App:
     def __init__(self, home, llm_options=None):
-        self.home = catalog.Home(home)
+        try:
+            self.home = catalog.Home(home)
+        except SystemExit:          # no archive here or above, and no default: the page offers to make one
+            self.home = None
         self.llm_options = llm_options or {}
         self.token = secrets.token_urlsafe(24)
         self.jobs = {}
@@ -114,6 +117,26 @@ class App:
                 "files": [{"disc": d.get("Id"), "title": d.get("Title"), "location": cat.where(d), "path": p}
                           for d, p in file_hits[:500]],
                 "total": len(file_hits)}
+
+    # ------------------------------------------------------------ the first run: no archive yet
+
+    def setup(self, params):
+        return {"needed": self.home is None, "cwd": os.getcwd(), "home": self.home.path if self.home else None}
+
+    def post_init(self, body):
+        """arv init FOLDER [--name NAME [--default]]: an archive where the person chooses, then this one."""
+        folder = os.path.abspath(os.path.expanduser(body.get("folder") or ""))
+        name = (body.get("name") or "").strip()
+        if not os.path.isdir(folder):
+            raise ValueError("%s is not a folder" % folder)
+        if body.get("default") and not name:
+            raise ValueError("a name is needed to use it from anywhere")
+        argv = [ARV, "init", folder] + (["--name", name] if name else []) + (["--default"] if body.get("default") else [])
+        proc = subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=60)
+        if proc.returncode == 0:
+            self.home = catalog.Home(os.path.join(folder, ".arv"))
+        return {"returncode": proc.returncode, "output": (proc.stdout + proc.stderr).strip(),
+                "home": self.home.path if self.home else None}
 
     def browse(self, params):
         path = os.path.abspath(os.path.expanduser(params.get("path") or "~"))
@@ -156,6 +179,54 @@ class App:
             raise LookupError(text)
         return json.loads(text)
 
+    def collections(self, _params):
+        """Each collection and its editions (the Collections tab): the discs of each, their copies,
+        and whether the edition is safe (every disc read back), kept, replaced, retired."""
+        cat = self.home.load()
+        good = {e.get("Disc") for e in cat.events
+                if e.get("Type") == "replication" and e.get("ReadBack") == "identical" and e.get("Outcome") != "failure"}
+        copies = {}
+        for e in cat.events:
+            if e.get("Type") == "replication" and e.get("Outcome") != "failure":
+                copies[e.get("Disc")] = copies.get(e.get("Disc"), 0) + 1
+        out = []
+        for c in cat.collections:
+            revs = [r for r in cat.revisions if r.get("Collection") == c.get("Uuid")]
+            editions = []
+            for r in sorted((r for r in revs if r.get("Edition")), key=lambda r: int(r.get("Edition"))):
+                discs = []
+                for vol in r.get_all("Volume"):
+                    d = cat.disc(vol)
+                    discs.append({"id": vol, "copies": copies.get(vol, 0), "readBack": vol in good,
+                                  "retired": d.get("Retired") if d is not None else None, "where": cat.where(d) if d is not None else ""})
+                editions.append({"edition": int(r.get("Edition")), "date": r.get("Date"), "message": r.get("Message"),
+                                 "discs": discs, "kept": (r.get("Keep") or "").lower() == "yes",
+                                 "safe": bool(discs) and all(x["readBack"] for x in discs),
+                                 "retired": bool(discs) and all(x["retired"] for x in discs),
+                                 "lost": len(r.get_all("Lost"))})
+            newest_safe = max((e["edition"] for e in editions if e["safe"] and not e["retired"]), default=None)
+            for e in editions:          # what arv retire CODE would offer
+                e["replaced"] = (newest_safe is not None and e["edition"] < newest_safe and not e["kept"]
+                                 and not e["retired"])
+            out.append({"code": c.get("Code"), "title": c.get("Title"), "set": c.get("Set"), "access": c.get("Access"),
+                        "editions": editions, "checkpoints": sum(1 for r in revs if not r.get("Edition"))})
+        return {"collections": out}
+
+    def post_collection(self, body):
+        """arv collection keep CODE N, or arv retire CODE (a preview; --yes, and --accept-loss only
+        when asked): answered at once, with what arv printed."""
+        code = str(body["code"])
+        if not re.match(r"^[A-Z0-9][A-Z0-9_-]*$", code):
+            raise ValueError("not a collection code: %r" % code)
+        if body["action"] == "keep":
+            argv = ["collection", "keep", code, str(int(body["edition"]))]
+        elif body["action"] == "retire":
+            argv = ["retire", code] + (["--yes"] if body.get("yes") else []) + (["--accept-loss"] if body.get("accept_loss") else [])
+        else:
+            raise ValueError("unknown action %r" % body["action"])
+        code_, text = self.arv_now(argv)
+        return {"returncode": code_, "output": text}
+
     def plans(self, _params):
         folder = os.path.join(self.home.drafts_dir, "plans")
         try:
@@ -175,7 +246,10 @@ class App:
         name = params.get("name", "")
         if not PLAN_NAME.match(name):
             raise LookupError("no such plan")
-        code, text = self.arv_now(["plan", "show", name, "--json"])
+        argv = ["plan", "show", name, "--json"]
+        if params.get("archived") == "1":     # hashes every item (through the hash cache): asked for, not automatic
+            argv.append("--archived")
+        code, text = self.arv_now(argv)
         if code:
             raise LookupError(text)
         return json.loads(text)
@@ -353,10 +427,12 @@ class App:
 def make_handler(app, port_holder):
     get_routes = {"/api/discs": app.discs, "/api/find": app.find, "/api/browse": app.browse,
                   "/api/job": app.job, "/api/jobs": app.jobs_list, "/api/llm/status": app.llm_status,
-                  "/api/plans": app.plans, "/api/plan": app.plan, "/api/objects": app.objects, "/api/todo": app.todo}
+                  "/api/plans": app.plans, "/api/plan": app.plan, "/api/objects": app.objects, "/api/todo": app.todo,
+                  "/api/collections": app.collections, "/api/setup": app.setup}
     post_routes = {"/api/make": app.post_make, "/api/check": app.post_check, "/api/command": app.post_simple,
-                   "/api/plan": app.post_plan,
-                   "/api/llm/suggest": app.post_llm_suggest}
+                   "/api/plan": app.post_plan, "/api/collection": app.post_collection,
+                   "/api/llm/suggest": app.post_llm_suggest, "/api/init": app.post_init}
+    no_archive_ok = ("/api/setup", "/api/init", "/api/browse")     # before the first archive is made
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -394,6 +470,8 @@ def make_handler(app, port_holder):
             handler = get_routes.get(url.path)
             if not handler:
                 return self._send(404, {"error": "not found"})
+            if app.home is None and url.path not in no_archive_ok:
+                return self._send(409, {"error": "no archive yet"})
             params = {k: v[0] for k, v in parse_qs(url.query).items()}
             try:
                 self._send(200, handler(params))
@@ -403,9 +481,12 @@ def make_handler(app, port_holder):
         def do_POST(self):
             if not self._allowed():
                 return self._send(403, {"error": "forbidden"})
-            handler = post_routes.get(urlparse(self.path).path)
+            path = urlparse(self.path).path
+            handler = post_routes.get(path)
             if not handler:
                 return self._send(404, {"error": "not found"})
+            if app.home is None and path not in no_archive_ok:
+                return self._send(409, {"error": "no archive yet"})
             try:
                 length = int(self.headers.get("Content-Length", 0))
                 body = json.loads(self.rfile.read(length) or b"{}")

@@ -15,12 +15,91 @@ only add fields.
       against the image hash; Linux, Windows and macOS open the disc and run `tools/arv.com`;
       a damaged copy read with ddrescue is repaired to the very image.
 - [ ] The RS03 weak spot (issue #4) is measured on a full-size BD-R image.
-- [ ] `FORMAT_VERSION` becomes `1.0` (src/arv/make.c), `VERSION` becomes `arv 1.0`
-      (src/arv/arv.h), the samples are remade and published, and the commit is tagged `v1.0`.
+- [ ] `FORMAT_VERSION` becomes `1.0` and `VERSION` becomes `arv 1.0` (both in src/arv/arv.h), the samples are remade and published, and the commit is tagged `v1.0`.
 
 ## Unreleased (format 0.5), October 2026
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
+
+**Each copy has a letter** (format 0.5)
+- A copy of a disc (burned, an image file, or a folder) is its `replication` event, now named by
+  a letter, `Copy: A`, `B` ...: given in order (or chosen, `arv burned --copy X`), written on the
+  hub and case after the id, and unique among the disc's copies. Copies stay sector-identical
+  images, so two damaged ones can still repair each other; the letter is only on the label and in
+  the catalogue.
+- Each copy keeps its own place (`Location`), and its `MediaId` and `Bca` (a BD-R's factory
+  serial, `--bca`) when known. `arv check --copy X` names the copy it read, and a passed check
+  makes that copy known good. `arv todo` lists burned copies never read back by letter;
+  `arv objects` and the GUI show each copy with its letter and place.
+- `--copies N` records N copies (N events), and the disc's `Copies:` counter is gone: a disc's
+  copies are counted from its events, so two catalogues of one archive can be merged without
+  losing any.
+- `dev-tools/disc-probe.c` asks a drive (Linux) for the media's maker and type and for the BCA
+  serial, read only, blank or burned: step 7 of the first-burn drill. A Pioneer BDR-XD08 reads
+  the BCA of Verbatim BD-R without AACS authentication, and two discs of a pack differ.
+- So on Linux `arv burned --device` reads the disc's BCA serial and records it with the copy
+  (`Bca:`, 32 hex digits), refusing a disc already recorded as a copy; `arv check --device` knows
+  which copy is in the drive by it (and says so: `ID copy B: OK`). `--bca` gives it by hand.
+
+**Easier to use** (a UX review: arv used from scratch as a new user would)
+- `arv COMMAND --help` prints that command's own lines of the usage (and what DISC and CATALOG
+  mean, when it uses them), not the whole of it. `arv make --help` keeps its full list.
+- An unknown command says so and names the nearest (`arv stauts`: did you mean status?);
+  arguments a command does not take are named, with that command's usage. Neither prints the
+  whole usage any more.
+- Commands come in four groups, as `arv --help` shows them: `arv archive`, `arv record`,
+  `arv verify` and `arv home` each list theirs, and a group's name may come first (`arv record
+  burned` is `arv burned`), for finding a command whose name you forgot; the short form stays the
+  one the docs use. A command named under the wrong group says where it is. `arv verify DISC` is
+  `arv verify files DISC` in full (bare `arv verify` lists the group).
+- `arv` on its own says whether there is an archive here, and gives the five commands to start
+  with, the groups and `arv --help`, instead of the whole usage.
+- Tab completion for bash and zsh (`src/arv/completion/`, installed by `make install`): it asks
+  arv itself (`arv __complete`), so it follows the commands, groups, subcommands and options of
+  the arv installed, and falls back to file names.
+- `arv gui` with no archive opens on **Make an archive** (a folder, a name, whether to use it from
+  anywhere), which runs `arv init`, instead of stopping.
+- **What discs carry in `tools/` is a whitelist,** `disc-tools.txt`: arv's source, tests, the tools
+  the tests build, the docs and the reasons, about 5 MB. The UDF and ECMA standards' zip (70 MB,
+  97% of the old tree, its terms not written down: issue #32) no longer goes on every disc or in
+  the package, nor do `samples/` and the work for other projects in `upstream/`. A new file goes
+  on discs only when it is listed. The trimmed tree builds and passes `make check` on its own.
+- **Reading a disc without a UDF reader:** every disc's `README.txt` says how ("WITHOUT A UDF
+  READER"): each file is stored whole, so `dd` cuts it out of the image at the start sector the
+  map gives (`catalog/volumes/<id>/extents.tsv`, kept at home and on every later disc), and the
+  manifest beside it checks it. The spec documents `extents.tsv`, and `make check` cuts every file
+  of a real image out this way.
+- `arv make` with an installed or copied (not git) source copies only what `disc-tools.txt` lists
+  and never build output; it used to copy its own work folder into itself when run from inside
+  such a tree. `--tools-history` without git history now says so.
+- `just install` / `just uninstall` (yourself, `~/.local`), `just install-system` /
+  `just uninstall-system` (`/usr/local`, sudo), `just where`, `just deb`, `just arch`: no prefix to
+  remember.
+- Packages: `packaging/debian/` (a native Debian package, `just deb`) and `packaging/arch/PKGBUILD`
+  (`arv-git`). `make install` works from a release tarball too (no git: the tree as it is, the
+  commit from `COMMIT`, which `git archive` fills in), and `make clean` exists.
+- `arv --version` (and `arv version`) names the commit it was built from and the disc format:
+  `arv 0.4 (arv@<commit>), disc format 0.5`.
+- `arv make` says before the long part how big the images will be once RS03 fills them to the
+  medium, and how much room the output folder has; it stops at once, recording nothing, when they
+  would not fit. RS03 (and `arv check --image`'s test) shows a percentage on a terminal.
+- `arv todo` with no discs yet says so, and how to start, rather than "nothing owed".
+- No more fallback home: with no `.arv` here or above and no default registered, arv stops and
+  says how to make one (`arv init FOLDER`, `--name NAME --default`), as git does outside a
+  repository, instead of quietly starting an archive in `~/.local/share/arv`. The older
+  `~/.local/share/bluray-archive` and `$BLURAY_ARCHIVE_HOME` are no longer read either.
+- `arv burned` without `--device` says when the disc already had copies recorded that day (run
+  twice by mistake counts them twice). A location that looks like a code but is not one of the
+  archive's (`--location ATIC`) is noted, on `burned`, `stored`, `locate` and `make`; it is still
+  recorded as written.
+- `arv selection add` on a selection that exists adds the items, as `put` does (with a note).
+- Plurals: "1 file", "3 issues", "1 link".
+- A logo: a disc from above, its three tracks Archive, Record and Verify, and the clear hub ring
+  where the id and copy letter are written (`docs/img/logo.svg`, `logo-mark.svg`; light and dark),
+  on the README, the website (and its tab icon) and `arv gui`'s tab.
+- `arv gui`: named arv; Archive opens on "From a folder"; each disc in Owed opens it in Record ›
+  Discs (to record copies and places); a long catalogue path is shortened in the header (the
+  whole on hover); a collection's discs say which edition they hold.
 
 **Discs carry the vocabularies** (format 0.5)
 - A disc with a full catalogue snapshot carries the home's `config/sets.rec` and
@@ -43,6 +122,30 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   they hold (`misc/`, `New folder (2)/`), and, when most of the top level is kinds from the set
   vocabulary, the folders that are not. Folders named by a year count as facts; a repository's
   own tree is left alone. Nothing is recorded, so the format does not change.
+
+**Retiring one disc, and a data object's last copy**
+- `arv retire DISC-ID` retires a disc that is not part of an edition (a disc plan's, or
+  `arv make FOLDER`'s). It refuses while any of its files is on no other disc that stays, and names
+  each data object on it: the version, whether another disc has it, and whether it is the newest.
+  An older version that a newer one replaces may go; the only copy of the newest is refused.
+  `--yes --accept-loss` records the files as `Lost:` on the disc, and `arv find` lists them as
+  `LOST`. An edition's disc is refused: editions are retired together (`arv retire CODE`).
+
+**Collections in the GUI**
+- Record › Collections lists each collection's editions: their discs and copies, and whether each
+  edition is safe, replaced (ready to retire), kept or retired (with files lost). Keep runs
+  `arv collection keep`; Retire shows `arv retire`'s own preview first and records nothing until
+  confirmed, and a loss only when "accept the loss" is ticked.
+
+**What of a plan is on discs already**
+- `arv plan show NAME --archived` hashes each item (through the hash cache) and says what is on
+  discs already: an item archived before (which data object version, on which discs), every file
+  of it on discs from elsewhere, some of its files, or none. `--json` carries it as `archived`.
+  The GUI's Mastering tab has a button for it ("What is on discs already?") and flags each item.
+
+**Format identification for disc plans**
+- `arv plan make` identifies formats with Siegfried as `arv make` does (`--formats auto|yes|no`):
+  each item is identified where it is, and its rows in `formats.csv` are at its place on the disc.
 
 **Icons for kinds of file in the GUI**
 - The Mastering file browser, the plan's discs, Search results and Objects show an icon for the

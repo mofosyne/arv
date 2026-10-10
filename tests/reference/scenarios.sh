@@ -37,7 +37,7 @@ cd "$root"
 export TZ=UTC LC_ALL=C USER=archivist LOGNAME=archivist HOME="$root/userhome" XDG_CONFIG_HOME="$root/userhome/.config" \
     XDG_DATA_HOME="$root/userhome/.local/share" SOURCE_DATE_EPOCH=1767225600 ARV_SOURCE="$root/arv-source" \
     ARV_APE="$root/arv.com"
-unset ARV_HOME BLURAY_ARCHIVE_HOME
+unset ARV_HOME
 mkdir -p "$HOME"
 
 a() {   # the arv command, with its fixed leading words (python3 path/arv), then the arguments
@@ -286,6 +286,7 @@ log coll.out --home hc todo
 log coll.out --home hc retire FAM
 log coll.out --home hc retire FAM --yes
 log coll.out --home hc retire FAM --yes --accept-loss
+log coll.out --home hc retire FAM-02_2019_Y
 log coll.out --home hc retire FAM
 log coll.out --home hc log FAM
 log coll.out --home hc find a.txt
@@ -330,6 +331,12 @@ log record.out --home rec note PROJ-01_2020-2023_L "A long note that goes on abo
 log record.out --home rec locate SCAN-01_1995-2008_D SAFE --add
 log record.out --home rec locate FAMILY-01_2020-2021_K "Somewhere new"
 log record.out --home rec burned NOPE-01_2000_X
+log record.out --home rec burned TRIP-01_2019_4 --copy K --location OFFSITE --bca "04 1e 10 15 12 62 02 02 24 03 02 14 50 10 48 af"   # a letter chosen, and the disc's BCA serial
+log record.out --home rec burned TRIP-01_2019_4 --bca 041e10151262020224030214501048af041e1015   # the same disc again: refused
+log record.out --home rec burned TRIP-01_2019_4 --bca 0a1b2c                 # not a serial: refused
+log record.out --home rec burned TRIP-01_2019_4 --copy K                  # taken: refused
+log record.out --home rec burned TRIP-01_2019_4 --copy k2                 # not a letter: refused
+log record.out --home rec todo
 keep record.out record/transcript.txt
 keep rec/catalog/archive.rec record/archive.rec
 
@@ -392,6 +399,15 @@ done
 log query.out --home q sets
 log query.out --home q sets -v
 log query.out --home q where
+log query.out stauts                         # an unknown command: the nearest, not the whole usage
+log query.out --home q todo --bogus          # arguments a command does not take: named, with its usage
+log query.out --home q burned --help         # a command's own lines of the usage
+log query.out --home q-empty todo            # nothing made yet: not "nothing owed"
+log query.out --home q record                # a group lists its commands
+log query.out --home q record id TRIP-01_2019_4   # a group's name first: the same command
+log query.out --home q record make           # a command named under the wrong group
+log query.out --home q verify frob           # not a disc, not a command: the old verify says so
+(XDG_CONFIG_HOME="$root/no-config" && export XDG_CONFIG_HOME && cd "$work" && log "$root/query.out" todo)   # no archive: arv init, as git
 keep query.out query/transcript.txt
 
 # ------------------------------------------------------------------ disc plans: discs composed by hand
@@ -487,7 +503,24 @@ log plan.out --home hp objects DCIM
 log plan.out --home hp plan delete card
 log plan.out --home hp plan again card card-2
 log plan.out --home hp plan show card-2
+log plan.out --home hp plan add card-2 plan-pc --as pc
+echo fresh > plan-new.txt && stamp 1750000000 plan-new.txt
+log plan.out --home hp plan add card-2 plan-new.txt
+mkdir -p plan-mix && cp -p plan-docs/letter.txt plan-mix/ && echo fresh too > plan-mix/new.txt
+for f in plan-mix/new.txt plan-mix; do stamp 1750000000 "$f"; done
+log plan.out --home hp plan add card-2 plan-mix
+log plan.out --home hp plan show card-2 --archived
+log plan.out --home hp plan show card-2 --archived --json
 log plan.out --home hp plan delete card --yes
+log plan.out --home hp retire TRIP-04_2025_5
+log plan.out --home hp retire TRIP-04_2025_5 --yes
+log plan.out --home hp retire TRIP-04_2025_5
+log plan.out --home hp retire TRIP-02_2025_9
+log plan.out --home hp retire TRIP-02_2025_9 --yes
+log plan.out --home hp retire TRIP-02_2025_9 --yes --accept-loss
+log plan.out --home hp find notes
+log plan.out --home hp objects 2025
+log plan.out --home hp retire NOPE-01
 keep plan.out plan/transcript.txt
 keep hp/drafts/plans/trip.rec plan/trip.rec
 keep hp/drafts/plans/card-2.rec plan/card-2.rec

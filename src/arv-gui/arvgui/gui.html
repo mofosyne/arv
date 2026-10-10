@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Disc Archive</title>
+<title>arv</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3Cmask id='h'%3E%3Crect width='64' height='64' fill='%23fff'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%23000'/%3E%3C/mask%3E%3C/defs%3E%3Cg mask='url%28%23h%29'%3E%3Ccircle cx='32' cy='32' r='30' fill='%232f5d8a'/%3E%3Cg fill='none' stroke='%23fff' stroke-opacity='.55' stroke-width='1.6'%3E%3Ccircle cx='32' cy='32' r='25'/%3E%3Ccircle cx='32' cy='32' r='20.5'/%3E%3Ccircle cx='32' cy='32' r='16'/%3E%3C/g%3E%3Ccircle cx='32' cy='32' r='11' fill='%23fff' fill-opacity='.9'/%3E%3C/g%3E%3C/svg%3E">  <!-- docs/img/logo-mark.svg -->
 <style>
 :root { --bg:#fdfdfc; --fg:#1d1d1b; --muted:#6b6b66; --line:#e2e1dc; --accent:#1f5fa8; --panel:#f4f3ef;
         --ok:#2f7d32; --bad:#b3261e; --warn:#9a6700; }
@@ -33,6 +34,7 @@ header button.link.owed { border-color:var(--warn); color:var(--warn); }
 header button.link.clear { border-color:var(--ok); color:var(--ok); }
 .owed h3 { font-size:15px; margin:16px 0 4px; }
 .owed li { font-family:ui-monospace, monospace; font-size:13px; overflow-wrap:anywhere; }
+.owed li button.link { font:inherit; background:none; border:none; padding:0; color:var(--accent); text-decoration:underline; cursor:pointer; }
 main { max-width:1100px; margin:0 auto; padding:16px 16px 64px; }
 section[hidden] { display:none; }
 h2 { font-size:1.05rem; margin:24px 0 8px; }
@@ -89,9 +91,11 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 .item button, .disc h3 button { font:inherit; font-size:12px; padding:2px 6px; border:1px solid var(--line); border-radius:4px;
         background:var(--panel); color:var(--fg); cursor:pointer; }
 .item.missing .path { color:var(--bad); }
-.item .flag { font-size:11px; padding:0 6px; border-radius:8px; border:1px solid var(--line); margin-left:4px; }
+.item .flag { font-size:11px; padding:0 6px; border-radius:8px; border:1px solid var(--line); margin-left:4px; white-space:nowrap; display:inline-block; }
 .item .flag.changed { color:var(--warn); border-color:var(--warn); }
 .item .flag.copy { color:var(--accent); border-color:var(--accent); }
+.item .flag.on { color:var(--ok); border-color:var(--ok); }
+.item .flag.some { color:var(--accent); border-color:var(--accent); }
 .files { border:1px solid var(--line); border-radius:8px; padding:10px 12px; align-self:start; }
 .files .list { max-height:460px; overflow:auto; margin-top:6px; }
 .files .list > div { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:8px; align-items:center; padding:3px 4px;
@@ -110,6 +114,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 .kept .todo::before { content:"⚠ "; }
 .kept .src { font-size:12px; font-family:ui-monospace, monospace; overflow-wrap:anywhere; margin-top:4px; }
 .kept .src .gone { color:var(--bad); } .kept .src .here { color:var(--ok); }
+#c-list td { vertical-align:top; } #c-list td button { padding:2px 12px; }
 .chip { display:inline-block; font-size:12px; padding:1px 8px; border-radius:10px; border:1px solid var(--line);
         margin:1px 4px 1px 0; white-space:nowrap; }
 .chip.cold { border-color:var(--accent); color:var(--accent); }
@@ -125,7 +130,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   .kept td.mono { white-space:normal; overflow-wrap:anywhere; }
 }
 </style></head><body>
-<header><h1>Disc Archive</h1><span class="home" id="home"></span><span class="spacer"></span>
+<header><h1 title="Archive, Record, Verify">arv</h1><span class="home" id="home"></span><span class="spacer"></span>
   <button class="link" type="button" id="owed-line" title="What arv todo says is owed">…</button>
   <button class="link" type="button" id="jobs-btn">Jobs</button></header>
 <nav role="tablist" class="groups">
@@ -134,11 +139,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   <button role="tab" data-group="verify">Verify<span class="hint">still good, and back</span></button>
 </nav>
 <nav class="sub" data-group="archive" hidden>
-  <button data-tab="master">Mastering: discs by hand</button>
   <button data-tab="make">From a folder</button>
+  <button data-tab="master">Mastering: discs by hand</button>
 </nav>
 <nav class="sub" data-group="record" hidden>
   <button data-tab="objects">Objects</button>
+  <button data-tab="collections">Collections</button>
   <button data-tab="discs">Discs</button>
   <button data-tab="search">Search</button>
 </nav>
@@ -149,9 +155,27 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 </nav>
 <main>
 
+<section id="tab-setup" hidden>
+  <h2>Make an archive</h2>
+  <p class="muted">There is no archive here yet. arv keeps an archive's record in a <span class="mono">.arv</span>
+    folder at the root of what it describes: the folder holding your photos and projects, or your NAS share. Nothing
+    else in it is changed, and nothing in it is archived until you choose it.</p>
+  <form id="setup-form">
+    <label for="s-folder">Folder</label>
+    <div class="inline"><input type="text" id="s-folder" required><button class="plain" type="button" id="s-browse">Browse…</button></div>
+    <div class="browser" id="s-browser" hidden></div>
+    <div class="row">
+      <div><label for="s-name">Name (optional, e.g. family)</label><input type="text" id="s-name"></div>
+    </div>
+    <div class="checks"><label><input type="checkbox" id="s-default"> Use it from anywhere on this computer (needs a name)</label></div>
+    <button class="primary" type="submit">Make the archive</button>
+  </form>
+  <div id="s-status" class="banner" hidden></div>
+</section>
+
 <section id="tab-owed" hidden>
   <p class="muted">What is owed, from <span class="mono">arv todo</span>: copies to make, copies to read back, cold copies,
-    places, checks overdue. Each line says what to do; Record and Check do most of it.</p>
+    places, checks overdue. Each heading says what to do; a disc's name opens it, to record copies and places.</p>
   <div id="owed" class="owed"></div>
   <button class="plain" type="button" id="owed-refresh">Look again</button>
 </section>
@@ -172,6 +196,13 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   <div class="inline"><div><label for="o-filter">Show only names containing</label><input type="text" id="o-filter"></div></div>
   <p id="o-summary"></p>
   <div id="o-list"></div>
+</section>
+
+<section id="tab-collections" hidden>
+  <p class="muted">Each collection and its editions: an edition is <b>safe</b> once every one of its discs has a copy read back
+    identical; a newer safe edition <b>replaces</b> older ones, unless they are kept. Retiring records nothing until you
+    confirm, and arv deletes nothing: the discs stay yours to keep or destroy.</p>
+  <div id="c-list"></div>
 </section>
 
 <section id="tab-search" hidden>
@@ -230,6 +261,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     <button class="plain" type="button" id="p-new-btn">New plan…</button>
     <button class="plain" type="button" id="p-again" hidden>Make it again as a new plan…</button>
     <button class="plain" type="button" id="p-delete">Delete plan</button>
+    <button class="plain" type="button" id="p-archived" title="Hashes each item (quick when it was hashed before) and marks what is on discs already">What is on discs already?</button>
   </div>
   <form id="p-new" class="card" hidden>
     <div class="row">
@@ -357,9 +389,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 
   // ---------------------------------------------------------------- tabs
   // Archive, Record, Verify: each view belongs to one of the three
-  var GROUP = { master: "archive", make: "archive", objects: "record", discs: "record", search: "record",
+  var GROUP = { master: "archive", make: "archive", objects: "record", collections: "record", discs: "record", search: "record",
                 owed: "verify", tools: "verify", restore: "verify" };
-  var lastView = { archive: "master", record: "objects", verify: "owed" };
+  var lastView = { archive: "make", record: "objects", verify: "owed" };
   function showTab(name) {
     var group = GROUP[name];
     if (group) lastView[group] = name;
@@ -373,6 +405,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (name === "jobs") loadJobs();
     if (name === "master") loadPlans();
     if (name === "objects") loadObjects();
+    if (name === "collections") loadCollections();
   }
   document.querySelectorAll("nav.sub button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
   document.querySelectorAll("nav.groups button").forEach(function (b) { b.onclick = function () { showTab(lastView[b.dataset.group]); }; });
@@ -385,8 +418,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     b.textContent = items ? items + (items === 1 ? " thing owed" : " things owed") : "Nothing owed";
     b.className = "link " + (items ? "owed" : "clear");
   }
-  function loadOwed() {
-    return api("/api/todo").then(function (res) {
+  function loadOwed() {     // the discs first, so a disc's name in the list can open it
+    return (discs.length ? Promise.resolve() : loadDiscs()).then(function () { return api("/api/todo"); }).then(function (res) {
       owedLine(res.text);
       var box = $("owed"); box.textContent = "";
       var list = null;
@@ -394,9 +427,16 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         if (!line.trim()) return;
         if (/^  /.test(line)) {
           if (!list) { list = el("ul"); box.appendChild(list); }
-          list.appendChild(el("li", { text: line.trim() }));
+          var item = line.trim(), id = item.split(/\s+/)[0], known = discs.some(function (d) { return d.Id === id; });
+          if (!known) { list.appendChild(el("li", { text: item })); return; }
+          var open = el("button", { class: "link", type: "button", text: id, title: "Open " + id + " in Record › Discs" });
+          open.onclick = function () { selected = id; showTab("discs"); };
+          list.appendChild(el("li", {}, [open, document.createTextNode(item.slice(id.length))]));
         } else {
-          box.appendChild(el(/^Nothing owed/.test(line) ? "p" : "h3", { class: /^Nothing owed/.test(line) ? "ok" : "", text: line }));
+          var fine = /^(Nothing owed|No discs yet)/.test(line);
+          if (/^No discs yet/.test(line)) line = "No discs yet, so nothing is owed. Start in Archive: From a folder makes " +
+            "discs of one folder (a collection's, or any), Mastering composes them by hand.";
+          box.appendChild(el(fine ? "p" : "h3", { class: fine ? "ok" : "", text: line }));
           list = null;
         }
       });
@@ -411,7 +451,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   }
   function loadDiscs() {
     return api("/api/discs").then(function (res) {
-      $("home").textContent = "Catalogue: " + res.home;
+      var parts = res.home.split("/");     // a long path: its last folders, the whole of it on hover
+      $("home").textContent = "Catalogue: " + (res.home.length > 40 && parts.length > 3 ? "…/" + parts.slice(-2).join("/") : res.home);
+      $("home").title = res.home;
       discs = res.discs;
       var body = $("disc-table").querySelector("tbody"); body.textContent = "";
       $("disc-empty").hidden = discs.length > 0;
@@ -419,13 +461,16 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         var c = lastCheck(d);
         var tr = el("tr", { class: "pick" + (d.Id === selected ? " sel" : "") }, [
           el("td", { class: "mono", text: d.Id }), el("td", { text: d.Title || "" }), el("td", { text: d.Date || "" }),
-          el("td", { text: d.Files || "" }), el("td", { text: d.Copies || "0" }), el("td", { text: d.Where || "" }),
+          el("td", { text: d.Files || "" }), el("td", { text: String(copiesOf(d).length) }), el("td", { text: d.Where || "" }),
           el("td", { class: c ? (c.Outcome === "success" ? "ok" : "bad") : "muted", text: c ? c.Date + " " + c.Outcome : "never" })]);
         tr.onclick = function () { selected = d.Id; loadDiscs(); };
         body.appendChild(tr);
       });
       renderDetail();
     });
+  }
+  function copiesOf(d) {        // each copy is a replication event, named by a letter (Copy: A, B ...)
+    return (d.Events || []).filter(function (e) { return e.Type === "replication" && e.Outcome !== "failure"; });
   }
   function renderDetail() {
     var box = $("disc-detail"), d = discs.filter(function (x) { return x.Id === selected; })[0];
@@ -650,7 +695,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (!on.copies.length) span.appendChild(el("span", { class: "chip none", text: "no copy yet" }));
     on.copies.forEach(function (c) {
       span.appendChild(el("span", { class: "chip " + c.temperature, title: c.readBack ? "read back identical" : "not read back",
-                                    text: c.form + " " + c.temperature + (c.readBack ? " ✓" : "") }));
+                                    text: (c.copy ? c.copy + ": " : "") + c.form + " " + c.temperature + (c.readBack ? " ✓" : "") }));
     });
     return span;
   }
@@ -658,16 +703,86 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     return h.copies + (h.copies === 1 ? " copy" : " copies") + " on " + h.discs + (h.discs === 1 ? " disc" : " discs") +
            ", " + h.cold + " cold, " + h.readBack + " read back";
   }
-  function heldTable(rows) {     // rows: [version or "", disc entry, path or null, bytes or null]
+  function heldTable(rows) {     // rows: [version or "", disc entry, path or null (then r[3]: what it holds)]
     var t = el("table");
     t.appendChild(el("tr", {}, ["", "Disc", "On the disc", "Copies", "Kept at"].map(function (x) { return el("th", { text: x }); })));
     rows.forEach(function (r) {
       t.appendChild(el("tr", {}, [el("td", { text: r[0] }), el("td", { class: "mono", text: r[1].disc }),
-        el("td", { class: "mono", text: r[2] === null ? "" : "data/" + (r[2] === "." ? "" : r[2]) }),
+        el("td", { class: r[2] === null ? "muted" : "mono", text: r[2] === null ? r[3] || "" : "data/" + (r[2] === "." ? "" : r[2]) }),
         el("td", {}, [chips(r[1])]), el("td", { text: r[1].where || "" })]));
     });
     return el("div", { class: "scroll" }, [t]);
   }
+  // ---------------------------------------------------------------- collections
+  function loadCollections() {
+    var list = $("c-list");
+    return api("/api/collections").then(function (res) {
+      list.textContent = "";
+      if (!res.collections.length) list.appendChild(el("p", { class: "muted",
+        text: "No collection yet: arv collection init FOLDER --code CODE --title TITLE makes a folder one." }));
+      res.collections.forEach(function (c) { list.appendChild(collectionCard(c)); });
+    }).catch(function (e) { list.textContent = "Error: " + e.message; });
+  }
+  function collectionDo(body, out) {
+    return api("/api/collection", body).then(function (r) {
+      out.hidden = false; out.textContent = r.output; out.className = "log" + (r.returncode ? " bad" : "");
+      return r;
+    }).catch(function (e) { out.hidden = false; out.textContent = "Error: " + e.message; out.className = "log bad"; });
+  }
+  function collectionCard(c) {
+    var card = el("div", { class: "card kept" });
+    var replaced = c.editions.filter(function (e) { return e.replaced; }).length;
+    card.appendChild(el("h3", {}, [el("span", { class: "mono", text: c.code }), el("span", { text: c.title || "" }),
+      el("span", { class: "facts", text: c.editions.length + (c.editions.length === 1 ? " edition" : " editions") +
+        (c.checkpoints ? ", " + c.checkpoints + (c.checkpoints === 1 ? " checkpoint" : " checkpoints") : "") +
+        (c.set ? "; set " + c.set : "") + (c.access ? "; " + c.access : "") })]));
+    var out = el("pre", { class: "log", hidden: "" });
+    var t = el("table");
+    t.appendChild(el("tr", {}, ["Edition", "Made", "Discs", "State", ""].map(function (x) { return el("th", { text: x }); })));
+    c.editions.slice().reverse().forEach(function (e) {
+      var discs = el("td");
+      e.discs.forEach(function (d) {
+        discs.appendChild(el("div", { class: "mono", text: d.id + "  " }, [el("span", { class: "chip " + (d.retired ? "none" : d.readBack ? "cold" : "warm"),
+          title: d.where || "", text: d.retired ? "retired" : d.copies ? d.copies + (d.copies === 1 ? " copy" : " copies") + (d.readBack ? " ✓" : "") : "no copy yet" })]));
+      });
+      var state = e.retired ? "retired" + (e.lost ? "; " + e.lost + (e.lost === 1 ? " file" : " files") + " lost" : "")
+                : e.replaced ? "replaced: can be retired" : e.safe ? "safe" : "not safe yet: read back every disc";
+      if (e.kept) state += "; kept";
+      var act = el("td");
+      if (!e.kept && !e.retired) {
+        var keep = el("button", { class: "plain", type: "button", text: "Keep", title: "Never offer this edition for retiring" });
+        keep.onclick = function () { collectionDo({ action: "keep", code: c.code, edition: e.edition }, out).then(loadCollections); };
+        act.appendChild(keep);
+      }
+      t.appendChild(el("tr", {}, [el("td", { text: c.code + "/" + e.edition }), el("td", { text: (e.date || "") + (e.message ? " — " + e.message : "") }),
+        discs, el("td", { class: e.replaced ? "warn" : e.safe || e.retired ? "" : "warn", text: state }), act]));
+    });
+    card.appendChild(el("div", { class: "scroll" }, [t]));
+    if (replaced) {         // retiring: arv's preview first, then a confirmation; a loss only when ticked
+      var row = el("div", { class: "inline" });
+      var preview = el("button", { class: "plain", type: "button", text: "Retire the replaced editions…" });
+      var confirm = el("button", { class: "primary", type: "button", text: "Retire them", hidden: "" });
+      var lossBox = el("input", { type: "checkbox" });
+      var loss = el("label", { hidden: "" }, [lossBox, document.createTextNode(" accept the loss of files found only on them")]);
+      preview.onclick = function () {
+        collectionDo({ action: "retire", code: c.code }, out).then(function (r) {
+          if (!r) return;
+          confirm.hidden = /nothing to retire|no edition is safe/.test(r.output);
+          loss.hidden = !/--accept-loss/.test(r.output);
+        });
+      };
+      confirm.onclick = function () {
+        collectionDo({ action: "retire", code: c.code, yes: true, accept_loss: lossBox.checked }, out).then(function (r) {
+          if (r && !r.returncode) { confirm.hidden = true; loss.hidden = true; loadCollections(); }
+        });
+      };
+      row.appendChild(preview); row.appendChild(loss); row.appendChild(confirm);
+      card.appendChild(row);
+    }
+    card.appendChild(out);
+    return card;
+  }
+
   function renderObjects() {
     var list = $("o-list"); list.textContent = "";
     if (!kept) return;
@@ -701,7 +816,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       if (c.folder) card.appendChild(el("div", { class: "src" }, [document.createTextNode("workflow folder " + c.folder.path + " "),
         el("span", { class: c.folder.there ? "here" : "gone", text: c.folder.there ? "(there now)" : "(not there now)" })]));
       if (c.newest && c.newest.holding.copies && !c.newest.holding.cold) card.appendChild(el("div", { class: "todo", text: "no cold copy of the newest edition" }));
-      if (c.newest) card.appendChild(heldTable(c.newest.discs.map(function (d) { return ["", d, null]; })));
+      if (c.newest) card.appendChild(heldTable(c.newest.discs.map(function (d, i, all) {
+        return ["", d, null, "edition " + c.newest.edition + (all.length > 1 ? ", part " + (i + 1) + " of " + all.length : "")]; })));
       list.appendChild(card);
     });
     $("o-summary").textContent = kept.objects.length + " data object" + (kept.objects.length === 1 ? "" : "s") + ", " +
@@ -749,6 +865,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       return loadPlan();
     });
   }
+  $("p-archived").onclick = function () {
+    if (!planName()) return;
+    say("Hashing the plan's items …");
+    api("/api/plan?archived=1&name=" + encodeURIComponent(planName())).then(function (p) { plan = p; renderPlan(); say(""); })
+      .catch(function (e) { say("Error: " + e.message, true); });
+  };
   function loadPlan() {
     if (!planName()) { plan = null; renderPlan(); return Promise.resolve(); }
     return api("/api/plan?name=" + encodeURIComponent(planName())).then(function (p) { plan = p; renderPlan(); })
@@ -797,11 +919,18 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         var name = el("span", { class: "path mono" }, [it.kind === "missing" ? null : icon(it.path, it.kind),
                                                        document.createTextNode(it.path + (it.kind === "folder" ? "/" : ""))]);
         if (it.origin) name.appendChild(el("span", { class: "flag copy", text: "copied", title: "the plan's own copy of " + it.origin }));
+        var a = it.archived;
+        if (a && a.object) name.appendChild(el("span", { class: "flag on", text: "archived: version " + a.version,
+          title: a.object + " version " + a.version + ", on " + a.discs.join(", ") }));
+        else if (a && a.files && a.onDiscs === a.files) name.appendChild(el("span", { class: "flag on", text: "every file on discs",
+          title: "not as one data object: the files are on discs, from elsewhere" }));
+        else if (a && a.onDiscs) name.appendChild(el("span", { class: "flag some", text: a.onDiscs + " of " + a.files + " files on discs" }));
+        else if (a && a.files) name.appendChild(el("span", { class: "flag", text: "on no disc yet" }));
         if (it.changed) name.appendChild(el("span", { class: "flag changed", text: "changed since planned",
           title: "the disc gets it as it is now" }));
         var row = el("div", { class: "item" + (it.kind === "missing" ? " missing" : ""), draggable: plan.made ? "false" : "true" }, [
           name,
-          el("span", { class: "muted", text: it.kind === "missing" ? "missing" : human(it.bytes) + (it.kind === "folder" ? ", " + it.files + " files" : "") }),
+          el("span", { class: "muted", text: it.kind === "missing" ? "missing" : human(it.bytes) + (it.kind === "folder" ? ", " + it.files + (it.files === 1 ? " file" : " files") : "") }),
           el("span", { class: "src", text: it.origin ? "copy of " + it.origin : it.source })]);
         if (!plan.made) {
           var move = el("select", { "aria-label": "Move to disc" });
@@ -941,11 +1070,45 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     });
   }
 
-  api("/api/llm/status").then(function (st) { llmStatus = st; }).catch(function () { llmStatus = null; })
-    .then(function () {           // a view named in the address (#discs, #master...), else Verify's Owed
-      var want = location.hash.slice(1);
-      setupMakeLLM(); loadDiscs(); loadOwed(); showTab(GROUP[want] ? want : "owed");
+  // ---------------------------------------------------------------- the first run: no archive yet
+  function setupBrowse(path) {
+    api("/api/browse?path=" + encodeURIComponent(path || "")).then(function (res) {
+      var box = $("s-browser"); box.hidden = false; box.textContent = "";
+      $("s-folder").value = res.path;
+      var up = el("div", { text: "⬑ " + res.parent }); up.onclick = function () { setupBrowse(res.parent); }; box.appendChild(up);
+      res.dirs.forEach(function (name) {
+        var row = el("div", { text: "📁 " + name });
+        row.onclick = function () { setupBrowse(res.path.replace(/\/$/, "") + "/" + name); };
+        box.appendChild(row);
+      });
     });
+  }
+  function showSetup(st) {
+    document.querySelectorAll("nav, header .link").forEach(function (n) { n.hidden = true; });
+    document.querySelectorAll("main > section").forEach(function (sec) { sec.hidden = sec.id !== "tab-setup"; });
+    $("home").textContent = "No archive yet";
+    $("s-folder").value = st.cwd;
+    $("s-browse").onclick = function () { setupBrowse($("s-folder").value); };
+    $("setup-form").onsubmit = function (ev) {
+      ev.preventDefault();
+      var out = $("s-status");
+      api("/api/init", { folder: $("s-folder").value, name: $("s-name").value, default: $("s-default").checked })
+        .then(function (res) {
+          out.hidden = false; out.textContent = res.output;
+          out.className = "banner" + (res.returncode ? " bad" : "");
+          if (!res.returncode) location.reload();
+        }).catch(function (e) { out.hidden = false; out.className = "banner bad"; out.textContent = "Error: " + e.message; });
+    };
+  }
+  function start() {
+    api("/api/llm/status").then(function (st) { llmStatus = st; }).catch(function () { llmStatus = null; })
+      .then(function () {           // a view named in the address (#discs, #master...), else Verify's Owed
+        var want = location.hash.slice(1);
+        setupMakeLLM(); loadDiscs(); loadOwed(); showTab(GROUP[want] ? want : "owed");
+      });
+  }
+  api("/api/setup").then(function (st) { if (st.needed) showSetup(st); else start(); })
+    .catch(function () { start(); });
 })();
 </script>
 </body></html>

@@ -14,3 +14,6 @@ __pycache__/
 src/arvc/build/arvc
 src/arvc/build/ptyrun
 src/arvc/build/fixtures
+
+# Debian package builds: packaging/debian is copied to debian/ while building (just deb)
+/debian/

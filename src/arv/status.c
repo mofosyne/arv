@@ -308,11 +308,44 @@ static void scan_folder(const char *root, const arv_home *h, int deep, scan *s)
     walk(root, "", &c, deep, s);
     sort_(s->files.v, s->files.n, sizeof *s->files.v, ml_by_path);
     cache_save(&c, h);
-    fprintf(stderr, "%zu files: %zu read, %zu unchanged since last read (hash cache)%s\n", s->files.n, c.read, c.cached,
+    fprintf(stderr, "%zu file%s: %zu read, %zu unchanged since last read (hash cache)%s\n", s->files.n,
+            s->files.n == 1 ? "" : "s", c.read, c.cached,
             deep ? "; --deep: all read" : "");
     for (size_t i = 0; i < c.n; i++) free(c.v[i].path);
     free(c.v);
     free(c.file);
+}
+
+/* every file under a file or folder, through the hash cache: "SHA256  PATH" lines sorted by
+ * path, PATH relative to the folder (a file: its own name), a repository's .git aside, as a data
+ * object's manifest is made; *files counts them. NULL when it cannot be read. */
+char *path_manifest(const arv_home *h, const char *path, size_t *files)
+{
+    struct stat st;
+    if (stat(path, &st)) return NULL;
+    hcache c;
+    cache_load(&c, h);
+    scan s;
+    memset(&s, 0, sizeof s);
+    if (S_ISDIR(st.st_mode)) {
+        walk(path, "", &c, 0, &s);
+    } else {
+        char hex[65], *abs = realpath(path, NULL);
+        int silent;
+        if (abs && !cached_hash(&c, abs, &st, 0, hex, &silent))
+            ml_add(&s.files, strrchr(abs, '/') ? strrchr(abs, '/') + 1 : abs, hex);
+        free(abs);
+    }
+    cache_save(&c, h);
+    for (size_t i = 0; i < c.n; i++) free(c.v[i].path);
+    free(c.v);
+    free(c.file);
+    *files = s.files.n;
+    char *text = ml_text(&s.files);
+    ml_free(&s.files);
+    strlist_free(&s.silent_paths);
+    strlist_free(&s.repos);
+    return text;
 }
 
 /* ------------------------------------------------------------------ comparing two manifests */
@@ -1005,7 +1038,8 @@ int cmd_status(int argc, char **argv)
         printf("%s (%s): workflow folder %s (%s)\n", rec_get(coll, "Code"), get_or(coll, "Title", ""), abs, how);
         const rec_record *head = collection_head(&cat, rec_get(coll, "Uuid"));
         if (!head) {
-            printf("  no revision yet: %zu files (arv make for its first edition, arv checkpoint to record it)\n", s.files.n);
+            printf("  no revision yet: %zu file%s (arv make for its first edition, arv checkpoint to record it)\n", s.files.n,
+                   s.files.n == 1 ? "" : "s");
         } else {
             sbuf what = { 0 };
             describe_revision(head, &what);

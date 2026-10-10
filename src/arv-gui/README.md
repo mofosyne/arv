@@ -3,12 +3,17 @@
 `arv gui`: the interface, in your web browser. Optional, in Python 3 (standard library only);
 everything it does can be done with arv in a terminal.
 
-Its three tabs follow the name: **Archive** (Mastering: discs by hand, `arv plan`; From a folder,
-`arv make`), **Record** (Objects: everything kept and where every copy is, `arv objects --json`;
-Discs; Search) and **Verify** (Owed: `arv todo`, also counted above the tabs; Check; Restore,
+Its three tabs follow the name: **Archive** (From a folder, `arv make`; Mastering: discs by hand,
+`arv plan`), **Record** (Objects: everything kept and where every copy is, `arv objects --json`;
+Collections: each collection's editions, safe, replaced, kept or retired, with Keep and Retire, which
+show `arv retire`'s preview before anything is recorded; Discs; Search) and **Verify** (Owed: `arv todo`, also counted above the tabs; Check; Restore,
 verify and rebuild). Jobs, the commands it ran, open from the header. File lists show a small
 icon for the kind of file (image, video, audio, document, spreadsheet, archive, disc image, code),
 guessed from the extension as a hint only: the disc's `formats.csv` (Siegfried) is the record.
+
+With no archive here or above and no default (a first run), it opens on **Make an archive**: a
+folder (where it was started, or browsed to), an optional name, and whether to use it from
+anywhere; that runs `arv init`, and the interface opens on the new archive.
 
 It serves one page on 127.0.0.1 and opens it. Every action runs arv itself (and arv-assist for
 the local model's suggestions), so it adds no behaviour of its own; it only reads the catalogue

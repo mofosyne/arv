@@ -1,0 +1,41 @@
+# arv for Arch Linux, built from the latest commit (the usual -git package: there are no releases
+# yet). In this folder: makepkg -si
+pkgname=arv-git
+pkgver=0.4.r0.g0000000
+pkgrel=1
+pkgdesc="Archive, Record, Verify: long-term personal archiving on self-describing Blu-ray discs (experimental)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/mofosyne/arv"
+license=('GPL-3.0-only')
+depends=('glibc')
+makedepends=('git')
+checkdepends=('python' '7zip')
+optdepends=('python: arv gui, the interface in your web browser'
+            '7zip: reading disc images in checks'
+            'xorriso: burning images'
+            'ddrescue: reading damaged discs into images')
+provides=('arv')
+conflicts=('arv')
+source=("arv::git+https://github.com/mofosyne/arv.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd arv
+    printf "0.4.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+    cd arv
+    make
+}
+
+check() {
+    cd arv
+    make check
+}
+
+package() {
+    cd arv
+    make install DESTDIR="$pkgdir" PREFIX=/usr
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

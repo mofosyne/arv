@@ -1,0 +1,28 @@
+# What every disc carries in tools/arv/, and make install puts in share/arv: arv's source, enough to
+# read, build, test and understand it without us. One path or pattern a line (as git archive takes
+# them); # starts a comment. Anything not listed stays off the discs, so a new file or folder goes
+# on them only when it is added here, on purpose.
+
+# the project, and how to build and install it
+README.md
+LICENSE
+CHANGELOG.md
+COMMIT
+Makefile
+justfile
+arv
+disc-tools.txt
+packaging
+
+# the programs, their tests and the tools the tests build
+src
+tests
+dev-tools
+upstream/README.md
+upstream/bagit-python
+
+# the format, the guides and the reasons (not the UDF and ECMA standards themselves: issue #32)
+docs/*.md
+docs/spec/*.md
+docs/img
+research

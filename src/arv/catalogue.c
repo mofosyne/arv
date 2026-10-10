@@ -44,7 +44,12 @@ int find_catalogue(const char *given, catalogue *c, int required)
 {
     int bad = 0;
     arv_home h;
-    home_find(&h, given, NULL);
+    if (required) home_find(&h, given, NULL);
+    else if (home_try(&h, given, NULL)) {       /* no archive: an empty catalogue */
+        memset(&c->rec, 0, sizeof c->rec);
+        c->dir = NULL;
+        return -1;
+    }
     c->dir = h.catalog_dir;
     char *path = join(c->dir, "archive.rec");
     if (!is_file(c->dir, "archive.rec")) {      /* an empty home, as the Python arv reads it */
@@ -328,6 +333,16 @@ int cmd_find(int argc, char **argv)
     }
     for (size_t i = 0; i < c.rec.nrecords; i++) {          /* files lost: retired with no other copy */
         const rec_record *r = &c.rec.records[i];
+        if (is_type(r, "Disc")) {                           /* a disc retired on its own (arv retire DISC-ID) */
+            for (size_t f = 0; f < r->nfields; f++) {
+                const char *rel = strcmp(r->fields[f].name, "Lost") ? NULL : strstr(r->fields[f].value, "  ");
+                if (!rel || !matches(pat, glob, rel + 2)) continue;
+                if (!limit || files < limit) printf("LOST  %s  %s  (retired with no other copy)\n", rec_get(r, "Id") ? rec_get(r, "Id") : "?", rel + 2);
+                files++;
+                any = 1;
+            }
+            continue;
+        }
         if (!is_type(r, "Revision")) continue;
         for (size_t f = 0; f < r->nfields; f++) {
             const char *rel = strcmp(r->fields[f].name, "Lost") ? NULL : strstr(r->fields[f].value, "  ");

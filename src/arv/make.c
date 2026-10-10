@@ -16,15 +16,16 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <glob.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <time.h>
 #include <unistd.h>
 
 #define FORMAT_NAME "smart-archive"
-#define FORMAT_VERSION "0.5"
 #define URL "https://github.com/mofosyne/arv"
 #define SECTOR 2048
 #define GF_FIELDMAX 255
@@ -48,7 +49,7 @@ typedef struct {
     int keep, access_given;
 } options;
 
-static const char HELP[] =
+const char MAKE_HELP[] =
     "usage: arv make [options] FOLDER\n"
     "       arv make [options] --plan FILE   (arv plan make NAME runs this)\n"
     "Makes archive disc images of FOLDER and records them in the home catalogue.\n"
@@ -123,7 +124,7 @@ static int parse_options(int argc, char **argv, options *o)
         if (!strcmp(a, "--keep")) { o->keep = 1; continue; }
         if (!strcmp(a, "-y") || !strcmp(a, "--yes")) { o->yes = 1; continue; }
         if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
-            fputs(HELP, stdout);
+            fputs(MAKE_HELP, stdout);
             exit(0);
         }
         if (!strncmp(a, "--llm", 5) || !strncmp(a, "--vision", 8))
@@ -400,7 +401,7 @@ static int has(const char *dir, const char *rel)
 
 /* the arv source tree to put in tools/: --tools, $ARV_SOURCE, an installed share/arv, arv/ next to
  * this program (tools/arv.com on a disc), or the checkout it was built in (a few folders up) */
-static char *find_source(const char *given)
+char *find_source(const char *given)
 {
     if (given) return xstrdup(given);
     if (getenv("ARV_SOURCE") && *getenv("ARV_SOURCE")) return xstrdup(getenv("ARV_SOURCE"));
@@ -423,7 +424,7 @@ static char *find_source(const char *given)
 }
 
 /* "arv@<commit>" (+uncommitted), from git in a checkout or VERSION in an installed tree */
-static char *software_version(const char *source, int *is_git)
+char *software_version(const char *source, int *is_git)
 {
     *is_git = 0;
     if (source && has(source, ".git") && on_path("git")) {
@@ -504,6 +505,29 @@ static char *find_ape(const char *source)
     return NULL;
 }
 
+/* the paths and patterns disc-tools.txt lists (what every disc carries of arv's source), or none
+ * (an older tree without it: then all of it). The strings point into *text, which the caller frees. */
+static size_t tools_list(const char *source, char **text, char ***out)
+{
+    char *path = join(source, "disc-tools.txt");
+    *text = read_text(path);
+    free(path);
+    size_t n = 0;
+    *out = NULL;
+    for (char *line = *text ? strtok(*text, "\n") : NULL; line; line = strtok(NULL, "\n")) {
+        char *hash = strchr(line, '#');
+        if (hash) *hash = 0;
+        char *p = line, *e = line + strlen(line);
+        while (*p == ' ' || *p == '\t') p++;
+        while (e > p && (e[-1] == ' ' || e[-1] == '\t' || e[-1] == '\r')) *--e = 0;
+        if (!*p) continue;
+        *out = realloc(*out, (n + 1) * sizeof **out);
+        if (!*out) die("%s", "out of memory");
+        (*out)[n++] = p;
+    }
+    return n;
+}
+
 /* arv's last commit (and with history, a git bundle of every branch), arv.com and any
  * extra tools (cli.stage_tools) */
 static void stage_tools(const char *tools, const char *source, int is_git, const char *workdir, const options *o)
@@ -513,18 +537,54 @@ static void stage_tools(const char *tools, const char *source, int is_git, const
     if (!source) {
         say("Warning: arv's source was not found (--tools DIR or $ARV_SOURCE): tools/ holds only what the "
             "disc needs to explain itself", "");
-    } else if (is_git) {                 /* the last commit, as git archive gives it */
-        char *tar = join(workdir, "tools.tar"), *out = NULL;
-        char *a[] = { "git", "-C", (char *)source, "archive", "--format=tar", "-o", tar, "HEAD", NULL };
+    } else if (is_git) {                 /* the last commit, as git archive gives it: what disc-tools.txt lists */
+        char *tar = join(workdir, "tools.tar"), *out = NULL, *list, **paths;
+        size_t np = tools_list(source, &list, &paths), n = 0;     /* none listed: the whole commit */
+        char **a = xmalloc((np + 9) * sizeof *a);
+        const char *fixed[] = { "git", "-C", source, "archive", "--format=tar", "-o", tar, "HEAD" };
+        for (size_t i = 0; i < sizeof fixed / sizeof *fixed; i++) a[n++] = (char *)fixed[i];
+        for (size_t i = 0; i < np; i++) a[n++] = paths[i];
+        a[n] = NULL;
         char *b[] = { "tar", "-x", "-f", tar, "-C", tree, NULL };
         if (run(a, &out) || run(b, &out)) die("could not copy arv's source into tools/: %s", out ? out : "");
+        free(a);
+        free(paths);
+        free(list);
         unlink(tar);
         free(tar);
         free(out);
-    } else {
-        static const char *const skip[] = { "__pycache__", "*.pyc", ".git", "*.iso", NULL };
-        copy_tree(source, tree, skip);
+    } else {                             /* an installed or copied tree: what disc-tools.txt lists, never build output */
+        static const char *const skip[] = { "__pycache__", "*.pyc", ".git", "*.iso", "build", ".archive-make-*", NULL };
+        char *list, **paths;
+        size_t np = tools_list(source, &list, &paths);
+        if (!np) copy_tree(source, tree, skip);
+        for (size_t i = 0; i < np; i++) {
+            char *pattern = join(source, paths[i]);
+            glob_t g;
+            if (!glob(pattern, 0, NULL, &g))
+                for (size_t k = 0; k < g.gl_pathc; k++) {
+                    const char *rel = g.gl_pathv[k] + strlen(source) + 1;
+                    char *to = join(tree, rel), *parent = xstrdup(to), *slash = strrchr(parent, '/');
+                    struct stat st;
+                    if (slash) *slash = 0;
+                    if (mkdirs(parent)) die("cannot create %s", parent);
+                    if (!stat(g.gl_pathv[k], &st) && S_ISDIR(st.st_mode)) copy_tree(g.gl_pathv[k], to, skip);
+                    else if (!stat(g.gl_pathv[k], &st) && S_ISREG(st.st_mode)) {
+                        copy_file(g.gl_pathv[k], to);
+                        chmod(to, st.st_mode & 0777);
+                    }
+                    free(to);
+                    free(parent);
+                }
+            globfree(&g);
+            free(pattern);
+        }
+        free(paths);
+        free(list);
     }
+    if (source && !is_git && o->tools_history)
+        fprintf(stderr, "Warning: --tools-history: arv's source here (%s) is not a git checkout, so there is no "
+                        "history to bundle; the disc gets the plain tree\n", source);
     if (source && is_git && o->tools_history) {
         char *bundle = join(tools, "arv.bundle"), *out = NULL;
         char *a[] = { "git", "-C", (char *)source, "bundle", "create", bundle, "--all", NULL };
@@ -592,6 +652,21 @@ typedef struct {
 } image_ctx;
 
 static image_ctx *ictx;
+
+/* rs03's progress, as "  n%" on one line of a terminal */
+void progress_line(uint64_t done, uint64_t total)
+{
+    static int last = -1;
+    int pct = total ? (int)(done * 100 / total) : 100;
+    if (pct == last) return;
+    last = pct;
+    fprintf(stderr, "\r  %3d%%", pct);
+    if (done >= total) {
+        fputs("\r      \r", stderr);
+        last = -1;
+    }
+}
+
 static const char *work_to_remove;   /* the work folder, removed when an image is refused */
 
 static long read_cb(void *file, uint64_t offset, void *buf, size_t len)
@@ -1674,20 +1749,73 @@ static int make_discs(maker *mk)
             die("--ro-crate would overwrite %s in the source folder", clash.s);
         }
     }
-    if (mk->plan_discs && !strcmp(o->formats, "yes")) die("%s", "--formats yes: not for a plan yet (Siegfried reads one folder)");
-    if (!mk->plan_discs && (!strcmp(o->formats, "yes") || (!strcmp(o->formats, "auto") && on_path("sf")))) {
+    if (!strcmp(o->formats, "yes") || (!strcmp(o->formats, "auto") && on_path("sf"))) {
         if (!on_path("sf")) die("%s", "--formats yes needs Siegfried (sf) on PATH");
         fputs("Identifying file formats with Siegfried ...\n", stderr);
         char *error = NULL;
-        if (!formats_identify(mk->src, o->sf_home, mk->workdir, &mk->fmt, &error)) mk->have_formats = 1;
-        else if (!strcmp(o->formats, "yes")) die("Siegfried failed: %s", error);
-        else fprintf(stderr, "Warning: skipping format identification, Siegfried failed: %s\n", error);
+        if (!mk->dplan) {
+            if (!formats_identify(mk->src, o->sf_home, mk->workdir, &mk->fmt, &error)) mk->have_formats = 1;
+        } else {                                        /* a plan: each item where it is, at its place under data/ */
+            mk->have_formats = 1;
+            for (size_t k = 0; k < mk->dplan->n && mk->have_formats; k++) {
+                const plan_item *it = &mk->dplan->v[k];
+                struct stat st;
+                int file = !stat(it->source, &st) && S_ISREG(st.st_mode), top = !strcmp(it->path, ".");
+                formats one;
+                if (formats_identify(it->source, o->sf_home, mk->workdir, &one, &error)) {
+                    mk->have_formats = 0;
+                    break;
+                }
+                if (!mk->fmt.header) mk->fmt.header = xstrdup(one.header);
+                for (size_t r = 0; r < one.n; r++) {
+                    char *path = file ? xstrdup(it->path) : top ? xstrdup(one.rows[r][0]) : xprintf("%s/%s", it->path, one.rows[r][0]);
+                    mk->fmt.rows = xrealloc(mk->fmt.rows, (mk->fmt.n + 1) * sizeof *mk->fmt.rows);
+                    mk->fmt.rows[mk->fmt.n][0] = path;
+                    for (int c = 1; c < 7; c++) mk->fmt.rows[mk->fmt.n][c] = xstrdup(one.rows[r][c]);
+                    mk->fmt.n++;
+                }
+                formats_free(&one);
+            }
+            if (!mk->have_formats) formats_free(&mk->fmt);
+        }
+        if (!mk->have_formats && !strcmp(o->formats, "yes")) die("Siegfried failed: %s", error);
+        else if (!mk->have_formats) fprintf(stderr, "Warning: skipping format identification, Siegfried failed: %s\n", error);
         free(error);
     }
     if (getenv("ARV_TEST_AFTER_HASH") && *getenv("ARV_TEST_AFTER_HASH")   /* tests only: change a file mid-make */
         && system(getenv("ARV_TEST_AFTER_HASH")))
         die("%s", "ARV_TEST_AFTER_HASH failed");
     fit(mk);
+    {   /* what the images will be once RS03 fills them to the medium, and whether that fits here */
+        uint64_t final = 0, more = 0;
+        for (size_t i = 0; i < mk->nplans; i++) {
+            uint64_t sectors = mk->plans[i].sectors;
+            rs03_layout lay;
+            const char *why = NULL;
+            if (!o->no_ecc && !rs03_layout_for(sectors, (uint64_t)mk->capacity, o->no_defect_management, &lay, &why))
+                sectors = lay.total_sectors;
+            final += sectors * SECTOR;
+            more += (sectors - mk->plans[i].sectors) * SECTOR;
+        }
+        char total[32], room[32];
+        human_size(final, total);
+        struct statvfs fs;
+        int known = !statvfs(out_dir, &fs);
+        uint64_t avail = known ? (uint64_t)fs.f_bavail * fs.f_frsize : 0;
+        human_size(avail, room);
+        if (!o->no_ecc)
+            fprintf(stderr, "The image%s will take %s in all: RS03 error correction fills %s to its medium "
+                            "(--no-ecc: just the files, to try arv out)%s%s%s\n", mk->nplans == 1 ? "" : "s", total, mk->nplans == 1 ? "it" : "each",
+                    known ? "; " : "", known ? room : "", known ? " free there" : "");
+        if (known && more > avail) {
+            fprintf(stderr, "Error: not enough room in %s: the image%s %s, and %s is free. Choose a folder with room "
+                            "(--output-dir DIR), or a smaller medium (--medium).\n", out_dir, mk->nplans == 1 ? " needs" : "s need",
+                    total, room);
+            if (work_to_remove) remove_tree(work_to_remove);
+            exit(1);
+        }
+    }
+    if (isatty(2)) rs03_progress = progress_line;
     int failed = 0;
     for (size_t i = 0; i < mk->nplans; i++) {          /* build: move the measured image into place, then RS03 */
         plan *p = &mk->plans[i];
@@ -2049,7 +2177,10 @@ int cmd_make(int argc, char **argv)
         mk.draft = o.draft ? &dr : NULL;
         mk.title = o.title ? o.title : default_title;
         mk.creator = o.creator ? o.creator : getenv("USER");
-        if (o.location && *o.location) mk.location = place(&cat, o.location);
+        if (o.location && *o.location) {
+            place_check(&cat, o.location);
+            mk.location = place(&cat, o.location);
+        }
         mk.set_code = set_code;
         mk.collection = coll;
         mk.left_out = left_out;

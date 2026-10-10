@@ -70,6 +70,21 @@ if command -v python3 >/dev/null; then
         && ok "the Library of Congress's bagit.py (upstream/bagit-python) agrees the disc is a valid bag" \
         || no "bagit.py says the disc is not a valid bag"
 fi
+# without a UDF reader (README.txt): every payload file cut out of the image with dd alone, from the
+# map the home catalogue keeps (extents.tsv), matches the manifest
+ext=$(ls home/catalog/volumes/*/extents.tsv | head -1)
+man=$(dirname "$ext")/manifest.sha256
+carved=0 wrong=0
+while IFS="$(printf '\t')" read -r start size name; do
+    case "$name" in data/*) ;; *) continue ;; esac
+    got=$(dd if=disc.iso bs=2048 skip="$start" count=$(( (size + 2047) / 2048 )) 2>/dev/null | head -c "$size" \
+          | sha256sum | cut -d' ' -f1)
+    grep -qxF "$got  $name" "$man" || wrong=$((wrong + 1))
+    carved=$((carved + 1))
+done < "$ext"
+[ "$carved" -gt 0 ] && [ "$wrong" -eq 0 ] \
+    && ok "without a UDF reader: $carved files cut out of the image with dd (extents.tsv) match the manifest" \
+    || no "dd from extents.tsv: $wrong of $carved files differ from the manifest"
 cp -r disc bad
 printf X | dd of=bad/data/docs/guide.md bs=1 seek=0 conv=notrunc 2>/dev/null
 if "$tool" verify bad >out.txt; then no "verify missed damage"; fi
@@ -145,7 +160,7 @@ if [ -f hist-disc/tools/arv.bundle ]; then
     git bundle list-heads hist-disc/tools/arv.bundle | grep -q refs/ \
         && ok "--tools-history: tools/arv.bundle holds arv's branches" || no "the bundle holds no branches"
 else
-    grep -q "git bundle failed" hist.txt && ok "--tools-history: git could not bundle this checkout, as warned" \
+    grep -q "git bundle failed\|no history to bundle" hist.txt && ok "--tools-history: no history to bundle here, as warned" \
         || no "--tools-history: no bundle and no warning"
 fi
 # RS03, added and tested by arv itself (src/rs03); no dvdisaster needed. A small stand-in for
@@ -172,7 +187,7 @@ echo "$out" | grep -q "changed after it was hashed" && echo "$out" | grep -q "^ 
     && ok "arv make: a file changed between hashing and writing is refused, and nothing is recorded" \
     || no "a file changed mid-make: $out"
 # portable: arv and a .arv home side by side on a drive, run from anywhere: the drive's home, and
-# nothing written outside the drive (no machine config, no fallback home)
+# nothing written outside the drive (no machine config)
 mkdir -p drive/tools portable-user
 cp "$tool" drive/tools/arv
 (cd drive && HOME="$dir/portable-user" XDG_CONFIG_HOME= XDG_DATA_HOME= ./tools/arv init >/dev/null 2>&1)
@@ -264,6 +279,28 @@ if command -v sf >/dev/null && sf -version >/dev/null 2>&1; then
         && grep -q "Type: format identification" sf-home/catalog/archive.rec \
         && ok "Siegfried: formats.csv and the format identification event" || no "Siegfried formats"
 fi
+
+# a disc plan's formats: Siegfried run on each item where it is, its rows at the item's place on the
+# disc (a stand-in sf answering in Siegfried's CSV, so this runs without it)
+mkdir -p fake-sf plan-sf/pc/photos plan-sf/elsewhere
+cat > fake-sf/sf <<'SF'
+#!/bin/sh
+[ "$1" = -version ] && { echo "siegfried 0.0.0 (stand-in for arv's check)"; exit 0; }
+for last; do :; done
+echo "filename,filesize,modified,errors,namespace,id,format,version,mime,basis,warning"
+find "$last" -type f | sort | while read -r f; do echo "$f,1,2020-01-01,,pronom,x-fmt/test,Test format,,text/plain,stand-in,"; done
+SF
+chmod +x fake-sf/sf
+fake_sf=$(pwd)/fake-sf
+echo a > plan-sf/pc/photos/a.jpg; echo b > plan-sf/pc/photos/b.jpg; echo n > plan-sf/elsewhere/notes.txt
+"$tool" init plan-sf >/dev/null 2>&1
+( cd plan-sf && "$tool" plan new sf --set TRIP >/dev/null && "$tool" plan add sf pc/photos >/dev/null \
+    && "$tool" plan add sf elsewhere/notes.txt --as docs/notes.txt >/dev/null \
+    && PATH="$fake_sf:$PATH" "$tool" plan make sf -y --no-ecc --formats yes --output-dir out >/dev/null 2>&1 ) \
+    || no "arv plan make --formats yes"
+f=$(ls plan-sf/.arv/catalog/volumes/*/formats.csv 2>/dev/null | head -1)
+[ -n "$f" ] && grep -q '^photos/a.jpg,x-fmt/test,' "$f" && grep -q '^photos/b.jpg,' "$f" && grep -q '^docs/notes.txt,' "$f" \
+    && ok "a disc plan's formats.csv: each item identified where it is, at its place on the disc" || no "plan formats"
 
 # ------------------------------------------------------------------ SHA-256 and SHA-512 around block boundaries
 mkdir -p lengths/data

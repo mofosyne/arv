@@ -1,0 +1,34 @@
+disc-probe /dev/sr0 --raw (dev-tools/disc-probe.c as of commit 585eb60), disc 2 of 2 from one pack, blank
+
+Drive
+  vendor:    PIONEER
+  model:     BD-RW   BDR-XD08
+  firmware:  1.02
+Disc
+  kind:      BD-R (sequential) (profile 0x0041)
+  state:     blank
+Media id (manufacturer and type: the same on every disc of a pack)
+  disc type: BDR
+  maker:     VERBAT
+  type id:   IMe
+  revision:  0
+    0000  10 02 00 00 44 49 01 28 00 00 62 00 42 44 52 01  ....DI.(..b.BDR.
+    0010  12 01 00 00 01 00 00 00 00 00 00 00 00 02 00 00  ................
+    0020  00 19 4e 7e 01 ec 64 64 28 28 28 28 1e 1e 1e 1e  ..N~..dd((((....
+    0030  00 00 00 00 63 66 72 04 04 32 1e 96 80 00 00 00  ....cfr..2......
+    0040  00 08 08 08 08 10 10 10 10 48 00 48 00 48 00 48  .........H.H.H.H
+    0050  00 48 00 48 00 48 00 48 00 48 00 48 00 48 00 48  .H.H.H.H.H.H.H.H
+    0060  00 80 80 a0 c0 e0 00 00 56 45 52 42 41 54 49 4d  ........VERBATIM
+    0070  65 7d a3 00  e}..
+BCA serial (one disc's own, if the media has one and the drive reads it)
+  BCA (64 bytes):
+    0000  04 1e 10 15 12 62 01 02 24 03 02 14 47 28 48 97  .....b..$...G(H.
+    0010  04 1e 10 15 12 62 01 02 24 03 02 14 47 28 48 97  .....b..$...G(H.
+    0020  fc 42 44 52 01 12 01 00 00 00 00 00 00 00 00 00  .BDR............
+    0030  fc 42 44 52 01 12 01 00 00 00 00 00 00 00 00 00  .BDR............
+AACS identifiers (usually need AACS authentication; listed to see what the drive says)
+  media serial number: failed, sense 5/6F/02: copy protection: the drive wants AACS authentication first
+  media identifier: failed, sense 5/6F/02: copy protection: the drive wants AACS authentication first
+
+A BCA was read. Run this again with another disc of the same pack: if the two differ, it is
+each disc's own, and arv burned --bca 041e1015126201022403021447284897041e1015126201022403021447284897fc424452011201000000000000000000fc424452011201000000000000000000 records it with this copy.

@@ -1,0 +1,11 @@
+#compdef arv
+# zsh completion for arv. It asks arv itself what fits (arv __complete), so it follows the
+# commands of the arv installed; where arv offers nothing (a folder, a disc, an image), zsh
+# completes file names. Installed by make install (into a folder on $fpath: site-functions).
+local -a candidates
+candidates=("${(@f)$(${words[1]} __complete "${(@)words[2,CURRENT]}" 2>/dev/null)}")
+if (( ${#candidates} )) && [[ -n ${candidates[1]} ]]; then
+    compadd -a candidates
+else
+    _files
+fi

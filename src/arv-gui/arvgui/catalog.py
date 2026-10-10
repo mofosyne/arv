@@ -64,7 +64,7 @@ SELECTION_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{0,31}$")
 ACCESS_LEVELS = ("public", "private", "sealed")
 DEFAULT_ACCESS = "private"
 SEALED_FIELDS = ("Id", "Uuid", "IdScheme", "Set", "Category", "Path", "Sequence", "Coverage", "Date", "Part",
-                 "Location", "Copies", "MediaId", "Access")
+                 "Location", "Access")
 WITHHELD = "title, description, notes, subjects and file lists (Access: sealed)"
 
 

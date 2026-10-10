@@ -274,8 +274,7 @@ void archive_selections_for(const archive *a, const strlist *disc_ids, recs *out
 }
 
 static const char *const SEALED_FIELDS[] = { "Id", "Uuid", "IdScheme", "Set", "Category", "Path", "Sequence",
-                                            "Coverage", "Date", "Part", "Location", "Copies", "MediaId",
-                                            "Access", NULL };
+                                            "Coverage", "Date", "Part", "Location", "Access", NULL };
 
 /* what other discs may carry about a sealed disc */
 rec_record *sealed_view(const rec_record *d)
@@ -424,6 +423,102 @@ char *person(void)
 }
 
 /* a Location code when text names one (any case), else the text as given (trimmed) */
+/* ------------------------------------------------------------------ copies
+ * Each copy of a disc is one replication event (burned, an image file, or a folder), named by a
+ * letter unique among the disc's copies: A, B ... Z, AA, AB ... A check of one copy names it too. */
+
+static int is_copy_event(const rec_record *e, const char *disc_id)
+{
+    const char *d = rec_get(e, "Disc"), *t = rec_get(e, "Type"), *o = rec_get(e, "Outcome");
+    return d && t && !strcmp(d, disc_id) && !strcmp(t, "replication") && !(o && !strcmp(o, "failure"));
+}
+
+size_t disc_copies(const archive *a, const char *disc_id)
+{
+    size_t n = 0;
+    for (size_t i = 0; i < a->events.n; i++) n += is_copy_event(a->events.v[i], disc_id);
+    return n;
+}
+
+int copy_exists(const archive *a, const char *disc_id, const char *letter)
+{
+    for (size_t i = 0; i < a->events.n; i++)
+        if (is_copy_event(a->events.v[i], disc_id) && rec_get(a->events.v[i], "Copy")
+            && !strcmp(rec_get(a->events.v[i], "Copy"), letter))
+            return 1;
+    return 0;
+}
+
+/* A copy letter as written on a disc: 1-3 capital letters */
+int copy_letter_ok(const char *s)
+{
+    size_t n = strlen(s);
+    if (!n || n > 3) return 0;
+    for (size_t i = 0; i < n; i++)
+        if (s[i] < 'A' || s[i] > 'Z') return 0;
+    return 1;
+}
+
+/* the first letter no copy of the disc has (copies recorded before letters count as taking one each) */
+char *copy_next(const archive *a, const char *disc_id)
+{
+    size_t unnamed = 0;
+    for (size_t i = 0; i < a->events.n; i++)
+        unnamed += is_copy_event(a->events.v[i], disc_id) && !rec_get(a->events.v[i], "Copy");
+    for (size_t k = unnamed;; k++) {
+        char buf[8], tmp[8];
+        size_t n = 0, v = k + 1;               /* bijective base 26: 1 = A, 26 = Z, 27 = AA */
+        while (v && n < sizeof tmp - 1) {
+            v--;
+            tmp[n++] = (char)('A' + v % 26);
+            v /= 26;
+        }
+        for (size_t j = 0; j < n; j++) buf[j] = tmp[n - 1 - j];
+        buf[n] = 0;
+        if (!copy_exists(a, disc_id, buf)) return xstrdup(buf);
+    }
+}
+
+/* a copy known good: read back identical as it was recorded, or a later check of that copy passed */
+int copy_read_back(const archive *a, const char *disc_id, const rec_record *copy)
+{
+    if (rec_get(copy, "ReadBack") && !strcmp(rec_get(copy, "ReadBack"), "identical")) return 1;
+    const char *letter = rec_get(copy, "Copy");
+    int only = disc_copies(a, disc_id) == 1;    /* a check that names no copy, of a disc with one: that one */
+    for (size_t i = 0; i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        const char *d = rec_get(e, "Disc"), *t = rec_get(e, "Type"), *o = rec_get(e, "Outcome"), *c = rec_get(e, "Copy");
+        if (!d || !t || !o || strcmp(d, disc_id) || strcmp(t, "fixity check") || strcmp(o, "success")) continue;
+        const char *note = get_or(e, "Note", "");     /* a drive's check (arv check --device), not an image file's */
+        int of_a_disc = !strncmp(note, "read-back of the whole image from", 33) || !strncmp(note, "disc scan with", 14);
+        if (c ? letter && !strcmp(c, letter) : only && of_a_disc && !strcmp(get_or(copy, "Form", "disc"), "disc"))
+            return 1;
+    }
+    return 0;
+}
+
+/* the copy a BCA serial belongs to: its replication, or a passed check that named it and read the serial */
+const rec_record *copy_by_bca(const archive *a, const char *bca)
+{
+    for (size_t i = 0; i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        const char *b = rec_get(e, "Bca"), *c = rec_get(e, "Copy"), *t = rec_get(e, "Type"), *o = rec_get(e, "Outcome");
+        if (b && c && t && o && !strcmp(b, bca) && strcmp(o, "failure")
+            && (!strcmp(t, "replication") || !strcmp(t, "fixity check")))
+            return e;
+    }
+    return NULL;
+}
+
+/* a place given on the command line that looks like a code but is none of the archive's locations:
+ * say so (it is kept as written, as text), since it is often a mistyped code */
+void place_check(const archive *a, const char *text)
+{
+    if (!text || !*text || strchr(text, ' ') || archive_location(a, text)) return;   /* words with spaces: meant as text */
+    fprintf(stderr, "Note: %s is not one of the archive's locations (arv location list): recorded as written. "
+                    "arv location add CODE NAME makes a place arv knows.\n", text);
+}
+
 char *place(const archive *a, const char *text)
 {
     rec_record *l = archive_location(a, text);

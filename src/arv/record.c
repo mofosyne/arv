@@ -23,8 +23,9 @@ static rec_record *open_disc_record(opened *o, const char *given, const char *di
 {
     home_find(&o->h, given, NULL);
     archive_load(&o->cat, o->h.rec_path);
+    if (!disc_id || !*disc_id) die("%s", "a disc id is needed (arv list shows them)");
     rec_record *d = archive_disc(&o->cat, disc_id);
-    if (!d) die2("no disc %s in %s", disc_id, o->h.rec_path);
+    if (!d) die2("no disc %s in %s (arv list shows them; arv id checks one)", disc_id, o->h.rec_path);
     return d;
 }
 
@@ -117,6 +118,7 @@ static int image_test(const char *image, sbuf *out)
 {
     rs03_report r;
     char err[512], line[200];
+    if (isatty(2)) rs03_progress = progress_line;
     if (rs03_verify(image, &r, err, sizeof err)) {
         sb_printf(out, "%s\n", err);
         return 0;
@@ -265,7 +267,7 @@ static int read_back(const char *dev, uint64_t sectors, char hex[65], sbuf *out)
 
 int cmd_check(int argc, char **argv)
 {
-    const char *given = NULL, *device = NULL, *image = NULL, *disc_id = NULL, *note = NULL;
+    const char *given = NULL, *device = NULL, *image = NULL, *disc_id = NULL, *note = NULL, *letter = NULL;
     int verbose = 0, repair = 0;
     for (int i = 0; i < argc; i++) {
         if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) verbose = 1;
@@ -274,6 +276,7 @@ int cmd_check(int argc, char **argv)
         else if (i + 1 < argc && !strcmp(argv[i], "--device")) device = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--image")) image = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--note")) note = argv[++i];
+        else if (i + 1 < argc && !strcmp(argv[i], "--copy")) letter = argv[++i];
         else if (argv[i][0] != '-' && !disc_id) disc_id = argv[i];
         else return 2;
     }
@@ -305,6 +308,27 @@ int cmd_check(int argc, char **argv)
     archive_load(&o.cat, o.h.rec_path);
     int logged = disc_id && archive_disc(&o.cat, disc_id);
     if (!logged && !repair) die("disc %s is not in the catalogue", disc_id);
+    if (letter && logged && !copy_exists(&o.cat, disc_id, letter))
+        die2("%s has no copy %s in the catalogue (each copy's letter is written on its hub and case)", disc_id, letter);
+    char serial[33] = "";       /* the disc's own serial: which copy is in the drive */
+    if (logged && device && !drive_bca(device, serial)) {
+        const rec_record *seen = copy_by_bca(&o.cat, serial);
+        if (seen && strcmp(rec_get(seen, "Disc"), disc_id))
+            die2("the disc in the drive is a copy of %s, not %s", rec_get(seen, "Disc"), disc_id);
+        if (seen && letter && strcmp(rec_get(seen, "Copy"), letter))
+            die2("the disc in the drive is copy %s, not %s (by its BCA serial)", rec_get(seen, "Copy"), letter);
+        if (seen) letter = rec_get(seen, "Copy");
+    }
+    char *only = NULL;          /* a disc with one copy: a check of it is of that copy */
+    if (!letter && logged && device && disc_copies(&o.cat, disc_id) == 1) {
+        for (size_t i = 0; i < o.cat.events.n && !only; i++) {
+            const rec_record *e = o.cat.events.v[i];
+            if (rec_get(e, "Copy") && rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), disc_id) && rec_get(e, "Type")
+                && !strcmp(rec_get(e, "Type"), "replication"))
+                only = xstrdup(rec_get(e, "Copy"));
+        }
+        letter = only;
+    }
     int read_only = logged && repair && access(o.h.rec_path, W_OK);   /* e.g. run from a mounted disc */
     logged &= !read_only;
     char *what, *agent;
@@ -348,11 +372,15 @@ int cmd_check(int argc, char **argv)
     char *sum = summary(output, 6), *text = note ? xprintf("%s\n%s\n%s", what, sum, note) : xprintf("%s\n%s", what, sum);
     if (logged) {
         const char *outcome = !ok ? "failure" : repair && !was_whole ? "warning" : "success";
-        recs_add(&o.cat.events, new_event(disc_id, "fixity check", outcome, agent, "automatic", text));
+        rec_record *ev = new_event(disc_id, "fixity check", outcome, agent, "automatic", text);
+        if (letter) rec_add(ev, "Copy", letter);        /* which copy was in the drive, or is this image */
+        if (letter && *serial) rec_add(ev, "Bca", serial);  /* so a copy recorded without it is known by it next time */
+        recs_add(&o.cat.events, ev);
         archive_save(&o.cat, o.h.rec_path);
     }
     printf("%s\n", !ok || verbose || repair ? output : sum);
-    if (disc_id) printf("%s: %s\n", disc_id, ok ? (repair && !was_whole ? "REPAIRED" : "OK") : "FAILED - see output above");
+    if (disc_id) printf("%s%s%s: %s\n", disc_id, letter ? " copy " : "", letter ? letter : "",
+                        ok ? (repair && !was_whole ? "REPAIRED" : "OK") : "FAILED - see output above");
     else printf("%s: %s\n", image, ok ? (was_whole ? "OK" : "REPAIRED") : "FAILED - see output above");
     if (!logged)
         fprintf(stderr, "(not logged: %s)\n", read_only ? "the catalogue found is read-only"
@@ -365,6 +393,7 @@ int cmd_check(int argc, char **argv)
         hand_over(stdout, image, lost, medium);
     }
     free(from_label);
+    free(only);
     return ok ? 0 : 1;
 }
 
@@ -433,10 +462,10 @@ int cmd_stored(int argc, char **argv)
         printf("%s: the %s at %s is NOT a good copy (%s); not recorded\n", disc_id, form, abs, out.s ? out.s : "");
         return 1;
     }
-    char *count = xprintf("%ld", atol(rec_get(d, "Copies") ? rec_get(d, "Copies") : "0") + 1);
-    rec_set(d, "Copies", count);
+    char *name = copy_next(&o.cat, disc_id);
     sbuf text = { 0 };
-    sb_printf(&text, "stored 1 copy as %s", folder ? "a folder" : "an image file");
+    sb_printf(&text, "stored copy %s as %s", name, folder ? "a folder" : "an image file");
+    place_check(&o.cat, location);
     char *code = location ? place(&o.cat, location) : NULL;
     if (code) {
         int have = 0;
@@ -454,16 +483,18 @@ int cmd_stored(int argc, char **argv)
     sb_puts(&text, folder ? "; verified: every file matches its manifest" : "; read back: identical to the image");
     char *who = person();
     rec_record *ev = new_event(disc_id, "replication", "success", who, "human", text.s);
+    rec_add(ev, "Copy", name);
     rec_add(ev, "ReadBack", "identical");     /* known good: the image itself, or every file of it */
     rec_add(ev, "Form", form);
     const char *t = temperature ? temperature : place_temperature(&o.cat, code);
     rec_add(ev, "Temperature", t ? t : "warm");
+    if (code) rec_add(ev, "Location", code);
     rec_add(ev, "Path", abs);
     recs_add(&o.cat.events, ev);
     archive_save(&o.cat, o.h.rec_path);
-    printf("%s: %s cop%s recorded (this one: %s, %s, checked)\n", disc_id, count, !strcmp(count, "1") ? "y" : "ies",
-           form, t ? t : "warm");
-    free(who); free(count); free(text.s); free(code); free(abs); free(out.s);
+    size_t total = disc_copies(&o.cat, disc_id);
+    printf("%s: copy %s recorded (%s, %s, checked), %zu in all\n", disc_id, name, form, t ? t : "warm", total);
+    free(who); free(name); free(text.s); free(code); free(abs); free(out.s);
     return 0;
 }
 
@@ -472,7 +503,7 @@ int cmd_stored(int argc, char **argv)
 int cmd_burned(int argc, char **argv)
 {
     const char *given = NULL, *disc_id = NULL, *media_id = NULL, *location = NULL, *note = NULL, *device = NULL,
-               *temperature = NULL;
+               *temperature = NULL, *letter = NULL, *bca = NULL;
     long copies = 1;
     int copies_given = 0;
     for (int i = 0; i < argc; i++) {
@@ -483,9 +514,15 @@ int cmd_burned(int argc, char **argv)
         else if (i + 1 < argc && !strcmp(argv[i], "--media-id")) media_id = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--location")) location = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--note")) note = argv[++i];
+        else if (i + 1 < argc && !strcmp(argv[i], "--copy")) letter = argv[++i];
+        else if (i + 1 < argc && !strcmp(argv[i], "--bca")) bca = argv[++i];
         else if (argv[i][0] != '-' && !disc_id) disc_id = argv[i];
         else return 2;
     }
+    if (copies < 1) die("%s", "--copies N: one or more");
+    if (letter && copies != 1) die("%s", "--copy names one copy: record the others one at a time");
+    if (bca && copies != 1) die("%s", "--bca is one disc's serial: record each copy on its own");
+    if (letter && !copy_letter_ok(letter)) die("--copy %s: 1-3 capital letters, as written on the disc (A, B ... Z, AA)", letter);
     char *from_label = NULL;
     if (device) {           /* the disc in the drive: read it back before recording it */
         if (copies_given && copies != 1) die("%s", "--device reads one disc: record each copy as it is burned");
@@ -503,6 +540,26 @@ int cmd_burned(int argc, char **argv)
             temperature);
     opened o;
     rec_record *d = open_disc_record(&o, given, disc_id);
+    if (letter && copy_exists(&o.cat, disc_id, letter))
+        die2("%s already has a copy %s: name this one another letter (or leave --copy out, and arv takes the next)",
+             disc_id, letter);
+    char serial[33] = "";       /* the disc's own serial: as given, or read from the drive */
+    if (bca && bca_normal(bca, serial)) die("--bca %s: the BCA serial, 32 hex digits (dev-tools/disc-probe prints it)", bca);
+    if (device) {
+        char read[33];
+        if (!drive_bca(device, read)) {
+            if (*serial && strcmp(serial, read)) die2("--bca %s: the disc in the drive says %s", serial, read);
+            memcpy(serial, read, sizeof serial);
+        }
+    }
+    if (*serial) {              /* a disc already recorded is not a new copy */
+        const rec_record *seen = copy_by_bca(&o.cat, serial);
+        if (seen) {
+            fprintf(stderr, "Error: this disc is already recorded: copy %s of %s (BCA %s). Each copy is recorded once.\n",
+                    rec_get(seen, "Copy"), rec_get(seen, "Disc"), serial);
+            exit(1);
+        }
+    }
     const char *read_back_note = NULL;
     if (device) {
         uint64_t sectors = 0;
@@ -526,46 +583,54 @@ int cmd_burned(int argc, char **argv)
         read_back_note = "read back: identical to the image";
         free(out.s);
     }
-    char *count = xprintf("%ld", atol(rec_get(d, "Copies") ? rec_get(d, "Copies") : "0") + copies);
-    rec_set(d, "Copies", count);
-    if (media_id) rec_add(d, "MediaId", media_id);
-    sbuf text = { 0 };
-    sb_printf(&text, "burned %ld cop%s", copies, copies == 1 ? "y" : "ies");
-    if (location) {
-        char *where = place(&o.cat, location);
+    char *code = NULL, *kept_at = NULL;
+    if (location) {         /* the copy's place, and the disc's places (every place a copy of it is kept) */
+        place_check(&o.cat, location);
+        code = place(&o.cat, location);
         int have = 0;
-        for (size_t i = 0; i < d->nfields; i++) have |= !strcmp(d->fields[i].name, "Location") && !strcmp(d->fields[i].value, where);
-        if (!have) rec_add(d, "Location", where);
+        for (size_t i = 0; i < d->nfields; i++) have |= !strcmp(d->fields[i].name, "Location") && !strcmp(d->fields[i].value, code);
+        if (!have) rec_add(d, "Location", code);
         rec_record probe = { 0 };
         probe.type = "Disc";
-        rec_add(&probe, "Location", where);
-        char *path = archive_where(&o.cat, &probe);
-        sb_printf(&text, ", kept at %s", path);
-        free(path);
+        rec_add(&probe, "Location", code);
+        kept_at = archive_where(&o.cat, &probe);
         rec_clear(&probe);
-        free(where);
     }
-    if (note) sb_printf(&text, "; %s", note);
-    sb_printf(&text, "; %s", read_back_note ? read_back_note : "not read back");
+    /* how reachable the copy is: given, else its place's, else a disc on its own: cold */
+    const char *t = temperature ? temperature : place_temperature(&o.cat, code);
     char *who = person();
-    rec_record *ev = new_event(disc_id, "replication", "success", who, "human", text.s);
-    if (read_back_note) rec_add(ev, "ReadBack", "identical");     /* the copy is known good */
-    rec_add(ev, "Form", "disc");
-    {   /* how reachable the copy is: given, else its place's, else a disc on its own: cold */
-        char *code = location ? place(&o.cat, location) : NULL;
-        const char *t = temperature ? temperature : place_temperature(&o.cat, code);
+    sbuf letters = { 0 };
+    for (long k = 0; k < copies; k++) {
+        char *name = letter ? xstrdup(letter) : copy_next(&o.cat, disc_id);
+        sbuf text = { 0 };
+        sb_printf(&text, "burned copy %s", name);
+        if (kept_at) sb_printf(&text, ", kept at %s", kept_at);
+        if (note) sb_printf(&text, "; %s", note);
+        sb_printf(&text, "; %s", read_back_note ? read_back_note : "not read back");
+        rec_record *ev = new_event(disc_id, "replication", "success", who, "human", text.s);
+        rec_add(ev, "Copy", name);
+        if (read_back_note) rec_add(ev, "ReadBack", "identical");     /* the copy is known good */
+        rec_add(ev, "Form", "disc");
         rec_add(ev, "Temperature", t ? t : "cold");
-        free(code);
+        if (code) rec_add(ev, "Location", code);
+        if (media_id) rec_add(ev, "MediaId", media_id);
+        if (*serial) rec_add(ev, "Bca", serial);
+        recs_add(&o.cat.events, ev);
+        sb_printf(&letters, "%s%s", letters.len ? (k + 1 == copies ? " and " : ", ") : "", name);
+        free(name);
+        free(text.s);
     }
-    recs_add(&o.cat.events, ev);
     archive_save(&o.cat, o.h.rec_path);
-    printf("%s: %s cop%s recorded%s\n", disc_id, count, !strcmp(count, "1") ? "y" : "ies",
+    size_t total = disc_copies(&o.cat, disc_id);
+    printf("%s: cop%s %s recorded, %zu in all%s. Write the letter on the hub and the case, after the id.\n", disc_id,
+           copies == 1 ? "y" : "ies", letters.s, total,
            read_back_note ? " (this one read back: identical to the image)"
                           : " (not read back: arv burned --device checks a copy as it records it)");
     free(from_label);
     free(who);
-    free(count);
-    free(text.s);
+    free(code);
+    free(kept_at);
+    free(letters.s);
     return 0;
 }
 
@@ -625,6 +690,7 @@ int cmd_locate(int argc, char **argv)
         if (!strcmp(d->fields[i].name, "Location")) strlist_add(&old_all, d->fields[i].value);
     if (add) for (size_t i = 0; i < old_all.n; i++) if (*old_all.v[i]) strlist_add(&keep, old_all.v[i]);
     for (size_t i = 0; i < places.n; i++) {
+        place_check(&o.cat, places.v[i]);
         char *p = place(&o.cat, places.v[i]);
         if (!archive_location(&o.cat, p))
             fprintf(stderr, "Note: %s is not a location code ('arv location add' to define it); stored as text\n", p);

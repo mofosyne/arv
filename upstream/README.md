@@ -2,8 +2,8 @@
 
 **Not part of arv.** Nothing here is built by `make` or used to make or read a disc. It is what
 we offer back to the projects arv learned from or depends on, and their code we keep
-to check ours against. Every disc still carries it, in
-`tools/arv/`, with the rest of the source.
+to check ours against. Discs carry only this README and `bagit-python/`, which arv's checks use
+as an outside referee (`disc-tools.txt`).
 
 | Folder | For | What | Status |
 |---|---|---|---|
