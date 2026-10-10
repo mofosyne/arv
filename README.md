@@ -176,7 +176,8 @@ and ARM64) with [cosmocc](https://cosmo.zip/pub/cosmocc/) before installing:
 `tools/arv.com`, and their README.txt says how to run it; without it they carry the source,
 which builds with one `cc` line.
 
-`make install` copies the last commit (exactly the tree every disc carries in `tools/`) to
+`make install` copies the last commit (exactly the tree every disc carries in `tools/`: what
+[`disc-tools.txt`](disc-tools.txt) lists, about 5 MB, so not the UDF and ECMA standards) to
 `PREFIX/share/arv` (with `arv.com` when it was built), puts `arv`, `arv-assist`, `arv-gui`,
 `udfwrite` and `bagit` in `PREFIX/bin`, and the completion where bash and zsh look for it.
 

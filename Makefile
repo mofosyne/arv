@@ -14,9 +14,9 @@
 #   $(PREFIX)/bin/arv-gui      arv gui: the optional web interface (needs python3)
 #   $(PREFIX)/bin/udfwrite     arv's UDF 2.50 writer as a program of its own (arv has it built in)
 #   $(PREFIX)/bin/bagit        a BagIt (RFC 8493) validator for any bag (arv verify uses the same code)
-#   $(PREFIX)/share/arv/       the source, exactly the tree every disc carries in tools/
-#                              (git archive HEAD; uncommitted changes are not installed. From a
-#                              tarball, which git archive made: the tree as it is, less build output)
+#   $(PREFIX)/share/arv/       the source, exactly the tree every disc carries in tools/: what
+#                              disc-tools.txt lists, from the last commit (git archive HEAD;
+#                              uncommitted changes are not installed), or from a tarball's tree
 #   $(BASHCOMPDIR)/arv, $(ZSHCOMPDIR)/_arv   tab completion, which asks arv (src/arv/completion/)
 #
 # Needs at run time: nothing beyond the C library to make, check and repair discs; python3 only for
@@ -29,6 +29,7 @@ SHARE    = $(PREFIX)/share/arv
 BIN      = $(PREFIX)/bin
 BASHCOMPDIR ?= $(PREFIX)/share/bash-completion/completions
 ZSHCOMPDIR  ?= $(PREFIX)/share/zsh/site-functions
+TOOLS_PATHS  = $(shell sed -e 's/\#.*//' disc-tools.txt)    # what discs carry (disc-tools.txt)
 
 all:
 	$(MAKE) -C src/bagit
@@ -52,13 +53,11 @@ install: all
 	mkdir -p "$(DESTDIR)$(SHARE)" "$(DESTDIR)$(BIN)"
 	@if git rev-parse --git-dir >/dev/null 2>&1; then \
 	    git diff --quiet HEAD -- || echo "Note: uncommitted changes are not installed (discs carry the last commit too)"; \
-	    git archive --format=tar HEAD | tar -x -C "$(DESTDIR)$(SHARE)"; \
+	    git archive --format=tar HEAD $(foreach p,$(TOOLS_PATHS),'$(p)') | tar -x -C "$(DESTDIR)$(SHARE)"; \
 	    printf 'arv@%s\n' "$$(git rev-parse --short=12 HEAD)" > "$(DESTDIR)$(SHARE)/VERSION"; \
 	else \
-	    echo "Not a git checkout: installing this tree (a release tarball), less its build output"; \
-	    tar -c --exclude=.git --exclude='./src/*/build' --exclude='./debian/arv' --exclude='./debian/.debhelper' \
-	        --exclude='./debian/tmp' --exclude='./debian/files' --exclude='./debian/*.substvars' \
-	        --exclude='./debian/debhelper-build-stamp' --exclude='*/__pycache__' . | tar -x -C "$(DESTDIR)$(SHARE)"; \
+	    echo "Not a git checkout: installing what disc-tools.txt lists from this tree (a release tarball)"; \
+	    tar -c --exclude='src/*/build' --exclude='*/__pycache__' $(TOOLS_PATHS) | tar -x -C "$(DESTDIR)$(SHARE)"; \
 	    c=$$(cat COMMIT 2>/dev/null); case "$$c" in ''|*Format*) c=unknown;; esac; \
 	    printf 'arv@%.12s\n' "$$c" > "$(DESTDIR)$(SHARE)/VERSION"; \
 	fi

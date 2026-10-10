@@ -1075,11 +1075,11 @@ about 430 bytes per file in the archive. Up to about a million files that is und
 ## Open decisions
 
 - Licence for this repo (GPLv3 fits if the RS03 library happens)
-- **What every disc, and the package, carry in `tools/`** (2026-10-10, issue #32). One file,
-  `docs/spec/complete-udf-spec-and-referenced-ecma-documents.zip` (69.6 MB), is 97% of the source
-  tree discs carry and the package installs; its licence and origin are not written down. Options:
-  keep it (once its terms are confirmed), a separate data package that `arv make` uses when present,
-  or our own profile (`archival-udf.md`) with a pointer to the published standards.
+- **What every disc, and the package, carry in `tools/`** (2026-10-10, issue #32). Decided: a
+  whitelist, `disc-tools.txt`. The UDF and ECMA standards' zip (69.6 MB, 97% of the old tree, its
+  licence and origin not written down) stays in the repository but off the discs and out of the
+  package; discs carry our profile (`archival-udf.md`). Open: whether to point to the published
+  standards from the profile, and what the zip's terms are.
 - **Editions under a distributed collection** (2026-10-06). The archive is the union of the
   workflow folder, warm images and cold discs; a disc holds a selection plus a catalogue copy
   ([concepts.md](../docs/concepts.md)). But "a newer safe edition replaces older ones" still

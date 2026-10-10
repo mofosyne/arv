@@ -145,7 +145,7 @@ if [ -f hist-disc/tools/arv.bundle ]; then
     git bundle list-heads hist-disc/tools/arv.bundle | grep -q refs/ \
         && ok "--tools-history: tools/arv.bundle holds arv's branches" || no "the bundle holds no branches"
 else
-    grep -q "git bundle failed" hist.txt && ok "--tools-history: git could not bundle this checkout, as warned" \
+    grep -q "git bundle failed\|no history to bundle" hist.txt && ok "--tools-history: no history to bundle here, as warned" \
         || no "--tools-history: no bundle and no warning"
 fi
 # RS03, added and tested by arv itself (src/rs03); no dvdisaster needed. A small stand-in for

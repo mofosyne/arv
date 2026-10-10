@@ -16,6 +16,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <glob.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -504,6 +505,29 @@ static char *find_ape(const char *source)
     return NULL;
 }
 
+/* the paths and patterns disc-tools.txt lists (what every disc carries of arv's source), or none
+ * (an older tree without it: then all of it). The strings point into *text, which the caller frees. */
+static size_t tools_list(const char *source, char **text, char ***out)
+{
+    char *path = join(source, "disc-tools.txt");
+    *text = read_text(path);
+    free(path);
+    size_t n = 0;
+    *out = NULL;
+    for (char *line = *text ? strtok(*text, "\n") : NULL; line; line = strtok(NULL, "\n")) {
+        char *hash = strchr(line, '#');
+        if (hash) *hash = 0;
+        char *p = line, *e = line + strlen(line);
+        while (*p == ' ' || *p == '\t') p++;
+        while (e > p && (e[-1] == ' ' || e[-1] == '\t' || e[-1] == '\r')) *--e = 0;
+        if (!*p) continue;
+        *out = realloc(*out, (n + 1) * sizeof **out);
+        if (!*out) die("%s", "out of memory");
+        (*out)[n++] = p;
+    }
+    return n;
+}
+
 /* arv's last commit (and with history, a git bundle of every branch), arv.com and any
  * extra tools (cli.stage_tools) */
 static void stage_tools(const char *tools, const char *source, int is_git, const char *workdir, const options *o)
@@ -513,18 +537,54 @@ static void stage_tools(const char *tools, const char *source, int is_git, const
     if (!source) {
         say("Warning: arv's source was not found (--tools DIR or $ARV_SOURCE): tools/ holds only what the "
             "disc needs to explain itself", "");
-    } else if (is_git) {                 /* the last commit, as git archive gives it */
-        char *tar = join(workdir, "tools.tar"), *out = NULL;
-        char *a[] = { "git", "-C", (char *)source, "archive", "--format=tar", "-o", tar, "HEAD", NULL };
+    } else if (is_git) {                 /* the last commit, as git archive gives it: what disc-tools.txt lists */
+        char *tar = join(workdir, "tools.tar"), *out = NULL, *list, **paths;
+        size_t np = tools_list(source, &list, &paths), n = 0;     /* none listed: the whole commit */
+        char **a = xmalloc((np + 9) * sizeof *a);
+        const char *fixed[] = { "git", "-C", source, "archive", "--format=tar", "-o", tar, "HEAD" };
+        for (size_t i = 0; i < sizeof fixed / sizeof *fixed; i++) a[n++] = (char *)fixed[i];
+        for (size_t i = 0; i < np; i++) a[n++] = paths[i];
+        a[n] = NULL;
         char *b[] = { "tar", "-x", "-f", tar, "-C", tree, NULL };
         if (run(a, &out) || run(b, &out)) die("could not copy arv's source into tools/: %s", out ? out : "");
+        free(a);
+        free(paths);
+        free(list);
         unlink(tar);
         free(tar);
         free(out);
-    } else {
-        static const char *const skip[] = { "__pycache__", "*.pyc", ".git", "*.iso", NULL };
-        copy_tree(source, tree, skip);
+    } else {                             /* an installed or copied tree: what disc-tools.txt lists, never build output */
+        static const char *const skip[] = { "__pycache__", "*.pyc", ".git", "*.iso", "build", ".archive-make-*", NULL };
+        char *list, **paths;
+        size_t np = tools_list(source, &list, &paths);
+        if (!np) copy_tree(source, tree, skip);
+        for (size_t i = 0; i < np; i++) {
+            char *pattern = join(source, paths[i]);
+            glob_t g;
+            if (!glob(pattern, 0, NULL, &g))
+                for (size_t k = 0; k < g.gl_pathc; k++) {
+                    const char *rel = g.gl_pathv[k] + strlen(source) + 1;
+                    char *to = join(tree, rel), *parent = xstrdup(to), *slash = strrchr(parent, '/');
+                    struct stat st;
+                    if (slash) *slash = 0;
+                    if (mkdirs(parent)) die("cannot create %s", parent);
+                    if (!stat(g.gl_pathv[k], &st) && S_ISDIR(st.st_mode)) copy_tree(g.gl_pathv[k], to, skip);
+                    else if (!stat(g.gl_pathv[k], &st) && S_ISREG(st.st_mode)) {
+                        copy_file(g.gl_pathv[k], to);
+                        chmod(to, st.st_mode & 0777);
+                    }
+                    free(to);
+                    free(parent);
+                }
+            globfree(&g);
+            free(pattern);
+        }
+        free(paths);
+        free(list);
     }
+    if (source && !is_git && o->tools_history)
+        fprintf(stderr, "Warning: --tools-history: arv's source here (%s) is not a git checkout, so there is no "
+                        "history to bundle; the disc gets the plain tree\n", source);
     if (source && is_git && o->tools_history) {
         char *bundle = join(tools, "arv.bundle"), *out = NULL;
         char *a[] = { "git", "-C", (char *)source, "bundle", "create", bundle, "--all", NULL };

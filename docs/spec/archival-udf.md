@@ -9,7 +9,9 @@ The goal is a disc that is **written once, whole and closed**, readable by any U
 (Windows, macOS, Linux, 7-Zip), and laid out so that damage is survivable and the image is
 **reproducible**: the same folder and record always give the same bytes.
 
-Standards: ECMA-167 (3rd edition) and OSTA UDF 2.50. This profile only narrows them; anything
+Standards: ECMA-167 (3rd edition) and OSTA UDF 2.50, both published free of charge (ECMA-167 by
+Ecma International, ecma-international.org; UDF 2.50 by OSTA, osta.org); discs carry this profile, not
+the standards themselves (issue #32). This profile only narrows them; anything
 not mentioned follows UDF 2.50 as a read-only volume.
 
 ## Why a profile and a writer of our own
