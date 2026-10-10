@@ -77,7 +77,7 @@ How a disc is built, in one picture: [docs/architecture.md](docs/architecture.md
 ├── index.html               offline viewer (no JavaScript)
 ├── README.txt               plain-text recovery instructions
 │   data/ro-crate-metadata.json  optional RO-Crate description (--ro-crate)
-├── tools/                   this tool (snapshot of the last commit, with its specs) and arv.com: the
+├── tools/                   this tool (its source and specs, as disc-tools.txt lists) and arv.com: the
 │                            reader ready to run on Linux, macOS, Windows and BSD (x86-64, ARM64)
 └── data/                    the payload
 [ dvdisaster RS03 ECC data appended after the filesystem ]
@@ -212,7 +212,7 @@ The whole cycle, as the C arv runs it:
 ```sh
 arv init ~/archive                                          # a .arv home
 arv make -y --set trip --location BOX1 ~/archive/2019-kyoto # disc image, recorded in the home
-arv burned --device /dev/sr0 --location HOME               # after burning: read back, then recorded
+arv burned --device /dev/sr0 --location HOME               # after burning: read back, recorded as copy A
 arv todo                                                    # what is owed: burns, read-backs, places, checks
 arv find kyoto                                              # which disc, and where it is
 arv verify /media/cdrom                                     # every file against its checksum
@@ -329,6 +329,7 @@ arv id PHOTOS-07_2015-2024_Q   # explain / check an id (catches typos)
 arv note 2020-2025_PROJECTS_01 "Only copy of the 2019 PCB gerbers"
 arv locate 2020-2025_PROJECTS_01 BOX3 OFFSITE   # one location per place a copy is kept
 arv burned --device /dev/sr0 --location OFFSITE  # after burning the ISO yourself: read back, recorded
+                                                # (copy B: write the letter on the hub and case)
 arv location move BOX3 --in OFFSITE             # moving a box moves its discs
 arv location list -v                            # places as a tree, with the discs in each
 arv selection add KYOTO-BEST --name "Best of Kyoto" TRIP-01_2019_4:"day2 Kinkaku-ji/"
@@ -344,6 +345,7 @@ arv todo                                           # what is owed: copies, read-
 arv list --unchecked-since 5y                  # discs due a check (last checked, or never)
 arv list --one-place                           # discs kept in only one place
 arv check --device /dev/sr0                        # read a disc back against its image hash, logged
+                                                   # (--copy B names the copy; the BCA serial, if read, finds it)
 arv check --image 2020-2025_PROJECTS_01.iso
 arv rebuild /media/disc                            # recreate/merge the home catalogue from a disc
 arv verify /media/disc                             # every file against its checksum
@@ -496,6 +498,44 @@ ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM S
 - Model size matters. Tested on CPU: a 1.5B model gave generic text; a 3B model
   (qwen2.5-3b, about 1 minute per round) gave useful tags and good questions, and one
   answered question produced a specific title. Use a 7-8B model if your hardware allows.
+
+### Describing from anywhere: drafts
+
+A draft is plain JSON, and anything may write one: you, a script, or a model that is not
+arv's (one that goes through the archive disc by disc, say). `arv describe DISC-ID --apply`
+records it, from a file or from standard input (`-`):
+
+```sh
+arv describe TRIP-01_2019_4 --apply - <<'EOF'
+{"title": "Kyoto, autumn 2019",
+ "description": "Two weeks in Kansai: temples, the Philosopher's Path, a day in Nara.",
+ "subjects": ["travel", "japan"],
+ "notes": ["The Nara photos are on the second camera's card."],
+ "folder_tags": {"photos/nara": ["place:nara", "event:trip-2019"]},
+ "folder_captions": {"photos/nara": "Deer at Todai-ji"},
+ "agent": "llm:some-model"}
+EOF
+```
+
+| Key | What | Applied as |
+|---|---|---|
+| `title`, `description` | text | replace the disc's |
+| `subjects` | list of words | replace the disc's `Subject`s |
+| `notes` | list of texts | added as `Note`s |
+| `folder_tags` | folder (relative to `data/`, `.` for all of it): list of tags | that folder's tags replaced; other folders keep theirs |
+| `folder_captions` | folder: text | that folder's caption |
+| `agent` | who wrote it: `human:NAME`, or a model as `llm:NAME` | names it in the event |
+| `authorship` | `human`, `suggested`, `accepted`, `edited` (as in events) | how it was written |
+
+Every key is optional. A folder the disc does not have is skipped with a warning. Each apply is
+one `metadata modification` event naming the agent. A model's draft applied by you counts as
+`accepted` by you; `--suggested` keeps it a suggestion, for a script that runs without anyone
+reading it, so a person can tell later what nobody checked. `arv make --draft` takes the same
+JSON for a disc not yet made.
+
+What stays out of the catalogue on purpose: tags on single files (a photo's keywords belong in the
+file, where photo tools read them: `arv keywords --format exiftool` writes the folder tags there),
+and links between items (selections group them). research/plan.md, 2026-10-10, says why.
 
 ## Without arv: the original scripts
 

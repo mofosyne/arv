@@ -22,7 +22,9 @@ arv-gui also runs `arv-assist suggest` (one round of suggestions, JSON in and ou
 - `tag` runs llama.cpp's `llama-embedding` as a subprocess on a 37 MB model that `arv models
   fetch` downloads with `curl` and checks against a pinned SHA-256 (or `--from FILE`, offline).
 - Drafts (`--save`) are JSON that `arv make --draft` takes; `--apply` writes a reviewed draft to a
-  disc already in the catalogue, with a PREMIS event naming the model.
+  disc already in the catalogue, with a PREMIS event naming the model. A draft may come from
+  anywhere (`--apply -` reads it from standard input; `--suggested` leaves a model's draft
+  unreviewed): its keys are in the top-level README, "Describing from anywhere".
 
 It links arv's own modules (`../arv`, everything but `arv.c`) for the catalogue, drafts and tags,
 so it reads and writes exactly what arv does.

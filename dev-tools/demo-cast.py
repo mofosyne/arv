@@ -29,6 +29,8 @@ TYPE, AFTER, LINE = 0.045, 1.6, 0.012          # seconds: a typed character, a p
 # The session: ("#", text) is a comment typed at the prompt; ("$", command) is run; ("pause", s).
 # {DISC} becomes the id of the disc the plan made.
 SESSION = [
+    ("$", "arv"),
+    ("pause", 1.0),
     ("#", "Archive: what goes on discs"),
     ("$", "arv init"),
     ("$", 'arv plan new kyoto --title "Kyoto, July 2025" --set TRIP'),
@@ -42,7 +44,7 @@ SESSION = [
     ("#", "Record: what exists, and where"),
     ("$", 'arv location add SHELF "Study shelf" --temperature cold'),
     ("$", 'arv location add NAS "The NAS" --temperature warm'),
-    ("$", "arv burned {DISC} --copies 1 --location SHELF   # --device also reads it back"),
+    ("$", "arv burned {DISC} --location SHELF   # copy A; --device also reads it back"),
     ("$", "arv stored {DISC} images/{DISC}.iso --location NAS"),
     ("$", "arv objects"),
     ("$", "arv find kinkaku"),
@@ -76,7 +78,7 @@ def sample_files(root):
 
 
 def stand_in_tools(root):
-    """tools/: a small stand-in for arv's source (the real one is about 80 MB)."""
+    """tools/: a small stand-in for arv's source (the real one is about 5 MB)."""
     src = os.path.join(root, "arv-source")
     os.makedirs(os.path.join(src, "src", "arv"))
     with open(os.path.join(src, "VERSION"), "w") as f:

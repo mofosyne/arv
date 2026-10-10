@@ -600,8 +600,10 @@ int cmd_burned(int argc, char **argv)
     const char *t = temperature ? temperature : place_temperature(&o.cat, code);
     char *who = person();
     sbuf letters = { 0 };
+    char *first = NULL;
     for (long k = 0; k < copies; k++) {
         char *name = letter ? xstrdup(letter) : copy_next(&o.cat, disc_id);
+        if (!first) first = xstrdup(name);
         sbuf text = { 0 };
         sb_printf(&text, "burned copy %s", name);
         if (kept_at) sb_printf(&text, ", kept at %s", kept_at);
@@ -622,10 +624,12 @@ int cmd_burned(int argc, char **argv)
     }
     archive_save(&o.cat, o.h.rec_path);
     size_t total = disc_copies(&o.cat, disc_id);
-    printf("%s: cop%s %s recorded, %zu in all%s. Write the letter on the hub and the case, after the id.\n", disc_id,
-           copies == 1 ? "y" : "ies", letters.s, total,
-           read_back_note ? " (this one read back: identical to the image)"
-                          : " (not read back: arv burned --device checks a copy as it records it)");
+    printf("%s: cop%s %s recorded, %zu in all%s.\n"
+           "Write %s on the hub and the case, after the id: %s %s%s\n", disc_id, copies == 1 ? "y" : "ies", letters.s, total,
+           read_back_note ? " (read back: identical to the image)"
+                          : " (not read back: arv burned --device checks a copy as it records it)",
+           copies == 1 ? "its letter" : "each one's letter", disc_id, first, copies == 1 ? "" : ", and so on");
+    free(first);
     free(from_label);
     free(who);
     free(code);

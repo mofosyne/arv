@@ -4,7 +4,7 @@ Hist-src
 Disc id:  CODE-01_2020_0
 Set:      CODE
 Burned:   2026-01-01
-Contents: 1 files, 2 bytes (in data/)
+Contents: 1 file, 2 bytes (in data/)
 Made by:  SW
 
 This is an archive disc by archivist, made on 2026-01-01: Hist-src. Its

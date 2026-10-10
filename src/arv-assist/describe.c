@@ -203,7 +203,28 @@ static const char *draft_note(const char *how)
     return how;
 }
 
-/* describe.apply_to_disc: the draft written into the home catalogue, with an event */
+/* a folder of the disc (its listing has a file under it), or "." for the whole of data/ */
+static int disc_has_folder(const arv_home *h, const char *id, const char *folder)
+{
+    if (!strcmp(folder, ".")) return 1;
+    char *path = home_volume_file(h, id, "listing.tsv"), *text = read_text(path);
+    free(path);
+    if (!text) return 1;                          /* no listing at home: nothing to check against */
+    size_t n = strlen(folder);
+    int found = 0;
+    for (char *line = strtok(text, "\n"); line && !found; line = strtok(NULL, "\n")) {
+        if (*line == '#') continue;
+        char *p = strrchr(line, '\t');           /* the path is the last column */
+        p = p ? p + 1 : line;
+        found = !strncmp(p, folder, n) && p[n] == '/';
+    }
+    free(text);
+    return found;
+}
+
+/* describe.apply_to_disc: the draft written into the home catalogue, with an event; folder tags
+ * and captions are merged into the disc's (only the folders named change), and a folder the disc
+ * does not have is skipped with a warning */
 static void apply_to_disc(const arv_home *h, archive *cat, rec_record *disc, const draft *d, const char *agent, strlist *changed)
 {
     memset(changed, 0, sizeof *changed);
@@ -246,18 +267,34 @@ static void apply_to_disc(const arv_home *h, archive *cat, rec_record *disc, con
     for (size_t i = 0; i < d->notes.n; i++) rec_add(disc, "Note", d->notes.v[i]);
     if (d->notes.n) strlist_add(changed, "Note");
     if (d->nft || d->ncap) {
-        ftags f = { 0 };
+        char *path = home_volume_file(h, id, "tags.tsv");
+        ftags f;
+        read_tags_file(path, &f);
+        size_t skipped = 0;
         for (size_t i = 0; i < d->nft; i++) {
+            if (!disc_has_folder(h, id, d->ft_folder[i])) {
+                fprintf(stderr, "%s has no folder %s: its tags are skipped\n", id, d->ft_folder[i]);
+                skipped++;
+                continue;
+            }
             strlist *t = ftags_get(&f, d->ft_folder[i], 1);
             strlist_free(t);
             for (size_t k = 0; k < d->ft_tags[i].n; k++) strlist_add(t, d->ft_tags[i].v[k]);
         }
-        for (size_t i = 0; i < d->ncap; i++) ftags_set_caption(&f, d->cap_folder[i], d->cap_text[i]);
-        char *path = home_volume_file(h, id, "tags.tsv");
-        write_tags_file(path, &f);
+        for (size_t i = 0; i < d->ncap; i++) {
+            if (!disc_has_folder(h, id, d->cap_folder[i])) {
+                fprintf(stderr, "%s has no folder %s: its caption is skipped\n", id, d->cap_folder[i]);
+                skipped++;
+                continue;
+            }
+            ftags_set_caption(&f, d->cap_folder[i], d->cap_text[i]);
+        }
+        if (skipped < d->nft + d->ncap) {
+            write_tags_file(path, &f);
+            strlist_add(changed, "folder tags");
+        }
         free(path);
         ftags_free(&f);
-        strlist_add(changed, "folder tags");
     }
     if (changed->n) {
         const char *how = d->authorship ? d->authorship : is_model(agent) ? "suggested" : "human";
@@ -361,7 +398,7 @@ static int look_at_images(const llm_opts *o, llm_client *c, const target *t, see
 int assist_describe(int argc, char **argv)
 {
     const char *tgt = NULL, *save = NULL, *disc_root = NULL, *apply = NULL, *home = NULL;
-    int rounds = 2, questions = 5, show_inventory = 0;
+    int rounds = 2, questions = 5, show_inventory = 0, suggested = 0;
     llm_opts o = { 0 };
     o.per_folder = 3;
     o.max_total = 40;
@@ -375,6 +412,7 @@ int assist_describe(int argc, char **argv)
         else if (!strcmp(a, "--apply") && v) { apply = v; i++; }
         else if (!strcmp(a, "--home") && v) { home = v; i++; }
         else if (!strcmp(a, "--show-inventory")) show_inventory = 1;
+        else if (!strcmp(a, "--suggested")) suggested = 1;
         else if (a[0] != '-' && !tgt) tgt = a;
         else return 2;
     }
@@ -385,10 +423,11 @@ int assist_describe(int argc, char **argv)
     else archive_load(&cat, h.rec_path);
     rec_record *disc = archive_disc(&cat, tgt);
     char *err = NULL;
-    if (apply) {          /* no LLM: a saved (perhaps hand-edited) draft applied to a disc */
+    if (suggested && !apply) die("%s", "--suggested goes with --apply");
+    if (apply) {          /* no LLM: a saved (perhaps hand-edited, or written elsewhere) draft applied to a disc */
         if (!disc) die("--apply needs a disc id from the catalogue, not %s", tgt);
         draft d;
-        draft_load(apply, &d, 1);
+        draft_load(apply, &d, !suggested);    /* --suggested: a model's draft stays a suggestion, for review */
         strlist changed;
         apply_to_disc(&h, &cat, disc, &d, d.agent, &changed);
         char *what = joined(&changed);

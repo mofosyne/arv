@@ -332,7 +332,7 @@ char *llm_inventory(const items *l, const char *name, const rec_record *existing
     for (size_t j = 0; j < nrows; j++) {
         if (j < 80) {
             human(rows[j].size, hs);
-            sb_printf(&b, "  %s/ - %zu files, %s", rows[j].key, rows[j].n, hs);
+            sb_printf(&b, "  %s/ - %zu file%s, %s", rows[j].key, rows[j].n, rows[j].n == 1 ? "" : "s", hs);
             if (rows[j].deeper.n) sb_printf(&b, " (+%zu subfolders)", rows[j].deeper.n);
             sb_puts(&b, ": ");
             for (size_t k = 0; k < rows[j].samples.n; k++) sb_printf(&b, "%s%s", k ? ", " : "", rows[j].samples.v[k]);

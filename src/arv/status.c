@@ -628,7 +628,8 @@ static void tracked_status(const arv_home *h, const archive *cat, const scan *s,
         if (any) archived++;
         else strlist_add(&missing, s->files.v[f].path);
     }
-    printf("  %zu of its %zu files are on discs; %zu on none\n", archived, s->files.n, missing.n);
+    printf("  %zu of its %zu file%s %s on discs; %zu on none\n", archived, s->files.n, s->files.n == 1 ? "" : "s",
+           archived == 1 ? "is" : "are", missing.n);
     for (int shown = 0; shown < 3; shown++) {          /* the discs it most resembles */
         size_t best = (size_t)-1;
         for (size_t i = 0; i < cat->discs.n; i++)

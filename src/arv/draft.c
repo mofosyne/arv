@@ -1,5 +1,6 @@
 /* Drafts (describe.load_draft): the suggestions arv describe and arv tag save as JSON, which
- * arv make --draft takes and arv describe --apply writes into the catalogue. */
+ * arv make --draft takes and arv describe --apply writes into the catalogue. Anything may write
+ * one (a person, a script, a model elsewhere): the format is in README.md, "Describing from anywhere". */
 #define _XOPEN_SOURCE 700
 #include "arv.h"
 
@@ -26,7 +27,14 @@ static void jlist(const jv *v, strlist *out)
 void draft_load(const char *path, draft *d, int accept)
 {
     memset(d, 0, sizeof *d);
-    char *text = read_text(path);
+    char *text = NULL;
+    if (!strcmp(path, "-")) {                  /* - : the draft on standard input */
+        sbuf b = { 0 };
+        char buf[65536];
+        size_t n;
+        while ((n = fread(buf, 1, sizeof buf, stdin)) > 0) sb_add(&b, buf, n);
+        text = b.s ? b.s : xstrdup("");
+    } else text = read_text(path);
     if (!text) die("cannot read the draft %s", path);
     jv *doc = json_parse(text);
     free(text);

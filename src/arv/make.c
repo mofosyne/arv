@@ -1240,7 +1240,7 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
         uuid4(p->uuid);
         p->disc = disc_record(mk, p);
         p->binding = binding_record(mk, p);
-        char *note = xprintf("sha256 and sha512 manifests of %zu files", p->files.n);
+        char *note = xprintf("sha256 and sha512 manifests of %zu file%s", p->files.n, p->files.n == 1 ? "" : "s");
         recs_add(&p->events, new_event(p->disc_id, "message digest calculation", "success", mk->software, "automatic", note));
         free(note);
         char *summary = link_summary(&p->files, &p->noted, o->links);
@@ -1544,7 +1544,7 @@ static void stage_plan(maker *mk, size_t idx)
             : "  catalog/archive.rec     all discs in the archive as of the burn date\n"
               "  catalog/volumes/<id>/   per disc: manifest.sha256, listing.tsv, formats.csv\n";
         char *part = p->parts > 1 ? xprintf("  (part %d of %d)", p->part, p->parts) : xstrdup("");
-        char *nfiles = xprintf("%zu", p->files.n), *nbytes = xstrdup(rec_get(p->disc, "Bytes"));
+        char *nfiles = xprintf("%zu file%s", p->files.n, p->files.n == 1 ? "" : "s"), *nbytes = xstrdup(rec_get(p->disc, "Bytes"));
         char *ape = find_ape(mk->source);
         /* the medium size dvdisaster needs (-n) when the error correction's own copies of it are lost */
         char *dv_n = mk->capacity && !mk->o->no_ecc ? xprintf(" -n %ld", mk->capacity) : xstrdup("");
@@ -1804,9 +1804,9 @@ static int make_discs(maker *mk)
         uint64_t avail = known ? (uint64_t)fs.f_bavail * fs.f_frsize : 0;
         human_size(avail, room);
         if (!o->no_ecc)
-            fprintf(stderr, "The image%s will take %s in all: RS03 error correction fills %s to its medium "
-                            "(--no-ecc: just the files, to try arv out)%s%s%s\n", mk->nplans == 1 ? "" : "s", total, mk->nplans == 1 ? "it" : "each",
-                    known ? "; " : "", known ? room : "", known ? " free there" : "");
+            fprintf(stderr, "The image%s will take %s in all%s%s%s: RS03 error correction fills %s to its medium\n"
+                            "  (--no-ecc: just the files, to try arv out)\n", mk->nplans == 1 ? "" : "s", total,
+                    known ? ", with " : "", known ? room : "", known ? " free there" : "", mk->nplans == 1 ? "it" : "each");
         if (known && more > avail) {
             fprintf(stderr, "Error: not enough room in %s: the image%s %s, and %s is free. Choose a folder with room "
                             "(--output-dir DIR), or a smaller medium (--medium).\n", out_dir, mk->nplans == 1 ? " needs" : "s need",

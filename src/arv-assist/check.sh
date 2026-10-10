@@ -41,7 +41,7 @@ put Trip/README.txt "Pictures from our holiday."
 
 # ------------------------------------------------------------------ describe
 "$tool" describe Trip $llm --show-inventory > inv.txt
-grep -q "Pictures from our holiday." inv.txt && grep -q "photos/2019 trip/ - 1 files" inv.txt \
+grep -q "Pictures from our holiday." inv.txt && grep -q "photos/2019 trip/ - 1 file" inv.txt \
     && grep -q "^File dates (modification time): 2019 to 2019" inv.txt \
     && ok "the inventory: folders, dates, and README text" || { cat inv.txt; no "inventory"; }
 "$tool" --home home describe Trip $llm --save draft.json </dev/null 2>/dev/null || no "describe --save"
@@ -85,6 +85,19 @@ grep -q "^Title: New title" home/catalog/archive.rec && grep -q "^Note: Q: Who?"
     && grep -B8 "updated Title, Subject, Note, folder tags" home/catalog/archive.rec | grep -q "^Authorship: accepted" \
     && ok "describe --apply: title, subjects, notes and folder tags into the catalogue, accepted by the person" \
     || { cat apply.out; tail -30 home/catalog/archive.rec; no "describe --apply"; }
+
+# a draft from elsewhere, on standard input, left a suggestion: one folder's tags join the others',
+# and a folder the disc does not have is skipped
+printf '{"folder_tags": {"photos/2019 trip": ["event:trip-2019"], "no/such": ["x"]}, "agent": "llm:other"}\n' \
+    | "$tool" --home home describe "$id" --apply - --suggested > apply2.out 2> apply2.err || no "describe --apply -"
+tsv=$(find home -path "*$id*" -name tags.tsv | head -1)
+grep -q "^photos	travel" "$tsv" && grep -q "^photos/2019 trip	event:trip-2019" "$tsv" && ! grep -q "^no/such" "$tsv" \
+    && grep -q "has no folder no/such" apply2.err \
+    && tail -6 home/catalog/archive.rec | grep -q "^Authorship: suggested" \
+    && tail -6 home/catalog/archive.rec | grep -q "^Agent: llm:other" \
+    && ! tail -6 home/catalog/archive.rec | grep -q "^Agent: human:" \
+    && ok "describe --apply - --suggested: from standard input, tags merged, an unknown folder skipped, left a suggestion" \
+    || { cat apply2.out apply2.err; cat "$tsv"; tail -14 home/catalog/archive.rec; no "describe --apply - --suggested"; }
 
 # ------------------------------------------------------------------ vision
 i=0

@@ -4,7 +4,7 @@ T
 Disc id:  CODE-03_2020_W
 Set:      CODE
 Burned:   2026-01-01
-Contents: 1 files, 2 bytes (in data/)
+Contents: 1 file, 2 bytes (in data/)
 Made by:  SW
 
 This is an archive disc by archivist, made on 2026-01-01: T. Its files are

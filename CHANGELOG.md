@@ -93,13 +93,31 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   archive's (`--location ATIC`) is noted, on `burned`, `stored`, `locate` and `make`; it is still
   recorded as written.
 - `arv selection add` on a selection that exists adds the items, as `put` does (with a note).
-- Plurals: "1 file", "3 issues", "1 link".
+- Plurals: "1 file", "3 issues", "1 link" (also in `arv list`, `arv status`, and a disc's README.txt and index.html).
+- `arv burned` ends with what to write on the hub and case: `TRIP-01_2019_4 B`. `arv make`'s
+  size line and the burned line are split in two, so they fit a narrow terminal.
+- The docs follow: the website's demo is re-recorded (bare `arv` first, copies A and B, owed
+  copies by letter), and the site, README, workflow and concepts say how copies are lettered,
+  how `--device` finds the copy in the drive, and how to install, complete and uninstall arv.
 - A logo: a disc from above, its three tracks Archive, Record and Verify, and the clear hub ring
   where the id and copy letter are written (`docs/img/logo.svg`, `logo-mark.svg`; light and dark),
   on the README, the website (and its tab icon) and `arv gui`'s tab.
 - `arv gui`: named arv; Archive opens on "From a folder"; each disc in Owed opens it in Record ›
   Discs (to record copies and places); a long catalogue path is shortened in the header (the
   whole on hover); a collection's discs say which edition they hold.
+
+**Describing from anywhere**
+- A draft (the JSON `arv describe --save` writes) is documented as the way in for anything that
+  describes the archive: a person, a script, or a model that is not arv's. README, "Describing
+  from anywhere", lists its keys.
+- `arv describe DISC-ID --apply -` reads the draft from standard input. `--suggested` keeps a
+  model's draft a suggestion, for a script that runs without anyone reading it; applying used to
+  always record it as accepted by a person.
+- Applying folder tags merges them into the disc's: the folders named change, the others keep
+  theirs. They used to be replaced, so tagging one folder dropped every other folder's tags.
+  A folder the disc does not have is skipped with a warning.
+- Not added, on purpose: tags on single files and typed links between items
+  (research/plan.md, 2026-10-10).
 
 **Discs carry the vocabularies** (format 0.5)
 - A disc with a full catalogue snapshot carries the home's `config/sets.rec` and

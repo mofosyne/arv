@@ -103,7 +103,7 @@ same way.</p>
 
 <h2 id="see-it">See it</h2>
 <p>A typical session, run for real (about a minute and a half): a disc composed from a video and a
-camera card, recorded on the shelf and the NAS, then checked. <a href="demo/arv.cast">The recording</a>
+camera card, its copies recorded by letter on the shelf and the NAS, then checked. <a href="demo/arv.cast">The recording</a>
 is plain text; <code>asciinema play docs/demo/arv.cast</code> plays it in a terminal.</p>
 <div id="demo"></div>
 <script src="https://cdn.jsdelivr.net/npm/asciinema-player@3.17.0/dist/bundle/asciinema-player.min.js"></script>
@@ -121,6 +121,7 @@ and their catalogue.</p>
 <pre><code>git clone https://github.com/mofosyne/arv
 cd arv
 make                                    # builds arv (C, no libraries)
+./arv                                   # where you are, and the commands to start with
 ./arv --home samples/home list          # the discs, and where they are kept
 ./arv --home samples/home find kyoto    # which disc holds it
 ./arv --home samples/home gui           # the same, in your web browser (needs Python 3)</code></pre>
@@ -148,11 +149,16 @@ error correction itself; GNU ddrescue or
 <a href="https://github.com/teaching-droid/dvdisaster-light">dvdisaster Light</a> reads a damaged
 disc into an image one day), and follow the
 <a href="https://github.com/mofosyne/arv/blob/main/docs/workflow.md">workflow guide</a>.</p>
-<pre><code>make install PREFIX=~/.local
+<pre><code>make install PREFIX=~/.local            # or, with just: just install
 cd /path/above/your/files &amp;&amp; arv init --name home --default
 arv make /path/to/folder</code></pre>
-<p>To remove it again: <code>make uninstall PREFIX=~/.local</code> in the same folder. That removes
-the program only; your catalogues (<code>.arv</code> folders) and discs stay as they are.</p>
+<p>Tab completion for bash and zsh comes with it (<code>arv re</code>&lt;Tab&gt;), and
+<code>arv record</code>, <code>arv archive</code> and <code>arv verify</code> list their commands.
+On Debian, Ubuntu or Arch Linux it can be a package instead (<code>just deb</code>, <code>just arch</code>:
+<a href="https://github.com/mofosyne/arv/blob/main/packaging/README.md">packaging</a>).
+To remove it again: <code>make uninstall PREFIX=~/.local</code> (or <code>just uninstall</code>) in the
+same folder. That removes the program only; your archives (<code>.arv</code> folders) and discs
+stay as they are.</p>
 
 <h2>Tell us how it went</h2>
 <p>Feedback of any size helps: a step that confused you, something that broke, a disc that would
