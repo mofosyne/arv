@@ -519,6 +519,12 @@ single-threaded.
 The detailed plan and the reasons behind each decision: [research/plan.md](research/plan.md).
 What changed, and what 1.0 waits for: [CHANGELOG.md](CHANGELOG.md).
 
+## Talk about it
+
+- **Feedback and bugs:** [open an issue](https://github.com/mofosyne/arv/issues/new?template=feedback.md)
+  (a step that confused you, something that broke, a disc that would not read back).
+- **Questions and discussion:** the [Telegram group](https://t.me/+_fe3C9hDi1g5Mzll).
+
 ## Licence
 
 GNU GPL version 3 (GPL-3.0); see [LICENSE](LICENSE). Code from elsewhere keeps its own licence: NetBSD's
