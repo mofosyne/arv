@@ -651,6 +651,20 @@ static int copy_has(const archive *a, const char *disc_id, const rec_record *cop
     return has;
 }
 
+/* where a stored copy is: the newest Path recorded for it (on its replication, or an event that
+ * moved it, naming its letter); NULL for a burned disc */
+const char *copy_path(const archive *a, const char *disc_id, const rec_record *copy)
+{
+    const char *path = rec_get(copy, "Path"), *letter = rec_get(copy, "Copy");
+    for (size_t i = 0; letter && i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        if (e != copy && rec_get(e, "Path") && rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), disc_id) && rec_get(e, "Copy")
+            && !strcmp(rec_get(e, "Copy"), letter) && rec_get(e, "Type") && strcmp(rec_get(e, "Type"), "replication"))
+            path = rec_get(e, "Path");
+    }
+    return path;
+}
+
 /* the copy (its replication) an identifier names, in any disc's copies; NULL if none */
 const rec_record *copy_by_identifier(const archive *a, const char *id)
 {

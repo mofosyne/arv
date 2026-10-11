@@ -142,10 +142,15 @@ char *identifier_normal(const char *text, const char **why);   /* "scheme:value"
 int identifier_strong(const char *id);                           /* bca: and barcode: name one physical disc */
 void copy_identifiers(const archive *a, const char *disc_id, const rec_record *copy, strlist *out);
 const rec_record *copy_by_identifier(const archive *a, const char *id);   /* the copy's replication, or NULL */
+const char *copy_path(const archive *a, const char *disc_id, const rec_record *copy);  /* a stored copy's newest */
 const rec_record *copy_same_as(const archive *a, const char *disc_id, const rec_record *copy);  /* recorded before */
 size_t identity_report(const archive *a);    /* recorded twice, on two discs, two BCAs: printed, counted */
 /* the BCA serial of the disc in a drive (Linux): 32 hex digits; -1 when there is none (drive.c) */
 int drive_bca(const char *device, char out[33]);
+void drive_list(strlist *out);          /* the optical drives (Linux: /dev/sr0 ...); none found elsewhere */
+char *read_volume_label(const char *path);   /* an image's or drive's volume label, or NULL */
+int cmd_drives(int argc, char **argv);
+int info_image(const char *path, const char *given);   /* arv info IMAGE.iso: which disc, which copy */
 int bca_normal(const char *text, char out[33]);     /* a BCA serial as given: its first 16 bytes, in hex */
 /* hot, warm or cold: the place's Temperature, or the nearest place above it that has one; NULL */
 const char *place_temperature(const archive *a, const char *code);

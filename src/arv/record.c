@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <unistd.h>
 
 typedef struct {
@@ -48,7 +50,7 @@ static int field_count(const rec_record *r, const char *name)
 
 /* the label of an image or drive: the ISO 9660 primary volume descriptor, else UDF's logical
  * volume identifier (src/arv/image.py read_volume_label) */
-static char *read_volume_label(const char *path)
+char *read_volume_label(const char *path)
 {
     FILE *fp = fopen(path, "rb");
     unsigned char s[2048];
@@ -433,9 +435,11 @@ int cmd_check(int argc, char **argv)
    temperature: the place's, else warm (online, or reachable, but left alone). */
 int cmd_stored(int argc, char **argv)
 {
-    const char *given = NULL, *disc_id = NULL, *path = NULL, *location = NULL, *temperature = NULL, *note = NULL;
+    const char *given = NULL, *disc_id = NULL, *path = NULL, *location = NULL, *temperature = NULL, *note = NULL,
+               *moved = NULL;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (i + 1 < argc && !strcmp(argv[i], "--copy")) moved = argv[++i];   /* this copy, moved here */
         else if (i + 1 < argc && !strcmp(argv[i], "--location")) location = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--temperature")) temperature = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--note")) note = argv[++i];
@@ -451,6 +455,16 @@ int cmd_stored(int argc, char **argv)
     char *abs = realpath(path, NULL);
     opened o;
     rec_record *d = open_disc_record(&o, given, disc_id);
+    const rec_record *was = NULL;               /* --copy: the stored copy that moved */
+    for (size_t i = 0; moved && i < o.cat.events.n && !was; i++) {
+        const rec_record *e = o.cat.events.v[i];
+        if (rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), disc_id) && rec_get(e, "Type") && !strcmp(rec_get(e, "Type"), "replication")
+            && rec_get(e, "Copy") && !strcmp(rec_get(e, "Copy"), moved))
+            was = e;
+    }
+    if (moved && !was) die2("%s has no copy %s (arv objects %s lists its copies)", disc_id, moved);
+    if (was && (!rec_get(was, "Form") || !strcmp(rec_get(was, "Form"), "disc")))
+        die2("copy %s of %s is a disc, not a stored file or folder (arv locate records where a disc is kept)", moved, disc_id);
     int folder = S_ISDIR(st.st_mode), ok;
     sbuf out = { 0 };
     if (folder) {               /* this disc's bag: its catalog.rec names it, and every file matches */
@@ -482,12 +496,32 @@ int cmd_stored(int argc, char **argv)
     }
     const char *form = folder ? "folder" : "iso";
     char *what = xprintf("check of a stored copy (%s) at %s: %s", form, abs, out.s ? out.s : "");
-    recs_add(&o.cat.events, new_event(disc_id, "fixity check", ok ? "success" : "failure", VERSION, "automatic", what));
+    rec_record *fx = new_event(disc_id, "fixity check", ok ? "success" : "failure", VERSION, "automatic", what);
+    if (was) rec_add(fx, "Copy", moved);
+    recs_add(&o.cat.events, fx);
     free(what);
     if (!ok) {
         archive_save(&o.cat, o.h.rec_path);
         printf("%s: the %s at %s is NOT a good copy (%s); not recorded\n", disc_id, form, abs, out.s ? out.s : "");
         return 1;
+    }
+    if (was) {                                  /* the same copy at a new path: its Path is the newest recorded */
+        char *who = person(), *text = xprintf("copy %s moved to %s; checked: identical", moved, abs);
+        rec_record *ev = new_event(disc_id, "metadata modification", "success", who, "human", text);
+        rec_add(ev, "Copy", moved);
+        rec_add(ev, "Path", abs);
+        if (location) {
+            place_check(&o.cat, location);
+            char *code = place(&o.cat, location);
+            rec_add(ev, "Location", code);
+            free(code);
+        }
+        recs_add(&o.cat.events, ev);
+        archive_save(&o.cat, o.h.rec_path);
+        printf("%s: copy %s is now at %s (checked)\n", disc_id, moved, abs);
+        free(who);
+        free(text);
+        return 0;
     }
     char *name = copy_next(&o.cat, disc_id);
     sbuf text = { 0 };
@@ -835,4 +869,133 @@ int cmd_locate(int argc, char **argv)
     printf("%s: %s\n", disc_id, w);
     free(w);
     return 0;
+}
+
+/* ------------------------------------------------------------------ what is in a drive, or what an image is */
+
+/* One line on what path holds: the disc (by its volume label), and which of its copies (by an
+ * identifier the drive reads, or a stored copy's recorded path). Returns the disc's id when the
+ * catalogue knows it (a static copy), else NULL; *letter gets the copy's letter, or NULL. */
+static const char *say_what(const char *path, int drive, const archive *cat, const char **letter)
+{
+    static char found[128];
+    *letter = NULL;
+    errno = 0;
+    char *label = read_volume_label(path);
+    if (!label) {
+        if (drive && (errno == ENOMEDIUM || errno == ENXIO)) printf("%s  no disc\n", path);
+        else if (errno && errno != EINVAL) printf("%s  cannot be read (%s)\n", path, strerror(errno));
+        else printf("%s  %s\n", path, drive ? "a disc with no volume label: not an arv disc" : "not a disc image");
+        return NULL;
+    }
+    char *word = strtok(label, " \t");
+    const rec_record *d = cat && word ? archive_disc(cat, word) : NULL;
+    if (!d) {
+        discid_parts parts;
+        if (word && discid_parse(word, &parts) && parts.valid)
+            printf("%s  %s: an arv disc this catalogue does not know (another archive's, or newer than it: arv rebuild merges"
+                   " its catalogue)\n", path, word);
+        else printf("%s  not an arv disc (label \"%s\")\n", path, word ? word : "");
+        free(label);
+        return NULL;
+    }
+    snprintf(found, sizeof found, "%s", word);
+    free(label);
+    const char *title = rec_get(d, "Title"), *how = NULL;
+    const rec_record *copy = NULL;
+    char serial[33];
+    if (drive && !drive_bca(path, serial)) {           /* the drive reads the disc's own serial */
+        char *id = xprintf("bca:%s", serial);
+        const rec_record *seen = copy_by_identifier(cat, id);
+        if (seen && !strcmp(rec_get(seen, "Disc"), found)) copy = seen, how = "by its BCA serial";
+        free(id);
+    }
+    char *real = drive ? NULL : realpath(path, NULL);
+    for (size_t i = 0; !copy && real && i < cat->events.n; i++) {   /* a stored copy, at its recorded path */
+        const rec_record *e = cat->events.v[i];
+        if (rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), found) && rec_get(e, "Type") && !strcmp(rec_get(e, "Type"), "replication")
+            && copy_path(cat, found, e) && !strcmp(copy_path(cat, found, e), real))
+            copy = e, how = "stored here";
+    }
+    free(real);
+    if (!copy && drive) {                       /* one burned copy: a drive holds that one */
+        const rec_record *only = NULL;
+        size_t burned = 0;
+        for (size_t i = 0; i < cat->events.n; i++) {
+            const rec_record *e = cat->events.v[i];
+            if (rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), found) && rec_get(e, "Type") && !strcmp(rec_get(e, "Type"), "replication")
+                && !(rec_get(e, "Outcome") && !strcmp(rec_get(e, "Outcome"), "failure"))
+                && (!rec_get(e, "Form") || !strcmp(rec_get(e, "Form"), "disc")) && !copy_same_as(cat, found, e))
+                only = e, burned++;
+        }
+        if (burned == 1 && rec_get(only, "Copy")) copy = only, how = "its only burned copy";
+    }
+    printf("%s  %s%s%s%s", path, found, title ? " \"" : "", title ? title : "", title ? "\"" : "");
+    if (copy) {
+        const char *checked = copy_last_check(cat, found, copy);
+        *letter = rec_get(copy, "Copy");
+        printf(" copy %s (%s; %s%s)\n", *letter ? *letter : "?", how,
+               checked ? "last checked " : copy_read_back(cat, found, copy) ? "read back when recorded" : "never checked",
+               checked ? checked : "");
+    } else if (drive) {
+        printf(": which copy is not known (arv check --device %s --copy X names it)\n", path);
+    } else {
+        printf(": an image of it, not recorded as a copy (arv stored %s %s records it)\n", found, path);
+    }
+    return found;
+}
+
+/* arv drives [--check] [DRIVE...]: what is in each optical drive; --check checks each arv disc found */
+int cmd_drives(int argc, char **argv)
+{
+    const char *given = NULL;
+    int check = 0;
+    strlist drives = { 0 };
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (!strcmp(argv[i], "--check")) check = 1;
+        else if (argv[i][0] != '-') strlist_add(&drives, argv[i]);
+        else return 2;
+    }
+    if (!drives.n) drive_list(&drives);
+    if (!drives.n) die("%s", "no optical drives found: name them (arv drives /dev/sr0 /dev/sr1)");
+    arv_home h;
+    archive cat;
+    int have = !home_try(&h, given, NULL);
+    if (have) archive_load(&cat, h.rec_path);
+    int failed = 0;
+    for (size_t i = 0; i < drives.n; i++) {
+        const char *letter;
+        const char *id = say_what(drives.v[i], 1, have ? &cat : NULL, &letter);
+        if (!check || !id) continue;
+        fflush(stdout);
+        char disc[128];
+        snprintf(disc, sizeof disc, "%s", id);
+        pid_t pid = fork();
+        if (pid == 0) {                                  /* the check, as arv check would run it */
+            const char *args[10];
+            int n = 0;
+            if (given) args[n++] = "-C", args[n++] = given;
+            args[n++] = "--device", args[n++] = drives.v[i];
+            if (letter) args[n++] = "--copy", args[n++] = letter;
+            args[n++] = disc;
+            args[n] = NULL;
+            exit(cmd_check(n, (char **)args));
+        }
+        int status = 0;
+        if (pid < 0 || waitpid(pid, &status, 0) < 0 || !WIFEXITED(status) || WEXITSTATUS(status)) failed = 1;
+    }
+    strlist_free(&drives);
+    return failed;
+}
+
+/* arv info IMAGE: which disc an image file is, and whether it is a recorded copy */
+int info_image(const char *path, const char *given)
+{
+    arv_home h;
+    archive cat;
+    int have = !home_try(&h, given, NULL);
+    if (have) archive_load(&cat, h.rec_path);
+    const char *letter;
+    return say_what(path, 0, have ? &cat : NULL, &letter) ? 0 : 1;
 }

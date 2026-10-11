@@ -351,6 +351,8 @@ arv check --image 2020-2025_PROJECTS_01.iso
 arv rebuild /media/disc                            # recreate/merge the home catalogue from a disc
 arv audit /media/disc                              # the home's events as written, and as the disc has them
 arv rebuild /mnt/laptop/.arv                       # merge another catalogue of this archive, by event id
+arv drives                                         # which disc, and which copy, is in each drive (--check: check them)
+find /mnt/nas -name '*.iso' -exec arv info {} \;   # which of these images are discs of this archive
 arv verify /media/disc                             # every file against its checksum
 arv restore /media/disc ~/restored                 # copy everything back, links and execute bits too
 

@@ -377,6 +377,29 @@ grep -q "^TWICE .* copies A and A are one disc (barcode:ARV-7)" dup.out && ! gre
     && ok "copies by identity: one disc recorded in two catalogues (barcode:) is counted once, and rebuild and audit say so" \
     || { cat dup.out dup.err dup.audit; "$tool" -C dup/a/.arv objects "$d1"; no "one disc recorded twice"; }
 
+# ------------------------------------------------------------------ what is in a drive, and what an image is
+mkdir -p drv/T1 drv/T2 && echo 1 > drv/T1/a && echo 2 > drv/T2/b
+(cd drv && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --formats no --set CODE --output i1.iso T1 >/dev/null 2>&1 \
+    && "$tool" make -y --no-ecc --formats no --set CODE --output i2.iso T2 >/dev/null 2>&1) || no "make in drv"
+v1=$(sed -n 's/^Id: //p' drv/.arv/catalog/archive.rec | head -1)
+"$tool" -C drv/.arv burned "$v1" --device drv/i1.iso --location SHELF >/dev/null 2>&1 || no "burned in drv"
+mkdir -p drv/nas && cp drv/i1.iso drv/nas/ && "$tool" -C drv/.arv stored "$v1" drv/nas/i1.iso --location NAS >/dev/null 2>&1 || no "stored in drv"
+: > drv/empty.iso
+"$tool" -C drv/.arv drives drv/i1.iso drv/i2.iso drv/empty.iso drv/none > drives.out || no "arv drives"
+grep -q "^drv/i1.iso  $v1 \"T1\" copy A (its only burned copy; read back when recorded)" drives.out \
+    && grep -q '^drv/i2.iso  CODE-02.*: which copy is not known' drives.out && grep -q '^drv/empty.iso  .*not an arv disc' drives.out \
+    && grep -q '^drv/none  cannot be read' drives.out || { cat drives.out; no "arv drives says what is in each"; }
+"$tool" -C drv/.arv drives --check drv/i1.iso > drives.out 2>&1 && grep -q "^$v1 copy A: OK" drives.out || { cat drives.out; no "arv drives --check"; }
+(cd drv && find . -name '*.iso' -exec "$tool" -C .arv info {} \;) > info.out || true
+grep -q "^./nas/i1.iso  $v1 \"T1\" copy B (stored here" info.out && grep -q "^./i2.iso  CODE-02.*not recorded as a copy" info.out \
+    && grep -q "^./empty.iso  not a disc image" info.out || { cat info.out; no "arv info IMAGE, with find"; }
+mkdir -p drv/nas2 && mv drv/nas/i1.iso drv/nas2/
+"$tool" -C drv/.arv todo | grep -q "^  $v1  copy B  .*/drv/nas/i1.iso" || no "todo: a stored copy not where recorded"
+"$tool" -C drv/.arv stored "$v1" drv/nas2/i1.iso --copy B >/dev/null 2>&1 || no "stored --copy: a moved copy"
+! "$tool" -C drv/.arv todo | grep -q "Stored copies not found" && "$tool" -C drv/.arv objects "$v1" | grep -q ": 2 copies$" \
+    && ok "arv drives names the disc and copy in each drive (and --check checks them); arv info knows an image file (find -exec); todo finds a stored copy gone from its path, and stored --copy records the move" \
+    || { "$tool" -C drv/.arv todo; no "a moved stored copy"; }
+
 # ------------------------------------------------------------------ the helpers: arv-assist and arv-gui
 mkdir -p helpers
 printf '#!/bin/sh\necho "assist $*"\n' > helpers/assist

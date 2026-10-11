@@ -374,13 +374,13 @@ Record: what exists, and where
          --temperature hot|warm|cold: default the place's, else cold)
   arv identify DISC-ID COPY ID...   what a copy is known by, added later
          (ID: bca:SERIAL, barcode:CODE, label:TEXT or hub:CODE; bca: and barcode: name one disc)
-  arv stored DISC-ID PATH [--location PLACE] [--temperature T]   a copy on a drive or NAS: the .iso,
+  arv stored DISC-ID PATH [--location PLACE] [--temperature T] [--copy X]   a copy on a drive or NAS: the .iso,
          or the disc's files as a folder; checked, then recorded (default: warm)
   arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)
   arv find [-C CATALOG] [--limit N] PATTERN
   arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]
            [--unchecked-since AGE|DATE] [--one-place]   (AGE: 5y, 18m, 90d)
-  arv id [-C CATALOG] ID   arv info DISC   arv ls DISC
+  arv id [-C CATALOG] ID   arv info DISC|IMAGE   arv ls DISC
   arv note DISC-ID TEXT   arv locate [--add] DISC-ID PLACE...   arv access DISC-ID public|private|sealed
   arv location list [-v] | add CODE [NAME] [--in PARENT] [--description TEXT] [--temperature T]
                | move CODE [NAME] [--in PARENT] [--temperature T]

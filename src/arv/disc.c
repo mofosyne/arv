@@ -238,7 +238,12 @@ void print_record(const rec_record *r)
 int cmd_info(int argc, char **argv)
 {
     ondisc d;
+    const char *given = NULL;
+    if (argc == 3 && (!strcmp(argv[0], "-C") || !strcmp(argv[0], "--home"))) given = argv[1], argv += 2, argc -= 2;
     if (argc != 1) return 2;
+    struct stat st;
+    if (!stat(argv[0], &st) && S_ISREG(st.st_mode)) return info_image(argv[0], given);   /* an image file */
+    if (given) return 2;
     open_disc(argv[0], &d);
     print_record(d.disc);
     for (size_t i = 0; i < d.cat.nrecords; i++) {

@@ -125,6 +125,16 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - research/plan.md (2026-10-10): the catalogue's history is per thing, not a line; catalogues
   merge by event id; tampering is made evident, with the discs as witnesses.
 
+**What is in the drives, and where the stored copies went**
+- `arv drives [--check] [DRIVE...]` names the disc and copy in each optical drive (by its BCA
+  serial, or as the only burned copy), and says when a drive is empty or holds another disc.
+  Linux finds the drives; elsewhere they are named. `--check` checks each arv disc found.
+- `arv info IMAGE.iso` says which disc an image file is and whether it is a recorded copy, so
+  `find ... -exec arv info {} \;` looks through a drive or NAS (arv does not crawl disks itself).
+- `arv todo` lists stored copies not found at their recorded path. `arv stored ID NEWPATH --copy
+  X` checks a moved copy at its new path and records the move (and a new place with
+  `--location`), instead of recording a new copy.
+
 **Copies known by what is on them** (format 0.5)
 - A copy's **identifiers** say how that physical disc is recognised, as `scheme:value`:
   `bca:` (its factory serial, read by the drive), `barcode:` (a sticker, scanned), `label:`

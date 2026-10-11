@@ -149,10 +149,17 @@ static void hold(const archive *cat, const char *id, holding *h)
 /* where a copy is kept, readable (the place's name), or "" */
 static char *copy_place(const archive *cat, const rec_record *e)
 {
-    if (!rec_get(e, "Location")) return xstrdup("");
+    const char *loc = rec_get(e, "Location"), *letter = rec_get(e, "Copy"), *disc = rec_get(e, "Disc");
+    for (size_t i = 0; letter && disc && i < cat->events.n; i++) {   /* a newer place, from a move (arv stored --copy) */
+        const rec_record *m = cat->events.v[i];
+        if (m != e && rec_get(m, "Location") && rec_get(m, "Copy") && !strcmp(rec_get(m, "Copy"), letter) && rec_get(m, "Disc")
+            && !strcmp(rec_get(m, "Disc"), disc) && strcmp(get_or(m, "Type", ""), "replication"))
+            loc = rec_get(m, "Location");
+    }
+    if (!loc) return xstrdup("");
     rec_record probe = { 0 };
     probe.type = "Disc";
-    rec_add(&probe, "Location", rec_get(e, "Location"));
+    rec_add(&probe, "Location", loc);
     char *at = archive_where(cat, &probe);
     rec_clear(&probe);
     return at;
@@ -612,6 +619,19 @@ int cmd_todo(int argc, char **argv)
         }
         free(eds.v);
         free(old.v);
+    }
+    int s_gone = 0;
+    for (size_t i = 0; i < cat.discs.n; i++) {                  /* stored copies not where they were recorded */
+        const char *id = get_or(cat.discs.v[i], "Id", "");
+        if (retired(&cat, id)) continue;
+        for (size_t k = 0; k < cat.events.n; k++) {
+            const rec_record *e = cat.events.v[k];
+            const char *at = is_disc_event(e, id, "replication") ? copy_path(&cat, id, e) : NULL;
+            if (!at || !strcmp(get_or(e, "Outcome", ""), "failure") || !access(at, F_OK)) continue;
+            heading(&s_gone, "Stored copies not found where recorded (a drive not mounted? moved: arv stored ID NEWPATH --copy X):");
+            printf("  %s  copy %s  %s\n", id, get_or(e, "Copy", "?"), at);
+            items++;
+        }
     }
     int s7 = 0;
     for (size_t i = 0; i < cat.discs.n; i++) {                  /* no cold copy */

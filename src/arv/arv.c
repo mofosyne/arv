@@ -72,13 +72,13 @@ static const char USAGE_REST[] =
           "         --temperature hot|warm|cold: default the place's, else cold)\n"
           "  arv identify DISC-ID COPY ID...   what a copy is known by, added later\n"
           "         (ID: bca:SERIAL, barcode:CODE, label:TEXT or hub:CODE; bca: and barcode: name one disc)\n"
-          "  arv stored DISC-ID PATH [--location PLACE] [--temperature T]   a copy on a drive or NAS: the .iso,\n"
+          "  arv stored DISC-ID PATH [--location PLACE] [--temperature T] [--copy X]   a copy on a drive or NAS: the .iso,\n"
           "         or the disc's files as a folder; checked, then recorded (default: warm)\n"
           "  arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)\n"
           "  arv find [-C CATALOG] [--limit N] PATTERN\n"
           "  arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]\n"
           "           [--unchecked-since AGE|DATE] [--one-place]   (AGE: 5y, 18m, 90d)\n"
-          "  arv id [-C CATALOG] ID   arv info DISC   arv ls DISC\n"
+          "  arv id [-C CATALOG] ID   arv info DISC|IMAGE   arv ls DISC\n"
           "  arv note DISC-ID TEXT   arv locate [--add] DISC-ID PLACE...   arv access DISC-ID public|private|sealed\n"
           "  arv location list [-v] | add CODE [NAME] [--in PARENT] [--description TEXT] [--temperature T]\n"
           "               | move CODE [NAME] [--in PARENT] [--temperature T]\n"
@@ -94,6 +94,7 @@ static const char USAGE_REST[] =
           "  arv check (--image FILE [--repair] | --device DRIVE) [--copy X] [--identifier ID]... [--note TEXT] [-v]\n"
           "            [DISC-ID]\n"
           "  arv verify [-v] DISC   every file against its checksum (in full: arv verify files DISC)\n"
+          "  arv drives [--check] [DRIVE...]   what is in each optical drive: which disc, which copy\n"
           "  arv restore [--no-links] DISC DEST\n"
           "  arv rebuild [--prefer-disc] [--any-archive] DISC|CATALOG   merge a disc's, or another .arv's, catalogue\n"
           "  arv audit [DISC...]   every event as written; with discs, the home against what they carry\n"
@@ -426,7 +427,7 @@ int main(int argc, char **argv)
                  { "status", cmd_status }, { "checkpoint", cmd_checkpoint }, { "log", cmd_log }, { "diff", cmd_diff },
                  { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
-                 { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit }, { "identify", cmd_identify },
+                 { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit }, { "drives", cmd_drives }, { "identify", cmd_identify },
                  { "tags", cmd_tags }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
     arv_argv0 = argv[0];
     if (argc >= 2 && !strcmp(argv[1], "__complete")) {     /* for the shell's completion (completion/) */

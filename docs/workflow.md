@@ -442,13 +442,22 @@ is lost or damaged.
 - discs kept in fewer than two places, or, once appraised, fewer copies and places than the
   appraisal asks for (essential: 3 copies in 3 places; important: 2 in 2; useful: 1);
 - checks overdue (5 years by default; `--overdue YEARS`);
+- stored copies (an `.iso` or folder) not found at the path they were recorded at: a drive not
+  mounted, or moved (`arv stored ID NEWPATH --copy B` checks it there and records the move);
 - data objects whose newest version has no cold copy, or that are no longer where they came
   from with fewer than two copies left.
 
 **Checking** every few years: `arv check --device /dev/sr0` reads a disc back against its
 image's hash and logs it, for the copy in the drive: named with `--copy B`, found by its BCA
-serial where the drive reads one, or the disc's only copy. A disc that needed repair is a
+serial where the drive reads one, or the disc's only burned copy. A disc that needed repair is a
 warning: make a new copy.
+
+**What is in the drives:** `arv drives` names the disc and copy in each optical drive (Linux finds
+them; elsewhere name them: `arv drives /dev/sr0 /dev/sr1`), and says when a drive is empty or
+holds a disc that is not this archive's. `arv drives --check` checks every arv disc it finds.
+For files, `arv info IMAGE.iso` says which disc an image is, and whether it is a recorded copy;
+to look through a whole drive or NAS, let `find` do the walking:
+`find /mnt/nas -name '*.iso' -exec arv info {} \;`.
 
 ### 8. Recover
 
