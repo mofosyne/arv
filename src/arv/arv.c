@@ -75,7 +75,7 @@ static const char USAGE_REST[] =
           "         one disc, or one tape or drive as a carrier: copies on one carrier count as one)\n"
           "  arv stored DISC-ID PATH [--location PLACE] [--temperature T] [--carrier ID] [--copy X]\n"
           "         a copy on a drive, NAS or tape: the .iso, or the disc's files as a folder; checked, then\n"
-          "         recorded (default: warm); --copy X: that copy, moved here\n"
+          "         recorded (default: warm); --copy X: that copy, moved here (at its own path: checked again)\n"
           "  arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)\n"
           "  arv find [-C CATALOG] [--limit N] PATTERN\n"
           "  arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]\n"
@@ -97,6 +97,8 @@ static const char USAGE_REST[] =
           "            [DISC-ID]\n"
           "  arv verify [-v] DISC   every file against its checksum (in full: arv verify files DISC)\n"
           "  arv drives [--check] [DRIVE...]   what is in each optical drive: which disc, which copy\n"
+          "  arv inventory [-v] PLACE [FILE]   a library's barcodes (mtx status, or a list) against the copies\n"
+          "         recorded at PLACE: missing, unknown, recorded elsewhere\n"
           "  arv restore [--no-links] DISC DEST\n"
           "  arv rebuild [--prefer-disc] [--any-archive] DISC|CATALOG   merge a disc's, or another .arv's, catalogue\n"
           "  arv audit [DISC...]   every event as written; with discs, the home against what they carry\n"
@@ -429,7 +431,7 @@ int main(int argc, char **argv)
                  { "status", cmd_status }, { "checkpoint", cmd_checkpoint }, { "log", cmd_log }, { "diff", cmd_diff },
                  { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
-                 { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit }, { "drives", cmd_drives }, { "identify", cmd_identify },
+                 { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit }, { "drives", cmd_drives }, { "inventory", cmd_inventory }, { "identify", cmd_identify },
                  { "tags", cmd_tags }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
     arv_argv0 = argv[0];
     if (argc >= 2 && !strcmp(argv[1], "__complete")) {     /* for the shell's completion (completion/) */

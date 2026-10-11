@@ -125,6 +125,18 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - research/plan.md (2026-10-10): the catalogue's history is per thing, not a line; catalogues
   merge by event id; tampering is made evident, with the discs as witnesses.
 
+**Jukeboxes and tape libraries**
+- `arv todo --tsv`: what is owed, one copy a line (no-copy, read-back, overdue, missing,
+  one-carrier), with its form, identifiers, carrier, place, path and last check: a worklist for a
+  script.
+- `arv inventory [-v] PLACE [FILE]` reads a library's barcodes (`mtx status`, or a plain list)
+  and reconciles them with the copies recorded at PLACE: missing (exit 1), unknown, recorded
+  elsewhere, and recorded there with no barcode. It reports and records nothing.
+- `docs/examples/library-check.sh`: an example `mtx` loop (on every disc too) that loads each
+  due copy by barcode, checks it (a disc in the drive; a copy on an LTFS tape at its path), and
+  unloads it, one load a tape. `-n` shows what it would do.
+- `arv stored ID PATH --copy X` at the copy's own path checks it again (a check, no move).
+
 **Copies on tapes and drives: carriers** (format 0.5)
 - A stored copy may name its `Carrier`: the tape or drive that holds it and other images
   (`arv stored ... --carrier barcode:TAPE01L8`, or later `arv identify ID X --carrier ...`).

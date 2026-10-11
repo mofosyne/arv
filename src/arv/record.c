@@ -513,6 +513,14 @@ int cmd_stored(int argc, char **argv)
         printf("%s: the %s at %s is NOT a good copy (%s); not recorded\n", disc_id, form, abs, out.s ? out.s : "");
         return 1;
     }
+    const char *was_at = was ? copy_path(&o.cat, disc_id, was) : NULL;
+    const char *had_carrier = was ? copy_carrier(&o.cat, disc_id, was) : NULL;
+    if (was && was_at && !strcmp(was_at, abs) && !location && (!carrier || (had_carrier && !strcmp(had_carrier, carrier)))) {
+        archive_save(&o.cat, o.h.rec_path);     /* where it was: a check of it, nothing moved */
+        printf("%s: copy %s checked at %s: identical\n", disc_id, moved, abs);
+        free(carrier);
+        return 0;
+    }
     if (was) {                                  /* the same copy at a new path: its Path is the newest recorded */
         char *who = person(), *text = xprintf("copy %s moved to %s; checked: identical", moved, abs);
         rec_record *ev = new_event(disc_id, "metadata modification", "success", who, "human", text);

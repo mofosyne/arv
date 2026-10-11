@@ -460,6 +460,24 @@ warning: make a new copy.
 **What is in the drives:** `arv drives` names the disc and copy in each optical drive (Linux finds
 them; elsewhere name them: `arv drives /dev/sr0 /dev/sr1`), and says when a drive is empty or
 holds a disc that is not this archive's. `arv drives --check` checks every arv disc it finds.
+**Jukeboxes and tape libraries:** arv keeps the record and does the checking; `mtx` moves the
+media. Give copies barcodes (a disc's own: `--identifier barcode:`; a tape's: `--carrier
+barcode:`) and record them at the library's place (`--location LIB1`). Then:
+
+```sh
+arv todo --tsv                                    # the worklist: what is due, one copy a line, with its barcode
+mtx -f /dev/sg3 status | arv inventory LIB1       # the library's barcodes against the copies recorded there
+sh docs/examples/library-check.sh -n /dev/sg3 0 /dev/sr1   # load, check and unload what is due (-n: show only)
+```
+
+`arv inventory` reports copies recorded in the library whose barcode is not there (`MISSING`,
+exit 1), barcodes it does not know, copies there that were recorded elsewhere, and copies
+recorded there with no barcode to find them by. It only reports: the record says where copies
+should be, the library says where they are, and the difference is for a person to settle (a
+nightly inventory recorded as events would bury the record). `library-check.sh` (on every disc
+too) is an example to adapt: for tapes it mounts LTFS and re-checks each copy at its recorded
+path (`arv stored ID PATH --copy X` at the same path checks it again).
+
 For files, `arv info IMAGE.iso` says which disc an image is, and whether it is a recorded copy;
 to look through a whole drive or NAS, let `find` do the walking:
 `find /mnt/nas -name '*.iso' -exec arv info {} \;`.

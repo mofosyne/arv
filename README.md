@@ -353,6 +353,8 @@ arv audit /media/disc                              # the home's events as writte
 arv rebuild /mnt/laptop/.arv                       # merge another catalogue of this archive, by event id
 arv drives                                         # which disc, and which copy, is in each drive (--check: check them)
 find /mnt/nas -name '*.iso' -exec arv info {} \;   # which of these images are discs of this archive
+arv todo --tsv                                     # what is due, one copy a line, for scripts (a tape library)
+mtx -f /dev/sg3 status | arv inventory LIB1        # a library's barcodes against the copies recorded there
 arv verify /media/disc                             # every file against its checksum
 arv restore /media/disc ~/restored                 # copy everything back, links and execute bits too
 

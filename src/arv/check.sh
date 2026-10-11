@@ -414,6 +414,41 @@ grep -q "count as one" carrier.out || { cat carrier.out; no "stored notes a shar
     && ok "carriers: copies on one tape count once and todo says so; two discs on one tape are no clash; a copy moved to another tape counts again" \
     || { "$tool" -C drv/.arv objects "$v1"; no "carrier after a move"; }
 
+# a tape library or jukebox: the worklist (todo --tsv), the inventory, and the example mtx loop
+mkdir -p lib/T1 lib/T2 lib/T3 lib/mnt lib/bin && echo 1 > lib/T1/a && echo 2 > lib/T2/b && echo 3 > lib/T3/c
+(cd lib && "$tool" init . >/dev/null && "$tool" location add LIB1 "Tape library" >/dev/null \
+    && for t in T1 T2 T3; do "$tool" make -y --no-ecc --formats no --set CODE --output $t.iso $t >/dev/null 2>&1 || exit 1; done) \
+    || no "make in lib"
+l1=$(sed -n 's/^Id: \(CODE-01.*\)/\1/p' lib/.arv/catalog/archive.rec | head -1)
+l2=$(sed -n 's/^Id: \(CODE-02.*\)/\1/p' lib/.arv/catalog/archive.rec | head -1)
+l3=$(sed -n 's/^Id: \(CODE-03.*\)/\1/p' lib/.arv/catalog/archive.rec | head -1)
+"$tool" -C lib/.arv burned "$l1" --copies 1 --identifier barcode:DISC01 --location LIB1 >/dev/null 2>&1 || no "burned in lib"
+cp lib/T2.iso lib/mnt/ && "$tool" -C lib/.arv stored "$l2" lib/mnt/T2.iso --carrier barcode:TAPE01L8 --location LIB1 >/dev/null 2>&1 \
+    || no "stored on a tape in lib"
+"$tool" -C lib/.arv burned "$l3" --copies 1 --location LIB1 >/dev/null 2>&1 || no "burned, no barcode"
+"$tool" -C lib/.arv todo --tsv > todo.tsv
+grep -q "^read-back	$l1	A	disc	barcode:DISC01		LIB1		$" todo.tsv && ! grep -q "	$l2	" todo.tsv || { cat todo.tsv; no "todo --tsv"; }
+"$tool" -C lib/.arv todo --tsv --overdue -1 | grep -q "^overdue	$l2	A	iso		barcode:TAPE01L8	LIB1	.*/lib/mnt/T2.iso	" \
+    || no "todo --tsv: an overdue copy on a tape"
+printf '%s\n' '  Storage Changer /dev/sg3:1 Drives, 4 Slots ( 0 Import/Export )' 'Data Transfer Element 0:Empty' \
+    '      Storage Element 1:Full :VolumeTag=DISC01' '      Storage Element 2:Full :VolumeTag=TAPE01L8' \
+    '      Storage Element 3:Full :VolumeTag=CLN001L1' '      Storage Element 4:Empty' > lib/status.txt
+rc=0; "$tool" -C lib/.arv inventory LIB1 lib/status.txt > inv.out || rc=$?
+grep -q ": 3 barcodes read; 2 known, 1 unknown; 0 copies recorded here missing, 1 without a barcode" inv.out \
+    && grep -q "^UNMARKED   $l3 copy A" inv.out && grep -q "^UNKNOWN    slot 3 CLN001L1" inv.out && [ $rc = 0 ] \
+    || { cat inv.out; no "arv inventory"; }
+grep -v TAPE01L8 lib/status.txt | "$tool" -C lib/.arv inventory LIB1 > inv.out && no "inventory: a missing tape passed"
+grep -q "^MISSING    $l2 copy A" inv.out || { cat inv.out; no "inventory: the missing tape"; }
+printf '#!/bin/sh\ncase "$3" in status) cat "%s/lib/status.txt";; *) echo "$3 $4 $5" >> "%s/lib/mtx.log";; esac\n' "$PWD" "$PWD" > lib/bin/mtx
+chmod +x lib/bin/mtx
+(cd lib && ARV="$tool" MTX="$PWD/bin/mtx" OVERDUE=-1 LTFS_MOUNT=true LTFS_UMOUNT=true \
+    sh "$repo/docs/examples/library-check.sh" /dev/sg3 0 T1.iso "$PWD/mnt") > loop.out 2>&1 || { cat loop.out; no "library-check.sh"; }
+[ "$(cat lib/mtx.log)" = "$(printf 'load 1 0\nunload 1 0\nload 2 0\nunload 2 0')" ] && grep -q "^skip: $l3 copy A has no barcode" loop.out \
+    && grep -q "^$l1 copy A: OK" loop.out && grep -q "^$l2: copy A checked at .*/lib/mnt/T2.iso: identical" loop.out \
+    && ! "$tool" -C lib/.arv todo --tsv | grep -q "^read-back	$l1" \
+    && ok "a library: todo --tsv is the worklist, inventory reconciles mtx status with the record, and the example mtx loop loads, checks and unloads by barcode" \
+    || { cat loop.out lib/mtx.log; no "the library loop"; }
+
 # ------------------------------------------------------------------ the helpers: arv-assist and arv-gui
 mkdir -p helpers
 printf '#!/bin/sh\necho "assist $*"\n' > helpers/assist

@@ -1197,10 +1197,11 @@ whole-archive log is a view (sorted by date), not a record.
 7. **Carrier and copy are two things** (built 2026-10-11). A disc holds one image, so it is the
    copy; a tape or a drive holds many, so its barcode names the medium, not a copy. A stored copy
    names its `Carrier`; copies are counted as independent copies (one per physical disc, one per
-   carrier), and copies of one disc on one carrier count once. For jukeboxes and tape libraries,
-   next: a worklist a script can read (`arv todo --tsv`: what is due, by barcode), an example
-   `mtx` loop (load, `arv check --identifier`, unload), and presence from the library's inventory
-   (`mtx status` barcodes fed to arv as "seen", never counted as a check).
+   carrier), and copies of one disc on one carrier count once. For jukeboxes and tape libraries
+   (built 2026-10-11): `arv todo --tsv`, the worklist; `docs/examples/library-check.sh`, an
+   `mtx` loop to adapt; and `arv inventory PLACE`, the library's barcodes against the record.
+   Presence is reported, not recorded: a nightly inventory as events would bury the record, and
+   where a copy should be is already in it (`Location`). Untested on a real library yet.
 5. **A copy does not take writes:** `config/paths.rec` records where the catalogue lives, and a
    write to it found elsewhere stops, so a copied catalogue cannot quietly become a second one;
    `arv where --here` accepts a move. Built 2026-10-10.

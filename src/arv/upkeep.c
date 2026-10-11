@@ -562,13 +562,79 @@ static void heading(int *shown, const char *text)
     *shown = 1;
 }
 
+/* a copy's place, as a code: the newest recorded (a move may give one) */
+static const char *copy_location(const archive *cat, const rec_record *e)
+{
+    const char *loc = rec_get(e, "Location"), *letter = rec_get(e, "Copy"), *disc = rec_get(e, "Disc");
+    for (size_t i = 0; letter && disc && i < cat->events.n; i++) {
+        const rec_record *m = cat->events.v[i];
+        if (m != e && rec_get(m, "Location") && rec_get(m, "Copy") && !strcmp(rec_get(m, "Copy"), letter) && rec_get(m, "Disc")
+            && !strcmp(rec_get(m, "Disc"), disc) && strcmp(get_or(m, "Type", ""), "replication"))
+            loc = rec_get(m, "Location");
+    }
+    return loc;
+}
+
+static void tsv_field(const char *s)
+{
+    for (; s && *s; s++) putchar(*s == '\t' || *s == '\n' ? ' ' : *s);
+}
+
+/* arv todo --tsv: what is owed, one copy a line, for a script (a tape library or jukebox loop):
+ * what (no-copy, read-back, overdue, missing, one-carrier), disc, copy, form, identifiers,
+ * carrier, location, path, last check */
+static int todo_tsv(const archive *cat, const char *cutoff)
+{
+    puts("# arv todo 1\twhat\tdisc\tcopy\tform\tidentifiers\tcarrier\tlocation\tpath\tlast checked");
+    for (size_t i = 0; i < cat->discs.n; i++) {
+        const char *id = get_or(cat->discs.v[i], "Id", "");
+        if (retired(cat, id)) continue;
+        if (!burned_at_all(cat, id)) {
+            printf("no-copy\t%s\t\t\t\t\t\t\t\n", id);
+            continue;
+        }
+        for (size_t k = 0; k < cat->events.n; k++) {
+            const rec_record *e = cat->events.v[k];
+            if (!is_disc_event(e, id, "replication") || !strcmp(get_or(e, "Outcome", ""), "failure") || copy_same_as(cat, id, e))
+                continue;
+            const char *checked = copy_last_check(cat, id, e), *path = copy_path(cat, id, e);
+            const char *last = checked ? checked : copy_read_back(cat, id, e) ? get_or(e, "Date", "") : "";
+            const char *what[4];
+            int n = 0;
+            if (!copy_read_back(cat, id, e)) what[n++] = "read-back";
+            else if (strcmp(last, cutoff) < 0) what[n++] = "overdue";
+            if (path && access(path, F_OK)) what[n++] = "missing";
+            if (copy_shares_carrier(cat, id, e)) what[n++] = "one-carrier";
+            for (int w = 0; w < n; w++) {
+                strlist ids;
+                copy_identifiers(cat, id, e, &ids);
+                printf("%s\t%s\t%s\t%s\t", what[w], id, get_or(e, "Copy", ""), get_or(e, "Form", "disc"));
+                for (size_t j = 0; j < ids.n; j++) {
+                    if (j) putchar(',');
+                    tsv_field(ids.v[j]);
+                }
+                putchar('\t');
+                tsv_field(copy_carrier(cat, id, e));
+                putchar('\t');
+                tsv_field(copy_location(cat, e));
+                putchar('\t');
+                tsv_field(path);
+                printf("\t%s\n", last);
+                strlist_free(&ids);
+            }
+        }
+    }
+    return 0;
+}
+
 int cmd_todo(int argc, char **argv)
 {
     const char *given = NULL;
-    int years = 5;
+    int years = 5, tsv = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--overdue")) years = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "--tsv")) tsv = 1;
         else return 2;
     }
     arv_home h;
@@ -579,6 +645,7 @@ int cmd_todo(int argc, char **argv)
     today_tm(&tm);
     char cutoff[40];
     snprintf(cutoff, sizeof cutoff, "%04d-%02d-%02d", tm.tm_year + 1900 - years, tm.tm_mon + 1, tm.tm_mday);
+    if (tsv) return todo_tsv(&cat, cutoff);
     size_t items = 0;
     int s1 = 0, s2 = 0, s3 = 0, s4 = 0, s5 = 0;
     for (size_t i = 0; i < cat.discs.n; i++) {                  /* images made, never burned */
@@ -1033,4 +1100,158 @@ int cmd_retire(int argc, char **argv)
     free(only);
     free(who);
     return 0;
+}
+
+/* ------------------------------------------------------------------ inventory: a library's barcodes against the record */
+
+typedef struct {
+    char *barcode, *where;          /* where: "slot 3", "drive 0", or "" */
+} seen_tag;
+
+/* the barcodes in mtx status output (VolumeTag), or one a line in a plain list */
+static size_t read_tags(FILE *in, seen_tag **out)
+{
+    size_t n = 0;
+    char line[1024];
+    *out = NULL;
+    while (fgets(line, sizeof line, in)) {
+        char *tag = strstr(line, "VolumeTag"), where[48] = "", *p;
+        if ((p = strstr(line, "Storage Element ")) && !strstr(line, "Data Transfer")) snprintf(where, sizeof where, "slot %ld", strtol(p + 16, NULL, 10));
+        else if ((p = strstr(line, "Data Transfer Element "))) snprintf(where, sizeof where, "drive %ld", strtol(p + 22, NULL, 10));
+        if (tag) {
+            tag += 9;
+            while (*tag == ' ' || *tag == '=') tag++;
+        } else if (!strstr(line, "Element") && !strchr(line, ':') && line[0] != '#') {
+            tag = line;                                     /* a plain list: one barcode a line */
+            while (*tag == ' ' || *tag == '\t') tag++;
+        } else {
+            continue;
+        }
+        size_t len = strcspn(tag, " \t\r\n");
+        if (!len) continue;
+        *out = xrealloc(*out, (n + 1) * sizeof **out);
+        (*out)[n].barcode = xprintf("%.*s", (int)len, tag);
+        (*out)[n].where = xstrdup(where);
+        n++;
+    }
+    return n;
+}
+
+/* the copies a barcode names: on the copy itself (an identifier), or on its carrier */
+static int copy_has_barcode(const archive *cat, const char *disc, const rec_record *e, const char *id)
+{
+    const char *carrier = copy_carrier(cat, disc, e);
+    if (carrier && !strcmp(carrier, id)) return 1;
+    strlist ids;
+    copy_identifiers(cat, disc, e, &ids);
+    int has = strlist_has(&ids, id);
+    strlist_free(&ids);
+    return has;
+}
+
+/* arv inventory [-v] PLACE [FILE]: a library's or jukebox's barcodes (mtx status, or a list) against
+ * the copies recorded there: which are missing, which are unknown, which were recorded elsewhere */
+int cmd_inventory(int argc, char **argv)
+{
+    const char *given = NULL, *library = NULL, *file = NULL;
+    int verbose = 0;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (!strcmp(argv[i], "-v")) verbose = 1;
+        else if (argv[i][0] != '-' && !library) library = argv[i];
+        else if (argv[i][0] != '-' && !file) file = argv[i];
+        else return 2;
+    }
+    if (!library) return 2;
+    arv_home h;
+    home_find(&h, given, NULL);
+    archive cat;
+    archive_load(&cat, h.rec_path);
+    char *code = place(&cat, library);
+    FILE *in = file ? fopen(file, "r") : stdin;
+    if (!in) die("cannot read %s", file);
+    seen_tag *tags;
+    size_t n = read_tags(in, &tags), known = 0, missing = 0, unknown = 0, elsewhere = 0, unmarked = 0;
+    if (file) fclose(in);
+    char *at = NULL;
+    {
+        rec_record probe = { 0 };
+        probe.type = "Disc";
+        rec_add(&probe, "Location", code);
+        at = archive_where(&cat, &probe);
+        rec_clear(&probe);
+    }
+    sbuf report = { 0 }, known_lines = { 0 };
+    int *matched = xmalloc((n + 1) * sizeof *matched);
+    for (size_t t = 0; t < n; t++) {                    /* each barcode read: the copies it names */
+        char *id = xprintf("barcode:%s", tags[t].barcode);
+        matched[t] = 0;
+        for (size_t i = 0; i < cat.events.n; i++) {
+            const rec_record *e = cat.events.v[i];
+            const char *disc = rec_get(e, "Disc");
+            if (!disc || strcmp(get_or(e, "Type", ""), "replication") || !strcmp(get_or(e, "Outcome", ""), "failure")
+                || retired(&cat, disc) || !copy_has_barcode(&cat, disc, e, id))
+                continue;
+            matched[t]++;
+            const char *loc = copy_location(&cat, e);
+            if (verbose) sb_printf(&known_lines, "  %-9s %s  %s copy %s\n", tags[t].where, tags[t].barcode, disc, get_or(e, "Copy", "?"));
+            if (!loc || strcmp(loc, code)) {
+                char *was = copy_place(&cat, e);
+                sb_printf(&report, "ELSEWHERE  %s %s: %s copy %s, recorded at %s (moved here? arv stored ... --copy %s --location %s, or arv locate)\n",
+                          tags[t].where, tags[t].barcode, disc, get_or(e, "Copy", "?"), *was ? was : "no place", get_or(e, "Copy", "?"), code);
+                free(was);
+                elsewhere++;
+            }
+        }
+        if (matched[t]) known++;
+        else {
+            sb_printf(&report, "UNKNOWN    %s %s: not this archive's (or not recorded yet: --identifier or --carrier barcode:%s)\n",
+                      tags[t].where, tags[t].barcode, tags[t].barcode);
+            unknown++;
+        }
+        free(id);
+    }
+    for (size_t i = 0; i < cat.discs.n; i++) {           /* each copy recorded here: is it in the library? */
+        const char *disc = get_or(cat.discs.v[i], "Id", "");
+        if (retired(&cat, disc)) continue;
+        for (size_t k = 0; k < cat.events.n; k++) {
+            const rec_record *e = cat.events.v[k];
+            const char *loc = is_disc_event(e, disc, "replication") && strcmp(get_or(e, "Outcome", ""), "failure")
+                                  ? copy_location(&cat, e) : NULL;
+            if (!loc || strcmp(loc, code)) continue;
+            int found = 0, any = 0;
+            for (size_t t = 0; t < n && !found; t++) {
+                char *id = xprintf("barcode:%s", tags[t].barcode);
+                found = copy_has_barcode(&cat, disc, e, id);
+                free(id);
+            }
+            const char *carrier = copy_carrier(&cat, disc, e);
+            strlist ids;
+            copy_identifiers(&cat, disc, e, &ids);
+            for (size_t j = 0; j < ids.n; j++) any |= !strncmp(ids.v[j], "barcode:", 8);
+            any |= carrier && !strncmp(carrier, "barcode:", 8);
+            strlist_free(&ids);
+            if (found) continue;
+            if (!any) {
+                sb_printf(&report, "UNMARKED   %s copy %s: recorded here, with no barcode to find it by (arv identify %s %s barcode:...)\n",
+                          disc, get_or(e, "Copy", "?"), disc, get_or(e, "Copy", "?"));
+                unmarked++;
+            } else {
+                sb_printf(&report, "MISSING    %s copy %s: recorded at %s, its barcode not read there\n", disc, get_or(e, "Copy", "?"), at);
+                missing++;
+            }
+        }
+    }
+    printf("%s: %zu barcode%s read; %zu known, %zu unknown; %zu cop%s recorded here missing, %zu without a barcode, %zu recorded elsewhere\n",
+           at, n, n == 1 ? "" : "s", known, unknown, missing, missing == 1 ? "y" : "ies", unmarked, elsewhere);
+    if (known_lines.s) fputs(known_lines.s, stdout);
+    if (report.s) fputs(report.s, stdout);
+    free(known_lines.s);
+    free(report.s);
+    for (size_t t = 0; t < n; t++) free(tags[t].barcode), free(tags[t].where);
+    free(tags);
+    free(matched);
+    free(at);
+    free(code);
+    return missing ? 1 : 0;
 }

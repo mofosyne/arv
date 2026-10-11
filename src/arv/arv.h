@@ -93,6 +93,7 @@ int cmd_where(int argc, char **argv);
 int cmd_rebuild(int argc, char **argv);
 int cmd_audit(int argc, char **argv);
 int cmd_identify(int argc, char **argv);
+int cmd_inventory(int argc, char **argv);
 
 /* archive.c: the catalogue as arv writes it */
 typedef struct {

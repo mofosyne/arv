@@ -377,7 +377,7 @@ Record: what exists, and where
          one disc, or one tape or drive as a carrier: copies on one carrier count as one)
   arv stored DISC-ID PATH [--location PLACE] [--temperature T] [--carrier ID] [--copy X]
          a copy on a drive, NAS or tape: the .iso, or the disc's files as a folder; checked, then
-         recorded (default: warm); --copy X: that copy, moved here
+         recorded (default: warm); --copy X: that copy, moved here (at its own path: checked again)
   arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)
   arv find [-C CATALOG] [--limit N] PATTERN
   arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]
