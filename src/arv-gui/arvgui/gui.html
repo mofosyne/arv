@@ -481,20 +481,20 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   function copiesBox(d) {
     var wrap = el("div"), list = el("div", { class: "muted", text: "Reading the copies…" });
     wrap.appendChild(list);
-    var letters = el("select", { "aria-label": "Which copy" }, [el("option", { value: "", text: "any (by BCA serial)" })]);
+    var letters = el("select", { "aria-label": "Which copy" }, [el("option", { value: "", text: "any (by its identifier)" })]);
     api("/api/copies?disc=" + encodeURIComponent(d.Id)).then(function (res) {
       list.textContent = "";
       list.className = "";
       if (res.retired) { list.appendChild(el("p", { class: "muted", text: "Retired: its copies have left every place." })); return; }
       if (!res.copies.length) { list.appendChild(el("p", { class: "muted", text: "No copy yet: record one below once it is burned or stored." })); return; }
       var t = el("table");
-      t.appendChild(el("tr", {}, ["Copy", "Form", "Kept at", "Made", "Checked", "BCA serial"].map(function (h) { return el("th", { text: h }); })));
+      t.appendChild(el("tr", {}, ["Copy", "Form", "Kept at", "Made", "Checked", "Known by"].map(function (h) { return el("th", { text: h }); })));
       res.copies.forEach(function (c) {
         var checked = c.checked ? "last " + c.checked : c.readBack ? "read back when recorded" : "not read back";
         t.appendChild(el("tr", {}, [el("td", { class: "mono", text: c.copy || "?" }),
           el("td", { text: c.form + (c.temperature ? ", " + c.temperature : "") }),
           el("td", { text: c.at || "not recorded" }), el("td", { text: c.made }),
-          el("td", { class: c.readBack ? "ok" : "warn", text: checked }), el("td", { class: "mono muted", text: c.bca || "" })]));
+          el("td", { class: c.readBack ? "ok" : "warn", text: checked }), el("td", { class: "mono muted", text: (c.identifiers || []).join(", ") + (c.sameAs ? " (the same disc as copy " + c.sameAs + ")" : "") })]));
         if (c.copy) letters.appendChild(el("option", { value: c.copy, text: "copy " + c.copy }));
       });
       list.appendChild(el("div", { class: "scroll" }, [t]));

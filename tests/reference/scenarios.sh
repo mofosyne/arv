@@ -329,14 +329,19 @@ keep hd/config/tags.rec draft/tags.rec
 
 # ------------------------------------------------------------------ recording, on a copy of the reference home
 cp -r "$here/home" rec
-log record.out --home rec burned TRIP-01_2019_4 --copies 2 --location box1 --media-id MEI-T02 --note "for the attic"
+log record.out --home rec burned TRIP-01_2019_4 --copies 2 --location box1 --media-type MEI-T02 --note "for the attic"
 log record.out --home rec note PROJ-01_2020-2023_L "A long note that goes on about the weather station, its board revisions and the spare parts"
 log record.out --home rec locate SCAN-01_1995-2008_D SAFE --add
 log record.out --home rec locate FAMILY-01_2020-2021_K "Somewhere new"
 log record.out --home rec burned NOPE-01_2000_X
-log record.out --home rec burned TRIP-01_2019_4 --copy K --location OFFSITE --bca "04 1e 10 15 12 62 02 02 24 03 02 14 50 10 48 af"   # a letter chosen, and the disc's BCA serial
-log record.out --home rec burned TRIP-01_2019_4 --bca 041e10151262020224030214501048af041e1015   # the same disc again: refused
-log record.out --home rec burned TRIP-01_2019_4 --bca 0a1b2c                 # not a serial: refused
+log record.out --home rec burned TRIP-01_2019_4 --copy K --location OFFSITE --identifier "bca:04 1e 10 15 12 62 02 02 24 03 02 14 50 10 48 af"   # a letter chosen, and the disc's BCA serial
+log record.out --home rec burned TRIP-01_2019_4 --identifier bca:041e10151262020224030214501048af   # the same disc again: refused
+log record.out --home rec burned TRIP-01_2019_4 --identifier bca:0a1b2c       # not a serial: refused
+log record.out --home rec burned TRIP-01_2019_4 --identifier serial:123      # not a scheme: refused
+log record.out --home rec identify TRIP-01_2019_4 C barcode:ARV-000123 "label:TRIP-01_2019_4 C"   # a sticker, and the pen
+log record.out --home rec identify TRIP-01_2019_4 D barcode:ARV-000123       # already copy C: refused
+log record.out --home rec identify TRIP-01_2019_4 K bca:0a0b0c0d0e0f00112233445566778899   # K has its serial: refused
+log record.out --home rec burned TRIP-01_2019_4 --identifier barcode:ARV-000123   # copy C again: refused
 log record.out --home rec burned TRIP-01_2019_4 --copy K                  # taken: refused
 log record.out --home rec burned TRIP-01_2019_4 --copy k2                 # not a letter: refused
 log record.out --home rec todo

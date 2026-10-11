@@ -34,7 +34,7 @@ arv init [FOLDER] [--pointer HOME] [--name NAME [--default]]
                                         a .arv home in FOLDER, or a pointer to one; registered by name
 arv make [options] FOLDER              disc images, recorded in the home (in a terminal it asks
                                         what the options leave open; -y does not; --help lists them)
-arv burned DISC-ID [--copies N] [--location PLACE] [--media-id ID] [--note TEXT]
+arv burned DISC-ID [--copies N] [--location PLACE] [--identifier ID] [--media-type TYPE] [--note TEXT]
 arv check (--image FILE [--repair] | --device DRIVE) [DISC-ID]   fixity check, logged (an image:
                                         RS03 tested here, --repair mends it in place, logged only
                                         when its disc is in a writable catalogue; a drive:

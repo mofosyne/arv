@@ -505,8 +505,9 @@ static int is_copy_event(const rec_record *e, const char *disc_id)
 
 size_t disc_copies(const archive *a, const char *disc_id)
 {
-    size_t n = 0;
-    for (size_t i = 0; i < a->events.n; i++) n += is_copy_event(a->events.v[i], disc_id);
+    size_t n = 0;                   /* physical copies: a disc recorded twice (a strong identifier shared) is one */
+    for (size_t i = 0; i < a->events.n; i++)
+        n += is_copy_event(a->events.v[i], disc_id) && !copy_same_as(a, disc_id, a->events.v[i]);
     return n;
 }
 
@@ -576,32 +577,150 @@ int copy_read_back(const archive *a, const char *disc_id, const rec_record *copy
     return copy_last_check(a, disc_id, copy) != NULL;
 }
 
-/* a copy's BCA serial: recorded with it, or read by a passed check that named it; NULL if unknown */
-const char *copy_bca(const archive *a, const char *disc_id, const rec_record *copy)
+/* ------------------------------------------------------------------ copies' identifiers
+ * How one physical copy is recognised, as "scheme:value": bca: (the factory serial a drive reads),
+ * barcode: (a label stuck on and scanned), label: (written or printed by hand), hub: (the maker's
+ * code printed in the clear ring, shared by a batch). bca: and barcode: are strong: two records
+ * that share one are one disc. A copy may have several, recorded with it or by a later event that
+ * names it (a check that read the BCA, arv identify). */
+
+static const char *const SCHEMES[] = { "bca", "barcode", "label", "hub", NULL };
+
+char *identifier_normal(const char *text, const char **why)
 {
-    if (rec_get(copy, "Bca")) return rec_get(copy, "Bca");
+    const char *colon = text ? strchr(text, ':') : NULL;
+    *why = "SCHEME:VALUE, the scheme one of bca, barcode, label, hub (bca:041e..., barcode:ARV-000123)";
+    if (!colon || colon == text || !colon[1]) return NULL;
+    char scheme[16];
+    size_t n = (size_t)(colon - text);
+    if (n >= sizeof scheme) return NULL;
+    for (size_t i = 0; i < n; i++) scheme[i] = (char)tolower((unsigned char)text[i]);
+    scheme[n] = 0;
+    int known = 0;
+    for (int k = 0; SCHEMES[k]; k++) known |= !strcmp(scheme, SCHEMES[k]);
+    if (!known) return NULL;
+    const char *value = colon + 1;
+    while (isspace((unsigned char)*value)) value++;
+    if (!*value || strchr(value, '\n')) return NULL;
+    if (!strcmp(scheme, "bca")) {
+        char hex[33];
+        *why = "bca:SERIAL, the BCA serial: 32 hex digits (dev-tools/disc-probe prints it)";
+        if (bca_normal(value, hex)) return NULL;
+        return xprintf("bca:%s", hex);
+    }
+    char *out = xprintf("%s:%s", scheme, value), *e = out + strlen(out);
+    while (e > out && isspace((unsigned char)e[-1])) *--e = 0;
+    return out;
+}
+
+int identifier_strong(const char *id)
+{
+    return id && (!strncmp(id, "bca:", 4) || !strncmp(id, "barcode:", 8));
+}
+
+/* every identifier of a copy: on its replication, and on any later event that named it (by letter) */
+void copy_identifiers(const archive *a, const char *disc_id, const rec_record *copy, strlist *out)
+{
+    memset(out, 0, sizeof *out);
     const char *letter = rec_get(copy, "Copy");
-    for (size_t i = 0; letter && i < a->events.n; i++) {
+    size_t same_letter = 0;         /* two records lettered alike (two catalogues): a later event's letter is ambiguous */
+    for (size_t i = 0; letter && i < a->events.n; i++)
+        same_letter += is_copy_event(a->events.v[i], disc_id) && rec_get(a->events.v[i], "Copy")
+                       && !strcmp(rec_get(a->events.v[i], "Copy"), letter);
+    if (same_letter > 1) letter = NULL;
+    for (size_t i = 0; i < a->events.n; i++) {
         const rec_record *e = a->events.v[i];
-        const char *d = rec_get(e, "Disc"), *t = rec_get(e, "Type"), *o = rec_get(e, "Outcome"), *c = rec_get(e, "Copy");
-        if (d && t && o && c && rec_get(e, "Bca") && !strcmp(d, disc_id) && !strcmp(t, "fixity check")
-            && !strcmp(o, "success") && !strcmp(c, letter))
-            return rec_get(e, "Bca");
+        if (e != copy) {
+            const char *d = rec_get(e, "Disc"), *c = rec_get(e, "Copy"), *o = rec_get(e, "Outcome"), *t = rec_get(e, "Type");
+            if (!letter || !d || !c || strcmp(d, disc_id) || strcmp(c, letter) || (o && !strcmp(o, "failure"))
+                || (t && !strcmp(t, "replication")))
+                continue;
+        }
+        for (size_t f = 0; f < e->nfields; f++)
+            if (!strcmp(e->fields[f].name, "Identifier") && !strlist_has(out, e->fields[f].value))
+                strlist_add(out, e->fields[f].value);
+    }
+}
+
+static int copy_has(const archive *a, const char *disc_id, const rec_record *copy, const char *id)
+{
+    strlist ids;
+    copy_identifiers(a, disc_id, copy, &ids);
+    int has = strlist_has(&ids, id);
+    strlist_free(&ids);
+    return has;
+}
+
+/* the copy (its replication) an identifier names, in any disc's copies; NULL if none */
+const rec_record *copy_by_identifier(const archive *a, const char *id)
+{
+    for (size_t i = 0; i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        if (rec_get(e, "Disc") && is_copy_event(e, rec_get(e, "Disc")) && copy_has(a, rec_get(e, "Disc"), e, id)) return e;
     }
     return NULL;
 }
 
-/* the copy a BCA serial belongs to: its replication, or a passed check that named it and read the serial */
-const rec_record *copy_by_bca(const archive *a, const char *bca)
+/* an earlier record of the same physical copy (a strong identifier shared), or NULL: the same disc
+ * recorded twice, counted once */
+const rec_record *copy_same_as(const archive *a, const char *disc_id, const rec_record *copy)
 {
+    strlist mine;
+    copy_identifiers(a, disc_id, copy, &mine);
+    const rec_record *found = NULL;
+    for (size_t i = 0; i < a->events.n && !found && a->events.v[i] != copy; i++) {
+        const rec_record *e = a->events.v[i];
+        if (!is_copy_event(e, disc_id)) continue;
+        for (size_t k = 0; k < mine.n && !found; k++)
+            if (identifier_strong(mine.v[k]) && copy_has(a, disc_id, e, mine.v[k])) found = e;
+    }
+    strlist_free(&mine);
+    return found;
+}
+
+/* what the copies' identifiers say that a person must sort out: one disc recorded twice, an
+ * identifier on copies of two discs, a copy with two BCA serials. Printed; returns how many. */
+size_t identity_report(const archive *a)
+{
+    size_t n = 0, m = 0;
+    const rec_record **copies = xmalloc((a->events.n + 1) * sizeof *copies);
+    strlist *ids = xmalloc((a->events.n + 1) * sizeof *ids);
     for (size_t i = 0; i < a->events.n; i++) {
         const rec_record *e = a->events.v[i];
-        const char *b = rec_get(e, "Bca"), *c = rec_get(e, "Copy"), *t = rec_get(e, "Type"), *o = rec_get(e, "Outcome");
-        if (b && c && t && o && !strcmp(b, bca) && strcmp(o, "failure")
-            && (!strcmp(t, "replication") || !strcmp(t, "fixity check")))
-            return e;
+        if (!rec_get(e, "Disc") || !is_copy_event(e, rec_get(e, "Disc"))) continue;
+        copies[m] = e;
+        copy_identifiers(a, rec_get(e, "Disc"), e, &ids[m++]);
     }
-    return NULL;
+    for (size_t i = 0; i < m; i++) {
+        const char *disc = rec_get(copies[i], "Disc"), *bca = NULL;
+        for (size_t k = 0; k < ids[i].n; k++) {
+            if (strncmp(ids[i].v[k], "bca:", 4)) continue;
+            if (bca && strcmp(bca, ids[i].v[k])) {
+                printf("TWO BCA  %s copy %s: %s and %s (one disc has one serial: a mix-up, the wrong disc in the drive?)\n",
+                       disc, get_or(copies[i], "Copy", "?"), bca, ids[i].v[k]);
+                n++;
+            }
+            bca = ids[i].v[k];
+        }
+        for (size_t j = i + 1; j < m; j++) {                    /* a later record sharing a strong identifier */
+            const char *other = rec_get(copies[j], "Disc");
+            for (size_t k = 0; k < ids[i].n; k++) {
+                if (!identifier_strong(ids[i].v[k]) || !strlist_has(&ids[j], ids[i].v[k])) continue;
+                if (strcmp(disc, other))
+                    printf("TWO DISCS  %s is on copy %s of %s and copy %s of %s: one physical disc cannot be both\n",
+                           ids[i].v[k], get_or(copies[i], "Copy", "?"), disc, get_or(copies[j], "Copy", "?"), other);
+                else
+                    printf("TWICE  %s copies %s and %s are one disc (%s): recorded twice, counted once\n", disc,
+                           get_or(copies[i], "Copy", "?"), get_or(copies[j], "Copy", "?"), ids[i].v[k]);
+                n++;
+                break;
+            }
+        }
+    }
+    for (size_t i = 0; i < m; i++) strlist_free(&ids[i]);
+    free(ids);
+    free(copies);
+    return n;
 }
 
 /* a place given on the command line that looks like a code but is none of the archive's locations:

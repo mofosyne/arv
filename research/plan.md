@@ -1188,6 +1188,12 @@ whole-archive log is a view (sorted by date), not a record.
    a disc id naming two images is not merged, two copies lettered alike are reported). No
    remotes, clone or push. Open: a way to re-letter a copy (an event naming the replication it
    corrects, by its EventId).
+6. **Copies are counted as physical discs** (built 2026-10-11). A copy's identity is what is on
+   it, `Identifier: scheme:value` (PREMIS objectIdentifier): `bca:` the factory serial,
+   `barcode:` a sticker, `label:` the pen, `hub:` the maker's batch code. Several per copy,
+   gathered from every event that names it. `bca:` and `barcode:` name one disc, so two
+   records sharing one are one disc recorded twice, counted once and reported; the letter stays
+   the name people write and say. The image `Uuid` cannot do this: copies share it by design.
 5. **A copy does not take writes:** `config/paths.rec` records where the catalogue lives, and a
    write to it found elsewhere stops, so a copied catalogue cannot quietly become a second one;
    `arv where --here` accepts a move. Built 2026-10-10.

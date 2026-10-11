@@ -77,9 +77,12 @@ apart, which is all arv asks of it.
 
 ## What arv does with it
 
-- `arv burned --device` reads the serial (Linux) and records it with the copy (`Bca:` on its
-  `replication` event), and refuses a disc whose serial is already recorded: each copy is
-  recorded once. `--bca SERIAL` gives it by hand (any system, or a drive that will not read it).
+- `arv burned --device` reads the serial (Linux) and records it with the copy
+  (`Identifier: bca:SERIAL` on its `replication` event), and refuses a disc whose serial is
+  already recorded: each copy is recorded once. `--identifier bca:SERIAL` gives it by hand (any
+  system, or a drive that will not read it). The serial is one of a copy's identifiers, beside a
+  barcode stuck on (`barcode:`) or what was written on it (`label:`); `arv identify` adds one
+  later. The captures here were made before that, so they still print `arv burned --bca`.
 - `arv check --device` reads it and knows which copy is in the drive (`ID copy B: OK`); it refuses
   a `--copy` that disagrees, and a disc that is a copy of another id. A check of a copy recorded
   without a serial adds the serial it read, so the copy is known by it next time.

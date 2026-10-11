@@ -125,6 +125,22 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - research/plan.md (2026-10-10): the catalogue's history is per thing, not a line; catalogues
   merge by event id; tampering is made evident, with the discs as witnesses.
 
+**Copies known by what is on them** (format 0.5)
+- A copy's **identifiers** say how that physical disc is recognised, as `scheme:value`:
+  `bca:` (its factory serial, read by the drive), `barcode:` (a sticker, scanned), `label:`
+  (written or printed), `hub:` (the maker's batch code). Repeatable, and added later by any
+  event that names the copy. `Identifier: bca:...` replaces `Bca:`.
+- `arv burned` and `arv check` take `--identifier` (repeatable; `--bca` is gone). `arv identify
+  DISC-ID COPY ID...` adds one later (a sticker put on, a serial read on another machine). An
+  identifier already on another copy is refused, as is a second BCA serial on one copy.
+- Copies are counted as **physical discs**: two records that share a `bca:` or `barcode:` are
+  one disc recorded twice (in two catalogues, say), counted once in `arv objects`, `arv todo`
+  and safety. `arv audit` and `arv rebuild` report a disc recorded twice, an identifier on
+  copies of two discs, and a copy with two BCA serials.
+- `MediaId` is now `MediaType` (`--media-type`): the maker and type many discs share, not one
+  disc's identity.
+- `arv objects DISC-ID` and the GUI show each copy's identifiers.
+
 **Copies in the GUI, and one disc's copies**
 - `arv objects DISC-ID` lists a disc's copies, each by its letter, with its form, place, when it
   was last checked and its BCA serial; `--json` gives the same (and `arv objects --json` now

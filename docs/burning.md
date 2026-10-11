@@ -63,7 +63,7 @@ Eject the disc and put it back (the system then forgets what it cached while wri
 each copy as it is burned:
 
 ```sh
-arv burned --device /dev/sr0 --location HOME-PUB-2026 --media-id "VERBATIM-MDISC-LOT-1234"
+arv burned --device /dev/sr0 --location HOME-PUB-2026 --identifier barcode:ARV-000123   # a sticker, if you use them
 ```
 
 Each copy gets the next letter (A, B ...), and arv says which: write it on the hub and the case

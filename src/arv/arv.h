@@ -92,6 +92,7 @@ int cmd_names(int argc, char **argv);
 int cmd_where(int argc, char **argv);
 int cmd_rebuild(int argc, char **argv);
 int cmd_audit(int argc, char **argv);
+int cmd_identify(int argc, char **argv);
 
 /* archive.c: the catalogue as arv writes it */
 typedef struct {
@@ -137,11 +138,15 @@ void event_content_id(const rec_record *e, char out[33]);   /* from its fields, 
 void event_key(const rec_record *e, char out[33]);          /* its EventId, else its content's id */
 int copy_read_back(const archive *a, const char *disc_id, const rec_record *copy);
 const char *copy_last_check(const archive *a, const char *disc_id, const rec_record *copy);   /* its date, or NULL */
-const char *copy_bca(const archive *a, const char *disc_id, const rec_record *copy);
-const rec_record *copy_by_bca(const archive *a, const char *bca);   /* an event naming the copy with that serial */
+char *identifier_normal(const char *text, const char **why);   /* "scheme:value" checked, or NULL and why */
+int identifier_strong(const char *id);                           /* bca: and barcode: name one physical disc */
+void copy_identifiers(const archive *a, const char *disc_id, const rec_record *copy, strlist *out);
+const rec_record *copy_by_identifier(const archive *a, const char *id);   /* the copy's replication, or NULL */
+const rec_record *copy_same_as(const archive *a, const char *disc_id, const rec_record *copy);  /* recorded before */
+size_t identity_report(const archive *a);    /* recorded twice, on two discs, two BCAs: printed, counted */
 /* the BCA serial of the disc in a drive (Linux): 32 hex digits; -1 when there is none (drive.c) */
 int drive_bca(const char *device, char out[33]);
-int bca_normal(const char *text, char out[33]);     /* --bca as given: its first 16 bytes, in hex */
+int bca_normal(const char *text, char out[33]);     /* a BCA serial as given: its first 16 bytes, in hex */
 /* hot, warm or cold: the place's Temperature, or the nearest place above it that has one; NULL */
 const char *place_temperature(const archive *a, const char *code);
 int temperature_ok(const char *t);

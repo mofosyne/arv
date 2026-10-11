@@ -363,6 +363,20 @@ grep -q "two copies lettered A" merge.err && grep -q "^Not merged: CODE-02" merg
     && ok "two catalogues of one archive: a copy takes no change until arv where --here; rebuild merges the other by event id (notes too), and reports a copy letter and a disc id both gave out" \
     || { cat merge.out merge.err; no "merging two catalogues"; }
 
+# one disc recorded in both: counted once, by the identifier both recorded
+mkdir -p dup/a/T && echo d > dup/a/T/f
+(cd dup/a && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --formats no --set CODE --output d.iso T >/dev/null 2>&1) || no "make in dup/a"
+d1=$(sed -n 's/^Id: //p' dup/a/.arv/catalog/archive.rec | head -1)
+cp -r dup/a dup/b && "$tool" -C dup/b/.arv where --here >/dev/null
+"$tool" -C dup/a/.arv burned "$d1" --identifier barcode:ARV-7 --location SHELF >/dev/null 2>&1 && "$tool" -C dup/b/.arv burned "$d1" --identifier barcode:ARV-7 --location ATTIC >/dev/null 2>&1 \
+    || no "burned with an identifier"
+"$tool" -C dup/a/.arv rebuild dup/b > dup.out 2> dup.err || { cat dup.out dup.err; no "rebuild of one disc recorded twice"; }
+rc=0; "$tool" -C dup/a/.arv audit > dup.audit || rc=$?
+grep -q "^TWICE .* copies A and A are one disc (barcode:ARV-7)" dup.out && ! grep -q "two copies lettered" dup.err \
+    && "$tool" -C dup/a/.arv objects "$d1" | grep -q ": 1 copy$" && [ "$rc" = 1 ] && grep -q "^TWICE" dup.audit \
+    && ok "copies by identity: one disc recorded in two catalogues (barcode:) is counted once, and rebuild and audit say so" \
+    || { cat dup.out dup.err dup.audit; "$tool" -C dup/a/.arv objects "$d1"; no "one disc recorded twice"; }
+
 # ------------------------------------------------------------------ the helpers: arv-assist and arv-gui
 mkdir -p helpers
 printf '#!/bin/sh\necho "assist $*"\n' > helpers/assist

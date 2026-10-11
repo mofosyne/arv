@@ -269,8 +269,15 @@ int cmd_check(int argc, char **argv)
 {
     const char *given = NULL, *device = NULL, *image = NULL, *disc_id = NULL, *note = NULL, *letter = NULL;
     int verbose = 0, repair = 0;
+    strlist ids = { 0 };            /* the copy's identifiers: given (--identifier), and the BCA the drive reads */
     for (int i = 0; i < argc; i++) {
-        if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) verbose = 1;
+        if (i + 1 < argc && !strcmp(argv[i], "--identifier")) {
+            const char *why;
+            char *id = identifier_normal(argv[++i], &why);
+            if (!id) die2("--identifier %s: %s", argv[i], why);
+            if (!strlist_has(&ids, id)) strlist_add(&ids, id);
+            free(id);
+        } else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) verbose = 1;
         else if (!strcmp(argv[i], "--repair")) repair = 1;
         else if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--device")) device = argv[++i];
@@ -312,12 +319,31 @@ int cmd_check(int argc, char **argv)
         die2("%s has no copy %s in the catalogue (each copy's letter is written on its hub and case)", disc_id, letter);
     char serial[33] = "";       /* the disc's own serial: which copy is in the drive */
     if (logged && device && !drive_bca(device, serial)) {
-        const rec_record *seen = copy_by_bca(&o.cat, serial);
-        if (seen && strcmp(rec_get(seen, "Disc"), disc_id))
+        char *id = xprintf("bca:%s", serial);
+        if (!strlist_has(&ids, id)) strlist_add(&ids, id);
+        free(id);
+    }
+    for (size_t k = 0; logged && k < ids.n; k++) {      /* an identifier already known says which copy this is */
+        const rec_record *seen = copy_by_identifier(&o.cat, ids.v[k]);
+        if (!seen) continue;
+        if (strcmp(rec_get(seen, "Disc"), disc_id))
             die2("the disc in the drive is a copy of %s, not %s", rec_get(seen, "Disc"), disc_id);
-        if (seen && letter && strcmp(rec_get(seen, "Copy"), letter))
-            die2("the disc in the drive is copy %s, not %s (by its BCA serial)", rec_get(seen, "Copy"), letter);
-        if (seen) letter = rec_get(seen, "Copy");
+        if (letter && rec_get(seen, "Copy") && strcmp(rec_get(seen, "Copy"), letter))
+            die2("this is copy %s, not %s (by its identifier)", rec_get(seen, "Copy"), letter);
+        letter = rec_get(seen, "Copy");
+    }
+    for (size_t i = 0; logged && letter && i < o.cat.events.n; i++) {   /* a copy has one BCA serial */
+        const rec_record *e = o.cat.events.v[i];
+        if (!rec_get(e, "Copy") || strcmp(rec_get(e, "Copy"), letter) || !rec_get(e, "Disc") || strcmp(rec_get(e, "Disc"), disc_id)
+            || !rec_get(e, "Type") || strcmp(rec_get(e, "Type"), "replication"))
+            continue;
+        strlist have;
+        copy_identifiers(&o.cat, disc_id, e, &have);
+        for (size_t a = 0; a < have.n; a++)
+            for (size_t b = 0; b < ids.n; b++)
+                if (!strncmp(have.v[a], "bca:", 4) && !strncmp(ids.v[b], "bca:", 4) && strcmp(have.v[a], ids.v[b]))
+                    die2("this disc is not copy %s (that copy's BCA serial is %s)", letter, have.v[a]);
+        strlist_free(&have);
     }
     char *only = NULL;          /* a disc with one copy: a check of it is of that copy */
     if (!letter && logged && device && disc_copies(&o.cat, disc_id) == 1) {
@@ -374,7 +400,8 @@ int cmd_check(int argc, char **argv)
         const char *outcome = !ok ? "failure" : repair && !was_whole ? "warning" : "success";
         rec_record *ev = new_event(disc_id, "fixity check", outcome, agent, "automatic", text);
         if (letter) rec_add(ev, "Copy", letter);        /* which copy was in the drive, or is this image */
-        if (letter && *serial) rec_add(ev, "Bca", serial);  /* so a copy recorded without it is known by it next time */
+        for (size_t k = 0; letter && k < ids.n; k++)    /* so a copy recorded without them is known by them next time */
+            rec_add(ev, "Identifier", ids.v[k]);
         recs_add(&o.cat.events, ev);
         archive_save(&o.cat, o.h.rec_path);
     }
@@ -502,26 +529,32 @@ int cmd_stored(int argc, char **argv)
 
 int cmd_burned(int argc, char **argv)
 {
-    const char *given = NULL, *disc_id = NULL, *media_id = NULL, *location = NULL, *note = NULL, *device = NULL,
-               *temperature = NULL, *letter = NULL, *bca = NULL;
+    const char *given = NULL, *disc_id = NULL, *media_type = NULL, *location = NULL, *note = NULL, *device = NULL,
+               *temperature = NULL, *letter = NULL;
     long copies = 1;
     int copies_given = 0;
+    strlist ids = { 0 };            /* this disc's identifiers: given, and the BCA the drive reads */
     for (int i = 0; i < argc; i++) {
-        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        if (i + 1 < argc && !strcmp(argv[i], "--identifier")) {
+            const char *why;
+            char *id = identifier_normal(argv[++i], &why);
+            if (!id) die2("--identifier %s: %s", argv[i], why);
+            if (!strlist_has(&ids, id)) strlist_add(&ids, id);
+            free(id);
+        } else if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--copies")) { copies = atol(argv[++i]); copies_given = 1; }
         else if (i + 1 < argc && !strcmp(argv[i], "--device")) device = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--temperature")) temperature = argv[++i];
-        else if (i + 1 < argc && !strcmp(argv[i], "--media-id")) media_id = argv[++i];
+        else if (i + 1 < argc && !strcmp(argv[i], "--media-type")) media_type = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--location")) location = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--note")) note = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--copy")) letter = argv[++i];
-        else if (i + 1 < argc && !strcmp(argv[i], "--bca")) bca = argv[++i];
         else if (argv[i][0] != '-' && !disc_id) disc_id = argv[i];
         else return 2;
     }
     if (copies < 1) die("%s", "--copies N: one or more");
     if (letter && copies != 1) die("%s", "--copy names one copy: record the others one at a time");
-    if (bca && copies != 1) die("%s", "--bca is one disc's serial: record each copy on its own");
+    if (ids.n && copies != 1) die("%s", "--identifier names one disc: record each copy on its own");
     if (letter && !copy_letter_ok(letter)) die("--copy %s: 1-3 capital letters, as written on the disc (A, B ... Z, AA)", letter);
     char *from_label = NULL;
     if (device) {           /* the disc in the drive: read it back before recording it */
@@ -543,20 +576,22 @@ int cmd_burned(int argc, char **argv)
     if (letter && copy_exists(&o.cat, disc_id, letter))
         die2("%s already has a copy %s: name this one another letter (or leave --copy out, and arv takes the next)",
              disc_id, letter);
-    char serial[33] = "";       /* the disc's own serial: as given, or read from the drive */
-    if (bca && bca_normal(bca, serial)) die("--bca %s: the BCA serial, 32 hex digits (dev-tools/disc-probe prints it)", bca);
-    if (device) {
-        char read[33];
-        if (!drive_bca(device, read)) {
-            if (*serial && strcmp(serial, read)) die2("--bca %s: the disc in the drive says %s", serial, read);
-            memcpy(serial, read, sizeof serial);
-        }
+    char read[33];
+    if (device && !drive_bca(device, read)) {   /* the disc's own serial, from the drive */
+        char *id = xprintf("bca:%s", read);
+        for (size_t k = 0; k < ids.n; k++)
+            if (!strncmp(ids.v[k], "bca:", 4) && strcmp(ids.v[k], id)) die2("--identifier %s: the disc in the drive says %s", ids.v[k], id);
+        if (!strlist_has(&ids, id)) strlist_add(&ids, id);
+        free(id);
     }
-    if (*serial) {              /* a disc already recorded is not a new copy */
-        const rec_record *seen = copy_by_bca(&o.cat, serial);
+    size_t bcas = 0;
+    for (size_t k = 0; k < ids.n; k++) bcas += !strncmp(ids.v[k], "bca:", 4);
+    if (bcas > 1) die("%s", "one disc has one BCA serial: --identifier bca: given twice");
+    for (size_t k = 0; k < ids.n; k++) {       /* a disc already recorded is not a new copy */
+        const rec_record *seen = identifier_strong(ids.v[k]) ? copy_by_identifier(&o.cat, ids.v[k]) : NULL;
         if (seen) {
-            fprintf(stderr, "Error: this disc is already recorded: copy %s of %s (BCA %s). Each copy is recorded once.\n",
-                    rec_get(seen, "Copy"), rec_get(seen, "Disc"), serial);
+            fprintf(stderr, "Error: this disc is already recorded: copy %s of %s (%s). Each copy is recorded once.\n",
+                    rec_get(seen, "Copy") ? rec_get(seen, "Copy") : "?", rec_get(seen, "Disc"), ids.v[k]);
             exit(1);
         }
     }
@@ -615,8 +650,8 @@ int cmd_burned(int argc, char **argv)
         rec_add(ev, "Form", "disc");
         rec_add(ev, "Temperature", t ? t : "cold");
         if (code) rec_add(ev, "Location", code);
-        if (media_id) rec_add(ev, "MediaId", media_id);
-        if (*serial) rec_add(ev, "Bca", serial);
+        if (media_type) rec_add(ev, "MediaType", media_type);
+        for (size_t j = 0; j < ids.n; j++) rec_add(ev, "Identifier", ids.v[j]);
         recs_add(&o.cat.events, ev);
         sb_printf(&letters, "%s%s", letters.len ? (k + 1 == copies ? " and " : ", ") : "", name);
         free(name);
@@ -652,6 +687,73 @@ static char *clip(const char *text, size_t width)
     char *out = xprintf("%.*s...", (int)(s - b.s), b.s);
     free(b.s);
     return out;
+}
+
+/* arv identify DISC-ID COPY SCHEME:VALUE...: what one copy is known by, added later (a barcode stuck on,
+ * a label written, a BCA serial read on another machine) */
+int cmd_identify(int argc, char **argv)
+{
+    const char *given = NULL, *disc_id = NULL, *letter = NULL;
+    strlist ids = { 0 };
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (argv[i][0] == '-') return 2;
+        else if (!disc_id) disc_id = argv[i];
+        else if (!letter) letter = argv[i];
+        else {
+            const char *why;
+            char *id = identifier_normal(argv[i], &why);
+            if (!id) die2("%s: %s", argv[i], why);
+            if (!strlist_has(&ids, id)) strlist_add(&ids, id);
+            free(id);
+        }
+    }
+    if (!disc_id || !letter || !ids.n) return 2;
+    opened o;
+    (void)open_disc_record(&o, given, disc_id);
+    const rec_record *copy = NULL;
+    for (size_t i = 0; i < o.cat.events.n && !copy; i++) {
+        const rec_record *e = o.cat.events.v[i];
+        if (rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), disc_id) && rec_get(e, "Type") && !strcmp(rec_get(e, "Type"), "replication")
+            && rec_get(e, "Copy") && !strcmp(rec_get(e, "Copy"), letter) && !(rec_get(e, "Outcome") && !strcmp(rec_get(e, "Outcome"), "failure")))
+            copy = e;
+    }
+    if (!copy) die2("%s has no copy %s in the catalogue (arv objects %s lists its copies)", disc_id, letter);
+    strlist have, added = { 0 };
+    copy_identifiers(&o.cat, disc_id, copy, &have);
+    for (size_t k = 0; k < ids.n; k++) {
+        if (strlist_has(&have, ids.v[k])) continue;
+        const rec_record *seen = identifier_strong(ids.v[k]) ? copy_by_identifier(&o.cat, ids.v[k]) : NULL;
+        if (seen) {
+            fprintf(stderr, "Error: %s is already copy %s of %s; one physical disc is one copy.\n", ids.v[k],
+                    rec_get(seen, "Copy") ? rec_get(seen, "Copy") : "?", rec_get(seen, "Disc"));
+            exit(1);
+        }
+        for (size_t a = 0; a < have.n; a++)
+            if (!strncmp(ids.v[k], "bca:", 4) && !strncmp(have.v[a], "bca:", 4))
+                die2("copy %s already has a BCA serial (%s): one disc has one", letter, have.v[a]);
+        strlist_add(&added, ids.v[k]);
+    }
+    if (!added.n) {
+        printf("%s copy %s is known by all of these already.\n", disc_id, letter);
+        return 0;
+    }
+    sbuf what = { 0 };
+    for (size_t k = 0; k < added.n; k++) sb_printf(&what, "%s%s", k ? ", " : "", added.v[k]);
+    char *who = person(), *text = xprintf("identified copy %s: %s", letter, what.s);
+    rec_record *ev = new_event(disc_id, "metadata modification", "success", who, "human", text);
+    rec_add(ev, "Copy", letter);
+    for (size_t k = 0; k < added.n; k++) rec_add(ev, "Identifier", added.v[k]);
+    recs_add(&o.cat.events, ev);
+    archive_save(&o.cat, o.h.rec_path);
+    printf("%s copy %s: known by %s too.\n", disc_id, letter, what.s);
+    free(text);
+    free(who);
+    free(what.s);
+    strlist_free(&have);
+    strlist_free(&added);
+    strlist_free(&ids);
+    return 0;
 }
 
 int cmd_note(int argc, char **argv)

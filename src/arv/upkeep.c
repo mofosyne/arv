@@ -136,7 +136,9 @@ static void hold(const archive *cat, const char *id, holding *h)
     h->discs++;
     for (size_t i = 0; i < cat->events.n; i++) {
         const rec_record *e = cat->events.v[i];
-        if (!is_disc_event(e, id, "replication") || !strcmp(get_or(e, "Outcome", ""), "failure")) continue;
+        if (!is_disc_event(e, id, "replication") || !strcmp(get_or(e, "Outcome", ""), "failure")
+            || copy_same_as(cat, id, e))                    /* the same disc recorded twice: once */
+            continue;
         h->copies++;
         h->cold += !strcmp(get_or(e, "Temperature", ""), "cold");
         h->good += copy_read_back(cat, id, e);
@@ -270,11 +272,21 @@ static void disc_json(const archive *cat, const char *id, sbuf *b)
         free(at);
         sb_puts(b, ", \"made\": ");
         json_str(b, get_or(e, "Date", ""));
-        const char *checked = copy_last_check(cat, id, e), *bca = copy_bca(cat, id, e);
+        const char *checked = copy_last_check(cat, id, e);
+        const rec_record *same = copy_same_as(cat, id, e);
         sb_puts(b, ", \"checked\": ");
         json_str(b, checked ? checked : "");
-        sb_puts(b, ", \"bca\": ");
-        json_str(b, bca ? bca : "");
+        sb_puts(b, ", \"sameAs\": ");                    /* the same disc recorded before, as this copy */
+        json_str(b, same ? get_or(same, "Copy", "") : "");
+        strlist ids;
+        copy_identifiers(cat, id, e, &ids);
+        sb_puts(b, ", \"identifiers\": [");
+        for (size_t k = 0; k < ids.n; k++) {
+            if (k) sb_puts(b, ", ");
+            json_str(b, ids.v[k]);
+        }
+        sb_puts(b, "]");
+        strlist_free(&ids);
         sb_printf(b, ", \"readBack\": %s}", copy_read_back(cat, id, e) ? "true" : "false");
         first = 0;
     }
@@ -396,9 +408,7 @@ static int disc_copies_shown(const archive *cat, const char *id, int as_json)
         free(b.s);
         return 0;
     }
-    size_t n = 0;
-    for (size_t i = 0; i < cat->events.n; i++)
-        n += is_disc_event(cat->events.v[i], id, "replication") && strcmp(get_or(cat->events.v[i], "Outcome", ""), "failure");
+    size_t n = disc_copies(cat, id);    /* physical copies: a disc recorded twice counts once */
     if (retired(cat, id)) printf("%s: retired\n", id);
     else if (!n) printf("%s: no copy yet (arv burned, arv stored)\n", id);
     else printf("%s: %zu cop%s\n", id, n, n == 1 ? "y" : "ies");
@@ -406,13 +416,18 @@ static int disc_copies_shown(const archive *cat, const char *id, int as_json)
         const rec_record *e = cat->events.v[i];
         if (!is_disc_event(e, id, "replication") || !strcmp(get_or(e, "Outcome", ""), "failure")) continue;
         char *at = copy_place(cat, e);
-        const char *checked = copy_last_check(cat, id, e), *bca = copy_bca(cat, id, e);
+        const char *checked = copy_last_check(cat, id, e);
+        const rec_record *same = copy_same_as(cat, id, e);
         const char *temp = rec_get(e, "Temperature");
         printf("  %-2s %s%s%s, made %s; %s", get_or(e, "Copy", "?"), get_or(e, "Form", "disc"), temp ? ", " : "", temp ? temp : "",
                get_or(e, "Date", "?"), *at ? at : "its place not recorded");
         if (checked) printf("; last checked %s", checked);
         else printf("; %s", copy_read_back(cat, id, e) ? "read back" : "not read back");
-        if (bca) printf("; BCA %s", bca);
+        strlist ids;
+        copy_identifiers(cat, id, e, &ids);
+        for (size_t k = 0; k < ids.n; k++) printf("%s%s", k ? ", " : "; ", ids.v[k]);
+        strlist_free(&ids);
+        if (same) printf("; the same disc as copy %s (recorded twice, counted once)", get_or(same, "Copy", "?"));
         putchar('\n');
         free(at);
     }
@@ -564,7 +579,7 @@ int cmd_todo(int argc, char **argv)
         for (size_t k = 0; k < cat.events.n; k++) {
             const rec_record *e = cat.events.v[k];
             if (!is_disc_event(e, id, "replication") || !strcmp(get_or(e, "Outcome", ""), "failure")
-                || strcmp(get_or(e, "Form", "disc"), "disc") || copy_read_back(&cat, id, e))
+                || strcmp(get_or(e, "Form", "disc"), "disc") || copy_read_back(&cat, id, e) || copy_same_as(&cat, id, e))
                 continue;
             if (rec_get(e, "Copy")) sb_printf(&which, "%s%s", which.len ? ", " : "", rec_get(e, "Copy"));
             else unnamed = 1;

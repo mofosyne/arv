@@ -358,13 +358,27 @@ Each copy has a **letter**, `Copy: A`, `B` ... `Z`, `AA` ...: unique among the d
 in order as copies are recorded (or chosen), and written on the disc's hub and case after its id,
 so a copy can be told from its twins in the hand. Copies are identical images, so the letter is in
 the catalogue, never on the disc. The event also carries the copy's own `Location` (as the disc's
-`Location`, which lists every place a copy of it is kept), and may carry `MediaId` (the media's
-manufacturer and type, as the drive reports it) and `Bca`: the disc's own factory serial, from
-its burst cutting area, as 32 lowercase hex digits (the BCA's first 16-byte unit; the BCA repeats
-it, then names the media type; [research/bca/](../../research/bca/README.md)). A copy is recognised by its `Bca` when a drive reads it again: a
-`fixity check` that names a copy may carry the `Bca` it read, for a copy recorded without one. A disc's number of copies is its number of
-`replication` events that did not fail; there is no counter. A `fixity check` of one copy names
-it with `Copy` too.
+`Location`, which lists every place a copy of it is kept), and may carry `MediaType` (the media's
+manufacturer and type, as the drive reports it: many discs share it) and `Identifier`s.
+
+**Identifiers** say how one physical copy is recognised, as `scheme:value` (PREMIS's
+objectIdentifierType and Value), repeatable:
+
+| Scheme | What it is | Names one physical disc |
+|---|---|---|
+| `bca:` | the factory serial in the burst cutting area, read by a drive: 32 lowercase hex digits (the BCA's first 16-byte unit; the BCA repeats it, then names the media type; [research/bca/](../../research/bca/README.md)) | yes |
+| `barcode:` | a label stuck on the disc and scanned | yes (one on a case names the case) |
+| `label:` | what was written or printed on it | no |
+| `hub:` | the maker's code printed in the clear hub ring (a batch) | no |
+
+A copy's identifiers are those on its `replication` event and on any later event that names its
+`Copy` (a `fixity check` that read the BCA, or a `metadata modification` from `arv identify`),
+unless two copies carry that letter (two catalogues each gave it out), when only the
+`replication`'s own count. A drive that reads one finds the copy in it. A disc has one `bca:`; a
+copy with two is a mix-up, reported. A disc's number of copies is its number of `replication`
+events that did not fail, **counted as physical discs**: two that share a `bca:` or `barcode:`
+are one disc recorded twice (in two catalogues, say), counted once and reported. There is no
+counter. A `fixity check` of one copy names it with `Copy` too.
 
 A copy is **known good** when its `replication` event carries `ReadBack: identical` (the disc was
 read back against the image's `ImageSha256` before the copy was recorded), or when a later

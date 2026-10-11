@@ -355,10 +355,10 @@ arv todo: unexpected or missing arguments: --bogus
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2
 $ --home q burned --help
-  arv burned (--device DRIVE | --copies N) [--copy X] [--location PLACE] [--media-id ID] [--bca SERIAL]
-             [--note TEXT] [DISC-ID]
+  arv burned (--device DRIVE | --copies N) [--copy X] [--location PLACE] [--identifier ID]...
+             [--media-type TYPE] [--note TEXT] [DISC-ID]
          a burned copy, named by a letter (A, B ...: write it on the hub and case after the id;
-         --device: read back against its image first, recorded only if identical;
+         --device: read back against its image first, recorded only if identical, with its BCA serial;
          --temperature hot|warm|cold: default the place's, else cold)
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=0
@@ -367,11 +367,13 @@ No discs yet, so nothing is owed. Start with arv collection init FOLDER (or arv 
 rc=0
 $ --home q record
 Record: what exists, and where
-  arv burned (--device DRIVE | --copies N) [--copy X] [--location PLACE] [--media-id ID] [--bca SERIAL]
-             [--note TEXT] [DISC-ID]
+  arv burned (--device DRIVE | --copies N) [--copy X] [--location PLACE] [--identifier ID]...
+             [--media-type TYPE] [--note TEXT] [DISC-ID]
          a burned copy, named by a letter (A, B ...: write it on the hub and case after the id;
-         --device: read back against its image first, recorded only if identical;
+         --device: read back against its image first, recorded only if identical, with its BCA serial;
          --temperature hot|warm|cold: default the place's, else cold)
+  arv identify DISC-ID COPY ID...   what a copy is known by, added later
+         (ID: bca:SERIAL, barcode:CODE, label:TEXT or hub:CODE; bca: and barcode: name one disc)
   arv stored DISC-ID PATH [--location PLACE] [--temperature T]   a copy on a drive or NAS: the .iso,
          or the disc's files as a folder; checked, then recorded (default: warm)
   arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)

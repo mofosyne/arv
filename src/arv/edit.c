@@ -1141,7 +1141,8 @@ static size_t letter_clashes(const archive *cat)
         for (size_t j = i + 1; j < cat->events.n; j++) {
             const rec_record *b = cat->events.v[j];
             if (!rec_get(b, "Copy") || strcmp(get_or(b, "Type", ""), "replication") || !strcmp(get_or(b, "Outcome", ""), "failure")
-                || strcmp(get_or(a, "Disc", ""), get_or(b, "Disc", "")) || strcmp(rec_get(a, "Copy"), rec_get(b, "Copy")))
+                || strcmp(get_or(a, "Disc", ""), get_or(b, "Disc", "")) || strcmp(rec_get(a, "Copy"), rec_get(b, "Copy"))
+                || copy_same_as(cat, get_or(a, "Disc", ""), b) == a)   /* one disc recorded twice: identity_report says so */
                 continue;
             fprintf(stderr, "Warning: %s has two copies lettered %s (kept at %s, and at %s), recorded in two catalogues.\n"
                             "  Tell them apart on their labels; arv objects %s lists both.\n",
@@ -1269,6 +1270,7 @@ int cmd_rebuild(int argc, char **argv)
     free(list.s);
     fflush(stdout);                                     /* the summary, then what needs a person */
     letter_clashes(&cat);
+    identity_report(&cat);
     for (size_t i = 0; i < clashes.n; i++)
         fprintf(stderr, "Not merged: %s names a different disc there (another image: both catalogues made \"the next\" disc).\n"
                         "  This home's %s is kept; the other's records stay in %s.\n", clashes.v[i], clashes.v[i], root);
@@ -1316,6 +1318,7 @@ int cmd_audit(int argc, char **argv)
     }
     printf("%s: %zu event%s, %zu changed since written%s\n", h.path, n, n == 1 ? "" : "s", problems,
            unnamed ? " (some written before event ids: the next change to the catalogue gives them one)" : "");
+    problems += identity_report(&cat);                  /* copies: recorded twice, on two discs, two BCA serials */
     for (size_t r = 0; r < roots.n; r++) {
         char *sources[] = { xprintf("%s/catalog/archive.rec", roots.v[r]), join(roots.v[r], "catalog.rec") };
         archive disc;

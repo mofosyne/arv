@@ -425,7 +425,7 @@ class App:
         elif command == "burned":
             argv = ["burned", body["disc_id"]]      # with a drive: one copy, read back first
             argv += ["--device", body["device"]] if body.get("device") else ["--copies", str(int(body.get("copies") or 1))]
-            for key in ("copy", "location", "media_id"):
+            for key in ("copy", "location", "media_type", "identifier"):
                 if (body.get(key) or "").strip():
                     argv += ["--" + key.replace("_", "-"), body[key].strip()]
         elif command == "stored":

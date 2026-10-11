@@ -65,11 +65,13 @@ static const char USAGE_ARCHIVE[] =
           "\n";
 static const char USAGE_REST[] =
           "Record: what exists, and where\n"
-          "  arv burned (--device DRIVE | --copies N) [--copy X] [--location PLACE] [--media-id ID] [--bca SERIAL]\n"
-          "             [--note TEXT] [DISC-ID]\n"
+          "  arv burned (--device DRIVE | --copies N) [--copy X] [--location PLACE] [--identifier ID]...\n"
+          "             [--media-type TYPE] [--note TEXT] [DISC-ID]\n"
           "         a burned copy, named by a letter (A, B ...: write it on the hub and case after the id;\n"
-          "         --device: read back against its image first, recorded only if identical;\n"
+          "         --device: read back against its image first, recorded only if identical, with its BCA serial;\n"
           "         --temperature hot|warm|cold: default the place's, else cold)\n"
+          "  arv identify DISC-ID COPY ID...   what a copy is known by, added later\n"
+          "         (ID: bca:SERIAL, barcode:CODE, label:TEXT or hub:CODE; bca: and barcode: name one disc)\n"
           "  arv stored DISC-ID PATH [--location PLACE] [--temperature T]   a copy on a drive or NAS: the .iso,\n"
           "         or the disc's files as a folder; checked, then recorded (default: warm)\n"
           "  arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)\n"
@@ -89,7 +91,8 @@ static const char USAGE_REST[] =
           "\n"
           "Verify: still good, and can be got back\n"
           "  arv todo [--overdue YEARS]   what is owed: copies, read-backs, cold copies, places, checks\n"
-          "  arv check (--image FILE [--repair] | --device DRIVE) [--copy X] [--note TEXT] [-v] [DISC-ID]\n"
+          "  arv check (--image FILE [--repair] | --device DRIVE) [--copy X] [--identifier ID]... [--note TEXT] [-v]\n"
+          "            [DISC-ID]\n"
           "  arv verify [-v] DISC   every file against its checksum (in full: arv verify files DISC)\n"
           "  arv restore [--no-links] DISC DEST\n"
           "  arv rebuild [--prefer-disc] [--any-archive] DISC|CATALOG   merge a disc's, or another .arv's, catalogue\n"
@@ -423,7 +426,7 @@ int main(int argc, char **argv)
                  { "status", cmd_status }, { "checkpoint", cmd_checkpoint }, { "log", cmd_log }, { "diff", cmd_diff },
                  { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
-                 { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit },
+                 { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit }, { "identify", cmd_identify },
                  { "tags", cmd_tags }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
     arv_argv0 = argv[0];
     if (argc >= 2 && !strcmp(argv[1], "__complete")) {     /* for the shell's completion (completion/) */
