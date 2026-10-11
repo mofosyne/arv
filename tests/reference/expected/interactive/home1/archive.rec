@@ -119,7 +119,9 @@ Source: Projects_x
 + ring), repeatable, and added later by any event that names the Copy. With ReadBack: identical
 + it is a copy read back against its image before it was recorded (known good), as is one a
 + later fixity check with its Copy passed. A disc's copies are its replications, counted as
-+ physical discs: two that share a bca: or barcode: identifier are one disc recorded twice.
++ physical discs: two that share a bca:, barcode: or serial: identifier are one disc recorded
++ twice. A stored copy may name its Carrier, the tape or drive holding it (and other discs'
++ copies): two copies of one disc on one carrier count as one.
 + Every event has an EventId: the first 32 hex digits of the SHA-256 of its other fields as
 + written (a Nonce keeps two alike apart). Deaccession retires a disc (its Disc record gets
 + Retired).

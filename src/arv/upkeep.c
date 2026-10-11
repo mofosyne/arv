@@ -137,7 +137,7 @@ static void hold(const archive *cat, const char *id, holding *h)
     for (size_t i = 0; i < cat->events.n; i++) {
         const rec_record *e = cat->events.v[i];
         if (!is_disc_event(e, id, "replication") || !strcmp(get_or(e, "Outcome", ""), "failure")
-            || copy_same_as(cat, id, e))                    /* the same disc recorded twice: once */
+            || copy_same_as(cat, id, e) || copy_shares_carrier(cat, id, e))   /* one disc twice, one tape: once */
             continue;
         h->copies++;
         h->cold += !strcmp(get_or(e, "Temperature", ""), "cold");
@@ -285,6 +285,12 @@ static void disc_json(const archive *cat, const char *id, sbuf *b)
         json_str(b, checked ? checked : "");
         sb_puts(b, ", \"sameAs\": ");                    /* the same disc recorded before, as this copy */
         json_str(b, same ? get_or(same, "Copy", "") : "");
+        const char *carrier = copy_carrier(cat, id, e);
+        const rec_record *with = copy_shares_carrier(cat, id, e);
+        sb_puts(b, ", \"carrier\": ");
+        json_str(b, carrier ? carrier : "");
+        sb_puts(b, ", \"carrierWith\": ");               /* an earlier copy on the same carrier */
+        json_str(b, with ? get_or(with, "Copy", "") : "");
         strlist ids;
         copy_identifiers(cat, id, e, &ids);
         sb_puts(b, ", \"identifiers\": [");
@@ -435,6 +441,10 @@ static int disc_copies_shown(const archive *cat, const char *id, int as_json)
         for (size_t k = 0; k < ids.n; k++) printf("%s%s", k ? ", " : "; ", ids.v[k]);
         strlist_free(&ids);
         if (same) printf("; the same disc as copy %s (recorded twice, counted once)", get_or(same, "Copy", "?"));
+        const char *carrier = copy_carrier(cat, id, e);
+        const rec_record *with = copy_shares_carrier(cat, id, e);
+        if (carrier) printf("; on %s", carrier);
+        if (with) printf(" with copy %s (one carrier: counted once)", get_or(with, "Copy", "?"));
         putchar('\n');
         free(at);
     }
@@ -619,6 +629,18 @@ int cmd_todo(int argc, char **argv)
         }
         free(eds.v);
         free(old.v);
+    }
+    int s_one = 0;
+    for (size_t i = 0; i < cat.discs.n; i++) {                  /* copies on one carrier: lost together */
+        const char *id = get_or(cat.discs.v[i], "Id", "");
+        if (retired(&cat, id)) continue;
+        for (size_t k = 0; k < cat.events.n; k++) {
+            const rec_record *e = cat.events.v[k], *with = is_disc_event(e, id, "replication") ? copy_shares_carrier(&cat, id, e) : NULL;
+            if (!with) continue;
+            heading(&s_one, "Copies on one carrier, lost together and counted once (keep one on another tape or drive):");
+            printf("  %s  copies %s and %s on %s\n", id, get_or(with, "Copy", "?"), get_or(e, "Copy", "?"), copy_carrier(&cat, id, e));
+            items++;
+        }
     }
     int s_gone = 0;
     for (size_t i = 0; i < cat.discs.n; i++) {                  /* stored copies not where they were recorded */

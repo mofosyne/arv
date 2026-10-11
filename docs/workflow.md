@@ -343,6 +343,11 @@ arv stored FAMILY-04_2001-2025_X /nas/archive/FAMILY-04_2001-2025_X.iso --locati
 - A burn that does not read back identical is **not** recorded: burn again.
 - `arv stored` takes the image file (read back like a disc) or the disc's files as a folder
   (`7z x` the image; verified file by file). It is warm unless its place says otherwise.
+- **On a tape or a drive that holds many images** (LTO with LTFS mounts as a folder), name it:
+  `arv stored ID /mnt/ltfs/ID.iso --carrier barcode:TAPE01L8` (the tape's label; a hard
+  drive's `serial:`). Other discs may share the tape, but two copies of one disc on one tape are
+  lost together and count as one: `arv todo` says so. A copy moved to another tape:
+  `arv stored ID NEWPATH --copy X --carrier barcode:TAPE02L8`.
 - `--temperature hot|warm|cold` overrides the place's.
 - An edition is **safe** once each of its discs has a copy checked this way.
 

@@ -1194,6 +1194,13 @@ whole-archive log is a view (sorted by date), not a record.
    gathered from every event that names it. `bca:` and `barcode:` name one disc, so two
    records sharing one are one disc recorded twice, counted once and reported; the letter stays
    the name people write and say. The image `Uuid` cannot do this: copies share it by design.
+7. **Carrier and copy are two things** (built 2026-10-11). A disc holds one image, so it is the
+   copy; a tape or a drive holds many, so its barcode names the medium, not a copy. A stored copy
+   names its `Carrier`; copies are counted as independent copies (one per physical disc, one per
+   carrier), and copies of one disc on one carrier count once. For jukeboxes and tape libraries,
+   next: a worklist a script can read (`arv todo --tsv`: what is due, by barcode), an example
+   `mtx` loop (load, `arv check --identifier`, unload), and presence from the library's inventory
+   (`mtx status` barcodes fed to arv as "seen", never counted as a check).
 5. **A copy does not take writes:** `config/paths.rec` records where the catalogue lives, and a
    write to it found elsewhere stops, so a copied catalogue cannot quietly become a second one;
    `arv where --here` accepts a move. Built 2026-10-10.

@@ -437,9 +437,17 @@ int cmd_stored(int argc, char **argv)
 {
     const char *given = NULL, *disc_id = NULL, *path = NULL, *location = NULL, *temperature = NULL, *note = NULL,
                *moved = NULL;
+    char *carrier = NULL;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--copy")) moved = argv[++i];   /* this copy, moved here */
+        else if (i + 1 < argc && !strcmp(argv[i], "--carrier")) {   /* the tape or drive it is on */
+            const char *why;
+            free(carrier);
+            carrier = identifier_normal(argv[++i], &why);
+            if (!carrier || !strncmp(carrier, "bca:", 4))
+                die2("--carrier %s: %s", argv[i], "the tape or drive the copy is on: barcode:CODE (its label), serial:SERIAL, or label:TEXT");
+        }
         else if (i + 1 < argc && !strcmp(argv[i], "--location")) location = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--temperature")) temperature = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--note")) note = argv[++i];
@@ -510,6 +518,7 @@ int cmd_stored(int argc, char **argv)
         rec_record *ev = new_event(disc_id, "metadata modification", "success", who, "human", text);
         rec_add(ev, "Copy", moved);
         rec_add(ev, "Path", abs);
+        if (carrier) rec_add(ev, "Carrier", carrier);
         if (location) {
             place_check(&o.cat, location);
             char *code = place(&o.cat, location);
@@ -551,10 +560,16 @@ int cmd_stored(int argc, char **argv)
     rec_add(ev, "Temperature", t ? t : "warm");
     if (code) rec_add(ev, "Location", code);
     rec_add(ev, "Path", abs);
+    if (carrier) rec_add(ev, "Carrier", carrier);
     recs_add(&o.cat.events, ev);
     archive_save(&o.cat, o.h.rec_path);
     size_t total = disc_copies(&o.cat, disc_id);
     printf("%s: copy %s recorded (%s, %s, checked), %zu in all\n", disc_id, name, form, t ? t : "warm", total);
+    const rec_record *with = copy_shares_carrier(&o.cat, disc_id, ev);
+    if (with)
+        printf("Note: copy %s is on %s too; one tape or drive lost loses both, so they count as one. Keep one elsewhere.\n",
+               rec_get(with, "Copy") ? rec_get(with, "Copy") : "?", carrier);
+    free(carrier);
     free(who); free(name); free(text.s); free(code); free(abs); free(out.s);
     return 0;
 }
@@ -728,10 +743,17 @@ static char *clip(const char *text, size_t width)
 int cmd_identify(int argc, char **argv)
 {
     const char *given = NULL, *disc_id = NULL, *letter = NULL;
+    char *carrier = NULL;
     strlist ids = { 0 };
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
-        else if (argv[i][0] == '-') return 2;
+        else if (i + 1 < argc && !strcmp(argv[i], "--carrier")) {
+            const char *why;
+            free(carrier);
+            carrier = identifier_normal(argv[++i], &why);
+            if (!carrier || !strncmp(carrier, "bca:", 4))
+                die2("--carrier %s: %s", argv[i], "the tape or drive the copy is on: barcode:CODE (its label), serial:SERIAL, or label:TEXT");
+        } else if (argv[i][0] == '-') return 2;
         else if (!disc_id) disc_id = argv[i];
         else if (!letter) letter = argv[i];
         else {
@@ -742,7 +764,7 @@ int cmd_identify(int argc, char **argv)
             free(id);
         }
     }
-    if (!disc_id || !letter || !ids.n) return 2;
+    if (!disc_id || !letter || (!ids.n && !carrier)) return 2;
     opened o;
     (void)open_disc_record(&o, given, disc_id);
     const rec_record *copy = NULL;
@@ -768,19 +790,29 @@ int cmd_identify(int argc, char **argv)
                 die2("copy %s already has a BCA serial (%s): one disc has one", letter, have.v[a]);
         strlist_add(&added, ids.v[k]);
     }
-    if (!added.n) {
+    const char *had = copy_carrier(&o.cat, disc_id, copy);
+    if (carrier && had && !strcmp(had, carrier)) {
+        free(carrier);
+        carrier = NULL;
+    }
+    if (carrier && (!rec_get(copy, "Form") || !strcmp(rec_get(copy, "Form"), "disc")))
+        die2("copy %s of %s is a burned disc, its own carrier (--carrier is for a copy on a tape or drive)", letter, disc_id);
+    if (!added.n && !carrier) {
         printf("%s copy %s is known by all of these already.\n", disc_id, letter);
         return 0;
     }
     sbuf what = { 0 };
-    for (size_t k = 0; k < added.n; k++) sb_printf(&what, "%s%s", k ? ", " : "", added.v[k]);
+    for (size_t k = 0; k < added.n; k++) sb_printf(&what, "%s%s", k ? ", " : "known by ", added.v[k]);
+    if (carrier) sb_printf(&what, "%son %s", what.len ? "; " : "", carrier);
     char *who = person(), *text = xprintf("identified copy %s: %s", letter, what.s);
     rec_record *ev = new_event(disc_id, "metadata modification", "success", who, "human", text);
     rec_add(ev, "Copy", letter);
     for (size_t k = 0; k < added.n; k++) rec_add(ev, "Identifier", added.v[k]);
+    if (carrier) rec_add(ev, "Carrier", carrier);
     recs_add(&o.cat.events, ev);
     archive_save(&o.cat, o.h.rec_path);
-    printf("%s copy %s: known by %s too.\n", disc_id, letter, what.s);
+    printf("%s copy %s: %s, recorded.\n", disc_id, letter, what.s);
+    free(carrier);
     free(text);
     free(who);
     free(what.s);

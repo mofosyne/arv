@@ -337,7 +337,7 @@ log record.out --home rec burned NOPE-01_2000_X
 log record.out --home rec burned TRIP-01_2019_4 --copy K --location OFFSITE --identifier "bca:04 1e 10 15 12 62 02 02 24 03 02 14 50 10 48 af"   # a letter chosen, and the disc's BCA serial
 log record.out --home rec burned TRIP-01_2019_4 --identifier bca:041e10151262020224030214501048af   # the same disc again: refused
 log record.out --home rec burned TRIP-01_2019_4 --identifier bca:0a1b2c       # not a serial: refused
-log record.out --home rec burned TRIP-01_2019_4 --identifier serial:123      # not a scheme: refused
+log record.out --home rec burned TRIP-01_2019_4 --identifier lot:123         # not a scheme: refused
 log record.out --home rec identify TRIP-01_2019_4 C barcode:ARV-000123 "label:TRIP-01_2019_4 C"   # a sticker, and the pen
 log record.out --home rec identify TRIP-01_2019_4 D barcode:ARV-000123       # already copy C: refused
 log record.out --home rec identify TRIP-01_2019_4 K bca:0a0b0c0d0e0f00112233445566778899   # K has its serial: refused

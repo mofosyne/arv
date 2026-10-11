@@ -368,6 +368,7 @@ objectIdentifierType and Value), repeatable:
 |---|---|---|
 | `bca:` | the factory serial in the burst cutting area, read by a drive: 32 lowercase hex digits (the BCA's first 16-byte unit; the BCA repeats it, then names the media type; [research/bca/](../../research/bca/README.md)) | yes |
 | `barcode:` | a label stuck on the disc and scanned | yes (one on a case names the case) |
+| `serial:` | a manufacturer's serial: a hard drive's, or an LTO cartridge's own memory | yes |
 | `label:` | what was written or printed on it | no |
 | `hub:` | the maker's code printed in the clear hub ring (a batch) | no |
 
@@ -379,6 +380,14 @@ copy with two is a mix-up, reported. A disc's number of copies is its number of 
 events that did not fail, **counted as physical discs**: two that share a `bca:` or `barcode:`
 are one disc recorded twice (in two catalogues, say), counted once and reported. There is no
 counter. A `fixity check` of one copy names it with `Copy` too.
+
+**Carrier.** A stored copy (`iso` or `folder`) may sit on a medium that holds many images: a
+tape (LTO with LTFS), a hard drive. `Carrier` names that medium with the same schemes (a tape's
+`barcode:`, a drive's `serial:`, or a `label:`), on the `replication` or on a later event that
+names the copy (it moved). A burned disc is its own medium and has none. Many discs' copies may
+share a carrier; that is no clash. But copies **of one disc** on one carrier are lost together,
+so they count as one: a disc's copies are counted as **independent** copies, one per physical
+disc and one per carrier.
 
 A copy is **known good** when its `replication` event carries `ReadBack: identical` (the disc was
 read back against the image's `ImageSha256` before the copy was recorded), or when a later

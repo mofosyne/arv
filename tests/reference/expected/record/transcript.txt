@@ -24,11 +24,11 @@ rc=1
 $ --home rec burned TRIP-01_2019_4 --identifier bca:0a1b2c
 Error: --identifier bca:0a1b2c: bca:SERIAL, the BCA serial: 32 hex digits (dev-tools/disc-probe prints it)
 rc=1
-$ --home rec burned TRIP-01_2019_4 --identifier serial:123
-Error: --identifier serial:123: SCHEME:VALUE, the scheme one of bca, barcode, label, hub (bca:041e..., barcode:ARV-000123)
+$ --home rec burned TRIP-01_2019_4 --identifier lot:123
+Error: --identifier lot:123: SCHEME:VALUE, the scheme one of bca, barcode, serial, label, hub (bca:041e..., barcode:ARV-000123)
 rc=1
 $ --home rec identify TRIP-01_2019_4 C barcode:ARV-000123 label:TRIP-01_2019_4 C
-TRIP-01_2019_4 copy C: known by barcode:ARV-000123, label:TRIP-01_2019_4 C too.
+TRIP-01_2019_4 copy C: known by barcode:ARV-000123, label:TRIP-01_2019_4 C, recorded.
 rc=0
 $ --home rec identify TRIP-01_2019_4 D barcode:ARV-000123
 Error: barcode:ARV-000123 is already copy C of TRIP-01_2019_4; one physical disc is one copy.
@@ -79,5 +79,5 @@ TRIP-01_2019_4: 5 copies
   K  disc, cold, made 2026-01-01; Parents' house; not read back; bca:041e10151262020224030214501048af
 rc=0
 $ --home rec objects TRIP-01_2019_4 --json
-{"disc": "TRIP-01_2019_4", "retired": false, "where": "Home / Study / Box 1, blue lid; Parents' house", "copies": [{"copy": "A", "form": "disc", "temperature": "", "location": "", "at": "", "made": "2026-10-04", "checked": "", "sameAs": "", "identifiers": [], "readBack": false}, {"copy": "B", "form": "disc", "temperature": "", "location": "", "at": "", "made": "2026-10-04", "checked": "", "sameAs": "", "identifiers": [], "readBack": false}, {"copy": "C", "form": "disc", "temperature": "cold", "location": "BOX1", "at": "Home / Study / Box 1, blue lid", "made": "2026-01-01", "checked": "", "sameAs": "", "identifiers": ["barcode:ARV-000123", "label:TRIP-01_2019_4 C"], "readBack": false}, {"copy": "D", "form": "disc", "temperature": "cold", "location": "BOX1", "at": "Home / Study / Box 1, blue lid", "made": "2026-01-01", "checked": "", "sameAs": "", "identifiers": [], "readBack": false}, {"copy": "K", "form": "disc", "temperature": "cold", "location": "OFFSITE", "at": "Parents' house", "made": "2026-01-01", "checked": "", "sameAs": "", "identifiers": ["bca:041e10151262020224030214501048af"], "readBack": false}]}
+{"disc": "TRIP-01_2019_4", "retired": false, "where": "Home / Study / Box 1, blue lid; Parents' house", "copies": [{"copy": "A", "form": "disc", "temperature": "", "location": "", "at": "", "made": "2026-10-04", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": false}, {"copy": "B", "form": "disc", "temperature": "", "location": "", "at": "", "made": "2026-10-04", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": false}, {"copy": "C", "form": "disc", "temperature": "cold", "location": "BOX1", "at": "Home / Study / Box 1, blue lid", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": ["barcode:ARV-000123", "label:TRIP-01_2019_4 C"], "readBack": false}, {"copy": "D", "form": "disc", "temperature": "cold", "location": "BOX1", "at": "Home / Study / Box 1, blue lid", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": false}, {"copy": "K", "form": "disc", "temperature": "cold", "location": "OFFSITE", "at": "Parents' house", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": ["bca:041e10151262020224030214501048af"], "readBack": false}]}
 rc=0

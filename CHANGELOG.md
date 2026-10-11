@@ -125,6 +125,15 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - research/plan.md (2026-10-10): the catalogue's history is per thing, not a line; catalogues
   merge by event id; tampering is made evident, with the discs as witnesses.
 
+**Copies on tapes and drives: carriers** (format 0.5)
+- A stored copy may name its `Carrier`: the tape or drive that holds it and other images
+  (`arv stored ... --carrier barcode:TAPE01L8`, or later `arv identify ID X --carrier ...`).
+  Many discs on one tape is no clash; two copies of one disc on one carrier are lost together,
+  so they count as one (`arv objects`, `arv todo`, safety), and `arv todo` and `arv stored`
+  say so. A copy moved to another tape (`arv stored --copy X --carrier ...`) counts again.
+- `serial:` joins the identifier schemes: a manufacturer's serial (a hard drive's, an LTO
+  cartridge's memory), naming one medium like `bca:` and `barcode:`.
+
 **What is in the drives, and where the stored copies went**
 - `arv drives [--check] [DRIVE...]` names the disc and copy in each optical drive (by its BCA
   serial, or as the only burned copy), and says when a drive is empty or holds another disc.

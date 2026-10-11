@@ -400,6 +400,20 @@ mkdir -p drv/nas2 && mv drv/nas/i1.iso drv/nas2/
     && ok "arv drives names the disc and copy in each drive (and --check checks them); arv info knows an image file (find -exec); todo finds a stored copy gone from its path, and stored --copy records the move" \
     || { "$tool" -C drv/.arv todo; no "a moved stored copy"; }
 
+# copies on a carrier that holds many images (a tape, a drive): counted by carrier
+v2=$(sed -n 's/^Id: //p' drv/.arv/catalog/archive.rec | sed -n 2p)
+mkdir -p drv/tape1 drv/tape2 && cp drv/i1.iso drv/tape1/x.iso && cp drv/i1.iso drv/tape1/y.iso && cp drv/i2.iso drv/tape1/ && cp drv/i1.iso drv/tape2/
+for f in x y; do "$tool" -C drv/.arv stored "$v1" drv/tape1/$f.iso --carrier barcode:TAPE01L8 > carrier.out 2>&1 || no "stored --carrier"; done
+grep -q "count as one" carrier.out || { cat carrier.out; no "stored notes a shared carrier"; }
+"$tool" -C drv/.arv stored "$v2" drv/tape1/i2.iso --carrier barcode:TAPE01L8 >/dev/null 2>&1 || no "a second disc on the tape"
+"$tool" -C drv/.arv objects "$v1" | grep -q ": 3 copies$" || { "$tool" -C drv/.arv objects "$v1"; no "copies on one carrier count once"; }
+"$tool" -C drv/.arv todo | grep -q "^  $v1  copies C and D on barcode:TAPE01L8" || no "todo: copies on one carrier"
+"$tool" -C drv/.arv audit > carrier.out && ! grep -q "TWO DISCS" carrier.out || { cat carrier.out; no "two discs on one tape are not a clash"; }
+"$tool" -C drv/.arv stored "$v1" drv/tape2/i1.iso --copy D --carrier barcode:TAPE02L8 >/dev/null 2>&1 || no "a copy moved to another tape"
+"$tool" -C drv/.arv objects "$v1" | grep -q ": 4 copies$" \
+    && ok "carriers: copies on one tape count once and todo says so; two discs on one tape are no clash; a copy moved to another tape counts again" \
+    || { "$tool" -C drv/.arv objects "$v1"; no "carrier after a move"; }
+
 # ------------------------------------------------------------------ the helpers: arv-assist and arv-gui
 mkdir -p helpers
 printf '#!/bin/sh\necho "assist $*"\n' > helpers/assist

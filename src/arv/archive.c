@@ -505,9 +505,11 @@ static int is_copy_event(const rec_record *e, const char *disc_id)
 
 size_t disc_copies(const archive *a, const char *disc_id)
 {
-    size_t n = 0;                   /* physical copies: a disc recorded twice (a strong identifier shared) is one */
+    size_t n = 0;                   /* independent copies: a disc recorded twice (a strong identifier shared) is one,
+                                     * as are copies on one carrier (a tape holding both) */
     for (size_t i = 0; i < a->events.n; i++)
-        n += is_copy_event(a->events.v[i], disc_id) && !copy_same_as(a, disc_id, a->events.v[i]);
+        n += is_copy_event(a->events.v[i], disc_id) && !copy_same_as(a, disc_id, a->events.v[i])
+             && !copy_shares_carrier(a, disc_id, a->events.v[i]);
     return n;
 }
 
@@ -584,12 +586,12 @@ int copy_read_back(const archive *a, const char *disc_id, const rec_record *copy
  * that share one are one disc. A copy may have several, recorded with it or by a later event that
  * names it (a check that read the BCA, arv identify). */
 
-static const char *const SCHEMES[] = { "bca", "barcode", "label", "hub", NULL };
+static const char *const SCHEMES[] = { "bca", "barcode", "serial", "label", "hub", NULL };
 
 char *identifier_normal(const char *text, const char **why)
 {
     const char *colon = text ? strchr(text, ':') : NULL;
-    *why = "SCHEME:VALUE, the scheme one of bca, barcode, label, hub (bca:041e..., barcode:ARV-000123)";
+    *why = "SCHEME:VALUE, the scheme one of bca, barcode, serial, label, hub (bca:041e..., barcode:ARV-000123)";
     if (!colon || colon == text || !colon[1]) return NULL;
     char scheme[16];
     size_t n = (size_t)(colon - text);
@@ -615,7 +617,36 @@ char *identifier_normal(const char *text, const char **why)
 
 int identifier_strong(const char *id)
 {
-    return id && (!strncmp(id, "bca:", 4) || !strncmp(id, "barcode:", 8));
+    return id && (!strncmp(id, "bca:", 4) || !strncmp(id, "barcode:", 8) || !strncmp(id, "serial:", 7));
+}
+
+/* the medium a stored copy is on, when it holds more than this one image (a tape, a hard drive):
+ * the newest Carrier recorded for it, on its replication or a later event naming it; NULL if none.
+ * A burned disc is its own medium and has none. */
+const char *copy_carrier(const archive *a, const char *disc_id, const rec_record *copy)
+{
+    const char *carrier = rec_get(copy, "Carrier"), *letter = rec_get(copy, "Copy");
+    for (size_t i = 0; letter && i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        if (e != copy && rec_get(e, "Carrier") && rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), disc_id) && rec_get(e, "Copy")
+            && !strcmp(rec_get(e, "Copy"), letter) && rec_get(e, "Type") && strcmp(rec_get(e, "Type"), "replication"))
+            carrier = rec_get(e, "Carrier");
+    }
+    return carrier;
+}
+
+/* an earlier copy of the same disc on the same carrier (one tape holding both), or NULL: the two
+ * are lost together, so they count as one */
+const rec_record *copy_shares_carrier(const archive *a, const char *disc_id, const rec_record *copy)
+{
+    const char *mine = copy_carrier(a, disc_id, copy);
+    if (!mine || !identifier_strong(mine)) return NULL;
+    for (size_t i = 0; i < a->events.n && a->events.v[i] != copy; i++) {
+        const rec_record *e = a->events.v[i];
+        const char *theirs = is_copy_event(e, disc_id) ? copy_carrier(a, disc_id, e) : NULL;
+        if (theirs && !strcmp(theirs, mine)) return e;
+    }
+    return NULL;
 }
 
 /* every identifier of a copy: on its replication, and on any later event that named it (by letter) */
