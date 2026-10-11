@@ -44,7 +44,8 @@ static void open_home(const char *given, arv_home *h, archive *cat)
     archive_load(cat, h->rec_path);
 }
 
-static void change(archive *cat, const char *disc_id, const char *obj, const char *note)
+/* fields: those this change sets (NULL-terminated), each given its history (sets_field) */
+static void change(archive *cat, const char *disc_id, const char *obj, const char *note, const char *const *fields)
 {
     char *who = person();
     rec_record *e = new_event(disc_id ? disc_id : obj, "metadata modification", "success", who, "human", note);
@@ -52,6 +53,7 @@ static void change(archive *cat, const char *disc_id, const char *obj, const cha
         free(e->fields[0].name);
         e->fields[0].name = xstrdup("Object");
     }
+    for (size_t i = 0; fields && fields[i]; i++) sets_field(cat, e, disc_id ? disc_id : obj, fields[i]);
     recs_add(&cat->events, e);
     free(who);
 }
@@ -113,11 +115,15 @@ int cmd_access(int argc, char **argv)
     char before[16];
     snprintf(before, sizeof before, "%s", disc_access(d));
     rec_set(d, "Access", level);
-    if (strcmp(before, level)) {
+    strlist heads;                      /* changed apart in two catalogues: setting it, even as it is, settles it */
+    field_heads(&cat, disc_id, "Access", &heads);
+    if (strcmp(before, level) || heads.n > 1) {
         char *note = xprintf("Access: %s -> %s", before, level);
-        change(&cat, disc_id, NULL, note);
+        static const char *const access_field[] = { "Access", NULL };
+        change(&cat, disc_id, NULL, note, access_field);
         free(note);
     }
+    strlist_free(&heads);
     archive_save(&cat, h.rec_path);
     return 0;
 }
@@ -256,7 +262,7 @@ int cmd_location(int argc, char **argv)
         if (temperature) rec_add(l, "Temperature", temperature);
         recs_add(&cat.locations, l);
         char *obj = xprintf("location:%s", code), *note = parent ? xprintf("created in %s", parent) : xstrdup("created");
-        change(&cat, NULL, obj, note);
+        change(&cat, NULL, obj, note, NULL);
         free(obj);
         free(note);
     } else {
@@ -271,18 +277,22 @@ int cmd_location(int argc, char **argv)
         if (parent) insert_at(l, 2, "Parent", parent);
         if (name) rec_set(l, "Name", name);
         sbuf changes = { 0 };
+        const char *fields[4];
+        int nf = 0;
         const char *now = rec_get(l, "Parent");
         if ((now == NULL) != (parent_before == NULL) || (now && strcmp(now, parent_before)))
-            sb_printf(&changes, "moved into %s", now ? now : "the top level");
+            sb_printf(&changes, "moved into %s", now ? now : "the top level"), fields[nf++] = "Parent";
         if (strcmp(get_or(l, "Name", "None"), name_before))
-            sb_printf(&changes, "%srenamed %s -> %s", changes.len ? "; " : "", name_before, get_or(l, "Name", "None"));
+            sb_printf(&changes, "%srenamed %s -> %s", changes.len ? "; " : "", name_before, get_or(l, "Name", "None")), fields[nf++] = "Name";
         if (temperature && strcmp(get_or(l, "Temperature", ""), temperature)) {
             sb_printf(&changes, "%stemperature %s -> %s", changes.len ? "; " : "", get_or(l, "Temperature", "none"), temperature);
             rec_set(l, "Temperature", temperature);
+            fields[nf++] = "Temperature";
         }
+        fields[nf] = NULL;
         if (changes.len) {
             char *obj = xprintf("location:%s", code);
-            change(&cat, NULL, obj, changes.s);
+            change(&cat, NULL, obj, changes.s, fields);
             free(obj);
         }
         free(changes.s);
@@ -533,16 +543,19 @@ int cmd_selection(int argc, char **argv)
     int delta = count_field(c, "Item") - items_before;      /* counts only: paths could name sealed files */
     if (delta > 0) sb_printf(&changes, "%s%d item%s added", changes.len ? "; " : "", delta, delta == 1 ? "" : "s");
     else if (delta < 0) sb_printf(&changes, "%s%d item%s removed", changes.len ? "; " : "", -delta, delta == -1 ? "" : "s");
+    const char *fields[3];              /* items only add up; a place and a name are replaced */
+    int nf = 0;
     if (!strcmp(action, "move")) {
         const char *now = rec_get(c, "Parent");
         if ((now == NULL) != (parent_before == NULL) || (now && strcmp(now, parent_before)))
-            sb_printf(&changes, "%smoved into %s", changes.len ? "; " : "", now ? now : "the top level");
+            sb_printf(&changes, "%smoved into %s", changes.len ? "; " : "", now ? now : "the top level"), fields[nf++] = "Parent";
         if (strcmp(get_or(c, "Name", "None"), name_before))
-            sb_printf(&changes, "%srenamed %s -> %s", changes.len ? "; " : "", name_before, get_or(c, "Name", "None"));
+            sb_printf(&changes, "%srenamed %s -> %s", changes.len ? "; " : "", name_before, get_or(c, "Name", "None")), fields[nf++] = "Name";
     }
+    fields[nf] = NULL;
     if (changes.len) {
         char *obj = xprintf("selection:%s", code);
-        change(&cat, NULL, obj, changes.s);
+        change(&cat, NULL, obj, changes.s, fields);
         free(obj);
     }
     archive_save(&cat, h.rec_path);
@@ -1137,17 +1150,21 @@ static size_t letter_clashes(const archive *cat)
     size_t n = 0;
     for (size_t i = 0; i < cat->events.n; i++) {
         const rec_record *a = cat->events.v[i];
-        if (!rec_get(a, "Copy") || strcmp(get_or(a, "Type", ""), "replication") || !strcmp(get_or(a, "Outcome", ""), "failure")) continue;
+        const char *disc = get_or(a, "Disc", ""), *la;
+        if (strcmp(get_or(a, "Type", ""), "replication") || !strcmp(get_or(a, "Outcome", ""), "failure")
+            || !(la = copy_letter(cat, disc, a)))
+            continue;
         for (size_t j = i + 1; j < cat->events.n; j++) {
             const rec_record *b = cat->events.v[j];
-            if (!rec_get(b, "Copy") || strcmp(get_or(b, "Type", ""), "replication") || !strcmp(get_or(b, "Outcome", ""), "failure")
-                || strcmp(get_or(a, "Disc", ""), get_or(b, "Disc", "")) || strcmp(rec_get(a, "Copy"), rec_get(b, "Copy"))
-                || copy_same_as(cat, get_or(a, "Disc", ""), b) == a)   /* one disc recorded twice: identity_report says so */
+            const char *lb;
+            if (strcmp(get_or(b, "Type", ""), "replication") || !strcmp(get_or(b, "Outcome", ""), "failure")
+                || strcmp(disc, get_or(b, "Disc", "")) || !(lb = copy_letter(cat, disc, b)) || strcmp(la, lb)
+                || copy_same_as(cat, disc, b) == a)             /* one disc recorded twice: identity_report says so */
                 continue;
             fprintf(stderr, "Warning: %s has two copies lettered %s (kept at %s, and at %s), recorded in two catalogues.\n"
-                            "  Tell them apart on their labels; arv objects %s lists both.\n",
-                    get_or(a, "Disc", "?"), rec_get(a, "Copy"), get_or(a, "Location", "an unrecorded place"),
-                    get_or(b, "Location", "an unrecorded place"), get_or(a, "Disc", "?"));
+                            "  Give one another letter, and write it on its hub and case: arv relabel %s %s NEW --at %s\n",
+                    disc, la, get_or(a, "Location", "an unrecorded place"), get_or(b, "Location", "an unrecorded place"), disc, la,
+                    get_or(b, "Location", "PLACE"));
             n++;
         }
     }
@@ -1271,6 +1288,7 @@ int cmd_rebuild(int argc, char **argv)
     fflush(stdout);                                     /* the summary, then what needs a person */
     letter_clashes(&cat);
     identity_report(&cat);
+    field_conflicts(&cat);
     for (size_t i = 0; i < clashes.n; i++)
         fprintf(stderr, "Not merged: %s names a different disc there (another image: both catalogues made \"the next\" disc).\n"
                         "  This home's %s is kept; the other's records stay in %s.\n", clashes.v[i], clashes.v[i], root);
@@ -1319,6 +1337,7 @@ int cmd_audit(int argc, char **argv)
     printf("%s: %zu event%s, %zu changed since written%s\n", h.path, n, n == 1 ? "" : "s", problems,
            unnamed ? " (some written before event ids: the next change to the catalogue gives them one)" : "");
     problems += identity_report(&cat);                  /* copies: recorded twice, on two discs, two BCA serials */
+    problems += field_conflicts(&cat);                  /* a field changed apart, in two catalogues */
     for (size_t r = 0; r < roots.n; r++) {
         char *sources[] = { xprintf("%s/catalog/archive.rec", roots.v[r]), join(roots.v[r], "catalog.rec") };
         archive disc;

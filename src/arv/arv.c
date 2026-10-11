@@ -73,6 +73,7 @@ static const char USAGE_REST[] =
           "  arv identify DISC-ID COPY [ID...] [--carrier ID]   what a copy is known by, or is on, added later\n"
           "         (ID: bca:SERIAL, barcode:CODE, serial:SERIAL, label:TEXT or hub:CODE; the first three name\n"
           "         one disc, or one tape or drive as a carrier: copies on one carrier count as one)\n"
+          "  arv relabel DISC-ID COPY NEW [--at PLACE | --identifier ID]   a copy's new letter (two copies alike)\n"
           "  arv stored DISC-ID PATH [--location PLACE] [--temperature T] [--carrier ID] [--copy X]\n"
           "         a copy on a drive, NAS or tape: the .iso, or the disc's files as a folder; checked, then\n"
           "         recorded (default: warm); --copy X: that copy, moved here (at its own path: checked again)\n"
@@ -431,7 +432,7 @@ int main(int argc, char **argv)
                  { "status", cmd_status }, { "checkpoint", cmd_checkpoint }, { "log", cmd_log }, { "diff", cmd_diff },
                  { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
-                 { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit }, { "drives", cmd_drives }, { "inventory", cmd_inventory }, { "identify", cmd_identify },
+                 { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit }, { "drives", cmd_drives }, { "relabel", cmd_relabel }, { "inventory", cmd_inventory }, { "identify", cmd_identify },
                  { "tags", cmd_tags }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
     arv_argv0 = argv[0];
     if (argc >= 2 && !strcmp(argv[1], "__complete")) {     /* for the shell's completion (completion/) */

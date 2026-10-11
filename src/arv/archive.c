@@ -513,12 +513,78 @@ size_t disc_copies(const archive *a, const char *disc_id)
     return n;
 }
 
+/* Whether event e names the copy whose replication is rep: by Replication (rep's EventId), or, for
+ * an event written before those, by the letter rep was given, when no other copy was given it too. */
+int event_names_copy(const archive *a, const char *disc_id, const rec_record *e, const rec_record *rep)
+{
+    const char *d = rec_get(e, "Disc"), *t = rec_get(e, "Type");
+    if (e == rep || !d || strcmp(d, disc_id) || (t && !strcmp(t, "replication"))) return 0;
+    const char *r = rec_get(e, "Replication");
+    if (r) {
+        char k[33];
+        event_key(rep, k);
+        return !strcmp(r, k);
+    }
+    const char *c = rec_get(e, "Copy"), *letter = rec_get(rep, "Copy");
+    if (!c || !letter || strcmp(c, letter)) return 0;
+    size_t same = 0;
+    for (size_t i = 0; i < a->events.n; i++)
+        same += is_copy_event(a->events.v[i], disc_id) && rec_get(a->events.v[i], "Copy")
+                && !strcmp(rec_get(a->events.v[i], "Copy"), letter);
+    return same == 1;
+}
+
+/* a copy's letter now: the one on the newest event naming it by Replication (arv relabel gives a
+ * new one), else the one it was given */
+const char *copy_letter(const archive *a, const char *disc_id, const rec_record *rep)
+{
+    const char *letter = rec_get(rep, "Copy");
+    char k[33];
+    event_key(rep, k);
+    for (size_t i = 0; i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        const char *r = rec_get(e, "Replication"), *d = rec_get(e, "Disc");
+        if (r && d && rec_get(e, "Copy") && !strcmp(d, disc_id) && !strcmp(r, k)) letter = rec_get(e, "Copy");
+    }
+    return letter;
+}
+
+/* a copy's letter now, for showing it: "?" for a copy recorded before letters */
+const char *letter_of(const archive *a, const rec_record *rep)
+{
+    const char *d = rec_get(rep, "Disc"), *l = d ? copy_letter(a, d, rep) : NULL;
+    return l ? l : "?";
+}
+
+/* how many of the disc's copies have this letter now; *first gets the first */
+size_t copies_lettered(const archive *a, const char *disc_id, const char *letter, const rec_record **first)
+{
+    size_t n = 0;
+    if (first) *first = NULL;
+    for (size_t i = 0; i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        if (!is_copy_event(e, disc_id)) continue;
+        const char *now = copy_letter(a, disc_id, e);
+        if (!now || strcmp(now, letter)) continue;
+        if (first && !*first) *first = e;
+        n++;
+    }
+    return n;
+}
+
 int copy_exists(const archive *a, const char *disc_id, const char *letter)
 {
-    for (size_t i = 0; i < a->events.n; i++)
-        if (is_copy_event(a->events.v[i], disc_id) && rec_get(a->events.v[i], "Copy")
-            && !strcmp(rec_get(a->events.v[i], "Copy"), letter))
+    return copies_lettered(a, disc_id, letter, NULL) > 0;
+}
+
+/* a letter ever given to one of the disc's copies (now, or before a relabel): not given again */
+static int letter_used(const archive *a, const char *disc_id, const char *letter)
+{
+    for (size_t i = 0; i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        if (rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), disc_id) && rec_get(e, "Copy") && !strcmp(rec_get(e, "Copy"), letter))
             return 1;
+    }
     return 0;
 }
 
@@ -548,7 +614,7 @@ char *copy_next(const archive *a, const char *disc_id)
         }
         for (size_t j = 0; j < n; j++) buf[j] = tmp[n - 1 - j];
         buf[n] = 0;
-        if (!copy_exists(a, disc_id, buf)) return xstrdup(buf);
+        if (!letter_used(a, disc_id, buf)) return xstrdup(buf);
     }
 }
 
@@ -557,15 +623,16 @@ char *copy_next(const archive *a, const char *disc_id)
  * one copy, burned) a drive's check that named none */
 const char *copy_last_check(const archive *a, const char *disc_id, const rec_record *copy)
 {
-    const char *letter = rec_get(copy, "Copy"), *newest = NULL;
+    const char *newest = NULL;
     int only = disc_copies(a, disc_id) == 1;
     for (size_t i = 0; i < a->events.n; i++) {
         const rec_record *e = a->events.v[i];
-        const char *d = rec_get(e, "Disc"), *t = rec_get(e, "Type"), *o = rec_get(e, "Outcome"), *c = rec_get(e, "Copy");
+        const char *d = rec_get(e, "Disc"), *t = rec_get(e, "Type"), *o = rec_get(e, "Outcome");
+        int named = rec_get(e, "Copy") || rec_get(e, "Replication");
         if (!d || !t || !o || strcmp(d, disc_id) || strcmp(t, "fixity check") || strcmp(o, "success")) continue;
         const char *note = get_or(e, "Note", "");     /* a drive's check (arv check --device), not an image file's */
         int of_a_disc = !strncmp(note, "read-back of the whole image from", 33) || !strncmp(note, "disc scan with", 14);
-        if (c ? letter && !strcmp(c, letter) : only && of_a_disc && !strcmp(get_or(copy, "Form", "disc"), "disc")) {
+        if (named ? event_names_copy(a, disc_id, e, copy) : only && of_a_disc && !strcmp(get_or(copy, "Form", "disc"), "disc")) {
             const char *date = get_or(e, "Date", "");
             if (!newest || strcmp(date, newest) >= 0) newest = date;
         }
@@ -625,12 +692,10 @@ int identifier_strong(const char *id)
  * A burned disc is its own medium and has none. */
 const char *copy_carrier(const archive *a, const char *disc_id, const rec_record *copy)
 {
-    const char *carrier = rec_get(copy, "Carrier"), *letter = rec_get(copy, "Copy");
-    for (size_t i = 0; letter && i < a->events.n; i++) {
+    const char *carrier = rec_get(copy, "Carrier");
+    for (size_t i = 0; i < a->events.n; i++) {
         const rec_record *e = a->events.v[i];
-        if (e != copy && rec_get(e, "Carrier") && rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), disc_id) && rec_get(e, "Copy")
-            && !strcmp(rec_get(e, "Copy"), letter) && rec_get(e, "Type") && strcmp(rec_get(e, "Type"), "replication"))
-            carrier = rec_get(e, "Carrier");
+        if (rec_get(e, "Carrier") && event_names_copy(a, disc_id, e, copy)) carrier = rec_get(e, "Carrier");
     }
     return carrier;
 }
@@ -653,19 +718,11 @@ const rec_record *copy_shares_carrier(const archive *a, const char *disc_id, con
 void copy_identifiers(const archive *a, const char *disc_id, const rec_record *copy, strlist *out)
 {
     memset(out, 0, sizeof *out);
-    const char *letter = rec_get(copy, "Copy");
-    size_t same_letter = 0;         /* two records lettered alike (two catalogues): a later event's letter is ambiguous */
-    for (size_t i = 0; letter && i < a->events.n; i++)
-        same_letter += is_copy_event(a->events.v[i], disc_id) && rec_get(a->events.v[i], "Copy")
-                       && !strcmp(rec_get(a->events.v[i], "Copy"), letter);
-    if (same_letter > 1) letter = NULL;
     for (size_t i = 0; i < a->events.n; i++) {
         const rec_record *e = a->events.v[i];
-        if (e != copy) {
-            const char *d = rec_get(e, "Disc"), *c = rec_get(e, "Copy"), *o = rec_get(e, "Outcome"), *t = rec_get(e, "Type");
-            if (!letter || !d || !c || strcmp(d, disc_id) || strcmp(c, letter) || (o && !strcmp(o, "failure"))
-                || (t && !strcmp(t, "replication")))
-                continue;
+        if (e != copy) {        /* a later event naming it (its letter alone, when two copies share it, names neither) */
+            const char *o = rec_get(e, "Outcome");
+            if ((o && !strcmp(o, "failure")) || !event_names_copy(a, disc_id, e, copy)) continue;
         }
         for (size_t f = 0; f < e->nfields; f++)
             if (!strcmp(e->fields[f].name, "Identifier") && !strlist_has(out, e->fields[f].value))
@@ -686,12 +743,10 @@ static int copy_has(const archive *a, const char *disc_id, const rec_record *cop
  * moved it, naming its letter); NULL for a burned disc */
 const char *copy_path(const archive *a, const char *disc_id, const rec_record *copy)
 {
-    const char *path = rec_get(copy, "Path"), *letter = rec_get(copy, "Copy");
-    for (size_t i = 0; letter && i < a->events.n; i++) {
+    const char *path = rec_get(copy, "Path");
+    for (size_t i = 0; i < a->events.n; i++) {
         const rec_record *e = a->events.v[i];
-        if (e != copy && rec_get(e, "Path") && rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), disc_id) && rec_get(e, "Copy")
-            && !strcmp(rec_get(e, "Copy"), letter) && rec_get(e, "Type") && strcmp(rec_get(e, "Type"), "replication"))
-            path = rec_get(e, "Path");
+        if (rec_get(e, "Path") && event_names_copy(a, disc_id, e, copy)) path = rec_get(e, "Path");
     }
     return path;
 }
@@ -742,7 +797,7 @@ size_t identity_report(const archive *a)
             if (strncmp(ids[i].v[k], "bca:", 4)) continue;
             if (bca && strcmp(bca, ids[i].v[k])) {
                 printf("TWO BCA  %s copy %s: %s and %s (one disc has one serial: a mix-up, the wrong disc in the drive?)\n",
-                       disc, get_or(copies[i], "Copy", "?"), bca, ids[i].v[k]);
+                       disc, letter_of(a, copies[i]), bca, ids[i].v[k]);
                 n++;
             }
             bca = ids[i].v[k];
@@ -753,10 +808,10 @@ size_t identity_report(const archive *a)
                 if (!identifier_strong(ids[i].v[k]) || !strlist_has(&ids[j], ids[i].v[k])) continue;
                 if (strcmp(disc, other))
                     printf("TWO DISCS  %s is on copy %s of %s and copy %s of %s: one physical disc cannot be both\n",
-                           ids[i].v[k], get_or(copies[i], "Copy", "?"), disc, get_or(copies[j], "Copy", "?"), other);
+                           ids[i].v[k], letter_of(a, copies[i]), disc, letter_of(a, copies[j]), other);
                 else
                     printf("TWICE  %s copies %s and %s are one disc (%s): recorded twice, counted once\n", disc,
-                           get_or(copies[i], "Copy", "?"), get_or(copies[j], "Copy", "?"), ids[i].v[k]);
+                           letter_of(a, copies[i]), letter_of(a, copies[j]), ids[i].v[k]);
                 n++;
                 break;
             }
@@ -765,6 +820,99 @@ size_t identity_report(const archive *a)
     for (size_t i = 0; i < m; i++) strlist_free(&ids[i]);
     free(ids);
     free(copies);
+    return n;
+}
+
+/* ------------------------------------------------------------------ field histories
+ * An event that changes a field of a thing (a disc's Access, a place's Name ...) says so, Sets: FIELD,
+ * and names the changes to that field it replaces, Replaces: EVENTID (the latest it knew of). Each
+ * field then has its own small history; two changes that replace the same one were made apart (in
+ * two catalogues) and are a conflict, which a merge reports and a person settles by setting it again. */
+
+static const char *thing_of(const rec_record *e)
+{
+    return rec_get(e, "Disc") ? rec_get(e, "Disc") : rec_get(e, "Object");
+}
+
+static int sets(const rec_record *e, const char *thing, const char *field)
+{
+    const char *t = thing_of(e);
+    if (!t || strcmp(t, thing)) return 0;
+    for (size_t i = 0; i < e->nfields; i++)
+        if (!strcmp(e->fields[i].name, "Sets") && !strcmp(e->fields[i].value, field)) return 1;
+    return 0;
+}
+
+/* the changes to a field no later change replaces: one, or none yet; two or more is a conflict */
+void field_heads(const archive *a, const char *thing, const char *field, strlist *heads)
+{
+    strlist replaced = { 0 };
+    memset(heads, 0, sizeof *heads);
+    for (size_t i = 0; i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        if (!sets(e, thing, field)) continue;
+        for (size_t f = 0; f < e->nfields; f++)
+            if (!strcmp(e->fields[f].name, "Replaces")) strlist_add(&replaced, e->fields[f].value);
+    }
+    for (size_t i = 0; i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        char k[33];
+        if (!sets(e, thing, field)) continue;
+        event_key(e, k);
+        if (!strlist_has(&replaced, k) && !strlist_has(heads, k)) strlist_add(heads, k);
+    }
+    strlist_free(&replaced);
+}
+
+/* e (not yet in the catalogue) changes field of thing: it says so, and replaces every head */
+void sets_field(const archive *a, rec_record *e, const char *thing, const char *field)
+{
+    strlist heads;
+    field_heads(a, thing, field, &heads);
+    rec_add(e, "Sets", field);
+    for (size_t i = 0; i < heads.n; i++) {
+        int have = 0;
+        for (size_t f = 0; f < e->nfields && !have; f++)
+            have = !strcmp(e->fields[f].name, "Replaces") && !strcmp(e->fields[f].value, heads.v[i]);
+        if (!have) rec_add(e, "Replaces", heads.v[i]);
+    }
+    strlist_free(&heads);
+}
+
+/* fields changed apart, in two catalogues: printed (CONFLICT), counted */
+size_t field_conflicts(const archive *a)
+{
+    size_t n = 0;
+    strlist done = { 0 };
+    for (size_t i = 0; i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        const char *thing = thing_of(e);
+        for (size_t f = 0; thing && f < e->nfields; f++) {
+            if (strcmp(e->fields[f].name, "Sets")) continue;
+            char *key = xprintf("%s\t%s", thing, e->fields[f].value);
+            if (!strlist_has(&done, key)) {
+                strlist_add(&done, key);
+                strlist heads;
+                field_heads(a, thing, e->fields[f].value, &heads);
+                if (heads.n > 1) {
+                    printf("CONFLICT  %s %s: changed apart, in two catalogues:\n", thing, e->fields[f].value);
+                    for (size_t h = 0; h < heads.n; h++)
+                        for (size_t j = 0; j < a->events.n; j++) {
+                            char k[33];
+                            event_key(a->events.v[j], k);
+                            if (!strcmp(k, heads.v[h]))
+                                printf("  %s  %s  %s\n", get_or(a->events.v[j], "Date", "?"), get_or(a->events.v[j], "Agent", "?"),
+                                       get_or(a->events.v[j], "Note", ""));
+                        }
+                    printf("  Set it again to settle it (the command that changed it); arv keeps this home's value till then.\n");
+                    n++;
+                }
+                strlist_free(&heads);
+            }
+            free(key);
+        }
+    }
+    strlist_free(&done);
     return n;
 }
 

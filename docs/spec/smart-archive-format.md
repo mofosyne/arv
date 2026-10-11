@@ -381,6 +381,22 @@ events that did not fail, **counted as physical discs**: two that share a `bca:`
 are one disc recorded twice (in two catalogues, say), counted once and reported. There is no
 counter. A `fixity check` of one copy names it with `Copy` too.
 
+**Naming a copy in a later event.** An event about one copy (a `fixity check` of it, a move, an
+identifier added, a new letter) carries `Replication`: the copy's `replication` event's `EventId`,
+which never changes, and `Copy`: its letter at the time. A copy's letter now is the `Copy` of the
+newest event naming it by `Replication` (`arv relabel` gives a new one; the copy keeps its
+history), else the letter it was given. An event without `Replication` (written before it) names
+a copy by the letter it was given, unless two copies were given it.
+
+**Field histories.** A `metadata modification` that changes a field of a thing (a disc's `Access`,
+`Location`, `Title`, `Description` or `Subject`; a place's or a selection's `Name` or `Parent`; a
+place's `Temperature`) says so with `Sets: FIELD`, and names with `Replaces: EVENTID` the changes
+to that field it knew of (those no later change replaces). Each field has its own small history.
+Two changes that replace the same one were made apart (in two catalogues of one archive) and are
+a **conflict**: a merge and `arv audit` report it, the home's value stands, and setting the field
+again (even to the value it has) replaces both and settles it. Notes, tags, items and copies only
+add up, and take no `Sets`.
+
 **Carrier.** A stored copy (`iso` or `folder`) may sit on a medium that holds many images: a
 tape (LTO with LTFS), a hard drive. `Carrier` names that medium with the same schemes (a tape's
 `barcode:`, a drive's `serial:`, or a `label:`), on the `replication` or on a later event that

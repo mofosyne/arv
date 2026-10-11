@@ -114,7 +114,10 @@ at another path), `arv where --here` says so. To use the archive on two machines
 and copy it over with rsync or any sync tool; if the other did take changes, merge them into the
 archive's own catalogue with `arv rebuild OTHER/.arv`. It merges by event id, and reports what
 both gave out: a disc id that names two different images is not merged, and two copies with
-the same letter are named, to be told apart on their labels.
+the same letter are named (`arv relabel ID A C --at ATTIC` gives one a new letter: write it on
+its hub and case). A field both changed (a disc's access level, its places, a title) is a
+`CONFLICT`: this home's value stands until it is set again (`arv access ID private`), which
+settles it.
 
 Set up **where copies live** once, with how warm each place is:
 

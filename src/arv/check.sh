@@ -449,6 +449,28 @@ chmod +x lib/bin/mtx
     && ok "a library: todo --tsv is the worklist, inventory reconciles mtx status with the record, and the example mtx loop loads, checks and unloads by barcode" \
     || { cat loop.out lib/mtx.log; no "the library loop"; }
 
+# a field changed apart in two catalogues, and a copy relabelled
+mkdir -p rl/a/T && echo r > rl/a/T/f
+(cd rl/a && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --formats no --set CODE --output r.iso T >/dev/null 2>&1) || no "make in rl"
+r1=$(sed -n 's/^Id: //p' rl/a/.arv/catalog/archive.rec | head -1)
+"$tool" -C rl/a/.arv access "$r1" public && cp -r rl/a rl/b && "$tool" -C rl/b/.arv where --here >/dev/null || no "rl setup"
+"$tool" -C rl/b/.arv access "$r1" sealed && "$tool" -C rl/a/.arv access "$r1" private || no "access in both"
+"$tool" -C rl/a/.arv burned "$r1" --copies 1 --location SHELF >/dev/null 2>&1 && "$tool" -C rl/b/.arv burned "$r1" --copies 1 --location ATTIC >/dev/null 2>&1 \
+    || no "burned in both"
+"$tool" -C rl/a/.arv rebuild rl/b > rl.out 2>&1 || { cat rl.out; no "rebuild in rl"; }
+grep -q "^CONFLICT  $r1 Access: changed apart" rl.out && grep -q "arv relabel $r1 A NEW --at ATTIC" rl.out || { cat rl.out; no "rebuild reports a field conflict"; }
+rc=0; "$tool" -C rl/a/.arv audit > rl.out || rc=$?
+[ $rc = 1 ] && grep -q "^CONFLICT  $r1 Access" rl.out || { cat rl.out; no "audit reports a field conflict"; }
+"$tool" -C rl/a/.arv access "$r1" private && "$tool" -C rl/a/.arv audit > rl.out || { cat rl.out; no "setting it again settles it"; }
+"$tool" -C rl/a/.arv relabel "$r1" A B 2> rl.out && no "relabel of an ambiguous letter"
+grep -q "has 2 copies lettered A" rl.out || { cat rl.out; no "relabel says which"; }
+"$tool" -C rl/a/.arv relabel "$r1" A B --at ATTIC >/dev/null || no "relabel --at"
+"$tool" -C rl/a/.arv check --device rl/a/r.iso --copy B "$r1" >/dev/null 2>&1 || no "check of a relabelled copy"
+"$tool" -C rl/a/.arv objects "$r1" > rl.out
+grep -q "^  A  disc, cold, .*SHELF; not read back" rl.out && grep -q "^  B  disc, cold, .*ATTIC; last checked" rl.out \
+    && ok "two catalogues: a field changed in both is a conflict until set again; relabel gives one of two copies lettered alike a new letter, and a check finds it by it" \
+    || { cat rl.out; no "after relabel"; }
+
 # ------------------------------------------------------------------ the helpers: arv-assist and arv-gui
 mkdir -p helpers
 printf '#!/bin/sh\necho "assist $*"\n' > helpers/assist

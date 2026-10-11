@@ -314,7 +314,10 @@ Parent: BEST
 + twice. A stored copy may name its Carrier, the tape or drive holding it (and other discs'
 + copies): two copies of one disc on one carrier count as one.
 + Every event has an EventId: the first 32 hex digits of the SHA-256 of its other fields as
-+ written (a Nonce keeps two alike apart). Deaccession retires a disc (its Disc record gets
++ written (a Nonce keeps two alike apart). An event about one copy names it by Replication (that
++ copy's replication EventId) and Copy (its letter then; the newest is its letter now). A change
++ to a field says Sets: FIELD and Replaces: the EventIds of the changes it follows; two that
++ replace the same one were made apart, a conflict to settle by setting the field again. Deaccession retires a disc (its Disc record gets
 + Retired).
 %mandatory: Type Date Outcome
 %type: Outcome enum success failure warning
@@ -801,6 +804,7 @@ Outcome: success
 Authorship: human
 Agent: human:archivist
 Note: moved into BOX1
+Sets: Parent
 
 EventId: ID
 Object: location:ATTIC
@@ -810,6 +814,7 @@ Outcome: success
 Authorship: human
 Agent: human:archivist
 Note: renamed Attic shelf -> Attic, top shelf
+Sets: Name
 
 EventId: ID
 Object: selection:BEST
@@ -846,6 +851,7 @@ Outcome: success
 Authorship: human
 Agent: human:archivist
 Note: renamed Best of -> Best
+Sets: Name
 
 EventId: ID
 Object: selection:KIDS
@@ -864,6 +870,7 @@ Outcome: success
 Authorship: human
 Agent: human:archivist
 Note: Access: sealed -> private
+Sets: Access
 
 %rec: Appraisal
 %doc: The archivist log: how much something matters, to whom, and why. Appended and

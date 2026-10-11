@@ -149,12 +149,10 @@ static void hold(const archive *cat, const char *id, holding *h)
 /* where a copy is kept, readable (the place's name), or "" */
 static char *copy_place(const archive *cat, const rec_record *e)
 {
-    const char *loc = rec_get(e, "Location"), *letter = rec_get(e, "Copy"), *disc = rec_get(e, "Disc");
-    for (size_t i = 0; letter && disc && i < cat->events.n; i++) {   /* a newer place, from a move (arv stored --copy) */
+    const char *loc = rec_get(e, "Location"), *disc = rec_get(e, "Disc");
+    for (size_t i = 0; disc && i < cat->events.n; i++) {    /* a newer place, from a move (arv stored --copy) */
         const rec_record *m = cat->events.v[i];
-        if (m != e && rec_get(m, "Location") && rec_get(m, "Copy") && !strcmp(rec_get(m, "Copy"), letter) && rec_get(m, "Disc")
-            && !strcmp(rec_get(m, "Disc"), disc) && strcmp(get_or(m, "Type", ""), "replication"))
-            loc = rec_get(m, "Location");
+        if (rec_get(m, "Location") && event_names_copy(cat, disc, m, e)) loc = rec_get(m, "Location");
     }
     if (!loc) return xstrdup("");
     rec_record probe = { 0 };
@@ -178,8 +176,8 @@ static char *copies_text(const archive *cat, const char *id)
     for (size_t i = 0; i < cat->events.n; i++) {
         const rec_record *e = cat->events.v[i];
         if (!is_disc_event(e, id, "replication") || !strcmp(get_or(e, "Outcome", ""), "failure")) continue;
-        sb_printf(&b, "%s%s%s%s %s%s", b.len ? ", " : "", rec_get(e, "Copy") ? rec_get(e, "Copy") : "",
-                  rec_get(e, "Copy") ? ": " : "", get_or(e, "Form", "disc"), get_or(e, "Temperature", "?"),
+        sb_printf(&b, "%s%s%s%s %s%s", b.len ? ", " : "", copy_letter(cat, id, e) ? copy_letter(cat, id, e) : "",
+                  copy_letter(cat, id, e) ? ": " : "", get_or(e, "Form", "disc"), get_or(e, "Temperature", "?"),
                   copy_read_back(cat, id, e) ? " (read back)" : "");
         if (rec_get(e, "Location")) {
             char *at = copy_place(cat, e);
@@ -266,7 +264,7 @@ static void disc_json(const archive *cat, const char *id, sbuf *b)
         const rec_record *e = cat->events.v[i];
         if (!is_disc_event(e, id, "replication") || !strcmp(get_or(e, "Outcome", ""), "failure")) continue;
         sb_puts(b, first ? "{\"copy\": " : ", {\"copy\": ");
-        json_str(b, get_or(e, "Copy", ""));
+        json_str(b, copy_letter(cat, id, e) ? copy_letter(cat, id, e) : "");
         sb_puts(b, ", \"form\": ");
         json_str(b, get_or(e, "Form", "disc"));
         sb_puts(b, ", \"temperature\": ");
@@ -284,13 +282,13 @@ static void disc_json(const archive *cat, const char *id, sbuf *b)
         sb_puts(b, ", \"checked\": ");
         json_str(b, checked ? checked : "");
         sb_puts(b, ", \"sameAs\": ");                    /* the same disc recorded before, as this copy */
-        json_str(b, same ? get_or(same, "Copy", "") : "");
+        json_str(b, same ? letter_of(cat, same) : "");
         const char *carrier = copy_carrier(cat, id, e);
         const rec_record *with = copy_shares_carrier(cat, id, e);
         sb_puts(b, ", \"carrier\": ");
         json_str(b, carrier ? carrier : "");
         sb_puts(b, ", \"carrierWith\": ");               /* an earlier copy on the same carrier */
-        json_str(b, with ? get_or(with, "Copy", "") : "");
+        json_str(b, with ? letter_of(cat, with) : "");
         strlist ids;
         copy_identifiers(cat, id, e, &ids);
         sb_puts(b, ", \"identifiers\": [");
@@ -432,7 +430,7 @@ static int disc_copies_shown(const archive *cat, const char *id, int as_json)
         const char *checked = copy_last_check(cat, id, e);
         const rec_record *same = copy_same_as(cat, id, e);
         const char *temp = rec_get(e, "Temperature");
-        printf("  %-2s %s%s%s, made %s; %s", get_or(e, "Copy", "?"), get_or(e, "Form", "disc"), temp ? ", " : "", temp ? temp : "",
+        printf("  %-2s %s%s%s, made %s; %s", letter_of(cat, e), get_or(e, "Form", "disc"), temp ? ", " : "", temp ? temp : "",
                get_or(e, "Date", "?"), *at ? at : "its place not recorded");
         if (checked) printf("; last checked %s", checked);
         else printf("; %s", copy_read_back(cat, id, e) ? "read back" : "not read back");
@@ -440,11 +438,11 @@ static int disc_copies_shown(const archive *cat, const char *id, int as_json)
         copy_identifiers(cat, id, e, &ids);
         for (size_t k = 0; k < ids.n; k++) printf("%s%s", k ? ", " : "; ", ids.v[k]);
         strlist_free(&ids);
-        if (same) printf("; the same disc as copy %s (recorded twice, counted once)", get_or(same, "Copy", "?"));
+        if (same) printf("; the same disc as copy %s (recorded twice, counted once)", letter_of(cat, same));
         const char *carrier = copy_carrier(cat, id, e);
         const rec_record *with = copy_shares_carrier(cat, id, e);
         if (carrier) printf("; on %s", carrier);
-        if (with) printf(" with copy %s (one carrier: counted once)", get_or(with, "Copy", "?"));
+        if (with) printf(" with copy %s (one carrier: counted once)", letter_of(cat, with));
         putchar('\n');
         free(at);
     }
@@ -565,12 +563,10 @@ static void heading(int *shown, const char *text)
 /* a copy's place, as a code: the newest recorded (a move may give one) */
 static const char *copy_location(const archive *cat, const rec_record *e)
 {
-    const char *loc = rec_get(e, "Location"), *letter = rec_get(e, "Copy"), *disc = rec_get(e, "Disc");
-    for (size_t i = 0; letter && disc && i < cat->events.n; i++) {
+    const char *loc = rec_get(e, "Location"), *disc = rec_get(e, "Disc");
+    for (size_t i = 0; disc && i < cat->events.n; i++) {
         const rec_record *m = cat->events.v[i];
-        if (m != e && rec_get(m, "Location") && rec_get(m, "Copy") && !strcmp(rec_get(m, "Copy"), letter) && rec_get(m, "Disc")
-            && !strcmp(rec_get(m, "Disc"), disc) && strcmp(get_or(m, "Type", ""), "replication"))
-            loc = rec_get(m, "Location");
+        if (rec_get(m, "Location") && event_names_copy(cat, disc, m, e)) loc = rec_get(m, "Location");
     }
     return loc;
 }
@@ -608,7 +604,7 @@ static int todo_tsv(const archive *cat, const char *cutoff)
             for (int w = 0; w < n; w++) {
                 strlist ids;
                 copy_identifiers(cat, id, e, &ids);
-                printf("%s\t%s\t%s\t%s\t", what[w], id, get_or(e, "Copy", ""), get_or(e, "Form", "disc"));
+                printf("%s\t%s\t%s\t%s\t", what[w], id, copy_letter(cat, id, e) ? copy_letter(cat, id, e) : "", get_or(e, "Form", "disc"));
                 for (size_t j = 0; j < ids.n; j++) {
                     if (j) putchar(',');
                     tsv_field(ids.v[j]);
@@ -665,7 +661,7 @@ int cmd_todo(int argc, char **argv)
             if (!is_disc_event(e, id, "replication") || !strcmp(get_or(e, "Outcome", ""), "failure")
                 || strcmp(get_or(e, "Form", "disc"), "disc") || copy_read_back(&cat, id, e) || copy_same_as(&cat, id, e))
                 continue;
-            if (rec_get(e, "Copy")) sb_printf(&which, "%s%s", which.len ? ", " : "", rec_get(e, "Copy"));
+            if (copy_letter(&cat, id, e)) sb_printf(&which, "%s%s", which.len ? ", " : "", copy_letter(&cat, id, e));
             else unnamed = 1;
         }
         if (unnamed && !which.len && (disc_read_back(&cat, id) || *last_check(&cat, id))) unnamed = 0;
@@ -705,7 +701,7 @@ int cmd_todo(int argc, char **argv)
             const rec_record *e = cat.events.v[k], *with = is_disc_event(e, id, "replication") ? copy_shares_carrier(&cat, id, e) : NULL;
             if (!with) continue;
             heading(&s_one, "Copies on one carrier, lost together and counted once (keep one on another tape or drive):");
-            printf("  %s  copies %s and %s on %s\n", id, get_or(with, "Copy", "?"), get_or(e, "Copy", "?"), copy_carrier(&cat, id, e));
+            printf("  %s  copies %s and %s on %s\n", id, letter_of(&cat, with), letter_of(&cat, e), copy_carrier(&cat, id, e));
             items++;
         }
     }
@@ -718,7 +714,7 @@ int cmd_todo(int argc, char **argv)
             const char *at = is_disc_event(e, id, "replication") ? copy_path(&cat, id, e) : NULL;
             if (!at || !strcmp(get_or(e, "Outcome", ""), "failure") || !access(at, F_OK)) continue;
             heading(&s_gone, "Stored copies not found where recorded (a drive not mounted? moved: arv stored ID NEWPATH --copy X):");
-            printf("  %s  copy %s  %s\n", id, get_or(e, "Copy", "?"), at);
+            printf("  %s  copy %s  %s\n", id, letter_of(&cat, e), at);
             items++;
         }
     }
@@ -1194,11 +1190,11 @@ int cmd_inventory(int argc, char **argv)
                 continue;
             matched[t]++;
             const char *loc = copy_location(&cat, e);
-            if (verbose) sb_printf(&known_lines, "  %-9s %s  %s copy %s\n", tags[t].where, tags[t].barcode, disc, get_or(e, "Copy", "?"));
+            if (verbose) sb_printf(&known_lines, "  %-9s %s  %s copy %s\n", tags[t].where, tags[t].barcode, disc, letter_of(&cat, e));
             if (!loc || strcmp(loc, code)) {
                 char *was = copy_place(&cat, e);
                 sb_printf(&report, "ELSEWHERE  %s %s: %s copy %s, recorded at %s (moved here? arv stored ... --copy %s --location %s, or arv locate)\n",
-                          tags[t].where, tags[t].barcode, disc, get_or(e, "Copy", "?"), *was ? was : "no place", get_or(e, "Copy", "?"), code);
+                          tags[t].where, tags[t].barcode, disc, letter_of(&cat, e), *was ? was : "no place", letter_of(&cat, e), code);
                 free(was);
                 elsewhere++;
             }
@@ -1234,10 +1230,10 @@ int cmd_inventory(int argc, char **argv)
             if (found) continue;
             if (!any) {
                 sb_printf(&report, "UNMARKED   %s copy %s: recorded here, with no barcode to find it by (arv identify %s %s barcode:...)\n",
-                          disc, get_or(e, "Copy", "?"), disc, get_or(e, "Copy", "?"));
+                          disc, letter_of(&cat, e), disc, letter_of(&cat, e));
                 unmarked++;
             } else {
-                sb_printf(&report, "MISSING    %s copy %s: recorded at %s, its barcode not read there\n", disc, get_or(e, "Copy", "?"), at);
+                sb_printf(&report, "MISSING    %s copy %s: recorded at %s, its barcode not read there\n", disc, letter_of(&cat, e), at);
                 missing++;
             }
         }

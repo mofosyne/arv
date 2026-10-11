@@ -125,6 +125,18 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - research/plan.md (2026-10-10): the catalogue's history is per thing, not a line; catalogues
   merge by event id; tampering is made evident, with the discs as witnesses.
 
+**Relabelling copies, and conflicts between catalogues** (format 0.5)
+- An event about one copy names it by `Replication` (its replication's EventId, which never
+  changes) as well as its letter; a copy's letter is the newest given. `arv relabel DISC-ID COPY
+  NEW [--at PLACE | --identifier ID]` gives a copy a new letter, keeping its history: for two
+  copies lettered alike by two catalogues (rebuild says which command to run), or a label written
+  wrong. Letters once given are not given again.
+- A change to a field (a disc's access, places, title, description or subjects; a place's or a
+  selection's name or parent; a place's temperature) says `Sets: FIELD` and `Replaces:` the
+  changes it follows. Two catalogues that each changed a field are a `CONFLICT`, reported by
+  `arv rebuild` and `arv audit`; the home's value stands until the field is set again, even to
+  the value it has, which settles it.
+
 **Jukeboxes and tape libraries**
 - `arv todo --tsv`: what is owed, one copy a line (no-copy, read-back, overdue, missing,
   one-carrier), with its form, identifiers, carrier, place, path and last check: a worklist for a

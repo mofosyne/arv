@@ -93,6 +93,7 @@ int cmd_where(int argc, char **argv);
 int cmd_rebuild(int argc, char **argv);
 int cmd_audit(int argc, char **argv);
 int cmd_identify(int argc, char **argv);
+int cmd_relabel(int argc, char **argv);
 int cmd_inventory(int argc, char **argv);
 
 /* archive.c: the catalogue as arv writes it */
@@ -133,6 +134,10 @@ void place_check(const archive *a, const char *text);
 /* copies: replication events, each named by a letter (Copy: A, B ...) */
 size_t disc_copies(const archive *a, const char *disc_id);
 int copy_exists(const archive *a, const char *disc_id, const char *letter);
+int event_names_copy(const archive *a, const char *disc_id, const rec_record *e, const rec_record *rep);
+const char *copy_letter(const archive *a, const char *disc_id, const rec_record *rep);   /* its letter now */
+const char *letter_of(const archive *a, const rec_record *rep);     /* the same, "?" when it has none */
+size_t copies_lettered(const archive *a, const char *disc_id, const char *letter, const rec_record **first);
 int copy_letter_ok(const char *s);
 char *copy_next(const archive *a, const char *disc_id);
 void event_content_id(const rec_record *e, char out[33]);   /* from its fields, all but EventId */
@@ -147,7 +152,10 @@ const char *copy_path(const archive *a, const char *disc_id, const rec_record *c
 const char *copy_carrier(const archive *a, const char *disc_id, const rec_record *copy);   /* its tape or drive */
 const rec_record *copy_shares_carrier(const archive *a, const char *disc_id, const rec_record *copy);
 const rec_record *copy_same_as(const archive *a, const char *disc_id, const rec_record *copy);  /* recorded before */
-size_t identity_report(const archive *a);    /* recorded twice, on two discs, two BCAs: printed, counted */
+size_t identity_report(const archive *a);
+void field_heads(const archive *a, const char *thing, const char *field, strlist *heads);
+void sets_field(const archive *a, rec_record *e, const char *thing, const char *field);   /* Sets, Replaces */
+size_t field_conflicts(const archive *a);    /* a field changed apart in two catalogues: printed, counted */    /* recorded twice, on two discs, two BCAs: printed, counted */
 /* the BCA serial of the disc in a drive (Linux): 32 hex digits; -1 when there is none (drive.c) */
 int drive_bca(const char *device, char out[33]);
 void drive_list(strlist *out);          /* the optical drives (Linux: /dev/sr0 ...); none found elsewhere */

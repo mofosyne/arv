@@ -299,7 +299,11 @@ static void apply_to_disc(const arv_home *h, archive *cat, rec_record *disc, con
     if (changed->n) {
         const char *how = d->authorship ? d->authorship : is_model(agent) ? "suggested" : "human";
         char *what = joined(changed), *note = xprintf("updated %s (%s)", what, draft_note(how));
-        recs_add(&cat->events, reviewed_event(id, agent, how, note));
+        rec_record *ev = reviewed_event(id, agent, how, note);
+        static const char *const replaced[] = { "Title", "Description", "Subject", NULL };   /* notes and tags add up */
+        for (int f = 0; replaced[f]; f++)
+            if (strlist_has(changed, replaced[f])) sets_field(cat, ev, id, replaced[f]);
+        recs_add(&cat->events, ev);
         archive_save(cat, h->rec_path);
         free(what);
         free(note);

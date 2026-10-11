@@ -1177,17 +1177,18 @@ whole-archive log is a view (sorted by date), not a record.
    every catalogue and on every disc, so merging is exact (no matching by text), and an event
    changed after it was written no longer matches its id. Two events with the same content get a
    `Nonce` to keep them apart. Built 2026-10-10.
-2. **A field change names the change it replaces** (`Replaces: <EventId>`, later): each field gets
-   its own small history. Two changes that replace the same one are a conflict, reported, never
-   silently resolved. Until then a merge keeps the home's fields (`--prefer-disc` the disc's).
-   Worth building once two machines write to one archive.
+2. **A field change names the change it replaces** (`Sets: FIELD`, `Replaces: <EventId>`; built
+   2026-10-11): each field gets its own small history. Two changes that replace the same one are a
+   conflict, reported by rebuild and audit, never silently resolved; the home's value stands
+   until the field is set again.
 3. **Duplicate disc ids are reported at merge**, not merged; before burning, one side renames
    (built 2026-10-10).
 4. **Moving catalogues is not arv's job:** rsync, a mounted share or any sync tool copies the
    folder; `arv rebuild` merges another catalogue by event id (built 2026-10-10: notes add up,
    a disc id naming two images is not merged, two copies lettered alike are reported). No
-   remotes, clone or push. Open: a way to re-letter a copy (an event naming the replication it
-   corrects, by its EventId).
+   remotes, clone or push. A copy is named in later events by its replication's EventId
+   (`Replication:`), so `arv relabel` can give it a new letter without losing its history (built
+   2026-10-11).
 6. **Copies are counted as physical discs** (built 2026-10-11). A copy's identity is what is on
    it, `Identifier: scheme:value` (PREMIS objectIdentifier): `bca:` the factory serial,
    `barcode:` a sticker, `label:` the pen, `hub:` the maker's batch code. Several per copy,

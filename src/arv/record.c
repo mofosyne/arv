@@ -32,10 +32,12 @@ static rec_record *open_disc_record(opened *o, const char *given, const char *di
 }
 
 /* every hand edit leaves a 'metadata modification' event */
-static void metadata_change(archive *cat, const char *disc_id, const char *note)
+static void metadata_change(archive *cat, const char *disc_id, const char *note, const char *field)
 {
     char *who = person();
-    recs_add(&cat->events, new_event(disc_id, "metadata modification", "success", who, "human", note));
+    rec_record *e = new_event(disc_id, "metadata modification", "success", who, "human", note);
+    if (field) sets_field(cat, e, disc_id, field);      /* a field's history: the change it replaces */
+    recs_add(&cat->events, e);
     free(who);
 }
 
@@ -267,6 +269,26 @@ static int read_back(const char *dev, uint64_t sectors, char hex[65], sbuf *out)
     return 0;
 }
 
+/* the copy of a disc now lettered so (its replication); stops when none is, or when two are (two
+ * catalogues each gave the letter out: arv relabel tells them apart) */
+static const rec_record *copy_named(const archive *a, const char *disc_id, const char *letter)
+{
+    const rec_record *first;
+    size_t n = copies_lettered(a, disc_id, letter, &first);
+    if (!n) die2("%s has no copy %s in the catalogue (arv objects %s lists its copies)", disc_id, letter);
+    if (n > 1) die2("%s has two copies lettered %s: arv relabel gives one another letter (arv objects lists them)", disc_id, letter);
+    return first;
+}
+
+/* an event names a copy by its replication's EventId (which never changes) and its letter now */
+static void name_copy(rec_record *ev, const rec_record *rep, const char *letter)
+{
+    char k[33];
+    event_key(rep, k);
+    rec_add(ev, "Copy", letter);
+    rec_add(ev, "Replication", k);
+}
+
 int cmd_check(int argc, char **argv)
 {
     const char *given = NULL, *device = NULL, *image = NULL, *disc_id = NULL, *note = NULL, *letter = NULL;
@@ -319,6 +341,7 @@ int cmd_check(int argc, char **argv)
     if (!logged && !repair) die("disc %s is not in the catalogue", disc_id);
     if (letter && logged && !copy_exists(&o.cat, disc_id, letter))
         die2("%s has no copy %s in the catalogue (each copy's letter is written on its hub and case)", disc_id, letter);
+    const rec_record *rep = NULL;   /* the copy being checked: its replication */
     char serial[33] = "";       /* the disc's own serial: which copy is in the drive */
     if (logged && device && !drive_bca(device, serial)) {
         char *id = xprintf("bca:%s", serial);
@@ -330,15 +353,12 @@ int cmd_check(int argc, char **argv)
         if (!seen) continue;
         if (strcmp(rec_get(seen, "Disc"), disc_id))
             die2("the disc in the drive is a copy of %s, not %s", rec_get(seen, "Disc"), disc_id);
-        if (letter && rec_get(seen, "Copy") && strcmp(rec_get(seen, "Copy"), letter))
-            die2("this is copy %s, not %s (by its identifier)", rec_get(seen, "Copy"), letter);
-        letter = rec_get(seen, "Copy");
+        const char *now = copy_letter(&o.cat, disc_id, seen);
+        if (letter && now && strcmp(now, letter)) die2("this is copy %s, not %s (by its identifier)", now, letter);
+        if (now) letter = now, rep = seen;
     }
-    for (size_t i = 0; logged && letter && i < o.cat.events.n; i++) {   /* a copy has one BCA serial */
-        const rec_record *e = o.cat.events.v[i];
-        if (!rec_get(e, "Copy") || strcmp(rec_get(e, "Copy"), letter) || !rec_get(e, "Disc") || strcmp(rec_get(e, "Disc"), disc_id)
-            || !rec_get(e, "Type") || strcmp(rec_get(e, "Type"), "replication"))
-            continue;
+    if (logged && letter && !rep) rep = copy_named(&o.cat, disc_id, letter);
+    for (const rec_record *e = rep; e; e = NULL) {      /* a copy has one BCA serial */
         strlist have;
         copy_identifiers(&o.cat, disc_id, e, &have);
         for (size_t a = 0; a < have.n; a++)
@@ -351,9 +371,9 @@ int cmd_check(int argc, char **argv)
     if (!letter && logged && device && disc_copies(&o.cat, disc_id) == 1) {
         for (size_t i = 0; i < o.cat.events.n && !only; i++) {
             const rec_record *e = o.cat.events.v[i];
-            if (rec_get(e, "Copy") && rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), disc_id) && rec_get(e, "Type")
-                && !strcmp(rec_get(e, "Type"), "replication"))
-                only = xstrdup(rec_get(e, "Copy"));
+            if (rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), disc_id) && rec_get(e, "Type")
+                && !strcmp(rec_get(e, "Type"), "replication") && copy_letter(&o.cat, disc_id, e))
+                only = xstrdup(copy_letter(&o.cat, disc_id, e)), rep = e;
         }
         letter = only;
     }
@@ -401,7 +421,8 @@ int cmd_check(int argc, char **argv)
     if (logged) {
         const char *outcome = !ok ? "failure" : repair && !was_whole ? "warning" : "success";
         rec_record *ev = new_event(disc_id, "fixity check", outcome, agent, "automatic", text);
-        if (letter) rec_add(ev, "Copy", letter);        /* which copy was in the drive, or is this image */
+        if (letter && rep) name_copy(ev, rep, letter);   /* which copy was in the drive, or is this image */
+        else if (letter) rec_add(ev, "Copy", letter);
         for (size_t k = 0; letter && k < ids.n; k++)    /* so a copy recorded without them is known by them next time */
             rec_add(ev, "Identifier", ids.v[k]);
         recs_add(&o.cat.events, ev);
@@ -463,14 +484,7 @@ int cmd_stored(int argc, char **argv)
     char *abs = realpath(path, NULL);
     opened o;
     rec_record *d = open_disc_record(&o, given, disc_id);
-    const rec_record *was = NULL;               /* --copy: the stored copy that moved */
-    for (size_t i = 0; moved && i < o.cat.events.n && !was; i++) {
-        const rec_record *e = o.cat.events.v[i];
-        if (rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), disc_id) && rec_get(e, "Type") && !strcmp(rec_get(e, "Type"), "replication")
-            && rec_get(e, "Copy") && !strcmp(rec_get(e, "Copy"), moved))
-            was = e;
-    }
-    if (moved && !was) die2("%s has no copy %s (arv objects %s lists its copies)", disc_id, moved);
+    const rec_record *was = moved ? copy_named(&o.cat, disc_id, moved) : NULL;   /* --copy: that copy, moved */
     if (was && (!rec_get(was, "Form") || !strcmp(rec_get(was, "Form"), "disc")))
         die2("copy %s of %s is a disc, not a stored file or folder (arv locate records where a disc is kept)", moved, disc_id);
     int folder = S_ISDIR(st.st_mode), ok;
@@ -505,7 +519,7 @@ int cmd_stored(int argc, char **argv)
     const char *form = folder ? "folder" : "iso";
     char *what = xprintf("check of a stored copy (%s) at %s: %s", form, abs, out.s ? out.s : "");
     rec_record *fx = new_event(disc_id, "fixity check", ok ? "success" : "failure", VERSION, "automatic", what);
-    if (was) rec_add(fx, "Copy", moved);
+    if (was) name_copy(fx, was, moved);
     recs_add(&o.cat.events, fx);
     free(what);
     if (!ok) {
@@ -524,7 +538,7 @@ int cmd_stored(int argc, char **argv)
     if (was) {                                  /* the same copy at a new path: its Path is the newest recorded */
         char *who = person(), *text = xprintf("copy %s moved to %s; checked: identical", moved, abs);
         rec_record *ev = new_event(disc_id, "metadata modification", "success", who, "human", text);
-        rec_add(ev, "Copy", moved);
+        name_copy(ev, was, moved);
         rec_add(ev, "Path", abs);
         if (carrier) rec_add(ev, "Carrier", carrier);
         if (location) {
@@ -576,7 +590,7 @@ int cmd_stored(int argc, char **argv)
     const rec_record *with = copy_shares_carrier(&o.cat, disc_id, ev);
     if (with)
         printf("Note: copy %s is on %s too; one tape or drive lost loses both, so they count as one. Keep one elsewhere.\n",
-               rec_get(with, "Copy") ? rec_get(with, "Copy") : "?", carrier);
+               letter_of(&o.cat, with), carrier);
     free(carrier);
     free(who); free(name); free(text.s); free(code); free(abs); free(out.s);
     return 0;
@@ -648,7 +662,7 @@ int cmd_burned(int argc, char **argv)
         const rec_record *seen = identifier_strong(ids.v[k]) ? copy_by_identifier(&o.cat, ids.v[k]) : NULL;
         if (seen) {
             fprintf(stderr, "Error: this disc is already recorded: copy %s of %s (%s). Each copy is recorded once.\n",
-                    rec_get(seen, "Copy") ? rec_get(seen, "Copy") : "?", rec_get(seen, "Disc"), ids.v[k]);
+                    letter_of(&o.cat, seen), rec_get(seen, "Disc"), ids.v[k]);
             exit(1);
         }
     }
@@ -775,14 +789,7 @@ int cmd_identify(int argc, char **argv)
     if (!disc_id || !letter || (!ids.n && !carrier)) return 2;
     opened o;
     (void)open_disc_record(&o, given, disc_id);
-    const rec_record *copy = NULL;
-    for (size_t i = 0; i < o.cat.events.n && !copy; i++) {
-        const rec_record *e = o.cat.events.v[i];
-        if (rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), disc_id) && rec_get(e, "Type") && !strcmp(rec_get(e, "Type"), "replication")
-            && rec_get(e, "Copy") && !strcmp(rec_get(e, "Copy"), letter) && !(rec_get(e, "Outcome") && !strcmp(rec_get(e, "Outcome"), "failure")))
-            copy = e;
-    }
-    if (!copy) die2("%s has no copy %s in the catalogue (arv objects %s lists its copies)", disc_id, letter);
+    const rec_record *copy = copy_named(&o.cat, disc_id, letter);
     strlist have, added = { 0 };
     copy_identifiers(&o.cat, disc_id, copy, &have);
     for (size_t k = 0; k < ids.n; k++) {
@@ -790,7 +797,7 @@ int cmd_identify(int argc, char **argv)
         const rec_record *seen = identifier_strong(ids.v[k]) ? copy_by_identifier(&o.cat, ids.v[k]) : NULL;
         if (seen) {
             fprintf(stderr, "Error: %s is already copy %s of %s; one physical disc is one copy.\n", ids.v[k],
-                    rec_get(seen, "Copy") ? rec_get(seen, "Copy") : "?", rec_get(seen, "Disc"));
+                    letter_of(&o.cat, seen), rec_get(seen, "Disc"));
             exit(1);
         }
         for (size_t a = 0; a < have.n; a++)
@@ -814,7 +821,7 @@ int cmd_identify(int argc, char **argv)
     if (carrier) sb_printf(&what, "%son %s", what.len ? "; " : "", carrier);
     char *who = person(), *text = xprintf("identified copy %s: %s", letter, what.s);
     rec_record *ev = new_event(disc_id, "metadata modification", "success", who, "human", text);
-    rec_add(ev, "Copy", letter);
+    name_copy(ev, copy, letter);
     for (size_t k = 0; k < added.n; k++) rec_add(ev, "Identifier", added.v[k]);
     if (carrier) rec_add(ev, "Carrier", carrier);
     recs_add(&o.cat.events, ev);
@@ -827,6 +834,77 @@ int cmd_identify(int argc, char **argv)
     strlist_free(&have);
     strlist_free(&added);
     strlist_free(&ids);
+    return 0;
+}
+
+/* arv relabel DISC-ID COPY NEW [--at PLACE | --identifier ID]: a copy's new letter (two copies lettered
+ * alike, when two catalogues each gave a letter out; or one mislabelled). The copy keeps its history:
+ * later events name it by its replication's EventId, and its letter is the newest given. */
+int cmd_relabel(int argc, char **argv)
+{
+    const char *given = NULL, *disc_id = NULL, *letter = NULL, *fresh = NULL, *at = NULL;
+    char *id = NULL;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (i + 1 < argc && !strcmp(argv[i], "--at")) at = argv[++i];
+        else if (i + 1 < argc && !strcmp(argv[i], "--identifier")) {
+            const char *why;
+            free(id);
+            id = identifier_normal(argv[++i], &why);
+            if (!id) die2("--identifier %s: %s", argv[i], why);
+        } else if (argv[i][0] == '-') return 2;
+        else if (!disc_id) disc_id = argv[i];
+        else if (!letter) letter = argv[i];
+        else if (!fresh) fresh = argv[i];
+        else return 2;
+    }
+    if (!disc_id || !letter || !fresh) return 2;
+    if (!copy_letter_ok(fresh)) die("%s: 1-3 capital letters, as written on the disc (A, B ... Z, AA)", fresh);
+    opened o;
+    (void)open_disc_record(&o, given, disc_id);
+    if (copy_exists(&o.cat, disc_id, fresh)) die2("%s already has a copy %s", disc_id, fresh);
+    char *code = at ? place(&o.cat, at) : NULL;
+    const rec_record *pick = NULL;
+    size_t matches = 0;
+    sbuf which = { 0 };
+    for (size_t i = 0; i < o.cat.events.n; i++) {       /* the copies lettered so, narrowed by --at or --identifier */
+        const rec_record *e = o.cat.events.v[i];
+        const char *now = rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), disc_id) && !strcmp(rec_get(e, "Type") ? rec_get(e, "Type") : "", "replication")
+                              && !(rec_get(e, "Outcome") && !strcmp(rec_get(e, "Outcome"), "failure")) ? copy_letter(&o.cat, disc_id, e) : NULL;
+        if (!now || strcmp(now, letter)) continue;
+        const char *loc = rec_get(e, "Location");
+        for (size_t k = 0; k < o.cat.events.n; k++)
+            if (rec_get(o.cat.events.v[k], "Location") && event_names_copy(&o.cat, disc_id, o.cat.events.v[k], e)) loc = rec_get(o.cat.events.v[k], "Location");
+        sb_printf(&which, "  copy %s, made %s, kept at %s\n", letter, rec_get(e, "Date") ? rec_get(e, "Date") : "?", loc ? loc : "no recorded place");
+        if (code && (!loc || strcmp(loc, code))) continue;
+        if (id) {
+            strlist ids;
+            copy_identifiers(&o.cat, disc_id, e, &ids);
+            const char *carrier = copy_carrier(&o.cat, disc_id, e);
+            int has = strlist_has(&ids, id) || (carrier && !strcmp(carrier, id));
+            strlist_free(&ids);
+            if (!has) continue;
+        }
+        if (!pick) pick = e;
+        matches++;
+    }
+    if (!matches) die2("%s has no copy %s like that (arv objects %s lists its copies)", disc_id, letter);
+    if (matches > 1) {
+        fprintf(stderr, "Error: %s has %zu copies lettered %s; say which (--at PLACE, or --identifier ID):\n%s", disc_id, matches, letter,
+                which.s);
+        exit(1);
+    }
+    char *who = person(), *text = xprintf("copy %s is now copy %s (relabelled: write %s on its hub and case)", letter, fresh, fresh);
+    rec_record *ev = new_event(disc_id, "metadata modification", "success", who, "human", text);
+    name_copy(ev, pick, fresh);
+    recs_add(&o.cat.events, ev);
+    archive_save(&o.cat, o.h.rec_path);
+    printf("%s: copy %s is now copy %s. Write it on the hub and the case, after the id: %s %s\n", disc_id, letter, fresh, disc_id, fresh);
+    free(text);
+    free(who);
+    free(which.s);
+    free(code);
+    free(id);
     return 0;
 }
 
@@ -844,7 +922,7 @@ int cmd_note(int argc, char **argv)
     rec_record *d = open_disc_record(&o, given, disc_id);
     rec_add(d, "Note", text);
     char *c = clip(text, 60), *msg = xprintf("Note added: %s", c);
-    metadata_change(&o.cat, disc_id, msg);
+    metadata_change(&o.cat, disc_id, msg, NULL);   /* notes add up: no field replaced */
     archive_save(&o.cat, o.h.rec_path);
     free(c);
     free(msg);
@@ -892,7 +970,9 @@ int cmd_locate(int argc, char **argv)
     int same = (size_t)field_count(d, "Location") == old_all.n;
     for (size_t i = 0, k = 0; same && i < d->nfields; i++)
         if (!strcmp(d->fields[i].name, "Location")) same = !strcmp(d->fields[i].value, old_all.v[k++]);
-    if (!same) {
+    strlist heads;                      /* changed apart in two catalogues: setting it, even as it is, settles it */
+    field_heads(&o.cat, disc_id, "Location", &heads);
+    if (!same || heads.n > 1) {
         sbuf msg = { 0 };
         sb_puts(&msg, "Location: ");
         if (!old_all.n) sb_puts(&msg, "(none)");
@@ -901,9 +981,10 @@ int cmd_locate(int argc, char **argv)
         int any = 0;
         for (size_t i = 0; i < d->nfields; i++)
             if (!strcmp(d->fields[i].name, "Location")) sb_printf(&msg, "%s%s", any++ ? ", " : "", d->fields[i].value);
-        metadata_change(&o.cat, disc_id, msg.s);
+        metadata_change(&o.cat, disc_id, msg.s, "Location");
         free(msg.s);
     }
+    strlist_free(&heads);
     archive_save(&o.cat, o.h.rec_path);
     char *w = archive_where(&o.cat, d);
     printf("%s: %s\n", disc_id, w);
@@ -968,12 +1049,12 @@ static const char *say_what(const char *path, int drive, const archive *cat, con
                 && (!rec_get(e, "Form") || !strcmp(rec_get(e, "Form"), "disc")) && !copy_same_as(cat, found, e))
                 only = e, burned++;
         }
-        if (burned == 1 && rec_get(only, "Copy")) copy = only, how = "its only burned copy";
+        if (burned == 1 && copy_letter(cat, found, only)) copy = only, how = "its only burned copy";
     }
     printf("%s  %s%s%s%s", path, found, title ? " \"" : "", title ? title : "", title ? "\"" : "");
     if (copy) {
         const char *checked = copy_last_check(cat, found, copy);
-        *letter = rec_get(copy, "Copy");
+        *letter = copy_letter(cat, found, copy);
         printf(" copy %s (%s; %s%s)\n", *letter ? *letter : "?", how,
                checked ? "last checked " : copy_read_back(cat, found, copy) ? "read back when recorded" : "never checked",
                checked ? checked : "");
