@@ -1151,3 +1151,70 @@ content so it follows moved files), written in batches by `arv annotate`.
     it, and `Relation` (Dublin Core) is the name to use then.
   - *Notes on a data object, following it across moves.* The one real gap; it waits until data
     objects are used enough to show whether disc and folder notes fall short.
+
+## Design (2026-10-12): data objects describe themselves; questions wait for an answer
+
+Asked: should arv have a chat agent, and could data objects describe themselves (a git
+repository from its own README and history)? Talked through:
+
+- **No chat agent in arv.** `arv describe` already has the useful part: a model's suggestion,
+  its questions, the owner's answers kept as notes. An agent that works through the whole archive
+  is the "bring your own AI" tier, outside arv, writing drafts ("describing from anywhere");
+  the local models that run well here (3B for one good round) are not reliable at multi-step tool
+  use, and a chat loop would be a product of its own (principle 7).
+- **The gap was the data objects.** A disc and its folders could be described, its objects not:
+  an `Object` record had a name, a hash and a place, so five repositories on one disc showed as
+  five names.
+
+### Objects: described by rules, then by people or a model
+
+- **Fields** (format 0.5, only added; all optional, as on a `Disc`): `Title`, `Description`,
+  `Coverage` (EDTF), `Rights`, `Origin` (where it was published: a repository's `origin` remote
+  as `host/path`, no scheme, user or `.git`; a local path is left out), `Note`*.
+- **By rules, at `arv make`, no model** (authorship `automatic`, under the disc's creation event),
+  from the object's own files, at its root:
+  - `Title`: the README's first heading, else a package manifest's name;
+  - `Description`: the manifest's one-line description, else the README's first paragraph of
+    prose (badges, images, HTML and quoted warnings skipped; cut at a sentence, about 300 characters);
+  - `Rights`: the manifest's licence, else a `LICENSE`/`COPYING` recognised from its first lines;
+  - a git repository: `Coverage` from its first to its last commit (author dates, every ref),
+    and `Origin`.
+  Manifests read: `package.json`, `Cargo.toml`, `pyproject.toml`, Arduino's
+  `library.properties`. A file object gets none of this.
+- **Versions.** `Coverage`, `Origin` and `Rights` are facts of each version, read from it.
+  `Title`, `Description` and `Note`s carry over to a new version once a person or a model has
+  described the object (a `metadata modification` event, `Object: object:UUID`); until then
+  each version reads its own. The same content again (a copy) has the version's fields.
+- **By a person or a model:** `arv describe NAME|UUID` describes an object's newest version (its
+  records on every disc), as a disc is described: interactively, `--save`, `--apply DRAFT`.
+  Subjects and folder tags are a disc's and are left out. A disc's draft may carry
+  `objects`: `{PATH: {title, description, notes}}`, PATH as the object's on that disc.
+  The event names `Object: object:UUID`, and full snapshots carry it with the object, as they
+  carry a place's.
+- **Seen in:** `arv objects` (and `--json`, the GUI's Objects tab), `arv find` (titles and
+  descriptions are searched), and the model's inventory: a disc's objects, and each git
+  repository in a folder being described, as they describe themselves.
+- **Privacy:** no author names or emails (the catalogue goes on every disc); `Origin` is the remote
+  the disc's own `.git/config` already carries.
+
+### Questions that wait
+
+A model's questions were asked only at the terminal or in the GUI's panel, then lost: a draft
+written unattended (`describe --save`, a script, a model elsewhere) had them, and applying it
+dropped them.
+
+- **Kept** in `<home>/drafts/questions.rec`, home only (a model's unanswered guesses are not
+  archival): `Question` records, `About` (a disc id, or `object:UUID`), `Text`, `Asked`,
+  `Agent`, and `Skipped: DATE` once skipped.
+- **From:** a draft's `questions`, by `describe --apply` and by `make --draft` (for the disc it
+  makes; the first, when split); and by rules, with no model: a git repository with no README or
+  manifest gets "What is NAME for? It has no README to say."
+- **Kept in check:** at most 5 open per disc or object; the same question twice (open, skipped, or
+  answered in a `Note`) is not added again.
+- **Shown** last in `arv todo`, one line per disc or object, and never counted as owed: a missing
+  description is never as urgent as a missing copy. The GUI's Verify tab shows `todo`.
+- **Answered** with `arv describe ID --answer` (no model needed): each open question in turn; an
+  answer becomes a `Note` ("Q: ... / A: ..."), as in the interactive describe, with an event by the
+  person; Enter skips it for good; `.` stops, leaving the rest open. Plain `arv describe ID` at a
+  terminal asks them first, and the model then sees the answers with the rest of the record.
+- **Later:** answering in the GUI's disc details.
