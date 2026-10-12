@@ -107,6 +107,7 @@ static const char USAGE_REST[] =
           "The home\n"
           "  arv init [FOLDER] [--pointer HOME] [--name NAME [--default]]   arv where [--here]\n"
           "  arv gui   the interface, in your web browser (*)\n"
+          "  arv help [--all | --man | COMMAND]   --all: the whole manual (markdown), for people and agents alike\n"
           "\n"
           "(*) when installed: arv-assist (the local AI helpers), arv-gui (the interface)\n"
           "DISC: the root of a mounted arv disc or an extracted image (the folder with catalog.rec)\n"
@@ -419,6 +420,229 @@ static void run_helper(int argc, char **argv, const char *word)
     exit(1);
 }
 
+/* ------------------------------------------------------------------ the whole manual (arv help --all, --man) */
+
+/* What the usage lines do not say: for a person setting arv up, and for a script or an agent using
+ * it. Markdown; arv help --man turns it, with the commands, into a man page. */
+static const char MANUAL_NOTES[] =
+    "## Reading and changing the record\n"
+    "\n"
+    "These only read: `list`, `find`, `objects`, `todo`, `status` (without `--record`), `log`, `diff`,\n"
+    "`sets`, `tags`, `keywords`, `id`, `info`, `ls`, `verify`, `audit`, `inventory`, `drives` (without\n"
+    "`--check`), `where` (without `--here`), `names`, `plan list|show`, `collection list|show`, `location\n"
+    "list`, `selection list|show`, `appraise --due`, and `retire` without `--yes` (a preview). `restore`\n"
+    "writes only the files it restores, where it is told.\n"
+    "\n"
+    "These change the record, each leaving an event that says who and when: `init`, `make`, `plan make`,\n"
+    "`collection init|keep`, `status --record`, `checkpoint`, `link`, `burned`, `stored`, `identify`,\n"
+    "`relabel`, `note`, `locate`, `access`, `location add|move`, `selection add|put|drop|move`, `appraise`,\n"
+    "`retire --yes`, `rebuild`, `check` and `drives --check` (a check is logged), `describe` and `tag`\n"
+    "(when a draft is applied). `where --here` changes only where the catalogue may be written.\n"
+    "arv never deletes a file, an image or a disc.\n"
+    "\n"
+    "## Exit status\n"
+    "\n"
+    "- 0: done, and nothing found wrong.\n"
+    "- 1: an error (`Error: ...` on standard error), or something found that needs a person: a check\n"
+    "  that failed, `audit` or `inventory` findings, a disc id `rebuild` would not merge.\n"
+    "- 2: the command was not used as it is meant to be; its usage follows on standard error.\n"
+    "\n"
+    "## Output for scripts\n"
+    "\n"
+    "- `arv objects --json`, `arv objects DISC-ID --json`: what is kept and every copy of it.\n"
+    "- `arv todo --tsv`: what is owed, one copy a line, with a header line.\n"
+    "- `arv keywords --format tsv|exiftool DISC-ID`: a disc's folder tags.\n"
+    "- Lines that start with a fixed word: `find` (`DISC`, `OBJECT`, `COPY`, `GIT`, `TAG`, `LOST`, or a\n"
+    "  disc id for a file), `audit` (`CHANGED`, `MISSING`, `DIFFERS`, `TWICE`, `TWO DISCS`, `TWO BCA`,\n"
+    "  `CONFLICT`), `inventory` (`MISSING`, `UNKNOWN`, `ELSEWHERE`, `UNMARKED`).\n"
+    "- The catalogue itself: `.arv/catalog/archive.rec` is a GNU recutils recfile (plain text; `recsel`\n"
+    "  reads it), and each disc's file list is `catalog/volumes/DISC-ID/listing.tsv`.\n"
+    "\n"
+    "These are not yet a stable interface: they may change before 1.0.\n"
+    "\n"
+    "## For scripts and agents\n"
+    "\n"
+    "- Read through arv, or read the recfiles directly. Change the record only through arv: an event\n"
+    "  edited by hand no longer matches its `EventId`, and `arv audit` reports it.\n"
+    "- To describe discs, folders and data objects, write a draft (JSON; README.md, \"Describing from\n"
+    "  anywhere\") and apply it: `arv describe ID --apply DRAFT` (`-` reads standard input). Add\n"
+    "  `--suggested` when no person reviewed it, so the record says so.\n"
+    "- Ask the person before what cannot be taken back or changes who may see what: `retire --yes`\n"
+    "  (above all with `--accept-loss`), `access ... public|sealed`, `relabel` (a label must be\n"
+    "  rewritten by hand), `where --here`.\n"
+    "- Work on the archive's own catalogue, not a copy of it: a copy refuses changes (`arv where` says\n"
+    "  which is which). Another catalogue of the archive is merged with `arv rebuild OTHER/.arv`.\n"
+    "- `make` and the checks read and write whole disc images: minutes to an hour each. `--no-ecc`\n"
+    "  makes small images for trying arv out, not for burning.\n"
+    "- Every disc carries arv's source and these docs in `tools/`, and `README.txt` says how to read it\n"
+    "  without arv.\n"
+    "\n"
+    "## Files\n"
+    "\n"
+    "- `.arv/`: the archive's home, at the root of the tree it describes; found by walking up from the\n"
+    "  current folder, else the default home (`arv where`). `catalog/archive.rec`: every disc, copy,\n"
+    "  place, collection and event. `catalog/volumes/DISC-ID/`: each disc's manifest and file list.\n"
+    "  `config/`: the vocabularies, and `paths.rec`, where the catalogue may be written. `drafts/`:\n"
+    "  disc plans and waiting questions. `cache/`: rebuildable.\n"
+    "- `~/.config/arv/homes.rec`: named homes on this machine.\n"
+    "\n"
+    "## See also\n"
+    "\n"
+    "README.md, docs/workflow.md (the whole workflow), docs/concepts.md, docs/philosophy.md, and\n"
+    "docs/spec/smart-archive-format.md (the disc format); on every disc, under `tools/`.\n";
+
+/* the commands, group by group, from the usage text --help prints: one source for both */
+static void manual_md(sbuf *out)
+{
+    sb_puts(out, "# arv(1): Archive, Record, Verify\n\n");
+    sb_printf(out, "%s, disc format %s.\n\n", VERSION, FORMAT_VERSION);
+    sbuf all = { 0 };
+    sb_puts(&all, USAGE_ARCHIVE);
+    sb_puts(&all, USAGE_REST);
+    const char *p = all.s;
+    const char *nl = strchr(p, '\n');               /* the usage: line is the synopsis */
+    sb_puts(out, "## Synopsis\n\n```\n");
+    sb_printf(out, "%.*s\n", (int)(nl - p - 7), p + 7);
+    sb_puts(out, "arv GROUP COMMAND ...   (archive, record, verify, home)\narv help [--all | --man | COMMAND]\n```\n\n");
+    p = nl + 1;
+    sb_puts(out, "## Description\n\n");                 /* the lines up to the first blank one */
+    while (*p && *p != '\n') {
+        nl = strchr(p, '\n');
+        sb_printf(out, "%.*s\n", (int)(nl - p), p);
+        p = nl + 1;
+    }
+    sb_puts(out, "\n## Commands\n");
+    while (*p == '\n') p++;
+    while (*p) {                                        /* each group: a header line, then its commands */
+        nl = strchr(p, '\n');
+        int heading = strncmp(p, "  ", 2) != 0;
+        if (!strncmp(p, "(*)", 3)) {                    /* the notes after the last group: (*), DISC:, CATALOG: */
+            sb_puts(out, "\n### Words\n\n```\n");
+            while (*p) {
+                nl = strchr(p, '\n');
+                sb_printf(out, "%.*s\n", (int)(nl - p), p);
+                p = nl + 1;
+            }
+            sb_puts(out, "```\n");
+            break;
+        }
+        if (heading) {
+            sb_printf(out, "\n### %.*s\n\n```\n", (int)(nl - p), p);
+            p = nl + 1;
+            while (*p && *p != '\n') {
+                nl = strchr(p, '\n');
+                if (strncmp(p, "  ", 2)) break;         /* the notes after the last group */
+                sb_printf(out, "%.*s\n", (int)(nl - p), p);
+                p = nl + 1;
+            }
+            sb_puts(out, "```\n");
+            if (*p && *p != '\n' && strncmp(p, "  ", 2)) {          /* (*), DISC:, CATALOG: */
+                sb_puts(out, "\n### Words\n\n");
+                while (*p) {
+                    nl = strchr(p, '\n');
+                    sb_printf(out, "%.*s\n", (int)(nl - p), p);
+                    p = nl + 1;
+                }
+            }
+        }
+        while (*p == '\n') p++;
+    }
+    sb_puts(out, "\n### arv make in full\n\n```\n");
+    sb_puts(out, MAKE_HELP);
+    sb_puts(out, "```\n\n");
+    sb_puts(out, MANUAL_NOTES);
+    free(all.s);
+}
+
+/* roff text: backslashes escaped, a leading . or ' kept from being a request, `code` bold */
+static void roff_text(FILE *to, const char *s, size_t n, int code_spans)
+{
+    if (n && (s[0] == '.' || s[0] == '\'')) fputs("\\&", to);
+    int bold = 0;
+    for (size_t i = 0; i < n; i++) {
+        if (s[i] == '\\') fputs("\\e", to);
+        else if (s[i] == '-') fputs("\\-", to);
+        else if (code_spans && s[i] == '`') fputs((bold = !bold) ? "\\fB" : "\\fR", to);
+        else fputc(s[i], to);
+    }
+    if (bold) fputs("\\fR", to);
+}
+
+/* the manual as a man page: the same markdown, turned to roff line by line */
+static void manual_man(FILE *to)
+{
+    sbuf md = { 0 };
+    manual_md(&md);
+    char date[11];
+    today_iso(date);
+    fprintf(to, ".TH ARV 1 \"%s\" \"%s\" \"arv manual\"\n.SH NAME\narv \\- Archive, Record, Verify: long-term archiving on "
+                "self-describing discs\n", date, VERSION);
+    int code = 0, para = 0;
+    for (const char *p = md.s, *nl; *p; p = nl + 1) {
+        nl = strchr(p, '\n');
+        size_t n = (size_t)(nl - p);
+        if (!strncmp(p, "```", 3)) {
+            fputs(code ? ".fi\n.RE\n" : ".PP\n.RS 2\n.nf\n", to);
+            code = !code;
+        } else if (code) {
+            roff_text(to, p, n, 0);
+            fputc('\n', to);
+        } else if (!strncmp(p, "# ", 2)) {
+            continue;                                   /* the title: .TH and NAME say it */
+        } else if (!strncmp(p, "## ", 3)) {
+            fputs(".SH ", to);
+            for (size_t i = 3; i < n; i++) fputc(toupper((unsigned char)p[i]), to);
+            fputc('\n', to);
+            para = 0;
+        } else if (!strncmp(p, "### ", 4)) {
+            fputs(".SS ", to);
+            roff_text(to, p + 4, n - 4, 0);
+            fputc('\n', to);
+            para = 0;
+        } else if (!n) {
+            para = 1;
+        } else if (!strncmp(p, "- ", 2)) {
+            fputs(".IP \\(bu 2\n", to);
+            roff_text(to, p + 2, n - 2, 1);
+            fputc('\n', to);
+            para = 0;
+        } else {
+            if (para) fputs(".PP\n", to);
+            para = 0;
+            while (n && *p == ' ') p++, n--;            /* a list item's continuation */
+            roff_text(to, p, n, 1);
+            fputc('\n', to);
+        }
+    }
+    free(md.s);
+}
+
+/* arv help [--all | --man | COMMAND] */
+static int cmd_help(int argc, char **argv)
+{
+    if (argc == 0) {
+        usage(stdout);
+        return 0;
+    }
+    if (argc == 1 && !strcmp(argv[0], "--all")) {
+        sbuf md = { 0 };
+        manual_md(&md);
+        fputs(md.s, stdout);
+        free(md.s);
+        return 0;
+    }
+    if (argc == 1 && !strcmp(argv[0], "--man")) {
+        manual_man(stdout);
+        return 0;
+    }
+    if (argc == 1 && argv[0][0] != '-') {
+        if (!strcmp(argv[0], "make")) fputs(MAKE_HELP, stdout);
+        else command_usage(stdout, argv[0]);
+        return 0;
+    }
+    return 2;
+}
+
 int main(int argc, char **argv)
 {
     static const struct {
@@ -436,10 +660,11 @@ int main(int argc, char **argv)
                  { "tags", cmd_tags }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
     arv_argv0 = argv[0];
     if (argc >= 2 && !strcmp(argv[1], "__complete")) {     /* for the shell's completion (completion/) */
-        const char *names[sizeof cmds / sizeof *cmds + 4];
+        const char *names[sizeof cmds / sizeof *cmds + 5];
         size_t nnames = 0;
         for (size_t i = 0; i < sizeof cmds / sizeof *cmds; i++) names[nnames++] = cmds[i].name;
         names[nnames++] = "describe", names[nnames++] = "tag", names[nnames++] = "models", names[nnames++] = "gui";
+        names[nnames++] = "help";
         return complete(argc - 2, argv + 2, names, nnames);
     }
     if (argc >= 2 && (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-V"))) {
@@ -529,6 +754,11 @@ int main(int argc, char **argv)
         }
     if (argc >= 2 && !strcmp(argv[1], "version")) {
         return print_version();
+    }
+    if (argc >= 2 && !strcmp(argv[1], "help")) {
+        int rc = cmd_help(argc - 2, argv + 2);
+        if (rc == 2) fputs("usage: arv help [--all | --man | COMMAND]\n", stderr);
+        return rc;
     }
     /* an unknown command: say which, and the nearest ones */
     static const char *const helpers[] = { "describe", "tag", "models", "gui" };

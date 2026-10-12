@@ -5,6 +5,8 @@
 
 # the project, and how to build and install it
 README.md
+AGENTS.md
+CLAUDE.md
 LICENSE
 CHANGELOG.md
 COMMIT

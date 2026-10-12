@@ -287,9 +287,14 @@ and each group's name on its own lists that group with a line each:
 ```sh
 arv archive    # make, plan, collection, status, checkpoint, link, names, describe, tag, models
 arv record     # burned, stored, objects, find, list, id, info, ls, note, locate, ... retire
-arv verify     # todo, check, verify, restore, rebuild
-arv home       # init, where, gui
+arv verify     # todo, check, verify, drives, inventory, audit, restore, rebuild
+arv home       # init, where, gui, help
 ```
+
+**The whole manual** is `arv help --all`: every command, which only read and which change the
+record, exit status, the outputs meant for scripts, and the rules for a script or an agent using
+arv, as one markdown document. `make install` installs the same text as a man page (`man arv`;
+`arv help --man` prints it). Agents working on arv's own code read `AGENTS.md`.
 
 The group's name may also come first: `arv record burned ...` is `arv burned ...`, and a command
 named under the wrong group says which one it is in. (`arv verify DISC`, every file on a disc

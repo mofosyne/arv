@@ -18,6 +18,7 @@
 #                              disc-tools.txt lists, from the last commit (git archive HEAD;
 #                              uncommitted changes are not installed), or from a tarball's tree
 #   $(BASHCOMPDIR)/arv, $(ZSHCOMPDIR)/_arv   tab completion, which asks arv (src/arv/completion/)
+#   $(MANDIR)/man1/arv.1       the manual, from arv help --man (the same text as arv help --all)
 #
 # Needs at run time: nothing beyond the C library to make, check and repair discs; python3 only for
 # arv gui; a local model server or llama.cpp only for the AI helpers. upstream/ and dev-tools/ are
@@ -29,6 +30,7 @@ SHARE    = $(PREFIX)/share/arv
 BIN      = $(PREFIX)/bin
 BASHCOMPDIR ?= $(PREFIX)/share/bash-completion/completions
 ZSHCOMPDIR  ?= $(PREFIX)/share/zsh/site-functions
+MANDIR      ?= $(PREFIX)/share/man
 TOOLS_PATHS  = $(shell sed -e 's/\#.*//' disc-tools.txt)    # what discs carry (disc-tools.txt)
 
 all:
@@ -70,13 +72,15 @@ install: all
 	install -m 755 src/bagit/build/bagit "$(DESTDIR)$(BIN)/bagit"
 	install -D -m 644 src/arv/completion/arv.bash "$(DESTDIR)$(BASHCOMPDIR)/arv"
 	install -D -m 644 src/arv/completion/_arv "$(DESTDIR)$(ZSHCOMPDIR)/_arv"
+	install -d "$(DESTDIR)$(MANDIR)/man1"
+	src/arv/build/arv help --man > "$(DESTDIR)$(MANDIR)/man1/arv.1"
 	@echo "Installed arv $$(cat "$(DESTDIR)$(SHARE)/VERSION") in $(PREFIX). Try: arv --help"
 
 uninstall:
 	rm -rf "$(DESTDIR)$(SHARE)"
 	rm -f "$(DESTDIR)$(BIN)/arv" "$(DESTDIR)$(BIN)/arv-assist" "$(DESTDIR)$(BIN)/arv-gui" "$(DESTDIR)$(BIN)/udfwrite" \
 	      "$(DESTDIR)$(BIN)/bagit" "$(DESTDIR)$(BIN)/arvc" "$(DESTDIR)$(BIN)/arv-py" \
-	      "$(DESTDIR)$(BASHCOMPDIR)/arv" "$(DESTDIR)$(ZSHCOMPDIR)/_arv"
+	      "$(DESTDIR)$(BASHCOMPDIR)/arv" "$(DESTDIR)$(ZSHCOMPDIR)/_arv" "$(DESTDIR)$(MANDIR)/man1/arv.1"
 
 clean:
 	rm -rf src/bagit/build src/rs03/build src/udfwrite/build src/arv/build src/arv-assist/build
