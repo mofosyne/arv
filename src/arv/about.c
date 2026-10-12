@@ -154,6 +154,13 @@ static char *cut(const char *s)
     return xprintf("%.*s...", (int)n, s);
 }
 
+static int more_text(const strlist *lines, size_t from)
+{
+    for (size_t i = from; i < lines->n; i++)
+        if (*lines->v[i]) return 1;
+    return 0;
+}
+
 /* the README's title (its first heading) and its first paragraph of prose */
 static void read_readme(const char *path, char **title, char **description)
 {
@@ -219,7 +226,8 @@ static void read_readme(const char *path, char **title, char **description)
             if (para.len) break;
             continue;
         }
-        if (!marked && !head && !para.len && !after_title && utf8_chars(l) <= 80 && !*next) {   /* plain text: a short first line */
+        if (!marked && !head && !para.len && !after_title && utf8_chars(l) <= 80 && !*next && l[strlen(l) - 1] != '.'
+            && more_text(&lines, i + 1)) {                  /* plain text: a short first line, then more */
             char *p = plain(l);
             head = p;
             after_title = 1;

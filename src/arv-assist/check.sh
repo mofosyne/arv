@@ -99,6 +99,51 @@ grep -q "^photos	travel" "$tsv" && grep -q "^photos/2019 trip	event:trip-2019" "
     && ok "describe --apply - --suggested: from standard input, tags merged, an unknown folder skipped, left a suggestion" \
     || { cat apply2.out apply2.err; cat "$tsv"; tail -14 home/catalog/archive.rec; no "describe --apply - --suggested"; }
 
+# ------------------------------------------------------------------ data objects
+# the folder made into a disc above is a data object; it said what its README says
+grep -q "^Description: Pictures from our holiday.$" home/catalog/archive.rec || no "the object's description by rules"
+"$tool" --home home describe object:Trip $llm --show-inventory > oinv.txt
+grep -q "^Archive name: Trip" oinv.txt && grep -q "  Description: Pictures from our holiday." oinv.txt \
+    && grep -q "photos/2019 trip/ - 1 file" oinv.txt && grep -q "^--- README.txt ---" oinv.txt \
+    && ok "describe OBJECT: the model sees its files (from its disc's listing), its README and what it says already" \
+    || { cat oinv.txt; no "object inventory"; }
+printf '{"title": "Our trip", "description": "Photos, one folder a day.", "notes": ["Kept by Mum"], "subjects": ["x"], "agent": "human:me"}\n' \
+    | "$tool" --home home describe Trip --apply - > oapply.out 2> oapply.err || { cat oapply.err; no "describe OBJECT --apply"; }
+uuid=$(sed -n '/^%rec: Object/,$p' home/catalog/archive.rec | grep -m1 '^Uuid: ' | cut -d' ' -f2)
+grep -qx "Trip: updated Title, Description, Note" oapply.out && grep -q "Subjects and folder tags are a disc's" oapply.err \
+    && grep -A3 "^Object: object:$uuid" home/catalog/archive.rec | grep -q "^Type: metadata modification" \
+    && grep -q "^Note: updated Title, Description, Note of version 1 (written by a person)" home/catalog/archive.rec \
+    && "$arv" --home home objects Trip | grep -qx '    "Our trip": Photos, one folder a day.' \
+    && "$arv" --home home objects Trip | grep -qx '    note: Kept by Mum' \
+    && ok "describe OBJECT --apply: its title, description and notes, with an event naming it (object:UUID)" \
+    || { cat oapply.out oapply.err; tail -20 home/catalog/archive.rec; no "describe OBJECT --apply"; }
+printf '{"objects": {".": {"title": "Trip photos"}, "nope": {"title": "x"}}, "agent": "llm:other"}\n' \
+    | "$tool" --home home describe "$id" --apply - --suggested > oapply2.out 2> oapply2.err || no "a disc's draft with objects"
+grep -q "updated object Trip (Title)" oapply2.out && grep -q "has no data object nope" oapply2.err \
+    && grep -q "^Title: Trip photos" home/catalog/archive.rec \
+    && grep -q "^Note: updated Title of version 1 (suggested by a model, not reviewed)" home/catalog/archive.rec \
+    && ok "a disc's draft describes its objects by their path on it; one it does not have is skipped" \
+    || { cat oapply2.out oapply2.err; no "objects in a disc's draft"; }
+put Trip/photos/day2/IMG_0002.JPG jpeg2
+"$arv" --home home make -y --no-ecc --formats no -o obj2.iso Trip > make2.out 2>&1 || { cat make2.out; no "make, version 2"; }
+[ "$(grep -c '^Title: Trip photos' home/catalog/archive.rec)" -eq 2 ] && [ "$(grep -c '^Note: Kept by Mum' home/catalog/archive.rec)" -eq 2 ] \
+    && "$arv" --home home objects Trip | grep -q "Trip/  folder, 2 versions" \
+    && "$arv" --home home objects Trip | grep -qx '    "Trip photos": Photos, one folder a day.' \
+    && { ! command -v 7z >/dev/null || { 7z x -oobj2 obj2.iso catalog/archive.rec >/dev/null && grep -q "^Object: object:$uuid" obj2/catalog/archive.rec; }; } \
+    && ok "a new version keeps what a person or a model wrote about the object; the disc's catalogue carries who wrote it" \
+    || { cat make2.out; "$arv" --home home objects Trip; no "carried to version 2"; }
+rm -r Trip/photos/day2
+# at a terminal: answer one question, skip one, accept the title and description (no subjects or
+# folder tags are asked for an object), apply
+printf 'Kyoto\n\n\n\ny\n' > oanswers
+"$ptyrun" oanswers "$tool" --home home describe object:Trip $llm --rounds 1 > opty.out 2>&1 || { cat opty.out; no "interactive describe OBJECT"; }
+! grep -q "^> *Subjects: \[Enter\]\|^Subjects: \[Enter\]\|Keep the .* folder tags" opty.out && grep -q "Apply to the data object Trip (version 2)" opty.out \
+    && [ "$(grep -c '^Title: Family trip photos 2019' home/catalog/archive.rec)" -eq 1 ] \
+    && grep -q "^Note: Q: Where was the 2019 trip?" home/catalog/archive.rec \
+    && grep -q "^Note: updated Title, Description, Note of version 2 (suggested by a model, accepted by a person)" home/catalog/archive.rec \
+    && ok "describe OBJECT at a terminal: questions, then its title and description reviewed, applied to its newest version" \
+    || { cat opty.out; no "interactive describe OBJECT"; }
+
 # ------------------------------------------------------------------ vision
 i=0
 while [ $i -lt 5 ]; do

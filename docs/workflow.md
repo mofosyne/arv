@@ -391,7 +391,8 @@ git repository the dates of its first and last commits and where it was publishe
     2011-02-03/2014-05-06; MIT; example.invalid/tools/tool
 ```
 
-`arv find` searches these too.
+`arv find` searches these too. Where the files say nothing (photos, scans), or say it badly,
+describe it yourself or with a model: `arv describe NAME` (README.md, "Optional: local LLM help").
 
 **Retiring** an edition a newer safe one replaces (`arv retire FAMILY`) lists any files that
 exist only on the discs being retired (not in the newer edition: they left the workflow folder), and records nothing

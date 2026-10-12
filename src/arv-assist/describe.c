@@ -146,9 +146,21 @@ static jv *draft_json(const suggestion *s, const strlist *notes, const char *aut
 }
 
 /* review: the owner accepts or edits each field; the reviewed suggestion replaces s */
-static const char *review(suggestion *s, const rec_record *current)
+static const char *review(suggestion *s, const rec_record *current, int disc)
 {
     show(s);
+    if (!disc) {                    /* an object: a title and a description (subjects and folder tags are a disc's) */
+        char *title = pick("Title", s->title, rec_get(current, "Title"));
+        char *desc = pick("Description", s->description, rec_get(current, "Description"));
+        int kept = !strcmp(title, s->title) && !strcmp(desc, s->description);
+        free(s->title);
+        free(s->description);
+        s->title = title;
+        s->description = desc;
+        strlist_free(&s->subjects);
+        ftags_free(&s->folders);
+        return kept ? "accepted" : "edited";
+    }
     const char *old_title = current ? rec_get(current, "Title") : NULL, *old_desc = current ? rec_get(current, "Description") : NULL;
     strlist old_subjects = { 0 };
     for (size_t i = 0; current && i < current->nfields; i++)
@@ -220,6 +232,77 @@ static int disc_has_folder(const arv_home *h, const char *id, const char *folder
     }
     free(text);
     return found;
+}
+
+/* an object's description written on every record of one of its versions (each disc holding it),
+ * with an event naming it (Object: object:UUID); the caller saves */
+static void apply_to_object(archive *cat, const char *uuid, const char *version, const char *title, const char *desc,
+                            const strlist *notes, const char *agent, const char *how, strlist *changed)
+{
+    memset(changed, 0, sizeof *changed);
+    for (size_t i = 0; i < cat->objects.n; i++) {
+        rec_record *o = cat->objects.v[i];
+        if (strcmp(rec_get(o, "Uuid") ? rec_get(o, "Uuid") : "", uuid) || strcmp(rec_get(o, "Version") ? rec_get(o, "Version") : "", version))
+            continue;
+        if (title && (!rec_get(o, "Title") || strcmp(title, rec_get(o, "Title")))) {
+            rec_set(o, "Title", title);
+            if (!strlist_has(changed, "Title")) strlist_add(changed, "Title");
+        }
+        if (desc && (!rec_get(o, "Description") || strcmp(desc, rec_get(o, "Description")))) {
+            rec_set(o, "Description", desc);
+            if (!strlist_has(changed, "Description")) strlist_add(changed, "Description");
+        }
+        for (size_t k = 0; notes && k < notes->n; k++) {
+            int have = 0;
+            for (size_t f = 0; f < o->nfields && !have; f++) have = !strcmp(o->fields[f].name, "Note") && !strcmp(o->fields[f].value, notes->v[k]);
+            if (have) continue;
+            rec_add(o, "Note", notes->v[k]);          /* before Source, the home's own field, which stays last */
+            for (size_t f = 0; f + 1 < o->nfields; f++)
+                if (!strcmp(o->fields[f].name, "Source")) {
+                    rec_field note = o->fields[o->nfields - 1];
+                    memmove(&o->fields[f + 1], &o->fields[f], (o->nfields - 1 - f) * sizeof *o->fields);
+                    o->fields[f] = note;
+                    break;
+                }
+            if (!strlist_has(changed, "Note")) strlist_add(changed, "Note");
+        }
+    }
+    if (!changed->n) return;
+    char *what = joined(changed), *note = xprintf("updated %s of version %s (%s)", what, version, draft_note(how));
+    rec_record *e = reviewed_event(uuid, agent, how, note);
+    free(e->fields[0].name);                      /* Object: object:UUID, not Disc */
+    free(e->fields[0].value);
+    e->fields[0].name = xstrdup("Object");
+    e->fields[0].value = xprintf("object:%s", uuid);
+    recs_add(&cat->events, e);
+    free(what);
+    free(note);
+}
+
+/* the object a draft names on a disc: by its path there, its name or its Uuid; NULL */
+static rec_record *object_on_disc(const archive *cat, const char *disc_id, const char *key)
+{
+    for (int pass = 0; pass < 3; pass++)
+        for (size_t i = 0; i < cat->objects.n; i++) {
+            rec_record *o = cat->objects.v[i];
+            static const char *const by[] = { "Path", "Name", "Uuid" };
+            if (rec_get(o, "Disc") && !strcmp(rec_get(o, "Disc"), disc_id) && rec_get(o, by[pass])
+                && !strcmp(rec_get(o, by[pass]), key))
+                return o;
+        }
+    return NULL;
+}
+
+/* a draft applied to a data object: its title, description and notes, on its newest version */
+static void apply_object_draft(const arv_home *h, archive *cat, const rec_record *obj, const draft *d, strlist *changed)
+{
+    if (d->subjects.n || d->nft || d->ncap) log_line("Subjects and folder tags are a disc's: left out for a data object.");
+    const char *how = d->authorship ? d->authorship : is_model(d->agent) ? "suggested" : "human";
+    char *uuid = xstrdup(rec_get(obj, "Uuid")), *version = xstrdup(rec_get(obj, "Version") ? rec_get(obj, "Version") : "1");
+    apply_to_object(cat, uuid, version, d->title, d->description, &d->notes, d->agent, how, changed);
+    if (changed->n) archive_save(cat, h->rec_path);
+    free(uuid);
+    free(version);
 }
 
 /* describe.apply_to_disc: the draft written into the home catalogue, with an event; folder tags
@@ -296,13 +379,40 @@ static void apply_to_disc(const arv_home *h, archive *cat, rec_record *disc, con
         free(path);
         ftags_free(&f);
     }
+    const char *how = d->authorship ? d->authorship : is_model(agent) ? "suggested" : "human";
+    int objects = 0;
+    for (size_t i = 0; i < d->nobj; i++) {        /* its data objects, each by its path on the disc */
+        const rec_record *o = object_on_disc(cat, id, d->obj[i].path);
+        if (!o) {
+            fprintf(stderr, "%s has no data object %s: its description is skipped\n", id, d->obj[i].path);
+            continue;
+        }
+        char *uuid = xstrdup(rec_get(o, "Uuid")), *version = xstrdup(rec_get(o, "Version") ? rec_get(o, "Version") : "1");
+        strlist oc;
+        apply_to_object(cat, uuid, version, d->obj[i].title, d->obj[i].description, &d->obj[i].notes, agent, how, &oc);
+        if (oc.n) {
+            char *what = joined(&oc), *line = xprintf("object %s (%s)", rec_get(o, "Name") ? rec_get(o, "Name") : uuid, what);
+            strlist_add(changed, line);
+            free(line);
+            free(what);
+            objects++;
+        }
+        strlist_free(&oc);
+        free(uuid);
+        free(version);
+    }
     if (changed->n) {
-        const char *how = d->authorship ? d->authorship : is_model(agent) ? "suggested" : "human";
-        char *what = joined(changed), *note = xprintf("updated %s (%s)", what, draft_note(how));
-        recs_add(&cat->events, reviewed_event(id, agent, how, note));
+        if ((size_t)objects < changed->n) {
+            strlist mine = { 0 };                     /* the disc's own changes, for its event */
+            for (size_t i = 0; i < changed->n; i++)
+                if (strncmp(changed->v[i], "object ", 7)) strlist_add(&mine, changed->v[i]);
+            char *what = joined(&mine), *note = xprintf("updated %s (%s)", what, draft_note(how));
+            recs_add(&cat->events, reviewed_event(id, agent, how, note));
+            free(what);
+            free(note);
+            strlist_free(&mine);
+        }
         archive_save(cat, h->rec_path);
-        free(what);
-        free(note);
     }
     free(id);
 }
@@ -340,8 +450,50 @@ static void draft_of(const suggestion *s, const strlist *notes, const char *how,
 typedef struct {
     items files;
     char *name, *text_root, *image_root;
-    rec_record *disc;       /* NULL: a folder */
+    rec_record *disc;       /* NULL: a folder or an object */
+    rec_record *object;     /* a data object: its newest version (one of its records) */
 } target;
+
+/* a data object by its name, its Uuid or object:UUID: one record of its newest version; NULL
+ * when there is none, or (with *err) when two objects have that name */
+static rec_record *find_object(const archive *cat, const char *t, char **err)
+{
+    if (!strncmp(t, "object:", 7)) t += 7;
+    rec_record *best = NULL;
+    for (size_t i = 0; i < cat->objects.n; i++) {
+        rec_record *o = cat->objects.v[i];
+        const char *u = rec_get(o, "Uuid"), *n = rec_get(o, "Name");
+        if (!u || (strcmp(u, t) && (!n || strcmp(n, t)))) continue;
+        if (best && strcmp(rec_get(best, "Uuid"), u)) {
+            *err = xprintf("two data objects are called %s: name one by its Uuid (%s or %s; arv objects --json lists them)", t,
+                           rec_get(best, "Uuid"), u);
+            return NULL;
+        }
+        if (!best || atol(rec_get(o, "Version") ? rec_get(o, "Version") : "0") > atol(rec_get(best, "Version") ? rec_get(best, "Version") : "0"))
+            best = o;
+    }
+    return best;
+}
+
+/* the files of an object's version, from its disc's listing, relative to the object */
+static void items_of_object(const arv_home *h, const rec_record *o, items *out)
+{
+    items all;
+    items_of_disc(h, rec_get(o, "Disc"), &all);
+    const char *p = rec_get(o, "Path") ? rec_get(o, "Path") : ".";
+    size_t n = strlen(p);
+    memset(out, 0, sizeof *out);
+    out->v = xmalloc((all.n + 1) * sizeof *out->v);
+    for (size_t i = 0; i < all.n; i++) {
+        const char *rel = !strcmp(p, ".") ? all.v[i].path
+                          : !strcmp(all.v[i].path, p) ? strrchr(p, '/') ? strrchr(p, '/') + 1 : p
+                          : !strncmp(all.v[i].path, p, n) && all.v[i].path[n] == '/' ? all.v[i].path + n + 1 : NULL;
+        if (!rel || git_internal(rel)) continue;
+        out->v[out->n] = all.v[i];
+        out->v[out->n++].path = xstrdup(rel);
+    }
+    items_free(&all);
+}
 
 static int open_target(const char *t, const arv_home *h, archive *cat, const char *disc_root, target *out, char **err)
 {
@@ -360,8 +512,23 @@ static int open_target(const char *t, const arv_home *h, archive *cat, const cha
         out->name = xstrdup(slash && slash[1] ? slash + 1 : src);
         out->text_root = src;
         out->image_root = xstrdup(src);
+    } else if ((out->object = find_object(cat, t, err))) {
+        items_of_object(h, out->object, &out->files);
+        out->name = xstrdup(rec_get(out->object, "Name") ? rec_get(out->object, "Name") : t);
+        const char *p = rec_get(out->object, "Path") ? rec_get(out->object, "Path") : ".";
+        if (disc_root) {
+            char *data = join(disc_root, "data");
+            out->text_root = strcmp(p, ".") ? join(data, p) : xstrdup(data);
+            free(data);
+        } else if (rec_get(out->object, "Source")) {   /* where it came from, when it is still there */
+            char *root = home_root(h), *src = path_abs(root, rec_get(out->object, "Source"));
+            if (!stat(src, &st) && S_ISDIR(st.st_mode)) out->text_root = src;
+            else free(src);
+            free(root);
+        }
+        out->image_root = out->text_root ? xstrdup(out->text_root) : NULL;
     } else {
-        *err = xprintf("%s is neither a disc id in the catalogue nor a folder", t);
+        if (!*err) *err = xprintf("%s is neither a disc id in the catalogue, a folder, nor a data object (arv objects lists them)", t);
         return -1;
     }
     return 0;
@@ -425,13 +592,21 @@ int assist_describe(int argc, char **argv)
     char *err = NULL;
     if (suggested && !apply) die("%s", "--suggested goes with --apply");
     if (apply) {          /* no LLM: a saved (perhaps hand-edited, or written elsewhere) draft applied to a disc */
-        if (!disc) die("--apply needs a disc id from the catalogue, not %s", tgt);
+        rec_record *obj = disc ? NULL : find_object(&cat, tgt, &err);
+        if (err) die("%s", err);
+        if (!disc && !obj) die("--apply needs a disc id or a data object from the catalogue, not %s", tgt);
         draft d;
         draft_load(apply, &d, !suggested);    /* --suggested: a model's draft stays a suggestion, for review */
         strlist changed;
-        apply_to_disc(&h, &cat, disc, &d, d.agent, &changed);
+        if (obj) {
+            apply_object_draft(&h, &cat, obj, &d, &changed);
+            tgt = rec_get(obj, "Name") ? rec_get(obj, "Name") : tgt;
+        } else {
+            apply_to_disc(&h, &cat, disc, &d, d.agent, &changed);
+            tgt = rec_get(disc, "Id");
+        }
         char *what = joined(&changed);
-        printf("%s: updated %s\n", rec_get(disc, "Id"), *what ? what : "nothing");
+        printf("%s: updated %s\n", tgt, *what ? what : "nothing");
         free(what);
         return 0;
     }
@@ -441,7 +616,7 @@ int assist_describe(int argc, char **argv)
     if (open_target(tgt, &h, &cat, disc_root, &t, &err)) die("%s", err);
     seen s;
     if (look_at_images(&o, &c, &t, &s, &err)) die("%s", err);
-    char *inv = llm_inventory(&t.files, t.name, t.disc, t.text_root), *vis = vision_inventory_section(&s);
+    char *inv = llm_inventory(&t.files, t.name, t.disc ? t.disc : t.object, t.text_root), *vis = vision_inventory_section(&s);
     char *full = xprintf("%s%s", inv, vis);
     free(inv);
     free(vis);
@@ -459,7 +634,7 @@ int assist_describe(int argc, char **argv)
     if (rc) die("%s", err);
     vision_merge(&sug, &s);
     strlist notes;
-    const char *how = interactive ? review(&sug, t.disc) : "suggested";
+    const char *how = interactive ? review(&sug, t.object ? t.object : t.disc, !t.object) : "suggested";
     notes_of(&answers, &notes);
     char *agent = llm_agent(&c);
     if (!interactive && !save) {
@@ -475,13 +650,17 @@ int assist_describe(int argc, char **argv)
         jfree(d);
         fprintf(stderr, "Draft saved to %s (use: arv make --draft %s ...)\n", save, save);
     }
-    if (t.disc && interactive) {
-        char *q = xprintf("Apply to %s in the home catalogue? [y/N] ", rec_get(t.disc, "Id")), *a = ask(q);
+    if ((t.disc || t.object) && interactive) {
+        char *q = t.disc ? xprintf("Apply to %s in the home catalogue? [y/N] ", rec_get(t.disc, "Id"))
+                         : xprintf("Apply to the data object %s (version %s) in the home catalogue? [y/N] ", t.name,
+                                   rec_get(t.object, "Version") ? rec_get(t.object, "Version") : "1");
+        char *a = ask(q);
         if (a[0] == 'y' || a[0] == 'Y') {
             draft d;
             strlist changed;
             draft_of(&sug, &notes, how, agent, &d);
-            apply_to_disc(&h, &cat, t.disc, &d, agent, &changed);
+            if (t.object) apply_object_draft(&h, &cat, t.object, &d, &changed);
+            else apply_to_disc(&h, &cat, t.disc, &d, agent, &changed);
             char *what = joined(&changed);
             fprintf(stderr, "Updated: %s\n", *what ? what : "nothing");
             free(what);

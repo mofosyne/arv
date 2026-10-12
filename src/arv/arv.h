@@ -258,11 +258,16 @@ jv *json_get(const jv *o, const char *key);
 
 /* draft.c: the JSON drafts arv describe and arv tag write */
 typedef struct {
+    char *path, *title, *description;  /* objects: the object (its path on the disc, name or Uuid) */
+    strlist notes;
+} draft_object;
+typedef struct {
     char *title, *description, *agent, *authorship;
-    strlist subjects, notes;
-    size_t nft, ncap;
+    strlist subjects, notes, questions;
+    size_t nft, ncap, nobj;
     char **ft_folder, **cap_folder, **cap_text;
     strlist *ft_tags;
+    draft_object *obj;
 } draft;
 int is_model(const char *agent);
 void draft_load(const char *path, draft *d, int accept);

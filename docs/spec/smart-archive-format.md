@@ -472,7 +472,7 @@ about 300 characters at most), `Rights` from the manifest's licence (else a `LIC
 `COPYING` file recognised, as an SPDX id); and for a git repository, `Coverage` from its first to
 its last commit (author dates on its branches, tags and HEAD) and `Origin`, its `origin` remote
 as `host/path` (no scheme, user, password, port or `.git`; a local path is left out). No author
-names or emails are recorded. A person or a model may write them later; the
+names or emails are recorded. A person or a model may write them later (`arv describe NAME`); the
 change is a `metadata modification` event with `Object: object:UUID`, and from then on a new
 version carries over the newest one's `Title`, `Description` and `Note`s instead of reading its
 own. A version's copies have the same fields.

@@ -471,6 +471,7 @@ This is arv-assist (`src/arv-assist`, optional, in C): everything works without 
 ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM Studio, vLLM
 ./arv describe ./2025-01-13_Personal --show-inventory   # exactly what the model will see
 ./arv describe 2018-2022_PERSONAL_01                    # improve a disc that already exists
+./arv describe sensor-tool                              # or a data object (arv objects lists them)
 ./arv describe ./folder --save draft.json               # suggestions + questions; edit by hand, then:
 ./arv make ./folder --draft draft.json
 ./arv gui                                               # "Suggest" buttons in Make disc and disc details
@@ -484,6 +485,12 @@ ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM S
   Only loopback servers are allowed unless you pass `--llm-allow-remote`.
 - Folder tags (and image captions) go in `catalog/volumes/<disc-id>/tags.tsv` and are searched by
   `arv find` and the GUI.
+- **Data objects** (a plan's items, a folder made into one disc) describe themselves when they are
+  archived, with no model: their README's title and first paragraph, a package manifest's
+  description, their licence, and for a git repository its commit dates and where it was
+  published (`arv objects` shows it). `arv describe NAME` (or `object:NAME`, when a folder here has
+  the same name) improves that with a model, as for a disc: its title, description and notes, on
+  its newest version, kept by later versions.
 - **Images (`--vision`, or the checkbox in the GUI):** a few images per folder (and a
   frame per video when `ffmpeg` is installed) are shown to a local vision model. Its
   captions ("a red VW Beetle on a cobblestone street") feed the description and folder
@@ -524,10 +531,13 @@ EOF
 | `notes` | list of texts | added as `Note`s |
 | `folder_tags` | folder (relative to `data/`, `.` for all of it): list of tags | that folder's tags replaced; other folders keep theirs |
 | `folder_captions` | folder: text | that folder's caption |
+| `objects` | data object (its path on the disc, its name or its Uuid): `{"title", "description", "notes"}` | that object's, on every copy of its version |
 | `agent` | who wrote it: `human:NAME`, or a model as `llm:NAME` | names it in the event |
 | `authorship` | `human`, `suggested`, `accepted`, `edited` (as in events) | how it was written |
 
-Every key is optional. A folder the disc does not have is skipped with a warning. Each apply is
+Every key is optional. A folder or object the disc does not have is skipped with a warning. Applied
+to a data object (`arv describe NAME --apply`), a draft's `title`, `description` and `notes` are the
+object's, and the rest is left out. Each apply is
 one `metadata modification` event naming the agent. A model's draft applied by you counts as
 `accepted` by you; `--suggested` keeps it a suggestion, for a script that runs without anyone
 reading it, so a person can tell later what nobody checked. `arv make --draft` takes the same

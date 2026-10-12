@@ -1419,8 +1419,13 @@ static void stage_plan(maker *mk, size_t idx)
                 recs_add(&snap.revisions, cat->revisions.v[k]);
     }
     if (mk->revision) recs_add(&snap.revisions, mk->revision);
-    if (!strcmp(o->snapshot, "full")) {          /* the history of the places and selections it carries */
+    if (!strcmp(o->snapshot, "full")) {          /* the history of the places, selections and objects it carries */
         strlist carried = { 0 };
+        for (size_t i = 0; i < snap.objects.n; i++) {
+            char *k = xprintf("object:%s", rec_get(snap.objects.v[i], "Uuid"));
+            if (!strlist_has(&carried, k)) strlist_add(&carried, k);
+            free(k);
+        }
         for (size_t i = 0; i < snap.locations.n; i++) {
             char *k = xprintf("location:%s", rec_get(snap.locations.v[i], "Code"));
             strlist_add(&carried, k);
