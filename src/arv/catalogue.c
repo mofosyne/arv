@@ -212,6 +212,43 @@ int cmd_find(int argc, char **argv)
             any = 1;
         }
     }
+    {                                                       /* copies, by what they are known by: a scanned barcode */
+        char *ap = join(c.dir, "archive.rec");
+        archive a;
+        memset(&a, 0, sizeof a);
+        if (!access(ap, F_OK)) archive_load(&a, ap);
+        for (size_t i = 0; i < a.events.n; i++) {
+            const rec_record *e = a.events.v[i];
+            const char *disc = rec_get(e, "Disc"), *t = rec_get(e, "Type"), *o = rec_get(e, "Outcome");
+            if (!disc || !t || strcmp(t, "replication") || (o && !strcmp(o, "failure"))) continue;
+            strlist ids;
+            copy_identifiers(&a, disc, e, &ids);
+            const char *carrier = copy_carrier(&a, disc, e), *hit = NULL;
+            int on_carrier = 0;
+            for (size_t k = 0; k < ids.n && !hit; k++)
+                if (matches(pat, glob, ids.v[k]) || matches(pat, glob, strchr(ids.v[k], ':') + 1)) hit = ids.v[k];
+            if (!hit && carrier && (matches(pat, glob, carrier) || matches(pat, glob, strchr(carrier, ':') + 1)))
+                hit = carrier, on_carrier = 1;
+            if (hit) {
+                const rec_record *d = archive_disc(&a, disc);
+                const char *checked = copy_last_check(&a, disc, e), *loc = rec_get(e, "Location");
+                for (size_t k = 0; k < a.events.n; k++)
+                    if (rec_get(a.events.v[k], "Location") && event_names_copy(&a, disc, a.events.v[k], e)) loc = rec_get(a.events.v[k], "Location");
+                rec_record probe = { 0 };
+                probe.type = "Disc";
+                if (loc) rec_add(&probe, "Location", loc);
+                char *w = loc ? archive_where(&a, &probe) : xstrdup("place not recorded");
+                rec_clear(&probe);
+                printf("COPY  %s copy %s  %s%s  [%s; %s%s]\n", disc, letter_of(&a, e), hit, on_carrier ? " (the tape or drive it is on)" : "",
+                       w, checked ? "last checked " : copy_read_back(&a, disc, e) ? "read back" : "never checked", checked ? checked : "");
+                if (d && rec_get(d, "Retired")) printf("      (the disc is retired)\n");
+                free(w);
+                any = 1;
+            }
+            strlist_free(&ids);
+        }
+        free(ap);
+    }
     for (size_t i = 0; i < c.rec.nrecords; i++) {          /* data objects, by name or path */
         const rec_record *o = &c.rec.records[i];
         if (!is_type(o, "Object") || !rec_get(o, "Disc")) continue;

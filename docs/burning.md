@@ -63,13 +63,24 @@ Eject the disc and put it back (the system then forgets what it cached while wri
 each copy as it is burned:
 
 ```sh
-arv burned --device /dev/sr0 --location HOME-PUB-2026 --identifier barcode:ARV-000123   # a sticker, if you use them
+arv burned --device /dev/sr0 --location HOME-PUB-2026 --barcode ARV-000123   # the case's barcode, if you use them
 ```
 
 Each copy gets the next letter (A, B ...), and arv says which: write it on the hub and the case
 after the id. `--copy X` names it yourself instead. On Linux, where the drive reads the disc's BCA
 serial (step 7), arv records it with the copy, refuses a disc already recorded, and later
 `arv check --device` knows which copy is in the drive without being told.
+
+**Barcodes go on the case, not the disc.** A sticker on a disc unbalances it at speed and its
+adhesive can attack the recording layer over the years; put labels on the case, a caddy, or a
+jukebox magazine. Buy pre-printed sequential labels (each number once: it then names one copy,
+as a BCA serial does) rather than printing your own. A barcode on a case names the case, so a
+disc put back in the wrong case reads as the other copy: the letter on the hub and the BCA
+serial stay the disc's own identity, and the barcode is for finding it. A handheld scanner types
+the code like a keyboard, so it works wherever arv takes one: `--barcode` on `burned`, `check`,
+`identify` and `stored` (a tape's), `arv find ARV-000123` (which disc and copy is this case?),
+and `arv inventory BOX1` (scan each case on a shelf, then Ctrl-D: what is missing, what is
+unknown).
 
 arv reads the disc's volume label to know which disc it is, reads exactly the image's sectors
 from the drive (after asking the system to drop anything cached), and compares the SHA-256 with

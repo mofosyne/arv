@@ -1193,16 +1193,16 @@ int cmd_inventory(int argc, char **argv)
             if (verbose) sb_printf(&known_lines, "  %-9s %s  %s copy %s\n", tags[t].where, tags[t].barcode, disc, letter_of(&cat, e));
             if (!loc || strcmp(loc, code)) {
                 char *was = copy_place(&cat, e);
-                sb_printf(&report, "ELSEWHERE  %s %s: %s copy %s, recorded at %s (moved here? arv stored ... --copy %s --location %s, or arv locate)\n",
-                          tags[t].where, tags[t].barcode, disc, letter_of(&cat, e), *was ? was : "no place", letter_of(&cat, e), code);
+                sb_printf(&report, "ELSEWHERE  %s%s%s: %s copy %s, recorded at %s (moved here? arv stored ... --copy %s --location %s, or arv locate)\n",
+                          tags[t].where, *tags[t].where ? " " : "", tags[t].barcode, disc, letter_of(&cat, e), *was ? was : "no place", letter_of(&cat, e), code);
                 free(was);
                 elsewhere++;
             }
         }
         if (matched[t]) known++;
         else {
-            sb_printf(&report, "UNKNOWN    %s %s: not this archive's (or not recorded yet: --identifier or --carrier barcode:%s)\n",
-                      tags[t].where, tags[t].barcode, tags[t].barcode);
+            sb_printf(&report, "UNKNOWN    %s%s%s: not this archive's (or not recorded yet: --barcode %s)\n",
+                      tags[t].where, *tags[t].where ? " " : "", tags[t].barcode, tags[t].barcode);
             unknown++;
         }
         free(id);

@@ -125,6 +125,16 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - research/plan.md (2026-10-10): the catalogue's history is per thing, not a line; catalogues
   merge by event id; tampering is made evident, with the discs as witnesses.
 
+**Scanning barcodes**
+- `arv find` searches copies by what they are known by: `arv find ARV-000123` (a scanned case)
+  says which disc and copy it is, where it is kept and when it was last checked; a tape's
+  barcode finds every copy on it.
+- `--barcode CODE`, for a handheld scanner (it types like a keyboard): on `burned`, `check`,
+  `identify` and `relabel` it is `--identifier barcode:CODE`; on `stored`, the tape's
+  (`--carrier barcode:CODE`). `arv inventory PLACE` read from the keyboard is a hand shelf read.
+- docs/burning.md: barcodes go on the case, not the disc, and what a case's barcode does and
+  does not prove.
+
 **Relabelling copies, and conflicts between catalogues** (format 0.5)
 - An event about one copy names it by `Replication` (its replication's EventId, which never
   changes) as well as its letter; a copy's letter is the newest given. `arv relabel DISC-ID COPY

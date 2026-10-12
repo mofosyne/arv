@@ -338,11 +338,12 @@ arv stored FAMILY-04_2001-2025_X /nas/archive/FAMILY-04_2001-2025_X.iso --locati
   the copy it read (`arv check --device /dev/sr0 --copy B`). `arv todo` lists burned copies never
   read back, by letter.
 - A copy can also be **known by** what is on it: its factory serial (`bca:`, read by the drive
-  on Linux and recorded by `--device`), a barcode sticker (`barcode:`), what you wrote
-  (`label:`). Give them with `--identifier`, or later: `arv identify FAMILY-04_2001-2025_X B
-  barcode:ARV-000123`. A drive that reads one knows which copy is in it. Copies are counted as
-  physical discs: two records sharing a serial or barcode are one disc recorded twice, counted
-  once (`arv objects ID`, `arv audit` and `arv rebuild` say so).
+  on Linux and recorded by `--device`), a barcode on its case (`barcode:`; `--barcode CODE`
+  with a handheld scanner), what you wrote (`label:`). Give them with `--identifier`, or later:
+  `arv identify FAMILY-04_2001-2025_X B --barcode ARV-000123`. `arv find ARV-000123` says which
+  disc and copy a scanned case is, and a drive that reads one knows which copy is in it. Copies
+  are counted as physical discs: two records sharing a serial or barcode are one disc recorded
+  twice, counted once (`arv objects ID`, `arv audit` and `arv rebuild` say so).
 - A burn that does not read back identical is **not** recorded: burn again.
 - `arv stored` takes the image file (read back like a disc) or the disc's files as a folder
   (`7z x` the image; verified file by file). It is warm unless its place says otherwise.

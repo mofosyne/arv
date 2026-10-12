@@ -295,7 +295,14 @@ int cmd_check(int argc, char **argv)
     int verbose = 0, repair = 0;
     strlist ids = { 0 };            /* the copy's identifiers: given (--identifier), and the BCA the drive reads */
     for (int i = 0; i < argc; i++) {
-        if (i + 1 < argc && !strcmp(argv[i], "--identifier")) {
+        if (i + 1 < argc && !strcmp(argv[i], "--barcode")) {      /* a scanned code: --identifier barcode:CODE */
+            const char *why;
+            char *raw = xprintf("barcode:%s", argv[++i]), *id = identifier_normal(raw, &why);
+            if (!id) die2("--barcode %s: %s", argv[i], why);
+            if (!strlist_has(&ids, id)) strlist_add(&ids, id);
+            free(raw);
+            free(id);
+        } else if (i + 1 < argc && !strcmp(argv[i], "--identifier")) {
             const char *why;
             char *id = identifier_normal(argv[++i], &why);
             if (!id) die2("--identifier %s: %s", argv[i], why);
@@ -462,6 +469,14 @@ int cmd_stored(int argc, char **argv)
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--copy")) moved = argv[++i];   /* this copy, moved here */
+        else if (i + 1 < argc && !strcmp(argv[i], "--barcode")) {   /* a scanned code: the tape's (--carrier barcode:) */
+            const char *why;
+            char *raw = xprintf("barcode:%s", argv[++i]);
+            free(carrier);
+            carrier = identifier_normal(raw, &why);
+            free(raw);
+            if (!carrier) die2("--barcode %s: %s", argv[i], why);
+        }
         else if (i + 1 < argc && !strcmp(argv[i], "--carrier")) {   /* the tape or drive it is on */
             const char *why;
             free(carrier);
@@ -606,7 +621,14 @@ int cmd_burned(int argc, char **argv)
     int copies_given = 0;
     strlist ids = { 0 };            /* this disc's identifiers: given, and the BCA the drive reads */
     for (int i = 0; i < argc; i++) {
-        if (i + 1 < argc && !strcmp(argv[i], "--identifier")) {
+        if (i + 1 < argc && !strcmp(argv[i], "--barcode")) {      /* a scanned code: --identifier barcode:CODE */
+            const char *why;
+            char *raw = xprintf("barcode:%s", argv[++i]), *id = identifier_normal(raw, &why);
+            if (!id) die2("--barcode %s: %s", argv[i], why);
+            if (!strlist_has(&ids, id)) strlist_add(&ids, id);
+            free(raw);
+            free(id);
+        } else if (i + 1 < argc && !strcmp(argv[i], "--identifier")) {
             const char *why;
             char *id = identifier_normal(argv[++i], &why);
             if (!id) die2("--identifier %s: %s", argv[i], why);
@@ -769,6 +791,14 @@ int cmd_identify(int argc, char **argv)
     strlist ids = { 0 };
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (i + 1 < argc && !strcmp(argv[i], "--barcode")) {   /* a scanned code: barcode:CODE */
+            const char *why;
+            char *raw = xprintf("barcode:%s", argv[++i]), *id = identifier_normal(raw, &why);
+            if (!id) die2("--barcode %s: %s", argv[i], why);
+            if (!strlist_has(&ids, id)) strlist_add(&ids, id);
+            free(raw);
+            free(id);
+        }
         else if (i + 1 < argc && !strcmp(argv[i], "--carrier")) {
             const char *why;
             free(carrier);
@@ -847,10 +877,14 @@ int cmd_relabel(int argc, char **argv)
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--at")) at = argv[++i];
-        else if (i + 1 < argc && !strcmp(argv[i], "--identifier")) {
+        else if (i + 1 < argc && (!strcmp(argv[i], "--identifier") || !strcmp(argv[i], "--barcode"))) {
             const char *why;
+            int bare = !strcmp(argv[i], "--barcode");
+            char *raw = bare ? xprintf("barcode:%s", argv[i + 1]) : xstrdup(argv[i + 1]);
             free(id);
-            id = identifier_normal(argv[++i], &why);
+            id = identifier_normal(raw, &why);
+            free(raw);
+            i++;
             if (!id) die2("--identifier %s: %s", argv[i], why);
         } else if (argv[i][0] == '-') return 2;
         else if (!disc_id) disc_id = argv[i];

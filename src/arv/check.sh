@@ -449,6 +449,17 @@ chmod +x lib/bin/mtx
     && ok "a library: todo --tsv is the worklist, inventory reconciles mtx status with the record, and the example mtx loop loads, checks and unloads by barcode" \
     || { cat loop.out lib/mtx.log; no "the library loop"; }
 
+# scanning barcodes: find a copy by a scanned case, --barcode, and a shelf read from the keyboard
+"$tool" -C lib/.arv find DISC01 > scan.out && grep -q "^COPY  $l1 copy A  barcode:DISC01  \[Tape library; " scan.out \
+    || { cat scan.out; no "find by a scanned barcode"; }
+"$tool" -C lib/.arv find TAPE01L8 | grep -q "^COPY  $l2 copy A  barcode:TAPE01L8 (the tape or drive it is on)" || no "find by a tape's barcode"
+"$tool" -C lib/.arv identify "$l3" A --barcode " CASE07 " >/dev/null || no "identify --barcode"
+"$tool" -C lib/.arv find case07 | grep -q "^COPY  $l3 copy A  barcode:CASE07" || no "--barcode, trimmed and found again"
+printf 'DISC01\nCASE07\nNOPE9\n' | "$tool" -C lib/.arv inventory LIB1 > scan.out || true
+grep -q "^MISSING    $l2 copy A" scan.out && grep -q "^UNKNOWN    NOPE9: " scan.out && ! grep -q UNMARKED scan.out \
+    && ok "barcodes: arv find names the disc and copy of a scanned case or tape; --barcode takes a scan; inventory takes a shelf read typed by a scanner" \
+    || { cat scan.out; no "a shelf read by hand"; }
+
 # a field changed apart in two catalogues, and a copy relabelled
 mkdir -p rl/a/T && echo r > rl/a/T/f
 (cd rl/a && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --formats no --set CODE --output r.iso T >/dev/null 2>&1) || no "make in rl"
