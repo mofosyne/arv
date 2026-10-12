@@ -106,6 +106,10 @@ Ecc: none
 + and the same Tree on another disc is the same version. Disc and Path say where it is
 + (Path under data/; "." for the whole of data/). Source is where it was read from: it is
 + kept in the home catalogue only, and discs carry their objects without it.
++ Title, Description, Coverage (EDTF), Rights and Origin (where it was published, as host/path)
++ say what it is: read from its own files when it is archived (its README, package manifest,
++ licence, a repository's commits and origin remote), or written by a person or a model
++ (arv describe NAME), with Notes.
 %mandatory: Uuid Version Tree Disc Path Kind Date
 %type: Uuid uuid
 %type: Version int
@@ -139,8 +143,8 @@ Date: 2026-01-01
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
-+ Disc names the disc; a change to a location or a selection names it in Object
-+ (location:CODE, selection:CODE) instead.
++ Disc names the disc; a change to a location, a selection or a data object names it in Object
++ (location:CODE, selection:CODE, object:UUID) instead.
 + Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion

@@ -1084,6 +1084,60 @@ static int in_item(const char *path, const char *p)
     return !strcmp(path, p) || (!strncmp(path, p, n) && path[n] == '/');
 }
 
+/* has a person or a model described the object (a metadata modification event naming it)? */
+static int object_described(const archive *cat, const char *uuid)
+{
+    char *key = xprintf("object:%s", uuid);
+    int yes = 0;
+    for (size_t i = 0; i < cat->events.n && !yes; i++) {
+        const char *o = rec_get(cat->events.v[i], "Object"), *t = rec_get(cat->events.v[i], "Type");
+        yes = o && t && !strcmp(o, key) && !strcmp(t, "metadata modification");
+    }
+    free(key);
+    return yes;
+}
+
+/* an object's description (after Date): a copy of a version has the version's; else what its own
+ * files say (dir: NULL for a file), with a person's or a model's Title, Description and Notes
+ * carried over from the newest earlier version (uuid: of a new version, its lineage; else NULL) */
+static void object_about(rec_record *r, const rec_record *same, const char *uuid, long latest, const archive *cat,
+                         const recs *made_now, const char *dir, int git)
+{
+    if (same) {
+        for (size_t f = 0; f < same->nfields; f++) {
+            const char *n = same->fields[f].name;
+            for (int k = 0; ABOUT_FIELDS[k]; k++)
+                if (!strcmp(n, ABOUT_FIELDS[k])) rec_add(r, n, same->fields[f].value);
+            if (!strcmp(n, "Note")) rec_add(r, n, same->fields[f].value);
+        }
+        return;
+    }
+    about_info a = { 0 };
+    if (dir) about_read(dir, git, &a);
+    const char *values[5];
+    about_fields(&a, values);
+    const rec_record *before = NULL;
+    if (uuid && object_described(cat, uuid)) {
+        const recs *both[2] = { &cat->objects, made_now };
+        for (int b = 0; b < 2; b++)
+            for (size_t i = 0; i < both[b]->n; i++) {
+                const rec_record *o = both[b]->v[i];
+                if (rec_get(o, "Uuid") && !strcmp(rec_get(o, "Uuid"), uuid) && rec_get(o, "Version")
+                    && atol(rec_get(o, "Version")) == latest)
+                    before = o;
+            }
+    }
+    if (before) {
+        values[0] = rec_get(before, "Title") ? rec_get(before, "Title") : values[0];
+        values[1] = rec_get(before, "Description") ? rec_get(before, "Description") : values[1];
+    }
+    for (int k = 0; ABOUT_FIELDS[k]; k++)
+        if (values[k]) rec_add(r, ABOUT_FIELDS[k], values[k]);
+    for (size_t f = 0; before && f < before->nfields; f++)
+        if (!strcmp(before->fields[f].name, "Note")) rec_add(r, "Note", before->fields[f].value);
+    about_free(&a);
+}
+
 void plan_objects(const disc_plan *dp, int disc, const entries *files, const archive *cat, const recs *made_now,
                   const char *disc_id, const char *today, recs *out, strlist *manifests)
 {
@@ -1171,12 +1225,24 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
         rec_add(r, "Files", n_files);
         rec_add(r, "Bytes", n_bytes);
         rec_add(r, "Date", today);
+        object_about(r, same, from ? uuid : NULL, latest, cat, made_now, is_file ? NULL : it->source, git);
         rec_add(r, "Source", stored);
         recs_add(out, r);
         strlist_add(manifests, text.s);
         fprintf(stderr, "Object %s%s (data/%s on %s): %s\n", rec_get(r, "Name"), is_file ? "" : "/", top ? "" : it->path, disc_id,
                 same ? "the same as a version already archived (another copy of it)"
                 : from ? "a new version of what was archived from there before" : "new");
+        sbuf said = { 0}, facts = { 0 };         /* "Title": description (coverage; rights; origin) */
+        const char *t = rec_get(r, "Title"), *d = rec_get(r, "Description");
+        if (t) sb_printf(&said, "\"%s\"%s", t, d ? ": " : "");
+        if (d) sb_puts(&said, d);
+        for (int f = 2; ABOUT_FIELDS[f]; f++)
+            if (rec_get(r, ABOUT_FIELDS[f])) sb_printf(&facts, "%s%s", facts.len ? "; " : "", rec_get(r, ABOUT_FIELDS[f]));
+        if (said.len || facts.len)
+            fprintf(stderr, "  about it: %s%s%s%s\n", said.len ? said.s : "", said.len && facts.len ? " (" : "",
+                    facts.len ? facts.s : "", said.len && facts.len ? ")" : "");
+        free(said.s);
+        free(facts.s);
         free(text.s);
         free(stored);
         strlist_free(&lines);

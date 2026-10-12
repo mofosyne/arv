@@ -249,11 +249,14 @@ int cmd_find(int argc, char **argv)
         }
         free(ap);
     }
-    for (size_t i = 0; i < c.rec.nrecords; i++) {          /* data objects, by name or path */
+    for (size_t i = 0; i < c.rec.nrecords; i++) {          /* data objects, by name, path, title or description */
         const rec_record *o = &c.rec.records[i];
         if (!is_type(o, "Object") || !rec_get(o, "Disc")) continue;
         const char *name = rec_get(o, "Name") ? rec_get(o, "Name") : "", *path = rec_get(o, "Path") ? rec_get(o, "Path") : "";
-        if (!matches(pat, glob, name) && !matches(pat, glob, path)) continue;
+        int hit = matches(pat, glob, name) || matches(pat, glob, path);
+        for (int k = 0; !hit && k < 2; k++)          /* and what it says about itself: Title, Description */
+            hit = rec_get(o, ABOUT_FIELDS[k]) && matches(pat, glob, rec_get(o, ABOUT_FIELDS[k]));
+        if (!hit) continue;
         const rec_record *d = find_disc(&c, rec_get(o, "Disc"));
         char *w = d ? found_at(&c, d) : xstrdup("");
         int folder = strcmp(rec_get(o, "Kind") ? rec_get(o, "Kind") : "", "file");

@@ -59,6 +59,18 @@ void draft_load(const char *path, draft *d, int accept)
         d->cap_folder[d->ncap] = xstrdup(caps->keys[i]);
         d->cap_text[d->ncap++] = xstrdup(caps->vals[i]->str);
     }
+    const jv *objs = json_get(doc, "objects");         /* {PATH: {title, description, notes}} */
+    for (size_t i = 0; objs && objs->kind == 'o' && i < objs->n; i++) {
+        if (objs->vals[i]->kind != 'o') continue;
+        d->obj = xrealloc(d->obj, (d->nobj + 1) * sizeof *d->obj);
+        draft_object *o = &d->obj[d->nobj++];
+        memset(o, 0, sizeof *o);
+        o->path = xstrdup(objs->keys[i]);
+        o->title = jtext(json_get(objs->vals[i], "title"));
+        o->description = jtext(json_get(objs->vals[i], "description"));
+        jlist(json_get(objs->vals[i], "notes"), &o->notes);
+    }
+    jlist(json_get(doc, "questions"), &d->questions);
     d->agent = jtext(json_get(doc, "agent"));
     if (!d->agent) d->agent = xstrdup("draft");
     static const char *const kinds[] = { "automatic", "suggested", "accepted", "edited", "human", NULL };

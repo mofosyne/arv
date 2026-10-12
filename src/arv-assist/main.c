@@ -1,8 +1,8 @@
 /*
  * arv-assist: arv's optional local-AI helpers. arv runs it for these commands:
  *
- *   arv describe FOLDER|DISC-ID [--save DRAFT] [--apply DRAFT|-] ...   title, description, subjects and
- *                                         folder tags from a local LLM, reviewed by you
+ *   arv describe FOLDER|DISC-ID|OBJECT [--save DRAFT] [--apply DRAFT|-] ...   title, description,
+ *                                         subjects and folder tags from a local LLM, reviewed by you
  *   arv tag FOLDER|DISC-ID [--save DRAFT] [--apply] ...   folder tags from your tag vocabulary
  *   arv models fetch|status|build-runtime        the small built-in model for arv tag
  *
@@ -17,7 +17,9 @@
 #include <string.h>
 
 static const char USAGE[] =
-    "usage: arv describe FOLDER|DISC-ID [--save DRAFT] [--apply DRAFT|- [--suggested]] [--disc-root DIR] [--rounds N] [--questions N]\n"
+    "usage: arv describe FOLDER|DISC-ID|OBJECT [--save DRAFT] [--apply DRAFT|- [--suggested]] [--disc-root DIR] [--rounds N]\n"
+    "                    [--questions N]\n"
+    "       arv describe DISC-ID|OBJECT --answer   the questions kept from before (arv todo lists them); no model needed\n"
     "                    [--show-inventory] [--llm-url URL] [--llm-model NAME] [--llm-allow-remote]\n"
     "                    [--vision [--vision-model NAME] [--vision-url URL] [--vision-per-folder N] [--vision-max N]]\n"
     "       arv tag FOLDER|DISC-ID [--save DRAFT] [--apply] [--top N] [--vocab FILE] [--disc-root DIR] [--rules-only]\n"

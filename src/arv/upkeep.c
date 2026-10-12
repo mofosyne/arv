@@ -332,6 +332,18 @@ static void objects_json(const archive *cat, const char *root)
         json_str(&b, get_or(o, "Name", "?"));
         sb_puts(&b, ", \"kind\": ");
         json_str(&b, get_or(o, "Kind", "?"));
+        static const char *const keys[] = { "title", "description", "coverage", "rights", "origin" };
+        for (int k = 0; ABOUT_FIELDS[k]; k++) {        /* what it says about itself: "" when not known */
+            sb_printf(&b, ", \"%s\": ", keys[k]);
+            json_str(&b, get_or(o, ABOUT_FIELDS[k], ""));
+        }
+        sb_puts(&b, ", \"notes\": [");
+        for (size_t f = 0, n = 0; f < o->nfields; f++)
+            if (!strcmp(o->fields[f].name, "Note")) {
+                if (n++) sb_puts(&b, ", ");
+                json_str(&b, o->fields[f].value);
+            }
+        sb_puts(&b, "]");
         sb_printf(&b, ", \"versions\": %ld, \"newest\": ", last);
         holding_json(&hd, &b);
         sb_puts(&b, ", \"sources\": [");
@@ -449,6 +461,21 @@ static int disc_copies_shown(const archive *cat, const char *id, int as_json)
     return 0;
 }
 
+/* what an object's newest version says about it: "Title": description (coverage; rights; origin),
+ * and its notes when asked about it alone */
+static void about_text(const rec_record *o, int notes)
+{
+    const char *t = rec_get(o, "Title"), *d = rec_get(o, "Description");
+    if (t || d) printf("    %s%s%s%s%s\n", t ? "\"" : "", t ? t : "", t ? "\"" : "", t && d ? ": " : "", d ? d : "");
+    sbuf facts = { 0 };
+    for (int k = 2; ABOUT_FIELDS[k]; k++)
+        if (rec_get(o, ABOUT_FIELDS[k])) sb_printf(&facts, "%s%s", facts.len ? "; " : "", rec_get(o, ABOUT_FIELDS[k]));
+    if (facts.len) printf("    %s\n", facts.s);
+    free(facts.s);
+    for (size_t f = 0; notes && f < o->nfields; f++)
+        if (!strcmp(o->fields[f].name, "Note")) printf("    note: %s\n", o->fields[f].value);
+}
+
 int cmd_objects(int argc, char **argv)
 {
     const char *given = NULL, *want = NULL;
@@ -493,6 +520,7 @@ int cmd_objects(int argc, char **argv)
         printf("  %s%s  %s, %ld version%s; newest: %s\n", name, file ? "" : "/", get_or(o, "Kind", "?"), last, last == 1 ? "" : "s",
                line.s);
         free(line.s);
+        about_text(o, want != NULL);
         strlist src = { 0 };
         char *root = home_root(&h);
         object_sources(root, &top, &src);
@@ -801,6 +829,27 @@ int cmd_todo(int argc, char **argv)
     if (!items && !cat.discs.n)
         puts("No discs yet, so nothing is owed. Start with arv collection init FOLDER (or arv make FOLDER for a one-off disc).");
     else if (!items) printf("Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within %d years.\n", years);
+    question_list q;                /* last, and not owed: a missing description is never as urgent as a missing copy */
+    questions_load(&h, &q);
+    strlist asked = { 0 };
+    int s11 = 0;
+    for (size_t i = 0; i < q.n; i++) {
+        const char *about = q.v[i].about;
+        if (q.v[i].skipped || strlist_has(&asked, about)) continue;
+        strlist_add(&asked, about);
+        int known = 0;
+        if (strncmp(about, "object:", 7)) known = archive_disc(&cat, about) && !retired(&cat, about);
+        else
+            for (size_t k = 0; k < cat.objects.n && !known; k++) known = !strcmp(get_or(cat.objects.v[k], "Uuid", ""), about + 7);
+        if (!known) continue;
+        heading(&s11, "Questions waiting for an answer, never urgent (arv describe DISC-ID|OBJECT --answer):");
+        size_t n = questions_open(&q, about);
+        char *name = question_about_name(&cat, about);
+        printf("  %s  %zu question%s%s\n", name, n, n == 1 ? "" : "s", strncmp(about, "object:", 7) ? "" : " (data object)");
+        free(name);
+    }
+    strlist_free(&asked);
+    questions_free(&q);
     return 0;
 }
 
