@@ -381,6 +381,18 @@ Collections:
     FAM-02_2019_Y  disc cold (read back), iso warm (read back), folder warm (read back); at BOX1; The NAS
 ```
 
+A data object says what it is when its own files say so, read when it is archived, with no model:
+its README's title and first paragraph, a package manifest's description, its licence, and for a
+git repository the dates of its first and last commits and where it was published:
+
+```
+  tool/  git, 1 version; newest: 1 copy on 1 disc, 1 cold, 1 read back
+    "Tool": Tool turns sensor logs into plots. It is small.
+    2011-02-03/2014-05-06; MIT; example.invalid/tools/tool
+```
+
+`arv find` searches these too.
+
 **Retiring** an edition a newer safe one replaces (`arv retire FAMILY`) lists any files that
 exist only on the discs being retired (not in the newer edition: they left the workflow folder), and records nothing
 until `--yes`. Then each disc is marked retired, leaves its places, and gets an event saying what

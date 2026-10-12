@@ -788,7 +788,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (!kept) return;
     var want = $("o-filter").value.trim().toLowerCase(), attention = 0, shown = 0;
     function match(name) { return !want || name.toLowerCase().indexOf(want) >= 0; }
-    var objs = kept.objects.filter(function (o) { return match(o.name); });
+    var objs = kept.objects.filter(function (o) { return match(o.name) || match(o.title || "") || match(o.description || ""); });
     var colls = kept.collections.filter(function (c) { return match(c.code) || match(c.title); });
     if (objs.length) list.appendChild(el("h2", { text: "Data objects" }));
     objs.forEach(function (o) {
@@ -797,6 +797,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       card.appendChild(el("h3", {}, [icon(o.name, o.kind), el("span", { class: "mono", text: o.name + (o.kind === "file" ? "" : "/") }),
         el("span", { class: "facts", text: o.kind + ", " + o.versions + (o.versions === 1 ? " version" : " versions") +
                                              "; newest: " + facts(o.newest) })]));
+      if (o.title || o.description)      // what it says about itself (its README ...), or what was written about it
+        card.appendChild(el("p", {}, [el("strong", { text: o.title || "" }),
+          document.createTextNode((o.title && o.description ? ": " : "") + (o.description || ""))]));
+      var about = [o.coverage, o.rights, o.origin].filter(function (x) { return x; }).join("; ");
+      if (about) card.appendChild(el("div", { class: "muted", text: about }));
+      (o.notes || []).forEach(function (n) { card.appendChild(el("div", { class: "muted", text: "Note: " + n })); });
       o.todo.forEach(function (t) { card.appendChild(el("div", { class: "todo", text: t })); });
       o.sources.forEach(function (s, i) {
         card.appendChild(el("div", { class: "src" }, [document.createTextNode((i ? "and " : "from ") + s.path + " "),

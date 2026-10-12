@@ -212,6 +212,16 @@ typedef struct {
 void git_prepare(const char *src, const char *workdir, const char *since, entries *files, gitrepos *out);
 char *git_tsv_for(const gitrepos *g, const entries *disc_files);
 int git_internal(const char *path);
+/* about.c: what a data object says about itself, by rules (README, manifests, licence, git) */
+typedef struct {
+    char *title, *description, *coverage, *rights, *origin;
+} about;
+void about_read(const char *dir, int git, about *out);
+int about_any(const about *a);
+void about_free(about *a);
+char *about_origin(const char *url);                    /* a remote URL as host/path; NULL for a local path */
+extern const char *const ABOUT_FIELDS[];                /* Title, Description, Coverage, Rights, Origin */
+void about_fields(const about *a, const char *values[5]);
 const char *disc_read_back(const archive *cat, const char *id);   /* upkeep.c: a copy known good */
 int edition_safe(const archive *cat, const rec_record *rev);
 

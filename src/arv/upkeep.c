@@ -290,6 +290,18 @@ static void objects_json(const archive *cat, const char *root)
         json_str(&b, get_or(o, "Name", "?"));
         sb_puts(&b, ", \"kind\": ");
         json_str(&b, get_or(o, "Kind", "?"));
+        static const char *const keys[] = { "title", "description", "coverage", "rights", "origin" };
+        for (int k = 0; ABOUT_FIELDS[k]; k++) {        /* what it says about itself: "" when not known */
+            sb_printf(&b, ", \"%s\": ", keys[k]);
+            json_str(&b, get_or(o, ABOUT_FIELDS[k], ""));
+        }
+        sb_puts(&b, ", \"notes\": [");
+        for (size_t f = 0, n = 0; f < o->nfields; f++)
+            if (!strcmp(o->fields[f].name, "Note")) {
+                if (n++) sb_puts(&b, ", ");
+                json_str(&b, o->fields[f].value);
+            }
+        sb_puts(&b, "]");
         sb_printf(&b, ", \"versions\": %ld, \"newest\": ", last);
         holding_json(&hd, &b);
         sb_puts(&b, ", \"sources\": [");
@@ -367,6 +379,21 @@ static void objects_json(const archive *cat, const char *root)
     strlist_free(&seen);
 }
 
+/* what an object's newest version says about it: "Title": description (coverage; rights; origin),
+ * and its notes when asked about it alone */
+static void about_text(const rec_record *o, int notes)
+{
+    const char *t = rec_get(o, "Title"), *d = rec_get(o, "Description");
+    if (t || d) printf("    %s%s%s%s%s\n", t ? "\"" : "", t ? t : "", t ? "\"" : "", t && d ? ": " : "", d ? d : "");
+    sbuf facts = { 0 };
+    for (int k = 2; ABOUT_FIELDS[k]; k++)
+        if (rec_get(o, ABOUT_FIELDS[k])) sb_printf(&facts, "%s%s", facts.len ? "; " : "", rec_get(o, ABOUT_FIELDS[k]));
+    if (facts.len) printf("    %s\n", facts.s);
+    free(facts.s);
+    for (size_t f = 0; notes && f < o->nfields; f++)
+        if (!strcmp(o->fields[f].name, "Note")) printf("    note: %s\n", o->fields[f].value);
+}
+
 int cmd_objects(int argc, char **argv)
 {
     const char *given = NULL, *want = NULL;
@@ -410,6 +437,7 @@ int cmd_objects(int argc, char **argv)
         printf("  %s%s  %s, %ld version%s; newest: %s\n", name, file ? "" : "/", get_or(o, "Kind", "?"), last, last == 1 ? "" : "s",
                line.s);
         free(line.s);
+        about_text(o, want != NULL);
         strlist src = { 0 };
         char *root = home_root(&h);
         object_sources(root, &top, &src);

@@ -152,6 +152,34 @@ grep -q "git proj: diverged from CODE-0.*: 1 commit on no disc" g/status.txt && 
     || { cat g/status.txt; no "git: status, diverged or new"; }
 "$tool" find -C g/home "$(git -C g/src/proj rev-parse --short=9 HEAD~1)" | grep -q "^GIT   CODE-01.*proj  commit .*(HEAD, refs/heads/main)" \
     && ok "git: arv find COMMIT names the discs holding it" || no "git: find a commit"
+# ------------------------------------------------------------------ data objects describe themselves
+mkdir -p ab/pc/tool ab/pc/bare
+(
+    cd ab/pc/tool && git init -q -b main
+    printf '[![ci](https://ci.invalid/badge.svg)](https://ci.invalid)\n\n# Tool\n\n> [!NOTE]\n> Old.\n\nTool turns **sensor logs**\ninto [plots](https://x.invalid). It is small.\n\n## Use\n' > README.md
+    printf 'MIT License\n\nPermission is hereby granted, free of charge, to any person\n' > LICENSE
+    git add -A && GIT_AUTHOR_DATE=2011-02-03T00:00:00Z GIT_COMMITTER_DATE=2011-02-03T00:00:00Z gitenv git commit -qm one
+    echo 2 > two && git add two && GIT_AUTHOR_DATE=2014-05-06T00:00:00Z GIT_COMMITTER_DATE=2014-05-06T00:00:00Z gitenv git commit -qm two
+    git remote add origin https://me:secret@example.invalid/tools/tool.git
+    echo wip > two && gitenv git stash -q
+)
+echo x > ab/pc/bare/x.dat
+{ "$tool" -C ab/home plan new kit --set KIT && "$tool" -C ab/home plan add kit ab/pc/tool && "$tool" -C ab/home plan add kit ab/pc/bare; } \
+    >/dev/null 2>&1 || no "a plan of two objects"
+"$tool" -C ab/home plan make kit -y --no-ecc --formats no --output-dir ab/out >ab/make.txt 2>&1 || { cat ab/make.txt; no "plan make (objects)"; }
+"$tool" objects -C ab/home tool > ab/objects.txt
+grep -qx '    "Tool": Tool turns sensor logs into plots. It is small.' ab/objects.txt \
+    && grep -qx '    2011-02-03/2014-05-06; MIT; example.invalid/tools/tool' ab/objects.txt \
+    && grep -q 'about it: "Tool": Tool turns' ab/make.txt \
+    && ok "objects: a repository describes itself: its README's title and first paragraph, its licence, its commit dates (not the stash's) and origin (no credentials)" \
+    || { cat ab/objects.txt; no "objects: described by its own files"; }
+7z x -oab/disc ab/out/*.iso catalog.rec >/dev/null
+grep -qx 'Title: Tool' ab/disc/catalog.rec && grep -qx 'Origin: example.invalid/tools/tool' ab/disc/catalog.rec \
+    && [ "$(grep -c '^Title: ' ab/disc/catalog.rec)" -eq 2 ] \
+    && "$tool" find -C ab/home 'sensor logs' | grep -q '^OBJECT  tool/' \
+    && "$tool" objects -C ab/home --json | grep -q '"name": "bare", "kind": "folder", "title": "",' \
+    && ok "objects: the disc carries what they say (a folder with no README says nothing); arv find searches it" \
+    || no "objects: on the disc, find or --json"
 # ------------------------------------------------------------------ what depends on the machine
 "$tool" make -C hist --no-ecc --formats no --set CODE --tools-history --output-dir hist-out src >hist.txt 2>&1 \
     || no "arv make --tools-history"
