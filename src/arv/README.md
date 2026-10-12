@@ -157,6 +157,7 @@ and `make check` passes under AddressSanitizer and UndefinedBehaviorSanitizer (w
 | `collection.c` | `collection`: workflow folders, their markers, revisions (Tree and Node) |
 | `gitrepo.c` | git repositories: the compacted `.git`, `--git-since`, `git.tsv` |
 | `about.c` | what a data object says about itself: its README, package manifest, licence and git history |
+| `questions.c` | questions kept until answered (`<home>/drafts/questions.rec`), for `todo` and `describe --answer` |
 | `upkeep.c` | `todo`, `retire`: copies known good, safe editions |
 | `status.c` | `status`, `checkpoint`, `log`, `diff`, `link`; the hash cache (`<home>/cache/hashes.tsv`) |
 | `data/` | the data files: descriptors.rec, readme.txt (each disc's README.txt), index.css, default_sets.rec, default_tags.rec |

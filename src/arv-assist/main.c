@@ -19,6 +19,7 @@
 static const char USAGE[] =
     "usage: arv describe FOLDER|DISC-ID|OBJECT [--save DRAFT] [--apply DRAFT|- [--suggested]] [--disc-root DIR] [--rounds N]\n"
     "                    [--questions N]\n"
+    "       arv describe DISC-ID|OBJECT --answer   the questions kept from before (arv todo lists them); no model needed\n"
     "                    [--show-inventory] [--llm-url URL] [--llm-model NAME] [--llm-allow-remote]\n"
     "                    [--vision [--vision-model NAME] [--vision-url URL] [--vision-per-folder N] [--vision-max N]]\n"
     "       arv tag FOLDER|DISC-ID [--save DRAFT] [--apply] [--top N] [--vocab FILE] [--disc-root DIR] [--rules-only]\n"

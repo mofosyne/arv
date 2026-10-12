@@ -164,8 +164,9 @@ mkdir -p ab/pc/tool ab/pc/bare
     echo wip > two && gitenv git stash -q
 )
 echo x > ab/pc/bare/x.dat
-{ "$tool" -C ab/home plan new kit --set KIT && "$tool" -C ab/home plan add kit ab/pc/tool && "$tool" -C ab/home plan add kit ab/pc/bare; } \
-    >/dev/null 2>&1 || no "a plan of two objects"
+mkdir -p ab/pc/nodoc && (cd ab/pc/nodoc && git init -q -b main && echo 1 > main.c && git add main.c && gitenv git commit -qm one)
+{ "$tool" -C ab/home plan new kit --set KIT && "$tool" -C ab/home plan add kit ab/pc/tool && "$tool" -C ab/home plan add kit ab/pc/bare \
+    && "$tool" -C ab/home plan add kit ab/pc/nodoc; } >/dev/null 2>&1 || no "a plan of three objects"
 "$tool" -C ab/home plan make kit -y --no-ecc --formats no --output-dir ab/out >ab/make.txt 2>&1 || { cat ab/make.txt; no "plan make (objects)"; }
 "$tool" objects -C ab/home tool > ab/objects.txt
 grep -qx '    "Tool": Tool turns sensor logs into plots. It is small.' ab/objects.txt \
@@ -180,6 +181,13 @@ grep -qx 'Title: Tool' ab/disc/catalog.rec && grep -qx 'Origin: example.invalid/
     && "$tool" objects -C ab/home --json | grep -q '"name": "bare", "kind": "folder", "title": "",' \
     && ok "objects: the disc carries what they say (a folder with no README says nothing); arv find searches it" \
     || no "objects: on the disc, find or --json"
+"$tool" todo -C ab/home > ab/todo.txt
+grep -q "1 question kept for later" ab/make.txt && grep -q "^Questions waiting for an answer" ab/todo.txt \
+    && grep -qx "  nodoc/  1 question (data object)" ab/todo.txt && [ "$(tail -1 ab/todo.txt)" = "  nodoc/  1 question (data object)" ] \
+    && grep -qx "Text: What is nodoc for? It has no README to say." ab/home/drafts/questions.rec \
+    && ! grep -q "Question\|nodoc for" ab/disc/catalog.rec \
+    && ok "questions: a repository that says nothing about itself gets one, from arv; arv todo lists it last; never on a disc" \
+    || { cat ab/make.txt ab/todo.txt; no "questions: kept, and listed by todo"; }
 # ------------------------------------------------------------------ what depends on the machine
 "$tool" make -C hist --no-ecc --formats no --set CODE --tools-history --output-dir hist-out src >hist.txt 2>&1 \
     || no "arv make --tools-history"

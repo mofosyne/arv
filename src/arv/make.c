@@ -1297,6 +1297,40 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
     }
 }
 
+/* questions kept for later (arv todo, arv describe ID --answer): the draft's, about the disc (the
+ * first, when split); and arv's own about a git repository that says nothing about itself */
+static void keep_questions(maker *mk)
+{
+    question_list q;
+    questions_load(mk->h, &q);
+    size_t kept = 0;
+    if (mk->draft && mk->draft->questions.n)
+        kept += questions_add(&q, mk->cat, mk->plans[0].disc_id, &mk->draft->questions, mk->draft->agent, mk->today);
+    for (size_t i = 0; i < mk->nplans; i++)
+        for (size_t k = 0; k < mk->plans[i].objects.n; k++) {
+            const rec_record *o = mk->plans[i].objects.v[k];
+            if (strcmp(rec_get(o, "Kind") ? rec_get(o, "Kind") : "", "git") || rec_get(o, "Title") || rec_get(o, "Description")
+                || strcmp(rec_get(o, "Version") ? rec_get(o, "Version") : "", "1"))
+                continue;
+            if (!strcmp(rec_get(o, "Path") ? rec_get(o, "Path") : "", ".") && rec_get(mk->plans[i].disc, "Description"))
+                continue;                           /* the whole disc, and the disc says what it is */
+            char *about = xprintf("object:%s", rec_get(o, "Uuid"));
+            strlist one = { 0 };
+            char *text = xprintf("What is %s for? It has no README to say.", rec_get(o, "Name") ? rec_get(o, "Name") : "it");
+            strlist_add(&one, text);
+            kept += questions_add(&q, mk->cat, about, &one, mk->software, mk->today);
+            strlist_free(&one);
+            free(text);
+            free(about);
+        }
+    if (kept) {
+        questions_save(&q);
+        fprintf(stderr, "%zu question%s kept for later: arv todo lists them, arv describe ID --answer asks them\n", kept,
+                kept == 1 ? "" : "s");
+    }
+    questions_free(&q);
+}
+
 static void batch_files(maker *mk)
 {
     char *batch = join(mk->workdir, "batch");
@@ -1917,6 +1951,7 @@ static int make_discs(maker *mk)
         free(dir);
     }
     archive_save(mk->cat, mk->h->rec_path);
+    keep_questions(mk);
     if (mk->collection || mk->dplan) hash_cache_note(mk->h, mk->files);
     if (o->plan) {                  /* the plan says what became of it */
         strlist ids = { 0 };

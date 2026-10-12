@@ -215,13 +215,13 @@ int git_internal(const char *path);
 /* about.c: what a data object says about itself, by rules (README, manifests, licence, git) */
 typedef struct {
     char *title, *description, *coverage, *rights, *origin;
-} about;
-void about_read(const char *dir, int git, about *out);
-int about_any(const about *a);
-void about_free(about *a);
+} about_info;
+void about_read(const char *dir, int git, about_info *out);
+int about_any(const about_info *a);
+void about_free(about_info *a);
 char *about_origin(const char *url);                    /* a remote URL as host/path; NULL for a local path */
 extern const char *const ABOUT_FIELDS[];                /* Title, Description, Coverage, Rights, Origin */
-void about_fields(const about *a, const char *values[5]);
+void about_fields(const about_info *a, const char *values[5]);
 const char *disc_read_back(const archive *cat, const char *id);   /* upkeep.c: a copy known good */
 int edition_safe(const archive *cat, const rec_record *rev);
 
@@ -273,6 +273,26 @@ int is_model(const char *agent);
 void draft_load(const char *path, draft *d, int accept);
 rec_record *reviewed_event(const char *disc_id, const char *agent, const char *how, const char *note);
 char *tag_normalise(const char *tag);       /* tags.c: 'Place : Kyoto ' -> 'place:kyoto' */
+
+/* questions.c: questions kept until answered (<home>/drafts/questions.rec, home only) */
+typedef struct {
+    char *about;            /* a disc id, or object:UUID */
+    char *text, *asked, *agent;
+    char *skipped;          /* the date it was skipped, or NULL: open */
+} question;
+typedef struct {
+    question *v;
+    size_t n;
+    char *path;
+} question_list;
+void questions_load(const arv_home *h, question_list *q);
+void questions_save(const question_list *q);
+void questions_free(question_list *q);
+size_t questions_open(const question_list *q, const char *about);
+size_t questions_add(question_list *q, const archive *cat, const char *about, const strlist *texts, const char *agent,
+                     const char *today);                /* how many were new (at most 5 open each) */
+void questions_close(question_list *q, const char *about, const char *text, const char *skipped);
+char *question_about_name(const archive *cat, const char *about);
 
 /* rocrate.c: --ro-crate */
 char *rocrate_metadata(const rec_record *disc, const entries *files, const formats *fmt);

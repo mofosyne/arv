@@ -656,6 +656,27 @@ int cmd_todo(int argc, char **argv)
     if (!items && !cat.discs.n)
         puts("No discs yet, so nothing is owed. Start with arv collection init FOLDER (or arv make FOLDER for a one-off disc).");
     else if (!items) printf("Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within %d years.\n", years);
+    question_list q;                /* last, and not owed: a missing description is never as urgent as a missing copy */
+    questions_load(&h, &q);
+    strlist asked = { 0 };
+    int s11 = 0;
+    for (size_t i = 0; i < q.n; i++) {
+        const char *about = q.v[i].about;
+        if (q.v[i].skipped || strlist_has(&asked, about)) continue;
+        strlist_add(&asked, about);
+        int known = 0;
+        if (strncmp(about, "object:", 7)) known = archive_disc(&cat, about) && !retired(&cat, about);
+        else
+            for (size_t k = 0; k < cat.objects.n && !known; k++) known = !strcmp(get_or(cat.objects.v[k], "Uuid", ""), about + 7);
+        if (!known) continue;
+        heading(&s11, "Questions waiting for an answer, never urgent (arv describe DISC-ID|OBJECT --answer):");
+        size_t n = questions_open(&q, about);
+        char *name = question_about_name(&cat, about);
+        printf("  %s  %zu question%s%s\n", name, n, n == 1 ? "" : "s", strncmp(about, "object:", 7) ? "" : " (data object)");
+        free(name);
+    }
+    strlist_free(&asked);
+    questions_free(&q);
     return 0;
 }
 

@@ -1112,7 +1112,7 @@ static void object_about(rec_record *r, const rec_record *same, const char *uuid
         }
         return;
     }
-    about a = { 0 };
+    about_info a = { 0 };
     if (dir) about_read(dir, git, &a);
     const char *values[5];
     about_fields(&a, values);

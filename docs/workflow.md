@@ -431,6 +431,13 @@ is lost or damaged.
 - data objects whose newest version has no cold copy, or that are no longer where they came
   from with fewer than two copies left.
 
+Last, and never counted as owed, it lists the **questions waiting for an answer**: a model's
+questions about a disc, from a draft made while nobody was there to answer (`arv describe FOLDER
+--save`, then `arv make --draft`, or a draft applied with `arv describe ID --apply`), and arv's own
+about a git repository with no README ("What is it for?"). `arv describe ID --answer` asks them,
+with no model needed: each answer is kept as a note, Enter skips one for good, `.` leaves the rest
+for another day. They are kept in the home only (`drafts/questions.rec`), never on a disc.
+
 **Checking** every few years: `arv check --device /dev/sr0` reads a disc back against its
 image's hash and logs it, for the copy in the drive: named with `--copy B`, found by its BCA
 serial where the drive reads one, or the disc's only copy. A disc that needed repair is a

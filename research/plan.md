@@ -1218,3 +1218,5 @@ dropped them.
   person; Enter skips it for good; `.` stops, leaving the rest open. Plain `arv describe ID` at a
   terminal asks them first, and the model then sees the answers with the rest of the record.
 - **Later:** answering in the GUI's disc details.
+- **Done (2026-10-12):** all of the above (`src/arv/about.c`, `src/arv/questions.c`,
+  `arv describe NAME`, `--answer`); the GUI's Owed count leaves the questions out.

@@ -413,8 +413,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   $("owed-line").onclick = function () { showTab("owed"); };
 
   // ---------------------------------------------------------------- verify: what is owed (arv todo)
-  function owedLine(text) {
-    var items = text.split("\n").filter(function (l) { return /^  \S/.test(l); }).length, b = $("owed-line");
+  function owedLine(text) {     // the questions waiting for an answer come last, and are not owed
+    var items = text.split(/\nQuestions waiting/)[0].split("\n").filter(function (l) { return /^  \S/.test(l); }).length,
+        b = $("owed-line");
     b.textContent = items ? items + (items === 1 ? " thing owed" : " things owed") : "Nothing owed";
     b.className = "link " + (items ? "owed" : "clear");
   }

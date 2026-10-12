@@ -102,6 +102,15 @@ grep -q "^photos	travel" "$tsv" && grep -q "^photos/2019 trip	event:trip-2019" "
 # ------------------------------------------------------------------ data objects
 # the folder made into a disc above is a data object; it said what its README says
 grep -q "^Description: Pictures from our holiday.$" home/catalog/archive.rec || no "the object's description by rules"
+"$tool" --home home describe "$id" $llm --show-inventory > dinv.txt
+mkdir -p Code/proj && (cd Code/proj && git init -q && printf '# Proj\n\nProj reads the weather station logs.\n' > README.md \
+    && git add -A && GIT_AUTHOR_DATE=2012-01-01T00:00:00Z git -c user.name=t -c user.email=t@example.invalid commit -qm one)
+"$tool" describe Code $llm --show-inventory > cinv.txt
+grep -qx "  the whole disc: Pictures from our holiday." dinv.txt \
+    && grep -q "^Git repositories in it, as they describe themselves:" cinv.txt \
+    && grep -qx '  proj/: "Proj": Proj reads the weather station logs. (2012-01-01)' cinv.txt \
+    && ok "the model hears what a disc's data objects, or a folder's git repositories, say about themselves" \
+    || { cat dinv.txt cinv.txt; no "objects in the inventory"; }
 "$tool" --home home describe object:Trip $llm --show-inventory > oinv.txt
 grep -q "^Archive name: Trip" oinv.txt && grep -q "  Description: Pictures from our holiday." oinv.txt \
     && grep -q "photos/2019 trip/ - 1 file" oinv.txt && grep -q "^--- README.txt ---" oinv.txt \
@@ -143,6 +152,38 @@ printf 'Kyoto\n\n\n\ny\n' > oanswers
     && grep -q "^Note: updated Title, Description, Note of version 2 (suggested by a model, accepted by a person)" home/catalog/archive.rec \
     && ok "describe OBJECT at a terminal: questions, then its title and description reviewed, applied to its newest version" \
     || { cat opty.out; no "interactive describe OBJECT"; }
+
+# ------------------------------------------------------------------ questions kept for later
+# make --draft kept the unattended draft's two questions about the disc
+grep -q "2 questions kept for later" make.out && "$arv" --home home todo | grep -qx "  $id  2 questions" \
+    || { cat make.out; "$arv" --home home todo; no "make --draft keeps the draft's questions"; }
+printf '{"questions": ["where was the 2019 trip?", "Which camera?", ""], "agent": "llm:night"}\n' \
+    | "$tool" --home home describe "$id" --apply - --suggested > q.out || no "describe --apply with questions"
+grep -q "; 1 question kept for later (arv describe $id --answer)" q.out && "$arv" --home home todo | grep -qx "  $id  3 questions" \
+    && grep -q "^Agent: llm:night" home/drafts/questions.rec \
+    && ok "questions: a draft's are kept for its disc (make --draft, describe --apply), each once; arv todo counts them" \
+    || { cat q.out; cat home/drafts/questions.rec; no "questions from drafts"; }
+if "$tool" --home home describe "$id" --answer </dev/null >/dev/null 2>qerr.txt; then no "--answer without a terminal"; fi
+grep -q "asks at a terminal" qerr.txt || no "--answer message"
+printf 'Kyoto\n\n.\n' > qanswers
+"$ptyrun" qanswers "$tool" --home home describe "$id" --answer > qa.out 2>&1 || { cat qa.out; no "describe --answer"; }
+grep -q "^Note: Q: Where was the 2019 trip?" home/catalog/archive.rec && grep -q "^+ A: Kyoto" home/catalog/archive.rec \
+    && grep -q "^Note: updated Note (written by a person)" home/catalog/archive.rec \
+    && grep -A3 "^Text: Who took the photos?" home/drafts/questions.rec | grep -q "^Skipped: " \
+    && grep -q "^Text: Which camera?" home/drafts/questions.rec && ! grep -q "^Text: Where was" home/drafts/questions.rec \
+    && "$arv" --home home todo | grep -qx "  $id  1 question" && grep -q "1 answered (kept as notes), 1 skipped, 1 still waiting" qa.out \
+    && ok "describe --answer (no model): an answer becomes a note by the person, Enter skips for good, '.' leaves the rest" \
+    || { cat qa.out; cat home/drafts/questions.rec; no "describe --answer"; }
+printf '{"questions": ["Who took the photos?"]}\n' | "$tool" --home home describe "$id" --apply - > q2.out
+! grep -q "kept for later" q2.out || no "a skipped question came back"
+# at a terminal, the kept question comes first, and the model sees its answer
+: > log
+printf 'Canon\n\n\n\n\n\n\nn\n' > qanswers2
+"$ptyrun" qanswers2 "$tool" --home home describe "$id" $llm --rounds 1 > qb.out 2>&1 || { cat qb.out; no "describe with questions waiting"; }
+grep -q "1 question about $id, kept from before" qb.out && head -1 log | grep -q 'Which camera?\\nA: Canon' \
+    && ! "$arv" --home home todo | grep -q "question" \
+    && ok "describe at a terminal asks the kept questions first; the model sees the answers" \
+    || { cat qb.out; head -c 1500 log; no "kept questions before the model"; }
 
 # ------------------------------------------------------------------ vision
 i=0

@@ -425,7 +425,7 @@ char *about_origin(const char *url)
     return b.s;
 }
 
-static void read_git(const char *dir, about *a)
+static void read_git(const char *dir, about_info *a)
 {
     if (!on_path("git")) return;
     char *gd = join(dir, ".git"), *gdarg = xprintf("--git-dir=%s", gd), *out = NULL;
@@ -472,7 +472,7 @@ static void read_git(const char *dir, about *a)
 
 /* ------------------------------------------------------------------ the whole of it */
 
-void about_read(const char *dir, int git, about *a)
+void about_read(const char *dir, int git, about_info *a)
 {
     memset(a, 0, sizeof *a);
     static const char *const readmes[] = { "README.md", "README.markdown", "README.rst", "README.org", "README.txt",
@@ -495,12 +495,12 @@ void about_read(const char *dir, int git, about *a)
     free(rdesc);
 }
 
-int about_any(const about *a)
+int about_any(const about_info *a)
 {
     return a->title || a->description || a->coverage || a->rights || a->origin;
 }
 
-void about_free(about *a)
+void about_free(about_info *a)
 {
     free(a->title);
     free(a->description);
@@ -513,7 +513,7 @@ void about_free(about *a)
 /* the fields about describes, in the order an Object record has them (after Date) */
 const char *const ABOUT_FIELDS[] = { "Title", "Description", "Coverage", "Rights", "Origin", NULL };
 
-void about_fields(const about *a, const char *values[5])
+void about_fields(const about_info *a, const char *values[5])
 {
     values[0] = a->title;
     values[1] = a->description;
