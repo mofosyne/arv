@@ -463,6 +463,7 @@ src/arv/                  arv: the C program (C99 and POSIX, no libraries)
   arv.c                   the commands; runs arv-assist for describe, tag, models and arv-gui for gui
   make.c  bag.c  html.c  rocrate.c  formats.c   making discs (plan, stage, build, protect)
   collection.c  status.c  upkeep.c              collections, revisions, status, copies owed, retiring
+  about.c  questions.c                          what data objects say about themselves; questions waiting
   record.c  edit.c  tags.c  catalogue.c  disc.c recording copies and checks, editing, queries, reading a disc
   archive.c  home.c  rec.c  json.c  vocab.c  discid.c  edtf.c   the catalogue and its rules
   data/                   descriptors.rec  readme.txt  index.css  default_sets.rec  default_tags.rec
