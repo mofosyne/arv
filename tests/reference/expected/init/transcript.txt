@@ -21,6 +21,7 @@ rc=0
 $ --archive main where
 ROOT/init/a/.arv
   found by --archive main (ROOT/userhome/.config/arv/homes.rec)
+  lives at ROOT/init/a/.arv
   archive UUID, main
 homes on this machine (ROOT/userhome/.config/arv/homes.rec):
   main         ROOT/init/a/.arv
@@ -32,6 +33,7 @@ rc=1
 $ where
 ROOT/init/a/.arv
   found by the pointer file ROOT/init/c/sub/.arv
+  lives at ROOT/init/a/.arv
   archive UUID, main
 homes on this machine (ROOT/userhome/.config/arv/homes.rec):
   main         ROOT/init/a/.arv

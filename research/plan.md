@@ -1152,6 +1152,74 @@ content so it follows moved files), written in batches by `arv annotate`.
   - *Notes on a data object, following it across moves.* The one real gap; it waits until data
     objects are used enough to show whether disc and folder notes fall short.
 
+## Decision (2026-10-10): history is per thing; events get ids; the discs are the witnesses
+
+Talked through: how two catalogues of one archive stay in step, and how a change to the record
+is noticed. This replaces "Remotes you pull from" and "Push" in the 2026-10-09 design above.
+
+**The catalogue's history is not a line.** A history that is one line is a series of snapshots of
+everything. A catalogue is facts about many separate things, and each has its own history:
+
+| Thing | Its history | Shape |
+|---|---|---|
+| A disc | made, copies burned, checked, moved, retired | events, mostly added; their order barely matters |
+| A data object | versions (`Uuid`, `Version`, each a `Tree` hash) | a line, which can fork |
+| A collection | revisions (`Node`, `Parent`) | a graph |
+
+Facts about different things do not depend on each other's order, so two catalogues that recorded
+different discs, files or copies merge by keeping both. Order matters in two places only: a field
+that changes on one thing (a title, an access level, a place), and numbers handed out (disc
+sequences, versions), where the hash behind the label stays unique but the label can clash. A
+whole-archive log is a view (sorted by date), not a record.
+
+1. **Every event has an id derived from its content** (`EventId`: the first 32 hex digits of the
+   SHA-256 of its fields as written, PREMIS's eventIdentifier). The same event has the same id in
+   every catalogue and on every disc, so merging is exact (no matching by text), and an event
+   changed after it was written no longer matches its id. Two events with the same content get a
+   `Nonce` to keep them apart. Built 2026-10-10.
+2. **A field change names the change it replaces** (`Sets: FIELD`, `Replaces: <EventId>`; built
+   2026-10-11): each field gets its own small history. Two changes that replace the same one are a
+   conflict, reported by rebuild and audit, never silently resolved; the home's value stands
+   until the field is set again.
+3. **Duplicate disc ids are reported at merge**, not merged; before burning, one side renames
+   (built 2026-10-10).
+4. **Moving catalogues is not arv's job:** rsync, a mounted share or any sync tool copies the
+   folder; `arv rebuild` merges another catalogue by event id (built 2026-10-10: notes add up,
+   a disc id naming two images is not merged, two copies lettered alike are reported). No
+   remotes, clone or push. A copy is named in later events by its replication's EventId
+   (`Replication:`), so `arv relabel` can give it a new letter without losing its history (built
+   2026-10-11).
+5. **A copy does not take writes:** `config/paths.rec` records where the catalogue lives, and a
+   write to it found elsewhere stops, so a copied catalogue cannot quietly become a second one;
+   `arv where --here` accepts a move. Built 2026-10-10.
+6. **Copies are counted as physical discs** (built 2026-10-11). A copy's identity is what is on
+   it, `Identifier: scheme:value` (PREMIS objectIdentifier): `bca:` the factory serial,
+   `barcode:` a sticker, `label:` the pen, `hub:` the maker's batch code. Several per copy,
+   gathered from every event that names it. `bca:` and `barcode:` name one disc, so two
+   records sharing one are one disc recorded twice, counted once and reported; the letter stays
+   the name people write and say. The image `Uuid` cannot do this: copies share it by design.
+7. **Carrier and copy are two things** (built 2026-10-11). A disc holds one image, so it is the
+   copy; a tape or a drive holds many, so its barcode names the medium, not a copy. A stored copy
+   names its `Carrier`; copies are counted as independent copies (one per physical disc, one per
+   carrier), and copies of one disc on one carrier count once. For jukeboxes and tape libraries
+   (built 2026-10-11): `arv todo --tsv`, the worklist; `docs/examples/library-check.sh`, an
+   `mtx` loop to adapt; and `arv inventory PLACE`, the library's barcodes against the record.
+   Presence is reported, not recorded: a nightly inventory as events would bury the record, and
+   where a copy should be is already in it (`Location`). Untested on a real library yet.
+
+**Tampering: evident, not impossible.** A hash proves nothing unless someone holds an earlier one
+elsewhere. arv has those holders already: every disc is write-once, dated, kept in several
+places, and carries the whole catalogue as of its burning, and later discs carry the earlier
+images' SHA-256. So:
+- content-derived event ids (above) make an edited event detectable;
+- **`arv audit`** checks the home's events against their ids, and against each disc's snapshot
+  given to it: an event the disc has that the home lost or changed is reported. Built 2026-10-10.
+
+Not done: one hash chain through the whole catalogue. It forces one order on per-thing histories
+(every merge rewrites it), makes a hand edit look like tampering, and without copies held
+elsewhere proves nothing the discs do not already. Nor a version-control system under the home:
+the events are the history, the discs are the backups, and `rebuild` merges.
+
 ## Design (2026-10-12): data objects describe themselves; questions wait for an answer
 
 Asked: should arv have a chat agent, and could data objects describe themselves (a git

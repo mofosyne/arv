@@ -137,7 +137,7 @@ Protection: none
 Media: M-DISC BD-R 25GB
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 850
+ImageSectors: 882
 ImageSha256: SHA256
 
 Volume: TRIP-02_2025_9
@@ -294,14 +294,26 @@ Source: plan-docs/letter.txt
 + written on the disc after its id), Form (disc, iso: the image as a file, folder: the disc's
 + files), Temperature (hot, warm, cold: given, else its place's, else cold for a disc and
 + warm for a file or folder), Location (where this copy is kept), Path for a file or folder,
-+ MediaId (the media's maker and type) and Bca (one disc's factory serial) when known; with
-+ ReadBack: identical it is a copy read back against its image before it was recorded (known
-+ good), as is one a later fixity check with its Copy passed. A disc's copies are its
-+ replications; deaccession retires a disc (its Disc record gets Retired).
++ MediaType (the media's maker and type, as the drive reports it) and Identifier when known:
++ how this physical copy is recognised, as scheme:value (bca: its factory serial, barcode: a
++ label stuck on and scanned, label: written or printed, hub: the maker's code in the clear
++ ring), repeatable, and added later by any event that names the Copy. With ReadBack: identical
++ it is a copy read back against its image before it was recorded (known good), as is one a
++ later fixity check with its Copy passed. A disc's copies are its replications, counted as
++ physical discs: two that share a bca:, barcode: or serial: identifier are one disc recorded
++ twice. A stored copy may name its Carrier, the tape or drive holding it (and other discs'
++ copies): two copies of one disc on one carrier count as one.
++ Every event has an EventId: the first 32 hex digits of the SHA-256 of its other fields as
++ written (a Nonce keeps two alike apart). An event about one copy names it by Replication (that
++ copy's replication EventId) and Copy (its letter then; the newest is its letter now). A change
++ to a field says Sets: FIELD and Replaces: the EventIds of the changes it follows; two that
++ replace the same one were made apart, a conflict to settle by setting the field again. Deaccession retires a disc (its Disc record gets
++ Retired).
 %mandatory: Type Date Outcome
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
 
+EventId: ID
 Disc: TRIP-01_2025_B
 Type: message digest calculation
 Date: 2026-01-01
@@ -310,14 +322,16 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 1 file
 
+EventId: ID
 Disc: TRIP-01_2025_B
 Type: creation
 Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image TRIP-01_2025_B.noecc.iso, 850 sectors
+Note: image TRIP-01_2025_B.noecc.iso, 882 sectors
 
+EventId: ID
 Disc: TRIP-02_2025_9
 Type: message digest calculation
 Date: 2026-01-01
@@ -326,6 +340,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 3 files
 
+EventId: ID
 Disc: TRIP-02_2025_9
 Type: creation
 Date: 2026-01-01
@@ -334,6 +349,7 @@ Authorship: automatic
 Agent: SW
 Note: image TRIP-02_2025_9.noecc.iso, 882 sectors
 
+EventId: ID
 Disc: TRIP-03_2025_7
 Type: message digest calculation
 Date: 2026-01-01
@@ -342,6 +358,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 3 files
 
+EventId: ID
 Disc: TRIP-03_2025_7
 Type: creation
 Date: 2026-01-01
@@ -350,6 +367,7 @@ Authorship: automatic
 Agent: SW
 Note: image TRIP-03_2025_7.noecc.iso, 882 sectors
 
+EventId: ID
 Disc: TRIP-04_2025_5
 Type: message digest calculation
 Date: 2026-01-01
@@ -358,6 +376,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 3 files
 
+EventId: ID
 Disc: TRIP-04_2025_5
 Type: creation
 Date: 2026-01-01
@@ -366,6 +385,7 @@ Authorship: automatic
 Agent: SW
 Note: image TRIP-04_2025_5.noecc.iso, 882 sectors
 
+EventId: ID
 Disc: TRIP-03_2025_7
 Type: replication
 Date: 2026-01-01
@@ -378,6 +398,7 @@ Form: disc
 Temperature: cold
 Location: BOX1
 
+EventId: ID
 Disc: TRIP-04_2025_5
 Type: fixity check
 Date: 2026-01-01
@@ -386,6 +407,7 @@ Authorship: automatic
 Agent: arv 0.4
 Note: check of a stored copy (iso) at ROOT/out-plan2/TRIP-04_2025_5.noecc.iso: identical to the image
 
+EventId: ID
 Disc: TRIP-04_2025_5
 Type: replication
 Date: 2026-01-01
@@ -399,6 +421,7 @@ Form: iso
 Temperature: warm
 Path: ROOT/out-plan2/TRIP-04_2025_5.noecc.iso
 
+EventId: ID
 Disc: TRIP-01_2025_B
 Type: fixity check
 Date: 2026-01-01
@@ -407,6 +430,7 @@ Authorship: automatic
 Agent: arv 0.4
 Note: check of a stored copy (iso) at ROOT/out-plan/TRIP-01_2025_B.noecc.iso: identical to the image
 
+EventId: ID
 Disc: TRIP-01_2025_B
 Type: replication
 Date: 2026-01-01
@@ -420,6 +444,7 @@ Form: iso
 Temperature: warm
 Path: ROOT/out-plan/TRIP-01_2025_B.noecc.iso
 
+EventId: ID
 Disc: TRIP-05_2025_3
 Type: message digest calculation
 Date: 2026-01-01
@@ -428,6 +453,7 @@ Authorship: automatic
 Agent: SW
 Note: sha256 and sha512 manifests of 2 files
 
+EventId: ID
 Disc: TRIP-05_2025_3
 Type: creation
 Date: 2026-01-01
@@ -436,6 +462,7 @@ Authorship: automatic
 Agent: SW
 Note: image TRIP-05_2025_3.noecc.iso, 882 sectors
 
+EventId: ID
 Disc: TRIP-04_2025_5
 Type: deaccession
 Date: 2026-01-01
@@ -444,6 +471,7 @@ Authorship: human
 Agent: human:archivist
 Note: retired
 
+EventId: ID
 Disc: TRIP-02_2025_9
 Type: deaccession
 Date: 2026-01-01

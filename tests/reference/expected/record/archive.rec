@@ -285,14 +285,26 @@ Name: Parents' house
 + written on the disc after its id), Form (disc, iso: the image as a file, folder: the disc's
 + files), Temperature (hot, warm, cold: given, else its place's, else cold for a disc and
 + warm for a file or folder), Location (where this copy is kept), Path for a file or folder,
-+ MediaId (the media's maker and type) and Bca (one disc's factory serial) when known; with
-+ ReadBack: identical it is a copy read back against its image before it was recorded (known
-+ good), as is one a later fixity check with its Copy passed. A disc's copies are its
-+ replications; deaccession retires a disc (its Disc record gets Retired).
++ MediaType (the media's maker and type, as the drive reports it) and Identifier when known:
++ how this physical copy is recognised, as scheme:value (bca: its factory serial, barcode: a
++ label stuck on and scanned, label: written or printed, hub: the maker's code in the clear
++ ring), repeatable, and added later by any event that names the Copy. With ReadBack: identical
++ it is a copy read back against its image before it was recorded (known good), as is one a
++ later fixity check with its Copy passed. A disc's copies are its replications, counted as
++ physical discs: two that share a bca:, barcode: or serial: identifier are one disc recorded
++ twice. A stored copy may name its Carrier, the tape or drive holding it (and other discs'
++ copies): two copies of one disc on one carrier count as one.
++ Every event has an EventId: the first 32 hex digits of the SHA-256 of its other fields as
++ written (a Nonce keeps two alike apart). An event about one copy names it by Replication (that
++ copy's replication EventId) and Copy (its letter then; the newest is its letter now). A change
++ to a field says Sets: FIELD and Replaces: the EventIds of the changes it follows; two that
++ replace the same one were made apart, a conflict to settle by setting the field again. Deaccession retires a disc (its Disc record gets
++ Retired).
 %mandatory: Type Date Outcome
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
 
+EventId: ID
 Object: location:HOME
 Type: metadata modification
 Date: 2026-10-04
@@ -301,6 +313,7 @@ Authorship: human
 Agent: human:root
 Note: created
 
+EventId: ID
 Object: location:STUDY
 Type: metadata modification
 Date: 2026-10-04
@@ -309,6 +322,7 @@ Authorship: human
 Agent: human:root
 Note: created in HOME
 
+EventId: ID
 Object: location:BOX1
 Type: metadata modification
 Date: 2026-10-04
@@ -317,6 +331,7 @@ Authorship: human
 Agent: human:root
 Note: created in STUDY
 
+EventId: ID
 Object: location:SAFE
 Type: metadata modification
 Date: 2026-10-04
@@ -325,6 +340,7 @@ Authorship: human
 Agent: human:root
 Note: created in HOME
 
+EventId: ID
 Object: location:OFFSITE
 Type: metadata modification
 Date: 2026-10-04
@@ -333,6 +349,7 @@ Authorship: human
 Agent: human:root
 Note: created
 
+EventId: ID
 Disc: TRIP-01_2019_4
 Type: message digest calculation
 Date: 2026-10-04
@@ -341,6 +358,7 @@ Authorship: automatic
 Agent: arv@e8c6358ab75d
 Note: sha256 and sha512 manifests of 16 files
 
+EventId: ID
 Disc: TRIP-01_2019_4
 Type: metadata modification
 Date: 2026-10-04
@@ -349,6 +367,7 @@ Authorship: human
 Agent: sample script (hand-written)
 Note: title, description, subjects and folder tags taken from a draft (made by: sample script (hand-written))
 
+EventId: ID
 Disc: TRIP-01_2019_4
 Type: creation
 Date: 2026-10-04
@@ -357,6 +376,7 @@ Authorship: automatic
 Agent: arv@e8c6358ab75d
 Note: image TRIP-01_2019_4.iso, 2354 sectors; RS03: 4 MiB data, 4 MiB ecc (123 roots; 93.2% redundancy), 0 MiB padding.
 
+EventId: ID
 Disc: TRIP-01_2019_4
 Type: fixity check
 Date: 2026-10-04
@@ -365,6 +385,7 @@ Authorship: automatic
 Agent: dvdisaster
 Note: image test after creation
 
+EventId: ID
 Disc: PROJ-01_2020-2023_L
 Type: message digest calculation
 Date: 2026-10-04
@@ -373,6 +394,7 @@ Authorship: automatic
 Agent: arv@e8c6358ab75d
 Note: sha256 and sha512 manifests of 56 files
 
+EventId: ID
 Disc: PROJ-01_2020-2023_L
 Type: ingestion
 Date: 2026-10-04
@@ -381,6 +403,7 @@ Authorship: automatic
 Agent: arv@e8c6358ab75d
 Note: links: 1 copied, 1 recorded (policy: default)
 
+EventId: ID
 Disc: PROJ-01_2020-2023_L
 Type: metadata modification
 Date: 2026-10-04
@@ -389,6 +412,7 @@ Authorship: human
 Agent: sample script (hand-written)
 Note: title, description, subjects and folder tags taken from a draft (made by: sample script (hand-written))
 
+EventId: ID
 Disc: PROJ-01_2020-2023_L
 Type: creation
 Date: 2026-10-04
@@ -397,6 +421,7 @@ Authorship: automatic
 Agent: arv@e8c6358ab75d
 Note: image PROJ-01_2020-2023_L.iso, 2610 sectors; RS03: 5 MiB data, 3 MiB ecc (108 roots; 73.5% redundancy), 0 MiB padding.
 
+EventId: ID
 Disc: PROJ-01_2020-2023_L
 Type: fixity check
 Date: 2026-10-04
@@ -405,6 +430,7 @@ Authorship: automatic
 Agent: dvdisaster
 Note: image test after creation
 
+EventId: ID
 Disc: TAXES-01_2019-2020_I
 Type: message digest calculation
 Date: 2026-10-04
@@ -413,6 +439,7 @@ Authorship: automatic
 Agent: arv@e8c6358ab75d
 Note: sha256 and sha512 manifests of 5 files
 
+EventId: ID
 Disc: TAXES-01_2019-2020_I
 Type: creation
 Date: 2026-10-04
@@ -421,6 +448,7 @@ Authorship: automatic
 Agent: arv@e8c6358ab75d
 Note: image TAXES-01_2019-2020_I.iso, 2354 sectors; RS03: 4 MiB data, 4 MiB ecc (123 roots; 93.2% redundancy), 0 MiB padding.
 
+EventId: ID
 Disc: TAXES-01_2019-2020_I
 Type: fixity check
 Date: 2026-10-04
@@ -429,6 +457,7 @@ Authorship: automatic
 Agent: dvdisaster
 Note: image test after creation
 
+EventId: ID
 Disc: SCAN-01_1995-2008_D
 Type: message digest calculation
 Date: 2026-10-04
@@ -437,6 +466,7 @@ Authorship: automatic
 Agent: arv@e8c6358ab75d
 Note: sha256 and sha512 manifests of 25 files
 
+EventId: ID
 Disc: SCAN-01_1995-2008_D
 Type: creation
 Date: 2026-10-04
@@ -445,6 +475,7 @@ Authorship: automatic
 Agent: arv@e8c6358ab75d
 Note: image SCAN-01_1995-2008_D.iso, 3666 sectors; RS03: 7 MiB data, 1 MiB ecc (50 roots; 24.4% redundancy), 0 MiB padding.
 
+EventId: ID
 Disc: SCAN-01_1995-2008_D
 Type: fixity check
 Date: 2026-10-04
@@ -453,6 +484,7 @@ Authorship: automatic
 Agent: dvdisaster
 Note: image test after creation
 
+EventId: ID
 Disc: SCAN-02_1995-2008_B
 Type: message digest calculation
 Date: 2026-10-04
@@ -461,6 +493,7 @@ Authorship: automatic
 Agent: arv@e8c6358ab75d
 Note: sha256 and sha512 manifests of 26 files
 
+EventId: ID
 Disc: SCAN-02_1995-2008_B
 Type: creation
 Date: 2026-10-04
@@ -469,6 +502,7 @@ Authorship: automatic
 Agent: arv@e8c6358ab75d
 Note: image SCAN-02_1995-2008_B.iso, 3698 sectors; RS03: 7 MiB data, 1 MiB ecc (48 roots; 23.2% redundancy), 0 MiB padding.
 
+EventId: ID
 Disc: SCAN-02_1995-2008_B
 Type: fixity check
 Date: 2026-10-04
@@ -477,6 +511,7 @@ Authorship: automatic
 Agent: dvdisaster
 Note: image test after creation
 
+EventId: ID
 Disc: SCAN-03_1995-2008_9
 Type: message digest calculation
 Date: 2026-10-04
@@ -485,6 +520,7 @@ Authorship: automatic
 Agent: arv@e8c6358ab75d
 Note: sha256 and sha512 manifests of 5 files
 
+EventId: ID
 Disc: SCAN-03_1995-2008_9
 Type: creation
 Date: 2026-10-04
@@ -493,6 +529,7 @@ Authorship: automatic
 Agent: arv@e8c6358ab75d
 Note: image SCAN-03_1995-2008_9.iso, 2610 sectors; RS03: 5 MiB data, 3 MiB ecc (108 roots; 73.5% redundancy), 0 MiB padding.
 
+EventId: ID
 Disc: SCAN-03_1995-2008_9
 Type: fixity check
 Date: 2026-10-04
@@ -501,6 +538,7 @@ Authorship: automatic
 Agent: dvdisaster
 Note: image test after creation
 
+EventId: ID
 Disc: FAMILY-01_2020-2021_K
 Type: message digest calculation
 Date: 2026-10-04
@@ -509,6 +547,7 @@ Authorship: automatic
 Agent: arv@e8c6358ab75d
 Note: sha256 and sha512 manifests of 16 files
 
+EventId: ID
 Disc: FAMILY-01_2020-2021_K
 Type: metadata modification
 Date: 2026-10-04
@@ -517,6 +556,7 @@ Authorship: human
 Agent: sample script (hand-written)
 Note: title, description, subjects and folder tags taken from a draft (made by: sample script (hand-written))
 
+EventId: ID
 Disc: FAMILY-01_2020-2021_K
 Type: creation
 Date: 2026-10-04
@@ -525,6 +565,7 @@ Authorship: automatic
 Agent: arv@e8c6358ab75d
 Note: image FAMILY-01_2020-2021_K.iso, 2482 sectors; RS03: 4 MiB data, 4 MiB ecc (116 roots; 83.5% redundancy).
 
+EventId: ID
 Disc: FAMILY-01_2020-2021_K
 Type: fixity check
 Date: 2026-10-04
@@ -533,6 +574,7 @@ Authorship: automatic
 Agent: dvdisaster
 Note: image test after creation
 
+EventId: ID
 Disc: TRIP-01_2019_4
 Type: replication
 Date: 2026-10-04
@@ -542,6 +584,7 @@ Agent: human:root
 Note: burned 1 copy
 Copy: A
 
+EventId: ID
 Disc: PROJ-01_2020-2023_L
 Type: replication
 Date: 2026-10-04
@@ -551,6 +594,7 @@ Agent: human:root
 Note: burned 1 copy
 Copy: A
 
+EventId: ID
 Disc: TAXES-01_2019-2020_I
 Type: replication
 Date: 2026-10-04
@@ -560,6 +604,7 @@ Agent: human:root
 Note: burned 1 copy
 Copy: A
 
+EventId: ID
 Disc: SCAN-01_1995-2008_D
 Type: replication
 Date: 2026-10-04
@@ -569,6 +614,7 @@ Agent: human:root
 Note: burned 1 copy
 Copy: A
 
+EventId: ID
 Disc: SCAN-02_1995-2008_B
 Type: replication
 Date: 2026-10-04
@@ -578,6 +624,7 @@ Agent: human:root
 Note: burned 1 copy
 Copy: A
 
+EventId: ID
 Disc: SCAN-03_1995-2008_9
 Type: replication
 Date: 2026-10-04
@@ -587,6 +634,7 @@ Agent: human:root
 Note: burned 1 copy
 Copy: A
 
+EventId: ID
 Disc: FAMILY-01_2020-2021_K
 Type: replication
 Date: 2026-10-04
@@ -596,6 +644,7 @@ Agent: human:root
 Note: burned 1 copy
 Copy: A
 
+EventId: ID
 Disc: TRIP-01_2019_4
 Type: replication
 Date: 2026-10-04
@@ -605,6 +654,7 @@ Agent: human:root
 Note: burned 1 copy, kept at Parents' house; second copy for the parents
 Copy: B
 
+EventId: ID
 Disc: PROJ-01_2020-2023_L
 Type: metadata modification
 Date: 2026-10-04
@@ -613,6 +663,7 @@ Authorship: human
 Agent: human:root
 Note: Note added: Board rev B; rev A gerbers were never ordered.
 
+EventId: ID
 Disc: FAMILY-01_2020-2021_K
 Type: fixity check
 Date: 2026-10-04
@@ -627,6 +678,7 @@ Note: image test with dvdisaster -t
 + - data md5sum      : b4df68a7ab005514d81087a1eaa5add2
 + - Ecc block test   : pass
 
+EventId: ID
 Disc: PROJ-01_2020-2023_L
 Type: fixity check
 Date: 2026-10-04
@@ -641,6 +693,7 @@ Note: image test with dvdisaster -t
 + - data md5sum      : 20cf433dde5a7caf7ede456ad6526214
 + - Ecc block test   : pass
 
+EventId: ID
 Disc: SCAN-01_1995-2008_D
 Type: fixity check
 Date: 2026-10-04
@@ -655,6 +708,7 @@ Note: image test with dvdisaster -t
 + - data md5sum      : 928d21a004b660d0a20465c9d207123f
 + - Ecc block test   : pass
 
+EventId: ID
 Disc: SCAN-02_1995-2008_B
 Type: fixity check
 Date: 2026-10-04
@@ -669,6 +723,7 @@ Note: image test with dvdisaster -t
 + - data md5sum      : 4c686703ca8c5c547ea6e2e93ca3702e
 + - Ecc block test   : pass
 
+EventId: ID
 Disc: SCAN-03_1995-2008_9
 Type: fixity check
 Date: 2026-10-04
@@ -683,6 +738,7 @@ Note: image test with dvdisaster -t
 + - data md5sum      : ce63fd146fe9ba1c4e6947b1ac7a5cbd
 + - Ecc block test   : pass
 
+EventId: ID
 Disc: TAXES-01_2019-2020_I
 Type: fixity check
 Date: 2026-10-04
@@ -697,6 +753,7 @@ Note: image test with dvdisaster -t
 + - data md5sum      : 93fd4443d28031095fe2ffa664faf738
 + - Ecc block test   : pass
 
+EventId: ID
 Disc: TRIP-01_2019_4
 Type: fixity check
 Date: 2026-10-04
@@ -711,6 +768,7 @@ Note: image test with dvdisaster -t
 + - data md5sum      : b37275a289d7940e029a67bda058640e
 + - Ecc block test   : pass
 
+EventId: ID
 Disc: TRIP-01_2019_4
 Type: replication
 Date: 2026-01-01
@@ -722,8 +780,9 @@ Copy: C
 Form: disc
 Temperature: cold
 Location: BOX1
-MediaId: MEI-T02
+MediaType: MEI-T02
 
+EventId: ID
 Disc: TRIP-01_2019_4
 Type: replication
 Date: 2026-01-01
@@ -735,8 +794,9 @@ Copy: D
 Form: disc
 Temperature: cold
 Location: BOX1
-MediaId: MEI-T02
+MediaType: MEI-T02
 
+EventId: ID
 Disc: PROJ-01_2020-2023_L
 Type: metadata modification
 Date: 2026-01-01
@@ -745,6 +805,7 @@ Authorship: human
 Agent: human:archivist
 Note: Note added: A long note that goes on about the weather station, its b...
 
+EventId: ID
 Disc: SCAN-01_1995-2008_D
 Type: metadata modification
 Date: 2026-01-01
@@ -752,7 +813,9 @@ Outcome: success
 Authorship: human
 Agent: human:archivist
 Note: Location: BOX1 -> BOX1, SAFE
+Sets: Location
 
+EventId: ID
 Disc: FAMILY-01_2020-2021_K
 Type: metadata modification
 Date: 2026-01-01
@@ -760,7 +823,9 @@ Outcome: success
 Authorship: human
 Agent: human:archivist
 Note: Location: OFFSITE -> Somewhere new
+Sets: Location
 
+EventId: ID
 Disc: TRIP-01_2019_4
 Type: replication
 Date: 2026-01-01
@@ -772,7 +837,20 @@ Copy: K
 Form: disc
 Temperature: cold
 Location: OFFSITE
-Bca: 041e10151262020224030214501048af
+Identifier: bca:041e10151262020224030214501048af
+
+EventId: ID
+Disc: TRIP-01_2019_4
+Type: metadata modification
+Date: 2026-01-01
+Outcome: success
+Authorship: human
+Agent: human:archivist
+Note: identified copy C: known by barcode:ARV-000123, label:TRIP-01_2019_4 C
+Copy: C
+Replication: ID
+Identifier: barcode:ARV-000123
+Identifier: label:TRIP-01_2019_4 C
 
 %rec: Appraisal
 %doc: The archivist log: how much something matters, to whom, and why. Appended and

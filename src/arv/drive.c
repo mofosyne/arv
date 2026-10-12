@@ -63,6 +63,37 @@ int drive_bca(const char *device, char out[33])
 }
 #endif
 
+/* the optical drives this system has: Linux names them sr0, sr1 ... under /sys/class/block;
+ * elsewhere none are found, and they are named on the command line */
+#if defined(__linux__) && !defined(__COSMOPOLITAN__)
+#include <dirent.h>
+#include <stdlib.h>
+
+static int by_name(const void *a, const void *b)
+{
+    return strcmp(*(char *const *)a, *(char *const *)b);
+}
+
+void drive_list(strlist *out)
+{
+    memset(out, 0, sizeof *out);
+    DIR *d = opendir("/sys/class/block");
+    for (struct dirent *e = d ? readdir(d) : NULL; e; e = readdir(d))
+        if (!strncmp(e->d_name, "sr", 2) && isdigit((unsigned char)e->d_name[2])) {
+            char path[300];
+            snprintf(path, sizeof path, "/dev/%s", e->d_name);
+            strlist_add(out, path);
+        }
+    if (d) closedir(d);
+    if (out->n > 1) qsort(out->v, out->n, sizeof *out->v, by_name);
+}
+#else
+void drive_list(strlist *out)
+{
+    memset(out, 0, sizeof *out);
+}
+#endif
+
 int bca_normal(const char *text, char out[33])
 {
     size_t n = 0;

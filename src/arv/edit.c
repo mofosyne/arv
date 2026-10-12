@@ -44,7 +44,8 @@ static void open_home(const char *given, arv_home *h, archive *cat)
     archive_load(cat, h->rec_path);
 }
 
-static void change(archive *cat, const char *disc_id, const char *obj, const char *note)
+/* fields: those this change sets (NULL-terminated), each given its history (sets_field) */
+static void change(archive *cat, const char *disc_id, const char *obj, const char *note, const char *const *fields)
 {
     char *who = person();
     rec_record *e = new_event(disc_id ? disc_id : obj, "metadata modification", "success", who, "human", note);
@@ -52,6 +53,7 @@ static void change(archive *cat, const char *disc_id, const char *obj, const cha
         free(e->fields[0].name);
         e->fields[0].name = xstrdup("Object");
     }
+    for (size_t i = 0; fields && fields[i]; i++) sets_field(cat, e, disc_id ? disc_id : obj, fields[i]);
     recs_add(&cat->events, e);
     free(who);
 }
@@ -113,11 +115,15 @@ int cmd_access(int argc, char **argv)
     char before[16];
     snprintf(before, sizeof before, "%s", disc_access(d));
     rec_set(d, "Access", level);
-    if (strcmp(before, level)) {
+    strlist heads;                      /* changed apart in two catalogues: setting it, even as it is, settles it */
+    field_heads(&cat, disc_id, "Access", &heads);
+    if (strcmp(before, level) || heads.n > 1) {
         char *note = xprintf("Access: %s -> %s", before, level);
-        change(&cat, disc_id, NULL, note);
+        static const char *const access_field[] = { "Access", NULL };
+        change(&cat, disc_id, NULL, note, access_field);
         free(note);
     }
+    strlist_free(&heads);
     archive_save(&cat, h.rec_path);
     return 0;
 }
@@ -256,7 +262,7 @@ int cmd_location(int argc, char **argv)
         if (temperature) rec_add(l, "Temperature", temperature);
         recs_add(&cat.locations, l);
         char *obj = xprintf("location:%s", code), *note = parent ? xprintf("created in %s", parent) : xstrdup("created");
-        change(&cat, NULL, obj, note);
+        change(&cat, NULL, obj, note, NULL);
         free(obj);
         free(note);
     } else {
@@ -271,18 +277,22 @@ int cmd_location(int argc, char **argv)
         if (parent) insert_at(l, 2, "Parent", parent);
         if (name) rec_set(l, "Name", name);
         sbuf changes = { 0 };
+        const char *fields[4];
+        int nf = 0;
         const char *now = rec_get(l, "Parent");
         if ((now == NULL) != (parent_before == NULL) || (now && strcmp(now, parent_before)))
-            sb_printf(&changes, "moved into %s", now ? now : "the top level");
+            sb_printf(&changes, "moved into %s", now ? now : "the top level"), fields[nf++] = "Parent";
         if (strcmp(get_or(l, "Name", "None"), name_before))
-            sb_printf(&changes, "%srenamed %s -> %s", changes.len ? "; " : "", name_before, get_or(l, "Name", "None"));
+            sb_printf(&changes, "%srenamed %s -> %s", changes.len ? "; " : "", name_before, get_or(l, "Name", "None")), fields[nf++] = "Name";
         if (temperature && strcmp(get_or(l, "Temperature", ""), temperature)) {
             sb_printf(&changes, "%stemperature %s -> %s", changes.len ? "; " : "", get_or(l, "Temperature", "none"), temperature);
             rec_set(l, "Temperature", temperature);
+            fields[nf++] = "Temperature";
         }
+        fields[nf] = NULL;
         if (changes.len) {
             char *obj = xprintf("location:%s", code);
-            change(&cat, NULL, obj, changes.s);
+            change(&cat, NULL, obj, changes.s, fields);
             free(obj);
         }
         free(changes.s);
@@ -533,16 +543,19 @@ int cmd_selection(int argc, char **argv)
     int delta = count_field(c, "Item") - items_before;      /* counts only: paths could name sealed files */
     if (delta > 0) sb_printf(&changes, "%s%d item%s added", changes.len ? "; " : "", delta, delta == 1 ? "" : "s");
     else if (delta < 0) sb_printf(&changes, "%s%d item%s removed", changes.len ? "; " : "", -delta, delta == -1 ? "" : "s");
+    const char *fields[3];              /* items only add up; a place and a name are replaced */
+    int nf = 0;
     if (!strcmp(action, "move")) {
         const char *now = rec_get(c, "Parent");
         if ((now == NULL) != (parent_before == NULL) || (now && strcmp(now, parent_before)))
-            sb_printf(&changes, "%smoved into %s", changes.len ? "; " : "", now ? now : "the top level");
+            sb_printf(&changes, "%smoved into %s", changes.len ? "; " : "", now ? now : "the top level"), fields[nf++] = "Parent";
         if (strcmp(get_or(c, "Name", "None"), name_before))
-            sb_printf(&changes, "%srenamed %s -> %s", changes.len ? "; " : "", name_before, get_or(c, "Name", "None"));
+            sb_printf(&changes, "%srenamed %s -> %s", changes.len ? "; " : "", name_before, get_or(c, "Name", "None")), fields[nf++] = "Name";
     }
+    fields[nf] = NULL;
     if (changes.len) {
         char *obj = xprintf("selection:%s", code);
-        change(&cat, NULL, obj, changes.s);
+        change(&cat, NULL, obj, changes.s, fields);
         free(obj);
     }
     archive_save(&cat, h.rec_path);
@@ -1055,13 +1068,26 @@ int cmd_names(int argc, char **argv)
 int cmd_where(int argc, char **argv)
 {
     const char *given = NULL;
+    int here = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (!strcmp(argv[i], "--here")) here = 1;
         else return 2;
     }
     arv_home h;
     home_find(&h, given, NULL);
+    if (here)
+        printf(home_here(h.path) ? "Recorded: this catalogue lives here too; changes may be written to it here.\n"
+                                 : "Already recorded: this catalogue lives here.\n");
     printf("%s\n  found by %s\n", h.path, h.how);
+    strlist places;
+    home_paths(h.path, &places);
+    for (size_t i = 0; i < places.n; i++) printf("  %s %s\n", i ? "and at" : "lives at", places.v[i]);
+    char *real = realpath(h.path, NULL);
+    if (places.n && real && !strlist_has(&places, real))
+        puts("  not here: a copy of it? Changes are refused here (arv where --here if it moved here)");
+    free(real);
+    strlist_free(&places);
     archive cat;
     archive_load(&cat, h.rec_path);
     if (cat.homes.n)
@@ -1112,7 +1138,41 @@ static char *disc_root_id(const char *root)
     return out;
 }
 
-/* Merge the catalogue carried by a disc (mounted or extracted) into the home catalogue. */
+static int a_folder(const char *p)
+{
+    struct stat st;
+    return !stat(p, &st) && S_ISDIR(st.st_mode);
+}
+
+/* copies of one disc that two catalogues each lettered alike (both gave out "the next" letter) */
+static size_t letter_clashes(const archive *cat)
+{
+    size_t n = 0;
+    for (size_t i = 0; i < cat->events.n; i++) {
+        const rec_record *a = cat->events.v[i];
+        const char *disc = get_or(a, "Disc", ""), *la;
+        if (strcmp(get_or(a, "Type", ""), "replication") || !strcmp(get_or(a, "Outcome", ""), "failure")
+            || !(la = copy_letter(cat, disc, a)))
+            continue;
+        for (size_t j = i + 1; j < cat->events.n; j++) {
+            const rec_record *b = cat->events.v[j];
+            const char *lb;
+            if (strcmp(get_or(b, "Type", ""), "replication") || !strcmp(get_or(b, "Outcome", ""), "failure")
+                || strcmp(disc, get_or(b, "Disc", "")) || !(lb = copy_letter(cat, disc, b)) || strcmp(la, lb)
+                || copy_same_as(cat, disc, b) == a)             /* one disc recorded twice: identity_report says so */
+                continue;
+            fprintf(stderr, "Warning: %s has two copies lettered %s (kept at %s, and at %s), recorded in two catalogues.\n"
+                            "  Give one another letter, and write it on its hub and case: arv relabel %s %s NEW --at %s\n",
+                    disc, la, get_or(a, "Location", "an unrecorded place"), get_or(b, "Location", "an unrecorded place"), disc, la,
+                    get_or(b, "Location", "PLACE"));
+            n++;
+        }
+    }
+    return n;
+}
+
+/* Merge the catalogue carried by a disc (mounted or extracted), or another catalogue of this archive
+ * (its .arv folder, or the folder holding one), into the home catalogue. */
 int cmd_rebuild(int argc, char **argv)
 {
     const char *given = NULL, *root = NULL;
@@ -1125,13 +1185,19 @@ int cmd_rebuild(int argc, char **argv)
         else return 2;
     }
     if (!root) return 2;
+    char *inner = join(root, ".arv");                   /* the folder an archive's .arv is in */
+    if (a_folder(inner)) root = inner;
     arv_home h;
     archive cat;
     open_home(given, &h, &cat);
+    char *here = realpath(h.path, NULL), *there = realpath(root, NULL);
+    if (here && there && !strcmp(here, there)) die("%s is this archive's own catalogue: nothing to merge", root);
+    free(here);
+    free(there);
     char *snap_dir = join(root, "catalog");
     char *sources[] = { join(snap_dir, "archive.rec"), join(root, "catalog.rec") };
     int any = 0;
-    strlist added = { 0 }, updated = { 0 };
+    strlist added = { 0 }, updated = { 0 }, clashes = { 0 };
     size_t events = 0;
     for (int k = 0; k < 2; k++) {
         if (access(sources[k], F_OK)) continue;
@@ -1157,9 +1223,9 @@ int cmd_rebuild(int argc, char **argv)
             if (!other->homes.n) rec_add(r, "Uuid", theirs);
             recs_add(&cat.homes, r);
         }
-        events += archive_merge(&cat, other, prefer, &added, &updated);
+        events += archive_merge(&cat, other, prefer, &added, &updated, &clashes);
     }
-    if (!any) die("%s has neither catalog/archive.rec nor catalog.rec", root);
+    if (!any) die("%s has neither catalog/archive.rec nor catalog.rec (a disc's root, or an archive's .arv)", root);
     static const char *const KINDS[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", "git.tsv",
                                          NULL };
     char *own_id = disc_root_id(root);
@@ -1186,7 +1252,13 @@ int cmd_rebuild(int argc, char **argv)
         }
     }
     for (int k = 0; HOME_VOCABULARIES[k]; k++) {         /* the vocabularies, when the home has none yet */
-        char *from = xprintf("%s/config/%s", snap_dir, HOME_VOCABULARIES[k]), *to = join(h.config_dir, HOME_VOCABULARIES[k]);
+        char *cfg = xprintf("%s/config", root);         /* a catalogue's own config/, or a disc's catalog/config/ */
+        if (!a_folder(cfg)) {
+            free(cfg);
+            cfg = xprintf("%s/config", snap_dir);
+        }
+        char *from = xprintf("%s/%s", cfg, HOME_VOCABULARIES[k]), *to = join(h.config_dir, HOME_VOCABULARIES[k]);
+        free(cfg);
         if (!access(from, F_OK) && access(to, F_OK)) {
             if (mkdirs(h.config_dir)) die("cannot create %s", h.config_dir);
             copy_file(from, to);
@@ -1213,5 +1285,104 @@ int cmd_rebuild(int argc, char **argv)
     printf("Added %zu disc(s)%s, updated %zu, %zu new event(s), %zu file list(s) copied into %s\n", added.n, list.s,
            updated.n, events, copied, h.path);
     free(list.s);
-    return 0;
+    fflush(stdout);                                     /* the summary, then what needs a person */
+    letter_clashes(&cat);
+    identity_report(&cat);
+    field_conflicts(&cat);
+    for (size_t i = 0; i < clashes.n; i++)
+        fprintf(stderr, "Not merged: %s names a different disc there (another image: both catalogues made \"the next\" disc).\n"
+                        "  This home's %s is kept; the other's records stay in %s.\n", clashes.v[i], clashes.v[i], root);
+    return clashes.n ? 1 : 0;
+}
+
+/* ------------------------------------------------------------------ audit */
+
+static void audit_label(const rec_record *e, sbuf *out)
+{
+    sb_printf(out, "%s  %s  %s", get_or(e, "Date", "?"), rec_get(e, "Disc") ? rec_get(e, "Disc") : get_or(e, "Object", "?"),
+              get_or(e, "Type", "?"));
+}
+
+/* arv audit [DISC...]: every event against the id it was given (an id is its content's hash, so
+ * an event changed since it was written no longer matches); and, for each disc given, the home
+ * against the events that disc carries (a burned disc is a write-once, dated witness) */
+int cmd_audit(int argc, char **argv)
+{
+    const char *given = NULL;
+    strlist roots = { 0 };
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (argv[i][0] != '-') strlist_add(&roots, argv[i]);
+        else return 2;
+    }
+    arv_home h;
+    archive cat;
+    open_home(given, &h, &cat);
+    size_t problems = 0, unnamed = 0, n = cat.events.n;
+    char (*keys)[33] = xmalloc((n + 1) * sizeof *keys), (*content)[33] = xmalloc((n + 1) * sizeof *content);
+    for (size_t i = 0; i < n; i++) {
+        const rec_record *e = cat.events.v[i];
+        event_key(e, keys[i]);
+        event_content_id(e, content[i]);
+        if (!rec_get(e, "EventId")) {
+            unnamed++;
+        } else if (strcmp(keys[i], content[i])) {
+            sbuf l = { 0 };
+            audit_label(e, &l);
+            printf("CHANGED  %s  (event %s: not what was written)\n", l.s, keys[i]);
+            free(l.s);
+            problems++;
+        }
+    }
+    printf("%s: %zu event%s, %zu changed since written%s\n", h.path, n, n == 1 ? "" : "s", problems,
+           unnamed ? " (some written before event ids: the next change to the catalogue gives them one)" : "");
+    problems += identity_report(&cat);                  /* copies: recorded twice, on two discs, two BCA serials */
+    problems += field_conflicts(&cat);                  /* a field changed apart, in two catalogues */
+    for (size_t r = 0; r < roots.n; r++) {
+        char *sources[] = { xprintf("%s/catalog/archive.rec", roots.v[r]), join(roots.v[r], "catalog.rec") };
+        archive disc;
+        memset(&disc, 0, sizeof disc);
+        int loaded = 0;
+        for (int k = 0; k < 2 && !loaded; k++)
+            if (!access(sources[k], F_OK)) {
+                archive_load(&disc, sources[k]);
+                loaded = 1;
+            }
+        free(sources[0]);
+        free(sources[1]);
+        if (!loaded) die("%s has neither catalog/archive.rec nor catalog.rec (the root of a mounted disc or an extracted image)", roots.v[r]);
+        const char *theirs = disc.homes.n ? rec_get(disc.homes.v[0], "Uuid") : NULL;
+        if (!theirs && disc.file.nrecords) {
+            const rec_record *arc = rec_first(&disc.file, "Archive");
+            theirs = arc ? rec_get(arc, "HomeUuid") : NULL;
+        }
+        if (theirs && cat.homes.n && strcmp(theirs, get_or(cat.homes.v[0], "Uuid", "")))
+            die2("%s belongs to another archive (home %s), not to this one", roots.v[r], theirs);
+        size_t missing = 0, differ = 0;
+        for (size_t i = 0; i < disc.events.n; i++) {
+            const rec_record *e = disc.events.v[i];
+            char k[33], c[33];
+            event_key(e, k);
+            event_content_id(e, c);
+            size_t j = 0;
+            while (j < n && strcmp(keys[j], k)) j++;
+            sbuf l = { 0 };
+            audit_label(e, &l);
+            if (j == n) {
+                printf("MISSING  %s  (event %s: on %s, not at home)\n", l.s, k, roots.v[r]);
+                missing++;
+            } else if (strcmp(content[j], c)) {
+                printf("DIFFERS  %s  (event %s: the home's is not what %s carries)\n", l.s, k, roots.v[r]);
+                differ++;
+            }
+            free(l.s);
+        }
+        printf("%s: %zu event%s, %zu missing at home, %zu different\n", roots.v[r], disc.events.n,
+               disc.events.n == 1 ? "" : "s", missing, differ);
+        problems += missing + differ;
+    }
+    free(keys);
+    free(content);
+    strlist_free(&roots);
+    return problems ? 1 : 0;
 }

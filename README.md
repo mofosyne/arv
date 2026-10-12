@@ -322,6 +322,7 @@ arv appraise TRIP-01_2019_4:day1/IMG_0001.JPG   # the appraisal in force (inheri
 arv appraise --due                              # appraisals due for review
 arv find IMG_2019            # which disc holds it, and where the disc is
 arv objects                     # everything kept, and every copy of it: discs, places, hot/warm/cold
+arv objects TRIP-01_2019_4      # one disc's copies by letter: place, last check, BCA serial
 arv list --covers 2019-07-15    # discs whose date range includes that day (or 2019, 2019-07)
 arv sets -v                     # the vocabulary tree with disc counts, aliases and match rules
 arv list --in MEMORIES          # discs anywhere under a vocabulary entry
@@ -348,6 +349,12 @@ arv check --device /dev/sr0                        # read a disc back against it
                                                    # (--copy B names the copy; the BCA serial, if read, finds it)
 arv check --image 2020-2025_PROJECTS_01.iso
 arv rebuild /media/disc                            # recreate/merge the home catalogue from a disc
+arv audit /media/disc                              # the home's events as written, and as the disc has them
+arv rebuild /mnt/laptop/.arv                       # merge another catalogue of this archive, by event id
+arv drives                                         # which disc, and which copy, is in each drive (--check: check them)
+find /mnt/nas -name '*.iso' -exec arv info {} \;   # which of these images are discs of this archive
+arv todo --tsv                                     # what is due, one copy a line, for scripts (a tape library)
+mtx -f /dev/sg3 status | arv inventory LIB1        # a library's barcodes against the copies recorded there
 arv verify /media/disc                             # every file against its checksum
 arv restore /media/disc ~/restored                 # copy everything back, links and execute bits too
 

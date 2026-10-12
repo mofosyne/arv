@@ -355,6 +355,169 @@ while [ $n -le 130 ]; do head -c $n bytes > "lengths/data/$(printf %03d $n)"; n=
 (cd lengths && "$here/build/fixtures" --hash data/* > ../sha512.c.txt && sha512sum data/* > ../sha512.txt)
 cmp -s sha512.c.txt sha512.txt && ok "SHA-512 matches sha512sum for 0 to 130 bytes" || no "SHA-512"
 
+# ------------------------------------------------------------------ event ids and arv audit
+cp -r home aud && "$tool" -C aud where --here >/dev/null   # a copy, made one of its own
+did=$(sed -n 's/^Id: //p' disc/catalog.rec | head -1)
+"$tool" -C aud note "$did" "the same words" >/dev/null && "$tool" -C aud note "$did" "the same words" >/dev/null
+n_ev=$(grep -c '^EventId: ' aud/catalog/archive.rec)
+[ "$(grep -c '^EventId: [0-9a-f]\{32\}$' aud/catalog/archive.rec)" -ge 3 ] && grep -q '^Nonce: 2$' aud/catalog/archive.rec \
+    && grep -q '^EventId: ' disc/catalog/archive.rec \
+    && ok "event ids: every event has one, on discs too; two events alike are kept apart by a Nonce" \
+    || no "event ids"
+"$tool" -C aud audit disc > audit.out && grep -q " 0 changed since written" audit.out && grep -q "0 missing at home, 0 different" audit.out \
+    || { cat audit.out; no "arv audit, untouched"; }
+first=$(sed -n 's/^EventId: //p' disc/catalog/archive.rec | head -1)
+awk -v id="$first" 'BEGIN { RS = ""; ORS = "\n\n" } $0 ~ "EventId: " id { sub(/Outcome: success/, "Outcome: failure") } { print }' \
+    aud/catalog/archive.rec > aud.rec && mv aud.rec aud/catalog/archive.rec
+"$tool" -C aud audit disc > audit.out && no "arv audit passed a changed event"
+grep -q "^CHANGED .*$first" audit.out && grep -q "^DIFFERS .*$first" audit.out || { cat audit.out; no "arv audit, a changed event"; }
+awk -v id="$first" 'BEGIN { RS = ""; ORS = "\n\n" } $0 !~ "EventId: " id { print }' aud/catalog/archive.rec > aud.rec \
+    && mv aud.rec aud/catalog/archive.rec
+"$tool" -C aud audit disc > audit.out || true; grep -q "^MISSING .*$first" audit.out || { cat audit.out; no "arv audit, a lost event"; }
+"$tool" -C aud rebuild disc >/dev/null && "$tool" -C aud rebuild disc >/dev/null || no "rebuild"
+"$tool" -C aud audit disc > audit.out && [ "$(grep -c "^EventId: $first" aud/catalog/archive.rec)" = 1 ] \
+    && [ "$(grep -c '^EventId: ' aud/catalog/archive.rec)" = "$n_ev" ] \
+    && ok "arv audit: an event changed at home, and one lost, are found against the disc; rebuild brings the lost one back once" \
+    || { cat audit.out; no "audit after rebuild"; }
+
+# ------------------------------------------------------------------ two catalogues of one archive: the guard, and merging
+mkdir -p two/a/T1 two/a/T2 two/a/T3
+echo 1 > two/a/T1/f && echo 2 > two/a/T2/f && echo 3 > two/a/T3/f
+(cd two/a && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --formats no --set CODE --output t1.iso T1 >/dev/null 2>&1) || no "make in two/a"
+t1=$(sed -n 's/^Id: //p' two/a/.arv/catalog/archive.rec | head -1)
+cp -r two/a two/b
+"$tool" -C two/b/.arv note "$t1" "from b" 2>guard.err && no "a copied catalogue took a change"
+grep -q "a copy of it" guard.err && grep -q "where --here" guard.err || { cat guard.err; no "the copy guard's message"; }
+"$tool" -C two/b/.arv where --here >/dev/null && "$tool" -C two/b/.arv note "$t1" "from b" >/dev/null || no "where --here"
+"$tool" -C two/b/.arv burned "$t1" --copies 1 --location ATTIC >/dev/null 2>&1 && "$tool" -C two/a/.arv burned "$t1" --copies 1 --location SHELF >/dev/null 2>&1 \
+    || no "burned in both"
+(cd two/b && "$tool" make -y --no-ecc --formats no --set CODE --output t2.iso T2 >/dev/null 2>&1) \
+    && (cd two/a && "$tool" make -y --no-ecc --formats no --set CODE --output t3.iso T3 >/dev/null 2>&1) || no "make in both"
+"$tool" -C two/a/.arv rebuild two/b > merge.out 2> merge.err && no "a clashing disc id was merged"
+grep -q "two copies lettered A" merge.err && grep -q "^Not merged: CODE-02" merge.err && grep -q "^Note: from b" two/a/.arv/catalog/archive.rec \
+    && [ "$(grep -c '^Type: replication' two/a/.arv/catalog/archive.rec)" = 2 ] \
+    && ok "two catalogues of one archive: a copy takes no change until arv where --here; rebuild merges the other by event id (notes too), and reports a copy letter and a disc id both gave out" \
+    || { cat merge.out merge.err; no "merging two catalogues"; }
+
+# one disc recorded in both: counted once, by the identifier both recorded
+mkdir -p dup/a/T && echo d > dup/a/T/f
+(cd dup/a && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --formats no --set CODE --output d.iso T >/dev/null 2>&1) || no "make in dup/a"
+d1=$(sed -n 's/^Id: //p' dup/a/.arv/catalog/archive.rec | head -1)
+cp -r dup/a dup/b && "$tool" -C dup/b/.arv where --here >/dev/null
+"$tool" -C dup/a/.arv burned "$d1" --identifier barcode:ARV-7 --location SHELF >/dev/null 2>&1 && "$tool" -C dup/b/.arv burned "$d1" --identifier barcode:ARV-7 --location ATTIC >/dev/null 2>&1 \
+    || no "burned with an identifier"
+"$tool" -C dup/a/.arv rebuild dup/b > dup.out 2> dup.err || { cat dup.out dup.err; no "rebuild of one disc recorded twice"; }
+rc=0; "$tool" -C dup/a/.arv audit > dup.audit || rc=$?
+grep -q "^TWICE .* copies A and A are one disc (barcode:ARV-7)" dup.out && ! grep -q "two copies lettered" dup.err \
+    && "$tool" -C dup/a/.arv objects "$d1" | grep -q ": 1 copy$" && [ "$rc" = 1 ] && grep -q "^TWICE" dup.audit \
+    && ok "copies by identity: one disc recorded in two catalogues (barcode:) is counted once, and rebuild and audit say so" \
+    || { cat dup.out dup.err dup.audit; "$tool" -C dup/a/.arv objects "$d1"; no "one disc recorded twice"; }
+
+# ------------------------------------------------------------------ what is in a drive, and what an image is
+mkdir -p drv/T1 drv/T2 && echo 1 > drv/T1/a && echo 2 > drv/T2/b
+(cd drv && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --formats no --set CODE --output i1.iso T1 >/dev/null 2>&1 \
+    && "$tool" make -y --no-ecc --formats no --set CODE --output i2.iso T2 >/dev/null 2>&1) || no "make in drv"
+v1=$(sed -n 's/^Id: //p' drv/.arv/catalog/archive.rec | head -1)
+"$tool" -C drv/.arv burned "$v1" --device drv/i1.iso --location SHELF >/dev/null 2>&1 || no "burned in drv"
+mkdir -p drv/nas && cp drv/i1.iso drv/nas/ && "$tool" -C drv/.arv stored "$v1" drv/nas/i1.iso --location NAS >/dev/null 2>&1 || no "stored in drv"
+: > drv/empty.iso
+"$tool" -C drv/.arv drives drv/i1.iso drv/i2.iso drv/empty.iso drv/none > drives.out || no "arv drives"
+grep -q "^drv/i1.iso  $v1 \"T1\" copy A (its only burned copy; read back when recorded)" drives.out \
+    && grep -q '^drv/i2.iso  CODE-02.*: which copy is not known' drives.out && grep -q '^drv/empty.iso  .*not an arv disc' drives.out \
+    && grep -q '^drv/none  cannot be read' drives.out || { cat drives.out; no "arv drives says what is in each"; }
+"$tool" -C drv/.arv drives --check drv/i1.iso > drives.out 2>&1 && grep -q "^$v1 copy A: OK" drives.out || { cat drives.out; no "arv drives --check"; }
+(cd drv && find . -name '*.iso' -exec "$tool" -C .arv info {} \;) > info.out || true
+grep -q "^./nas/i1.iso  $v1 \"T1\" copy B (stored here" info.out && grep -q "^./i2.iso  CODE-02.*not recorded as a copy" info.out \
+    && grep -q "^./empty.iso  not a disc image" info.out || { cat info.out; no "arv info IMAGE, with find"; }
+mkdir -p drv/nas2 && mv drv/nas/i1.iso drv/nas2/
+"$tool" -C drv/.arv todo | grep -q "^  $v1  copy B  .*/drv/nas/i1.iso" || no "todo: a stored copy not where recorded"
+"$tool" -C drv/.arv stored "$v1" drv/nas2/i1.iso --copy B >/dev/null 2>&1 || no "stored --copy: a moved copy"
+! "$tool" -C drv/.arv todo | grep -q "Stored copies not found" && "$tool" -C drv/.arv objects "$v1" | grep -q ": 2 copies$" \
+    && ok "arv drives names the disc and copy in each drive (and --check checks them); arv info knows an image file (find -exec); todo finds a stored copy gone from its path, and stored --copy records the move" \
+    || { "$tool" -C drv/.arv todo; no "a moved stored copy"; }
+
+# copies on a carrier that holds many images (a tape, a drive): counted by carrier
+v2=$(sed -n 's/^Id: //p' drv/.arv/catalog/archive.rec | sed -n 2p)
+mkdir -p drv/tape1 drv/tape2 && cp drv/i1.iso drv/tape1/x.iso && cp drv/i1.iso drv/tape1/y.iso && cp drv/i2.iso drv/tape1/ && cp drv/i1.iso drv/tape2/
+for f in x y; do "$tool" -C drv/.arv stored "$v1" drv/tape1/$f.iso --carrier barcode:TAPE01L8 > carrier.out 2>&1 || no "stored --carrier"; done
+grep -q "count as one" carrier.out || { cat carrier.out; no "stored notes a shared carrier"; }
+"$tool" -C drv/.arv stored "$v2" drv/tape1/i2.iso --carrier barcode:TAPE01L8 >/dev/null 2>&1 || no "a second disc on the tape"
+"$tool" -C drv/.arv objects "$v1" | grep -q ": 3 copies$" || { "$tool" -C drv/.arv objects "$v1"; no "copies on one carrier count once"; }
+"$tool" -C drv/.arv todo | grep -q "^  $v1  copies C and D on barcode:TAPE01L8" || no "todo: copies on one carrier"
+"$tool" -C drv/.arv audit > carrier.out && ! grep -q "TWO DISCS" carrier.out || { cat carrier.out; no "two discs on one tape are not a clash"; }
+"$tool" -C drv/.arv stored "$v1" drv/tape2/i1.iso --copy D --carrier barcode:TAPE02L8 >/dev/null 2>&1 || no "a copy moved to another tape"
+"$tool" -C drv/.arv objects "$v1" | grep -q ": 4 copies$" \
+    && ok "carriers: copies on one tape count once and todo says so; two discs on one tape are no clash; a copy moved to another tape counts again" \
+    || { "$tool" -C drv/.arv objects "$v1"; no "carrier after a move"; }
+
+# a tape library or jukebox: the worklist (todo --tsv), the inventory, and the example mtx loop
+mkdir -p lib/T1 lib/T2 lib/T3 lib/mnt lib/bin && echo 1 > lib/T1/a && echo 2 > lib/T2/b && echo 3 > lib/T3/c
+(cd lib && "$tool" init . >/dev/null && "$tool" location add LIB1 "Tape library" >/dev/null \
+    && for t in T1 T2 T3; do "$tool" make -y --no-ecc --formats no --set CODE --output $t.iso $t >/dev/null 2>&1 || exit 1; done) \
+    || no "make in lib"
+l1=$(sed -n 's/^Id: \(CODE-01.*\)/\1/p' lib/.arv/catalog/archive.rec | head -1)
+l2=$(sed -n 's/^Id: \(CODE-02.*\)/\1/p' lib/.arv/catalog/archive.rec | head -1)
+l3=$(sed -n 's/^Id: \(CODE-03.*\)/\1/p' lib/.arv/catalog/archive.rec | head -1)
+"$tool" -C lib/.arv burned "$l1" --copies 1 --identifier barcode:DISC01 --location LIB1 >/dev/null 2>&1 || no "burned in lib"
+cp lib/T2.iso lib/mnt/ && "$tool" -C lib/.arv stored "$l2" lib/mnt/T2.iso --carrier barcode:TAPE01L8 --location LIB1 >/dev/null 2>&1 \
+    || no "stored on a tape in lib"
+"$tool" -C lib/.arv burned "$l3" --copies 1 --location LIB1 >/dev/null 2>&1 || no "burned, no barcode"
+"$tool" -C lib/.arv todo --tsv > todo.tsv
+grep -q "^read-back	$l1	A	disc	barcode:DISC01		LIB1		$" todo.tsv && ! grep -q "	$l2	" todo.tsv || { cat todo.tsv; no "todo --tsv"; }
+"$tool" -C lib/.arv todo --tsv --overdue -1 | grep -q "^overdue	$l2	A	iso		barcode:TAPE01L8	LIB1	.*/lib/mnt/T2.iso	" \
+    || no "todo --tsv: an overdue copy on a tape"
+printf '%s\n' '  Storage Changer /dev/sg3:1 Drives, 4 Slots ( 0 Import/Export )' 'Data Transfer Element 0:Empty' \
+    '      Storage Element 1:Full :VolumeTag=DISC01' '      Storage Element 2:Full :VolumeTag=TAPE01L8' \
+    '      Storage Element 3:Full :VolumeTag=CLN001L1' '      Storage Element 4:Empty' > lib/status.txt
+rc=0; "$tool" -C lib/.arv inventory LIB1 lib/status.txt > inv.out || rc=$?
+grep -q ": 3 barcodes read; 2 known, 1 unknown; 0 copies recorded here missing, 1 without a barcode" inv.out \
+    && grep -q "^UNMARKED   $l3 copy A" inv.out && grep -q "^UNKNOWN    slot 3 CLN001L1" inv.out && [ $rc = 0 ] \
+    || { cat inv.out; no "arv inventory"; }
+grep -v TAPE01L8 lib/status.txt | "$tool" -C lib/.arv inventory LIB1 > inv.out && no "inventory: a missing tape passed"
+grep -q "^MISSING    $l2 copy A" inv.out || { cat inv.out; no "inventory: the missing tape"; }
+printf '#!/bin/sh\ncase "$3" in status) cat "%s/lib/status.txt";; *) echo "$3 $4 $5" >> "%s/lib/mtx.log";; esac\n' "$PWD" "$PWD" > lib/bin/mtx
+chmod +x lib/bin/mtx
+(cd lib && ARV="$tool" MTX="$PWD/bin/mtx" OVERDUE=-1 LTFS_MOUNT=true LTFS_UMOUNT=true \
+    sh "$repo/docs/examples/library-check.sh" /dev/sg3 0 T1.iso "$PWD/mnt") > loop.out 2>&1 || { cat loop.out; no "library-check.sh"; }
+[ "$(cat lib/mtx.log)" = "$(printf 'load 1 0\nunload 1 0\nload 2 0\nunload 2 0')" ] && grep -q "^skip: $l3 copy A has no barcode" loop.out \
+    && grep -q "^$l1 copy A: OK" loop.out && grep -q "^$l2: copy A checked at .*/lib/mnt/T2.iso: identical" loop.out \
+    && ! "$tool" -C lib/.arv todo --tsv | grep -q "^read-back	$l1" \
+    && ok "a library: todo --tsv is the worklist, inventory reconciles mtx status with the record, and the example mtx loop loads, checks and unloads by barcode" \
+    || { cat loop.out lib/mtx.log; no "the library loop"; }
+
+# scanning barcodes: find a copy by a scanned case, --barcode, and a shelf read from the keyboard
+"$tool" -C lib/.arv find DISC01 > scan.out && grep -q "^COPY  $l1 copy A  barcode:DISC01  \[Tape library; " scan.out \
+    || { cat scan.out; no "find by a scanned barcode"; }
+"$tool" -C lib/.arv find TAPE01L8 | grep -q "^COPY  $l2 copy A  barcode:TAPE01L8 (the tape or drive it is on)" || no "find by a tape's barcode"
+"$tool" -C lib/.arv identify "$l3" A --barcode " CASE07 " >/dev/null || no "identify --barcode"
+"$tool" -C lib/.arv find case07 | grep -q "^COPY  $l3 copy A  barcode:CASE07" || no "--barcode, trimmed and found again"
+printf 'DISC01\nCASE07\nNOPE9\n' | "$tool" -C lib/.arv inventory LIB1 > scan.out || true
+grep -q "^MISSING    $l2 copy A" scan.out && grep -q "^UNKNOWN    NOPE9: " scan.out && ! grep -q UNMARKED scan.out \
+    && ok "barcodes: arv find names the disc and copy of a scanned case or tape; --barcode takes a scan; inventory takes a shelf read typed by a scanner" \
+    || { cat scan.out; no "a shelf read by hand"; }
+
+# a field changed apart in two catalogues, and a copy relabelled
+mkdir -p rl/a/T && echo r > rl/a/T/f
+(cd rl/a && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --formats no --set CODE --output r.iso T >/dev/null 2>&1) || no "make in rl"
+r1=$(sed -n 's/^Id: //p' rl/a/.arv/catalog/archive.rec | head -1)
+"$tool" -C rl/a/.arv access "$r1" public && cp -r rl/a rl/b && "$tool" -C rl/b/.arv where --here >/dev/null || no "rl setup"
+"$tool" -C rl/b/.arv access "$r1" sealed && "$tool" -C rl/a/.arv access "$r1" private || no "access in both"
+"$tool" -C rl/a/.arv burned "$r1" --copies 1 --location SHELF >/dev/null 2>&1 && "$tool" -C rl/b/.arv burned "$r1" --copies 1 --location ATTIC >/dev/null 2>&1 \
+    || no "burned in both"
+"$tool" -C rl/a/.arv rebuild rl/b > rl.out 2>&1 || { cat rl.out; no "rebuild in rl"; }
+grep -q "^CONFLICT  $r1 Access: changed apart" rl.out && grep -q "arv relabel $r1 A NEW --at ATTIC" rl.out || { cat rl.out; no "rebuild reports a field conflict"; }
+rc=0; "$tool" -C rl/a/.arv audit > rl.out || rc=$?
+[ $rc = 1 ] && grep -q "^CONFLICT  $r1 Access" rl.out || { cat rl.out; no "audit reports a field conflict"; }
+"$tool" -C rl/a/.arv access "$r1" private && "$tool" -C rl/a/.arv audit > rl.out || { cat rl.out; no "setting it again settles it"; }
+"$tool" -C rl/a/.arv relabel "$r1" A B 2> rl.out && no "relabel of an ambiguous letter"
+grep -q "has 2 copies lettered A" rl.out || { cat rl.out; no "relabel says which"; }
+"$tool" -C rl/a/.arv relabel "$r1" A B --at ATTIC >/dev/null || no "relabel --at"
+"$tool" -C rl/a/.arv check --device rl/a/r.iso --copy B "$r1" >/dev/null 2>&1 || no "check of a relabelled copy"
+"$tool" -C rl/a/.arv objects "$r1" > rl.out
+grep -q "^  A  disc, cold, .*SHELF; not read back" rl.out && grep -q "^  B  disc, cold, .*ATTIC; last checked" rl.out \
+    && ok "two catalogues: a field changed in both is a conflict until set again; relabel gives one of two copies lettered alike a new letter, and a check finds it by it" \
+    || { cat rl.out; no "after relabel"; }
+
 # ------------------------------------------------------------------ the helpers: arv-assist and arv-gui
 mkdir -p helpers
 printf '#!/bin/sh\necho "assist $*"\n' > helpers/assist

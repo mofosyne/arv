@@ -126,6 +126,105 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - Not added: a chat agent in arv. `describe` already has its useful part, and an agent working
   through the archive belongs outside arv, writing drafts (research/plan.md says why).
 
+**Event ids, and the discs as witnesses** (format 0.5)
+- Every event has an `EventId`: the hash of what it says, as written (PREMIS's eventIdentifier).
+  The same event has the same id in every catalogue and on every disc, so `arv rebuild` merges
+  events by id; two events with the same content are kept apart by a `Nonce`. Older events get
+  their id when the catalogue is next written.
+- `arv audit` checks every event against its id, and with discs given (`arv audit /media/disc`),
+  the home against what each disc carries: an event changed or lost at home is listed. A burned
+  disc is write-once and kept elsewhere, so it witnesses what was written.
+- `arv rebuild` merges another catalogue of the same archive too (its `.arv`, or the folder that
+  holds one), by event id; notes on a disc add up from both. What both gave out is reported: a
+  disc id naming two different images is not merged (exit 1), and two copies lettered alike are
+  named.
+- **A copy of the catalogue takes no changes.** `config/paths.rec` records where the catalogue
+  lives; a change written to a copy elsewhere stops, with what to do (`arv make` stops before the
+  long part). `arv where --here` accepts a new place (the catalogue moved, or a share is mounted
+  at another path); `arv where` lists the places, and says when this one is not among them.
+- research/plan.md (2026-10-10): the catalogue's history is per thing, not a line; catalogues
+  merge by event id; tampering is made evident, with the discs as witnesses.
+
+**Scanning barcodes**
+- `arv find` searches copies by what they are known by: `arv find ARV-000123` (a scanned case)
+  says which disc and copy it is, where it is kept and when it was last checked; a tape's
+  barcode finds every copy on it.
+- `--barcode CODE`, for a handheld scanner (it types like a keyboard): on `burned`, `check`,
+  `identify` and `relabel` it is `--identifier barcode:CODE`; on `stored`, the tape's
+  (`--carrier barcode:CODE`). `arv inventory PLACE` read from the keyboard is a hand shelf read.
+- docs/burning.md: barcodes go on the case, not the disc, and what a case's barcode does and
+  does not prove.
+
+**Relabelling copies, and conflicts between catalogues** (format 0.5)
+- An event about one copy names it by `Replication` (its replication's EventId, which never
+  changes) as well as its letter; a copy's letter is the newest given. `arv relabel DISC-ID COPY
+  NEW [--at PLACE | --identifier ID]` gives a copy a new letter, keeping its history: for two
+  copies lettered alike by two catalogues (rebuild says which command to run), or a label written
+  wrong. Letters once given are not given again.
+- A change to a field (a disc's access, places, title, description or subjects; a place's or a
+  selection's name or parent; a place's temperature) says `Sets: FIELD` and `Replaces:` the
+  changes it follows. Two catalogues that each changed a field are a `CONFLICT`, reported by
+  `arv rebuild` and `arv audit`; the home's value stands until the field is set again, even to
+  the value it has, which settles it.
+
+**Jukeboxes and tape libraries**
+- `arv todo --tsv`: what is owed, one copy a line (no-copy, read-back, overdue, missing,
+  one-carrier), with its form, identifiers, carrier, place, path and last check: a worklist for a
+  script.
+- `arv inventory [-v] PLACE [FILE]` reads a library's barcodes (`mtx status`, or a plain list)
+  and reconciles them with the copies recorded at PLACE: missing (exit 1), unknown, recorded
+  elsewhere, and recorded there with no barcode. It reports and records nothing.
+- `docs/examples/library-check.sh`: an example `mtx` loop (on every disc too) that loads each
+  due copy by barcode, checks it (a disc in the drive; a copy on an LTFS tape at its path), and
+  unloads it, one load a tape. `-n` shows what it would do.
+- `arv stored ID PATH --copy X` at the copy's own path checks it again (a check, no move).
+
+**Copies on tapes and drives: carriers** (format 0.5)
+- A stored copy may name its `Carrier`: the tape or drive that holds it and other images
+  (`arv stored ... --carrier barcode:TAPE01L8`, or later `arv identify ID X --carrier ...`).
+  Many discs on one tape is no clash; two copies of one disc on one carrier are lost together,
+  so they count as one (`arv objects`, `arv todo`, safety), and `arv todo` and `arv stored`
+  say so. A copy moved to another tape (`arv stored --copy X --carrier ...`) counts again.
+- `serial:` joins the identifier schemes: a manufacturer's serial (a hard drive's, an LTO
+  cartridge's memory), naming one medium like `bca:` and `barcode:`.
+
+**What is in the drives, and where the stored copies went**
+- `arv drives [--check] [DRIVE...]` names the disc and copy in each optical drive (by its BCA
+  serial, or as the only burned copy), and says when a drive is empty or holds another disc.
+  Linux finds the drives; elsewhere they are named. `--check` checks each arv disc found.
+- `arv info IMAGE.iso` says which disc an image file is and whether it is a recorded copy, so
+  `find ... -exec arv info {} \;` looks through a drive or NAS (arv does not crawl disks itself).
+- `arv todo` lists stored copies not found at their recorded path. `arv stored ID NEWPATH --copy
+  X` checks a moved copy at its new path and records the move (and a new place with
+  `--location`), instead of recording a new copy.
+
+**Copies known by what is on them** (format 0.5)
+- A copy's **identifiers** say how that physical disc is recognised, as `scheme:value`:
+  `bca:` (its factory serial, read by the drive), `barcode:` (a sticker, scanned), `label:`
+  (written or printed), `hub:` (the maker's batch code). Repeatable, and added later by any
+  event that names the copy. `Identifier: bca:...` replaces `Bca:`.
+- `arv burned` and `arv check` take `--identifier` (repeatable; `--bca` is gone). `arv identify
+  DISC-ID COPY ID...` adds one later (a sticker put on, a serial read on another machine). An
+  identifier already on another copy is refused, as is a second BCA serial on one copy.
+- Copies are counted as **physical discs**: two records that share a `bca:` or `barcode:` are
+  one disc recorded twice (in two catalogues, say), counted once in `arv objects`, `arv todo`
+  and safety. `arv audit` and `arv rebuild` report a disc recorded twice, an identifier on
+  copies of two discs, and a copy with two BCA serials.
+- `MediaId` is now `MediaType` (`--media-type`): the maker and type many discs share, not one
+  disc's identity.
+- `arv objects DISC-ID` and the GUI show each copy's identifiers.
+
+**Copies in the GUI, and one disc's copies**
+- `arv objects DISC-ID` lists a disc's copies, each by its letter, with its form, place, when it
+  was last checked and its BCA serial; `--json` gives the same (and `arv objects --json` now
+  carries `at`, `made`, `checked` and `bca` for every copy).
+- `arv gui`, a disc's details: its copies in a table by letter; recording a burned copy (how many,
+  where, the letter, and with a drive named, read back first), a copy on a drive or NAS
+  (`arv stored`), and checking one copy (by letter, or found by its BCA serial; an image can be
+  repaired). The Check tab takes a copy letter and repair too.
+- The GUI's Collections tab counts a disc read back when a copy was checked since it was burned,
+  as `arv objects` does; it used to count only a read-back at burning.
+
 **Describing from anywhere**
 - A draft (the JSON `arv describe --save` writes) is documented as the way in for anything that
   describes the archive: a person, a script, or a model that is not arv's. README, "Describing

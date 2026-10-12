@@ -358,13 +358,52 @@ Each copy has a **letter**, `Copy: A`, `B` ... `Z`, `AA` ...: unique among the d
 in order as copies are recorded (or chosen), and written on the disc's hub and case after its id,
 so a copy can be told from its twins in the hand. Copies are identical images, so the letter is in
 the catalogue, never on the disc. The event also carries the copy's own `Location` (as the disc's
-`Location`, which lists every place a copy of it is kept), and may carry `MediaId` (the media's
-manufacturer and type, as the drive reports it) and `Bca`: the disc's own factory serial, from
-its burst cutting area, as 32 lowercase hex digits (the BCA's first 16-byte unit; the BCA repeats
-it, then names the media type; [research/bca/](../../research/bca/README.md)). A copy is recognised by its `Bca` when a drive reads it again: a
-`fixity check` that names a copy may carry the `Bca` it read, for a copy recorded without one. A disc's number of copies is its number of
-`replication` events that did not fail; there is no counter. A `fixity check` of one copy names
-it with `Copy` too.
+`Location`, which lists every place a copy of it is kept), and may carry `MediaType` (the media's
+manufacturer and type, as the drive reports it: many discs share it) and `Identifier`s.
+
+**Identifiers** say how one physical copy is recognised, as `scheme:value` (PREMIS's
+objectIdentifierType and Value), repeatable:
+
+| Scheme | What it is | Names one physical disc |
+|---|---|---|
+| `bca:` | the factory serial in the burst cutting area, read by a drive: 32 lowercase hex digits (the BCA's first 16-byte unit; the BCA repeats it, then names the media type; [research/bca/](../../research/bca/README.md)) | yes |
+| `barcode:` | a label stuck on the disc and scanned | yes (one on a case names the case) |
+| `serial:` | a manufacturer's serial: a hard drive's, or an LTO cartridge's own memory | yes |
+| `label:` | what was written or printed on it | no |
+| `hub:` | the maker's code printed in the clear hub ring (a batch) | no |
+
+A copy's identifiers are those on its `replication` event and on any later event that names its
+`Copy` (a `fixity check` that read the BCA, or a `metadata modification` from `arv identify`),
+unless two copies carry that letter (two catalogues each gave it out), when only the
+`replication`'s own count. A drive that reads one finds the copy in it. A disc has one `bca:`; a
+copy with two is a mix-up, reported. A disc's number of copies is its number of `replication`
+events that did not fail, **counted as physical discs**: two that share a `bca:` or `barcode:`
+are one disc recorded twice (in two catalogues, say), counted once and reported. There is no
+counter. A `fixity check` of one copy names it with `Copy` too.
+
+**Naming a copy in a later event.** An event about one copy (a `fixity check` of it, a move, an
+identifier added, a new letter) carries `Replication`: the copy's `replication` event's `EventId`,
+which never changes, and `Copy`: its letter at the time. A copy's letter now is the `Copy` of the
+newest event naming it by `Replication` (`arv relabel` gives a new one; the copy keeps its
+history), else the letter it was given. An event without `Replication` (written before it) names
+a copy by the letter it was given, unless two copies were given it.
+
+**Field histories.** A `metadata modification` that changes a field of a thing (a disc's `Access`,
+`Location`, `Title`, `Description` or `Subject`; a place's or a selection's `Name` or `Parent`; a
+place's `Temperature`) says so with `Sets: FIELD`, and names with `Replaces: EVENTID` the changes
+to that field it knew of (those no later change replaces). Each field has its own small history.
+Two changes that replace the same one were made apart (in two catalogues of one archive) and are
+a **conflict**: a merge and `arv audit` report it, the home's value stands, and setting the field
+again (even to the value it has) replaces both and settles it. Notes, tags, items and copies only
+add up, and take no `Sets`.
+
+**Carrier.** A stored copy (`iso` or `folder`) may sit on a medium that holds many images: a
+tape (LTO with LTFS), a hard drive. `Carrier` names that medium with the same schemes (a tape's
+`barcode:`, a drive's `serial:`, or a `label:`), on the `replication` or on a later event that
+names the copy (it moved). A burned disc is its own medium and has none. Many discs' copies may
+share a carrier; that is no clash. But copies **of one disc** on one carrier are lost together,
+so they count as one: a disc's copies are counted as **independent** copies, one per physical
+disc and one per carrier.
 
 A copy is **known good** when its `replication` event carries `ReadBack: identical` (the disc was
 read back against the image's `ImageSha256` before the copy was recorded), or when a later
@@ -479,8 +518,8 @@ own. A version's copies have the same fields.
 
 ### `Event` records (recfile)
 
-`Disc` (or, for a change to a place, a selection or a data object, `Object`: `location:CODE`,
-`selection:CODE`, `object:UUID`), `Type` (PREMIS event type:
+`EventId` (format 0.5), then `Disc` (or, for a change to a place, a selection or a data object,
+`Object`: `location:CODE`, `selection:CODE`, `object:UUID`), `Type` (PREMIS event type:
 `message digest calculation`, `creation`,
 `fixity check`, `format identification`, `metadata modification`, `ingestion`,
 `replication`), `Date`, `Outcome` (`success` / `failure` / `warning`), `Authorship`,
@@ -503,6 +542,16 @@ Applying a saved draft (a file the person can read and edit) counts as accepting
 0.3 had no `Authorship`: there a model's agent ended in `+ owner review` (read as `accepted`;
 whether it was changed was not recorded) or `(unreviewed)` (`suggested`). These map onto
 IPTC's digital source types and PREMIS agent roles when the archive is handed on.
+
+**`EventId`** (PREMIS eventIdentifier) is the event's own hash: the first 32 hex digits of the
+SHA-256 of the event's other fields exactly as written (`Name: value` lines, `+ ` continuations,
+joined by newlines, in their order). The same event has the same id in every catalogue and on
+every disc, so catalogues merge by id; and an event changed after it was written no longer
+matches its id, so a later disc (write-once, kept elsewhere) is a witness to what was written:
+`arv audit` checks both. Two events with the same content are kept apart by `Nonce` (`2`, `3` ...)
+in the later one, which is part of what is hashed. An event without an id (written before 0.5's
+ids) goes by its content's hash, and gets the id when its catalogue is next written. Discs made
+before event ids carry none; readers compute them the same way.
 
 Events are appended, never edited. **Every change to the catalogue leaves one:** a note, an
 access level, where a disc is kept, a place or a selection added, moved or renamed

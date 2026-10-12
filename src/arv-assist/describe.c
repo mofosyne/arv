@@ -407,7 +407,11 @@ static void apply_to_disc(const arv_home *h, archive *cat, rec_record *disc, con
             for (size_t i = 0; i < changed->n; i++)
                 if (strncmp(changed->v[i], "object ", 7)) strlist_add(&mine, changed->v[i]);
             char *what = joined(&mine), *note = xprintf("updated %s (%s)", what, draft_note(how));
-            recs_add(&cat->events, reviewed_event(id, agent, how, note));
+            rec_record *ev = reviewed_event(id, agent, how, note);
+            static const char *const replaced[] = { "Title", "Description", "Subject", NULL };   /* notes and tags add up */
+            for (int f = 0; replaced[f]; f++)
+                if (strlist_has(&mine, replaced[f])) sets_field(cat, ev, id, replaced[f]);
+            recs_add(&cat->events, ev);
             free(what);
             free(note);
             strlist_free(&mine);

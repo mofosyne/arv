@@ -237,6 +237,73 @@ void home_ensure(const arv_home *h)
     free(ign);
 }
 
+/* ------------------------------------------------------------------ where the catalogue lives */
+
+static const char PATHS_HEADER[] =
+    "# Where this catalogue lives, written by arv (never put on a disc). A change written to it from\n"
+    "# anywhere else stops, so a copy cannot quietly become a second record of the archive.\n"
+    "# arv where --here adds a place: the catalogue moved, or the same one is reached another way.\n";
+
+static void paths_read(const char *arv_dir, strlist *out)
+{
+    memset(out, 0, sizeof *out);
+    char *p = xprintf("%s/config/paths.rec", arv_dir), *text = read_text(p);
+    free(p);
+    for (char *l = text ? strtok(text, "\n") : NULL; l; l = strtok(NULL, "\n"))
+        if (!strncmp(l, "Path: ", 6)) strlist_add(out, l + 6);
+    free(text);
+}
+
+/* records this place as one the catalogue lives at; returns whether it was new */
+int home_here(const char *arv_dir)
+{
+    char *real = realpath(arv_dir, NULL);
+    if (!real) die("%s is not a folder", arv_dir);
+    strlist known;
+    paths_read(arv_dir, &known);
+    int fresh = !strlist_has(&known, real);
+    if (fresh) {
+        char *dir = xprintf("%s/config", arv_dir), *p = xprintf("%s/config/paths.rec", arv_dir), *old = read_text(p);
+        if (mkdirs(dir)) die("cannot create %s", dir);
+        char *text = xprintf("%s%sPath: %s\n", old ? old : PATHS_HEADER, old && *old && old[strlen(old) - 1] != '\n' ? "\n" : "", real);
+        write_text(p, text);
+        free(text);
+        free(old);
+        free(p);
+        free(dir);
+    }
+    strlist_free(&known);
+    free(real);
+    return fresh;
+}
+
+/* before a change is written to the catalogue in arv_dir: it lives here, or it is a copy, and a
+ * copy that took changes would drift from the archive's real record. The first change records the place. */
+void home_guard(const char *arv_dir)
+{
+    char *real = realpath(arv_dir, NULL);
+    if (!real) return;                         /* not made yet */
+    strlist known;
+    paths_read(arv_dir, &known);
+    if (!known.n) {
+        home_here(arv_dir);
+    } else if (!strlist_has(&known, real)) {
+        fprintf(stderr, "Error: this catalogue lives at %s, and this is %s: a copy of it?\n"
+                        "  A change written to a copy starts a second record of the archive, which drifts from the first.\n"
+                        "  It moved here, or this is the same catalogue reached another way: arv -C %s where --here\n"
+                        "  It is a copy: merge what it holds into the archive's own (arv -C %s rebuild %s), and only read this one.\n",
+                known.v[known.n - 1], real, real, known.v[known.n - 1], real);
+        exit(1);
+    }
+    strlist_free(&known);
+    free(real);
+}
+
+void home_paths(const char *arv_dir, strlist *out)
+{
+    paths_read(arv_dir, out);
+}
+
 /* adds or updates a home in the machine config (homes.register) */
 static void register_home(const char *name, const char *path, int is_default)
 {
@@ -367,6 +434,7 @@ int cmd_init(int argc, char **argv)
     h.drafts_dir = join(target, "drafts");
     h.cache_dir = join(target, "cache");
     home_ensure(&h);
+    home_here(h.path);
     h.rec_path = join(h.catalog_dir, "archive.rec");
     archive cat;                        /* the home's identity, from its first day */
     archive_load(&cat, h.rec_path);

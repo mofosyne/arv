@@ -10,6 +10,20 @@ rc=0
 $ --home hb rebuild --prefer-disc out-split/.archive-make-XXXXXX/stage-SCAN-01_2001-2007_D-XXXXXX
 Added 0 disc(s), updated 1, 0 new event(s), 0 file list(s) copied into hb
 rc=0
+$ --home hother location add SHED The shed
+Error: this catalogue lives at ROOT/h, and this is ROOT/hother: a copy of it?
+  A change written to a copy starts a second record of the archive, which drifts from the first.
+  It moved here, or this is the same catalogue reached another way: arv -C ROOT/hother where --here
+  It is a copy: merge what it holds into the archive's own (arv -C ROOT/h rebuild ROOT/hother), and only read this one.
+rc=1
+$ --home hother where --here
+Recorded: this catalogue lives here too; changes may be written to it here.
+hother
+  found by --home
+  lives at ROOT/h
+  and at ROOT/hother
+  archive UUID
+rc=0
 $ --home hother rebuild out-split/.archive-make-XXXXXX/stage-SCAN-01_2001-2007_D-XXXXXX
 Error: this disc belongs to another archive (home UUID), not to hother (home UUID).
 Each archive is its own privacy sphere; --any-archive merges it anyway.
@@ -20,5 +34,6 @@ rc=0
 $ --home hb where
 hb
   found by --home
+  lives at ROOT/hb
   archive UUID
 rc=0

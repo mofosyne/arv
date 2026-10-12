@@ -218,7 +218,7 @@ int main(int argc, char **argv)
     close(fd);
     if (got) printf("\nA BCA was read: serial %s (its first 16 bytes; the rest repeats it, then says BDR).\n"
                     "On Linux, arv burned --device reads it itself and records it with the copy; elsewhere,\n"
-                    "arv burned --bca %s does. (Two Verbatim discs of one pack gave two serials:\n"
+                    "arv burned --identifier bca:%s does. (Two Verbatim discs of one pack gave two serials:\n"
                     "check yours the same way once.)\n", serial, serial);
     else puts("\nNo BCA read: copies are told apart by their letters (arv burned says which).");
     return 0;

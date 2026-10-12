@@ -106,6 +106,19 @@ event; `volumes/<disc-id>/`: each disc's manifest and listing; `revisions/`: eac
 manifest), `drafts/`, and `cache/` (models and the hash cache; rebuildable). Back it up: it is
 small, and every disc carries a copy of it too.
 
+**One catalogue, written in one place.** `config/paths.rec` records where the catalogue lives
+(never on a disc). A backup or copy elsewhere can be read as usual, but a change written to it
+stops: two catalogues that both take changes drift apart (each gives out "the next" disc number
+and copy letter). If the catalogue moved, or the same one is reached another way (a share mounted
+at another path), `arv where --here` says so. To use the archive on two machines, write on one
+and copy it over with rsync or any sync tool; if the other did take changes, merge them into the
+archive's own catalogue with `arv rebuild OTHER/.arv`. It merges by event id, and reports what
+both gave out: a disc id that names two different images is not merged, and two copies with
+the same letter are named (`arv relabel ID A C --at ATTIC` gives one a new letter: write it on
+its hub and case). A field both changed (a disc's access level, its places, a title) is a
+`CONFLICT`: this home's value stands until it is set again (`arv access ID private`), which
+settles it.
+
 Set up **where copies live** once, with how warm each place is:
 
 ```sh
@@ -324,9 +337,21 @@ arv stored FAMILY-04_2001-2025_X /nas/archive/FAMILY-04_2001-2025_X.iso --locati
   them apart only in the catalogue and on the label: each has its own place, and a check names
   the copy it read (`arv check --device /dev/sr0 --copy B`). `arv todo` lists burned copies never
   read back, by letter.
+- A copy can also be **known by** what is on it: its factory serial (`bca:`, read by the drive
+  on Linux and recorded by `--device`), a barcode on its case (`barcode:`; `--barcode CODE`
+  with a handheld scanner), what you wrote (`label:`). Give them with `--identifier`, or later:
+  `arv identify FAMILY-04_2001-2025_X B --barcode ARV-000123`. `arv find ARV-000123` says which
+  disc and copy a scanned case is, and a drive that reads one knows which copy is in it. Copies
+  are counted as physical discs: two records sharing a serial or barcode are one disc recorded
+  twice, counted once (`arv objects ID`, `arv audit` and `arv rebuild` say so).
 - A burn that does not read back identical is **not** recorded: burn again.
 - `arv stored` takes the image file (read back like a disc) or the disc's files as a folder
   (`7z x` the image; verified file by file). It is warm unless its place says otherwise.
+- **On a tape or a drive that holds many images** (LTO with LTFS mounts as a folder), name it:
+  `arv stored ID /mnt/ltfs/ID.iso --carrier barcode:TAPE01L8` (the tape's label; a hard
+  drive's `serial:`). Other discs may share the tape, but two copies of one disc on one tape are
+  lost together and count as one: `arv todo` says so. A copy moved to another tape:
+  `arv stored ID NEWPATH --copy X --carrier barcode:TAPE02L8`.
 - `--temperature hot|warm|cold` overrides the place's.
 - An edition is **safe** once each of its discs has a copy checked this way.
 
@@ -381,6 +406,17 @@ Collections:
     FAM-02_2019_Y  disc cold (read back), iso warm (read back), folder warm (read back); at BOX1; The NAS
 ```
 
+Given a disc id, it lists that disc's copies, each by its letter, with its place, when it was last
+checked and what it is known by (its BCA serial, a barcode) (the GUI shows the same in a disc's details, where copies are recorded
+and checked):
+
+```
+TRIP-01_2019_4: 3 copies
+  A  disc, cold, made 2026-10-04; Home / Study / Box 1; last checked 2026-10-10; BCA 041e1015...
+  B  disc, cold, made 2026-10-04; Parents' house; not read back
+  C  iso, warm, made 2026-10-05; The NAS; read back
+```
+
 A data object says what it is when its own files say so, read when it is archived, with no model:
 its README's title and first paragraph, a package manifest's description, its licence, and for a
 git repository the dates of its first and last commits and where it was published:
@@ -428,6 +464,8 @@ is lost or damaged.
 - discs kept in fewer than two places, or, once appraised, fewer copies and places than the
   appraisal asks for (essential: 3 copies in 3 places; important: 2 in 2; useful: 1);
 - checks overdue (5 years by default; `--overdue YEARS`);
+- stored copies (an `.iso` or folder) not found at the path they were recorded at: a drive not
+  mounted, or moved (`arv stored ID NEWPATH --copy B` checks it there and records the move);
 - data objects whose newest version has no cold copy, or that are no longer where they came
   from with fewer than two copies left.
 
@@ -440,8 +478,33 @@ for another day. They are kept in the home only (`drafts/questions.rec`), never 
 
 **Checking** every few years: `arv check --device /dev/sr0` reads a disc back against its
 image's hash and logs it, for the copy in the drive: named with `--copy B`, found by its BCA
-serial where the drive reads one, or the disc's only copy. A disc that needed repair is a
+serial where the drive reads one, or the disc's only burned copy. A disc that needed repair is a
 warning: make a new copy.
+
+**What is in the drives:** `arv drives` names the disc and copy in each optical drive (Linux finds
+them; elsewhere name them: `arv drives /dev/sr0 /dev/sr1`), and says when a drive is empty or
+holds a disc that is not this archive's. `arv drives --check` checks every arv disc it finds.
+**Jukeboxes and tape libraries:** arv keeps the record and does the checking; `mtx` moves the
+media. Give copies barcodes (a disc's own: `--identifier barcode:`; a tape's: `--carrier
+barcode:`) and record them at the library's place (`--location LIB1`). Then:
+
+```sh
+arv todo --tsv                                    # the worklist: what is due, one copy a line, with its barcode
+mtx -f /dev/sg3 status | arv inventory LIB1       # the library's barcodes against the copies recorded there
+sh docs/examples/library-check.sh -n /dev/sg3 0 /dev/sr1   # load, check and unload what is due (-n: show only)
+```
+
+`arv inventory` reports copies recorded in the library whose barcode is not there (`MISSING`,
+exit 1), barcodes it does not know, copies there that were recorded elsewhere, and copies
+recorded there with no barcode to find them by. It only reports: the record says where copies
+should be, the library says where they are, and the difference is for a person to settle (a
+nightly inventory recorded as events would bury the record). `library-check.sh` (on every disc
+too) is an example to adapt: for tapes it mounts LTFS and re-checks each copy at its recorded
+path (`arv stored ID PATH --copy X` at the same path checks it again).
+
+For files, `arv info IMAGE.iso` says which disc an image is, and whether it is a recorded copy;
+to look through a whole drive or NAS, let `find` do the walking:
+`find /mnt/nas -name '*.iso' -exec arv info {} \;`.
 
 ### 8. Recover
 
@@ -449,6 +512,7 @@ warning: make a new copy.
 |---|---|
 | A disc reads with errors | Follow REPAIR in the disc's `README.txt`: read it into an image (`ddrescue -b 2048 /dev/sr0 disc.iso disc.map`, or dvdisaster Light `-r --rescue`), then `arv check --image disc.iso --repair` (the disc's own `tools/arv.com` works too). Too damaged? Copies are sector-identical: read another copy into the same image (the same map file) and repair again; a stored iso is such a copy. When arv cannot repair, it prints the dvdisaster Light commands to paste, with the disc's medium size from the catalogue. Then make a new copy. |
 | The home catalogue is lost | `arv rebuild /media/disc` with the newest disc: discs, copies, places, collections, their history, file lists, the archive's identity, and its vocabularies (`config/sets.rec`, `config/tags.rec`, unless the home has its own). A disc of another archive is refused (`--any-archive` to merge it anyway). |
+| The home catalogue may have been changed (a bad edit, a script, a failing drive) | `arv audit` checks every event against its id (each id is the hash of what was written), and `arv audit /media/disc ...` checks the home against each disc's copy of the catalogue: an event the disc has that the home lost or changed is listed. The newest discs see the most; `arv rebuild` brings lost events back. |
 | This tool is lost | every disc has `tools/` (the source at that time) and `README.txt`. Without it: `sha256sum -c manifest-sha256.txt` verifies, `index.html` browses, `grep` searches `catalog/volumes/*/listing.tsv`, and `catalog.rec` is plain text. |
 | dvdisaster is lost | arv repairs RS03 itself; the format is written up in [rs03-format.md](spec/rs03-format.md) (on every disc), with test vectors. A copy of dvdisaster can go in `tools/extra/` with `--extra-tools`. |
 | Decades later, unknown software | [smart-archive-format.md](spec/smart-archive-format.md) (on every disc under `tools/`) explains every file; BagIt is RFC 8493; recfiles are plain text. |

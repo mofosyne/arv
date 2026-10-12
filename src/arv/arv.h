@@ -52,6 +52,9 @@ extern const char NO_HOME[];                                            /* what 
 extern const char *home_archive_name;   /* --archive NAME: a home from the machine config */
 void home_at(arv_home *h, const char *path);
 void home_ensure(const arv_home *h);
+void home_guard(const char *arv_dir);      /* stops a change to a copy of the catalogue (config/paths.rec) */
+int home_here(const char *arv_dir);        /* records this place as the catalogue's; 1 if new */
+void home_paths(const char *arv_dir, strlist *out);
 char *home_volume_file(const arv_home *h, const char *disc_id, const char *name);
 void layout_notes(const arv_home *h, const char *abs, FILE *out, const char *prefix);   /* status.c */
 char *path_manifest(const arv_home *h, const char *path, size_t *files);                /* status.c */
@@ -88,6 +91,10 @@ int cmd_sets(int argc, char **argv);
 int cmd_names(int argc, char **argv);
 int cmd_where(int argc, char **argv);
 int cmd_rebuild(int argc, char **argv);
+int cmd_audit(int argc, char **argv);
+int cmd_identify(int argc, char **argv);
+int cmd_relabel(int argc, char **argv);
+int cmd_inventory(int argc, char **argv);
 
 /* archive.c: the catalogue as arv writes it */
 typedef struct {
@@ -127,19 +134,42 @@ void place_check(const archive *a, const char *text);
 /* copies: replication events, each named by a letter (Copy: A, B ...) */
 size_t disc_copies(const archive *a, const char *disc_id);
 int copy_exists(const archive *a, const char *disc_id, const char *letter);
+int event_names_copy(const archive *a, const char *disc_id, const rec_record *e, const rec_record *rep);
+const char *copy_letter(const archive *a, const char *disc_id, const rec_record *rep);   /* its letter now */
+const char *letter_of(const archive *a, const rec_record *rep);     /* the same, "?" when it has none */
+size_t copies_lettered(const archive *a, const char *disc_id, const char *letter, const rec_record **first);
 int copy_letter_ok(const char *s);
 char *copy_next(const archive *a, const char *disc_id);
+void event_content_id(const rec_record *e, char out[33]);   /* from its fields, all but EventId */
+void event_key(const rec_record *e, char out[33]);          /* its EventId, else its content's id */
 int copy_read_back(const archive *a, const char *disc_id, const rec_record *copy);
-const rec_record *copy_by_bca(const archive *a, const char *bca);   /* an event naming the copy with that serial */
+const char *copy_last_check(const archive *a, const char *disc_id, const rec_record *copy);   /* its date, or NULL */
+char *identifier_normal(const char *text, const char **why);   /* "scheme:value" checked, or NULL and why */
+int identifier_strong(const char *id);                           /* bca: and barcode: name one physical disc */
+void copy_identifiers(const archive *a, const char *disc_id, const rec_record *copy, strlist *out);
+const rec_record *copy_by_identifier(const archive *a, const char *id);   /* the copy's replication, or NULL */
+const char *copy_path(const archive *a, const char *disc_id, const rec_record *copy);  /* a stored copy's newest */
+const char *copy_carrier(const archive *a, const char *disc_id, const rec_record *copy);   /* its tape or drive */
+const rec_record *copy_shares_carrier(const archive *a, const char *disc_id, const rec_record *copy);
+const rec_record *copy_same_as(const archive *a, const char *disc_id, const rec_record *copy);  /* recorded before */
+size_t identity_report(const archive *a);
+void field_heads(const archive *a, const char *thing, const char *field, strlist *heads);
+void sets_field(const archive *a, rec_record *e, const char *thing, const char *field);   /* Sets, Replaces */
+size_t field_conflicts(const archive *a);    /* a field changed apart in two catalogues: printed, counted */    /* recorded twice, on two discs, two BCAs: printed, counted */
 /* the BCA serial of the disc in a drive (Linux): 32 hex digits; -1 when there is none (drive.c) */
 int drive_bca(const char *device, char out[33]);
-int bca_normal(const char *text, char out[33]);     /* --bca as given: its first 16 bytes, in hex */
+void drive_list(strlist *out);          /* the optical drives (Linux: /dev/sr0 ...); none found elsewhere */
+char *read_volume_label(const char *path);   /* an image's or drive's volume label, or NULL */
+int cmd_drives(int argc, char **argv);
+int info_image(const char *path, const char *given);   /* arv info IMAGE.iso: which disc, which copy */
+int bca_normal(const char *text, char out[33]);     /* a BCA serial as given: its first 16 bytes, in hex */
 /* hot, warm or cold: the place's Temperature, or the nearest place above it that has one; NULL */
 const char *place_temperature(const archive *a, const char *code);
 int temperature_ok(const char *t);
 rec_record *new_appraisal(const char *target, const strlist *importance, const char *basis, const char *review);
 int disc_importance(const archive *cat, const char *id, char **why);
-size_t archive_merge(archive *home, const archive *other, int prefer_other, strlist *added, strlist *updated);
+size_t archive_merge(archive *home, const archive *other, int prefer_other, strlist *added, strlist *updated,
+                     strlist *clashes);   /* clashes: disc ids that name another image there: not merged */
 
 /* bag.c: the payload, BagIt tag files and the listing */
 typedef struct {
