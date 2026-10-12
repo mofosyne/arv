@@ -289,7 +289,7 @@ char *llm_inventory(const items *l, const char *name, const rec_record *existing
     free(counts);
 
     if (existing) {
-        static const char *const keys[] = { "Title", "Description", "Subject", "Note", "Coverage", NULL };
+        static const char *const keys[] = { "Title", "Description", "Subject", "Note", "Coverage", "Rights", "Origin", NULL };
         sb_puts(&b, "\nMetadata already recorded:\n");
         for (int k = 0; keys[k]; k++)
             for (size_t f = 0; f < existing->nfields; f++)

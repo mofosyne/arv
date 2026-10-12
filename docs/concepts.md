@@ -60,7 +60,10 @@ called, and a changed folder archived again from the same place is its next **ve
 carry their objects without it. So `arv status FOLDER` says of each object archived from there
 whether it is unchanged, changed (and how), or gone, and recognises a folder that moved, or a
 home rebuilt from discs, by content alone. Objects may share files (versions do) and may nest (a
-folder, and later a subfolder of it on its own): each is its own Tree.
+folder, and later a subfolder of it on its own): each is its own Tree. An object also says what it
+is (`Title`, `Description`, `Coverage`, `Rights`, `Origin`): read from its own README, package
+manifest, licence and git history when it is archived, or written later by a person or a model
+(`arv describe NAME`), which later versions keep.
 
 | | Needs a marker? | Over time |
 |---|---|---|
@@ -100,7 +103,7 @@ What is transient is the **output**, not the folder:
 | Transient | What it is | Safe to delete? |
 |---|---|---|
 | the `.iso` images | `arv make`'s output (`--output-dir`, default: the current folder) | yes, once every copy is burned or stored and recorded |
-| `drafts/` | work in progress: the JSON `arv describe` and `arv tag` save, taken by `arv make --draft`; disc plans (`drafts/plans/NAME.rec`) | yes, once applied or made |
+| `drafts/` | work in progress: the JSON `arv describe` and `arv tag` save, taken by `arv make --draft`; disc plans (`drafts/plans/NAME.rec`); questions waiting for an answer (`questions.rec`) | yes, once applied or made (deleting `questions.rec` drops the questions not yet answered) |
 | `cache/` | rebuildable indexes (marked `CACHEDIR.TAG`) | yes, always |
 
 ## The archive is a collective of copies

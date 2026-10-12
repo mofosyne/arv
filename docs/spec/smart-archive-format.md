@@ -446,6 +446,13 @@ Path: photos             where it is under data/ ("." for the whole of data/)
 Files: 3
 Bytes: 21
 Date: 2026-01-01
+Title: Tool              what it is (all five optional, as on a Disc): from its own files, or
+Description: Tool turns sensor logs into plots.        written by a person or a model
+Coverage: 2011-02-03/2014-05-06                         EDTF, as a disc's
+Rights: MIT
+Origin: example.invalid/tools/tool                      where it was published: host/path
+Note: Q: What is Tool for?                              any number
++ A: The lab's weather station.
 ```
 
 The manifest is each file's SHA-256 and its path within the object, sorted by path, in
@@ -456,10 +463,24 @@ next version; else a new `Uuid`. The home catalogue adds `Source` (the path it w
 from, relative to the folder holding the home when inside it) and keeps each manifest in `catalog/objects/<Tree>.sha256`; neither goes on a disc.
 Readers merge objects by `Uuid`, `Version` and `Disc`.
 
+**What an object is** (added in format 0.5; all optional): `Title`, `Description`, `Coverage`
+(EDTF), `Rights`, `Origin` and `Note`*. When it is archived, arv reads them by rules from the
+object's own files, at its root, with no model: `Title` from its README's first heading (else a
+package manifest's name: `package.json`, `Cargo.toml`, `pyproject.toml`, `library.properties`),
+`Description` from the manifest's description (else the README's first paragraph of prose,
+about 300 characters at most), `Rights` from the manifest's licence (else a `LICENSE` or
+`COPYING` file recognised, as an SPDX id); and for a git repository, `Coverage` from its first to
+its last commit (author dates on its branches, tags and HEAD) and `Origin`, its `origin` remote
+as `host/path` (no scheme, user, password, port or `.git`; a local path is left out). No author
+names or emails are recorded. A person or a model may write them later (`arv describe NAME`); the
+change is a `metadata modification` event with `Object: object:UUID`, and from then on a new
+version carries over the newest one's `Title`, `Description` and `Note`s instead of reading its
+own. A version's copies have the same fields.
+
 ### `Event` records (recfile)
 
-`Disc` (or, for a change to a place or a selection, `Object`: `location:CODE`,
-`selection:CODE`), `Type` (PREMIS event type:
+`Disc` (or, for a change to a place, a selection or a data object, `Object`: `location:CODE`,
+`selection:CODE`, `object:UUID`), `Type` (PREMIS event type:
 `message digest calculation`, `creation`,
 `fixity check`, `format identification`, `metadata modification`, `ingestion`,
 `replication`), `Date`, `Outcome` (`success` / `failure` / `warning`), `Authorship`,

@@ -381,6 +381,19 @@ Collections:
     FAM-02_2019_Y  disc cold (read back), iso warm (read back), folder warm (read back); at BOX1; The NAS
 ```
 
+A data object says what it is when its own files say so, read when it is archived, with no model:
+its README's title and first paragraph, a package manifest's description, its licence, and for a
+git repository the dates of its first and last commits and where it was published:
+
+```
+  tool/  git, 1 version; newest: 1 copy on 1 disc, 1 cold, 1 read back
+    "Tool": Tool turns sensor logs into plots. It is small.
+    2011-02-03/2014-05-06; MIT; example.invalid/tools/tool
+```
+
+`arv find` searches these too. Where the files say nothing (photos, scans), or say it badly,
+describe it yourself or with a model: `arv describe NAME` (README.md, "Optional: local LLM help").
+
 **Retiring** an edition a newer safe one replaces (`arv retire FAMILY`) lists any files that
 exist only on the discs being retired (not in the newer edition: they left the workflow folder), and records nothing
 until `--yes`. Then each disc is marked retired, leaves its places, and gets an event saying what
@@ -418,6 +431,13 @@ is lost or damaged.
 - data objects whose newest version has no cold copy, or that are no longer where they came
   from with fewer than two copies left.
 
+Last, and never counted as owed, it lists the **questions waiting for an answer**: a model's
+questions about a disc, from a draft made while nobody was there to answer (`arv describe FOLDER
+--save`, then `arv make --draft`, or a draft applied with `arv describe ID --apply`), and arv's own
+about a git repository with no README ("What is it for?"). `arv describe ID --answer` asks them,
+with no model needed: each answer is kept as a note, Enter skips one for good, `.` leaves the rest
+for another day. They are kept in the home only (`drafts/questions.rec`), never on a disc.
+
 **Checking** every few years: `arv check --device /dev/sr0` reads a disc back against its
 image's hash and logs it, for the copy in the drive: named with `--copy B`, found by its BCA
 serial where the drive reads one, or the disc's only copy. A disc that needed repair is a
@@ -443,6 +463,7 @@ src/arv/                  arv: the C program (C99 and POSIX, no libraries)
   arv.c                   the commands; runs arv-assist for describe, tag, models and arv-gui for gui
   make.c  bag.c  html.c  rocrate.c  formats.c   making discs (plan, stage, build, protect)
   collection.c  status.c  upkeep.c              collections, revisions, status, copies owed, retiring
+  about.c  questions.c                          what data objects say about themselves; questions waiting
   record.c  edit.c  tags.c  catalogue.c  disc.c recording copies and checks, editing, queries, reading a disc
   archive.c  home.c  rec.c  json.c  vocab.c  discid.c  edtf.c   the catalogue and its rules
   data/                   descriptors.rec  readme.txt  index.css  default_sets.rec  default_tags.rec

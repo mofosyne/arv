@@ -4,10 +4,11 @@ arv's optional local-AI helpers, in C99 and POSIX with no libraries. arv runs it
 commands; nothing here is needed to make, read, check or repair a disc.
 
 ```
-arv describe FOLDER|DISC-ID [--save DRAFT] [--apply DRAFT] ...   title, description, subjects and
-                                                                  folder tags from a local LLM
-arv tag FOLDER|DISC-ID [--save DRAFT] [--apply] ...              folder tags from your vocabulary
-arv models fetch|status|build-runtime                            the small model arv tag uses
+arv describe FOLDER|DISC-ID|OBJECT [--save DRAFT] [--apply DRAFT] ...
+                                          title, description, subjects and folder tags from a local LLM
+arv describe DISC-ID|OBJECT --answer      the questions kept from before (no model)
+arv tag FOLDER|DISC-ID [--save DRAFT] [--apply] ...   folder tags from your vocabulary
+arv models fetch|status|build-runtime     the small model arv tag uses
 ```
 
 `arv-assist --help` lists every option; the top-level [README](../../README.md) explains them.
@@ -21,6 +22,12 @@ arv-gui also runs `arv-assist suggest` (one round of suggestions, JSON in and ou
   ffmpeg when it is installed, to a local vision model.
 - `tag` runs llama.cpp's `llama-embedding` as a subprocess on a 37 MB model that `arv models
   fetch` downloads with `curl` and checks against a pinned SHA-256 (or `--from FILE`, offline).
+- A data object (`arv describe NAME`, or `object:NAME`) is described as a disc is: the model sees
+  its files from its disc's listing and what it says about itself already; its title,
+  description and notes are written on its newest version, with an event naming it.
+- Questions the model asks in a draft written with nobody there are kept for later
+  (`<home>/drafts/questions.rec`, home only): `arv todo` lists them, `--answer` asks them, and an
+  interactive `describe` asks them first. Their file is arv's (`src/arv/questions.c`).
 - Drafts (`--save`) are JSON that `arv make --draft` takes; `--apply` writes a reviewed draft to a
   disc already in the catalogue, with a PREMIS event naming the model. A draft may come from
   anywhere (`--apply -` reads it from standard input; `--suggested` leaves a model's draft

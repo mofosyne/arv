@@ -106,6 +106,26 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   Discs (to record copies and places); a long catalogue path is shortened in the header (the
   whole on hover); a collection's discs say which edition they hold.
 
+**Data objects describe themselves; questions wait for an answer** (format 0.5; research/plan.md, 2026-10-12)
+- When a data object is archived, arv reads what its own files say about it, by rules and with no
+  model: `Title` from its README's first heading (or a package manifest's name), `Description`
+  from the manifest's description (or the README's first paragraph of prose), `Rights` from the
+  manifest or a `LICENSE`/`COPYING` it recognises, and for a git repository `Coverage` from its
+  first to its last commit and `Origin`, where it was published (`host/path`, no credentials).
+  No author names or emails. `arv objects`, `arv find` and the GUI's Objects tab show them; every
+  disc carries them in its `Object` records.
+- `arv describe NAME` describes a data object with a local model, as a disc is described, and
+  `--apply` takes a draft for it. A disc's draft may describe its objects (`"objects"`, by path).
+  The event names the object (`Object: object:UUID`), full snapshots carry it, and later versions
+  keep what a person or a model wrote.
+- A model's questions in a draft made while nobody was there to answer are kept (in the home's
+  `drafts/questions.rec`, never on a disc; at most 5 a disc or object), and so is arv's own about a
+  git repository with no README. `arv todo` lists them last, never as owed; `arv describe ID
+  --answer` asks them with no model (answers become notes, Enter skips one for good); and
+  `arv describe ID` at a terminal asks them before the model's own.
+- Not added: a chat agent in arv. `describe` already has its useful part, and an agent working
+  through the archive belongs outside arv, writing drafts (research/plan.md says why).
+
 **Describing from anywhere**
 - A draft (the JSON `arv describe --save` writes) is documented as the way in for anything that
   describes the archive: a person, a script, or a model that is not arv's. README, "Describing
