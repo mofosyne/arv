@@ -518,6 +518,22 @@ grep -q "^  A  disc, cold, .*SHELF; not read back" rl.out && grep -q "^  B  disc
     && ok "two catalogues: a field changed in both is a conflict until set again; relabel gives one of two copies lettered alike a new letter, and a check finds it by it" \
     || { cat rl.out; no "after relabel"; }
 
+# ------------------------------------------------------------------ the manual: arv help --all and --man
+"$tool" help --all > manual.md || no "arv help --all"
+missing=""
+for c in $("$tool" __complete ''); do
+    case "$c" in archive|record|home) continue;; esac
+    grep -q "arv $c\b" manual.md || missing="$missing $c"
+done
+[ -z "$missing" ] || no "arv help --all leaves out:$missing"
+grep -q '^## Exit status$' manual.md && grep -q '^## For scripts and agents$' manual.md && grep -q '^### arv make in full$' manual.md \
+    || no "arv help --all: its sections"
+"$tool" help --man > manual.1 && head -1 manual.1 | grep -q '^\.TH ARV 1 ' || no "arv help --man"
+if command -v groff >/dev/null; then
+    groff -man -Tutf8 -ww manual.1 2> groff.err > /dev/null && [ ! -s groff.err ] || { cat groff.err; no "the man page: groff warnings"; }
+fi
+ok "the manual: arv help --all names every command, with exit status and the rules for scripts and agents; --man is it as a man page"
+
 # ------------------------------------------------------------------ the helpers: arv-assist and arv-gui
 mkdir -p helpers
 printf '#!/bin/sh\necho "assist $*"\n' > helpers/assist

@@ -21,6 +21,19 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**The whole manual, for people and agents alike**
+- `arv help --all`: the manual as one markdown document, built from the same usage text as
+  `--help`, so it cannot drift: every command, which only read and which change the record, exit
+  status, the outputs meant for scripts, the rules for a script or an agent using arv, and the
+  home's files. `arv help --man` is the same as a man page, which `make install` installs
+  (`man arv`); `arv help COMMAND` is `arv COMMAND --help`. `make check` fails if the manual
+  leaves a command out. No separate "LLM help": a model needs what a careful person setting up a
+  script needs, all of it at once.
+- `AGENTS.md` (and `CLAUDE.md`, which points to it): for agents working on arv's code: where the
+  reasons are, the layout, how to build and test, and what is easy to miss (regenerating the
+  reference outputs and `data.c`, committing a new `disc-tools.txt` path first). Both go on
+  every disc with the source.
+
 **Each copy has a letter** (format 0.5)
 - A copy of a disc (burned, an image file, or a folder) is its `replication` event, now named by
   a letter, `Copy: A`, `B` ...: given in order (or chosen, `arv burned --copy X`), written on the
