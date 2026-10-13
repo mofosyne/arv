@@ -1,6 +1,6 @@
 # arv-assist
 
-arv's optional local-AI helpers, in C99 and POSIX with no libraries. arv runs it for three
+arv's optional local-AI helpers, in C99 and POSIX with no libraries. arv runs it for two
 commands; nothing here is needed to make, read, check or repair a disc.
 
 ```
@@ -8,7 +8,6 @@ arv describe FOLDER|DISC-ID|OBJECT [--save DRAFT] [--apply DRAFT] ...
                                           title, description, subjects and folder tags from a local LLM
 arv describe DISC-ID|OBJECT --answer      the questions kept from before (no model)
 arv tag FOLDER|DISC-ID [--save DRAFT] [--apply] ...   folder tags from your vocabulary
-arv models fetch|status|build-runtime     the small model arv tag uses
 ```
 
 `arv-assist --help` lists every option; the top-level [README](../../README.md) explains them.
@@ -20,8 +19,9 @@ arv-gui also runs `arv-assist suggest` (one round of suggestions, JSON in and ou
   `--llm-allow-remote`. The model sees an inventory (names, counts, sizes, dates, types, a few
   short README-style files), never file contents; `--vision` sends sampled images, resized with
   ffmpeg when it is installed, to a local vision model.
-- `tag` runs llama.cpp's `llama-embedding` as a subprocess on a 37 MB model that `arv models
-  fetch` downloads with `curl` and checks against a pinned SHA-256 (or `--from FILE`, offline).
+- `tag` uses an OpenAI-compatible `/v1/embeddings` server selected with `--embed-url`; remote
+  endpoints also need `--llm-allow-remote`. Use `--rules-only` to tag from vocabulary match rules
+  without a server. It does not download or build models or runtimes.
 - A data object (`arv describe NAME`, or `object:NAME`) is described as a disc is: the model sees
   its files from its disc's listing and what it says about itself already; its title,
   description and notes are written on its newest version, with an event naming it.
@@ -41,12 +41,10 @@ so it reads and writes exactly what arv does.
 | `main.c` | the commands |
 | `describe.c` | `describe`, `suggest`, `llm-status` |
 | `tag.c` | `tag`: rules, aliases, embeddings, remembered examples, review |
-| `models.c` | `models` |
 | `llm.c` | the inventory, the prompt, reading the model's reply |
 | `vision.c` | sampling images, captions |
 | `http.c` | a small HTTP/1.1 client (plain http, to local servers) |
 | `common.c` | shared by the above |
 
 `make check` (`sh check.sh`) runs every command against a fake model server
-(`dev-tools/fake-llm.c`) and a fake `llama-embedding` (`dev-tools/fake-llama-embedding`), so it
-needs no model.
+(`dev-tools/fake-llm.c`), including its `/v1/embeddings` endpoint, so it needs no model.

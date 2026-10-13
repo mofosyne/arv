@@ -31,7 +31,6 @@ Payload: data/
 %type: Bytes int
 %type: Access enum public private sealed
 %type: Retired date
-%type: Location rec Location
 
 Id: CODE-02_2001_Y
 Uuid: UUID
@@ -44,7 +43,6 @@ Sequence: 2
 Coverage: 2001
 Date: 2026-01-01
 Creator: archivist
-Location: BOX1
 Access: private
 Files: 2
 Bytes: 25
@@ -103,8 +101,8 @@ Date: 2026-01-01
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
-+ Disc names the disc; a change to a location, a selection or a data object names it in Object
-+ (location:CODE, selection:CODE, object:UUID) instead.
++ Disc names the disc; a change to a location or a data object names it in Object
++ (location:CODE, object:UUID) instead.
 + Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion
@@ -147,8 +145,8 @@ Note: sha256 and sha512 manifests of 2 files
 %doc: The archivist log: how much something matters, to whom, and why. Appended and
 + never edited; the newest appraisal of a target replaces earlier ones, and one a
 + person made or reviewed outranks a machine's. Target is DISC-ID, DISC-ID:folder/,
-+ DISC-ID:folder/file (relative to data/), set:CODE or selection:CODE; a target
-+ without an appraisal takes the nearest one above it (file, folder, disc, set).
++ DISC-ID:folder/file (relative to data/) or set:CODE; a target without an appraisal
++ takes the nearest one above it (file, folder, disc, set).
 + Importance is '<level> for <audience>', one per audience; levels, most first:
 + essential (must survive: 3 copies in 3 places), important (on disc: 2 in 2),
 + useful (on disc if there is room), incidental (everyday storage is enough).

@@ -1,7 +1,7 @@
 #!/bin/sh
-# Checks arv-assist (arv describe, arv tag, arv models, and the GUI's suggest and llm-status)
-# against a fake model server (dev-tools/fake-llm.c) and a fake llama-embedding
-# (dev-tools/fake-llama-embedding), with the C arv for make and find. No network, no models.
+# Checks arv-assist (arv describe, arv tag, and the GUI's suggest and llm-status)
+# against a fake OpenAI-compatible server (dev-tools/fake-llm.c), with the C arv for make and find.
+# No network, no models.
 #
 #   sh check.sh build/arv-assist        (make check builds what it needs)
 set -eu
@@ -11,7 +11,6 @@ repo=$(cd "$here/../.." && pwd)
 arv=$repo/src/arv/build/arv
 ptyrun=$repo/src/arv/build/ptyrun
 fake=$here/build/fake-llm
-embedder=$repo/dev-tools/fake-llama-embedding
 dir=$here/build/check
 rm -rf "$dir"
 mkdir -p "$dir"
@@ -19,7 +18,7 @@ cd "$dir"
 ok() { echo "ok: $*"; }
 no() { echo "FAILED: $*"; [ -f log ] && tail -c 600 log; exit 1; }
 export ARV_APE=none HOME="$dir/userhome" XDG_CONFIG_HOME="$dir/userhome/.config" XDG_DATA_HOME="$dir/userhome/.local/share"
-unset ARV_HOME ARCHIVE_LLM_URL ARCHIVE_LLM_MODEL ARCHIVE_LLAMA_EMBEDDING
+unset ARV_HOME ARCHIVE_LLM_URL ARCHIVE_LLM_MODEL
 put() { mkdir -p "$(dirname "$1")"; printf '%s' "$2" > "$1"; touch -d "@${3:-1560000000}" "$1"; }
 
 # ------------------------------------------------------------------ the fake server
@@ -51,7 +50,7 @@ grep -q '"agent": "llm:fake-model"' draft.json && grep -q '"model": "fake-model"
     && grep -q '"authorship": "suggested"' draft.json \
     && ok "describe --save: the model from /models; subjects lowercased and once each; a folder that is not there dropped" \
     || { cat draft.json; no "the draft"; }
-"$arv" --home home make -y --no-ecc --formats no --draft draft.json -o t.iso Trip > make.out 2>&1 || { cat make.out; no "make --draft"; }
+"$arv" --home home make -y --no-ecc --no-formats --draft draft.json -o t.iso Trip > make.out 2>&1 || { cat make.out; no "make --draft"; }
 id=$(cut -f1 make.out | tail -1)
 grep -q "^Title: Family trip photos 2019" home/catalog/archive.rec && grep -q "^Type: metadata modification" home/catalog/archive.rec \
     && "$arv" --home home find travel | grep -q "TAG   $id" \
@@ -134,7 +133,7 @@ grep -q "updated object Trip (Title)" oapply2.out && grep -q "has no data object
     && ok "a disc's draft describes its objects by their path on it; one it does not have is skipped" \
     || { cat oapply2.out oapply2.err; no "objects in a disc's draft"; }
 put Trip/photos/day2/IMG_0002.JPG jpeg2
-"$arv" --home home make -y --no-ecc --formats no -o obj2.iso Trip > make2.out 2>&1 || { cat make2.out; no "make, version 2"; }
+"$arv" --home home make -y --no-ecc --no-formats -o obj2.iso Trip > make2.out 2>&1 || { cat make2.out; no "make, version 2"; }
 [ "$(grep -c '^Title: Trip photos' home/catalog/archive.rec)" -eq 2 ] && [ "$(grep -c '^Note: Kept by Mum' home/catalog/archive.rec)" -eq 2 ] \
     && "$arv" --home home objects Trip | grep -q "Trip/  folder, 2 versions" \
     && "$arv" --home home objects Trip | grep -qx '    "Trip photos": Photos, one folder a day.' \
@@ -248,16 +247,15 @@ EOF
 put Stuff/"cats and kittens"/IMG_0001.jpg x
 put Stuff/scripts/"python code.py" x
 put Stuff/"beach trip"/DSC_0001.JPG x
-echo "fake model" > fake.gguf
-emb="--llama-embedding $embedder --model-file $dir/fake.gguf --vocab $dir/tags.rec"
+emb="--embed-url $url --vocab $dir/tags.rec"
 "$tool" --home th tag Stuff --show-summaries $emb > sum.txt
 ! grep -q DSC sum.txt && grep -q "beach trip: 1 photos" sum.txt || { cat sum.txt; no "summaries"; }
 "$tool" --home th tag Stuff --top 1 $emb </dev/null > t.json 2>/dev/null || no "tag"
 tr -d '\n ' < t.json | grep -q '"folder_tags":{"beachtrip":\["travel"\],"catsandkittens":\["pets"\],"scripts":\["code"\]}' \
-    && grep -q '"agent": "embeddings:fake.gguf"' t.json && grep -q '"authorship": "suggested"' t.json \
+    && grep -q '"agent": "embeddings:fake-model"' t.json && grep -q '"authorship": "suggested"' t.json \
     && ok "tag: each folder gets its closest tag; camera names left out of the summaries" || { cat t.json; no "tag suggestions"; }
 "$tool" --home th tag Stuff --save td.json $emb </dev/null 2>/dev/null || no "tag --save"
-"$arv" --home th make -y --no-ecc --formats no --draft td.json -o t2.iso Stuff > make2.out 2>&1 || { cat make2.out; no "make with tags"; }
+"$arv" --home th make -y --no-ecc --no-formats --draft td.json -o t2.iso Stuff > make2.out 2>&1 || { cat make2.out; no "make with tags"; }
 tid=$(cut -f1 make2.out | tail -1)
 "$arv" --home th find pets | grep -q "TAG   $tid" || no "find a tag"
 "$tool" --home th tag "$tid" --apply $emb </dev/null 2>/dev/null || no "tag --apply"
@@ -271,7 +269,7 @@ grep -A6 "^Note: folder tags for 3 folders from the tag vocabulary" th/catalog/a
 put Learn/"kyoto temples garden"/a.jpg x
 printf 'japan\n' > answers
 "$ptyrun" answers "$tool" --home th tag Learn $emb > pty2.out 2>&1 || { cat pty2.out; no "interactive tag"; }
-grep -q '"model": "fake.gguf"' th/config/tag-examples.jsonl || no "the review was not remembered"
+grep -q '"model": "fake-model"' th/config/tag-examples.jsonl || no "the review was not remembered"
 rm -rf Learn
 put Learn/"kyoto temples garden"/b.jpg x
 put Learn/scripts/x.py x
@@ -289,19 +287,21 @@ tr -d '\n ' < r.json | grep -q '"folder_tags":{"board":\["electronics"\]}' && gr
 printf 'a\n' > answers
 printf 'holiday, Place : Kyoto\na\n' > answers
 "$ptyrun" answers "$tool" --home th tag Stuff --save typed.json $emb > pty3.out 2>&1 || { cat pty3.out; no "typed tags"; }
-tr -d '\n ' < typed.json | grep -q '\["travel","place:kyoto"\]' && grep -q '"agent": "match rules + embeddings:fake.gguf"' typed.json \
+tr -d '\n ' < typed.json | grep -q '\["travel","place:kyoto"\]' && grep -q '"agent": "match rules + embeddings:fake-model"' typed.json \
     && ok "Match rules alone (automatic); typed tags normalised and aliases put in the vocabulary's words" \
     || { cat typed.json; no "aliases"; }
 
-# an /embeddings server instead of llama-embedding
+# /embeddings server selected by --embed-url
 "$tool" --home th tag Stuff --top 1 --embed-url "$url" --vocab "$dir/tags.rec" </dev/null > e.json 2>/dev/null || no "--embed-url"
 grep -q '"agent": "match rules + embeddings:fake-model"' e.json && tr -d '\n ' < e.json | grep -q '"catsandkittens":\["pets"\]' \
     && tr -d '\n ' < e.json | grep -q '"scripts":\["code"\]' \
-    && ok "--embed-url: an embeddings server instead of the built-in model" || { cat e.json; no "embeddings server"; }
+    && ok "--embed-url: OpenAI-compatible embeddings server" || { cat e.json; no "embeddings server"; }
 
-# ------------------------------------------------------------------ models
-echo "something else" > bad.gguf
-if "$tool" --home th models fetch --from bad.gguf > m.out 2>&1; then no "a model with the wrong checksum installed"; fi
-grep -q "does not have the expected checksum" m.out && "$tool" --home th models status | grep -q "^bge-small-en-v1.5.*not downloaded" \
-    && ok "models: a file with the wrong checksum is refused; status lists the model" || { cat m.out; no "models"; }
+# local runtime/model-manager options and command are no longer accepted
+if "$tool" --home th tag Stuff --top 1 > /dev/null 2>&1; then no "tag ran without an embeddings server"; fi
+if "$tool" --home th tag Stuff --model bge-small-en-v1.5 > /dev/null 2>&1; then no "--model accepted"; fi
+if "$tool" --home th tag Stuff --model-file model.gguf > /dev/null 2>&1; then no "--model-file accepted"; fi
+if "$tool" --home th tag Stuff --llama-embedding llama-embedding > /dev/null 2>&1; then no "--llama-embedding accepted"; fi
+if "$tool" --home th models status > /dev/null 2>&1; then no "models command accepted"; fi
+ok "tag accepts only server embeddings or rules-only; models command removed"
 echo "all checks passed"

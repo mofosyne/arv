@@ -168,6 +168,104 @@ static void list_line(const archive *cat, const rec_record *c)
     puts(")");
 }
 
+
+static int revision_retired(const archive *cat, const rec_record *revision)
+{
+    size_t n = 0, retired = 0;
+    for (size_t i = 0; i < revision->nfields; i++)
+        if (!strcmp(revision->fields[i].name, "Volume")) {
+            rec_record *d = archive_disc(cat, revision->fields[i].value);
+            n++;
+            retired += d && rec_get(d, "Retired");
+        }
+    return n > 0 && retired == n;
+}
+
+static int revision_is_safe(const archive *cat, const rec_record *revision)
+{
+    size_t n = 0, safe = 0;
+    for (size_t i = 0; i < revision->nfields; i++)
+        if (!strcmp(revision->fields[i].name, "Volume")) {
+            n++;
+            safe += disc_read_back(cat, revision->fields[i].value) != NULL;
+        }
+    return n > 0 && safe == n;
+}
+
+static void json_optional(sbuf *b, const char *value)
+{
+    if (value) json_str(b, value);
+    else sb_puts(b, "null");
+}
+
+static void collection_json(const archive *cat)
+{
+    sbuf b = { 0 };
+    sb_puts(&b, "{\"collections\": [");
+    for (size_t i = 0; i < cat->collections.n; i++) {
+        const rec_record *c = cat->collections.v[i];
+        const char *uuid = get_or(c, "Uuid", "");
+        if (i) sb_puts(&b, ", ");
+        sb_puts(&b, "{\"code\": "); json_str(&b, get_or(c, "Code", ""));
+        sb_puts(&b, ", \"title\": "); json_str(&b, get_or(c, "Title", ""));
+        sb_puts(&b, ", \"set\": "); json_optional(&b, rec_get(c, "Set"));
+        sb_puts(&b, ", \"access\": "); json_optional(&b, rec_get(c, "Access"));
+        sb_puts(&b, ", \"editions\": [");
+        int first_edition = 1;
+        for (size_t j = 0; j < cat->revisions.n; j++) {
+            const rec_record *r = cat->revisions.v[j];
+            if (!rec_get(r, "Collection") || strcmp(rec_get(r, "Collection"), uuid) || !rec_get(r, "Edition")) continue;
+            if (!first_edition) sb_puts(&b, ", ");
+            first_edition = 0;
+            int safe = revision_is_safe(cat, r), retired = revision_retired(cat, r), kept = rec_get(r, "Keep") && !strcasecmp(rec_get(r, "Keep"), "yes");
+            int newer_safe = 0;
+            for (size_t k = 0; k < cat->revisions.n; k++) {
+                const rec_record *newer = cat->revisions.v[k];
+                if (rec_get(newer, "Collection") && !strcmp(rec_get(newer, "Collection"), uuid) && rec_get(newer, "Edition")
+                    && atoi(rec_get(newer, "Edition")) > atoi(rec_get(r, "Edition")) && revision_is_safe(cat, newer)
+                    && !revision_retired(cat, newer)) newer_safe = 1;
+            }
+            sb_printf(&b, "{\"edition\": %d", atoi(rec_get(r, "Edition")));
+            sb_puts(&b, ", \"date\": "); json_optional(&b, rec_get(r, "Date"));
+            sb_puts(&b, ", \"message\": "); json_optional(&b, rec_get(r, "Message"));
+            sb_puts(&b, ", \"discs\": [");
+            int first_disc = 1;
+            for (size_t f = 0; f < r->nfields; f++) if (!strcmp(r->fields[f].name, "Volume")) {
+                const char *id = r->fields[f].value;
+                rec_record *d = archive_disc(cat, id);
+                size_t copies = 0;
+                for (size_t e = 0; e < cat->events.n; e++) {
+                    const rec_record *event = cat->events.v[e];
+                    copies += is_copy_event(event, id);
+                }
+                char *where = d ? archive_where(cat, d) : xstrdup("");
+                if (!first_disc) sb_puts(&b, ", ");
+                first_disc = 0;
+                sb_puts(&b, "{\"id\": "); json_str(&b, id);
+                sb_printf(&b, ", \"copies\": %zu, \"readBack\": %s, \"retired\": ", copies,
+                          disc_read_back(cat, id) ? "true" : "false");
+                json_optional(&b, d ? rec_get(d, "Retired") : NULL);
+                sb_puts(&b, ", \"where\": "); json_str(&b, where); sb_puts(&b, "}");
+                free(where);
+            }
+            size_t lost = 0;
+            for (size_t f = 0; f < r->nfields; f++) lost += !strcmp(r->fields[f].name, "Lost");
+            sb_printf(&b, "], \"kept\": %s, \"safe\": %s, \"retired\": %s, \"lost\": %zu, \"replaced\": %s}",
+                      kept ? "true" : "false", safe ? "true" : "false", retired ? "true" : "false",
+                      lost, newer_safe && !kept && !retired ? "true" : "false");
+        }
+        sb_puts(&b, "], \"checkpoints\": ");
+        size_t checkpoints = 0;
+        for (size_t j = 0; j < cat->revisions.n; j++)
+            checkpoints += rec_get(cat->revisions.v[j], "Collection") && !strcmp(rec_get(cat->revisions.v[j], "Collection"), uuid)
+                && !rec_get(cat->revisions.v[j], "Edition");
+        sb_printf(&b, "%zu}", checkpoints);
+    }
+    sb_puts(&b, "]}\n");
+    fputs(b.s, stdout);
+    free(b.s);
+}
+
 static int init(int argc, char **argv, const char *given)
 {
     const char *folder = ".", *code_arg = NULL, *title = NULL, *set = NULL, *access_level = "private", *description = NULL;
@@ -294,8 +392,13 @@ int cmd_collection(int argc, char **argv)
         return 0;
     }
     if (!strcmp(action, "list")) {
-        if (i != argc) return 2;
-        for (size_t k = 0; k < cat.collections.n; k++) list_line(&cat, cat.collections.v[k]);
+        int as_json = 0;
+        for (; i < argc; i++) {
+            if (!strcmp(argv[i], "--json")) as_json = 1;
+            else return 2;
+        }
+        if (as_json) collection_json(&cat);
+        else for (size_t k = 0; k < cat.collections.n; k++) list_line(&cat, cat.collections.v[k]);
         return 0;
     }
     if (i + 1 != argc) return 2;

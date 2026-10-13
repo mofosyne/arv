@@ -42,7 +42,7 @@ arv check (--image FILE [--repair] | --device DRIVE) [DISC-ID]   fixity check, l
                                         compared with its SHA-256 at creation, or without
                                         one, scanned by dvdisaster Light)
 arv note DISC-ID TEXT
-arv locate [--add] DISC-ID PLACE...
+arv locate DISC-ID COPY PLACE
 arv access DISC-ID public|private|sealed
 arv location list [-v] | add CODE [NAME] [--in PARENT] | move CODE [NAME] [--in PARENT]
 arv collection init [FOLDER] --code CODE --title TITLE [--set CODE] [--category CODE]... [--access LEVEL]
@@ -59,7 +59,7 @@ arv stored DISC-ID PATH [--location PLACE] [--temperature T]   a copy on a drive
 arv todo [--overdue YEARS]             what is owed: burns, read-backs, safe editions, cold copies, places, checks
 arv retire CODE [--yes]                retire the editions a newer safe one replaces (not kept)
 arv collection keep CODE N            edition N is never offered for retiring
-arv selection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]
+
 arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]
 arv sets [-v]                          the set vocabulary with disc counts
 arv names FOLDER                       names the image cannot hold, or Windows would change

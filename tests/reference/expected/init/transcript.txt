@@ -9,15 +9,6 @@ rc=0
 $ init a --name main
 Error: ROOT/init/a/.arv already exists
 rc=1
-$ init c --pointer a/.arv
-Wrote ROOT/init/c/.arv -> ROOT/init/a/.arv
-rc=0
-$ init c/sub --pointer nowhere
-Error: ROOT/init/nowhere is not a folder
-rc=1
-$ init b/../c/sub --pointer ./c/../a/.arv
-Wrote ROOT/init/c/sub/.arv -> ROOT/init/a/.arv
-rc=0
 $ --archive main where
 ROOT/init/a/.arv
   found by --archive main (ROOT/userhome/.config/arv/homes.rec)
@@ -31,7 +22,7 @@ $ --archive nope where
 Error: no home named nope in ROOT/userhome/.config/arv/homes.rec (`arv init --name nope` adds one)
 rc=1
 $ where
-ROOT/init/a/.arv
+ROOT/init/c/sub/../../a/.arv
   found by the pointer file ROOT/init/c/sub/.arv
   lives at ROOT/init/a/.arv
   archive UUID, main

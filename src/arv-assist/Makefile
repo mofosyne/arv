@@ -1,4 +1,4 @@
-# arv-assist: arv's optional local-AI helpers (describe, tag, models), in C99 and POSIX. It links
+# arv-assist: arv's optional local-AI helpers (describe, tag), in C99 and POSIX. It links
 # arv's own modules (src/arv, every file but arv.c, which is arv's main) and their libraries.
 CC      ?= cc
 CFLAGS  ?= -O2 -g

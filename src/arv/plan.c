@@ -115,7 +115,6 @@ void plan_load(const char *file, disc_plan *out)
         it->disc = rec_get(r, "Disc") ? atoi(rec_get(r, "Disc")) : 0;
         it->source = rec_get(r, "Source") && *rec_get(r, "Source") ? path_abs(out->root, rec_get(r, "Source")) : xstrdup("");
         it->path = xstrdup(rec_get(r, "Path") ? rec_get(r, "Path") : "");
-        it->origin = rec_get(r, "Origin") ? path_abs(out->root, rec_get(r, "Origin")) : NULL;
         it->seen = rec_get(r, "Seen") ? xstrdup(rec_get(r, "Seen")) : NULL;
         if (it->disc < 1 || it->disc > out->discs || !*it->source || !*it->path)
             die("%s: an Item needs a Disc between 1 and the plan's Discs, a Source and a Path", file);
@@ -149,11 +148,6 @@ static void plan_save(disc_plan *p)
         char *src = path_rel(p->root, p->v[i].source);
         sb_printf(&b, "\nDisc: %d\nSource: %s\nPath: %s\n", p->v[i].disc, src, p->v[i].path);
         free(src);
-        if (p->v[i].origin) {
-            char *o = path_rel(p->root, p->v[i].origin);
-            sb_printf(&b, "Origin: %s\n", o);
-            free(o);
-        }
         if (p->v[i].seen) sb_printf(&b, "Seen: %s\n", p->v[i].seen);
     }
     char *tmp = xprintf("%s.tmp", p->file);
@@ -349,56 +343,6 @@ static int changed_since(const plan_item *it)
     return changed;
 }
 
-/* a copy that keeps what arv records: modified times and permissions; links stay links */
-static void copy_keep(const char *from, const char *to)
-{
-    struct stat st;
-    if (lstat(from, &st)) die("cannot read %s", from);
-    if (S_ISLNK(st.st_mode)) {
-        char target[4096];
-        ssize_t n = readlink(from, target, sizeof target - 1);
-        if (n < 0) die("cannot read %s", from);
-        target[n] = 0;
-        if (symlink(target, to)) die("cannot write %s", to);
-        return;
-    }
-    if (S_ISDIR(st.st_mode)) {
-        if (mkdir(to, 0755) && errno != EEXIST) die("cannot create %s", to);
-        DIR *d = opendir(from);
-        struct dirent *e;
-        if (!d) die("cannot read %s", from);
-        while ((e = readdir(d))) {
-            if (!strcmp(e->d_name, ".") || !strcmp(e->d_name, "..")) continue;
-            char *a = join(from, e->d_name), *b = join(to, e->d_name);
-            copy_keep(a, b);
-            free(a);
-            free(b);
-        }
-        closedir(d);
-    } else if (S_ISREG(st.st_mode)) {
-        copy_file(from, to);
-    } else {
-        return;                 /* devices and sockets: never content */
-    }
-    chmod(to, st.st_mode & 07777);
-    struct timespec t[2] = { st.st_atim, st.st_mtim };
-    utimensat(AT_FDCWD, to, t, 0);
-}
-
-/* where a plan keeps its copies (--copy): a folder beside the plan file, named after it */
-static char *copies_dir(const disc_plan *p)
-{
-    char *f = xstrdup(p->file), *slash = strrchr(f, '/'), *name = slash ? slash + 1 : f;
-    if (slash) *slash = 0;
-    char *dir = realpath(slash ? f : ".", NULL);
-    if (!dir) dir = abs_path(slash ? f : ".");
-    size_t n = strlen(name);
-    if (n > 4 && !strcmp(name + n - 4, ".rec")) name[n - 4] = 0;
-    char *d = join(dir, name);
-    free(dir);
-    free(f);
-    return d;
-}
 
 /* ------------------------------------------------------------------ showing it */
 
@@ -547,9 +491,7 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
                 json_str(&b, p->v[i].path);
                 sb_puts(&b, ", \"source\": ");
                 json_str(&b, p->v[i].source);
-                sb_puts(&b, ", \"origin\": ");
-                if (p->v[i].origin) json_str(&b, p->v[i].origin);
-                else sb_puts(&b, "null");
+
                 sb_printf(&b, ", \"changed\": %s, \"kind\": \"%s\", \"bytes\": %llu, \"files\": %ld, \"archived\": ", chg[i] ? "true" : "false",
                           m[i].missing ? "missing" : m[i].folder ? "folder" : "file", (unsigned long long)m[i].bytes, m[i].files);
                 if (!ar || m[i].missing) sb_puts(&b, "null}");
@@ -600,12 +542,12 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
                     missing++;
                 } else if (m[i].folder) {
                     printf("  %s/  %s, %ld file%s  %s", p->v[i].path, sz, m[i].files,
-                           m[i].files == 1 ? "" : "s", p->v[i].origin ? "(the plan's copy)" : p->v[i].source);
+                           m[i].files == 1 ? "" : "s", p->v[i].source);
                 } else {
-                    printf("  %s  %s  %s", p->v[i].path, sz, p->v[i].origin ? "(the plan's copy)" : p->v[i].source);
+                    printf("  %s  %s  %s", p->v[i].path, sz, p->v[i].source);
                 }
                 if (!m[i].missing) {
-                    if (p->v[i].origin) printf("  of %s", p->v[i].origin);
+
                     if (chg[i]) printf("  CHANGED since planned");
                     putchar('\n');
                     if (ar && ar[i].object) {
@@ -633,8 +575,8 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
                    missing == 1 ? "it" : "them", p->name);
         } else if (p->n) {
             if (changed)
-                printf("%zu item%s changed since planned: the discs get %s as %s now (arv plan refresh %s: that is fine)\n",
-                       changed, changed == 1 ? "" : "s", changed == 1 ? "it" : "them", changed == 1 ? "it is" : "they are", p->name);
+                printf("%zu item%s changed since planned: the discs get %s as %s now\n",
+                       changed, changed == 1 ? "" : "s", changed == 1 ? "it" : "them", changed == 1 ? "it is" : "they are");
             printf("Next: arv plan make %s (one image a disc; arv make's options apply)\n", p->name);
         }
         if (!rec_get(hd, "Made") && p->n)
@@ -719,7 +661,7 @@ static void say_where(const arv_home *h, disc_plan *p, int disc, const char *wha
 int cmd_plan(int argc, char **argv)
 {
     const char *given = NULL, *action = NULL, *name = NULL, *disc = NULL, *as = NULL, *from_s = NULL;
-    int as_json = 0, all = 0, copy = 0, yes = 0, on_discs = 0;
+    int as_json = 0, all = 0, on_discs = 0;
     strlist args = { 0 }, defaults = { 0 }, rest = { 0 };
     static const char *const SETTINGS[][2] = { { "--medium", "Medium" }, { "--set", "Set" }, { "--title", "Title" },
                                                { "--description", "Description" }, { "--access", "Access" } };
@@ -729,7 +671,6 @@ int cmd_plan(int argc, char **argv)
         else if (!strcmp(argv[i], "--json")) as_json = 1;
         else if (!strcmp(argv[i], "--all")) all = 1;
         else if (!strcmp(argv[i], "--archived")) on_discs = 1;
-        else if (!strcmp(argv[i], "--copy")) copy = 1;
         else if (!action) action = argv[i];
         else if (!name) {
             name = argv[i];
@@ -741,7 +682,7 @@ int cmd_plan(int argc, char **argv)
         else if (i + 1 < argc && !strcmp(argv[i], "--as")) as = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--from")) from_s = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--discs")) disc = argv[++i];
-        else if (!strcmp(argv[i], "--yes") || !strcmp(argv[i], "-y")) yes = 1;
+
         else {
             int setting = 0;
             for (int k = 0; k < 5 && !setting; k++)
@@ -770,7 +711,10 @@ int cmd_plan(int argc, char **argv)
             if (n > 4 && !strcmp(e->d_name + n - 4, ".rec") && e->d_name[0] != '.') strlist_add(&names, e->d_name);
         }
         if (d) closedir(d);
-        if (!names.n) printf("No plans (arv plan new NAME)\n");
+        if (!names.n && !as_json) printf("No plans (arv plan new NAME)\n");
+        sbuf json = { 0 };
+        int first_json = 1;
+        if (as_json) sb_puts(&json, "{\"plans\": [");
         size_t hidden = 0;
         for (size_t k = 0; k < names.n; k++)          /* in name order */
             for (size_t j = k + 1; j < names.n; j++)
@@ -789,13 +733,24 @@ int cmd_plan(int argc, char **argv)
                 free(f);
                 continue;
             }
-            printf("%s  %d disc%s, %zu item%s%s%s%s\n", p.name, p.discs, p.discs == 1 ? "" : "s", p.n, p.n == 1 ? "" : "s",
-                   rec_get(hd, "Title") ? "  \"" : "", rec_get(hd, "Title") ? rec_get(hd, "Title") : "",
-                   rec_get(hd, "Title") ? "\"" : "");
-            if (rec_get(hd, "Made")) printf("    made %s (arv plan again %s NEW: the same again, as a new plan)\n", rec_get(hd, "Made"), p.name);
+            if (as_json) {
+                sb_puts(&json, first_json ? "" : ", ");
+                first_json = 0;
+                sb_puts(&json, "{\"name\": "); json_str(&json, p.name);
+                sb_printf(&json, ", \"discs\": %d, \"items\": %zu, \"made\": ", p.discs, p.n);
+                if (rec_get(hd, "Made")) json_str(&json, rec_get(hd, "Made"));
+                else sb_puts(&json, "null");
+                sb_puts(&json, "}");
+            } else {
+                printf("%s  %d disc%s, %zu item%s%s%s%s\n", p.name, p.discs, p.discs == 1 ? "" : "s", p.n, p.n == 1 ? "" : "s",
+                       rec_get(hd, "Title") ? "  \"" : "", rec_get(hd, "Title") ? rec_get(hd, "Title") : "",
+                       rec_get(hd, "Title") ? "\"" : "");
+                if (rec_get(hd, "Made")) printf("    made %s (arv plan again %s NEW: the same again, as a new plan)\n", rec_get(hd, "Made"), p.name);
+            }
             free(f);
         }
-        if (hidden) printf("(%zu made plan%s not shown: arv plan list --all)\n", hidden, hidden == 1 ? "" : "s");
+        if (as_json) { sb_puts(&json, "]}\n"); fputs(json.s, stdout); free(json.s); }
+        if (hidden && !as_json) printf("(%zu made plan%s not shown: arv plan list --all)\n", hidden, hidden == 1 ? "" : "s");
         free(dir);
         return 0;
     }
@@ -832,25 +787,8 @@ int cmd_plan(int argc, char **argv)
     if (!strcmp(action, "delete")) {
         if (args.n) return 2;
         if (access(file, F_OK)) die("no plan %s (arv plan list)", name);
-        disc_plan p;
-        plan_load(file, &p);
-        char *copies = copies_dir(&p);
-        if (!access(copies, F_OK) && !yes) {   /* its copies: the only ones until its discs are read back */
-            const rec_record *hd = head(&p);
-            archive cat;
-            archive_load(&cat, h.rec_path);
-            int safe = rec_get(hd, "Made") != NULL;
-            for (size_t f = 0; f < hd->nfields; f++)
-                if (!strcmp(hd->fields[f].name, "Volume") && !disc_read_back(&cat, hd->fields[f].value)) safe = 0;
-            if (!safe)
-                die2("plan %s holds copies (arv plan add --copy) that may be the only ones until its discs are burned and "
-                     "read back (arv burned --device); arv plan delete %s --yes deletes them anyway", name, name);
-        }
-        int had_copies = !access(copies, F_OK);
-        if (had_copies) remove_tree(copies);
         if (unlink(file)) die("cannot delete %s", file);
-        printf("Plan %s deleted (%s)\n", name, had_copies ? "with its copies; the originals are untouched" : "its sources are untouched");
-        free(copies);
+        printf("Plan %s deleted (its sources are untouched)\n", name);
         return 0;
     }
 
@@ -882,19 +820,11 @@ int cmd_plan(int argc, char **argv)
         }
         for (size_t k = 0; k + 1 < defaults.n; k += 2) rec_set(qh, defaults.v[k], defaults.v[k + 1]);
         q.v = xmalloc((p.n + 1) * sizeof *q.v);
-        size_t relinked = 0;
-        for (size_t k = 0; k < p.n; k++) {    /* a copied item points at its original again: the copy is NAME's */
+        for (size_t k = 0; k < p.n; k++) {
             plan_item it = p.v[k];
-            if (it.origin) {
-                it.source = it.origin;
-                it.origin = NULL;
-                relinked++;
-            }
             it.seen = stamp_of(it.source);
             q.v[q.n++] = it;
         }
-        if (relinked) printf("%zu copied item%s point%s at %s original%s again (arv plan add --copy to copy afresh)\n", relinked,
-                             relinked == 1 ? "" : "s", relinked == 1 ? "s" : "", relinked == 1 ? "its" : "their", relinked == 1 ? "" : "s");
         plan_save(&q);
         size_t gone = 0;
         for (size_t k = 0; k < q.n; k++) gone += access(q.v[k].source, F_OK) != 0;
@@ -926,7 +856,7 @@ int cmd_plan(int argc, char **argv)
                 die("%s is not a file or folder", args.v[k]);
             if (strpbrk(src, "\r\n") || (as && strpbrk(as, "\r\n"))) die("%s: a name with a line break cannot be planned", src);
             for (size_t j = 0; j < p.n; j++)
-                if (!strcmp(p.v[j].source, src) || (p.v[j].origin && !strcmp(p.v[j].origin, src))) {
+                if (!strcmp(p.v[j].source, src)) {
                     char n[16];
                     snprintf(n, sizeof n, "%d", p.v[j].disc);
                     die2("%s is in the plan already, on disc %s", src, n);
@@ -935,30 +865,16 @@ int cmd_plan(int argc, char **argv)
             const char *path = as ? as : *base ? base : NULL;
             if (!path || !path_ok(path, S_ISDIR(st.st_mode)))
                 die("%s cannot be a path under data/ (relative, no . or .. parts; . only for a folder's contents)", path ? path : "/");
-            plan_item it = { 0, src, xstrdup(path), NULL, NULL };
+            plan_item it = { 0, src, xstrdup(path), NULL };
             int d = pick_disc(&h, &p, disc, item_size(&it).sectors);
             check_free(&p, path, d);
             if (d > p.discs) p.discs = d;
             it.disc = d;
-            if (copy) {                     /* the plan's own copy: for a source that will not be there at make */
-                char *dir = copies_dir(&p), *slot = NULL;
-                for (int n = 1; !slot || !access(slot, F_OK); n++) {
-                    free(slot);
-                    slot = xprintf("%s/%d", dir, n);
-                }
-                if (mkdirs(slot)) die("cannot create %s", slot);
-                char *to = join(slot, *base ? base : "item");
-                fprintf(stderr, "Copying %s into the plan ...\n", src);
-                copy_keep(src, to);
-                it.origin = src;
-                it.source = to;
-                free(dir);
-                free(slot);
-            }
+
             it.seen = stamp_of(it.source);
             p.v = xrealloc(p.v, (p.n + 1) * sizeof *p.v);
             p.v[p.n++] = it;
-            char *what = xprintf("%s%s%s", path, S_ISDIR(st.st_mode) && strcmp(path, ".") ? "/" : "", copy ? " (copied into the plan)" : "");
+            char *what = xprintf("%s%s", path, S_ISDIR(st.st_mode) && strcmp(path, ".") ? "/" : "");
             say_where(&h, &p, d, what);
             free(what);
         }
@@ -985,15 +901,7 @@ int cmd_plan(int argc, char **argv)
         int from = from_s ? atoi(from_s) : 0;
         for (size_t k = 0; k < args.n; k++) {
             plan_item *it = find_item(&p, args.v[k], from);
-            if (it->origin) {               /* the plan's own copy goes with it */
-                char *slot = xstrdup(it->source), *slash = strrchr(slot, '/');
-                if (slash) *slash = 0;
-                remove_tree(slot);
-                free(slot);
-                printf("%s: off disc %d, and the plan's copy deleted (the original is untouched)\n", it->path, it->disc);
-            } else {
-                printf("%s: off disc %d (the source is untouched)\n", it->path, it->disc);
-            }
+            printf("%s: off disc %d (the source is untouched)\n", it->path, it->disc);
             *it = p.v[--p.n];
         }
         plan_save(&p);
@@ -1018,20 +926,7 @@ int cmd_plan(int argc, char **argv)
         printf("Disc %d dropped; the discs after it moved up one\n", d);
         return 0;
     }
-    if (!strcmp(action, "refresh")) {         /* what the sources are now is what is planned */
-        if (args.n) return 2;
-        size_t n = 0;
-        for (size_t k = 0; k < p.n; k++)
-            if (changed_since(&p.v[k]) || !p.v[k].seen) {
-                free(p.v[k].seen);
-                p.v[k].seen = stamp_of(p.v[k].source);
-                printf("%s: as it is now\n", p.v[k].path);
-                n++;
-            }
-        plan_save(&p);
-        if (!n) printf("Nothing changed since it was planned\n");
-        return 0;
-    }
+
     if (!strcmp(action, "make")) {
         if (!p.n) die("plan %s has nothing on it yet (arv plan add)", name);
         for (size_t k = 0; k < p.n; k++)    /* told, not stopped: what is there now is what goes on the disc */
@@ -1185,7 +1080,7 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
          * the next version; else a new object. An empty one is never the same as another. */
         const rec_record *same = NULL, *from = NULL;
         long latest = 0;
-        char *stored = path_rel(dp->root, it->origin ? it->origin : it->source);   /* as the home keeps it */
+        char *stored = path_rel(dp->root, it->source);   /* as the home keeps it */
         const recs *both[2] = { &cat->objects, made_now };
         for (int b = 0; b < 2; b++)
             for (size_t i = 0; i < both[b]->n; i++) {
@@ -1210,7 +1105,7 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
             snprintf(version, sizeof version, "1");
         }
         rec_record *r = rec_alloc("Object");
-        const char *from_path = it->origin ? it->origin : it->source;   /* a copy's object came from its original */
+        const char *from_path = it->source;
         const char *slash = strrchr(from_path, '/');
         char n_files[24], n_bytes[24];
         snprintf(n_files, sizeof n_files, "%zu", lines.n);

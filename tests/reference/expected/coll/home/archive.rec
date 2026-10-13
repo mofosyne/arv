@@ -27,7 +27,6 @@ Date: 2026-01-01
 %type: Bytes int
 %type: Access enum public private sealed
 %type: Retired date
-%type: Location rec Location
 
 Id: FAM-01_2019_0
 Uuid: UUID
@@ -63,8 +62,6 @@ Access: public
 Files: 2
 Bytes: 4
 Software: SW
-Location: BOX1
-Location: NAS
 
 %rec: Binding
 %doc: How one volume is stored on its medium: the container (filesystem) and the
@@ -96,9 +93,9 @@ ImageSectors: 882
 ImageSha256: SHA256
 
 %rec: Location
-%doc: Places where discs are kept: site, room, shelf, box. Parent makes a tree,
-+ so moving a box moves every disc in it. A Disc's Location field (one per
-+ place its copies are kept) names a Code here, or is free text. Temperature says how
+%doc: Places where copies are kept: site, room, shelf, box. Parent makes a tree,
++ so moving a box moves every copy in it. A copy event's Location field names a Code here,
++ or is free text. Temperature says how
 + copies kept there are used: hot (in active use: working files, a synced folder), warm
 + (online or reachable, but left alone: an .iso or archive folder on a NAS) or cold
 + (offline: discs on a shelf, unplugged drives); a place without one takes its parent's.
@@ -133,7 +130,7 @@ Access: public
 + SHA-256 of Tree, Parent(s), Date and Message, and names the revision. A checkpoint
 + only records the state (the files stay on everyday storage); an edition became discs:
 + Edition numbers it, Volume names each disc. An edition is a set of discs made together,
-+ each holding a selection of the collection and a copy of the catalogue, with as many
++ each holding part of the collection and a copy of the catalogue, with as many
 + copies as its owner makes (discs, NAS); a later safe edition replaces earlier ones,
 + except those with Keep: yes (which may be added later: it is not part of Node).
 %key: Node
@@ -178,8 +175,8 @@ Message: renamed c
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
-+ Disc names the disc; a change to a location, a selection or a data object names it in Object
-+ (location:CODE, selection:CODE, object:UUID) instead.
++ Disc names the disc; a change to a location or a data object names it in Object
++ (location:CODE, object:UUID) instead.
 + Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion
@@ -454,8 +451,8 @@ Path: ROOT/nas/FAM-02-files
 %doc: The archivist log: how much something matters, to whom, and why. Appended and
 + never edited; the newest appraisal of a target replaces earlier ones, and one a
 + person made or reviewed outranks a machine's. Target is DISC-ID, DISC-ID:folder/,
-+ DISC-ID:folder/file (relative to data/), set:CODE or selection:CODE; a target
-+ without an appraisal takes the nearest one above it (file, folder, disc, set).
++ DISC-ID:folder/file (relative to data/) or set:CODE; a target without an appraisal
++ takes the nearest one above it (file, folder, disc, set).
 + Importance is '<level> for <audience>', one per audience; levels, most first:
 + essential (must survive: 3 copies in 3 places), important (on disc: 2 in 2),
 + useful (on disc if there is room), incidental (everyday storage is enough).

@@ -108,7 +108,7 @@ catalogue rebuilt from a disc takes the disc's archive identity.
 | `catalog/volumes/<id>/git.tsv` | TSV | For each git repository on the disc: its root commits, heads, shallow boundary and every commit it holds (see [Git repositories](#git-repositories)) |
 | `catalog/volumes/<id>/formats.csv` | CSV | PRONOM format identification per file (optional) |
 | `catalog/volumes/<id>/manifest.sha256` | BagIt manifest | Copy of the disc's `manifest-sha256.txt` |
-| `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Binding`, `Location`, `Selection`, `Collection`, `Revision`, `Event` and `Appraisal` records (limited by [Access](#access)) |
+| `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Binding`, `Location`, `Collection`, `Revision`, `Event` and `Appraisal` records (limited by [Access](#access)) |
 | `catalog/config/sets.rec`, `catalog/config/tags.rec` | recfile | The archive's vocabularies at burn time: the set codes (`Set`, `Category`) and the tag words its records use, with their names, parents and aliases. Full snapshots only; optional (format 0.5) |
 | `catalog/volumes/<other-id>/` | as above | The same per-volume index files for the other discs in the snapshot: one folder per volume, as LTFS keeps one index per tape |
 | `index.html` | HTML | Offline viewer (for people; readers can ignore) |
@@ -135,7 +135,6 @@ Version 0.1 (samples only, never burned) kept these files by kind instead: `cata
 | `Title`, `Description`, `Creator`, `Subject`*, `Coverage`, `Rights` | Dublin Core description | `Subject` repeats; `Coverage` is [EDTF](#coverage-edtf) |
 | `Date` | Date the image was made | `YYYY-MM-DD` |
 | `Set`, `Part` | Set name and `n of N` for multi-disc sets | |
-| `Location`* | Where the disc's copies are kept, one per place | A [`Location`](#location-records) code, or free text; updated later at home |
 | `Access` | `public`, `private` (default) or `sealed` | What *other* discs' snapshots may show of this one, see [Access](#access) |
 | `Withheld` | What was left out of this record | Only on the cut-down copy of a sealed disc in another disc's snapshot |
 | `Note`* | Free-text notes; Q&A from the owner | Multi-line values continue with `+ ` |
@@ -172,8 +171,9 @@ Examples: `PHOTOS-07_2015-2024_Q`, `TAXES-01_2019_M`, `SCANS-02_199X_K`,
   doubling. It catches every single wrong character and every swap of two
   neighbouring characters, which are the usual mistakes when copying an id
   hand-written on a disc. Readers should suggest the closest known id.
-- **Older ids** (`2020-2025_PROJECTS_01`, scheme `coverage-set-seq/0`, no
-  `IdScheme` field) stay valid; ids written on physical discs never change.
+- Only `set-seq-coverage/1` ids are recognised. The older `coverage-set-seq/0`
+  form is not read; the archive format is not released, and compatibility with it
+  is not part of this draft.
 
 ### Set vocabulary (a word hierarchy)
 
@@ -237,9 +237,9 @@ category.
 
 ### Location records
 
-Where discs are kept is its own record type in `archive.rec` and in each disc's
+Where copies are kept is its own record type in `archive.rec` and in each disc's
 `catalog.rec`/snapshot (as in Katalog's storage table or ArchivesSpace's
-locations): places form a tree, so moving a box is one edit, not one per disc.
+locations): places form a tree, so moving a box is one edit, not one per copy.
 
 ```
 %rec: Location
@@ -253,52 +253,24 @@ Name: Box 3, blue lid
 Parent: STUDY
 ```
 
-A disc's `Location` fields (one per place its copies are kept, e.g. `BOX3` and
-`OFFSITE`) name these codes; any other value is free text. Show a location as
-its path of names: `Home / Study / Box 3, blue lid`. A disc carries the
-`Location` records it refers to (and the places containing them), so it stays
-self-describing; a full snapshot carries all of them.
+A replication event's `Location` says where that physical copy is kept; any
+other value is free text. Later moves append an event naming the same copy by
+its `Replication` EventId and `Copy`, with `Sets: Location:<replication-id>` and
+`Replaces` for that copy's prior place change. `arv locate DISC-ID COPY PLACE`
+records such a move. `arv burned` and `arv stored` can give the initial place
+when recording a copy. Disc-level summaries and place filters derive the unique
+places from the recorded copies; `Disc` has no `Location` field. Show a place
+as its path of names: `Home / Study / Box 3, blue lid`. A disc carries the
+`Location` records referred to by its copy events (and their parent places), so
+it stays self-describing; a full snapshot carries all of them.
 
-### Selection records
-
-Virtual folders that you make: named groups of whole discs, folders and files
-from **different** discs, e.g. "Best of Kyoto" or "Tax documents 2015-2024".
-They work like VVV's virtual folders or Lightroom's collections.
-
-```
-%rec: Selection
-%key: Code
-
-Code: KYOTO-BEST
-Name: Best of Kyoto
-Parent: TRAVEL
-Description: favourite shots
-Item: TRIP-01_2019_4:day2 Kinkaku-ji/
-Item: TRIP-01_2019_4:day1 Fushimi Inari/IMG_0100.png
-Item: TAXES-01_2019-2020_I
-```
-
-| Field | Meaning |
-|---|---|
-| `Code`, `Name` | key and readable name |
-| `Parent` | the selection it is inside (selections form a tree) |
-| `Item`* | `DISC-ID` (a whole disc), `DISC-ID:folder/` (a folder: trailing `/`) or `DISC-ID:folder/file`; paths relative to `data/`. Disc ids contain no `:` |
-
-Selections live in `archive.rec` and travel in snapshots, limited by
-[Access](#access):
-- a snapshot keeps only items on discs it carries;
-- items with paths on **sealed** discs are dropped (the whole-disc item stays);
-- selections left empty are dropped.
-
-When merging, readers **union** a selection's items and never remove any,
-because a snapshot's copy may be filtered.
 
 ### Collection and Revision records: what is kept, and its history
 
 A **collection** is something kept over time and made into discs again and again, e.g. a
 family's photos: one folder on everyday storage (its *workflow folder*), one history. Each
 **revision** records one state of it, as a git commit does; a revision that became discs is
-an **edition**, a set of discs made together, each holding a selection of the collection and a
+an **edition**, a set of discs made together, each holding part of the collection and a
 copy of the catalogue, with as many copies as its owner makes. A later
 edition, once safely burned, replaces earlier ones, except those marked `Keep: yes`. (Format 0.5 defines the records; arv writes
 them from `arv collection init` on. Readers must accept them.)
@@ -359,8 +331,9 @@ with no cold copy.
 Each copy has a **letter**, `Copy: A`, `B` ... `Z`, `AA` ...: unique among the disc's copies, given
 in order as copies are recorded (or chosen), and written on the disc's hub and case after its id,
 so a copy can be told from its twins in the hand. Copies are identical images, so the letter is in
-the catalogue, never on the disc. The event also carries the copy's own `Location` (as the disc's
-`Location`, which lists every place a copy of it is kept), and may carry `MediaType` (the media's
+the catalogue, never on the disc. The event also carries the copy's own `Location`; a later
+`arv locate DISC-ID COPY PLACE` appends a metadata event for that copy. Disc-level views derive
+unique current places from all its copies. Events may also carry `MediaType` (the media's
 manufacturer and type, as the drive reports it: many discs share it) and `Identifier`s.
 
 **Identifiers** say how one physical copy is recognised, as `scheme:value` (PREMIS's
@@ -371,8 +344,6 @@ objectIdentifierType and Value), repeatable:
 | `bca:` | the factory serial in the burst cutting area, read by a drive: 32 lowercase hex digits (the BCA's first 16-byte unit; the BCA repeats it, then names the media type; [research/bca/](../../research/bca/README.md)) | yes |
 | `barcode:` | a label stuck on the disc and scanned | yes (one on a case names the case) |
 | `serial:` | a manufacturer's serial: a hard drive's, or an LTO cartridge's own memory | yes |
-| `label:` | what was written or printed on it | no |
-| `hub:` | the maker's code printed in the clear hub ring (a batch) | no |
 
 A copy's identifiers are those on its `replication` event and on any later event that names its
 `Copy` (a `fixity check` that read the BCA, or a `metadata modification` from `arv identify`),
@@ -387,21 +358,21 @@ counter. A `fixity check` of one copy names it with `Copy` too.
 identifier added, a new letter) carries `Replication`: the copy's `replication` event's `EventId`,
 which never changes, and `Copy`: its letter at the time. A copy's letter now is the `Copy` of the
 newest event naming it by `Replication` (`arv relabel` gives a new one; the copy keeps its
-history), else the letter it was given. An event without `Replication` (written before it) names
-a copy by the letter it was given, unless two copies were given it.
+history), else the letter it was given. Every event that names a copy has its `Replication` id.
 
 **Field histories.** A `metadata modification` that changes a field of a thing (a disc's `Access`,
-`Location`, `Title`, `Description` or `Subject`; a place's or a selection's `Name` or `Parent`; a
-place's `Temperature`) says so with `Sets: FIELD`, and names with `Replaces: EVENTID` the changes
-to that field it knew of (those no later change replaces). Each field has its own small history.
+`Title`, `Description` or `Subject`; a copy's `Location`; a place's `Name`, `Parent` or
+`Temperature`) says so with `Sets: FIELD`, and names with `Replaces: EVENTID` the changes to
+that field it knew of (those no later change replaces). A copy's place history is keyed as
+`Location:<replication EventId>`, so copies of one disc have independent histories. Each field has
+its own small history.
 Two changes that replace the same one were made apart (in two catalogues of one archive) and are
 a **conflict**: a merge and `arv audit` report it, the home's value stands, and setting the field
-again (even to the value it has) replaces both and settles it. Notes, tags, items and copies only
-add up, and take no `Sets`.
+again (even to the value it has) replaces both and settles it. Notes, tags and copies only add up, and take no `Sets`.
 
 **Carrier.** A stored copy (`iso` or `folder`) may sit on a medium that holds many images: a
 tape (LTO with LTFS), a hard drive. `Carrier` names that medium with the same schemes (a tape's
-`barcode:`, a drive's `serial:`, or a `label:`), on the `replication` or on a later event that
+`barcode:` or a drive's `serial:`), on the `replication` or on a later event that
 names the copy (it moved). A burned disc is its own medium and has none. Many discs' copies may
 share a carrier; that is no clash. But copies **of one disc** on one carrier are lost together,
 so they count as one: a disc's copies are counted as **independent** copies, one per physical
@@ -411,8 +382,9 @@ A copy is **known good** when its `replication` event carries `ReadBack: identic
 read back against the image's `ImageSha256` before the copy was recorded), or when a later
 successful `fixity check` names its letter. An edition is **safe**
 when each of its discs has a known-good copy. Once a later edition is safe, earlier editions not
-kept may be retired: each of their discs gets `Retired: DATE` (and loses its `Location`
-fields) and a `deaccession` event saying what replaced it. Nothing is deleted. A disc of no
+kept may be retired: each of their discs gets `Retired: DATE` and a `deaccession` event saying
+what replaced it; retired discs are no longer shown as kept at their copies' last recorded places.
+Nothing is deleted. A disc of no
 edition (a disc plan's, or one folder's) is retired on its own the same way; a file of it that was
 on no other disc, retired with the loss accepted, is recorded on its `Disc` record as
 `Lost: SHA256  PATH`, as an edition's are on its revision.
@@ -440,7 +412,7 @@ disc itself always carries its own full record):
 |---|---|---|
 | `public` | full record and file lists | full record and file lists |
 | `private` (default; also when absent) | full record and file lists | left out |
-| `sealed` | identity only: `Id`, `Uuid`, `Set`, `Category`, `Path`, `Sequence`, `Coverage`, `Date`, `Part`, `Location`, `Access`; `Title` is `(sealed disc)`, plus a `Withheld` field; no events or file lists | left out |
+| `sealed` | identity only: `Id`, `Uuid`, `Set`, `Category`, `Path`, `Sequence`, `Coverage`, `Date`, `Part`, `Access`; `Title` is `(sealed disc)`, plus a `Withheld` field; no events or file lists | left out |
 
 A reader merging snapshots must never replace a full record with one that has
 `Withheld`.
@@ -520,8 +492,8 @@ own. A version's copies have the same fields.
 
 ### `Event` records (recfile)
 
-`EventId` (format 0.5), then `Disc` (or, for a change to a place, a selection or a data object,
-`Object`: `location:CODE`, `selection:CODE`, `object:UUID`), `Type` (PREMIS event type:
+`EventId` (format 0.5), then `Disc` (or, for a change to a place or a data object,
+`Object`: `location:CODE` or `object:UUID`), `Type` (PREMIS event type:
 `message digest calculation`, `creation`,
 `fixity check`, `format identification`, `metadata modification`, `ingestion`,
 `replication`), `Date`, `Outcome` (`success` / `failure` / `warning`), `Authorship`,
@@ -556,11 +528,10 @@ ids) goes by its content's hash, and gets the id when its catalogue is next writ
 before event ids carry none; readers compute them the same way.
 
 Events are appended, never edited. **Every change to the catalogue leaves one:** a note, an
-access level, where a disc is kept, a place or a selection added, moved or renamed
+access level, where a copy is kept, or a place added, moved or renamed
 (`metadata modification`, with what changed in `Note`, e.g. `Access: private -> public`).
-Selection events give counts, never item paths, so they reveal nothing about sealed discs.
 A disc's events follow its access level; events with an `Object` go only into full
-snapshots, for the places and selections that snapshot carries.
+snapshots, for the places those snapshots carry.
 
 ### `Appraisal` records (recfile): the archivist log
 
@@ -579,8 +550,8 @@ Agent: human:LOGIN
 Review: 2031-10-03
 ```
 
-- **Target**: `DISC-ID`, `DISC-ID:folder/`, `DISC-ID:folder/file` (relative to `data/`, as in
-  selections), `set:CODE` or `selection:CODE`.
+- **Target**: `DISC-ID`, `DISC-ID:folder/`, `DISC-ID:folder/file` (relative to `data/`) or
+  `set:CODE`.
 - **Importance**: `<level> for <audience>`, one per audience. Levels, most first, each tied to
   what the archive does about it:
 
@@ -609,7 +580,7 @@ the highest standing: a person's (`human`, `accepted`, `edited`), then software'
 (`automatic`), then a model's unreviewed suggestion. A target with none takes the nearest
 appraisal above it: file, folder, disc, then the disc's set. A disc carries its own
 appraisals in `catalog.rec`; other discs carry them as they carry its events (none for
-sealed discs), and full snapshots also carry those of the sets and selections they hold.
+sealed discs), and full snapshots also carry those of the sets they hold.
 
 ### Listing TSV
 
@@ -679,10 +650,9 @@ digiKam) replaces the colon with `|`: `place|kyoto`; set paths become
 A git repository in the payload is its working tree as plain files, plus a `.git` made by the
 `git` program on a copy: `HEAD`, `config`, the index, one pack, refs both packed and loose
 (git needs `refs/`, and a disc keeps no empty folders), and the stash's reflog. Hooks, other
-reflogs and credentials in remote URLs are left out, and the `ingestion` event says so. With
-`--git-since DATE` the history is shallow: git's own `shallow` file lists the boundary commits,
-every ref's commit is kept, and hashes are unchanged. Copied as it is when git was not at hand
-(the event says that too).
+reflogs and credentials in remote URLs are left out, and the `ingestion` event says so. The full
+history is kept, with hashes unchanged. Copied as it is when git was not at hand (the event says
+that too).
 
 ```
 # arv git 1	repository (relative to data/)	kind (root, head, shallow, commit)	value
@@ -701,14 +671,14 @@ manifest: its state is its commits.
 1. Find `catalog.rec`; read its `Archive` record. Stop if `Format` is not `smart-archive`.
 2. Look up the disc by `Uuid` in your database. Create it if new, or update it
    (this disc may be a copy, or re-read later).
-3. Import the `Disc` record fields (title, description, notes, location...) and events.
+3. Import the `Disc` record fields (title, description, notes...) and events; derive current places from the copies' replication and later location events.
 4. Import the listing: path, size, modification time. Join the SHA-256 from the
    manifest if you store checksums. **No scan or hashing of `data/` needed.**
 5. Import folder tags and captions; optionally PRONOM formats.
 6. Optionally read `catalog/archive.rec` plus the other discs' listings, and
    create entries for discs that are **not** inserted (marked offline), so a
-   single disc restores a whole archive's catalogue. Merge `Location`,
-   `Selection` (union their items), `Collection` and `Revision` records too.
+   single disc restores a whole archive's catalogue. Merge `Location`, `Collection`
+   and `Revision` records too.
 7. Optionally verify: `Payload-Oxum` in `bag-info.txt` for a quick completeness
    check; the manifests for a full one.
 
@@ -722,9 +692,9 @@ in `catalog/archive.rec` and the listings of the newest disc. Useful trees:
 |---|---|---|
 | By disc | each disc's listing | `TRIP-01_2019_4/day1 Fushimi Inari/IMG_0100.png` |
 | By kind | `Disc.Path` (vocabulary paths), then by disc | `MEMORIES/PHOTO/TRIP/TRIP-01_2019_4/...` |
-| By place | `Disc.Location` + `Location` tree | `Home/Study/HOME-PUB-2020/TRIP-01_2019_4/...` |
+| By place | copy-event `Location` + `Location` tree | `Home/Study/HOME-PUB-2020/TRIP-01_2019_4/...` |
 | By date | `Disc.Coverage` (EDTF), or each file's modified time from the listing | `2019/07/TRIP-01_2019_4/...` |
-| By selection | `Selection` tree and `Item`s | `Travel/Best of Kyoto/day2 Kinkaku-ji/...` |
+
 | By collection | `Collection`, its newest edition's discs | `Family photos/FAMILY-05_2001-2025_X/...` |
 | By tag | Tags TSV (`namespace:value`) | `place/kyoto/TRIP-01_2019_4/...` |
 
@@ -733,7 +703,7 @@ What each entry can show:
 - **Folders:** implied by the file paths. Empty folders are not listed.
 - **Discs:** where their copies are (location path), so opening a file can say "insert TRIP-01_2019_4, kept in Home / Study / Public, made 2020".
 
-A disc in several categories, places or selections appears in each tree under
+A disc in several categories or places appears in each tree under
 each of them. That is the point of a DAG vocabulary.
 
 ## Mapping to Katalog
@@ -747,7 +717,7 @@ Based on Katalog's source (collection files `device.csv`, `storage.csv`,
 | `Disc.Title` (or `Id`) | `device.csv` `Name` |
 | `Disc.Set`, `Category`, `Path` | nested `Virtual` devices following the vocabulary paths |
 | `Disc.Id` (volume label) | `storage.csv` `Label` |
-| `Disc.Location` + `Location` records | `storage.csv` `Location` (the readable path, e.g. `Home / Study / Box 3`) |
+| copy-event `Location` + `Location` records | `storage.csv` `Location` (the readable path, e.g. `Home / Study / Box 3`) |
 | `Disc.Access` = `sealed` | import the identity only (or skip the disc) |
 | `Binding.Filesystem`, `Media` | `storage.csv` `FileSystem`, `Type` / `Comment` |
 | `Disc.Description`, `Note` | `storage.csv` `Comment` (or a new notes table) |
@@ -755,7 +725,7 @@ Based on Katalog's source (collection files `device.csv`, `storage.csv`,
 | Manifest SHA-256 | Katalog's checksum column (catalogue with checksums enabled) |
 | Tags TSV row | `tags.csv`: one tag per (tag, folder path) with type folder; `namespace:value` kept as the tag name |
 | `catalog/archive.rec` other discs | additional devices marked as not connected |
-| `Selection` records | virtual folders, if Katalog adds them (no direct equivalent today; folder tags named after the selection come closest) |
+
 
 Up to version 0.2 the Disc record also held `Media`, `Filesystem` and `Ecc`; they are now in
 the disc's `Binding`. Readers look in the Binding first, then in the Disc record.
@@ -819,7 +789,8 @@ and set/part numbering beyond a virtual-device parent.
 - `Version: 0.5` is a draft; field names may still change before `1.0`. 0.2 grouped
   per-volume files by volume; 0.3 moved the medium's fields into `Binding`; 0.4 added
   `Authorship` to events, `Appraisal` records and listing version 2 (links, executables);
-  0.5 renamed the virtual folders `Selection` and added `Collection` and `Revision`.
+  0.5 added `Collection` and `Revision`; `Selection` was a draft record removed by issue #42 before
+  1.0 (no discs have been burned).
 - Minor versions only add optional fields or files. A major version bump means
   a reader must not assume the old layout.
 - Listing and tags files carry their own header version (`arv listing 2`; readers also

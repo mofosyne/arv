@@ -1,10 +1,6 @@
 /*
- * arv make: disc images from a folder, without prompts (src/arv/cli.py cmd_make and
- * src/arv/make.py Maker, UDF 2.50; --split spreads a folder over as many discs as needed). The disc it writes is the same as the Python arv's: BagIt
- * tag files, the catalogue snapshot, catalog.rec, README.txt, index.html and tools/, the image
- * written by udfwrite (linked in), and RS03 error correction (src/rs03, linked in: dvdisaster's format).
- *
- * Not ported (use the Python arv): drafts and the local AI helpers, Siegfried format identification, --ro-crate, --tools-history.
+ * arv make: disc images from a folder (or a disc plan), with BagIt manifests, a catalogue snapshot,
+ * README.txt, index.html and tools/. The image is written by udfwrite and protected with RS03.
  */
 #define _XOPEN_SOURCE 700
 #include "arv.h"
@@ -40,12 +36,12 @@ static void say(const char *fmt, const char *arg)
 
 typedef struct {
     const char *source, *home, *output, *output_dir, *id, *set, *coverage, *title, *label, *description;
-    const char *creator, *location, *access, *rights, *links, *medium, *media, *snapshot, *tools;
-    const char *basis, *review, *formats, *sf_home, *extra_tools, *draft, *message, *git_since, *plan;
+    const char *creator, *access, *rights, *links, *medium, *snapshot, *tools;
+    const char *basis, *review, *draft, *message, *plan;
     strlist categories, subjects, notes, importance;
     long medium_sectors;
     double min_redundancy;
-    int no_rules, no_ecc, no_verify, no_defect_management, keep_stage, ignore_names, label_given, redundancy_given, split, tools_history, ro_crate, yes;
+    int no_rules, no_ecc, no_formats, no_defect_management, keep_stage, label_given, redundancy_given, split, yes;
     int keep, access_given;
 } options;
 
@@ -65,22 +61,19 @@ const char MAKE_HELP[] =
     "  --title, --description, --creator, --rights TEXT\n"
     "  --subject, --note TEXT (repeatable)\n"
     "  --label TEXT           volume label text after the id (default: the title)\n"
-    "  --location PLACE       where the disc will be kept: a location code or text\n"
+
     "  --access LEVEL         private (default), public or sealed\n"
     "  --links POLICY         default, record or copy (docs/spec/smart-archive-format.md, Links)\n"
     "  --importance 'LEVEL for AUDIENCE' (repeatable), --basis TEXT, --review DATE|5y\n"
     "                         appraise the disc (the archivist log)\n"
     "  --medium bd25|bd50|bd100|bd128|auto, --medium-sectors N, --no-defect-management\n"
     "  --min-redundancy PERCENT  RS03 minimum (default: 20)\n"
-    "  --media TEXT           media description (default: M-DISC <medium>)\n"
-    "  --snapshot full|set|disc  the catalogue the disc carries (default: full)\n"
+    "  --snapshot full|set    the catalogue the disc carries (default: full)\n"
     "  --tools DIR            arv's source for tools/ (default: found next to this program)\n"
-    "  --tools-history        also arv's whole git history in tools/ (a git bundle)\n"
-    "  --ro-crate             RO-Crate 1.2 metadata in data/ (ro-crate-metadata.json and a preview)\n"
+    "  --no-formats           skip PRONOM identification (otherwise auto when sf is on PATH)\n"
     "  --draft FILE           title, description, subjects, notes and folder tags from a draft (the JSON\n"
     "                         arv describe --save and arv tag --save write); options given win\n"
-    "  --extra-tools DIR      a folder copied to tools/extra/ (dvdisaster binaries, say)\n"
-    "  --git-since DATE       git repositories keep only the history since DATE (shallow; default: all)\n"
+
     "  --split                spread the folder over as many discs as needed\n"
     "  --plan FILE            the discs of a disc plan instead of FOLDER: each holds the files and folders\n"
     "                         the plan puts on it, read from where they are (arv plan)\n"
@@ -88,10 +81,8 @@ const char MAKE_HELP[] =
     "categories and access, its code starts the disc ids, and each make is its next edition:\n"
     "  --keep                 keep this edition: never offered for retiring when a newer one is safe\n"
     "  --message TEXT         what this edition is, for the collection's history\n"
-    "  --formats auto|yes|no  PRONOM format ids with Siegfried (auto: when sf is on PATH)\n"
-    "  --sf-home DIR          Siegfried signature folder (sf -home)\n"
-    "  --no-ecc, --no-verify  skip RS03, or skip testing the image afterwards\n"
-    "  --ignore-names, --keep-stage\n"
+    "  --no-ecc               skip RS03\n"
+    "  --keep-stage           keep the staging directory\n"
     "Not here: the local AI helpers (arv describe, arv tag) make drafts; this takes them (--draft).\n";
 
 static int parse_options(int argc, char **argv, options *o)
@@ -101,7 +92,6 @@ static int parse_options(int argc, char **argv, options *o)
     o->links = "default";
     o->medium = "bd25";
     o->snapshot = "full";
-    o->formats = "auto";
     o->min_redundancy = 20;
     for (int i = 0; i < argc; i++) {
         const char *a = argv[i];
@@ -114,13 +104,10 @@ static int parse_options(int argc, char **argv, options *o)
         }
         if (!strcmp(a, "--no-rules")) { o->no_rules = 1; continue; }
         if (!strcmp(a, "--no-ecc")) { o->no_ecc = 1; continue; }
-        if (!strcmp(a, "--no-verify")) { o->no_verify = 1; continue; }
+        if (!strcmp(a, "--no-formats")) { o->no_formats = 1; continue; }
         if (!strcmp(a, "--no-defect-management")) { o->no_defect_management = 1; continue; }
         if (!strcmp(a, "--keep-stage")) { o->keep_stage = 1; continue; }
-        if (!strcmp(a, "--ignore-names")) { o->ignore_names = 1; continue; }
         if (!strcmp(a, "--split")) { o->split = 1; continue; }
-        if (!strcmp(a, "--tools-history")) { o->tools_history = 1; continue; }
-        if (!strcmp(a, "--ro-crate")) { o->ro_crate = 1; continue; }
         if (!strcmp(a, "--keep")) { o->keep = 1; continue; }
         if (!strcmp(a, "-y") || !strcmp(a, "--yes")) { o->yes = 1; continue; }
         if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
@@ -142,21 +129,15 @@ static int parse_options(int argc, char **argv, options *o)
         else if (!strcmp(a, "--label")) { str = &o->label; o->label_given = 1; }
         else if (!strcmp(a, "--description")) str = &o->description;
         else if (!strcmp(a, "--creator")) str = &o->creator;
-        else if (!strcmp(a, "--location")) str = &o->location;
         else if (!strcmp(a, "--access")) { str = &o->access; o->access_given = 1; }
         else if (!strcmp(a, "--message")) str = &o->message;
-        else if (!strcmp(a, "--git-since")) str = &o->git_since;
         else if (!strcmp(a, "--rights")) str = &o->rights;
         else if (!strcmp(a, "--links")) str = &o->links;
         else if (!strcmp(a, "--medium")) str = &o->medium;
-        else if (!strcmp(a, "--media")) str = &o->media;
         else if (!strcmp(a, "--snapshot")) str = &o->snapshot;
         else if (!strcmp(a, "--tools")) str = &o->tools;
         else if (!strcmp(a, "--basis")) str = &o->basis;
         else if (!strcmp(a, "--review")) str = &o->review;
-        else if (!strcmp(a, "--formats")) str = &o->formats;
-        else if (!strcmp(a, "--sf-home")) str = &o->sf_home;
-        else if (!strcmp(a, "--extra-tools")) str = &o->extra_tools;
         else if (!strcmp(a, "--draft")) str = &o->draft;
         else if (!strcmp(a, "--plan")) str = &o->plan;
         else if (!strcmp(a, "--category")) list = &o->categories;
@@ -174,11 +155,10 @@ static int parse_options(int argc, char **argv, options *o)
     }
     if (!o->source == !o->plan) return 2;            /* a folder, or a plan */
     const char *ok[][5] = { { "private", "public", "sealed", NULL }, { "default", "record", "copy", NULL },
-                            { "full", "set", "disc", NULL }, { "bd25", "bd50", "bd100", "bd128", "auto" },
-                            { "auto", "yes", "no", NULL } };
-    const char *val[] = { o->access, o->links, o->snapshot, o->medium, o->formats };
-    const char *what[] = { "--access", "--links", "--snapshot", "--medium", "--formats" };
-    for (int k = 0; k < 5; k++) {
+                            { "full", "set", NULL }, { "bd25", "bd50", "bd100", "bd128", "auto" } };
+    const char *val[] = { o->access, o->links, o->snapshot, o->medium };
+    const char *what[] = { "--access", "--links", "--snapshot", "--medium" };
+    for (int k = 0; k < 4; k++) {
         int good = 0;
         for (int j = 0; j < 5 && ok[k][j]; j++) good |= !strcmp(val[k], ok[k][j]);
         if (!good) {
@@ -270,8 +250,7 @@ static char *ask(const char *prompt, const char *dflt)
     return out;
 }
 
-/* the non-blank parts of "a, b ,c" between commas; strip: without their spaces (Python keeps them for
- * categories, which pick_code trims) */
+/* The non-blank comma-separated parts; retain spaces for category labels when requested. */
 static void split_commas(const char *text, strlist *out, int strip)
 {
     if (!text) return;
@@ -297,7 +276,7 @@ static void split_commas(const char *text, strlist *out, int strip)
     free(copy);
 }
 
-/* ------------------------------------------------------------------ media (src/arv/media.py) */
+/* ------------------------------------------------------------------ media */
 
 static const struct {
     const char *name, *label;
@@ -334,7 +313,7 @@ long file_sectors(uint64_t size, const char *path)
 
 /* ------------------------------------------------------------------ text */
 
-/* textwrap.fill(text, width, indent): words, greedily, as Python does for these texts */
+/* Wrap on word boundaries, keeping the requested indentation. */
 static void fill(sbuf *out, const char *text, size_t width, const char *indent)
 {
     size_t col = 0;
@@ -528,9 +507,8 @@ static size_t tools_list(const char *source, char **text, char ***out)
     return n;
 }
 
-/* arv's last commit (and with history, a git bundle of every branch), arv.com and any
- * extra tools (cli.stage_tools) */
-static void stage_tools(const char *tools, const char *source, int is_git, const char *workdir, const options *o)
+/* arv's last commit and arv.com (cli.stage_tools) */
+static void stage_tools(const char *tools, const char *source, int is_git, const char *workdir)
 {
     char *tree = join(tools, "arv");
     if (mkdirs(tree)) die("cannot create %s", tree);
@@ -582,21 +560,6 @@ static void stage_tools(const char *tools, const char *source, int is_git, const
         free(paths);
         free(list);
     }
-    if (source && !is_git && o->tools_history)
-        fprintf(stderr, "Warning: --tools-history: arv's source here (%s) is not a git checkout, so there is no "
-                        "history to bundle; the disc gets the plain tree\n", source);
-    if (source && is_git && o->tools_history) {
-        char *bundle = join(tools, "arv.bundle"), *out = NULL;
-        char *a[] = { "git", "-C", (char *)source, "bundle", "create", bundle, "--all", NULL };
-        if (run(a, &out)) {
-            char *e = out + strlen(out);
-            while (e > out && (e[-1] == '\n' || e[-1] == ' ')) *--e = 0;
-            fprintf(stderr, "Warning: git bundle failed, disc gets the plain tree only:\n%s\n", out);
-            unlink(bundle);
-        }
-        free(out);
-        free(bundle);
-    }
     char *ape = find_ape(source);
     if (ape) {
         char *to = join(tools, "arv.com");
@@ -604,12 +567,6 @@ static void stage_tools(const char *tools, const char *source, int is_git, const
         chmod(to, 0755);
         free(to);
         free(ape);
-    }
-    if (o->extra_tools) {
-        char *extra = join(tools, "extra");
-        if (mkdirs(extra)) die("cannot create %s", extra);
-        copy_tree(o->extra_tools, extra, NULL);
-        free(extra);
     }
     free(tree);
 }
@@ -764,7 +721,7 @@ static void add_tree(udfw *w, image_ctx *c, const char *dir, const char *rel, co
 }
 
 /* the image: the stage at the top, the payload under data/. Returns its sectors. */
-static uint64_t build_image(const char *stage, const char *src, const entries *files, const entries *extras, int whole_folder,
+static uint64_t build_image(const char *stage, const char *src, const entries *files, int whole_folder,
                             const char *out, const char *extents, const char *label, const char *disc_id,
                             const char *volume_set, int64_t when)
 {
@@ -785,13 +742,12 @@ static uint64_t build_image(const char *stage, const char *src, const entries *f
         for (size_t i = 0; i < files->n; i++)       /* gone since it was hashed */
             if (!c.found[i]) strlist_add(&c.changed, files->v[i].path);
     }
-    for (int pass = whole_folder; pass < 2; pass++) {   /* a folder with links: exactly the listed files */
-        const entries *list = pass ? extras : files;    /* then the files added to data/ */
-        for (size_t i = 0; i < list->n; i++) {
-            char *path = join("data", list->v[i].path);
-            if (stat(list->v[i].source, &st)) die("cannot read %s", list->v[i].source);
-            if (udfw_add_file(w, path, list->v[i].size, (int64_t)st.st_mtime, (unsigned)st.st_mode, read_cb,
-                              (void *)(uintptr_t)add_source(&c, list->v[i].source, pass ? NULL : &list->v[i])))
+    if (!whole_folder) {         /* a folder with links: exactly the listed files */
+        for (size_t i = 0; i < files->n; i++) {
+            char *path = join("data", files->v[i].path);
+            if (stat(files->v[i].source, &st)) die("cannot read %s", files->v[i].source);
+            if (udfw_add_file(w, path, files->v[i].size, (int64_t)st.st_mtime, (unsigned)st.st_mode, read_cb,
+                              (void *)(uintptr_t)add_source(&c, files->v[i].source, &files->v[i])))
                 die("udfwrite: %s", udfw_error(w));
             free(path);
         }
@@ -892,7 +848,6 @@ static char *pick_code(const vocab *v, const char *text)
 
 typedef struct {
     entries files, noted;           /* this disc's share of the folder */
-    entries extras, payload;        /* files added to data/ (--ro-crate); files + extras */
     char disc_id[64], uuid[37];
     long sequence;
     int part, parts;
@@ -909,7 +864,7 @@ typedef struct {
     arv_home *h;
     archive *cat;
     const char *src, *title, *creator, *set_code, *medium_label;
-    char *location, *source, *software, *review, *workdir;
+    char *source, *software, *review, *workdir;
     entries *files, *noted;
     strlist *categories, *paths;
     char coverage[64], today[11];
@@ -931,7 +886,7 @@ typedef struct {
 
 static char *redundancy_text(const options *o)
 {
-    char red[40];          /* as Python prints it: the default is the int 20, a given value a float */
+    char red[40];          /* preserve an explicitly supplied whole-number percentage as decimal */
     snprintf(red, sizeof red, "%.15g", o->min_redundancy);
     if (o->redundancy_given && !strchr(red, '.') && !strchr(red, 'e')) strcat(red, ".0");
     return xstrdup(red);
@@ -1071,7 +1026,7 @@ static size_t initial_bins(maker *mk, size_t **counts)
         return 1;
     }
     char *probe = join(mk->workdir, "tools-probe");
-    stage_tools(probe, mk->source, mk->is_git, mk->workdir, mk->o);
+    stage_tools(probe, mk->source, mk->is_git, mk->workdir);
     long reserve = dir_sectors(probe) + snapshot_estimate(mk) + mk->budget / 200 + (1024 < mk->budget / 20 ? 1024 : mk->budget / 20);
     remove_tree(probe);
     free(probe);
@@ -1127,7 +1082,7 @@ static rec_record *disc_record(const maker *mk, const plan *p)
     if (o->description && *o->description) rec_add(d, "Description", o->description);
     for (size_t i = 0; i < o->subjects.n; i++) rec_add(d, "Subject", o->subjects.v[i]);
     for (size_t i = 0; i < o->notes.n; i++) rec_add(d, "Note", o->notes.v[i]);
-    if (mk->location) rec_add(d, "Location", mk->location);
+
     rec_add(d, "Access", o->access);
     if (o->rights) rec_add(d, "Rights", o->rights);
     char *nfiles = xprintf("%zu", p->files.n), *nbytes = xprintf("%llu", (unsigned long long)bytes);
@@ -1146,7 +1101,7 @@ static rec_record *binding_record(const maker *mk, const plan *p)
     rec_add(b, "Volume", p->disc_id);
     rec_add(b, "Container", "udf-2.50");
     rec_add(b, "Protection", o->no_ecc ? "none" : "rs03");
-    char *media = o->media ? xstrdup(o->media) : xprintf("M-DISC %s", mk->capacity ? mk->medium_label : "BD-R");
+    char *media = xprintf("M-DISC %s", mk->capacity ? mk->medium_label : "BD-R");
     rec_add(b, "Media", media);
     rec_add(b, "Filesystem", "UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)");
     char *ecc, *red = redundancy_text(o);
@@ -1337,43 +1292,11 @@ static void batch_files(maker *mk)
     if (mkdirs(batch)) die("cannot create %s", batch);
     for (size_t i = 0; i < mk->nplans; i++) {
         plan *p = &mk->plans[i];
-        free(p->extras.v);
-        free(p->payload.v);
-        memset(&p->extras, 0, sizeof p->extras);
-        if (mk->o->ro_crate) {                         /* the crate files, added to data/ */
-            char *dir = xprintf("%s/%s-rocrate", batch, p->disc_id);
-            if (mkdirs(dir)) die("cannot create %s", dir);
-            char *text[2] = { rocrate_metadata(p->disc, &p->files, mk->have_formats ? &mk->fmt : NULL),
-                              rocrate_preview(p->disc, &p->files) };
-            const char *names[2] = { "ro-crate-metadata.json", "ro-crate-preview.html" };
-            p->extras.v = xmalloc(3 * sizeof *p->extras.v);
-            for (int k = 0; k < 2; k++) {
-                char *path = join(dir, names[k]);
-                write_text(path, text[k]);
-                struct stat st;
-                if (stat(path, &st)) die("cannot read %s", path);
-                entry *e = &p->extras.v[p->extras.n++];
-                memset(e, 0, sizeof *e);
-                e->path = xstrdup(names[k]);
-                e->kind = "file";
-                e->link = "";
-                e->source = path;
-                e->size = (uint64_t)st.st_size;
-                e->mtime = st.st_mtime;
-                hash_both(path, e->sha256, e->sha512);
-                free(text[k]);
-            }
-            free(dir);
-        }
-        p->payload.v = xmalloc((p->files.n + p->extras.n + 1) * sizeof *p->payload.v);
-        memcpy(p->payload.v, p->files.v, p->files.n * sizeof *p->files.v);
-        if (p->extras.n) memcpy(p->payload.v + p->files.n, p->extras.v, p->extras.n * sizeof *p->extras.v);
-        p->payload.n = p->files.n + p->extras.n;
         p->b_manifest = xprintf("%s/%s.sha256", batch, p->disc_id);
         p->b_listing = xprintf("%s/%s.tsv", batch, p->disc_id);
-        write_manifest(p->b_manifest, &p->payload, 0);
-        entries sorted;                                /* the listing is by path: extras slot in */
-        sub_entries(&sorted, p->payload.v, p->payload.n);
+        write_manifest(p->b_manifest, &p->files, 0);
+        entries sorted;
+        sub_entries(&sorted, p->files.v, p->files.n);
         if (sorted.n) qsort(sorted.v, sorted.n, sizeof *sorted.v, by_entry_path);
         write_listing(p->b_listing, &sorted, &p->noted);
         free(sorted.v);
@@ -1408,25 +1331,25 @@ static void stage_plan(maker *mk, size_t idx)
     if (!mkdtemp(tmpl)) die("cannot create %s", tmpl);
     p->stage = tmpl;
     uint64_t bytes = 0;
-    for (size_t i = 0; i < p->payload.n; i++) bytes += p->payload.v[i].size;
+    for (size_t i = 0; i < p->files.n; i++) bytes += p->files.v[i].size;
 
     /* BagIt */
     strlist info = { 0 };
     char *ext_desc = o->description && *o->description ? xprintf("%s - %s", mk->title, o->description) : xstrdup(mk->title);
     char *group = group_id(mk), *count = xprintf("%d of %d", p->part, p->parts);
-    char *oxum = xprintf("%llu.%zu", (unsigned long long)bytes, p->payload.n), *agent = xprintf("%s <%s>", mk->software, URL);
+    char *oxum = xprintf("%llu.%zu", (unsigned long long)bytes, p->files.n), *agent = xprintf("%s <%s>", mk->software, URL);
     const char *pairs[] = { "Bagging-Date", mk->today, "External-Identifier", p->disc_id, "External-Description", ext_desc,
                             "Bag-Group-Identifier", group ? group : mk->id_prefix };
     for (int i = 0; i < 8; i++) strlist_add(&info, pairs[i]);
     if (p->parts > 1) { strlist_add(&info, "Bag-Count"); strlist_add(&info, count); }
     strlist_add(&info, "Payload-Oxum"); strlist_add(&info, oxum);
     strlist_add(&info, "Bag-Software-Agent"); strlist_add(&info, agent);
-    write_bag_tags(p->stage, &p->payload, &info);
+    write_bag_tags(p->stage, &p->files, &info);
     strlist_free(&info);
     free(ext_desc); free(group); free(count); free(oxum); free(agent);
 
     /* the catalogue snapshot: earlier discs as this disc may carry them, and this batch */
-    size_t b0 = !strcmp(o->snapshot, "disc") ? idx : 0, b1 = !strcmp(o->snapshot, "disc") ? idx + 1 : mk->nplans;
+    size_t b0 = 0, b1 = mk->nplans;
     strlist prior = { 0 };
     for (size_t i = 0; i < cat->discs.n; i++)
         if (prior_disc(mk, cat->discs.v[i])) strlist_add(&prior, rec_get(cat->discs.v[i], "Id"));
@@ -1439,9 +1362,7 @@ static void stage_plan(maker *mk, size_t idx)
     for (size_t b = b0; b < b1; b++) for (size_t i = 0; i < mk->plans[b].objects.n; i++) recs_add(&snap.objects, object_disc_view(mk->plans[b].objects.v[i]));
     if (!strcmp(o->snapshot, "full")) for (size_t i = 0; i < cat->locations.n; i++) recs_add(&snap.locations, cat->locations.v[i]);
     else archive_locations_for(cat, &snap.discs, &snap.locations);
-    strlist snap_ids = { 0 };
-    for (size_t i = 0; i < snap.discs.n; i++) strlist_add(&snap_ids, rec_get(snap.discs.v[i], "Id"));
-    archive_selections_for(cat, &snap_ids, &snap.selections);
+
     for (size_t i = 0; i < cat->collections.n; i++) {    /* collections and their histories: all of them in a
                                                            full snapshot, else this disc's own */
         rec_record *c = cat->collections.v[i];
@@ -1453,7 +1374,7 @@ static void stage_plan(maker *mk, size_t idx)
                 recs_add(&snap.revisions, cat->revisions.v[k]);
     }
     if (mk->revision) recs_add(&snap.revisions, mk->revision);
-    if (!strcmp(o->snapshot, "full")) {          /* the history of the places, selections and objects it carries */
+    if (!strcmp(o->snapshot, "full")) {          /* the history of the places and objects it carries */
         strlist carried = { 0 };
         for (size_t i = 0; i < snap.objects.n; i++) {
             char *k = xprintf("object:%s", rec_get(snap.objects.v[i], "Uuid"));
@@ -1465,11 +1386,7 @@ static void stage_plan(maker *mk, size_t idx)
             strlist_add(&carried, k);
             free(k);
         }
-        for (size_t i = 0; i < snap.selections.n; i++) {
-            char *k = xprintf("selection:%s", rec_get(snap.selections.v[i], "Code"));
-            strlist_add(&carried, k);
-            free(k);
-        }
+
         for (size_t i = 0; i < cat->events.n; i++)
             if (rec_get(cat->events.v[i], "Object") && strlist_has(&carried, rec_get(cat->events.v[i], "Object")))
                 recs_add(&snap.events, cat->events.v[i]);
@@ -1557,7 +1474,7 @@ static void stage_plan(maker *mk, size_t idx)
 
     /* tools/, README.txt, index.html */
     char *tools = join(p->stage, "tools");
-    stage_tools(tools, mk->source, mk->is_git, mk->workdir, o);
+    stage_tools(tools, mk->source, mk->is_git, mk->workdir);
     free(tools);
     {
         long image_sectors = !o->no_ecc && mk->capacity ? mk->capacity / GF_FIELDMAX * GF_FIELDMAX : 0;
@@ -1576,12 +1493,9 @@ static void stage_plan(maker *mk, size_t idx)
         fill(&size_check, size_text, 76, "     ");
         sb_puts(&size_check, "\n");
         for (size_t i = utf8_chars(mk->title); i > 0; i--) sb_puts(&underline, "=");
-        int disc_only = !strcmp(o->snapshot, "disc");
-        char *other = disc_only ? xstrdup(" its notes") : xprintf(" lists the discs made before it (%s catalogue)", o->snapshot);
-        const char *cat_lines = disc_only
-            ? "  catalog/volumes/<id>/   this disc's file list (listing.tsv) and checksums\n"
-            : "  catalog/archive.rec     all discs in the archive as of the burn date\n"
-              "  catalog/volumes/<id>/   per disc: manifest.sha256, listing.tsv, formats.csv\n";
+        char *other = xprintf(" lists the discs made before it (%s catalogue)", o->snapshot);
+        const char *cat_lines = "  catalog/archive.rec     all discs in the archive as of the burn date\n"
+                                "  catalog/volumes/<id>/   per disc: manifest.sha256, listing.tsv, formats.csv\n";
         char *part = p->parts > 1 ? xprintf("  (part %d of %d)", p->part, p->parts) : xstrdup("");
         char *nfiles = xprintf("%zu file%s", p->files.n, p->files.n == 1 ? "" : "s"), *nbytes = xstrdup(rec_get(p->disc, "Bytes"));
         char *ape = find_ape(mk->source);
@@ -1593,8 +1507,7 @@ static void stage_plan(maker *mk, size_t idx)
                                 "ape_line", "dvdisaster_n", "n_note", NULL };
         const char *values[] = { plain.s, size_check.s, mk->title, underline.s ? underline.s : "", p->disc_id, mk->set_code,
                                  part, mk->today, nfiles, nbytes, mk->software, other, cat_lines, "arv",
-                                 o->tools_history ? "  tools/arv.bundle     the same with full history: git clone <bundle>\n" : "",
-                                 ape ? APE_USE : "", ape ? APE_LINE : "", dv_n, n_note };
+                                 "", ape ? APE_USE : "", ape ? APE_LINE : "", dv_n, n_note };
         char *text = format(DATA_README, names, values), *path = join(p->stage, "README.txt");
         free(ape); free(dv_n); free(n_note);
         write_text(path, text);
@@ -1602,7 +1515,7 @@ static void stage_plan(maker *mk, size_t idx)
         free(plain.s); free(size_check.s); free(underline.s); free(plain_text); free(size_text);
     }
     {
-        char *html = render_index(p->disc, p->binding, &p->payload, &snap, archive_where), *path = join(p->stage, "index.html");
+        char *html = render_index(p->disc, p->binding, &p->files, &snap, archive_where), *path = join(p->stage, "index.html");
         write_text(path, html);
         free(path);
         free(html);
@@ -1647,7 +1560,6 @@ static void stage_plan(maker *mk, size_t idx)
     }
     write_tagmanifests(p->stage);
     strlist_free(&prior);
-    strlist_free(&snap_ids);
     free(cat_dir);
     free(vol_dir);
 }
@@ -1665,7 +1577,7 @@ static void measure(maker *mk, plan *p)
     volume_set[k] = 0;
     char stamp[32];            /* the recording time: the record's Date at midnight UTC */
     snprintf(stamp, sizeof stamp, "%sT00:00:00Z", mk->today);
-    p->sectors = build_image(p->stage, mk->src, &p->files, &p->extras, whole, p->built, p->extents, p->label, p->disc_id, volume_set,
+    p->sectors = build_image(p->stage, mk->src, &p->files, whole, p->built, p->extents, p->label, p->disc_id, volume_set,
                              (int64_t)parse_utc(stamp));
 }
 
@@ -1678,12 +1590,6 @@ static void free_plans(maker *mk)
         if (p->extents) unlink(p->extents);
         free(p->files.v);
         free(p->noted.v);
-        for (size_t k = 0; k < p->extras.n; k++) {
-            free(p->extras.v[k].path);
-            free(p->extras.v[k].source);
-        }
-        free(p->extras.v);
-        free(p->payload.v);
     }
     free(mk->plans);
     mk->plans = NULL;
@@ -1776,24 +1682,13 @@ static int make_discs(maker *mk)
     mk->workdir = xprintf("%s/.archive-make-XXXXXX", out_dir);
     if (!mkdtemp(mk->workdir)) die("cannot create a work folder in %s", out_dir);
     if (!o->keep_stage) work_to_remove = mk->workdir;
-    git_prepare(mk->src, mk->workdir, o->git_since, mk->files, &mk->git);   /* .git: compacted copies */
+    git_prepare(mk->src, mk->workdir, mk->files, &mk->git);   /* .git: compacted copies */
     for (size_t k = 0; k < mk->git.n; k++) mk->left_out += mk->git.v[k].tsv != NULL;
-    if (o->ro_crate) {
-        sbuf clash = { 0 };
-        for (size_t i = 0; i < mk->files->n; i++)
-            if (!strcmp(mk->files->v[i].path, "ro-crate-metadata.json") || !strcmp(mk->files->v[i].path, "ro-crate-preview.html"))
-                sb_printf(&clash, "%s%s", clash.s ? ", " : "", mk->files->v[i].path);
-        if (clash.s) {
-            remove_tree(mk->workdir);
-            die("--ro-crate would overwrite %s in the source folder", clash.s);
-        }
-    }
-    if (!strcmp(o->formats, "yes") || (!strcmp(o->formats, "auto") && on_path("sf"))) {
-        if (!on_path("sf")) die("%s", "--formats yes needs Siegfried (sf) on PATH");
+    if (!o->no_formats && on_path("sf")) {
         fputs("Identifying file formats with Siegfried ...\n", stderr);
         char *error = NULL;
         if (!mk->dplan) {
-            if (!formats_identify(mk->src, o->sf_home, mk->workdir, &mk->fmt, &error)) mk->have_formats = 1;
+            if (!formats_identify(mk->src, NULL, mk->workdir, &mk->fmt, &error)) mk->have_formats = 1;
         } else {                                        /* a plan: each item where it is, at its place under data/ */
             mk->have_formats = 1;
             for (size_t k = 0; k < mk->dplan->n && mk->have_formats; k++) {
@@ -1801,7 +1696,7 @@ static int make_discs(maker *mk)
                 struct stat st;
                 int file = !stat(it->source, &st) && S_ISREG(st.st_mode), top = !strcmp(it->path, ".");
                 formats one;
-                if (formats_identify(it->source, o->sf_home, mk->workdir, &one, &error)) {
+                if (formats_identify(it->source, NULL, mk->workdir, &one, &error)) {
                     mk->have_formats = 0;
                     break;
                 }
@@ -1817,8 +1712,7 @@ static int make_discs(maker *mk)
             }
             if (!mk->have_formats) formats_free(&mk->fmt);
         }
-        if (!mk->have_formats && !strcmp(o->formats, "yes")) die("Siegfried failed: %s", error);
-        else if (!mk->have_formats) fprintf(stderr, "Warning: skipping format identification, Siegfried failed: %s\n", error);
+        if (!mk->have_formats) fprintf(stderr, "Warning: skipping format identification, Siegfried failed: %s\n", error);
         free(error);
     }
     if (getenv("ARV_TEST_AFTER_HASH") && *getenv("ARV_TEST_AFTER_HASH")   /* tests only: change a file mid-make */
@@ -1884,17 +1778,15 @@ static int make_discs(maker *mk)
         rec_set(creation, "Note", n2);
         free(n2);
         free(note);
-        if (!o->no_verify) {         /* every sector read back: data against its CRC, parity against the data */
-            fprintf(stderr, "Testing the image ...\n");
-            rs03_report r;
-            int ok = !rs03_verify(p->out, &r, err, sizeof err) && r.header_ok && !r.bad_data && !r.bad_crc && !r.bad_ecc
-                     && r.lay.total_sectors == lay.total_sectors;
-            recs_add(&p->events, new_event(p->disc_id, "fixity check", ok ? "success" : "failure", mk->software, "automatic",
-                                           "image test after creation"));
-            if (!ok) {
-                fprintf(stderr, "Error: the image test failed for %s\n", p->disc_id);
-                failed = 1;
-            }
+        fprintf(stderr, "Testing the image ...\n");
+        rs03_report r;
+        int ok = !rs03_verify(p->out, &r, err, sizeof err) && r.header_ok && !r.bad_data && !r.bad_crc && !r.bad_ecc
+                 && r.lay.total_sectors == lay.total_sectors;
+        recs_add(&p->events, new_event(p->disc_id, "fixity check", ok ? "success" : "failure", mk->software, "automatic",
+                                       "image test after creation"));
+        if (!ok) {
+            fprintf(stderr, "Error: the image test failed for %s\n", p->disc_id);
+            failed = 1;
         }
     }
     for (size_t i = 0; i < mk->nplans; i++) {          /* the finished image, as it is to be burned: a disc read back */
@@ -2060,9 +1952,9 @@ int cmd_make(int argc, char **argv)
                 }
             exit(1);
         }
-        if (issues.n && !o.ignore_names) {
+        if (issues.n) {
             fprintf(stderr, "Note: %zu file name(s) will look different on Windows/macOS (the manifests and Linux "
-                            "keep them exactly; --ignore-names hides this):\n", issues.n);
+                            "keep them exactly):\n", issues.n);
             for (size_t i = 0; i < issues.n && i < 10; i++)
                 fprintf(stderr, "  warning: %s: %s\n", issues.v[i].path, issues.v[i].problem);
         }
@@ -2191,7 +2083,6 @@ int cmd_make(int argc, char **argv)
             if (!o.title || !*o.title) o.title = ask("Title", default_title);
             if (!o.description || !*o.description) o.description = ask("Description (optional)", NULL);
             if (!o.creator || !*o.creator) o.creator = ask("Creator", getenv("USER"));
-            if (!o.location || !*o.location) o.location = ask("Physical location (optional; see 'arv location list')", NULL);
             if (!o.subjects.n) {
                 char *answer = ask("Subjects, comma separated (optional)", NULL);
                 split_commas(answer, &o.subjects, 1);
@@ -2218,10 +2109,6 @@ int cmd_make(int argc, char **argv)
         mk.draft = o.draft ? &dr : NULL;
         mk.title = o.title ? o.title : default_title;
         mk.creator = o.creator ? o.creator : getenv("USER");
-        if (o.location && *o.location) {
-            place_check(&cat, o.location);
-            mk.location = place(&cat, o.location);
-        }
         mk.set_code = set_code;
         mk.collection = coll;
         mk.left_out = left_out;

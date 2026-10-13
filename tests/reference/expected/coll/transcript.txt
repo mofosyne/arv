@@ -10,7 +10,7 @@ rc=1
 $ --home hc collection init coll --code F --title Code too short
 Error: collection code F: 2-8 capital letters or digits (it starts each disc id)
 rc=1
-$ --home hc make -y --no-ecc --formats no --keep-stage --output-dir out-c1 coll/fam
+$ --home hc make -y --no-ecc --no-formats --keep-stage --output-dir out-c1 coll/fam
 Collection FAM (Family photos): its next edition
 Scanning and hashing ROOT/coll/fam ...
 Classified as: PROJECTS/CODE
@@ -20,7 +20,7 @@ FAM: edition 1, revision 1436106577dc, +2 ~0 -0 >0 files
 Kept staging directory ROOT/out-c1/.archive-make-XXXXXX
 FAM-01_2019_0	ROOT/out-c1/FAM-01_2019_0.noecc.iso	Family photos
 rc=0
-$ --home hc make -y --no-ecc --formats no --message the 2019 sort --keep-stage --output-dir out-c2 coll/fam
+$ --home hc make -y --no-ecc --no-formats --message the 2019 sort --keep-stage --output-dir out-c2 coll/fam
 Collection FAM (Family photos): its next edition
 Scanning and hashing ROOT/coll/fam ...
 Classified as: PROJECTS/CODE
@@ -30,7 +30,7 @@ FAM: edition 2, revision 95a366ff6ab0, +1 ~1 -1 >0 files
 Kept staging directory ROOT/out-c2/.archive-make-XXXXXX
 FAM-02_2019_Y	ROOT/out-c2/FAM-02_2019_Y.noecc.iso	Family photos
 rc=0
-$ --home hc make -y --no-ecc --formats no --keep --set CODE --output-dir out-c3 src
+$ --home hc make -y --no-ecc --no-formats --keep --set CODE --output-dir out-c3 src
 Error: --keep and --message are for a collection's workflow folder (arv collection init)
 rc=1
 $ --home hc status coll/fam
@@ -190,7 +190,7 @@ Burned, never read back (arv check --device DRIVE --copy X ID):
   FAM-01_2019_0  copy A
 Replaced by a safe edition, ready to retire (arv retire CODE):
   FAM: edition 1 (replaced by edition 2)
-Kept in fewer than two places (arv locate ID PLACE --add):
+Kept in fewer than two places (arv burned/stored ... --location PLACE, or arv locate ID COPY PLACE):
   FAM-01_2019_0  one place
   FAM-02_2019_Y  one place
 rc=0

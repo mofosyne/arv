@@ -1,6 +1,6 @@
 /*
- * arv-assist: arv's optional local-AI helpers (arv describe, arv tag, arv models), in C99 and
- * POSIX. It links arv's own modules (src/arv) for the catalogue, drafts and tags. Nothing here is
+ * arv-assist: arv's optional local-AI helpers (arv describe and arv tag), in C99 and POSIX. It
+ * links arv's own modules (src/arv) for the catalogue, drafts and tags. Nothing here is
  * needed to make, read, check or repair a disc; everything runs against local models only, unless
  * a remote server is explicitly allowed.
  */
@@ -112,15 +112,11 @@ int assist_describe(int argc, char **argv);
 int assist_suggest(int argc, char **argv);              /* for arv-gui: one round, JSON in and out */
 int assist_llm_status(int argc, char **argv);
 int assist_tag(int argc, char **argv);
-int assist_models(int argc, char **argv);
 
 /* shared by describe and tag */
 char *ask(const char *prompt);                          /* a line from the terminal; "" at the end */
 void write_tags_file(const char *path, const ftags *f); /* catalog.write_tags */
 void read_tags_file(const char *path, ftags *out);      /* catalog.read_tag_info */
 void save_json(const char *path, const jv *doc);
-char *find_runtime(const arv_home *h, const char *given);       /* llama-embedding */
-char *model_file(const arv_home *h, const char *name);          /* NULL: no such model */
-const char *model_query_prefix(const char *name);
 
 #endif

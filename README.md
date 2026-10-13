@@ -32,7 +32,7 @@ what it does:
 - **Archive: what goes on discs.** A folder you sort and grow becomes a *collection* with its
   own history, like git's but for any files: each state is a revision, and each set of discs made
   from it is an edition. Or compose discs by hand from files and folders anywhere, as Nero's
-  compilation window did (`arv plan`). Each disc holds a selection and a copy of the catalogue,
+  compilation window did (`arv plan`). Each disc holds part of a collection and a copy of the catalogue,
   so any one of them can tell you about the whole archive.
 - **Record: what exists, and where.** Which files are on which discs and which are on none; each
   thing you archived as a *data object*, in versions, recognised by its content; every copy, its
@@ -76,7 +76,6 @@ How a disc is built, in one picture: [docs/architecture.md](docs/architecture.md
 │                            (archive.rec, volumes/<disc-id>/: manifest, listing, formats, tags)
 ├── index.html               offline viewer (no JavaScript)
 ├── README.txt               plain-text recovery instructions
-│   data/ro-crate-metadata.json  optional RO-Crate description (--ro-crate)
 ├── tools/                   this tool (its source and specs, as disc-tools.txt lists) and arv.com: the
 │                            reader ready to run on Linux, macOS, Windows and BSD (x86-64, ARM64)
 └── data/                    the payload
@@ -99,7 +98,7 @@ Each layer does its own job:
 | `src/udfwrite/` | arv's UDF 2.50 writer (library, built into arv, and a program): [docs/spec/archival-udf.md](docs/spec/archival-udf.md) |
 | `src/rs03/` | dvdisaster's RS03 error correction: add, test, repair (library, built into arv, and a program): [docs/spec/rs03-format.md](docs/spec/rs03-format.md) |
 | `src/bagit/` | BagIt (RFC 8493) checking and the digests (library, built into arv, and a `bagit` program for any bag) |
-| `src/arv-assist/` | **arv-assist**, optional, in C: the local AI helpers (`arv describe`, `arv tag`, `arv models`), against local models only |
+| `src/arv-assist/` | **arv-assist**, optional, in C: the AI helpers (`arv describe`, `arv tag`) for OpenAI-compatible local services |
 | `src/arv-gui/` | **arv-gui**, optional, in Python (standard library only): `arv gui`, the interface in your web browser; it runs arv for every action |
 | `arv` | runs `src/arv/build/arv` in a checkout (and `tools/arv/arv` on a disc), building it with `make` first if needed |
 | `docs/` | For users: concepts, workflow, burning, shelving, architecture, philosophy, and the website |
@@ -109,7 +108,6 @@ Each layer does its own job:
 | `tests/` | Unit and integration tests, and language-neutral fixtures |
 | `dev-tools/` | Not part of arv: build and test helpers, the spec cross-check, the diagram generators: [dev-tools/README.md](dev-tools/README.md) |
 | `upstream/` | Not part of arv: work offered to other projects (NetBSD makefs fixes, the RS03 code for dvdisaster Light; drafts, not sent), and bagit-python as a referee: [upstream/README.md](upstream/README.md) |
-| `scripts/` | The original shell scripts, before ARV (see [Without arv](#without-arv-the-original-scripts)) |
 | `justfile`, `Makefile` | `just` lists everyday commands (test, install, samples, site preview); `make` alone builds and installs |
 
 `samples/` has the catalogue of six small sample discs made with the full workflow (a
@@ -182,7 +180,7 @@ which builds with one `cc` line.
 `udfwrite` and `bagit` in `PREFIX/bin`, and the completion where bash and zsh look for it.
 
 **`arv` does everything itself** ([src/arv/README.md](src/arv/README.md)) except four optional
-commands: `arv describe`, `arv tag` and `arv models` run arv-assist
+commands: `arv describe` and `arv tag` run arv-assist
 ([src/arv-assist/README.md](src/arv-assist/README.md)), whose drafts `arv make --draft` takes, and
 `arv gui` runs arv-gui ([src/arv-gui/README.md](src/arv-gui/README.md)). In a checkout, `./arv`
 works the same way (it runs `make` first when nothing is built).
@@ -211,7 +209,7 @@ The whole cycle, as the C arv runs it:
 
 ```sh
 arv init ~/archive                                          # a .arv home
-arv make -y --set trip --location BOX1 ~/archive/2019-kyoto # disc image, recorded in the home
+arv make -y --set trip ~/archive/2019-kyoto                # disc image, recorded in the home
 arv burned --device /dev/sr0 --location HOME               # after burning: read back, recorded as copy A
 arv todo                                                    # what is owed: burns, read-backs, places, checks
 arv find kyoto                                              # which disc, and where it is
@@ -248,7 +246,7 @@ the catalogue; every disc also carries a copy of it.
 
 ```sh
 cd /nas && arv init --name family --default   # /nas/.arv: this archive's home catalogue
-cd ~/git && arv init --pointer /nas/.arv      # ~/git/.arv: a one-line file, "Home: /nas/.arv"
+printf 'Home: /nas/.arv\n' > ~/git/.arv     # another tree of the same archive: a pointer file
 arv where                                     # which home is used here, and why
 ```
 
@@ -285,7 +283,7 @@ command's name, its group lists it: the commands come in four groups, as `arv --
 and each group's name on its own lists that group with a line each:
 
 ```sh
-arv archive    # make, plan, collection, status, checkpoint, link, names, describe, tag, models
+arv archive    # make, plan, collection, status, checkpoint, link, names, describe, tag
 arv record     # burned, stored, objects, find, list, id, info, ls, note, locate, ... retire
 arv verify     # todo, check, verify, drives, inventory, audit, restore, rebuild
 arv home       # init, where, gui, help
@@ -298,16 +296,17 @@ arv, as one markdown document. `make install` installs the same text as a man pa
 
 The group's name may also come first: `arv record burned ...` is `arv burned ...`, and a command
 named under the wrong group says which one it is in. (`arv verify DISC`, every file on a disc
-against its checksum, is `arv verify files DISC` in full; `arv verify` alone lists the group.)
+against its checksum; `arv verify` alone lists the group.)
 
 ```sh
 # Archive: what goes on discs (the places first, so discs can name them)
 arv location add HOME Home
 arv location add BOX3 "Box 3, blue lid" --in HOME
-arv make ./2025-01-13_Projects_2020_-_2025 --location BOX3
+arv make ./2025-01-13_Projects_2020_-_2025
 #  -> prompts for set (PROJ, from the folder name), categories (CODE, ELEC: from the files), title, ...
+# Record each physical copy's place when you run arv burned or arv stored.
 #  -> PROJ-01_2020-2025_K.iso  (bag + catalogue + index.html + tools/ + RS03 ECC, verified)
-arv make ./Diaries --access sealed      # other discs' catalogues show only its id and location
+arv make ./Diaries --access sealed      # other discs' catalogues show only its id
 arv names ./Photos                      # names the image cannot hold, or Windows would show changed
 # volume label: the disc id, then the title as far as it fits (126 characters, 63 beyond U+00FF);
 # --label TEXT to choose the text, --label '' for the id alone
@@ -315,7 +314,7 @@ arv make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: 
 arv make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
 arv plan new trip --set TRIP && arv plan add trip ~/Videos/film.mkv /nas/photos/2025 --disc new
 arv plan show trip && arv plan make trip   # discs composed by hand from anywhere (docs/workflow.md)
-arv plan add trip /media/sdcard/DCIM --copy  # copied into the plan: the card need not be there at make
+arv plan add trip /media/sdcard/DCIM       # the plan points at the source; make reads it where it is
 arv make ./my-git-clone --links record   # links: file links copied, the rest noted in the listing
 #   (default: links leaving the folder are refused; copy: copy what every link points to)
 arv make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03
@@ -332,19 +331,18 @@ arv list --covers 2019-07-15    # discs whose date range includes that day (or 2
 arv sets -v                     # the vocabulary tree with disc counts, aliases and match rules
 arv list --in MEMORIES          # discs anywhere under a vocabulary entry
 arv id PHOTOS-07_2015-2024_Q   # explain / check an id (catches typos)
-arv note 2020-2025_PROJECTS_01 "Only copy of the 2019 PCB gerbers"
-arv locate 2020-2025_PROJECTS_01 BOX3 OFFSITE   # one location per place a copy is kept
+arv note PROJECTS-01_2020-2025_1 "Only copy of the 2019 PCB gerbers"
+arv locate PROJECTS-01_2020-2025_1 B OFFSITE     # update the place of known copy B
 arv burned --device /dev/sr0 --location OFFSITE  # after burning the ISO yourself: read back, recorded
                                                 # (copy B: write the letter on the hub and case)
 arv location move BOX3 --in OFFSITE             # moving a box moves its discs
 arv location list -v                            # places as a tree, with the discs in each
-arv selection add KYOTO-BEST --name "Best of Kyoto" TRIP-01_2019_4:"day2 Kinkaku-ji/"
-arv selection show KYOTO-BEST                   # virtual folders across discs, with where each disc is
+
 arv list --at HOME                              # discs anywhere inside a place
 arv list --access private --made 2026          # what belongs in this year's private box
-arv access 2020-2025_PROJECTS_01 public          # public / private (default) / sealed
+arv access PROJECTS-01_2020-2025_1 public          # public / private (default) / sealed
 arv tags                                         # every folder tag in use, by namespace
-arv keywords PROJ-01_2020-2025_K --format exiftool > kw.args  # tags as XMP keywords
+arv keywords PROJ-01_2020-2025_K > kw.args  # tags as XMP keywords in exiftool format
 
 # Verify: still good, and can be got back
 arv todo                                           # what is owed: copies, read-backs, cold copies, places, checks
@@ -352,7 +350,7 @@ arv list --unchecked-since 5y                  # discs due a check (last checked
 arv list --one-place                           # discs kept in only one place
 arv check --device /dev/sr0                        # read a disc back against its image hash, logged
                                                    # (--copy B names the copy; the BCA serial, if read, finds it)
-arv check --image 2020-2025_PROJECTS_01.iso
+arv check --image PROJECTS-01_2020-2025_1.iso
 arv rebuild /media/disc                            # recreate/merge the home catalogue from a disc
 arv audit /media/disc                              # the home's events as written, and as the disc has them
 arv rebuild /mnt/laptop/.arv                       # merge another catalogue of this archive, by event id
@@ -400,8 +398,8 @@ in its snapshot.
   dvdisaster Light does, to the same bytes. Every dvdisaster build can repair these images too.
   (dvdisaster exits with status 1 after a *successful* `-f` repair; check with `-t`.)
 - With [Siegfried](https://www.itforarchivists.com/siegfried) (`sf`) installed, each file's
-  PRONOM format is recorded in `catalog/volumes/<disc-id>/formats.csv`. `--ro-crate` adds
-  `data/ro-crate-metadata.json` (RO-Crate 1.2, passes the validator's required checks).
+  PRONOM format is recorded in `catalog/volumes/<disc-id>/formats.csv`; arv skips this when
+  Siegfried is not installed, or with `--no-formats`.
 - The source folder is never modified: tag files are staged separately and the
   folder is grafted into the image as `data/`.
 - Every image is the same kind: UDF 2.50 with a metadata partition and a real mirror, the
@@ -413,7 +411,8 @@ in its snapshot.
 - Disc ids look like `PHOTOS-07_2015-2024_Q`: set, number, coverage and a check character
   that catches typos. They are derived from the record's `Set`, `Sequence` and `Coverage`
   (EDTF: `2019`, `2015/2024`, `199X`, `1995~`) and used as the volume label. `arv id <ID>`
-  explains and checks one; `arv list --covers 2019-07-15` finds discs by date. Older ids stay valid.
+  explains and checks one; `arv list --covers 2019-07-15` finds discs by date. Only the current
+  `set-seq-coverage/1` identifier scheme is read.
 - Discs are classified with a word vocabulary in `<home>/config/sets.rec` (PHOTO, TRIP, SCAN, TAXES,
   PROJ, CODE, ...), a hierarchy where an entry can have several parents (SCAN is under PHOTO
   and RECORDS). One `--set` gives the id prefix; `--category` (repeatable) adds more codes,
@@ -422,54 +421,29 @@ in its snapshot.
   Entries have `Alias` words (`--set holidays` means TRIP), a `ScopeNote`, and `Match`
   globs (`*.kicad_pcb` -> ELEC) that suggest the set and categories from the files
   themselves without any model (`--no-rules` to skip).
-- Where discs are kept is a tree of `Location` records (site, room, shelf, box), and a
-  disc lists one location per place its copies are kept. `--access` controls what
+- Where discs are kept is a tree of `Location` records (site, room, shelf, box); each copy has its
+  own place, and disc summaries derive their places from their copies. `--access` controls what
   *other* discs' catalogues show of a disc: `public` (also on discs given to other
   people with `--snapshot set`), `private` (default: your own discs only), `sealed`
   (only its id, set, dates and location; no title, notes or file list).
 - A home (`.arv`) holds `config/` (vocabularies), `catalog/` (laid out like `catalog/` on
   every disc), `drafts/`, and `cache/` (rebuildable; marked with `CACHEDIR.TAG`). A home in the
   older flat layout is moved into this one on first use.
-- Each disc carries a snapshot of the committed `HEAD` of this repo (not its history;
-  `--tools-history` adds a git bundle), so commit before burning (uncommitted changes
-  are flagged in the `Software` field).
+- Each disc carries a snapshot of arv's source from `disc-tools.txt`; build output and the source
+  repository's history are not included.
 - Tests: `make check`: bagit and RS03 (each with its referee when installed), arv against the
   reference outputs, a real disc and Siegfried when installed (`make -C src/arv check`),
   arv-assist against a fake model server, then arv-gui's tests (python3).
 
-## Optional: built-in tagging (`arv tag`)
+## Optional: folder-tag suggestions (`arv tag`)
 
-Consistent folder tags from your own tag vocabulary, using a 37 MB embedding
-model (bge-small-en-v1.5, MIT) run by llama.cpp's `llama-embedding` program as a
-subprocess: no server, no API, no packages.
+`arv tag` uses the vocabulary in `<home>/config/tags.rec`; aliases and `Match` rules work without
+an embedding service. For suggestions, point `--embed-url` at an OpenAI-compatible `/v1/embeddings`
+server. arv does not download or build a model or runtime. See `arv tag --help` and
+[src/arv-assist/README.md](src/arv-assist/README.md).
 
-```sh
-./arv models fetch            # pinned download, SHA-256 checked, into <home>/cache/models/
-./arv models status           # model + runtime found?
-./arv tag ./2025-01-13_Personal --save draft.json   # suggest, review, save
-./arv make ./2025-01-13_Personal --draft draft.json
-./arv tag 2018-2022_PERSONAL_01                     # re-tag a disc already in the catalogue
-```
-
-- The vocabulary is `<home>/config/tags.rec` (created from `src/arv/data/default_tags.rec`); edit
-  the descriptions freely. Describe *content*, not the medium ("cats, dogs", not "photos of").
-- Tags may have `Alias` words (typing `holiday` in review stores `travel`) and `Match` globs
-  that tag folders without the model: `arv tag FOLDER --rules-only` needs no download.
-- Namespaced tags keep facets apart: `person:alice`, `place:kyoto`, `event:wedding-2019`,
-  `source:pixel-7`. `arv tags` lists all in use (and flags words that are aliases or not
-  in the vocabulary); `arv keywords DISC` exports set paths and tags as hierarchical
-  keywords (`MEMORIES|PHOTO|TRIP`, `place|kyoto`) for Lightroom and digiKam, or as an
-  exiftool argument file that writes them into a restored copy.
-- Tags you accept are remembered, and similar folders later get the same tags, even
-  tags that are not in the vocabulary. No training involved.
-- Runtime: `llama-embedding` from PATH (llama.cpp is packaged by Homebrew and many
-  distributions), `--llama-embedding PATH`, or `arv models build-runtime`.
-- Fallback engine: `--embed-url` for any OpenAI-compatible `/v1/embeddings` server.
-  Remembered examples are kept per model, because vectors from different models
-  cannot be compared.
-- Measured on sample folders: code, scans, video, celebrations and captioned images
-  tagged correctly; folders with only camera file names get weak guesses, which you
-  clear in review. Pair with `--vision` captions for opaque folders.
+`arv tags` lists tags in use; `arv keywords DISC` writes hierarchical keywords in exiftool format.
+A reviewed tag draft can be applied to `arv make` as `--draft FILE`.
 
 ## Optional: local LLM help with descriptions and tags
 
@@ -482,11 +456,11 @@ This is arv-assist (`src/arv-assist`, optional, in C): everything works without 
 ```sh
 ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM Studio, vLLM
 ./arv describe ./2025-01-13_Personal --show-inventory   # exactly what the model will see
-./arv describe 2018-2022_PERSONAL_01                    # improve a disc that already exists
+./arv describe PERSONAL-01_2018-2022_Y                  # improve a disc that already exists
 ./arv describe sensor-tool                              # or a data object (arv objects lists them)
 ./arv describe ./folder --save draft.json               # suggestions + questions; edit by hand, then:
 ./arv make ./folder --draft draft.json                  # its questions wait in arv todo, for:
-./arv describe 2018-2022_PERSONAL_01 --answer           # no model needed: answers become notes
+./arv describe PERSONAL-01_2018-2022_Y --answer         # no model needed: answers become notes
 ./arv gui                                               # "Suggest" buttons in Make disc and disc details
 ```
 
@@ -564,32 +538,8 @@ JSON for a disc not yet made.
 
 What stays out of the catalogue on purpose: tags on single files (a photo's keywords belong in the
 file, where photo tools read them: `arv keywords --format exiftool` writes the folder tags there),
-and links between items (selections group them). research/plan.md, 2026-10-10, says why.
+and links between items (folders already group files; no reader uses typed links yet). research/plan.md, 2026-10-10, says why.
 
-## Without arv: the original scripts
-
-```sh
-# dependencies (Debian/Ubuntu)
-sudo apt install genisoimage dvdisaster udftools p7zip-full recutils
-pip install bagit
-
-# 1. turn the folder into a bag (in place: payload moves into data/)
-bagit.py --sha256 --sha512 \
-    --bag-group-identifier "PROJECTS-2025" --bag-count "1 of 3" \
-    ./2025-01-13_Projects_2020_-_2025
-
-# 2. build the image and add RS03 error correction
-scripts/create-archive-iso.sh ./2025-01-13_Projects_2020_-_2025
-
-# later: verify / repair a disc or image
-dvdisaster -i image.iso -t     # test
-dvdisaster -i image.iso -f     # repair (0.79.10 exits 1 even on success; re-run -t)
-```
-
-For BD-sized images, use a multithreaded build: [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (RS03 only, faster encoders,
-`--rescue` reading of damaged discs) or the [speed47 fork](https://github.com/speed47/dvdisaster). They produce byte-identical
-images (tested, research/research-notes.md section 8). The distro 0.79.10 build is
-single-threaded.
 
 ## Roadmap
 
@@ -598,13 +548,13 @@ single-threaded.
 - [x] `catalog.rec` per disc (Dublin Core-named `Disc` fields, PREMIS-typed `Event` records) and the home `archive.rec`
 - [x] ~~`archive.sqlite` search index (`arv index`)~~ retired: `find` in C scans the plain-text
       lists as fast as Python searched the index (2 million paths in 0.3 s)
-- [x] PRONOM format IDs via Siegfried (`catalog/volumes/<id>/formats.csv`) and optional RO-Crate (`--ro-crate`)
+- [x] PRONOM format IDs via Siegfried (`catalog/volumes/<id>/formats.csv`)
 - [x] Cumulative catalogue snapshot (`catalog/`) on every disc; access levels decide what it shows
 - [x] `Location` records, short disc ids with a check character, collections across discs
 - [x] Multi-disc splitting for sets larger than one disc (`Bag-Count: n of N`)
 - [x] `README.txt` and the tool's source on each disc
 - [x] Target medium size, minimum redundancy, defect-management sizes for RS03
-- [x] UDF 2.50 through NetBSD `makefs -t udf` (now in `upstream/netbsd-makefs`), then arv's own writer (`src/udfwrite`, now the only one)
+- [x] UDF 2.50 through arv's own writer (`src/udfwrite`)
 - [x] GUI front end over the CLI (`arv gui`, local web UI, standard library only)
 - [x] `.arv` homes, change events, `Binding` records (format 0.3)
 - [x] ~~dvdisaster sources (and static binaries) on each disc for self-contained repair~~ superseded: arv repairs RS03 itself

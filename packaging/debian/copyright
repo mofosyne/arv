@@ -6,6 +6,7 @@ Files: *
 Copyright: 2026 mofosyne and the arv contributors
 License: GPL-3
 
+
 Files: upstream/netbsd-makefs/netbsd/*
 Copyright: The NetBSD Foundation, Inc. and contributors
 License: BSD-2-Clause

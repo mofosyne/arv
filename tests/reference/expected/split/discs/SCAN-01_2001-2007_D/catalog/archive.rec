@@ -35,7 +35,6 @@ Date: 2026-01-01
 %type: Bytes int
 %type: Access enum public private sealed
 %type: Retired date
-%type: Location rec Location
 
 Id: SCAN-01_2001-2007_D
 Uuid: UUID
@@ -101,8 +100,8 @@ Ecc: none
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
-+ Disc names the disc; a change to a location, a selection or a data object names it in Object
-+ (location:CODE, selection:CODE, object:UUID) instead.
++ Disc names the disc; a change to a location or a data object names it in Object
++ (location:CODE, object:UUID) instead.
 + Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion

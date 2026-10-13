@@ -29,12 +29,10 @@ Description: Three days in Kyoto: shrines, temples and the bamboo grove.
 Subject: travel
 Subject: Japan
 Note: Sample disc made by samples/make-samples.sh; the photos are generated.
-Location: BOX1
 Access: public
 Files: 16
 Bytes: 9443
 Software: arv@e8c6358ab75d
-Location: OFFSITE
 
 Id: PROJ-01_2020-2023_L
 Uuid: 69a1c37f-cbea-4c95-bf44-4888fe3e810c
@@ -52,7 +50,6 @@ Coverage: 2020/2023
 Date: 2026-10-04
 Creator: Sample_Person
 Description: ESP32 weather station: firmware, KiCad board, gerbers and the git repository.
-Location: BOX1
 Access: private
 Files: 56
 Bytes: 32142
@@ -71,7 +68,6 @@ Coverage: 2019/2020
 Date: 2026-10-04
 Creator: Sample_Person
 Description: Tax return and quarterly receipts for 2019.
-Location: SAFE
 Access: sealed
 Files: 5
 Bytes: 3196
@@ -93,7 +89,6 @@ Date: 2026-10-04
 Part: 1 of 3
 Creator: Sample_Person
 Description: Scans of letters kept since 1995.
-Location: BOX1
 Access: private
 Files: 25
 Bytes: 2504433
@@ -115,7 +110,6 @@ Date: 2026-10-04
 Part: 2 of 3
 Creator: Sample_Person
 Description: Scans of letters kept since 1995.
-Location: BOX1
 Access: private
 Files: 26
 Bytes: 2604875
@@ -137,7 +131,6 @@ Date: 2026-10-04
 Part: 3 of 3
 Creator: Sample_Person
 Description: Scans of letters kept since 1995.
-Location: BOX1
 Access: private
 Files: 5
 Bytes: 500846
@@ -155,7 +148,6 @@ Coverage: 2020/2021
 Date: 2026-10-04
 Creator: Sample_Person
 Description: Birthdays, the garden, the beach and Christmas.
-Location: OFFSITE
 Access: private
 Files: 16
 Bytes: 8828
@@ -229,9 +221,9 @@ Ecc: dvdisaster RS03 augmented image, custom medium (4800 sectors), minimum 20% 
 MediumSectors: 4800
 
 %rec: Location
-%doc: Places where discs are kept: site, room, shelf, box. Parent makes a tree,
-+ so moving a box moves every disc in it. A Disc's Location field (one per
-+ place its copies are kept) names a Code here, or is free text.
+%doc: Places where copies are kept: site, room, shelf, box. Parent makes a tree,
++ so moving a box moves every copy in it. A copy event's Location field names a Code here,
++ or is free text.
 %key: Code
 %mandatory: Code Name
 
@@ -514,6 +506,7 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy
 Copy: A
+Location: BOX1
 
 Disc: PROJ-01_2020-2023_L
 Type: replication
@@ -523,6 +516,7 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy
 Copy: A
+Location: BOX1
 
 Disc: TAXES-01_2019-2020_I
 Type: replication
@@ -532,6 +526,7 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy
 Copy: A
+Location: SAFE
 
 Disc: SCAN-01_1995-2008_D
 Type: replication
@@ -541,6 +536,7 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy
 Copy: A
+Location: BOX1
 
 Disc: SCAN-02_1995-2008_B
 Type: replication
@@ -550,6 +546,7 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy
 Copy: A
+Location: BOX1
 
 Disc: SCAN-03_1995-2008_9
 Type: replication
@@ -559,6 +556,7 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy
 Copy: A
+Location: BOX1
 
 Disc: FAMILY-01_2020-2021_K
 Type: replication
@@ -568,6 +566,7 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy
 Copy: A
+Location: OFFSITE
 
 Disc: TRIP-01_2019_4
 Type: replication
@@ -577,6 +576,7 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy, kept at Parents' house; second copy for the parents
 Copy: B
+Location: OFFSITE
 
 Disc: PROJ-01_2020-2023_L
 Type: metadata modification

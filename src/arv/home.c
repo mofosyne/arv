@@ -1,4 +1,4 @@
-/* Finding the home catalogue, in the order src/arv/homes.py uses (see its docstring):
+/* Finding the home catalogue in this order:
  * --home (-C), $ARV_HOME, a .arv folder / .arv pointer file / disc root from the folder being
  * archived or the current folder up, then the machine config; none found: no home (home_try), or a stop (home_find). */
 #define _XOPEN_SOURCE 700
@@ -392,40 +392,29 @@ static char *named_home(const char *name, char **how)
 
 const char *home_archive_name;      /* --archive NAME, before the command */
 
-/* arv init [FOLDER] [--pointer HOME] [--name NAME [--default]]: a .arv home in FOLDER (default:
- * the current folder), or a .arv pointer file to an existing home */
+/* arv init [FOLDER] [--name NAME [--default]]: a .arv home in FOLDER (default: the current folder) */
 int cmd_init(int argc, char **argv)
 {
-    const char *given = NULL, *pointer = NULL, *name = NULL;
+    const char *given = NULL, *name = NULL;
     int is_default = 0;
     for (int i = 0; i < argc; i++) {
-        if (i + 1 < argc && !strcmp(argv[i], "--pointer")) pointer = argv[++i];
-        else if (i + 1 < argc && !strcmp(argv[i], "--name")) name = argv[++i];
+        if (i + 1 < argc && !strcmp(argv[i], "--name")) name = argv[++i];
         else if (!strcmp(argv[i], "--default")) is_default = 1;
         else if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) i++;
         else if (!given && argv[i][0] != '-') given = argv[i];
         else return 2;
     }
-    char *folder = realpath(given ? given : ".", NULL);       /* os.path.abspath: no "./" left */
-    if (!folder) die("%s is not a folder", given ? given : ".");
+    const char *requested = given ? given : ".";
+    if (mkdirs(requested)) die("cannot create %s", requested);
+    char *folder = realpath(requested, NULL);       /* os.path.abspath: no "./" left */
+    if (!folder) die("%s is not a folder", requested);
     char *target = join(folder, ".arv"), *git = join(folder, ".git");
     struct stat st;
     if (!lstat(target, &st)) die("%s already exists", target);
     if (is_dir(git))
         fprintf(stderr, "Note: %s is a git repository; a .arv in the folder above it can cover several "
                         "repositories and stays out of git\n", folder);
-    if (pointer) {
-        char *abs = absolute(pointer), *home = abs_path(abs);
-        if (!is_dir(home)) die("%s is not a folder", home);
-        char *text = xprintf("# This tree belongs to the archive whose catalogue is here (see `arv where`):\n"
-                             "Home: %s\n", home);
-        write_text(target, text);
-        printf("Wrote %s -> %s\n", target, home);
-        free(text);
-        free(abs);
-        free(home);
-        return 0;
-    }
+
     arv_home h;
     memset(&h, 0, sizeof h);
     h.path = target;

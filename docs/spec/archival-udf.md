@@ -2,17 +2,17 @@
 
 **Draft.** The subset of UDF 2.50 that arv's own disc writer produces (issue #18), and how
 RS03 error correction sits after it. The writer is [`src/udfwrite/`](../../src/udfwrite/),
-the only one arv makes discs with. NetBSD makefs (now `upstream/netbsd-makefs/`) wrote arv's first UDF discs; where
+the only one arv makes discs with. NetBSD makefs (`upstream/netbsd-makefs/`) wrote arv's first UDF discs; where
 it differs from this profile, the difference is noted, since those discs stay readable.
 
 The goal is a disc that is **written once, whole and closed**, readable by any UDF 2.50 reader
 (Windows, macOS, Linux, 7-Zip), and laid out so that damage is survivable and the image is
 **reproducible**: the same folder and record always give the same bytes.
 
-Standards: ECMA-167 (3rd edition) and OSTA UDF 2.50, both published free of charge (ECMA-167 by
-Ecma International, ecma-international.org; UDF 2.50 by OSTA, osta.org); discs carry this profile, not
-the standards themselves (issue #32). This profile only narrows them; anything
-not mentioned follows UDF 2.50 as a read-only volume.
+Standards: [ECMA-167, 3rd edition](https://ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf)
+and [OSTA UDF 2.50](http://www.osta.org/specs/pdf/udf250.pdf). Discs carry this profile, not the
+standards themselves (issue #32). This profile only narrows them; anything not mentioned follows
+UDF 2.50 as a read-only volume.
 
 ## Why a profile and a writer of our own
 
@@ -28,7 +28,7 @@ bytes, so this profile makes a real mirror **mandatory**. Ours writes it, and th
 
 So the profile narrows UDF to what an archive needs, and the writer spends what it saves on
 robustness and checkability: a real mirror, contiguous files in a fixed order, and reproducible
-images. The same idea is to be offered back upstream: a real mirror for makefs's read-only
+images. The same idea is being offered back upstream: a real mirror for makefs's read-only
 images, written and tested as a patch, not yet sent (issue #7;
 `upstream/netbsd-makefs/MIRROR.md`).
 
@@ -91,6 +91,8 @@ as the metadata (duplicate flag clear); this profile does not. The mirror must b
 in separate sectors**, byte for byte the same as the metadata, with the *duplicate metadata* flag
 set, placed at the far end of the partition so that one scratch cannot take both. A volume
 without one does not conform to this profile, whatever else it gets right.
+
+
 *udfmake today does not conform: the flag is clear and the mirror file points at the same blocks.
 `upstream/netbsd-makefs/patches/04-metadata-mirror-readonly.patch` makes its read-only images
 conform; it is offered upstream, not applied to udfmake (issue #7).*

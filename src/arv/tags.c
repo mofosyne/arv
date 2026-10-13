@@ -137,14 +137,14 @@ typedef struct {
     char *path;
 } tag_vocab;
 
-static int load_tag_vocab(tag_vocab *tv, const arv_home *h, const char *given)
+static int load_tag_vocab(tag_vocab *tv, const arv_home *h)
 {
     memset(tv, 0, sizeof *tv);
-    tv->path = given ? xstrdup(given) : join(h->config_dir, "tags.rec");
-    if (!given && access(tv->path, F_OK) && !mkdirs(h->config_dir)) write_text(tv->path, DATA_DEFAULT_TAGS);
+    tv->path = join(h->config_dir, "tags.rec");
+    if (access(tv->path, F_OK) && !mkdirs(h->config_dir)) write_text(tv->path, DATA_DEFAULT_TAGS);
     rec_file f;
     int bad = 0;
-    if (rec_read(tv->path, &f, &bad) && rec_parse(given ? "" : DATA_DEFAULT_TAGS, &f, &bad)) return -1;
+    if (rec_read(tv->path, &f, &bad) && rec_parse(DATA_DEFAULT_TAGS, &f, &bad)) return -1;
     for (size_t i = 0; i < f.nrecords; i++) {
         const rec_record *r = &f.records[i];
         if (r->descriptor || !rec_get(r, "Name")) continue;
@@ -168,7 +168,7 @@ static int load_tag_vocab(tag_vocab *tv, const arv_home *h, const char *given)
 void tags_canonical(const arv_home *h, strlist *tags)
 {
     tag_vocab tv;
-    if (load_tag_vocab(&tv, h, NULL)) return;
+    if (load_tag_vocab(&tv, h)) return;
     strlist out = { 0 };
     for (size_t i = 0; i < tags->n; i++) {
         char *t = tag_normalise(tags->v[i]);
@@ -187,7 +187,7 @@ static int by_str(const void *a, const void *b)
     return strcmp(*(char *const *)a, *(char *const *)b);
 }
 
-/* printf("%-*s") counting characters, not bytes, as Python does */
+/* printf("%-*s") counts bytes; this width is in UTF-8 characters */
 static void print_padded(const char *s, size_t width)
 {
     size_t chars = 0;
@@ -206,21 +206,20 @@ static int by_tag(const void *a, const void *b)
     return strcmp((*(usage *const *)a)->tag, (*(usage *const *)b)->tag);
 }
 
-/* arv tags [--namespace NS] [--vocab FILE] */
+/* arv tags [--namespace NS] */
 int cmd_tags(int argc, char **argv)
 {
-    const char *given = NULL, *only = NULL, *vocab_file = NULL;
+    const char *given = NULL, *only = NULL;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--namespace")) only = argv[++i];
-        else if (i + 1 < argc && !strcmp(argv[i], "--vocab")) vocab_file = argv[++i];
         else return 2;
     }
     arv_home h;
     archive cat;
     open_home(given, &h, &cat);
     tag_vocab tv;
-    int have_vocab = !load_tag_vocab(&tv, &h, vocab_file);
+    int have_vocab = !load_tag_vocab(&tv, &h);
     usage *u = NULL;
     size_t nu = 0;
     for (size_t i = 0; i < cat.discs.n; i++) {
@@ -293,17 +292,16 @@ int cmd_tags(int argc, char **argv)
     return 0;
 }
 
-/* arv keywords [--format tsv|exiftool] DISC-ID */
+/* arv keywords DISC-ID */
 int cmd_keywords(int argc, char **argv)
 {
-    const char *given = NULL, *disc_id = NULL, *format = "tsv";
+    const char *given = NULL, *disc_id = NULL;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
-        else if (i + 1 < argc && !strcmp(argv[i], "--format")) format = argv[++i];
         else if (!disc_id && argv[i][0] != '-') disc_id = argv[i];
         else return 2;
     }
-    if (!disc_id || (strcmp(format, "tsv") && strcmp(format, "exiftool"))) return 2;
+    if (!disc_id) return 2;
     arv_home h;
     archive cat;
     open_home(given, &h, &cat);
@@ -348,30 +346,21 @@ int cmd_keywords(int argc, char **argv)
     }
     tag_file_free(&tf);
     free(path);
-    if (!strcmp(format, "tsv")) {
-        puts("# folder (relative to data/)\thierarchical keywords (| between levels)");
-        for (size_t i = 0; i < kw.n; i++) {
-            printf("%s\t", kw.v[i].folder);
-            for (size_t t = 0; t < kw.v[i].tags.n; t++) printf("%s%s", t ? ", " : "", kw.v[i].tags.v[t]);
-            putchar('\n');
+    printf("# exiftool argument file for disc %s: from the root of a restored copy, run\n", rec_get(d, "Id"));
+    puts("#   exiftool -@ this-file");
+    puts("# Each section adds the keywords to every file under one folder (-r). Removing each value");
+    puts("# before adding it keeps a second run from adding it twice.");
+    for (size_t i = 0; i < kw.n; i++) {
+        puts("-r");
+        puts("-overwrite_original");
+        for (size_t t = 0; t < kw.v[i].tags.n; t++) {
+            const char *w = kw.v[i].tags.v[t], *bar = strrchr(w, '|'), *leaf = bar ? bar + 1 : w;
+            printf("-XMP-lr:HierarchicalSubject-=%s\n-XMP-lr:HierarchicalSubject+=%s\n", w, w);
+            printf("-XMP-dc:Subject-=%s\n-XMP-dc:Subject+=%s\n", leaf, leaf);
         }
-    } else {
-        printf("# exiftool argument file for disc %s: from the root of a restored copy, run\n", rec_get(d, "Id"));
-        puts("#   exiftool -@ this-file");
-        puts("# Each section adds the keywords to every file under one folder (-r). Removing each value");
-        puts("# before adding it keeps a second run from adding it twice.");
-        for (size_t i = 0; i < kw.n; i++) {
-            puts("-r");
-            puts("-overwrite_original");
-            for (size_t t = 0; t < kw.v[i].tags.n; t++) {
-                const char *w = kw.v[i].tags.v[t], *bar = strrchr(w, '|'), *leaf = bar ? bar + 1 : w;
-                printf("-XMP-lr:HierarchicalSubject-=%s\n-XMP-lr:HierarchicalSubject+=%s\n", w, w);
-                printf("-XMP-dc:Subject-=%s\n-XMP-dc:Subject+=%s\n", leaf, leaf);
-            }
-            if (!strcmp(kw.v[i].folder, ".")) puts("data");
-            else printf("data/%s\n", kw.v[i].folder);
-            puts("-execute");
-        }
+        if (!strcmp(kw.v[i].folder, ".")) puts("data");
+        else printf("data/%s\n", kw.v[i].folder);
+        puts("-execute");
     }
     tag_file_free(&kw);
     return 0;

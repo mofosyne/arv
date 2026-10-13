@@ -1,5 +1,5 @@
 /*
- * File format identification with Siegfried (src/arv/formats.py): PRONOM ids for every file, in
+ * File format identification with Siegfried: PRONOM ids for every file, in
  * catalog/volumes/<disc-id>/formats.csv, so it stays clear which format (and version) each file is,
  * even when its extension is wrong. Optional: used when `sf` is on PATH.
  */
@@ -52,7 +52,7 @@ static int run_split(char *const argv[], const char *workdir, char **out, char *
     return WIFEXITED(status) && WEXITSTATUS(status) != 127 ? WEXITSTATUS(status) : -1;
 }
 
-/* one CSV record (RFC 4180, as Python's csv module reads it) from *s; NULL at the end */
+/* one RFC 4180 CSV record from *s; NULL at the end */
 static strlist *csv_record(const char **s, strlist *fields)
 {
     if (!**s) return NULL;

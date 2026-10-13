@@ -43,12 +43,10 @@ Description: Three days in Kyoto: shrines, temples and the bamboo grove.
 Subject: travel
 Subject: Japan
 Note: Sample disc made by samples/make-samples.sh; the photos are generated.
-Location: BOX1
 Access: public
 Files: 16
 Bytes: 9443
 Software: arv@f4b5548cabfe
-Location: OFFSITE
 
 Id: PROJ-01_2020-2023_L
 Uuid: 1b8be21e-bbf6-4da9-b034-7fc840053553
@@ -66,7 +64,6 @@ Coverage: 2020/2023
 Date: 2026-10-05
 Creator: Sample_Person
 Description: ESP32 weather station: firmware, KiCad board, gerbers and the git repository.
-Location: BOX1
 Access: private
 Files: 27
 Bytes: 9023
@@ -85,7 +82,6 @@ Coverage: 2019/2020
 Date: 2026-10-05
 Creator: Sample_Person
 Description: Tax return and quarterly receipts for 2019.
-Location: SAFE
 Access: sealed
 Files: 5
 Bytes: 3196
@@ -106,7 +102,6 @@ Coverage: 1995/2008
 Date: 2026-10-05
 Creator: Sample_Person
 Description: Scans of letters kept since 1995.
-Location: BOX1
 Access: private
 Files: 56
 Bytes: 2089113
@@ -144,12 +139,10 @@ Coverage: 2020/2021
 Date: 2026-10-05
 Creator: Sample_Person
 Description: Birthdays, the garden, the beach and Christmas.
-Location: OFFSITE
 Access: private
 Files: 16
 Bytes: 8828
 Software: arv@f4b5548cabfe
-Location: NAS
 
 %rec: Binding
 %doc: How one volume is stored on its medium: the container (filesystem) and the
@@ -223,9 +216,9 @@ ImageSectors: 8925
 ImageSha256: c5a8fcb15fc012e42a4961303ed8fe0ed8488a04374e7aa17bfb975fd7b129b9
 
 %rec: Location
-%doc: Places where discs are kept: site, room, shelf, box. Parent makes a tree,
-+ so moving a box moves every disc in it. A Disc's Location field (one per
-+ place its copies are kept) names a Code here, or is free text. Temperature says how
+%doc: Places where copies are kept: site, room, shelf, box. Parent makes a tree,
++ so moving a box moves every copy in it. A copy event's Location field names a Code here,
++ or is free text. Temperature says how
 + copies kept there are used: hot (in active use: working files, a synced folder), warm
 + (online or reachable, but left alone: an .iso or archive folder on a NAS) or cold
 + (offline: discs on a shelf, unplugged drives); a place without one takes its parent's.
@@ -591,6 +584,7 @@ Note: burned 1 copy; not read back
 Copy: A
 Form: disc
 Temperature: cold
+Location: BOX1
 
 Disc: PROJ-01_2020-2023_L
 Type: replication
@@ -602,6 +596,7 @@ Note: burned 1 copy; not read back
 Copy: A
 Form: disc
 Temperature: cold
+Location: BOX1
 
 Disc: TAXES-01_2019-2020_I
 Type: replication
@@ -613,6 +608,7 @@ Note: burned 1 copy; not read back
 Copy: A
 Form: disc
 Temperature: cold
+Location: SAFE
 
 Disc: SCAN-01_1995-2008_D
 Type: replication
@@ -624,6 +620,7 @@ Note: burned 1 copy; not read back
 Copy: A
 Form: disc
 Temperature: cold
+Location: BOX1
 
 Disc: FAMILY-01_2020_Q
 Type: replication
@@ -646,6 +643,7 @@ Note: burned 1 copy; not read back
 Copy: A
 Form: disc
 Temperature: cold
+Location: OFFSITE
 
 Disc: FAMILY-02_2020-2021_I
 Type: fixity check
@@ -666,6 +664,7 @@ Copy: B
 ReadBack: identical
 Form: iso
 Temperature: warm
+Location: NAS
 Path: /tmp/arv-samples/nas/FAMILY-02_2020-2021_I.iso
 
 Disc: FAMILY-01_2020_Q
@@ -686,6 +685,7 @@ Note: burned 1 copy, kept at Parents' house; second copy for the parents; not re
 Copy: B
 Form: disc
 Temperature: cold
+Location: OFFSITE
 
 Disc: PROJ-01_2020-2023_L
 Type: metadata modification

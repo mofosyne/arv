@@ -392,8 +392,6 @@ void set_time(const char *path, const char *modified)
 
 int cmd_restore(int argc, char **argv)
 {
-    int links = 1;
-    if (argc >= 1 && !strcmp(argv[0], "--no-links")) { links = 0; argc--; argv++; }
     if (argc != 2) return 2;
     ondisc d;
     manifest m;
@@ -466,7 +464,7 @@ int cmd_restore(int argc, char **argv)
             struct stat st;
             if (!lstat(dst, &st) && S_ISREG(st.st_mode))
                 chmod(dst, has_word(r->kind, "executable") ? 0755 : 0644);
-            if (is_link && has_word(r->kind, "copied") && links) {
+            if (is_link && has_word(r->kind, "copied")) {
                 /* a link to a file: a link again when its target came back with the same bytes */
                 char *target = resolve_link(r->path, r->link);
                 mentry *self = NULL, *other = NULL;
@@ -493,9 +491,7 @@ int cmd_restore(int argc, char **argv)
             }
             set_time(dst, r->modified);
         } else if (is_link) {                   /* noted only: recreate the link as it was */
-            if (!links) {
-                skipped++;
-            } else if (has_word(r->kind, "copied")) {
+            if (has_word(r->kind, "copied")) {
                 printf("KEPT     %s (a copy of the folder %s)\n", r->path, r->link);
                 kept++;
             } else if (make_parents(dest, r->path) || symlink(r->link, dst)) {

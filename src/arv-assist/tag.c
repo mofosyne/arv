@@ -4,12 +4,11 @@
  * - Every tag in <home>/config/tags.rec has a Description; Match globs tag a folder without any
  *   model; Alias words mean the same tag.
  * - Each folder gets a short summary (its path, sample file names, README text, image captions).
- *   A small embedding model turns tag descriptions and summaries into vectors; the tags whose
+ *   An embeddings server turns tag descriptions and summaries into vectors; the tags whose
  *   descriptions are closest to a folder's summary are suggested.
  * - Tags you accept are remembered (<home>/config/tag-examples.jsonl): a new folder that looks
  *   like one you tagged before gets those tags suggested too, so suggestions follow your habits.
- * The model is llama.cpp's llama-embedding with a pinned GGUF file (see models.c), or any
- * OpenAI-compatible /v1/embeddings server (--embed-url).
+ * Embeddings come from an OpenAI-compatible /v1/embeddings server (--embed-url).
  */
 #define _XOPEN_SOURCE 700
 #include "assist.h"
@@ -24,9 +23,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define EXAMPLE_MIN 0.75    /* tuned on bge-small: similar trip folders ~0.78-0.80, unrelated 0.4-0.71 */
+#define EXAMPLE_MIN 0.75
 #define EXAMPLE_SHIFT 0.2
-#define SEPARATOR "<#archive-sep#>"
 
 /* ------------------------------------------------------------------ the vocabulary */
 
@@ -300,8 +298,8 @@ static void summarise(const items *l, const char *text_root, const ftags *captio
 /* ------------------------------------------------------------------ embeddings */
 
 typedef struct {
-    char *binary, *model_path, *model_name, *prefix;
-    llm_client *server;             /* --embed-url: an /embeddings server instead */
+    char *model_name;
+    llm_client *server;
 } embedder;
 
 static double *parse_vectors(const jv *arr, size_t want, size_t *dim, char **err)
@@ -341,73 +339,27 @@ static double *embed(embedder *e, const strlist *texts, size_t *dim, char **err)
     for (size_t at = 0; at < texts->n; at += 64) {
         size_t n = texts->n - at < 64 ? texts->n - at : 64, d = 0;
         double *part = NULL;
-        if (e->server) {
-            jv *body = jobj(), *input = jarr();
-            for (size_t i = 0; i < n; i++) jpush(input, jstr(texts->v[at + i]));
-            jput(body, "model", jstr(e->model_name));
-            jput(body, "input", input);
-            jv *r = llm_call(e->server, "/embeddings", body, err);
-            jfree(body);
-            if (!r) { free(all); return NULL; }
-            const jv *data = json_get(r, "data");
-            jv *arr = jarr();                   /* by index, as the server may answer in any order */
-            for (size_t i = 0; i < n; i++)
-                for (size_t k = 0; data && data->kind == 'a' && k < data->n; k++) {
-                    const jv *idx = json_get(data->vals[k], "index");
-                    size_t want = idx && idx->kind == 't' ? (size_t)strtoul(idx->str, NULL, 10) : k;
-                    if (want == i) { jpush(arr, (jv *)json_get(data->vals[k], "embedding")); break; }
-                }
-            part = parse_vectors(arr, n, &d, err);
-            free(arr->vals);
-            free(arr);
-            jfree(r);
-            if (part)
-                for (size_t i = 0; i < n; i++) normalise(part + i * d, d);
-        } else {
-            char tmpl[] = "/tmp/arv-embed-XXXXXX";
-            int fd = mkstemp(tmpl);
-            if (fd < 0) { *err = xstrdup("cannot make a temporary file"); free(all); return NULL; }
-            sbuf b = { 0 };
-            for (size_t i = 0; i < n; i++) {
-                const char *t = texts->v[at + i];
-                sbuf c = { 0 };
-                for (const char *p = t; *p; p++) {         /* the separator and NULs cannot be in a text */
-                    if (!strncmp(p, SEPARATOR, strlen(SEPARATOR))) { sb_puts(&c, " "); p += strlen(SEPARATOR) - 1; }
-                    else sb_add(&c, p, 1);
-                }
-                char *s = c.s ? c.s : xstrdup(""), *e2 = s + strlen(s), *st = s;
-                while (isspace((unsigned char)*st)) st++;
-                while (e2 > st && isspace((unsigned char)e2[-1])) *--e2 = 0;
-                sb_printf(&b, "%s%s", i ? SEPARATOR : "", *st ? st : "(empty)");
-                free(s);
+        jv *body = jobj(), *input = jarr();
+        for (size_t i = 0; i < n; i++) jpush(input, jstr(texts->v[at + i]));
+        jput(body, "model", jstr(e->model_name));
+        jput(body, "input", input);
+        jv *r = llm_call(e->server, "/embeddings", body, err);
+        jfree(body);
+        if (!r) { free(all); return NULL; }
+        const jv *data = json_get(r, "data");
+        jv *arr = jarr();                   /* by index, as the server may answer in any order */
+        for (size_t i = 0; i < n; i++)
+            for (size_t k = 0; data && data->kind == 'a' && k < data->n; k++) {
+                const jv *idx = json_get(data->vals[k], "index");
+                size_t want = idx && idx->kind == 't' ? (size_t)strtoul(idx->str, NULL, 10) : k;
+                if (want == i) { jpush(arr, (jv *)json_get(data->vals[k], "embedding")); break; }
             }
-            if (write(fd, b.s, b.len) != (ssize_t)b.len) { *err = xstrdup("cannot write a temporary file"); close(fd); free(b.s); free(all); return NULL; }
-            close(fd);
-            free(b.s);
-            long cpus = sysconf(_SC_NPROCESSORS_ONLN);
-            char threads[24];
-            snprintf(threads, sizeof threads, "%ld", cpus > 0 ? cpus : 2);
-            char *argv[] = { e->binary, "-m", e->model_path, "-f", tmpl, "--embd-separator", SEPARATOR, "--embd-output-format",
-                             "array", "--embd-normalize", "2", "--pooling", "cls", "-t", threads, "-c", "512", "-b", "512",
-                             "-ub", "512", NULL };
-            char *out = NULL;
-            int rc = run(argv, &out);
-            unlink(tmpl);
-            char *open = out ? strstr(out, "[[") : NULL, *close = out ? strstr(out, "]]") : NULL;
-            for (char *c2 = close; c2 && (c2 = strstr(c2 + 1, "]]"));) close = c2;
-            if (rc || !open || !close) {
-                size_t len = out ? strlen(out) : 0;
-                *err = xprintf("llama-embedding failed (%d): %s", rc, out ? out + (len > 600 ? len - 600 : 0) : "");
-                free(out);
-                free(all);
-                return NULL;
-            }
-            close[2] = 0;
-            jv *arr = json_parse(open);
-            part = parse_vectors(arr, n, &d, err);
-            jfree(arr);
-            free(out);
-        }
+        part = parse_vectors(arr, n, &d, err);
+        free(arr->vals);
+        free(arr);
+        jfree(r);
+        if (part)
+            for (size_t i = 0; i < n; i++) normalise(part + i * d, d);
         if (!part) { free(all); return NULL; }
         *dim = d;
         all = xrealloc(all, (at + n) * d * sizeof *all);
@@ -601,9 +553,7 @@ static int model_tags(embedder *e, const arv_home *h, const tag_vocab *v, const 
     if (!sum->folders.n) return 0;
     strlist texts = { 0 };
     for (size_t i = 0; i < v->names.n; i++) {
-        char *t = xprintf("%s%s", e->prefix, v->descriptions.v[i]);
-        strlist_add(&texts, t);
-        free(t);
+        strlist_add(&texts, v->descriptions.v[i]);
     }
     for (size_t i = 0; i < sum->texts.n; i++) strlist_add(&texts, sum->texts.v[i]);
     size_t dim;
@@ -729,13 +679,12 @@ static jv *tags_json(const ftags *f, int skip_empty)
 
 int assist_tag(int argc, char **argv)
 {
-    const char *tgt = NULL, *vocab_file = NULL, *save = NULL, *disc_root = NULL, *binary = NULL, *model = "bge-small-en-v1.5";
-    const char *model_path = NULL, *embed_url = NULL, *embed_model = NULL, *home = NULL;
+    const char *tgt = NULL, *vocab_file = NULL, *save = NULL, *disc_root = NULL;
+    const char *embed_url = NULL, *embed_model = NULL, *home = NULL;
     int top = 3, apply = 0, show = 0, rules_only = 0, allow_remote = 0;
     for (int i = 0; i < argc; i++) {
         const char *a = argv[i], *v = i + 1 < argc ? argv[i + 1] : NULL;
         const char **str = !strcmp(a, "--vocab") ? &vocab_file : !strcmp(a, "--save") ? &save : !strcmp(a, "--disc-root") ? &disc_root
-            : !strcmp(a, "--llama-embedding") ? &binary : !strcmp(a, "--model") ? &model : !strcmp(a, "--model-file") ? &model_path
             : !strcmp(a, "--embed-url") ? &embed_url : !strcmp(a, "--embed-model") ? &embed_model : !strcmp(a, "--home") ? &home : NULL;
         if (str && v) { *str = v; i++; }
         else if (!strcmp(a, "--top") && v) { top = atoi(v); i++; }
@@ -788,25 +737,8 @@ int assist_tag(int argc, char **argv)
             if (!m) die("%s", err);
             e.server = &server;
             e.model_name = xstrdup(m);
-            e.prefix = xstrdup(model_query_prefix(m));
         } else {
-            e.binary = find_runtime(&h, binary);
-            if (!e.binary)
-                die("%s", "llama.cpp's llama-embedding was not found. Install llama.cpp (it is in Homebrew and many Linux "
-                          "distributions), pass --llama-embedding PATH, run 'arv models build-runtime', or use an embeddings "
-                          "server with --embed-url");
-            if (model_path) {           /* a model of your own choosing */
-                const char *slash = strrchr(model_path, '/');
-                e.model_path = xstrdup(model_path);
-                e.model_name = xstrdup(slash ? slash + 1 : model_path);
-                e.prefix = xstrdup("");
-            } else {
-                e.model_path = model_file(&h, model);
-                if (!e.model_path) die("unknown model %s (known: bge-small-en-v1.5; or --model-file PATH)", model);
-                if (access(e.model_path, R_OK)) die("model %s is not downloaded yet: run 'arv models fetch'", model);
-                e.model_name = xstrdup(model);
-                e.prefix = xstrdup(model_query_prefix(model));
-            }
+            die("%s", "tag embeddings need an OpenAI-compatible /v1/embeddings server; pass --embed-url URL or use --rules-only");
         }
         if (model_tags(&e, &h, &v, &sum, top, &sug, &err)) die("%s", err);
     }

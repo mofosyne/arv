@@ -30,7 +30,7 @@ discs=$work/discs
 mkdir -p "$discs"
 [ -x "$repo/src/arv/build/arv" ] || make -s -C "$repo/src/arv"
 a() { "$repo/src/arv/build/arv" --home "$home" "$@"; }
-common="-y --medium-sectors 9000 --output-dir $discs --creator Sample_Person --formats no"
+common="-y --medium-sectors 9000 --output-dir $discs --creator Sample_Person --no-formats"
 
 draft() {  # draft NAME JSON: a hand-written metadata draft
     printf '%s\n' "$2" > "$work/$1.json"
@@ -46,7 +46,7 @@ a location add OFFSITE "Parents' house" --temperature cold
 a location add NAS "The NAS" --in HOME --temperature warm
 
 echo "== 1. Kyoto trip: TRIP, namespaced folder tags, public"
-a make $common --set trip --location BOX1 --access public \
+a make $common --set trip --access public \
     --draft "$(draft trip '{"title": "Kyoto, July 2019",
       "description": "Three days in Kyoto: shrines, temples and the bamboo grove.",
       "subjects": ["travel", "Japan"], "agent": "sample script (hand-written)",
@@ -57,7 +57,7 @@ a make $common --set trip --location BOX1 --access public \
     "$src/2019-07_Kyoto_trip"
 
 echo "== 2. Weather station: the alias 'project' -> PROJ; Match rules add CODE and ELEC"
-a make $common --set project --location BOX1 \
+a make $common --set project \
     --draft "$(draft proj '{"title": "Weather station project",
       "description": "ESP32 weather station: firmware, KiCad board, gerbers and the git repository.",
       "agent": "sample script (hand-written)",
@@ -65,12 +65,12 @@ a make $common --set project --location BOX1 \
                       "hardware": ["electronics", "project:weather-station"]}}')" \
     "$src/Projects_weather_station"
 
-echo "== 3. Taxes 2019: sealed (other discs show only its id and location)"
-a make $common --set taxes --location SAFE --access sealed --title "Tax return 2019" \
+echo "== 3. Taxes 2019: sealed (other discs show only its id)"
+a make $common --set taxes --access sealed --title "Tax return 2019" \
     --description "Tax return and quarterly receipts for 2019." "$src/Taxes_2019"
 
 echo "== 4. Scanned letters: SCAN plus the LETTERS category, split over several discs"
-a make $common --set scan --category letters --location BOX1 --split --title "Letters 1995-2008, scanned" \
+a make $common --set scan --category letters --split --title "Letters 1995-2008, scanned" \
     --description "Scans of letters kept since 1995." "$src/Scans_letters"
 
 echo "== 5. Family photos: a collection, two editions; made last, so they carry the whole catalogue"
@@ -79,13 +79,13 @@ mkdir -p "$fam"
 cp -Rp "$src/Family_photos_2020-2021/2020 "* "$fam/"
 a collection init "$fam" --code FAMILY --title "Family photos" --set family \
     --description "Birthdays, the garden, the beach and Christmas."
-a make $common --location OFFSITE --message "2020 sorted" \
+a make $common --message "2020 sorted" \
     --draft "$(draft family1 '{"agent": "sample script (hand-written)",
       "folder_tags": {"2020 Birthday": ["family", "event:birthday-2020"], "2020 Garden": ["home", "nature"]}}')" \
     "$fam"
 cp -Rp "$src/Family_photos_2020-2021/2021 "* "$fam/"
 a status "$fam"
-a make $common --location OFFSITE --message "2021 added" \
+a make $common --message "2021 added" \
     --draft "$(draft family2 '{"agent": "sample script (hand-written)",
       "folder_tags": {"2020 Birthday": ["family", "event:birthday-2020"], "2020 Garden": ["home", "nature"],
                       "2021 Beach": ["travel", "place:beach"], "2021 Christmas": ["celebration"]}}')" \
@@ -93,7 +93,8 @@ a make $common --location OFFSITE --message "2021 added" \
 
 echo "== after burning (home catalogue only: these samples were never burned, so not read back)"
 for d in $(a list | cut -f1); do
-    a burned "$d" --copies 1 >/dev/null
+    case $d in TAXES-*) place=SAFE ;; FAMILY-*) place=OFFSITE ;; *) place=BOX1 ;; esac
+    a burned "$d" --copies 1 --location "$place" >/dev/null
 done
 fam2=$(a list | grep '^FAMILY-02' | cut -f1)   # a warm copy of the newest edition, checked
 mkdir -p "$work/nas"

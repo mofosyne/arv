@@ -1,4 +1,4 @@
-$ --home hs make -y --no-ecc --formats no --set SCAN --split --medium-sectors 4800 --keep-stage --output-dir out-split big
+$ --home hs make -y --no-ecc --no-formats --set SCAN --split --medium-sectors 4800 --keep-stage --output-dir out-split big
 Scanning and hashing ROOT/big ...
 Classified as: MEMORIES/PHOTO/SCAN, RECORDS/SCAN
 Rebalancing: disc 1 was 350 sectors over budget

@@ -165,21 +165,6 @@ int discid_parse(const char *text, discid_parts *p)
             }
         }
     }
-    /* legacy COVERAGE_SET_SEQ: \d{4}(-\d{4})?_[A-Z0-9-]+_\d+ */
-    size_t y = span_of(u, DIGITS);
-    const char *s = u + 4;
-    if (y == 4 && *s == '-' && span_of(s + 1, DIGITS) == 4) s += 5;
-    if (y == 4 && *s == '_') {
-        const char *set = s + 1, *last = strrchr(set, '_');
-        if (last && last > set && span_of(set, UPPER_DIGITS "-") == (size_t)(last - set)
-            && last[1] && span_of(last + 1, DIGITS) == strlen(last + 1)) {
-            p->scheme = DISCID_LEGACY;
-            memcpy(p->coverage, u, (size_t)(s - u));
-            memcpy(p->set, set, (size_t)(last - set) < sizeof p->set ? (size_t)(last - set) : sizeof p->set - 1);
-            p->sequence = strtol(last + 1, NULL, 10);
-            p->valid = 1;
-            return 1;
-        }
-    }
+
     return 0;
 }

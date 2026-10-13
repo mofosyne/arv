@@ -46,7 +46,7 @@ from reading its source; the rest is from the tools' documented behaviour.
 | B | `Match` globs in both vocabularies. They suggest set and categories in `arv make`, and tags in `arv tag` (`--rules-only` needs no model). | `sets.Vocabulary.match`, `tagger.TagVocab.rule_tags` |
 | C | `Access`: `public` / `private` (default) / `sealed`. It controls what other discs' snapshots carry. | `catalog.access`, `catalog.sealed_view`, `arv access` |
 | D | Namespaced tags (`person:`, `place:`, `event:`, `source:`, `project:`) and tag aliases, normalised in review and in drafts. | `catalog.normalise_tag`, `arv tags` |
-| E | `Location` records (a tree), one disc `Location` per place copies are kept, `burned --location`, `list --at`. | `catalog.Catalog.locations`, `arv location` |
+| E | `Location` records (a tree), one copy-event `Location` per copy, `burned --location`, `stored --location`, `locate DISC-ID COPY PLACE`, `list --at`. | `catalog.Catalog.locations`, `arv location` |
 | F | Hierarchical keywords (`MEMORIES\|PHOTO\|TRIP`, `place\|kyoto`) as TSV or as an exiftool argument file. | `arv keywords` |
 
 ## Not adopted (yet)

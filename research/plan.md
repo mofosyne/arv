@@ -638,9 +638,9 @@ ones, except those kept (`arv make --keep`, `arv collection keep CODE N`).
   across editions and is never reused. Set and Category become classification only. A disc
   made outside any collection (`arv make FOLDER`, as today) is a collection of one edition,
   coded by its set as now, so today's discs need no change.
-- **A name clash**: today's `Collection` records are virtual folders across discs ("Best of
-  Kyoto"). They become `Selection` (format 0.5; readers accept both), so "collection" means
-  the thing in a workflow folder.
+- **A name clash**: at this design stage, `Collection` meant virtual folders across discs ("Best
+  of Kyoto"). They were renamed `Selection` in format 0.5 so "collection" could mean the thing
+  in a workflow folder; issue #42 later removes those records (see the decision below).
 - **Tracked folders** get `arv status PATH` too: for each file, archived on which discs, or
   not yet; the first part of the organiser below.
 - **Recognising a plain folder (no git) as the same but changed**, strongest evidence first:
@@ -944,7 +944,7 @@ a disc into a second place, and both take writes. Merging them back is `archive_
 `rebuild` uses).
 
 - **Merges cleanly:** everything that only grows: events, revisions (by `Node`), data object
-  versions, appraisals, selection items. A union, in any order.
+  versions and appraisals. A union, in any order.
 - **Breaks, silently:**
   - *Numbers.* The next disc sequence and edition number come from the local catalogue
     (`archive_next_number`), so two forks each make `FAMILY-02_...`, each "edition 2": two discs,
@@ -1148,7 +1148,8 @@ content so it follows moved files), written in batches by `arv annotate`.
     (`arv keywords --format exiftool`).
   - *Typed links between items* ("scan of", "same event as"). Nothing reads them yet; selections
     group items, collections and data objects carry lineage. Worth a field when a reader needs
-    it, and `Relation` (Dublin Core) is the name to use then.
+    `Relation` (Dublin Core) is the name to use then. Cross-disc virtual folders were removed by
+    the later issue #42 decision below.
   - *Notes on a data object, following it across moves.* The one real gap; it waits until data
     objects are used enough to show whether disc and folder notes fall short.
 
@@ -1311,3 +1312,12 @@ because the disc is built from standards. What a reader needs is a note on how t
 - **What helps all of them** is the stable machine-readable output put off until the commands
   settle ("Later: an interface for other software"): every one of these reads files or JSON,
   not arv's text for people.
+
+## Decision (2026-10-13, issue #42): no cross-disc selection records
+
+Approved: remove `arv selection` and the `Selection` record type. Catalogue snapshots and rebuilds
+carry and merge no such records or their events. Appraisals target discs, files, folders and sets.
+Places belong to copies only: `Disc.Location` is removed, `arv locate DISC-ID COPY PLACE` appends
+a copy-specific `Location` change, and disc summaries and place filters derive from recorded copies.
+`burned` and `stored` record a copy's initial place; `make --location` is not accepted. `Location`
+records remain. There are no discs to migrate before 1.0.

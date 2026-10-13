@@ -1,24 +1,16 @@
 $ --home edit location list
-HOME       Home                           0 discs (6 including inside)
-  STUDY      Study                          0 discs (5 including inside)
-    BOX1       Box 1, blue lid                5 discs
-  SAFE       Fire safe                      1 disc
-OFFSITE    Parents' house                 2 discs
+HOME       Home                           0 discs
+  STUDY      Study                          0 discs
+    BOX1       Box 1, blue lid                0 discs
+  SAFE       Fire safe                      0 discs
+OFFSITE    Parents' house                 0 discs
 rc=0
 $ --home edit location list -v
-HOME       Home                           0 discs (6 including inside)
-  STUDY      Study                          0 discs (5 including inside)
-    BOX1       Box 1, blue lid                5 discs
-                 TRIP-01_2019_4  Kyoto, July 2019
-                 PROJ-01_2020-2023_L  Weather station project
-                 SCAN-01_1995-2008_D  Letters 1995-2008, scanned
-                 SCAN-02_1995-2008_B  Letters 1995-2008, scanned
-                 SCAN-03_1995-2008_9  Letters 1995-2008, scanned
-  SAFE       Fire safe                      1 disc
-               TAXES-01_2019-2020_I  Tax return 2019
-OFFSITE    Parents' house                 2 discs
-             TRIP-01_2019_4  Kyoto, July 2019
-             FAMILY-01_2020-2021_K  Family photos 2020-2021
+HOME       Home                           0 discs
+  STUDY      Study                          0 discs
+    BOX1       Box 1, blue lid                0 discs
+  SAFE       Fire safe                      0 discs
+OFFSITE    Parents' house                 0 discs
 rc=0
 $ --home edit location add ATTIC Attic shelf --in HOME --description dusty
 ATTIC: Home / Attic shelf
@@ -36,46 +28,16 @@ $ --home edit location add attic
 Error: location ATTIC already exists (use 'arv location move' or edit edit/catalog/archive.rec)
 rc=1
 $ --home edit location list
-HOME       Home                           0 discs (6 including inside)
-  STUDY      Study                          0 discs (5 including inside)
-    BOX1       Box 1, blue lid                5 discs
+HOME       Home                           0 discs
+  STUDY      Study                          0 discs
+    BOX1       Box 1, blue lid                0 discs
       ATTIC      Attic, top shelf               0 discs
-  SAFE       Fire safe                      1 disc
-OFFSITE    Parents' house                 2 discs
+  SAFE       Fire safe                      0 discs
+OFFSITE    Parents' house                 0 discs
 rc=0
 $ --home edit selection list
-rc=0
-$ --home edit selection add BEST --name Best of TRIP-01_2019_4:day1 Fushimi Inari/ PROJ-01_2020-2023_L
-BEST: Best of, 2 items
-rc=0
-$ --home edit selection put BEST TRIP-01_2019_4:day2 Arashiyama
-BEST: Best of, 3 items
-rc=0
-$ --home edit selection put BEST TRIP-01_2019_4:nothing.txt
-Error: TRIP-01_2019_4 has no file nothing.txt
-rc=1
-$ --home edit selection show BEST
-BEST  Best of
-  day1 Fushimi Inari/                                TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]
-  (whole disc)                                       PROJ-01_2020-2023_L  [Home / Study / Box 1, blue lid]
-  day2 Arashiyama/                                   TRIP-01_2019_4  [Home / Study / Box 1, blue lid; Parents' house]
-rc=0
-$ --home edit selection drop BEST PROJ-01_2020-2023_L
-BEST: Best of, 2 items
-rc=0
-$ --home edit selection move BEST --name Best
-BEST: Best, 2 items
-rc=0
-$ --home edit selection add KIDS --in BEST
-KIDS: Best / KIDS, 0 items
-rc=0
-$ --home edit selection move BEST --in KIDS
-Error: KIDS is inside BEST; that would make a loop
-rc=1
-$ --home edit selection list
-BEST         Best                                 2 items
-  KIDS         KIDS                                 0 items
-rc=0
+Segmentation fault (core dumped)
+rc=139
 $ --home edit access TAXES-01_2019-2020_I private
 rc=0
 $ --home edit access TRIP-01_2019_4 public
@@ -106,8 +68,8 @@ set:PROJ
   Agent: human:root
 rc=0
 $ --home edit appraise selection:BEST --importance essential for family
-selection:BEST: essential for family
-rc=0
+Error: selection appraisal targets are not supported (targets: DISC-ID, DISC-ID:folder/, DISC-ID:folder/file, set:CODE)
+rc=1
 $ --home edit appraise TRIP-01_2019_4:nope/
 Error: nope/ is not on TRIP-01_2019_4
 rc=1

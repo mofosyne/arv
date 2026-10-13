@@ -44,7 +44,7 @@ char *abs_path(const char *p);
 /* home.c: where the home catalogue is */
 typedef struct {
     char *path, *catalog_dir, *config_dir, *drafts_dir, *cache_dir, *rec_path;
-    char *how;              /* how it was found, in the Python arv's words */
+    char *how;              /* how it was found */
 } arv_home;
 void home_find(arv_home *h, const char *given, const char *source);   /* stops, saying how to make one, when none */
 int home_try(arv_home *h, const char *given, const char *source);     /* -1 when there is none */
@@ -76,7 +76,6 @@ int cmd_note(int argc, char **argv);
 int cmd_locate(int argc, char **argv);
 int cmd_access(int argc, char **argv);
 int cmd_location(int argc, char **argv);
-int cmd_selection(int argc, char **argv);
 int cmd_collection(int argc, char **argv);
 int cmd_status(int argc, char **argv);
 int cmd_checkpoint(int argc, char **argv);
@@ -103,7 +102,7 @@ typedef struct {
 } recs;
 typedef struct {
     rec_file file;          /* what was read; new records are allocated one by one */
-    recs homes, discs, bindings, locations, selections, collections, revisions, objects, events, appraisals;
+    recs homes, discs, bindings, locations, collections, revisions, objects, events, appraisals;
 } archive;
 void recs_add(recs *l, rec_record *r);
 int recs_has(const recs *l, const rec_record *r);
@@ -119,9 +118,7 @@ rec_record *archive_location(const archive *a, const char *code);
 long archive_next_number(const archive *a, const char *set);
 const char *disc_access(const rec_record *d);
 void archive_locations_for(const archive *a, const recs *discs, recs *out);
-void archive_selections_for(const archive *a, const strlist *disc_ids, recs *out);
-/* "selection:CODE" -> CODE; else NULL */
-const char *selection_target(const char *target);
+void archive_copy_locations(const archive *a, const char *disc_id, strlist *out);
 rec_record *sealed_view(const rec_record *d);
 void archive_shared_subset(const archive *a, const strlist *ids, archive *out);
 rec_record *object_disc_view(const rec_record *o);
@@ -132,16 +129,18 @@ char *person(void);
 char *place(const archive *a, const char *text);
 void place_check(const archive *a, const char *text);
 /* copies: replication events, each named by a letter (Copy: A, B ...) */
+int is_copy_event(const rec_record *e, const char *disc_id);
 size_t disc_copies(const archive *a, const char *disc_id);
 int copy_exists(const archive *a, const char *disc_id, const char *letter);
-int event_names_copy(const archive *a, const char *disc_id, const rec_record *e, const rec_record *rep);
+int event_names_copy(const char *disc_id, const rec_record *e, const rec_record *rep);
+const char *copy_location(const archive *a, const char *disc_id, const rec_record *copy);
 const char *copy_letter(const archive *a, const char *disc_id, const rec_record *rep);   /* its letter now */
 const char *letter_of(const archive *a, const rec_record *rep);     /* the same, "?" when it has none */
 size_t copies_lettered(const archive *a, const char *disc_id, const char *letter, const rec_record **first);
 int copy_letter_ok(const char *s);
 char *copy_next(const archive *a, const char *disc_id);
 void event_content_id(const rec_record *e, char out[33]);   /* from its fields, all but EventId */
-void event_key(const rec_record *e, char out[33]);          /* its EventId, else its content's id */
+void event_key(const rec_record *e, char out[33]);          /* EventId, or an empty string if none */
 int copy_read_back(const archive *a, const char *disc_id, const rec_record *copy);
 const char *copy_last_check(const archive *a, const char *disc_id, const rec_record *copy);   /* its date, or NULL */
 char *identifier_normal(const char *text, const char **why);   /* "scheme:value" checked, or NULL and why */
@@ -193,7 +192,6 @@ typedef struct {
     int disc;               /* 1, 2, ... */
     char *source;           /* absolute: a file or folder, read when the discs are made */
     char *path;             /* where it goes under data/ ("." : a folder's contents at the top) */
-    char *origin;           /* --copy: where it was copied from (source is then the plan's copy); else NULL */
     char *seen;             /* "FILES BYTES STAMP" when planned (names, sizes, dates), or NULL */
 } plan_item;
 typedef struct {
@@ -239,7 +237,7 @@ typedef struct {
     gitrepo *v;
     size_t n;
 } gitrepos;
-void git_prepare(const char *src, const char *workdir, const char *since, entries *files, gitrepos *out);
+void git_prepare(const char *src, const char *workdir, entries *files, gitrepos *out);
 char *git_tsv_for(const gitrepos *g, const entries *disc_files);
 int git_internal(const char *path);
 /* about.c: what a data object says about itself, by rules (README, manifests, licence, git) */
@@ -271,7 +269,7 @@ void formats_free(formats *f);
 typedef struct jv {
     char kind;                  /* 'o' object, 'a' array, 's' string, 't' number or boolean, 'n' null */
     char *str;
-    char **keys;                /* objects: in insertion order, as Python dicts keep them */
+    char **keys;                /* object keys, in insertion order */
     struct jv **vals;
     size_t n;
 } jv;
@@ -324,9 +322,6 @@ size_t questions_add(question_list *q, const archive *cat, const char *about, co
 void questions_close(question_list *q, const char *about, const char *text, const char *skipped);
 char *question_about_name(const archive *cat, const char *about);
 
-/* rocrate.c: --ro-crate */
-char *rocrate_metadata(const rec_record *disc, const entries *files, const formats *fmt);
-char *rocrate_preview(const rec_record *disc, const entries *files);
 
 void scan_payload(const char *src, const char *policy, entries *files, entries *noted);
 void scan_file(const char *path, const char *as, entry *out);   /* one file, as data/<as> */
@@ -395,6 +390,7 @@ typedef struct {
 typedef struct {
     char *dir;              /* the folder with archive.rec and volumes/ */
     rec_file rec;
+    archive records;        /* the same catalogue grouped for copy/location views */
 } catalogue;
 
 void die(const char *fmt, const char *arg);

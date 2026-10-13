@@ -18,7 +18,7 @@ data stored after the filesystem.
 
 BROWSE
   Open index.html in any web browser. It lists every file on this disc
-  and its notes.
+  and lists the discs made before it (set catalogue).
 
 SEARCH
   Catalogue software that reads this format can search every disc (the
@@ -92,7 +92,8 @@ WITHOUT A UDF READER (cut the files out of the image)
 
 CATALOGUE
   catalog.rec             this disc's record (GNU recutils format, plain text)
-  catalog/volumes/<id>/   this disc's file list (listing.tsv) and checksums
+  catalog/archive.rec     all discs in the archive as of the burn date
+  catalog/volumes/<id>/   per disc: manifest.sha256, listing.tsv, formats.csv
 
 TOOLS
   tools/arv/           the program that made this disc; its docs/spec/
