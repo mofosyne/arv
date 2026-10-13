@@ -1288,3 +1288,26 @@ dropped them.
 - **Later:** answering in the GUI's disc details.
 - **Done (2026-10-12):** all of the above (`src/arv/about.c`, `src/arv/questions.c`,
   `arv describe NAME`, `--answer`); the GUI's Owed count leaves the questions out.
+
+## Decision (2026-10-13): other software reads the disc through its standards, not through arv
+
+Which software, other than Katalog, could use arv's metadata? Most of it needs no work from arv,
+because the disc is built from standards. What a reader needs is a note on how to use them.
+
+- **Done:** application notes, `docs/notes/bagit.md` (bagit-python, which every disc already
+  carries, validates the disc as it is; tested, including a changed byte and a longer file) and
+  `docs/notes/recutils.md` (recsel queries, all run against a real catalogue). The disc's
+  `README.txt` names both.
+- **Done:** the descriptors declare the fields that name another record (`rec` types), so
+  `recsel -j` joins a disc to its place, a copy to its disc, and a place to its parent. A join
+  drops a record whose value names nothing (free-text places); the note says so.
+- **Worth targeting later, not built:** Archivematica takes an unzipped bag as a transfer, so a
+  disc can go into an institutional archive as it is (untested); VVV, another disc cataloguer,
+  would need the same import as Katalog.
+- **Not targeted:** DROID and Siegfried make metadata rather than read it; Recoll, plocate and
+  FSearch index files, and `arv find` already searches every listing (a tree of stub files for
+  FSearch was considered and not built: it would be a second copy of the catalogue to keep in
+  step); backup software keeps its own catalogue.
+- **What helps all of them** is the stable machine-readable output put off until the commands
+  settle ("Later: an interface for other software"): every one of these reads files or JSON,
+  not arv's text for people.

@@ -26,13 +26,18 @@ SEARCH
     ./arv find PATTERN                 (every disc in this disc's catalogue)
     ./arv list
   Or plain text tools: grep -ri PATTERN catalog/volumes/*/listing.tsv
+  Or GNU recutils on the catalogue (below): recsel -t Disc catalog.rec
+    (more: tools/{repo}/docs/notes/recutils.md)
 
 VERIFY (detect damage)
-  From the root of the mounted disc, either of:
+  From the root of the mounted disc, any of:
     sha256sum -c manifest-sha256.txt   (any Unix-like system; nothing else)
     ./arv verify .                     (arv: see RESTORE; checks it as a BagIt
                                         bag: every manifest, every file, no
                                         file too many or missing)
+    python3 tools/{repo}/upstream/bagit-python/bagit.py --validate .
+                                       (the Library of Congress's BagIt
+                                        validator; tools/{repo}/docs/notes/bagit.md)
 
 RESTORE (copy the files back)
   Copying data/ anywhere is enough for most files. Symbolic links in the

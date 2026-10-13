@@ -35,6 +35,7 @@ Date: 2026-01-01
 %type: Bytes int
 %type: Access enum public private sealed
 %type: Retired date
+%type: Location rec Location
 
 Id: SCAN-01_2001-2007_D
 Uuid: UUID
@@ -128,6 +129,8 @@ Ecc: none
 %mandatory: Type Date Outcome
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
+%type: Disc rec Disc
+%type: Location rec Location
 
 EventId: ID
 Disc: SCAN-01_2001-2007_D

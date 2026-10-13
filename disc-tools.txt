@@ -25,6 +25,7 @@ upstream/bagit-python
 
 # the format, the guides and the reasons (not the UDF and ECMA standards themselves: issue #32)
 docs/*.md
+docs/notes/*.md
 docs/spec/*.md
 docs/examples
 docs/img
