@@ -27,6 +27,7 @@ Date: 2026-01-01
 %type: Bytes int
 %type: Access enum public private sealed
 %type: Retired date
+%type: Location rec Location
 
 Id: TRIP-01_2019_4
 Uuid: UUID
@@ -253,6 +254,7 @@ MediumSectors: 4800
 + (offline: discs on a shelf, unplugged drives); a place without one takes its parent's.
 %key: Code
 %mandatory: Code Name
+%type: Parent rec Location
 
 Code: HOME
 Name: Home
@@ -303,6 +305,8 @@ Name: Parents' house
 %mandatory: Type Date Outcome
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
+%type: Disc rec Disc
+%type: Location rec Location
 
 EventId: ID
 Object: location:HOME

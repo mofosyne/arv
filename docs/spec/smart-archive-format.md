@@ -22,7 +22,9 @@ The layers and how a disc is made and read, as a picture: [architecture.md](../a
    - [GNU recutils](https://www.gnu.org/software/recutils/) *recfiles* for
      records (the disc, events, tag vocabulary): self-describing, with
      `%rec`/`%type`/`%mandatory` schema lines, multi-valued fields and
-     multi-line values, validated by `recfix`.
+     multi-line values, validated by `recfix`. A field that names another
+     record says so (`%type: Location rec Location`), so `recsel -j` can join
+     them ([docs/notes/recutils.md](../notes/recutils.md)).
    - **Tab-separated lists** for bulk per-file rows (a million files would be
      too slow as recfiles: measured 28 s and 1.85 GB RAM for `recsel` on 1M
      records, versus sub-second for a TSV scan).

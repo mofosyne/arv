@@ -34,6 +34,17 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   reference outputs and `data.c`, committing a new `disc-tools.txt` path first). Both go on
   every disc with the source.
 
+**Read without arv: notes on BagIt and recutils** (format 0.5)
+- `docs/notes/bagit.md`: checking a disc with the Library of Congress's validator, which every
+  disc carries (`tools/arv/upstream/bagit-python/bagit.py --validate .`), what the full and fast
+  checks find, and why `--validate` must always be given. The disc's `README.txt` names it.
+- `docs/notes/recutils.md`: querying the catalogue with `recsel`: where each disc is, every copy,
+  a barcode's disc, a disc's history; and what only arv works out (counting copies, letters,
+  conflicts). Read with recutils, change with arv.
+- The record descriptors now say which fields name another record (`%type: Location rec
+  Location` in `Disc` and `Event`, `Disc rec Disc` in `Event`, `Parent` in `Location` and
+  `Selection`), so `recsel -j` joins them: `recsel -t Disc -j Location -p Id,Location_Name`.
+
 **Each copy has a letter** (format 0.5)
 - A copy of a disc (burned, an image file, or a folder) is its `replication` event, now named by
   a letter, `Copy: A`, `B` ...: given in order (or chosen, `arv burned --copy X`), written on the
