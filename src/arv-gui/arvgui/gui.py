@@ -354,19 +354,19 @@ class App:
 
     def post_check(self, body):
         argv = ["check"]
-        argv += ["--device", body["device"]] if body.get("device") else ["--image", body["image"]]
-        if body.get("repair") and not body.get("device"):
+        if body.get("repair"):
             argv.append("--repair")
         if body.get("copy"):
             argv += ["--copy", body["copy"]]
         if (body.get("note") or "").strip():
             argv += ["--note", body["note"].strip()]
+        argv.append(body["source"])                 # a drive, an image file, or a disc's files
         if body.get("disc_id"):
             argv.append(body["disc_id"])
         return self.start_job(argv).as_dict()
 
     def post_simple(self, body):
-        """note / locate / burned / rebuild, run as jobs so errors show like the CLI's."""
+        """note / locate / burned / stored / rebuild / restore, run as jobs so errors show like the CLI's."""
         command = body["command"]
         if command == "note":
             argv = ["note", body["disc_id"], body["text"]]
@@ -384,8 +384,6 @@ class App:
                 argv += ["--location", body["location"].strip()]
         elif command == "rebuild":
             argv = ["rebuild", body["path"]]
-        elif command == "verify":
-            argv = ["verify", body["path"]]
         elif command == "restore":
             argv = ["restore", body["path"], body["dest"]]
         elif command == "apply_draft":

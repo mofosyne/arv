@@ -35,12 +35,10 @@ arv init [FOLDER] [--name NAME [--default]]
 arv make [options] FOLDER              disc images, recorded in the home (in a terminal it asks
                                         what the options leave open; -y does not; --help lists them)
 arv burned DISC-ID [--copies N] [--location PLACE] [--identifier ID] [--media-type TYPE] [--note TEXT]
-arv check (--image FILE [--repair] | --device DRIVE) [DISC-ID]   fixity check, logged (an image:
-                                        RS03 tested here, --repair mends it in place, logged only
-                                        when its disc is in a writable catalogue; a drive:
-                                        the image's sectors read back past the cache and
-                                        compared with its SHA-256 at creation, or without
-                                        one, scanned by dvdisaster Light)
+arv check [--repair | --drive] SOURCE [DISC-ID]   fixity check, logged: a drive (the image's sectors
+                                        read back past the cache, against its SHA-256 at creation),
+                                        an image file (against the same; RS03 when it differs, or
+                                        --repair mends it), or a disc's files (every file)
 arv note DISC-ID TEXT
 arv locate DISC-ID COPY PLACE
 arv access DISC-ID public|private|sealed
@@ -71,11 +69,9 @@ arv rebuild [--prefer-disc] DISC       merge the catalogue a disc carries into t
 arv find PATTERN                       discs, folder tags and files on every disc known
 arv list [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]
           [--unchecked-since AGE|DATE] [--one-place]   due a check (5y, 18m, 90d); kept in one place
-arv id ID                              explain a disc id, check its check character
 
-arv info DISC                          a disc's record, binding and appraisals
-arv verify [-v] DISC                   every file against the BagIt manifests
-arv ls DISC                            the listing: files, executables, links
+arv info DISC|IMAGE|DISC-ID [--files]  a disc's record, binding and appraisals (--files: its
+                                        listing); which disc an image is; what a disc id says
 arv restore DISC DEST                  copy back, checking each file; dates, execute bits
                                         and links restored
 ```
@@ -98,7 +94,7 @@ RS03 error correction is linked in ([../rs03](../rs03/): dvdisaster's format, by
 dvdisaster Light writes), and so is udfwrite. Making a disc runs other programs only in a git
 checkout (`git archive` and `tar`, to put arv's last commit in `tools/`, the paths
 `disc-tools.txt` lists; an installed arv copies `PREFIX/share/arv` instead). dvdisaster Light is needed only to scan a disc whose image hash
-was never recorded (`check --device`); a damaged disc is read into an image with it or GNU
+was never recorded (`arv check DRIVE`); a damaged disc is read into an image with it or GNU
 ddrescue, and arv repairs the image.
 
 Differences from the Python arv it was ported from (since removed), on purpose: discs record `Software: arv@<commit>`; `find`
@@ -121,7 +117,7 @@ hyphens.
   verified, and restored with a clean `git status`; damage is reported; the Library of Congress's
   bagit.py (upstream/) agrees it is a valid bag when
   python3 is there; `tools/` carries arv's commit;
-- RS03 is added and tested by arv, `check --image` passes it again and finds a damaged sector, and
+- RS03 is added and tested by arv, `check IMAGE` passes it again and finds a damaged sector, and
   README.txt's one `cc` line builds arv from a disc's `tools/`; with dvdisaster Light on PATH, it
   accepts the image and repairs the damaged one back; with Siegfried,
   `formats.csv` and its event are written;
@@ -140,10 +136,10 @@ and `make check` passes under AddressSanitizer and UndefinedBehaviorSanitizer (w
 | `tags.c` | `tags`, `keywords` |
 | `formats.c` | Siegfried format identification |
 | `make.c` | `make` |
-| `record.c` | `check`, `burned`, `note`, `locate` |
+| `record.c` | `check`, `burned`, `stored`, `identify`, `relabel`, `note`, `locate`, `drives` |
 | `edit.c` | `access`, `location`, `collection`, `appraise`, `sets`, `names`, `where` |
-| `disc.c` | reading a disc: `info`, `verify`, `ls`, `restore` |
-| `catalogue.c` | `find`, `list`, `id` |
+| `disc.c` | reading a disc: `info`, its bag check, `restore` |
+| `catalogue.c` | `find`, `list`, disc ids for `info` |
 | `home.c` | finding the home (`--archive` too); `init` with named homes |
 | `archive.c` | the catalogue model: records in order, snapshots, access levels, events |
 | `bag.c` | the payload scan with the links policy, BagIt tag files, the listing |

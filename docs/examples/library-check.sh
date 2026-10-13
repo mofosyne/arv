@@ -14,7 +14,7 @@
 #                    from (arv checks each at its recorded path)
 #     -n             say what would be done, and change nothing
 #
-# Environment: ARV (arv), MTX (mtx), OVERDUE (years; 5), LTFS_MOUNT (the command that mounts a
+# Environment: ARV (arv), MTX (mtx), OVERDUE (an age, as arv todo --overdue takes it; 5y), LTFS_MOUNT (the command that mounts a
 # tape; ltfs -o devname=DRIVE MOUNT), LTFS_UMOUNT (umount MOUNT).
 # Tried against saved mtx output and stand-in commands, not a real library: run it with -n first.
 set -eu
@@ -30,7 +30,7 @@ run() { if [ -n "$dry" ]; then echo "would run: $*"; else "$@" </dev/null; fi; }
 # what is due, a line each: barcode (the tape's, else the copy's own; - if none), disc, copy, form, path
 work=$(mktemp)
 trap 'rm -f "$work"' EXIT
-"$ARV" todo --tsv --overdue "${OVERDUE:-5}" | awk -F "$tab" -v OFS="$tab" '
+"$ARV" todo --tsv --overdue "${OVERDUE:-5y}" | awk -F "$tab" -v OFS="$tab" '
     $1 == "read-back" || $1 == "overdue" {
         bc = "-"
         if ($6 ~ /^barcode:/) bc = substr($6, 9)
@@ -61,10 +61,10 @@ while IFS="$tab" read -r bc disc copy form path; do
         loaded=$bc
     fi
     if [ "$form" = disc ]; then
-        run "$ARV" check --device "$drive" --copy "$copy" "$disc" || failed=1
+        run "$ARV" check "$drive" --copy "$copy" "$disc" || failed=1
     elif [ -n "$mount" ]; then
         if [ -z "$mounted" ]; then run sh -c "$mount_cmd"; mounted=1; fi
-        run "$ARV" stored "$disc" "$path" --copy "$copy" || failed=1
+        run "$ARV" check "$path" --copy "$copy" "$disc" || failed=1
     else
         echo "skip: $disc copy $copy is a $form on a tape: give MOUNT, where LTFS mounts it"
     fi

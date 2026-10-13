@@ -13,7 +13,7 @@
 #   $(PREFIX)/bin/arv-assist   arv describe, tag, models: the optional local-AI helpers (C)
 #   $(PREFIX)/bin/arv-gui      arv gui: the optional web interface (needs python3)
 #   $(PREFIX)/bin/udfwrite     arv's UDF 2.50 writer as a program of its own (arv has it built in)
-#   $(PREFIX)/bin/bagit        a BagIt (RFC 8493) validator for any bag (arv verify uses the same code)
+#   $(PREFIX)/bin/bagit        a BagIt (RFC 8493) validator for any bag (arv check uses the same code)
 #   $(PREFIX)/share/arv/       the source, exactly the tree every disc carries in tools/: what
 #                              disc-tools.txt lists, from the last commit (git archive HEAD;
 #                              uncommitted changes are not installed), or from a tarball's tree

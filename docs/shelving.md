@@ -168,7 +168,7 @@ conditions and copies in more than one place still matter.
 ## Checking over time
 
 - Every few years, **read one copy of every disc fully**:
-  `arv check --device /dev/sr0` logs a fixity-check event.
+  `arv check /dev/sr0` logs a fixity-check event.
 - Alternate which copy (home or off-site) you check.
 - A disc that needed repair is a warning sign: burn a fresh copy from a good
   image, record it with `arv burned`, and retire the weak one.

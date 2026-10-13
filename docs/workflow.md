@@ -40,10 +40,10 @@ flowchart TD
         B --> T[arv todo<br/>copies owed, checks due, editions to retire]
         N --> T
         T --> R[arv retire<br/>older editions a safe one replaces]
-        T --> C[arv check --device<br/>every few years]
+        T --> C[arv check DRIVE<br/>every few years]
     end
     subgraph recover [Verify: recover]
-        C -- damage --> D[ddrescue, then<br/>arv check --image --repair]
+        C -- damage --> D[ddrescue, then<br/>arv check IMAGE --repair]
         B -- home catalogue lost --> RB[arv rebuild /media/disc]
         B -- tools lost --> P[plain tools:<br/>sha256sum, a browser, a text editor]
     end
@@ -330,7 +330,7 @@ arv stored FAMILY-04_2001-2025_X /nas/archive/FAMILY-04_2001-2025_X.iso --locati
 - Each copy gets a letter, A, B, C ... (`arv burned` says which): write it on the hub and the
   case after the id, `FAMILY-04_2001-2025_X B`. Copies are the same image, so the letter tells
   them apart only in the catalogue and on the label: each has its own place, and a check names
-  the copy it read (`arv check --device /dev/sr0 --copy B`). `arv todo` lists burned copies never
+  the copy it read (`arv check /dev/sr0 --copy B`). `arv todo` lists burned copies never
   read back, by letter.
 - A copy can also be **known by** what is on it: its factory serial (`bca:`, read by the drive
   on Linux and recorded by `--device`), a barcode on its case (`barcode:`; `--barcode CODE`
@@ -351,7 +351,7 @@ arv stored FAMILY-04_2001-2025_X /nas/archive/FAMILY-04_2001-2025_X.iso --locati
 - An edition is **safe** once each of its discs has a copy checked this way.
 
 Write the disc id on the hub and the case; its last character is a check character, so a
-mistyped id is caught (`arv id FAMILY-04_2001-2025_Y`). [burning.md](burning.md) has the burning
+mistyped id is caught (`arv info FAMILY-04_2001-2025_Y`). [burning.md](burning.md) has the burning
 commands, the pitfalls and the drill to run before trusting a new drive or media.
 
 ### 5. Store
@@ -470,7 +470,7 @@ about a git repository with no README ("What is it for?"). `arv describe ID --an
 with no model needed: each answer is kept as a note, Enter skips one for good, `.` leaves the rest
 for another day. They are kept in the home only (`drafts/questions.rec`), never on a disc.
 
-**Checking** every few years: `arv check --device /dev/sr0` reads a disc back against its
+**Checking** every few years: `arv check /dev/sr0` reads a disc back against its
 image's hash and logs it, for the copy in the drive: named with `--copy B`, found by its BCA
 serial where the drive reads one, or the disc's only burned copy. A disc that needed repair is a
 warning: make a new copy.
@@ -504,7 +504,7 @@ to look through a whole drive or NAS, let `find` do the walking:
 
 | What happened | What to do |
 |---|---|
-| A disc reads with errors | Follow REPAIR in the disc's `README.txt`: read it into an image (`ddrescue -b 2048 /dev/sr0 disc.iso disc.map`, or dvdisaster Light `-r --rescue`), then `arv check --image disc.iso --repair` (the disc's own `tools/arv.com` works too). Too damaged? Copies are sector-identical: read another copy into the same image (the same map file) and repair again; a stored iso is such a copy. When arv cannot repair, it prints the dvdisaster Light commands to paste, with the disc's medium size from the catalogue. Then make a new copy. |
+| A disc reads with errors | Follow REPAIR in the disc's `README.txt`: read it into an image (`ddrescue -b 2048 /dev/sr0 disc.iso disc.map`, or dvdisaster Light `-r --rescue`), then `arv check disc.iso --repair` (the disc's own `tools/arv.com` works too). Too damaged? Copies are sector-identical: read another copy into the same image (the same map file) and repair again; a stored iso is such a copy. When arv cannot repair, it prints the dvdisaster Light commands to paste, with the disc's medium size from the catalogue. Then make a new copy. |
 | The home catalogue is lost | `arv rebuild /media/disc` with the newest disc: discs, copies, places, collections, their history, file lists, the archive's identity, and its vocabularies (`config/sets.rec`, `config/tags.rec`, unless the home has its own). A disc of another archive is refused (`--any-archive` to merge it anyway). |
 | The home catalogue may have been changed (a bad edit, a script, a failing drive) | `arv audit` checks every event against its id (each id is the hash of what was written), and `arv audit /media/disc ...` checks the home against each disc's copy of the catalogue: an event the disc has that the home lost or changed is listed. The newest discs see the most; `arv rebuild` brings lost events back. |
 | This tool is lost | every disc has `tools/` (the source at that time) and `README.txt`. Without it: `sha256sum -c manifest-sha256.txt` verifies, `index.html` browses, `grep` searches `catalog/volumes/*/listing.tsv`, and `catalog.rec` is plain text. |

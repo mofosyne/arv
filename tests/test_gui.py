@@ -210,7 +210,7 @@ class GuiTest(unittest.TestCase):
                      {"command": "stored", "disc_id": disc, "path": image, "location": "NAS"}):
             done = self.wait(json.loads(self.request("/api/command", body)[1]))
             self.assertEqual(done["returncode"], 0, "\n".join(done["lines"]))
-        check = self.wait(json.loads(self.request("/api/check", {"disc_id": disc, "device": image, "copy": "B"})[1]))
+        check = self.wait(json.loads(self.request("/api/check", {"disc_id": disc, "source": image, "copy": "B"})[1]))
         self.assertEqual(check["returncode"], 0, "\n".join(check["lines"]))
         copies = json.loads(self.request("/api/copies?disc=" + disc)[1])["copies"]
         self.assertEqual([(c["copy"], c["form"], c["at"], c["readBack"]) for c in copies],

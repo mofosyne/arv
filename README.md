@@ -42,7 +42,7 @@ what it does:
 - **Verify: still good, and can be got back.** A copy is recorded only once it reads back
   identical; checks come round every few years; `arv todo` says what is owed: copies, read-backs,
   cold copies, places, checks. Every disc carries error correction, the tools to repair it, and
-  the catalogue to rebuild the record from (`arv check`, `arv verify`, `arv restore`, `arv rebuild`).
+  the catalogue to rebuild the record from (`arv check`, `arv restore`, `arv rebuild`).
 
 `arv --help`, the GUI's three tabs and [docs/workflow.md](docs/workflow.md) are arranged the same way.
 **See it**: a [recorded session](https://mofosyne.github.io/arv/#see-it) of all three, run for real
@@ -87,7 +87,7 @@ Each layer does its own job:
 | Layer | Purpose | Tool |
 |---|---|---|
 | dvdisaster RS03 (augmented image, [format](docs/spec/rs03-format.md)) | **Repair** unreadable sectors | `arv check --repair`, or any `dvdisaster` |
-| BagIt manifests | **Detect** corruption per file, portable off-disc | `arv verify`, any BagIt tool ([note](docs/notes/bagit.md)), or plain `sha256sum -c` |
+| BagIt manifests | **Detect** corruption per file, portable off-disc | `arv check`, any BagIt tool ([note](docs/notes/bagit.md)), or plain `sha256sum -c` |
 | recfile catalogue | **Find** which disc holds what, without mounting | `recsel`, `recfix` ([note](docs/notes/recutils.md)) |
 
 ## What's here
@@ -213,7 +213,7 @@ arv make -y --set trip ~/archive/2019-kyoto                # disc image, recorde
 arv burned --device /dev/sr0 --location HOME               # after burning: read back, recorded as copy A
 arv todo                                                    # what is owed: burns, read-backs, places, checks
 arv find kyoto                                              # which disc, and where it is
-arv verify /media/cdrom                                     # every file against its checksum
+arv check /media/cdrom                                      # every file against its checksum
 arv restore /media/cdrom ~/restored                         # copy back; links and execute bits too
 ```
 
@@ -278,97 +278,44 @@ letter.
 
 ### Commands
 
-Every command has a short form, `arv COMMAND`, used throughout these docs. If you forget a
-command's name, its group lists it: the commands come in four groups, as `arv --help` shows them,
-and each group's name on its own lists that group with a line each:
+Every command has a short form, `arv COMMAND`, used throughout these docs. They come in four
+groups, as `arv --help` shows them; a group's name on its own lists its commands, and may come
+first (`arv record burned` is `arv burned`):
 
 ```sh
 arv archive    # make, plan, collection, status, checkpoint, link, names, describe, tag
-arv record     # burned, stored, objects, find, list, id, info, ls, note, locate, ... retire
-arv verify     # todo, check, verify, drives, inventory, audit, restore, rebuild
+arv record     # burned, stored, identify, relabel, locate, note, access, objects, find, list, info, ...
+arv verify     # todo, check, drives, inventory, restore, rebuild, audit
 arv home       # init, where, gui, help
 ```
 
-**The whole manual** is `arv help --all`: every command, which only read and which change the
-record, exit status, the outputs meant for scripts, and the rules for a script or an agent using
-arv, as one markdown document. `make install` installs the same text as a man page (`man arv`;
-`arv help --man` prints it). Agents working on arv's own code read `AGENTS.md`.
+`arv COMMAND --help` says what one does. **The whole manual** is `arv help --all`: every command,
+which only read and which change the record, exit status, the outputs meant for scripts, and the
+rules for a script or an agent using arv, as one markdown document; `make install` installs it as
+a man page (`man arv`). [docs/workflow.md](docs/workflow.md) is the whole workflow, step by step.
+Agents working on arv's own code read `AGENTS.md`.
 
-The group's name may also come first: `arv record burned ...` is `arv burned ...`, and a command
-named under the wrong group says which one it is in. (`arv verify DISC`, every file on a disc
-against its checksum; `arv verify` alone lists the group.)
+A first disc, start to finish:
 
 ```sh
-# Archive: what goes on discs (the places first, so discs can name them)
-arv location add HOME Home
-arv location add BOX3 "Box 3, blue lid" --in HOME
-arv make ./2025-01-13_Projects_2020_-_2025
-#  -> prompts for set (PROJ, from the folder name), categories (CODE, ELEC: from the files), title, ...
-# Record each physical copy's place when you run arv burned or arv stored.
-#  -> PROJ-01_2020-2025_K.iso  (bag + catalogue + index.html + tools/ + RS03 ECC, verified)
-arv make ./Diaries --access sealed      # other discs' catalogues show only its id
-arv names ./Photos                      # names the image cannot hold, or Windows would show changed
-# volume label: the disc id, then the title as far as it fits (126 characters, 63 beyond U+00FF);
-# --label TEXT to choose the text, --label '' for the id alone
-arv make ./Family_Photos --set PHOTOS --snapshot set   # disc for someone else: only this set's catalogue
-arv make ./Photos_2010-2020 --set PHOTOS --split       # as many BD-R 25GB discs as needed
-arv plan new trip --set TRIP && arv plan add trip ~/Videos/film.mkv /nas/photos/2025 --disc new
-arv plan show trip && arv plan make trip   # discs composed by hand from anywhere (docs/workflow.md)
-arv plan add trip /media/sdcard/DCIM       # the plan points at the source; make reads it where it is
-arv make ./my-git-clone --links record   # links: file links copied, the rest noted in the listing
-#   (default: links leaving the folder are refused; copy: copy what every link points to)
-arv make ./Video --medium bd100 --min-redundancy 25     # M-DISC 100GB, at least 25% RS03
-arv make ./Kyoto --importance "essential for self" --importance "important for family" --basis "first trip together"
-
-# Record: what exists, and where
-arv appraise TRIP-01_2019_4:day1/ --importance "essential for family" --review 5y   # the archivist log
-arv appraise TRIP-01_2019_4:day1/IMG_0001.JPG   # the appraisal in force (inherited from day1/)
-arv appraise --due                              # appraisals due for review
-arv find IMG_2019            # which disc holds it, and where the disc is
-arv objects                     # everything kept, and every copy of it: discs, places, hot/warm/cold
-arv objects TRIP-01_2019_4      # one disc's copies by letter: place, last check, BCA serial
-arv list --covers 2019-07-15    # discs whose date range includes that day (or 2019, 2019-07)
-arv sets -v                     # the vocabulary tree with disc counts, aliases and match rules
-arv list --in MEMORIES          # discs anywhere under a vocabulary entry
-arv id PHOTOS-07_2015-2024_Q   # explain / check an id (catches typos)
-arv note PROJECTS-01_2020-2025_1 "Only copy of the 2019 PCB gerbers"
-arv locate PROJECTS-01_2020-2025_1 B OFFSITE     # update the place of known copy B
-arv burned --device /dev/sr0 --location OFFSITE  # after burning the ISO yourself: read back, recorded
-                                                # (copy B: write the letter on the hub and case)
-arv location move BOX3 --in OFFSITE             # moving a box moves its discs
-arv location list -v                            # places as a tree, with the discs in each
-
-arv list --at HOME                              # discs anywhere inside a place
-arv list --access private --made 2026          # what belongs in this year's private box
-arv access PROJECTS-01_2020-2025_1 public          # public / private (default) / sealed
-arv tags                                         # every folder tag in use, by namespace
-arv keywords PROJ-01_2020-2025_K > kw.args  # tags as XMP keywords in exiftool format
-
-# Verify: still good, and can be got back
-arv todo                                           # what is owed: copies, read-backs, cold copies, places, checks
-arv list --unchecked-since 5y                  # discs due a check (last checked, or never)
-arv list --one-place                           # discs kept in only one place
-arv check --device /dev/sr0                        # read a disc back against its image hash, logged
-                                                   # (--copy B names the copy; the BCA serial, if read, finds it)
-arv check --image PROJECTS-01_2020-2025_1.iso
-arv rebuild /media/disc                            # recreate/merge the home catalogue from a disc
-arv audit /media/disc                              # the home's events as written, and as the disc has them
-arv rebuild /mnt/laptop/.arv                       # merge another catalogue of this archive, by event id
-arv drives                                         # which disc, and which copy, is in each drive (--check: check them)
-find /mnt/nas -name '*.iso' -exec arv info {} \;   # which of these images are discs of this archive
-arv todo --tsv                                     # what is due, one copy a line, for scripts (a tape library)
-mtx -f /dev/sg3 status | arv inventory LIB1        # a library's barcodes against the copies recorded there
-arv verify /media/disc                             # every file against its checksum
-arv restore /media/disc ~/restored                 # copy everything back, links and execute bits too
-
-arv gui                                            # the same, in your web browser
+arv init ~/archive                         # the archive's record: ~/archive/.arv
+arv location add HOME Home                 # where copies will be kept
+arv make ~/archive/Photos_2019             # the disc image: asks for its set and title; tested
+arv burned --device /dev/sr0 --location HOME   # after burning it: read back, recorded as copy A
+arv stored PHOTO-01_2019_X /nas/PHOTO-01_2019_X.iso   # another copy, as a file on the NAS
+arv find IMG_2019                          # which disc holds it, and where its copies are
+arv todo                                   # what is owed: copies, read-backs, places, checks
+arv check /dev/sr0                         # years on: read the disc back against its image
+arv check /media/disc                      # or every file of a mounted disc against its checksum
+arv restore /media/disc ~/restored         # copy everything back, links and execute bits too
+arv gui                                    # the same, in your web browser
 ```
 
 `arv gui` opens a local page (127.0.0.1 only, per-session token) with three tabs, as the commands
 are grouped: **Archive** (Mastering: discs composed by hand, with drag and drop and a fill bar a
 disc; making a disc from a folder), **Record** (Objects: everything kept and where every copy is;
 the discs, with notes, places and copies; search) and **Verify** (what is owed, counted in the
-header; checking a disc or image; verifying, restoring and rebuilding from a disc). Every action
+header; checking a copy (a drive, an image or a disc's files); restoring and rebuilding from a disc). Every action
 runs the same `arv` command as the terminal and shows its output.
 
 ![arv gui, Record › Discs: the sample discs, with where each is kept and when it was last checked, under the Archive, Record and Verify tabs](docs/screenshots/gui.png)
@@ -391,8 +338,8 @@ in its snapshot.
   `--split`, becomes a set of complete bags (`Bag-Count: n of N`) that each know the whole set.
 - RS03 fills the disc to the medium size: arv writes it itself ([src/rs03](src/rs03/), the same
   bytes as dvdisaster Light), then reads the image back and tests every sector against its CRC
-  and the parity against the data. `arv check --image` repeats that test later, and
-  `arv check --image IMAGE --repair` mends a damaged image in place (`tools/arv.com` on every
+  and the parity against the data. `arv check IMAGE` checks it later against the image's hash (and, if it
+  differs, with its RS03 data), and `arv check IMAGE --repair` mends a damaged image in place (`tools/arv.com` on every
   disc can do it, with no catalogue). It finds damage from the CRCs, dvdisaster's dead sector
   markers, zero-filled sectors (what ddrescue leaves) and a missing end, and repairs as
   dvdisaster Light does, to the same bytes. Every dvdisaster build can repair these images too.
@@ -405,12 +352,10 @@ in its snapshot.
 - Every image is the same kind: UDF 2.50 with a metadata partition and a real mirror, the
   Blu-ray standard, written by arv's own [`src/udfwrite`](src/udfwrite/) to the profile in
   [docs/spec/archival-udf.md](docs/spec/archival-udf.md). One standard output, so a damaged disc found
-  years later is never a guess about which layout it has. (Discs made by earlier versions as
-  ISO 9660 + UDF 1.02 hybrids, or by NetBSD makefs, stay readable: arv reads their labels and
-  catalogues the same way.)
+  years later is never a guess about which layout it has.
 - Disc ids look like `PHOTOS-07_2015-2024_Q`: set, number, coverage and a check character
   that catches typos. They are derived from the record's `Set`, `Sequence` and `Coverage`
-  (EDTF: `2019`, `2015/2024`, `199X`, `1995~`) and used as the volume label. `arv id <ID>`
+  (EDTF: `2019`, `2015/2024`, `199X`, `1995~`) and used as the volume label. `arv info <ID>`
   explains and checks one; `arv list --covers 2019-07-15` finds discs by date. Only the current
   `set-seq-coverage/1` identifier scheme is read.
 - Discs are classified with a word vocabulary in `<home>/config/sets.rec` (PHOTO, TRIP, SCAN, TAXES,
@@ -427,8 +372,7 @@ in its snapshot.
   people with `--snapshot set`), `private` (default: your own discs only), `sealed`
   (only its id, set, dates and location; no title, notes or file list).
 - A home (`.arv`) holds `config/` (vocabularies), `catalog/` (laid out like `catalog/` on
-  every disc), `drafts/`, and `cache/` (rebuildable; marked with `CACHEDIR.TAG`). A home in the
-  older flat layout is moved into this one on first use.
+  every disc), `drafts/`, and `cache/` (rebuildable; marked with `CACHEDIR.TAG`).
 - Each disc carries a snapshot of arv's source from `disc-tools.txt`; build output and the source
   repository's history are not included.
 - Tests: `make check`: bagit and RS03 (each with its referee when installed), arv against the

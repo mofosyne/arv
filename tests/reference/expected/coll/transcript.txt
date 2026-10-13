@@ -186,7 +186,7 @@ FAM-01_2019_0: copy A recorded, 1 in all (not read back: arv burned --device che
 Write its letter on the hub and the case, after the id: FAM-01_2019_0 A
 rc=0
 $ --home hc todo
-Burned, never read back (arv check --device DRIVE --copy X ID):
+Burned, never read back (arv check DRIVE --copy X ID):
   FAM-01_2019_0  copy A
 Replaced by a safe edition, ready to retire (arv retire CODE):
   FAM: edition 1 (replaced by edition 2)
@@ -261,17 +261,19 @@ FAM-02_2019_Y: copy B recorded (iso, warm, checked), 2 in all
 rc=0
 $ --home hc stored FAM-02_2019_Y bad.iso
 Reading ROOT/bad.iso: the 882 sectors of FAM-02_2019_Y's image ...
-FAM-02_2019_Y: the iso at ROOT/bad.iso is NOT a good copy (different content from the image); not recorded
+FAM-02_2019_Y: the iso at ROOT/bad.iso is NOT a good copy (DIFFERENT from the image arv made); not recorded
 rc=1
 $ --home hc stored FAM-01_2019_0 nas/FAM-02_2019_Y
 FAM-01_2019_0: the folder at ROOT/nas/FAM-02_2019_Y is NOT a good copy (ROOT/nas/FAM-02_2019_Y is not disc FAM-01_2019_0 (its catalog.rec names FAM-02_2019_Y)); not recorded
 rc=1
 $ --home hc stored FAM-02_2019_Y nas/FAM-02_2019_Y --location NAS
-Verifying ROOT/nas/FAM-02_2019_Y (every file against the manifests) ...
-FAM-02_2019_Y: the folder at ROOT/nas/FAM-02_2019_Y is NOT a good copy (2 payload files, 1 failed, 0 missing, 0 extra); not recorded
+Checking ROOT/nas/FAM-02_2019_Y (every file against the manifests) ...
+INVALID  bag-info.txt (Payload-Oxum is 4.2, the payload is 13.2 (bytes.files))
+FAILED   data/c.txt
+FAM-02_2019_Y: the folder at ROOT/nas/FAM-02_2019_Y is NOT a good copy (19 OK, 1 FAILED, 0 MISSING, 0 EXTRA, 1 other problems); not recorded
 rc=1
 $ --home hc stored FAM-02_2019_Y nas/FAM-02-files --location NAS --note unpacked, for quick restores
-Verifying ROOT/nas/FAM-02-files (every file against the manifests) ...
+Checking ROOT/nas/FAM-02-files (every file against the manifests) ...
 FAM-02_2019_Y: copy C recorded (folder, warm, checked), 3 in all
 rc=0
 $ --home hc location list
@@ -279,10 +281,10 @@ NAS        The NAS                        1 disc  [warm]
 BOX1       (free text, not a location code)
 rc=0
 $ --home hc todo
-Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within 5 years.
+Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked since 2021-01-01.
 rc=0
 $ --home hc todo
-Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within 5 years.
+Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked since 2021-01-01.
 rc=0
 $ --home hc appraise FAM-02_2019_Y:c.txt --importance essential for family --importance useful for self
 FAM-02_2019_Y:c.txt: essential for family; useful for self
@@ -295,7 +297,7 @@ $ --home hc appraise FAM-02_2019_Y:c.txt --importance important for family
 FAM-02_2019_Y:c.txt: important for family
 rc=0
 $ --home hc todo
-Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within 5 years.
+Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked since 2021-01-01.
 rc=0
 $ --home hc collection show NOPE
 Error: no collection NOPE

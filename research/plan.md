@@ -1344,3 +1344,23 @@ workflow, is it tested, does another command or tool already do it.
   and `ls` as `info`; one spelling for recording a state; `--barcode` with one meaning; one rule for
   what is due a check; each command's own help.
 
+## Decision (2026-10-14, issue #42): the clarity round, part 2
+
+One way to do each thing.
+
+- **`arv check SOURCE`** for every kind of copy. What SOURCE is (a device, a file, a folder) says
+  which check: every sector read back, the image against its hash, or every file against the
+  manifests. Before, the same question had three spellings (`check --device`, `check --image`,
+  `verify`, and `stored --copy X` at its own path), and `verify` recorded nothing. A check is
+  logged whenever the disc is in the catalogue. `--drive` stays for a file that is a whole disc
+  read (a ddrescue dump is the medium's size, past the image), and stands in for a drive in the
+  tests. An image whose hash differs is also tested with its RS03 data, which says which sectors.
+- **`arv info`** takes a disc root, an image or a disc id (`id` and `ls` were the same question
+  asked of different things).
+- **`checkpoint`** alone records a state; `status` only reads. Whether recording states with no
+  discs is worth keeping at all (it edges into version control) is still open.
+- **`--barcode`** always means the copy's own; `stored` names a tape with `--carrier`.
+- **One rule for "last checked"** (`disc_last_check`), one age syntax for `todo` and `list`.
+- **Help:** each command has its own usage entry, with a line saying what it does; the manual,
+  the man page, completion and `--help` all come from it, so they agree.
+

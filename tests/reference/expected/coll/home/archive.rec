@@ -379,7 +379,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: arv 0.4
-Note: check of a stored copy (iso) at ROOT/nas/FAM-02_2019_Y.noecc.iso: identical to the image
+Note: check of a stored copy (iso) at ROOT/nas/FAM-02_2019_Y.noecc.iso: identical to the image arv made
 
 EventId: ID
 Disc: FAM-02_2019_Y
@@ -403,7 +403,7 @@ Date: 2026-01-01
 Outcome: failure
 Authorship: automatic
 Agent: arv 0.4
-Note: check of a stored copy (iso) at ROOT/bad.iso: different content from the image
+Note: check of a stored copy (iso) at ROOT/bad.iso: DIFFERENT from the image arv made
 
 EventId: ID
 Disc: FAM-01_2019_0
@@ -421,7 +421,7 @@ Date: 2026-01-01
 Outcome: failure
 Authorship: automatic
 Agent: arv 0.4
-Note: check of a stored copy (folder) at ROOT/nas/FAM-02_2019_Y: 2 payload files, 1 failed, 0 missing, 0 extra
+Note: check of a stored copy (folder) at ROOT/nas/FAM-02_2019_Y: 19 OK, 1 FAILED, 0 MISSING, 0 EXTRA, 1 other problems
 
 EventId: ID
 Disc: FAM-02_2019_Y
@@ -430,7 +430,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: arv 0.4
-Note: check of a stored copy (folder) at ROOT/nas/FAM-02-files: 2 payload files, 0 failed, 0 missing, 0 extra
+Note: check of a stored copy (folder) at ROOT/nas/FAM-02-files: all 2 files and 18 tag files match their checksums (sha256 sha512)
 
 EventId: ID
 Disc: FAM-02_2019_Y

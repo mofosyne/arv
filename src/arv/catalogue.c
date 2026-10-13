@@ -570,8 +570,8 @@ int cmd_id(int argc, char **argv)
         char again[64];
         if (scheme && !strcmp(scheme, DISCID_SCHEME) && seq
             && !discid_compose(rec_get(d, "Set"), atol(seq), rec_get(d, "Coverage"), again, sizeof again)) {
-            if (!strcmp(again, rec_get(d, "Id"))) printf("fields:    regenerate this id\n");
-            else printf("fields:    regenerate %s (the record and the id disagree)\n", again);
+            if (!strcmp(again, rec_get(d, "Id"))) printf("fields:    the id matches the disc's set, sequence and coverage\n");
+            else printf("fields:    they make %s: the record and the id disagree\n", again);
         }
     } else {
         /* known ids of the same length within two characters, closest first */
@@ -645,7 +645,8 @@ char *upper_trim(const char *s)
 
 /* The date `ago` (5y, 18m, 90d) before today, or a date given as such (2021, 2021-06, 2021-06-30),
    as YYYY-MM-DD; NULL when it is neither */
-static char *cutoff_date(const char *ago)
+/* the date AGE ago (5y, 18m, 90d), or a date given as 2021, 2021-06 or 2021-06-30; NULL if neither */
+char *age_cutoff(const char *ago)
 {
     char *end;
     long n = strtol(ago, &end, 10);
@@ -670,23 +671,6 @@ static char *cutoff_date(const char *ago)
     return NULL;
 }
 
-/* The date of the disc's last successful check (outcome success or warning), not counting the
-   test of the image when it was made: "" when there is none */
-static const char *last_checked(const catalogue *c, const char *id)
-{
-    const char *last = "";
-    for (size_t i = 0; i < c->rec.nrecords; i++) {
-        const rec_record *e = &c->rec.records[i];
-        const char *disc = rec_get(e, "Disc"), *type = rec_get(e, "Type"), *out = rec_get(e, "Outcome"), *date = rec_get(e, "Date"),
-                   *note = rec_get(e, "Note");
-        if (!is_type(e, "Event") || !disc || !type || !out || !date || strcmp(disc, id) || strcmp(type, "fixity check")) continue;
-        if (strcmp(out, "success") && strcmp(out, "warning")) continue;
-        if (note && !strncmp(note, "image test after creation", 25)) continue;
-        if (strncmp(date, last, 10) > 0) last = date;
-    }
-    return last;
-}
-
 int cmd_list(int argc, char **argv)
 {
     const char *given = NULL, *within = NULL, *at = NULL, *made = NULL, *acc = NULL, *covers = NULL, *unchecked = NULL;
@@ -707,7 +691,7 @@ int cmd_list(int argc, char **argv)
             die("--covers: %s is not a date or range (examples: 2019, 2015/2024, 2019-07/2019-08, 199X)", covers);
     }
     char *cutoff = NULL;
-    if (unchecked && !(cutoff = cutoff_date(unchecked)))
+    if (unchecked && !(cutoff = age_cutoff(unchecked)))
         die("--unchecked-since: %s is neither an age (5y, 18m, 90d) nor a date (2021, 2021-06, 2021-06-30)", unchecked);
     catalogue c;
     open_catalogue(given, &c);
@@ -721,7 +705,7 @@ int cmd_list(int argc, char **argv)
         if (acc && strcmp(access_of(d), acc)) continue;
         if (made && strncmp(rec_get(d, "Date") ? rec_get(d, "Date") : "", made, strlen(made))) continue;
         if (covers && edtf_covers(rec_get(d, "Coverage"), covers) != 1) continue;
-        const char *checked = cutoff ? last_checked(&c, rec_get(d, "Id") ? rec_get(d, "Id") : "") : NULL;
+        const char *checked = cutoff ? disc_last_check(&c.records, rec_get(d, "Id") ? rec_get(d, "Id") : "") : NULL;
         if (cutoff && *checked && strncmp(checked, cutoff, 10) >= 0) continue;
         strlist places;
         archive_copy_locations(&c.records, rec_get(d, "Id"), &places);

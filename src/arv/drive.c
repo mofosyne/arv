@@ -1,6 +1,6 @@
 /* What an optical drive says of the disc in it, beyond its sectors: the BCA serial, a BD-R's own
  * factory serial in its burst cutting area. It tells one copy of an image from another, so
- * arv burned --device records it with the copy and arv check --device knows which copy it read.
+ * arv burned --device records it with the copy and arv check DRIVE knows which copy it read.
  *
  * Read with MMC READ DISC STRUCTURE (BD, format 03h), which needs no AACS authentication on the
  * drives tried (dev-tools/disc-probe.c asks a drive; docs/burning.md, the first-burn drill). The

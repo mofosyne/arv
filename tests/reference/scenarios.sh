@@ -391,7 +391,7 @@ for o in "" "--in MEMORIES" "--at BOX1" "--access sealed" "--made 2026" "--cover
     log query.out --home q list $o
 done
 for q in TRIP-01_2019_4 trip-01_2019_4 TRIP-01_2019_5 PROJ-01_2020-2O23_L 2020-2025_PROJECTS_01 "not an id"; do
-    log query.out --home q id "$q"
+    log query.out --home q info "$q"
 done
 log query.out --home q sets
 log query.out --home q sets -v
@@ -401,9 +401,9 @@ log query.out --home q todo --bogus          # arguments a command does not take
 log query.out --home q burned --help         # a command's own lines of the usage
 log query.out --home q-empty todo            # nothing made yet: not "nothing owed"
 log query.out --home q record                # a group lists its commands
-log query.out --home q record id TRIP-01_2019_4   # a group's name first: the same command
+log query.out --home q record info TRIP-01_2019_4   # a group's name first: the same command
 log query.out --home q record make           # a command named under the wrong group
-log query.out --home q verify frob           # not a disc, not a command: the old verify says so
+log query.out --home q verify frob           # a group, and no command frob in it
 (XDG_CONFIG_HOME="$root/no-config" && export XDG_CONFIG_HOME && cd "$work" && log "$root/query.out" todo)   # no archive: arv init, as git
 keep query.out query/transcript.txt
 

@@ -52,7 +52,7 @@ growisofs -use-the-force-luke=spare:none -speed=4 -Z /dev/sr0=TRIP-01_2019_4.iso
 
 **Windows:** right-click the `.iso`, *Burn disc image*. **macOS:** `hdiutil burn TRIP-01_2019_4.iso`.
 Both burn the image as it is; check with step 3 like any other burn (from a Linux machine, or
-another system with arv: `arv.com check --device`).
+another system with arv: `arv.com check DRIVE`).
 
 Not suitable: burning programs' data-disc modes (Brasero's and K3b's projects, the Finder's
 *Burn folder*), and anything that offers to "finalize later" or write a multi-session disc.
@@ -69,7 +69,7 @@ arv burned --device /dev/sr0 --location HOME-PUB-2026 --barcode ARV-000123   # t
 Each copy gets the next letter (A, B ...), and arv says which: write it on the hub and the case
 after the id. `--copy X` names it yourself instead. On Linux, where the drive reads the disc's BCA
 serial (step 7), arv records it with the copy, refuses a disc already recorded, and later
-`arv check --device` knows which copy is in the drive without being told.
+`arv check DRIVE` knows which copy is in the drive without being told.
 
 **Barcodes go on the case, not the disc.** A sticker on a disc unbalances it at speed and its
 adhesive can attack the recording layer over the years; put labels on the case, a caddy, or a
@@ -108,7 +108,7 @@ against its manifest). Either is recorded as a warm copy unless its place says o
 NAS copy is a fine second copy, and quick to restore from; it is not a cold one.
 
 `arv burned` without `--device` still records a copy (a disc burned on another machine, say), but
-as not read back: `arv todo` keeps listing it until `arv check --device` reads it.
+as not read back: `arv todo` keeps listing it until `arv check DRIVE` reads it.
 
 Without arv at hand, the same check by hand:
 
@@ -126,11 +126,11 @@ Then the `.iso` can go, or stay on a drive as one more copy.
 
 - `arv todo` lists what is owed: images not burned, copies not read back, editions not yet safe,
   replaced editions to retire, discs kept in one place, checks overdue.
-- Every few years, per copy: `arv check --device /dev/sr0` (logged). `arv list --unchecked-since 5y`
+- Every few years, per copy: `arv check /dev/sr0` (logged). `arv list --unchecked-since 5y`
   lists the discs due one, with the date of their last check; `arv list --one-place` those kept in
   only one place. (A check is recorded per disc, not per copy: note which copy in `--note`.)
 - A disc that will not read cleanly: follow REPAIR in its `README.txt`: read it into an image
-  with GNU ddrescue or dvdisaster Light, then `arv check --image disc.iso --repair`. If arv cannot
+  with GNU ddrescue or dvdisaster Light, then `arv check disc.iso --repair`. If arv cannot
   repair it, it prints what to paste next: dvdisaster Light with the disc's medium size (`-n`, which
   arv keeps in the catalogue as `MediumSectors` and in the disc's README.txt), and the reads that
   fetch the missing sectors from another copy. A disc that needed repair is a warning: burn a
@@ -153,7 +153,7 @@ burning program. Record the results in issue #5 and in `src/udfwrite/README.md`'
 5. **Damage drill**, on a second burned copy you are willing to ruin: mark a few lines across
    the data side with a permanent marker (or a light scratch), then
    - `ddrescue -b 2048 /dev/sr0 drill.iso drill.map` (let it finish, retries and all);
-   - `arv check --image drill.iso --repair` (from the disc's own `tools/arv.com` too);
+   - `arv check drill.iso --repair` (from the disc's own `tools/arv.com` too);
    - compare with the original: `sha256sum drill.iso` against `ImageSha256`.
    Record how many sectors were unreadable and whether the repair brought back the very image.
 6. **Two damaged copies:** damage the first copy elsewhere, read both into the same image with
@@ -162,7 +162,7 @@ burning program. Record the results in issue #5 and in `src/udfwrite/README.md`'
    on two discs of the same pack (blank is fine). It prints the drive, the media's maker and
    type, and whether the drive reads a BCA serial, one disc's own. Two serials that differ mean
    arv can tell the copies apart by themselves: on Linux `arv burned --device` records the serial
-   with each copy and refuses a disc already recorded, and `arv check --device` says which copy is
+   with each copy and refuses a disc already recorded, and `arv check DRIVE` says which copy is
    in the drive. Record what it printed in issue #5.
 
    Tried so far: a Pioneer BDR-XD08 (firmware 1.02) reads the BCA of Verbatim BD-R (`VERBAT/IMe`)
@@ -174,7 +174,7 @@ burning program. Record the results in issue #5 and in `src/udfwrite/README.md`'
 ## Known pitfalls
 
 - A burn verify run right after writing, without ejecting, can read the computer's cache, not
-  the disc. `arv check --device` asks the system to drop its cache first; ejecting is surer.
+  the disc. `arv check DRIVE` asks the system to drop its cache first; ejecting is surer.
 - growisofs formats blank BD-R with spare areas unless told not to (above).
 - Some burning programs refuse files over 4 GiB in data-disc mode; burning arv's image as an
   image avoids that.

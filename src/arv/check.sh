@@ -62,7 +62,8 @@ git -C src -c user.name=t -c user.email=t@example.invalid add -A
 git -C src -c user.name=t -c user.email=t@example.invalid commit -q -m test
 "$tool" make -C home --no-ecc --no-formats --set CODE --output disc.iso src >/dev/null 2>&1 || no "arv make"
 7z x -odisc disc.iso >/dev/null || no "7z cannot read the image"
-"$tool" verify disc >/dev/null && ok "verify: every file matches the manifests" || no "verify"
+"$tool" check -C home disc >/dev/null && ok "check FOLDER: every file matches the manifests" || no "check FOLDER"
+"$tool" info --files disc | grep -q "  docs/guide.md$" && ok "info --files: the disc's listing" || no "info --files"
 "$tool" restore disc out >/dev/null && ok "restore: no errors" || no "restore"
 [ -z "$(git -C out status --porcelain)" ] && ok "restored tree is exactly the commit (git status clean)" \
     || no "git status: $(git -C out status --porcelain)"
@@ -90,8 +91,8 @@ done < "$ext"
     || no "dd from extents.tsv: $wrong of $carved files differ from the manifest"
 cp -r disc bad
 printf X | dd of=bad/data/docs/guide.md bs=1 seek=0 conv=notrunc 2>/dev/null
-if "$tool" verify bad >out.txt; then no "verify missed damage"; fi
-grep -q "FAILED   data/docs/guide.md" out.txt && ok "verify finds a damaged file" || no "damage report"
+if "$tool" check -C home bad >out.txt; then no "check missed damage"; fi
+grep -q "FAILED   data/docs/guide.md" out.txt && ok "check FOLDER finds a damaged file" || no "damage report"
 if "$tool" restore bad out-bad >out.txt; then no "restore missed damage"; fi
 [ -f out-bad/README.md ] && [ ! -L out-bad/README.md ] \
     && ok "restore keeps a link's copy when its target is damaged" || no "copy of a damaged target"
@@ -100,7 +101,7 @@ if "$tool" restore bad out-bad >out.txt; then no "restore missed damage"; fi
 if [ -f "$here/build/arv.com" ]; then
     [ -f disc/tools/arv.com ] && grep -q "tools/arv.com" disc/README.txt || no "tools/arv.com missing, or README.txt silent on it"
     cp disc/tools/arv.com ape.com && chmod 755 ape.com     # copied off the disc, as README.txt says (7z drops modes)
-    (cd disc && ../ape.com verify . >/dev/null) && ok "tools/arv.com (Actually Portable Executable), copied off the disc, verifies it" \
+    (cd disc && ../ape.com check . >/dev/null) && ok "tools/arv.com (Actually Portable Executable), copied off the disc, checks it" \
         || no "tools/arv.com from the disc"
 fi
 
@@ -230,35 +231,35 @@ echo "$where" | grep -q "drive/.arv$" && echo "$where" | grep -q "beside arv its
     && [ "$(sed -n 's/^ImageSectors: //p' ecc-home/catalog/archive.rec)" -eq $(($(wc -c < "$iso") / 2048)) ] \
     && ok "the home's Binding records the finished image's size and SHA-256 (to check a burned disc against)" \
     || no "ImageSectors / ImageSha256"
-# check --device reads the image's sectors back and compares (a file stands in for the drive)
+# check --drive reads the image's sectors back and compares (a file stands in for the drive)
 id=$(sed -n 's/^Id: //p' ecc-home/catalog/archive.rec | head -1)
 cp "$iso" drive.img
 dd if=/dev/zero bs=2048 count=40 >> drive.img 2>/dev/null       # a drive gives sectors past the image too
-out=$(PATH=/usr/bin:/bin "$tool" check -C ecc-home --device drive.img "$id" 2>&1) \
+out=$(PATH=/usr/bin:/bin "$tool" check -C ecc-home --drive drive.img "$id" 2>&1) \
     && echo "$out" | grep -q "holds exactly the image arv made" && grep -q "Note: read-back of the whole image" ecc-home/catalog/archive.rec \
-    || { echo "$out"; no "check --device read-back"; }
+    || { echo "$out"; no "check --drive read-back"; }
 printf X | dd of=drive.img bs=1 seek=$((7000 * 2048)) conv=notrunc 2>/dev/null
-"$tool" check -C ecc-home --device drive.img "$id" >/dev/null 2>&1 && no "check --device missed a changed sector"
+"$tool" check -C ecc-home --drive drive.img "$id" >/dev/null 2>&1 && no "check --drive missed a changed sector"
 head -c $((4000 * 2048)) "$iso" > drive.img
-out=$("$tool" check -C ecc-home --device drive.img "$id" 2>&1) && no "check --device missed a short disc"
+out=$("$tool" check -C ecc-home --drive drive.img "$id" 2>&1) && no "check --drive missed a short disc"
 echo "$out" | grep -q "the disc ends at sector 4000" \
-    && ok "check --device: reads the image back past the cache, no dvdisaster needed; finds a changed sector, a short disc" \
-    || { echo "$out"; no "check --device on a short disc"; }
+    && ok "check --drive: reads the image back past the cache, no dvdisaster needed; finds a changed sector, a short disc" \
+    || { echo "$out"; no "check --drive on a short disc"; }
 checks=$(grep -c 'Type: fixity check' ecc-home/catalog/archive.rec)
-"$tool" check -C ecc-home --image "$iso" --note "yearly check" >/dev/null 2>&1 \
+"$tool" check -C ecc-home "$iso" --note "yearly check" >/dev/null 2>&1 \
     && [ "$(grep -c 'Type: fixity check' ecc-home/catalog/archive.rec)" -eq $((checks + 1)) ] \
-    && ok "arv check --image: the image is whole, logged" || no "arv check"
+    && ok "arv check IMAGE: identical to the image arv made, logged" || no "arv check"
 cp "$iso" damaged.iso
 printf X | dd of=damaged.iso bs=1 seek=$((40 * 2048)) conv=notrunc 2>/dev/null
-out=$("$tool" check -C ecc-home --image damaged.iso "$id" 2>&1) && no "check missed damage"
-echo "$out" | grep -q "1 data sectors with a wrong CRC" && ok "arv check --image finds a damaged sector" || { echo "$out"; no "damage report"; }
+out=$("$tool" check -C ecc-home damaged.iso "$id" 2>&1) && no "check missed damage"
+echo "$out" | grep -q "1 data sectors with a wrong CRC" && ok "arv check IMAGE finds a damaged sector (its RS03 data says which)" || { echo "$out"; no "damage report"; }
 cp damaged.iso light.iso
 # repaired by arv itself: a damaged sector, a zero-filled run (as ddrescue or dd leave) and a missing end
 printf '\0\0\0\0\0\0\0\0' | dd of=damaged.iso bs=1 seek=$((3000 * 2048)) conv=notrunc 2>/dev/null
 dd if=/dev/zero of=damaged.iso bs=2048 seek=5000 count=20 conv=notrunc 2>/dev/null
 cp damaged.iso nohome.iso
 truncate -s $(( ($(wc -c < "$iso") / 2048 - 100) * 2048 )) damaged.iso
-out=$("$tool" check -C ecc-home --image damaged.iso --repair "$id" 2>&1) || { echo "$out"; no "arv check --repair"; }
+out=$("$tool" check -C ecc-home damaged.iso --repair "$id" 2>&1) || { echo "$out"; no "arv check --repair"; }
 cmp -s damaged.iso "$iso" && echo "$out" | grep -q "$id: REPAIRED" && grep -q "Outcome: warning" ecc-home/catalog/archive.rec \
     && ok "arv check --repair: damaged sectors, a zero-filled run and a missing end, back to the very image; logged" \
     || { echo "$out"; no "arv check --repair"; }
@@ -270,7 +271,7 @@ cp "$iso" lost.iso
 dd if=/dev/zero of=lost.iso bs=2048 seek=$D count=2 conv=notrunc 2>/dev/null
 dd if=/dev/zero of=lost.iso bs=2048 seek=$((nd * spl)) count=10 conv=notrunc 2>/dev/null
 printf 'damage' | dd of=lost.iso bs=1 seek=$((300 * 2048)) conv=notrunc 2>/dev/null
-"$tool" check -C ecc-home --image lost.iso --repair "$id" >lost.txt 2>&1 && no "--repair claims to have repaired a lost layout"
+"$tool" check -C ecc-home lost.iso --repair "$id" >lost.txt 2>&1 && no "--repair claims to have repaired a lost layout"
 grep -q "^    dvdisaster -i 'lost.iso' -f -n 9600$" lost.txt \
     && ok "--repair without a layout: prints the dvdisaster Light commands, with the catalogue's medium size" \
     || { cat lost.txt; no "the dvdisaster hand-over"; }
@@ -281,7 +282,7 @@ if command -v dvdisaster >/dev/null && dvdisaster --help 2>&1 | grep -q no-bdr-d
         || no "the pasted dvdisaster commands"
 fi
 mkdir -p nowhere
-out=$(cd nowhere && ARV_HOME="$dir/nowhere/none" "$tool" check --image ../nohome.iso --repair 2>&1) || { echo "$out"; no "repair without a home"; }
+out=$(cd nowhere && ARV_HOME="$dir/nowhere/none" "$tool" check ../nohome.iso --repair 2>&1) || { echo "$out"; no "repair without a home"; }
 cmp -s nohome.iso "$iso" && echo "$out" | grep -q "not logged" \
     && ok "arv check --repair works on an image in no catalogue (as from a disc found decades on)" || { echo "$out"; no "repair without a home"; }
 # overdue checks: a disc checked today is not overdue now, but is five years on; one never checked is
@@ -299,7 +300,7 @@ cmp -s nohome.iso "$iso" && echo "$out" | grep -q "not logged" \
 # the one cc line README.txt gives, from the disc's own tools/
 mkdir -p cc-build
 (cd disc && cc -O2 -pthread -o ../cc-build/arv tools/arv/src/arv/*.c tools/arv/src/bagit/bagit.c tools/arv/src/udfwrite/udfwrite.c \
-    tools/arv/src/rs03/rs03.c >/dev/null 2>&1) && cc-build/arv verify disc >/dev/null \
+    tools/arv/src/rs03/rs03.c >/dev/null 2>&1) && cc-build/arv check disc >/dev/null \
     && ok "README.txt's one cc line builds arv from the disc's tools/" || no "building arv from tools/"
 if command -v dvdisaster >/dev/null && dvdisaster --help 2>&1 | grep -q no-bdr-defect-management; then
     dvdisaster -i "$iso" -t --no-progress 2>&1 | grep -q "Ecc block test *: pass" \
@@ -350,7 +351,7 @@ done > bytes
 n=0
 while [ $n -le 130 ]; do head -c $n bytes > "lengths/data/$(printf %03d $n)"; n=$((n + 1)); done
 (cd lengths && sha256sum data/* > manifest-sha256.txt && sha256sum catalog.rec manifest-sha256.txt > tagmanifest-sha256.txt)
-"$tool" verify lengths >/dev/null && ok "SHA-256 matches sha256sum for 0 to 130 bytes" || no "SHA-256"
+"$tool" check lengths LEN-01_2026_X >/dev/null && ok "SHA-256 matches sha256sum for 0 to 130 bytes" || no "SHA-256"
 (cd lengths && "$here/build/fixtures" --hash data/* > ../sha512.c.txt && sha512sum data/* > ../sha512.txt)
 cmp -s sha512.c.txt sha512.txt && ok "SHA-512 matches sha512sum for 0 to 130 bytes" || no "SHA-512"
 
@@ -463,7 +464,7 @@ cp lib/T2.iso lib/mnt/ && "$tool" -C lib/.arv stored "$l2" lib/mnt/T2.iso --carr
 "$tool" -C lib/.arv burned "$l3" --copies 1 --location LIB1 >/dev/null 2>&1 || no "burned, no barcode"
 "$tool" -C lib/.arv todo --tsv > todo.tsv
 grep -q "^read-back	$l1	A	disc	barcode:DISC01		LIB1		$" todo.tsv && ! grep -q "	$l2	" todo.tsv || { cat todo.tsv; no "todo --tsv"; }
-"$tool" -C lib/.arv todo --tsv --overdue -1 | grep -q "^overdue	$l2	A	iso		barcode:TAPE01L8	LIB1	.*/lib/mnt/T2.iso	" \
+"$tool" -C lib/.arv todo --tsv --overdue 2999 | grep -q "^overdue	$l2	A	iso		barcode:TAPE01L8	LIB1	.*/lib/mnt/T2.iso	" \
     || no "todo --tsv: an overdue copy on a tape"
 printf '%s\n' '  Storage Changer /dev/sg3:1 Drives, 4 Slots ( 0 Import/Export )' 'Data Transfer Element 0:Empty' \
     '      Storage Element 1:Full :VolumeTag=DISC01' '      Storage Element 2:Full :VolumeTag=TAPE01L8' \
@@ -476,10 +477,10 @@ grep -v TAPE01L8 lib/status.txt | "$tool" -C lib/.arv inventory LIB1 > inv.out &
 grep -q "^MISSING    $l2 copy A" inv.out || { cat inv.out; no "inventory: the missing tape"; }
 printf '#!/bin/sh\ncase "$3" in status) cat "%s/lib/status.txt";; *) echo "$3 $4 $5" >> "%s/lib/mtx.log";; esac\n' "$PWD" "$PWD" > lib/bin/mtx
 chmod +x lib/bin/mtx
-(cd lib && ARV="$tool" MTX="$PWD/bin/mtx" OVERDUE=-1 LTFS_MOUNT=true LTFS_UMOUNT=true \
+(cd lib && ARV="$tool" MTX="$PWD/bin/mtx" OVERDUE=2999 LTFS_MOUNT=true LTFS_UMOUNT=true \
     sh "$repo/docs/examples/library-check.sh" /dev/sg3 0 T1.iso "$PWD/mnt") > loop.out 2>&1 || { cat loop.out; no "library-check.sh"; }
 [ "$(cat lib/mtx.log)" = "$(printf 'load 1 0\nunload 1 0\nload 2 0\nunload 2 0')" ] && grep -q "^skip: $l3 copy A has no barcode" loop.out \
-    && grep -q "^$l1 copy A: OK" loop.out && grep -q "^$l2: copy A checked at .*/lib/mnt/T2.iso: identical" loop.out \
+    && grep -q "^$l1 copy A: OK" loop.out && grep -q "^$l2 copy A: OK" loop.out \
     && ! "$tool" -C lib/.arv todo --tsv | grep -q "^read-back	$l1" \
     && ok "a library: todo --tsv is the worklist, inventory reconciles mtx status with the record, and the example mtx loop loads, checks and unloads by barcode" \
     || { cat loop.out lib/mtx.log; no "the library loop"; }
@@ -511,7 +512,7 @@ rc=0; "$tool" -C rl/a/.arv audit > rl.out || rc=$?
 "$tool" -C rl/a/.arv relabel "$r1" A B 2> rl.out && no "relabel of an ambiguous letter"
 grep -q "has 2 copies lettered A" rl.out || { cat rl.out; no "relabel says which"; }
 "$tool" -C rl/a/.arv relabel "$r1" A B --at ATTIC >/dev/null || no "relabel --at"
-"$tool" -C rl/a/.arv check --device rl/a/r.iso --copy B "$r1" >/dev/null 2>&1 || no "check of a relabelled copy"
+"$tool" -C rl/a/.arv check --drive rl/a/r.iso --copy B "$r1" >/dev/null 2>&1 || no "check of a relabelled copy"
 "$tool" -C rl/a/.arv objects "$r1" > rl.out
 grep -q "^  A  disc, cold, .*SHELF; not read back" rl.out && grep -q "^  B  disc, cold, .*ATTIC; last checked" rl.out \
     && ok "two catalogues: a field changed in both is a conflict until set again; relabel gives one of two copies lettered alike a new letter, and a check finds it by it" \

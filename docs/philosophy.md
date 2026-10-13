@@ -279,7 +279,7 @@ of the job, so arv reads back, hashes and verifies. Doing the work the record de
 |---|---|---|
 | Burning a disc | xorriso, cdrecord, your burning program | `arv burned --device`: reads it back against the image, then records the copy |
 | Copying an image to a NAS | cp, rsync | `arv stored`: checks the copy, then records it |
-| Reading a damaged or old disc | GNU ddrescue, dvdisaster Light | `arv check --image --repair` on the image; `arv found` records an old disc's image (planned) |
+| Reading a damaged or old disc | GNU ddrescue, dvdisaster Light | `arv check IMAGE --repair` on the image; `arv found` records an old disc's image (planned) |
 | Listing and browsing every drive and disc | Katalog, `7z l`, `isoinfo`, fiwalk | keeps its own discs' listings for `arv find`; indexes nothing else |
 | Format identification | Siegfried | records what it says (`formats.csv`) |
 

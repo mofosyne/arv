@@ -394,7 +394,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: arv 0.4
-Note: check of a stored copy (iso) at ROOT/out-plan2/TRIP-04_2025_5.noecc.iso: identical to the image
+Note: check of a stored copy (iso) at ROOT/out-plan2/TRIP-04_2025_5.noecc.iso: identical to the image arv made
 
 EventId: ID
 Disc: TRIP-04_2025_5
@@ -417,7 +417,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: arv 0.4
-Note: check of a stored copy (iso) at ROOT/out-plan/TRIP-01_2025_B.noecc.iso: identical to the image
+Note: check of a stored copy (iso) at ROOT/out-plan/TRIP-01_2025_B.noecc.iso: identical to the image arv made
 
 EventId: ID
 Disc: TRIP-01_2025_B

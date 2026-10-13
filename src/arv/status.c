@@ -545,7 +545,7 @@ static char *folder_arg(const char *given)
     return abs;
 }
 
-/* records the folder's state as a checkpoint revision (arv checkpoint, arv status --record) */
+/* records the folder's state as a checkpoint revision (arv checkpoint) */
 static void record_checkpoint(const arv_home *h, archive *cat, const rec_record *coll, mlist *now, const char *message)
 {
     char today[11], tree[65], node[65];
@@ -1011,16 +1011,16 @@ void layout_notes(const arv_home *h, const char *abs, FILE *out, const char *pre
     vocab_free(&v);
 }
 
-int cmd_status(int argc, char **argv)
+/* arv status (record: 0) and arv checkpoint (record: 1, the state kept as a revision) */
+static int status_run(int argc, char **argv, int record)
 {
     const char *given = NULL, *folder = NULL, *message = NULL;
-    int verbose = 0, deep = 0, record = 0;
+    int verbose = 0, deep = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (!strcmp(argv[i], "-v")) verbose = 1;
         else if (!strcmp(argv[i], "--deep")) deep = 1;
-        else if (!strcmp(argv[i], "--record")) record = 1;
-        else if (i + 1 < argc && !strcmp(argv[i], "--message")) message = argv[++i];
+        else if (record && i + 1 < argc && !strcmp(argv[i], "--message")) message = argv[++i];
         else if (argv[i][0] != '-' && !folder) folder = argv[i];
         else return 2;
     }
@@ -1078,7 +1078,7 @@ int cmd_status(int argc, char **argv)
         printf("  ! %s: content changed but its modified time did not (bit rot, or a tool that keeps times)\n",
                s.silent_paths.v[i]);
     if (record) {
-        if (!coll) die("%s", "--record: only a collection's workflow folder has revisions");
+        if (!coll) die("%s", "arv checkpoint: only a collection's workflow folder has revisions (arv collection init)");
         record_checkpoint(&h, &cat, coll, &s.files, message);
     }
     ml_free(&s.files);
@@ -1088,13 +1088,14 @@ int cmd_status(int argc, char **argv)
     return 0;
 }
 
+int cmd_status(int argc, char **argv)
+{
+    return status_run(argc, argv, 0);
+}
+
 int cmd_checkpoint(int argc, char **argv)
 {
-    char **args = xmalloc(((size_t)argc + 2) * sizeof *args);
-    for (int i = 0; i < argc; i++) args[i] = argv[i];
-    args[argc] = "--record";
-    args[argc + 1] = NULL;
-    return cmd_status(argc + 1, args);
+    return status_run(argc, argv, 1);
 }
 
 int cmd_log(int argc, char **argv)

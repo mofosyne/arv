@@ -27,6 +27,7 @@ unsigned long utf8_next(const char **s);
 size_t utf8_chars(const char *s);
 struct tm;
 void today_tm(struct tm *tm);
+char *age_cutoff(const char *ago);
 void today_iso(char out[11]);
 void uuid4(char out[37]);
 int mkdirs(const char *path);
@@ -142,6 +143,7 @@ char *copy_next(const archive *a, const char *disc_id);
 void event_content_id(const rec_record *e, char out[33]);   /* from its fields, all but EventId */
 void event_key(const rec_record *e, char out[33]);          /* EventId, or an empty string if none */
 int copy_read_back(const archive *a, const char *disc_id, const rec_record *copy);
+const char *disc_last_check(const archive *a, const char *disc_id);
 const char *copy_last_check(const archive *a, const char *disc_id, const rec_record *copy);   /* its date, or NULL */
 char *identifier_normal(const char *text, const char **why);   /* "scheme:value" checked, or NULL and why */
 int identifier_strong(const char *id);                           /* bca: and barcode: name one physical disc */
@@ -405,6 +407,7 @@ mentry *find_entry(const manifest *m, const char *path);
 void free_manifest(manifest *m);
 int hash_file(const char *path, char hex[65], int out_fd, uint64_t *bytes);
 void open_disc(const char *root, ondisc *d);
+int bag_check(const char *root, int verbose, sbuf *out);
 char *volume_file(const ondisc *d, const char *name);
 int split_tabs(char *line, char **cols, int want);
 int read_listing(const char *file, listing *l);
@@ -413,8 +416,6 @@ int has_word(const char *kind, const char *word);
 long long parse_utc(const char *s);
 void print_record(const rec_record *r);
 int cmd_info(int argc, char **argv);
-int cmd_verify(int argc, char **argv);
-int cmd_ls(int argc, char **argv);
 int safe_rel(const char *p);
 int make_parents(const char *dest, const char *rel);
 char *resolve_link(const char *link_path, const char *target);

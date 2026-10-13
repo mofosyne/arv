@@ -51,41 +51,41 @@ nope:
 rc=0
 $ --home tags keywords TRIP-01_2019_4 --format exiftool
 arv keywords: unexpected or missing arguments: TRIP-01_2019_4 --format exiftool
-  arv sets [-v]   arv tags [--namespace NS]   arv keywords DISC-ID   (exiftool format)
+  arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2
 $ --home tags keywords PROJ-01_2020-2023_L --format exiftool
 arv keywords: unexpected or missing arguments: PROJ-01_2020-2023_L --format exiftool
-  arv sets [-v]   arv tags [--namespace NS]   arv keywords DISC-ID   (exiftool format)
+  arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2
 $ --home tags keywords TAXES-01_2019-2020_I --format exiftool
 arv keywords: unexpected or missing arguments: TAXES-01_2019-2020_I --format exiftool
-  arv sets [-v]   arv tags [--namespace NS]   arv keywords DISC-ID   (exiftool format)
+  arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2
 $ --home tags keywords SCAN-01_1995-2008_D --format exiftool
 arv keywords: unexpected or missing arguments: SCAN-01_1995-2008_D --format exiftool
-  arv sets [-v]   arv tags [--namespace NS]   arv keywords DISC-ID   (exiftool format)
+  arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2
 $ --home tags keywords SCAN-02_1995-2008_B --format exiftool
 arv keywords: unexpected or missing arguments: SCAN-02_1995-2008_B --format exiftool
-  arv sets [-v]   arv tags [--namespace NS]   arv keywords DISC-ID   (exiftool format)
+  arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2
 $ --home tags keywords SCAN-03_1995-2008_9 --format exiftool
 arv keywords: unexpected or missing arguments: SCAN-03_1995-2008_9 --format exiftool
-  arv sets [-v]   arv tags [--namespace NS]   arv keywords DISC-ID   (exiftool format)
+  arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2
 $ --home tags keywords FAMILY-01_2020-2021_K --format exiftool
 arv keywords: unexpected or missing arguments: FAMILY-01_2020-2021_K --format exiftool
-  arv sets [-v]   arv tags [--namespace NS]   arv keywords DISC-ID   (exiftool format)
+  arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2
 $ --home tags keywords NOPE-01_2000_X --format exiftool
 arv keywords: unexpected or missing arguments: NOPE-01_2000_X --format exiftool
-  arv sets [-v]   arv tags [--namespace NS]   arv keywords DISC-ID   (exiftool format)
+  arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2

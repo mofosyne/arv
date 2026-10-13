@@ -36,6 +36,22 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   deletes anything in an old home.
 - In arv's JSON a field that can repeat (`Note`, `Subject`, `Category`, `Path`, `Agent`,
   `Identifier`, `Replaces`) is always a list.
+- One way to do each thing:
+  - `arv check SOURCE [DISC-ID]` checks any copy: a drive (every sector against the image's
+    SHA-256), an image file (against the same; its RS03 data says which sectors when it differs;
+    `--repair` mends it) or a disc's files, mounted or copied (every file against the manifests).
+    It is logged, naming the copy when it is known, by its recorded path too. `--drive` reads a file
+    as a whole disc (a ddrescue dump). `arv verify DISC`, `check --device` and `check --image` are
+    gone, and `arv stored --copy X` at the copy's own path says to use `arv check`.
+  - `arv info` is `id`, `info` and `ls` in one: a disc root (`--files`: its listing), an image, or a
+    disc id.
+  - `arv checkpoint` is the one way to record a folder's state (`status --record` is gone).
+  - `--barcode` names the copy's own barcode everywhere; a tape's is `stored --carrier barcode:CODE`.
+  - `todo --overdue` takes an age as `list --unchecked-since` does (`5y`, `18m`, `90d`), and both
+    read a disc's last check the same way (a repair that made it whole counts).
+  - Every command's `--help` says what it does; none share a line of the usage any more.
+  - The README is shorter: what arv is, how to install it, a first disc start to finish, and the
+    manual (`arv help --all`) and the workflow for the rest.
 - Issue #42: remove `arv selection`, `Selection` records and selection appraisal targets. Snapshots
   and rebuilds no longer carry or merge selections; appraisals remain for discs, files, folders and sets.
 - Issue #42: locations belong to copies only. `Disc.Location` and `make --location` are removed;

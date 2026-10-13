@@ -33,7 +33,7 @@ SEARCH
 VERIFY (detect damage)
   From the root of the mounted disc, any of:
     sha256sum -c manifest-sha256.txt   (any Unix-like system; nothing else)
-    ./arv verify .                     (arv: see RESTORE; checks it as a BagIt
+    ./arv check .                      (arv: see RESTORE; checks it as a BagIt
                                         bag: every manifest, every file, no
                                         file too many or missing)
     python3 tools/arv/upstream/bagit-python/bagit.py --validate .
@@ -52,7 +52,7 @@ RESTORE (copy the files back)
   Build it with any C compiler:
     cc -O2 -pthread -o arv tools/arv/src/arv/*.c tools/arv/src/bagit/bagit.c \
       tools/arv/src/udfwrite/udfwrite.c tools/arv/src/rs03/rs03.c
-    ./arv verify .                     (or: ./arv restore . ~/restored)
+    ./arv check .                      (or: ./arv restore . ~/restored)
   Without a compiler, after copying data/ to DEST, recreate the links with:
     awk -F'\t' '$3 ~ /^link (recorded|broken)/ {print $4 "\t" $5}' \
       catalog/volumes/*/listing.tsv | while IFS="$(printf '\t')" read -r t p
@@ -68,7 +68,7 @@ REPAIR (fix damage)
      RS03 error correction while reading, read again with --ignore-iso-size.
   2. Repair, then check, with the reader in tools/ (arv or arv.com: see
      RESTORE); it needs nothing else:
-       ./arv check --image disc.iso --repair
+       ./arv check disc.iso --repair
      or with dvdisaster: dvdisaster -i disc.iso -f
      If arv cannot repair it, it prints the dvdisaster Light commands to
      paste: dvdisaster looks harder for the error correction's layout.

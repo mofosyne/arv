@@ -110,9 +110,9 @@ a appraise "$trip:day3 Kiyomizu-dera/" --importance "useful for family" --basis 
 a appraise "set:PROJ" --importance "important for self" --importance "useful for public" \
     --basis "hardware designs: someone may want to rebuild one" >/dev/null
 
-echo "== test every image (arv check --image)"
+echo "== test every image (arv check IMAGE)"
 for iso in "$discs"/*.iso; do
-    a check --image "$iso" | tail -1
+    a check "$iso" | tail -1
 done
 
 echo "== result"

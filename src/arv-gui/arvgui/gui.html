@@ -298,10 +298,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 </section>
 
 <section id="tab-tools" hidden>
-  <h2>Check a disc or image</h2>
+  <h2>Check a copy</h2>
+  <p class="muted">A drive (every sector against the image), an image file, or a disc's files (mounted, or copied to a folder: every file against its checksum).</p>
   <form id="check-form" class="inline">
-    <div><label for="c-device">Drive (e.g. /dev/sr0)</label><input type="text" id="c-device"></div>
-    <div><label for="c-image">…or image file</label><input type="text" id="c-image"></div>
+    <div><label for="c-source">Drive, image file or disc folder</label><input type="text" id="c-source" placeholder="/dev/sr0"></div>
     <div><label for="c-copy">Copy (optional)</label><input type="text" id="c-copy" size="3" placeholder="A"></div>
     <label><input type="checkbox" id="c-repair"> repair the image</label>
     <button class="primary" type="submit">Check</button>
@@ -309,12 +309,6 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 </section>
 
 <section id="tab-restore" hidden>
-  <h2>Verify a disc's files</h2>
-  <p class="muted">Every file on a mounted disc (or an extracted image) against its checksum.</p>
-  <form id="verify-form" class="inline">
-    <div><label for="v-path">Mounted disc folder</label><input type="text" id="v-path" placeholder="/media/disc"></div>
-    <button class="primary" type="submit">Verify</button>
-  </form>
   <h2>Restore files from a disc</h2>
   <form id="restore-form" class="inline">
     <div><label for="rs-path">Mounted disc folder</label><input type="text" id="rs-path" placeholder="/media/disc"></div>
@@ -1090,11 +1084,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // ---------------------------------------------------------------- tools
   $("check-form").onsubmit = function (ev) {
     ev.preventDefault();
-    run({ device: $("c-device").value.trim(), image: $("c-image").value.trim(), copy: $("c-copy").value.trim(),
+    run({ source: $("c-source").value.trim(), copy: $("c-copy").value.trim(),
           repair: $("c-repair").checked }, false, "/api/check");
   };
   $("rebuild-form").onsubmit = function (ev) { ev.preventDefault(); run({ command: "rebuild", path: $("r-path").value }); };
-  $("verify-form").onsubmit = function (ev) { ev.preventDefault(); run({ command: "verify", path: $("v-path").value }); };
   $("restore-form").onsubmit = function (ev) {
     ev.preventDefault(); run({ command: "restore", path: $("rs-path").value, dest: $("rs-dest").value });
   };

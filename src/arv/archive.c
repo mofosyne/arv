@@ -621,6 +621,23 @@ char *copy_next(const archive *a, const char *disc_id)
 }
 
 /* a copy known good: read back identical as it was recorded, or a later check of that copy passed */
+/* the date of a disc's last good check (success, or a warning: repaired and whole), not counting the
+ * test of its image when it was made; "" when there is none */
+const char *disc_last_check(const archive *a, const char *disc_id)
+{
+    const char *last = "";
+    for (size_t i = 0; i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        const char *d = rec_get(e, "Disc"), *t = rec_get(e, "Type"), *o = rec_get(e, "Outcome"), *date = rec_get(e, "Date"),
+                   *note = rec_get(e, "Note");
+        if (!d || !t || !o || !date || strcmp(d, disc_id) || strcmp(t, "fixity check")) continue;
+        if (strcmp(o, "success") && strcmp(o, "warning")) continue;
+        if (note && !strncmp(note, "image test after creation", 25)) continue;
+        if (strncmp(date, last, 10) > 0) last = date;
+    }
+    return last;
+}
+
 /* the date of the newest passed check naming this copy, or NULL */
 const char *copy_last_check(const archive *a, const char *disc_id, const rec_record *copy)
 {

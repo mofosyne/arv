@@ -247,7 +247,7 @@ rc=1
 $ --home hp todo
 No copy yet (burn the image and arv burned ID --device DRIVE, or keep it: arv stored ID PATH):
   TRIP-02_2025_9  made 2026-01-01
-Burned, never read back (arv check --device DRIVE --copy X ID):
+Burned, never read back (arv check DRIVE --copy X ID):
   TRIP-03_2025_7  copy A
 No cold copy, every copy is online or in use (burn one for the shelf):
   TRIP-01_2025_B
@@ -350,7 +350,10 @@ rc=0
 $ --home hp plan delete card --yes
 arv plan: unexpected or missing arguments: delete card --yes
   arv plan new|list|show|add|move|drop|disc|make|again|delete NAME ...
-         compose discs by hand from files and folders anywhere; the sources stay where they are
+         discs composed by hand from files and folders anywhere; the sources stay where they are:
+         add NAME SOURCE... [--disc N|new|auto] [--as PATH] puts them on a disc, under PATH;
+         move NAME PATH... --disc N|new moves them; drop NAME PATH... takes them off; disc NAME add|drop N;
+         show NAME; make NAME makes the images; again NAME NEW starts the same plan anew; delete NAME
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2
 $ --home hp retire TRIP-04_2025_5

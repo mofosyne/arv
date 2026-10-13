@@ -1,7 +1,7 @@
 /* Looking after the archive: which copies are known good, which editions are safe, what can be
  * retired, and what is owed (research/plan.md, collections; docs/workflow.md).
  *
- *   arv todo [--overdue YEARS]   what needs doing: images not burned, copies not read back,
+ *   arv todo [--overdue AGE]   what needs doing: images not burned, copies not read back,
  *                                editions not yet safe, replaced editions, discs kept in one place
  *                                or below their appraisal (essential: 3 copies in 3 places; important:
  *                                2 in 2; useful: 1), checks overdue (default: 5 years)
@@ -31,11 +31,6 @@ static const char *get_or(const rec_record *r, const char *name, const char *dfl
     return v ? v : dflt;
 }
 
-static int is_disc_event(const rec_record *e, const char *id, const char *type)
-{
-    return rec_get(e, "Disc") && !strcmp(rec_get(e, "Disc"), id) && rec_get(e, "Type") && !strcmp(rec_get(e, "Type"), type);
-}
-
 /* the date of the newest copy known good (read back as it was recorded, or checked since by its letter), or NULL */
 const char *disc_read_back(const archive *cat, const char *id)
 {
@@ -55,18 +50,6 @@ static int burned_at_all(const archive *cat, const char *id)
 }
 
 /* the newest successful check of the disc itself (not the image test when it was made), or "" */
-static const char *last_check(const archive *cat, const char *id)
-{
-    const char *last = "";
-    for (size_t i = 0; i < cat->events.n; i++) {
-        const rec_record *e = cat->events.v[i];
-        if (!is_disc_event(e, id, "fixity check") || strcmp(get_or(e, "Outcome", ""), "success")) continue;
-        if (!strncmp(get_or(e, "Note", ""), "image test after creation", 25)) continue;
-        if (strcmp(get_or(e, "Date", ""), last) > 0) last = rec_get(e, "Date");
-    }
-    return last;
-}
-
 static int retired(const archive *cat, const char *id)
 {
     const rec_record *d = archive_disc(cat, id);
@@ -631,11 +614,11 @@ static int todo_tsv(const archive *cat, const char *cutoff)
 
 int cmd_todo(int argc, char **argv)
 {
-    const char *given = NULL;
-    int years = 5, tsv = 0;
+    const char *given = NULL, *overdue = "5y";
+    int tsv = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
-        else if (i + 1 < argc && !strcmp(argv[i], "--overdue")) years = atoi(argv[++i]);
+        else if (i + 1 < argc && !strcmp(argv[i], "--overdue")) overdue = argv[++i];
         else if (!strcmp(argv[i], "--tsv")) tsv = 1;
         else return 2;
     }
@@ -643,10 +626,8 @@ int cmd_todo(int argc, char **argv)
     home_find(&h, given, NULL);
     archive cat;
     archive_load(&cat, h.rec_path);
-    struct tm tm;
-    today_tm(&tm);
-    char cutoff[40];
-    snprintf(cutoff, sizeof cutoff, "%04d-%02d-%02d", tm.tm_year + 1900 - years, tm.tm_mon + 1, tm.tm_mday);
+    char *cutoff = age_cutoff(overdue);
+    if (!cutoff) die("--overdue %s: an age (5y, 18m, 90d) or a date (2021, 2021-06, 2021-06-30)", overdue);
     if (tsv) return todo_tsv(&cat, cutoff);
     size_t items = 0;
     int s1 = 0, s2 = 0, s3 = 0, s4 = 0, s5 = 0;
@@ -670,7 +651,7 @@ int cmd_todo(int argc, char **argv)
             sb_printf(&which, "%s%s", which.len ? ", " : "", letter);
         }
         if (which.len) {
-            heading(&s2, "Burned, never read back (arv check --device DRIVE --copy X ID):");
+            heading(&s2, "Burned, never read back (arv check DRIVE --copy X ID):");
             printf("  %s  cop%s %s\n", id, strchr(which.s, ',') ? "ies" : "y", which.s);
             items++;
         }
@@ -765,10 +746,10 @@ int cmd_todo(int argc, char **argv)
     }
     for (size_t i = 0; i < cat.discs.n; i++) {                  /* checks overdue */
         const char *id = get_or(cat.discs.v[i], "Id", "");
-        const char *last = last_check(&cat, id);
+        const char *last = disc_last_check(&cat, id);
         if (retired(&cat, id) || !*last || strcmp(last, cutoff) >= 0) continue;
-        char head[96];
-        snprintf(head, sizeof head, "Not checked in %d years (arv check --device DRIVE ID):", years);
+        char head[160];
+        snprintf(head, sizeof head, "Not checked since %s (arv check DRIVE ID, or the copy's image or folder):", cutoff);
         heading(&s6, head);
         printf("  %s  last %s\n", id, last);
         items++;
@@ -805,7 +786,7 @@ int cmd_todo(int argc, char **argv)
     strlist_free(&seen);
     if (!items && !cat.discs.n)
         puts("No discs yet, so nothing is owed. Start with arv collection init FOLDER (or arv make FOLDER for a one-off disc).");
-    else if (!items) printf("Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within %d years.\n", years);
+    else if (!items) printf("Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked since %s.\n", cutoff);
     question_list q;                /* last, and not owed: a missing description is never as urgent as a missing copy */
     questions_load(&h, &q);
     strlist asked = { 0 };

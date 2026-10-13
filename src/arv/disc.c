@@ -235,16 +235,49 @@ void print_record(const rec_record *r)
     }
 }
 
+static void print_listing(ondisc *d)
+{
+    listing l;
+    char *path = volume_file(d, "listing.tsv");
+    if (read_listing(path, &l)) die("no listing at %s", path);
+    for (size_t i = 0; i < l.n; i++) {
+        lrow *r = &l.r[i];
+        if (r->size < 0) printf("%-26s %12s  %s", r->kind, "-", r->path);
+        else printf("%-26s %12lld  %s", r->kind, r->size, r->path);
+        if (*r->link) printf(" -> %s", r->link);
+        putchar('\n');
+    }
+    free_listing(&l);
+    free(path);
+}
+
+/* arv info [-C HOME] DISC|IMAGE|DISC-ID [--files]: a disc's root (its record; --files: its files),
+ * an image file (which disc and copy it is), or a disc id (its parts, and the disc it names) */
 int cmd_info(int argc, char **argv)
 {
     ondisc d;
-    const char *given = NULL;
-    if (argc == 3 && (!strcmp(argv[0], "-C") || !strcmp(argv[0], "--home"))) given = argv[1], argv += 2, argc -= 2;
-    if (argc != 1) return 2;
+    const char *given = NULL, *target = NULL;
+    int files = 0;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (!strcmp(argv[i], "--files")) files = 1;
+        else if (argv[i][0] != '-' && !target) target = argv[i];
+        else return 2;
+    }
+    if (!target) return 2;
     struct stat st;
-    if (!stat(argv[0], &st) && S_ISREG(st.st_mode)) return info_image(argv[0], given);   /* an image file */
-    if (given) return 2;
-    open_disc(argv[0], &d);
+    int found = !stat(target, &st);
+    if (found && S_ISREG(st.st_mode) && !files) return info_image(target, given);   /* an image file */
+    if (!found || !S_ISDIR(st.st_mode)) {                                           /* a disc id */
+        if (files) die("%s", "--files lists a disc's own files: give the root of the mounted disc");
+        char *args[] = { "-C", (char *)given, (char *)target, NULL };
+        return given ? cmd_id(3, args) : cmd_id(1, args + 2);
+    }
+    open_disc(target, &d);
+    if (files) {
+        print_listing(&d);
+        return 0;
+    }
     print_record(d.disc);
     for (size_t i = 0; i < d.cat.nrecords; i++) {
         const rec_record *r = &d.cat.records[i];
@@ -273,47 +306,20 @@ static void verify_line(void *ctx, enum bagit_event what, const char *path, cons
     else printf("%s %s\n", word[what], path);
 }
 
-int cmd_verify(int argc, char **argv)
+/* every file of a bag (a disc's root, or its files copied to a folder) against its manifests, and
+ * the tag files, and Payload-Oxum; problems are printed as found (every file too, when verbose).
+ * The summary line goes to out. */
+int bag_check(const char *root, int verbose, sbuf *out)
 {
-    ondisc d;
-    unsigned flags = 0;
-    if (argc == 2 && !strcmp(argv[0], "-v")) { flags |= BAGIT_VERBOSE; argc--; argv++; }
-    if (argc != 1) return 2;
-    open_disc(argv[0], &d);
-    bagit_report r;            /* every manifest (sha256 and sha512), every file, the tag files, Payload-Oxum */
-    if (!bagit_validate(d.root, flags, &r, verify_line, NULL)) {
-        printf("%s: all %zu files and %zu tag files match their checksums (%s)\n", d.id, r.payload_ok, r.tag_ok, r.algorithms);
-        return 0;
+    bagit_report r;
+    int ok = !bagit_validate(root, verbose ? BAGIT_VERBOSE : 0, &r, verify_line, NULL);
+    if (ok) sb_printf(out, "all %zu files and %zu tag files match their checksums (%s)\n", r.payload_ok, r.tag_ok, r.algorithms);
+    else {
+        sb_printf(out, "%zu OK, %zu FAILED, %zu MISSING, %zu EXTRA", r.payload_ok + r.tag_ok, r.failed, r.missing, r.extra);
+        if (r.invalid) sb_printf(out, ", %zu other problems", r.invalid);
+        sb_puts(out, "\n");
     }
-    printf("%s: %zu OK, %zu FAILED, %zu MISSING, %zu EXTRA", d.id, r.payload_ok + r.tag_ok, r.failed, r.missing, r.extra);
-    if (r.invalid) printf(", %zu other problems", r.invalid);
-    putchar('\n');
-    if (r.failed || r.missing)
-        printf("Damaged: if this is a disc or its image, read it into an image and repair it (README.txt, REPAIR):\n"
-               "  arv check --image disc.iso --repair\n");
-    return 1;
-}
-
-/* ------------------------------------------------------------------ ls */
-
-int cmd_ls(int argc, char **argv)
-{
-    ondisc d;
-    listing l;
-    if (argc != 1) return 2;
-    open_disc(argv[0], &d);
-    char *path = volume_file(&d, "listing.tsv");
-    if (read_listing(path, &l)) die("no listing at %s", path);
-    for (size_t i = 0; i < l.n; i++) {
-        lrow *r = &l.r[i];
-        if (r->size < 0) printf("%-26s %12s  %s", r->kind, "-", r->path);
-        else printf("%-26s %12lld  %s", r->kind, r->size, r->path);
-        if (*r->link) printf(" -> %s", r->link);
-        putchar('\n');
-    }
-    free_listing(&l);
-    free(path);
-    return 0;
+    return ok;
 }
 
 /* ------------------------------------------------------------------ restore */
