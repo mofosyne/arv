@@ -14,7 +14,7 @@ $(BUILD)/arv-assist: *.c *.h $(ARV) ../arv/*.h
 
 $(BUILD)/fake-llm: ../../dev-tools/fake-llm.c
 	@mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) $(WARN) -o $@ ../../dev-tools/fake-llm.c
+	$(CC) $(CFLAGS) $(WARN) -o $@ ../../dev-tools/fake-llm.c -lm
 
 check: $(BUILD)/arv-assist $(BUILD)/fake-llm
 	$(MAKE) -C ../arv

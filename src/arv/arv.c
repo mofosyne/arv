@@ -315,7 +315,7 @@ static int complete(int argc, char **argv, const char *const *names, size_t nnam
             i++;
             break;
         }
-    const char *cmd = strcmp(argv[i], "files") ? argv[i] : "verify";
+    const char *cmd = argv[i];
     if (*cur == '-') option_candidates(cmd, cur, &seen);
     else if (i + 1 == n) subcommand_candidates(cmd, cur, &seen);
     return 0;
@@ -761,7 +761,7 @@ int main(int argc, char **argv)
     static const char *const helpers[] = { "describe", "tag", "gui" };
     const char *near[3];
     size_t nnear = 0, cutoff = strlen(argv[1]) <= 4 ? 1 : 2;
-    for (size_t i = 0; i < sizeof cmds / sizeof *cmds + 4 && nnear < 3; i++) {
+    for (size_t i = 0; i < sizeof cmds / sizeof *cmds + sizeof helpers / sizeof *helpers && nnear < 3; i++) {
         const char *name = i < sizeof cmds / sizeof *cmds ? cmds[i].name : helpers[i - sizeof cmds / sizeof *cmds];
         if (edit_distance(argv[1], name) <= cutoff || (strlen(argv[1]) >= 3 && !strncmp(argv[1], name, strlen(argv[1]))))
             near[nnear++] = name;

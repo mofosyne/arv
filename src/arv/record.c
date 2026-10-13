@@ -40,17 +40,6 @@ static void metadata_change(archive *cat, const char *disc_id, const char *note,
     free(who);
 }
 
-static char *copy_identifier(const char *text, const char **why)
-{
-    char *id = identifier_normal(text, why);
-    if (id && (!strncmp(id, "label:", 6) || !strncmp(id, "hub:", 4))) {
-        free(id);
-        *why = "only bca:, barcode: and serial: identifiers are accepted";
-        return NULL;
-    }
-    return id;
-}
-
 
 /* ------------------------------------------------------------------ the volume label */
 
@@ -279,7 +268,7 @@ static const rec_record *copy_named(const archive *a, const char *disc_id, const
 {
     const rec_record *first;
     size_t n = copies_lettered(a, disc_id, letter, &first);
-    if (!n) die2("%s has no copy %s in the catalogue (arv objects %s lists its copies)", disc_id, letter);
+    if (!n) die("%s", xprintf("%s has no copy %s in the catalogue (arv objects %s lists its copies)", disc_id, letter, disc_id));
     if (n > 1) die2("%s has two copies lettered %s: arv relabel gives one another letter (arv objects lists them)", disc_id, letter);
     return first;
 }
@@ -311,14 +300,14 @@ int cmd_check(int argc, char **argv)
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && !strcmp(argv[i], "--barcode")) {      /* a scanned code: --identifier barcode:CODE */
             const char *why;
-            char *raw = xprintf("barcode:%s", argv[++i]), *id = copy_identifier(raw, &why);
+            char *raw = xprintf("barcode:%s", argv[++i]), *id = identifier_normal(raw, &why);
             if (!id) die2("--barcode %s: %s", argv[i], why);
             if (!strlist_has(&ids, id)) strlist_add(&ids, id);
             free(raw);
             free(id);
         } else if (i + 1 < argc && !strcmp(argv[i], "--identifier")) {
             const char *why;
-            char *id = copy_identifier(argv[++i], &why);
+            char *id = identifier_normal(argv[++i], &why);
             if (!id) die2("--identifier %s: %s", argv[i], why);
             if (!strlist_has(&ids, id)) strlist_add(&ids, id);
             free(id);
@@ -487,14 +476,14 @@ int cmd_stored(int argc, char **argv)
             const char *why;
             char *raw = xprintf("barcode:%s", argv[++i]);
             free(carrier);
-            carrier = copy_identifier(raw, &why);
+            carrier = identifier_normal(raw, &why);
             free(raw);
             if (!carrier) die2("--barcode %s: %s", argv[i], why);
         }
         else if (i + 1 < argc && !strcmp(argv[i], "--carrier")) {   /* the tape or drive it is on */
             const char *why;
             free(carrier);
-            carrier = copy_identifier(argv[++i], &why);
+            carrier = identifier_normal(argv[++i], &why);
             if (!carrier || !strncmp(carrier, "bca:", 4))
                 die2("--carrier %s: %s", argv[i], "the tape or drive the copy is on: barcode:CODE or serial:SERIAL");
         }
@@ -635,14 +624,14 @@ int cmd_burned(int argc, char **argv)
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && !strcmp(argv[i], "--barcode")) {      /* a scanned code: --identifier barcode:CODE */
             const char *why;
-            char *raw = xprintf("barcode:%s", argv[++i]), *id = copy_identifier(raw, &why);
+            char *raw = xprintf("barcode:%s", argv[++i]), *id = identifier_normal(raw, &why);
             if (!id) die2("--barcode %s: %s", argv[i], why);
             if (!strlist_has(&ids, id)) strlist_add(&ids, id);
             free(raw);
             free(id);
         } else if (i + 1 < argc && !strcmp(argv[i], "--identifier")) {
             const char *why;
-            char *id = copy_identifier(argv[++i], &why);
+            char *id = identifier_normal(argv[++i], &why);
             if (!id) die2("--identifier %s: %s", argv[i], why);
             if (!strlist_has(&ids, id)) strlist_add(&ids, id);
             free(id);
@@ -802,7 +791,7 @@ int cmd_identify(int argc, char **argv)
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--barcode")) {   /* a scanned code: barcode:CODE */
             const char *why;
-            char *raw = xprintf("barcode:%s", argv[++i]), *id = copy_identifier(raw, &why);
+            char *raw = xprintf("barcode:%s", argv[++i]), *id = identifier_normal(raw, &why);
             if (!id) die2("--barcode %s: %s", argv[i], why);
             if (!strlist_has(&ids, id)) strlist_add(&ids, id);
             free(raw);
@@ -811,7 +800,7 @@ int cmd_identify(int argc, char **argv)
         else if (i + 1 < argc && !strcmp(argv[i], "--carrier")) {
             const char *why;
             free(carrier);
-            carrier = copy_identifier(argv[++i], &why);
+            carrier = identifier_normal(argv[++i], &why);
             if (!carrier || !strncmp(carrier, "bca:", 4))
                 die2("--carrier %s: %s", argv[i], "the tape or drive the copy is on: barcode:CODE or serial:SERIAL");
         } else if (argv[i][0] == '-') return 2;
@@ -819,7 +808,7 @@ int cmd_identify(int argc, char **argv)
         else if (!letter) letter = argv[i];
         else {
             const char *why;
-            char *id = copy_identifier(argv[i], &why);
+            char *id = identifier_normal(argv[i], &why);
             if (!id) die2("%s: %s", argv[i], why);
             if (!strlist_has(&ids, id)) strlist_add(&ids, id);
             free(id);
@@ -891,7 +880,7 @@ int cmd_relabel(int argc, char **argv)
             int bare = !strcmp(argv[i], "--barcode");
             char *raw = bare ? xprintf("barcode:%s", argv[i + 1]) : xstrdup(argv[i + 1]);
             free(id);
-            id = copy_identifier(raw, &why);
+            id = identifier_normal(raw, &why);
             free(raw);
             i++;
             if (!id) die2("--identifier %s: %s", argv[i], why);
@@ -928,7 +917,7 @@ int cmd_relabel(int argc, char **argv)
         if (!pick) pick = e;
         matches++;
     }
-    if (!matches) die2("%s has no copy %s like that (arv objects %s lists its copies)", disc_id, letter);
+    if (!matches) die("%s", xprintf("%s has no copy %s like that (arv objects %s lists its copies)", disc_id, letter, disc_id));
     if (matches > 1) {
         fprintf(stderr, "Error: %s has %zu copies lettered %s; say which (--at PLACE, or --identifier ID):\n%s", disc_id, matches, letter,
                 which.s);

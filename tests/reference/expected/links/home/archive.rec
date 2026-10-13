@@ -148,8 +148,8 @@ Source: src
 + warm for a file or folder), Location (where this copy is kept), Path for a file or folder,
 + MediaType (the media's maker and type, as the drive reports it) and Identifier when known:
 + how this physical copy is recognised, as scheme:value (bca: its factory serial, barcode: a
-+ label stuck on and scanned, label: written or printed, hub: the maker's code in the clear
-+ ring), repeatable, and added later by any event that names the Copy. With ReadBack: identical
++ label stuck on and scanned, serial: a manufacturer's serial), repeatable, and added later by
++ any event that names the Copy. With ReadBack: identical
 + it is a copy read back against its image before it was recorded (known good), as is one a
 + later fixity check with its Copy passed. A disc's copies are its replications, counted as
 + physical discs: two that share a bca:, barcode: or serial: identifier are one disc recorded

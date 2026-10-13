@@ -377,7 +377,6 @@ arv location list -v                                 # places, their temperature
 | Everything under a category or a place | `arv list --in MEMORIES`, `arv list --at PARENTS` |
 | What has this collection been through? | `arv collection show FAMILY`, `arv log FAMILY` |
 | Which tags do I use? | `arv tags`; `arv find place:kyoto` |
-| Group things across discs | `arv selection add BEST --name "Best of" DISC:folder/ DISC:file`: virtual folders, shown as a tree by other software too |
 | Without this tool installed? | every disc carries it: `tools/arv.com find PATTERN` from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
 | Changes after burning | `arv note`, `arv locate`, `arv access` (home catalogue; later discs carry them) |
 | How important is it, and to whom? | `arv appraise` (the archivist's log; `make --importance` at the start) |

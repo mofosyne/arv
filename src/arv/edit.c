@@ -1119,8 +1119,13 @@ int cmd_audit(int argc, char **argv)
         const rec_record *e = cat.events.v[i];
         event_key(e, keys[i]);
         event_content_id(e, content[i]);
-        if (!rec_get(e, "EventId")) {
+        if (!rec_get(e, "EventId")) {           /* arv gives every event an id: this one was added by hand */
+            sbuf l = { 0 };
+            audit_label(e, &l);
+            printf("NO ID    %s  (written without an EventId: arv cannot name or merge it)\n", l.s);
+            free(l.s);
             unnamed++;
+            problems++;
         } else if (strcmp(keys[i], content[i])) {
             sbuf l = { 0 };
             audit_label(e, &l);
@@ -1129,8 +1134,8 @@ int cmd_audit(int argc, char **argv)
             problems++;
         }
     }
-    printf("%s: %zu event%s, %zu changed since written%s\n", h.path, n, n == 1 ? "" : "s", problems,
-           unnamed ? " (some written before event ids: the next change to the catalogue gives them one)" : "");
+    printf("%s: %zu event%s, %zu changed since written, %zu without an id\n", h.path, n, n == 1 ? "" : "s",
+           problems - unnamed, unnamed);
     problems += identity_report(&cat);                  /* copies: recorded twice, on two discs, two BCA serials */
     problems += field_conflicts(&cat);                  /* a field changed apart, in two catalogues */
     for (size_t r = 0; r < roots.n; r++) {

@@ -21,6 +21,21 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Less to learn: a clarity round** (issue #42)
+- Removed, each the work of another tool or unused: `make --ro-crate`, `--tools-history`,
+  `--git-since`, `--ignore-names`, `--no-verify`, `--media`, `--sf-home`, `--extra-tools`,
+  `--snapshot disc`; `plan refresh` and `plan add --copy`; `restore --no-links`; `verify files`;
+  `tags --vocab`; `keywords --format tsv`; `init --pointer`; the copy identifiers `label:` and
+  `hub:` (nothing used them; the copy letter is what is written on a disc); `arv models` (tag uses
+  any OpenAI-compatible embeddings server, `--embed-url`). Formats are identified when `sf` is on
+  `PATH` (`--no-formats` skips it).
+- Old formats are no longer read: earlier disc-id schemes, copies recorded before letters, events
+  written before ids. `arv audit` reports an event with no `EventId` (`NO ID`): arv cannot name or
+  merge it.
+- arv-gui reads only through arv (`--json`), not with a parser of its own; it no longer moves or
+  deletes anything in an old home.
+- In arv's JSON a field that can repeat (`Note`, `Subject`, `Category`, `Path`, `Agent`,
+  `Identifier`, `Replaces`) is always a list.
 - Issue #42: remove `arv selection`, `Selection` records and selection appraisal targets. Snapshots
   and rebuilds no longer carry or merge selections; appraisals remain for discs, files, folders and sets.
 - Issue #42: locations belong to copies only. `Disc.Location` and `make --location` are removed;

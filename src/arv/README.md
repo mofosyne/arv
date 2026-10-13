@@ -30,8 +30,8 @@ and `$ARV_GUI`, next to itself (an installed `bin/`), in the checkout it was bui
 ## Commands
 
 ```
-arv init [FOLDER] [--pointer HOME] [--name NAME [--default]]
-                                        a .arv home in FOLDER, or a pointer to one; registered by name
+arv init [FOLDER] [--name NAME [--default]]
+                                        a .arv home in FOLDER, registered by name
 arv make [options] FOLDER              disc images, recorded in the home (in a terminal it asks
                                         what the options leave open; -y does not; --help lists them)
 arv burned DISC-ID [--copies N] [--location PLACE] [--identifier ID] [--media-type TYPE] [--note TEXT]
@@ -76,7 +76,7 @@ arv id ID                              explain a disc id, check its check charac
 arv info DISC                          a disc's record, binding and appraisals
 arv verify [-v] DISC                   every file against the BagIt manifests
 arv ls DISC                            the listing: files, executables, links
-arv restore [--no-links] DISC DEST     copy back, checking each file; dates, execute bits
+arv restore DISC DEST                  copy back, checking each file; dates, execute bits
                                         and links restored
 ```
 
@@ -89,7 +89,7 @@ these, and arv stops and says how to make one (`arv init`). DISC is the root of 
 
 | | arv | arv-assist and arv-gui (optional) |
 |---|---|---|
-| Making | UDF 2.50 discs, one or (`--split`) as many as the folder needs: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), Siegfried format ids (`formats.csv`), `--tools-history`, `--extra-tools`, `--ro-crate`, drafts (`--draft`: folder tags, captions), RS03 | the drafts' authors: `describe` (a local LLM), `tag` (a small built-in model) |
+| Making | UDF 2.50 discs, one or (`--split`) as many as the folder needs: links policy, BagIt, listing, catalogue snapshot (access levels, sealed discs, locations, collections), catalog.rec, README.txt, index.html, tools/, appraisals (`--importance`), Siegfried format ids (`formats.csv`), drafts (`--draft`: folder tags, captions), RS03 | the drafts' authors: `describe` (a local LLM), `tag` (an embeddings server) |
 | Recording | `init` (with named homes and pointers; `--archive NAME`), `burned` and `stored` (each copy a letter; the BCA serial on Linux, `drive.c`), `check`, `note`, `locate`, `access`, `location`, `collection`, `appraise`, `rebuild` | `gui` (arv-gui) |
 | Looking | `sets`, `names`, `where`, `tags`, `keywords` | `models` (the built-in model) |
 | Reading | `find`, `list`, `id`, `info`, `verify`, `ls`, `restore` | |
@@ -120,7 +120,7 @@ hyphens.
 - **a real disc**: a disc made from a git repository with links and a script is read back with 7z,
   verified, and restored with a clean `git status`; damage is reported; the Library of Congress's
   bagit.py (upstream/) agrees it is a valid bag when
-  python3 is there; `tools/` carries arv's commit, and with `--tools-history` its branches;
+  python3 is there; `tools/` carries arv's commit;
 - RS03 is added and tested by arv, `check --image` passes it again and finds a damaged sector, and
   README.txt's one `cc` line builds arv from a disc's `tools/`; with dvdisaster Light on PATH, it
   accepts the image and repairs the damaged one back; with Siegfried,
@@ -139,13 +139,12 @@ and `make check` passes under AddressSanitizer and UndefinedBehaviorSanitizer (w
 | `arv.c` | the commands, and running arv-assist and arv-gui for theirs |
 | `tags.c` | `tags`, `keywords` |
 | `formats.c` | Siegfried format identification |
-| `rocrate.c` | `--ro-crate` |
-| `make.c` | `make` (cli.cmd_make and make.Maker) |
+| `make.c` | `make` |
 | `record.c` | `check`, `burned`, `note`, `locate` |
 | `edit.c` | `access`, `location`, `collection`, `appraise`, `sets`, `names`, `where` |
 | `disc.c` | reading a disc: `info`, `verify`, `ls`, `restore` |
 | `catalogue.c` | `find`, `list`, `id` |
-| `home.c` | finding the home (`--archive` too); `init` with named homes and pointers |
+| `home.c` | finding the home (`--archive` too); `init` with named homes |
 | `archive.c` | the catalogue model: records in order, snapshots, access levels, events |
 | `bag.c` | the payload scan with the links policy, BagIt tag files, the listing |
 | `html.c` | index.html |
@@ -155,7 +154,7 @@ and `make check` passes under AddressSanitizer and UndefinedBehaviorSanitizer (w
 | `rec.c`, `json.c`, `util.c` | recfiles, JSON, helpers (the checksums are in `../bagit`) |
 | `draft.c` | drafts (`make --draft`), shared with arv-assist |
 | `collection.c` | `collection`: workflow folders, their markers, revisions (Tree and Node) |
-| `gitrepo.c` | git repositories: the compacted `.git`, `--git-since`, `git.tsv` |
+| `gitrepo.c` | git repositories: the compacted `.git`, `git.tsv` |
 | `about.c` | what a data object says about itself: its README, package manifest, licence and git history |
 | `questions.c` | questions kept until answered (`<home>/drafts/questions.rec`), for `todo` and `describe --answer` |
 | `upkeep.c` | `todo`, `retire`: copies known good, safe editions |

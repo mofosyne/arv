@@ -650,12 +650,12 @@ int copy_read_back(const archive *a, const char *disc_id, const rec_record *copy
  * are strong: two records that share one are one disc. A copy may have several, recorded with it or
  * by a later event that names it (a check that read the BCA, arv identify). */
 
-static const char *const SCHEMES[] = { "bca", "barcode", "serial", "label", "hub", NULL };
+static const char *const SCHEMES[] = { "bca", "barcode", "serial", NULL };
 
 char *identifier_normal(const char *text, const char **why)
 {
     const char *colon = text ? strchr(text, ':') : NULL;
-    *why = "SCHEME:VALUE, the scheme one of bca, barcode, serial, label, hub (bca:041e..., barcode:ARV-000123)";
+    *why = "SCHEME:VALUE, the scheme one of bca, barcode, serial (bca:041e..., barcode:ARV-000123)";
     if (!colon || colon == text || !colon[1]) return NULL;
     char scheme[16];
     size_t n = (size_t)(colon - text);

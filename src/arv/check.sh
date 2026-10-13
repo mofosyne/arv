@@ -287,8 +287,13 @@ cmp -s nohome.iso "$iso" && echo "$out" | grep -q "not logged" \
 # overdue checks: a disc checked today is not overdue now, but is five years on; one never checked is
 [ -z "$("$tool" list -C ecc-home --unchecked-since 5y)" ] \
     && SOURCE_DATE_EPOCH=$(( $(date +%s) + 6 * 366 * 86400 )) "$tool" list -C ecc-home --unchecked-since 5y | grep -q "last checked 20" \
-    && "$tool" list -C hist --unchecked-since 1y | grep -q "last checked never" \
-    && "$tool" list -C hist --one-place | grep -q "^CODE" \
+    && "$tool" make -C due-home --no-formats --no-ecc --set CODE --output-dir due-out --tools ecc-tools src >/dev/null 2>&1 \
+    && "$tool" list -C due-home --unchecked-since 1y | grep -q "last checked never" \
+    && due=$("$tool" list -C due-home | cut -f1) \
+    && "$tool" --home due-home burned --copies 1 --location BOX "$due" >/dev/null 2>&1 \
+    && "$tool" list -C due-home --one-place | grep -q "^CODE" \
+    && "$tool" --home due-home burned --copies 1 --location SHELF "$due" >/dev/null 2>&1 \
+    && [ -z "$("$tool" list -C due-home --one-place)" ] \
     && ok "list --unchecked-since and --one-place: the discs due a check, and those kept in one place" \
     || no "list --unchecked-since / --one-place"
 # the one cc line README.txt gives, from the disc's own tools/

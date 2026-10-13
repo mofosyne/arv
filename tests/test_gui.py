@@ -252,7 +252,7 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(listing["files"], [{"name": "wedding.mkv", "bytes": 4}])
         post = lambda body: json.loads(self.request("/api/plan", body)[1])
         self.assertEqual(post({"action": "new", "name": "trip", "title": "Trip", "set": "TRIP", "medium": "bd25"})["returncode"], 0)
-        self.assertEqual(json.loads(self.request("/api/plans")[1]), {"plans": [{"name": "trip", "made": None}]})
+        self.assertEqual(json.loads(self.request("/api/plans")[1]), {"plans": [{"name": "trip", "discs": 1, "items": 0, "made": None}]})
         self.assertEqual(post({"action": "add", "name": "trip", "sources": [video, photos], "disc": "auto"})["returncode"], 0)
         self.assertEqual(post({"action": "move", "name": "trip", "paths": ["photos"], "from": 1, "disc": "new"})["returncode"], 0)
         shown = json.loads(self.request("/api/plan?name=trip")[1])

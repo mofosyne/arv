@@ -1,16 +1,24 @@
 $ --home edit location list
-HOME       Home                           0 discs
-  STUDY      Study                          0 discs
-    BOX1       Box 1, blue lid                0 discs
-  SAFE       Fire safe                      0 discs
-OFFSITE    Parents' house                 0 discs
+HOME       Home                           0 discs (6 including inside)
+  STUDY      Study                          0 discs (5 including inside)
+    BOX1       Box 1, blue lid                5 discs
+  SAFE       Fire safe                      1 disc
+OFFSITE    Parents' house                 2 discs
 rc=0
 $ --home edit location list -v
-HOME       Home                           0 discs
-  STUDY      Study                          0 discs
-    BOX1       Box 1, blue lid                0 discs
-  SAFE       Fire safe                      0 discs
-OFFSITE    Parents' house                 0 discs
+HOME       Home                           0 discs (6 including inside)
+  STUDY      Study                          0 discs (5 including inside)
+    BOX1       Box 1, blue lid                5 discs
+                 TRIP-01_2019_4  Kyoto, July 2019
+                 PROJ-01_2020-2023_L  Weather station project
+                 SCAN-01_1995-2008_D  Letters 1995-2008, scanned
+                 SCAN-02_1995-2008_B  Letters 1995-2008, scanned
+                 SCAN-03_1995-2008_9  Letters 1995-2008, scanned
+  SAFE       Fire safe                      1 disc
+               TAXES-01_2019-2020_I  Tax return 2019
+OFFSITE    Parents' house                 2 discs
+             TRIP-01_2019_4  Kyoto, July 2019
+             FAMILY-01_2020-2021_K  Family photos 2020-2021
 rc=0
 $ --home edit location add ATTIC Attic shelf --in HOME --description dusty
 ATTIC: Home / Attic shelf
@@ -28,16 +36,13 @@ $ --home edit location add attic
 Error: location ATTIC already exists (use 'arv location move' or edit edit/catalog/archive.rec)
 rc=1
 $ --home edit location list
-HOME       Home                           0 discs
-  STUDY      Study                          0 discs
-    BOX1       Box 1, blue lid                0 discs
+HOME       Home                           0 discs (6 including inside)
+  STUDY      Study                          0 discs (5 including inside)
+    BOX1       Box 1, blue lid                5 discs
       ATTIC      Attic, top shelf               0 discs
-  SAFE       Fire safe                      0 discs
-OFFSITE    Parents' house                 0 discs
+  SAFE       Fire safe                      1 disc
+OFFSITE    Parents' house                 2 discs
 rc=0
-$ --home edit selection list
-Segmentation fault (core dumped)
-rc=139
 $ --home edit access TAXES-01_2019-2020_I private
 rc=0
 $ --home edit access TRIP-01_2019_4 public

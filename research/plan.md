@@ -1321,3 +1321,26 @@ Places belong to copies only: `Disc.Location` is removed, `arv locate DISC-ID CO
 a copy-specific `Location` change, and disc summaries and place filters derive from recorded copies.
 `burned` and `stored` record a copy's initial place; `make --location` is not accepted. `Location`
 records remain. There are no discs to migrate before 1.0.
+
+## Decision (2026-10-14, issue #42): the clarity round, part 1
+
+What a review of every command found to cost more than it gives, removed (the list and the
+evidence for each item: issue #42). The test for each was principle 7, then use: is it in the
+workflow, is it tested, does another command or tool already do it.
+
+- **Removed:** the `make` options for other tools' work (`--ro-crate`, `--tools-history`,
+  `--git-since`, `--extra-tools`, `--sf-home`) or that hid problems (`--ignore-names`,
+  `--no-verify`) or guessed (`--media`); `plan refresh`, `plan add --copy`, `restore --no-links`,
+  `verify files`, `tags --vocab`, `keywords --format tsv`, `init --pointer`; the weak copy
+  identifiers `label:` and `hub:`; `arv models` (downloading models and building llama.cpp is a
+  package manager's work); the GUI's own reader of the catalogue; the code reading old formats.
+- **Kept, though suggested:** the UDF/ECMA standards zip and `upstream/` stay in the repository (off
+  the discs) for reference and for the work offered upstream.
+- **Found on the way:** the reference homes had no event ids, so with the old-format code gone their
+  copies could not be named; they now carry ids (and temperatures), checked by `arv audit`. The fake
+  embeddings server in the checks makes bag-of-words vectors, as the fake llama-embedding did, so
+  the test of remembered tags means something.
+- **Next (part 2):** one way to do each thing: `arv check SOURCE` for every kind of copy; `id`, `info`
+  and `ls` as `info`; one spelling for recording a state; `--barcode` with one meaning; one rule for
+  what is due a check; each command's own help.
+

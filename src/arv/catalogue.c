@@ -123,6 +123,15 @@ char *where(const catalogue *c, const rec_record *d)
     return archive_where(&c->records, d);
 }
 
+/* fields a record may give more than once: always a list in JSON, so a script need not check */
+static int repeatable(const char *name)
+{
+    static const char *const names[] = { "Note", "Subject", "Category", "Path", "Agent", "Identifier", "Replaces", NULL };
+    for (size_t k = 0; names[k]; k++)
+        if (!strcmp(names[k], name)) return 1;
+    return 0;
+}
+
 static void json_record_fields(sbuf *b, const rec_record *r, int *first, const rec_record *skip)
 {
     for (size_t i = 0; i < r->nfields; i++) {
@@ -137,14 +146,15 @@ static void json_record_fields(sbuf *b, const rec_record *r, int *first, const r
         *first = 0;
         json_str(b, name);
         sb_puts(b, ": ");
-        if (count > 1) sb_puts(b, "[");
+        int list = count > 1 || repeatable(name);
+        if (list) sb_puts(b, "[");
         size_t emitted = 0;
         for (size_t j = i; j < r->nfields; j++)
             if (!strcmp(r->fields[j].name, name)) {
                 if (emitted++) sb_puts(b, ", ");
                 json_str(b, r->fields[j].value);
             }
-        if (count > 1) sb_puts(b, "]");
+        if (list) sb_puts(b, "]");
     }
 }
 
