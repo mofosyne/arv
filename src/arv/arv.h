@@ -155,6 +155,11 @@ const rec_record *copy_same_as(const archive *a, const char *disc_id, const rec_
 size_t identity_report(const archive *a);
 void field_heads(const archive *a, const char *thing, const char *field, strlist *heads);
 void sets_field(const archive *a, rec_record *e, const char *thing, const char *field);   /* Sets, Replaces */
+/* a path's tags or caption changed after burning (field "Tags" or "Caption"), on an event about the
+ * disc; and the disc's tags.tsv now (burned: the file as burned, or NULL), NULL when there are none */
+void tag_change(const archive *a, rec_record *ev, const char *disc_id, const char *field, const char *path, const char *value);
+char *disc_tags_text(const archive *a, const char *disc_id, const char *burned);
+FILE *disc_tags_open(const archive *a, const char *disc_id, const char *burned);
 size_t field_conflicts(const archive *a);    /* a field changed apart in two catalogues: printed, counted */    /* recorded twice, on two discs, two BCAs: printed, counted */
 /* the BCA serial of the disc in a drive (Linux): 32 hex digits; -1 when there is none (drive.c) */
 int drive_bca(const char *device, char out[33]);

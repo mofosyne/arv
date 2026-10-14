@@ -709,7 +709,7 @@ int assist_tag(int argc, char **argv)
         items_of_disc(&h, rec_get(disc, "Id"), &files);
         if (disc_root) text_root = join(disc_root, "data");
         char *tf = home_volume_file(&h, rec_get(disc, "Id"), "tags.tsv");
-        read_tags_file(tf, &captions);
+        read_tags_now(&cat, rec_get(disc, "Id"), tf, &captions);
         free(tf);
     } else if (!stat(tgt, &st) && S_ISDIR(st.st_mode)) {
         text_root = abs_path(tgt);
@@ -787,8 +787,9 @@ int assist_tag(int argc, char **argv)
     } else if (disc && (apply || interactive)) {
         const char *id = rec_get(disc, "Id");
         char *tf = home_volume_file(&h, id, "tags.tsv");
-        ftags merged;
-        read_tags_file(tf, &merged);
+        ftags merged, before;
+        read_tags_now(&cat, id, tf, &merged);
+        read_tags_now(&cat, id, tf, &before);
         size_t folders = 0;
         for (size_t i = 0; i < accepted.n; i++) {
             if (!accepted.tags[i].n) continue;
@@ -797,10 +798,12 @@ int assist_tag(int argc, char **argv)
             strlist_free(t);
             for (size_t k = 0; k < accepted.tags[i].n; k++) strlist_add(t, accepted.tags[i].v[k]);
         }
-        write_tags_file(tf, &merged);
         char *note = xprintf("folder tags for %zu folders from the tag vocabulary", folders);
-        recs_add(&cat.events, reviewed_event(id, agent, how, note));
+        rec_record *ev = reviewed_event(id, agent, how, note);
+        record_tag_changes(&cat, ev, id, &before, &merged);   /* the disc's tags.tsv stays as burned */
+        recs_add(&cat.events, ev);
         archive_save(&cat, h.rec_path);
+        ftags_free(&before);
         fprintf(stderr, "Updated tags of %s.\n", id);
         free(note);
         free(tf);

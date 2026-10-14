@@ -1458,8 +1458,14 @@ do not give is order (a slideshow's sequence): that is names (`01 torii gates.jp
   its folders' tags and its own. `make --draft` and `describe --apply` take a file's path,
   `find` shows it as the file, `tags` counts files apart from folders, `keywords` writes one
   file's keywords. A path is a file when the disc's listing names it (folders are not listed).
-- **Planned: tags added after burning as events**, carried by the next disc's snapshot, as moves
-  are. Today `describe --apply` rewrites the home's copy of the tag list and logs that it did.
+- **Done (2026-10-14): tags added after burning are events.** One event an apply, a `Tags:
+  PATH<tab>TAGS` (or `Caption:`) field for each path that changed, with `Sets: Tags:PATH` and
+  `Replaces`, so field histories, merges and conflicts work as for any field. The disc's
+  `tags.tsv` stays as burned; readers lay the newest change of each path over it
+  (`disc_tags_text`). A later disc's snapshot writes the other discs' tags as they are now, so
+  readers without event support see them (applying the events again changes nothing). Not yet: a
+  command in arv itself to set tags by hand (today it is `arv-assist`'s `describe --apply` with a
+  draft, or `tag --apply`).
 
 **A layout is a view of tags** (planned; corrected 2026-10-14). First written the other way round
 (a declared folder layout from which tags are derived), but the owner's experience is that the
@@ -1504,8 +1510,16 @@ it, and a disc's folders are one view of them, chosen when the disc is made:
   files came in (an existing `Kyoto trip/` gives `event:kyoto-trip` once, when the file is first
   archived). After that the tag, not the folder, is the record.
 - **Moves become tag changes**: re-filing a photo under another event is changing its `event` tag;
-  the next disc made with a layout puts it there. A plain rename (the file's own name) is still a
-  move, as above.
+  the next disc made with a layout puts it there. There is no "move" in a layout plan: a place is
+  worked out, not chosen (the owner's point, 2026-10-14). `plan rename` and `--as` stay for plans
+  placed by hand, and for what a layout does not apply to (a project keeps the tree it came with).
+- **Names: a title and a slug.** The title is for people ("Torii gates at Fushimi Inari"), in the
+  record and searched, as data objects' `Title` already is. The slug is the file's name on the disc
+  (`torii-gates.jpg`): short, safe on every system, the last part of the path a layout builds. The
+  slug is the original name (`IMG_0001.JPG`) unless one is given, which settles keeping the
+  original name: nothing is lost unless a slug is chosen, and the record keeps both. So "splitting
+  a file off and renaming it" in a layout plan is giving it a title, a slug or tags: a metadata
+  change, an event like a tag change, not a placement.
 - **Limits:** files with no structure to speak of (a software project, a document folder) keep the
   tree they came with: a layout is for collections whose structure is their tags (photos, scans,
   recordings).

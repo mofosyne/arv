@@ -77,19 +77,19 @@ static char *hierarchical(const char *tag)
 typedef struct {
     char *folder;
     strlist tags;
-} tags;
+} path_tags;
 
 typedef struct {
-    tags *v;
+    path_tags *v;
     size_t n;
 } tag_file;
 
-/* catalog.read_tags: folder <TAB> comma-separated tags [<TAB> caption]; a folder listed twice
- * keeps its last line, in the place of its first */
-static void read_tags(const char *path, tag_file *out)
+/* a disc's tags now (its tags.tsv as burned, and the changes since): path <TAB> comma-separated
+ * tags [<TAB> caption]; a path listed twice keeps its last line, in the place of its first */
+static void read_tags(const archive *cat, const char *disc_id, const char *path, tag_file *out)
 {
     memset(out, 0, sizeof *out);
-    FILE *fp = fopen(path, "r");
+    FILE *fp = disc_tags_open(cat, disc_id, path);
     char *line = NULL;
     size_t cap = 0;
     ssize_t len;
@@ -100,7 +100,7 @@ static void read_tags(const char *path, tag_file *out)
         *tab = 0;
         char *rest = tab + 1, *tab2 = strchr(rest, '\t');
         if (tab2) *tab2 = 0;
-        tags *ft = NULL;
+        path_tags *ft = NULL;
         for (size_t i = 0; i < out->n && !ft; i++)
             if (!strcmp(out->v[i].folder, line)) ft = &out->v[i];
         if (ft) {
@@ -227,7 +227,7 @@ int cmd_tags(int argc, char **argv)
         if (!id) continue;
         char *path = home_volume_file(&h, id, "tags.tsv"), *lst = home_volume_file(&h, id, "listing.tsv");
         tag_file tf;
-        read_tags(path, &tf);
+        read_tags(&cat, id, path, &tf);
         for (size_t k = 0; k < tf.n; k++) {
             int file = strcmp(tf.v[k].folder, ".") && listing_has_file(lst, tf.v[k].folder);
             for (size_t t = 0; t < tf.v[k].tags.n; t++) {
@@ -332,9 +332,9 @@ int cmd_keywords(int argc, char **argv)
     if (!kw.v[0].tags.n) strlist_add(&kw.v[0].tags, rec_get(d, "Set") ? rec_get(d, "Set") : "None");
     char *path = home_volume_file(&h, disc_id, "tags.tsv");
     tag_file tf;
-    read_tags(path, &tf);
+    read_tags(&cat, disc_id, path, &tf);
     for (size_t k = 0; k < tf.n; k++) {
-        tags *ft = NULL;
+        path_tags *ft = NULL;
         for (size_t i = 0; i < kw.n && !ft; i++)
             if (!strcmp(kw.v[i].folder, tf.v[k].folder)) ft = &kw.v[i];
         if (!ft) {

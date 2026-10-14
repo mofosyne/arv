@@ -73,6 +73,15 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   reference outputs and `data.c`, committing a new `disc-tools.txt` path first). Both go on
   every disc with the source.
 
+**Tags after burning are events**
+- `describe --apply` and `tag --apply` no longer rewrite a disc's `tags.tsv` at home: the disc's
+  file stays as burned, and the change is the event's (`Tags: PATH<tab>TAGS`, `Caption:`, with
+  `Sets` and `Replaces`, one event an apply, only the paths that changed). So tag changes are
+  appended, merge with another catalogue by event id, and two made apart are a conflict
+  (`arv audit`, `arv rebuild`). `find`, `tags` and `keywords` read the tags now: as burned, with
+  each path's newest change. A later disc's catalogue carries the other discs' tags as they are
+  now, for readers that do not read events.
+
 **Renaming in a plan, and lists**
 - `arv plan rename NAME PATH NEWPATH`: an item's new place on its disc (a folder, all of it); a
   file or folder inside a planned folder is split off under the new name, as `git mv` would.

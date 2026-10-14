@@ -1441,13 +1441,17 @@ static void stage_plan(maker *mk, size_t idx)
         if (!d || !strcmp(disc_access(d), "sealed")) continue;
         for (int k = 0; KINDS[k]; k++) {
             char *from = home_volume_file(mk->h, prior.v[i], KINDS[k]);
-            if (!access(from, F_OK)) {
+            int tags = !strcmp(KINDS[k], "tags.tsv");
+            char *now = tags ? disc_tags_text(cat, prior.v[i], access(from, F_OK) ? NULL : from) : NULL;
+            if (now || (!tags && !access(from, F_OK))) {
                 char *dir = xprintf("%s/%s", vol_dir, prior.v[i]), *to = join(dir, KINDS[k]);
                 if (mkdirs(dir)) die("cannot create %s", dir);
-                copy_file(from, to);
+                if (now) write_text(to, now);        /* its tags now: as burned, and changed since */
+                else copy_file(from, to);
                 free(dir);
                 free(to);
             }
+            free(now);
             free(from);
         }
     }

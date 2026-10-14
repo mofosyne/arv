@@ -435,7 +435,7 @@ int cmd_find(int argc, char **argv)
         char *path = catalogue_volume(&c, rec_get(d, "Id"), "tags.tsv"), *line = NULL;
         size_t cap = 0;
         ssize_t len;
-        FILE *fp = fopen(path, "r");
+        FILE *fp = disc_tags_open(&c.records, rec_get(d, "Id"), path);   /* as burned, and changed since */
         while (fp && (len = getline(&line, &cap, fp)) >= 0) {
             while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) line[--len] = 0;
             char *cols[3] = { line, NULL, NULL };

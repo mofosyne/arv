@@ -642,6 +642,16 @@ files across folders (`best`, `person:alice`) is given to each file, and one tha
 whole folder is given once. Tags are comma-separated and lower case. The caption column is
 optional.
 
+A disc's own `tags.tsv` is as it was burned. A later change is an `Event` about the disc, one
+for each time tags are applied, with a field for each path it changes: `Tags: PATH<TAB>a, b`
+(the path's tags now; empty for none) and `Caption: PATH<TAB>text`, each with `Sets: Tags:PATH`
+(or `Caption:PATH`) and `Replaces:` the change it follows, as any field that changes. So changes
+are appended, merge by event id, and two made apart in two catalogues are a conflict to settle by
+setting the path again. A disc's tags now are its `tags.tsv` with each path's newest change laid
+over it. The other discs' `tags.tsv` in a later disc's `catalog/volumes/` are written that way, as
+they are now, so a reader that does not read events still sees them; applying the events again
+changes nothing.
+
 A tag is either a plain word or phrase (`travel`) or `namespace:value`
 (`person:alice`, `place:kyoto`, `event:wedding-2019`, `source:pixel-7`,
 `project:weather-station`), as in Hydrus. Namespaces keep facets apart: who,

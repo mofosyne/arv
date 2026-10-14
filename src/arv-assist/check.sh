@@ -80,8 +80,8 @@ printf '{"title": "New title", "subjects": ["travel"], "notes": ["Q: Who?\\nA: U
 "$tool" --home home describe "$id" --apply apply.json > apply.out || no "describe --apply"
 grep -q "^Title: New title" home/catalog/archive.rec && grep -q "^Note: Q: Who?" home/catalog/archive.rec \
     && grep -A6 "^Note: updated Title" home/catalog/archive.rec >/dev/null \
-    && grep -B8 "updated Title, Subject, Note, folder tags (suggested by a model, accepted by a person)" home/catalog/archive.rec | grep -q "^Agent: llm:test" \
-    && grep -B8 "updated Title, Subject, Note, folder tags" home/catalog/archive.rec | grep -q "^Authorship: accepted" \
+    && grep -B8 "updated Title, Subject, Note, tags (suggested by a model, accepted by a person)" home/catalog/archive.rec | grep -q "^Agent: llm:test" \
+    && grep -B8 "updated Title, Subject, Note, tags" home/catalog/archive.rec | grep -q "^Authorship: accepted" \
     && ok "describe --apply: title, subjects, notes and folder tags into the catalogue, accepted by the person" \
     || { cat apply.out; tail -30 home/catalog/archive.rec; no "describe --apply"; }
 
@@ -90,13 +90,25 @@ grep -q "^Title: New title" home/catalog/archive.rec && grep -q "^Note: Q: Who?"
 printf '{"tags": {"photos/2019 trip": ["event:trip-2019"], "photos/2019 trip/IMG_0001.JPG": ["best"], "no/such": ["x"]}, "agent": "llm:other"}\n' \
     | "$tool" --home home describe "$id" --apply - --suggested > apply2.out 2> apply2.err || no "describe --apply -"
 tsv=$(find home -path "*$id*" -name tags.tsv | head -1)
-grep -q "^photos	travel" "$tsv" && grep -q "^photos/2019 trip	event:trip-2019" "$tsv" && ! grep -q "^no/such" "$tsv" \
-    && grep -q "^photos/2019 trip/IMG_0001.JPG	best" "$tsv" && grep -q "has no folder or file no/such" apply2.err \
-    && tail -6 home/catalog/archive.rec | grep -q "^Authorship: suggested" \
-    && tail -6 home/catalog/archive.rec | grep -q "^Agent: llm:other" \
-    && ! tail -6 home/catalog/archive.rec | grep -q "^Agent: human:" \
-    && ok "describe --apply - --suggested: from standard input, tags merged (a file's too), an unknown path skipped, left a suggestion" \
-    || { cat apply2.out apply2.err; cat "$tsv"; tail -14 home/catalog/archive.rec; no "describe --apply - --suggested"; }
+awk 'BEGIN { RS = "" } END { print }' home/catalog/archive.rec > last.rec      # the newest event
+grep -q "^Tags: photos/2019 trip	event:trip-2019$" last.rec && grep -q "^Sets: Tags:photos/2019 trip$" last.rec \
+    && grep -q "^Tags: photos/2019 trip/IMG_0001.JPG	best$" last.rec && ! grep -q "no/such" last.rec \
+    && ! grep -q "^Tags: photos	" last.rec && grep -q "has no folder or file no/such" apply2.err \
+    && ! grep -q "event:trip-2019" "$tsv" \
+    && "$arv" --home home find best | grep -q "^TAG   $id  .*data/photos/2019 trip/IMG_0001.JPG  (best)" \
+    && "$arv" --home home find travel | grep -q "^TAG   $id  .*data/photos/  (travel)" \
+    && grep -q "^Authorship: suggested" last.rec && grep -q "^Agent: llm:other" last.rec && ! grep -q "^Agent: human:" last.rec \
+    && ok "describe --apply - --suggested: tags recorded as an event (a file's too; the disc's tags.tsv as burned), found by find; an unknown path skipped; a suggestion" \
+    || { cat apply2.out apply2.err; cat last.rec; no "describe --apply - --suggested"; }
+# a disc made after: its catalogue carries the earlier disc's tags now, as burned and changed since
+put Later/note.txt "later"
+"$arv" --home home make -y --no-ecc --no-formats --set CODE --keep-stage --output-dir later Later >/dev/null 2>&1 \
+    || no "make a later disc"
+snap=$(find later -path "*/catalog/volumes/$id/tags.tsv" | head -1)
+[ -n "$snap" ] && grep -q "^photos/2019 trip	event:trip-2019" "$snap" && grep -q "^photos/2019 trip/IMG_0001.JPG	best" "$snap" \
+    && grep -q "^photos	travel" "$snap" \
+    && ok "a later disc carries an earlier disc's tags as they are now (tags.tsv), and the events that changed them" \
+    || { cat "$snap"; no "later disc's snapshot of tags"; }
 
 # ------------------------------------------------------------------ data objects
 # the folder made into a disc above is a data object; it said what its README says

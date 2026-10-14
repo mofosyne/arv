@@ -893,6 +893,128 @@ void sets_field(const archive *a, rec_record *e, const char *thing, const char *
     strlist_free(&heads);
 }
 
+/* ------------------------------------------------------------------ a disc's tags after it was burned
+ * A disc's tags.tsv is as it was burned; a later change to one path's tags or caption is a field
+ * of an event about the disc, "Tags: PATH<TAB>a, b" (or "Caption: PATH<TAB>text"), with
+ * "Sets: Tags:PATH" and Replaces, so changes are appended, merge by event id, and two made
+ * apart are a conflict (field_conflicts). The tags now are the burned ones with each path's
+ * newest change laid over them. */
+
+void tag_change(const archive *a, rec_record *ev, const char *disc_id, const char *field, const char *path, const char *value)
+{
+    char *v = xprintf("%s\t%s", path, value), *key = xprintf("%s:%s", field, path);
+    rec_add(ev, field, v);
+    sets_field(a, ev, disc_id, key);
+    free(v);
+    free(key);
+}
+
+/* the value an event gives one path's field (Tags or Caption), or NULL */
+static const char *changed_value(const rec_record *e, const char *field, const char *path)
+{
+    size_t n = strlen(path);
+    for (size_t f = 0; f < e->nfields; f++)
+        if (!strcmp(e->fields[f].name, field) && !strncmp(e->fields[f].value, path, n) && e->fields[f].value[n] == '\t')
+            return e->fields[f].value + n + 1;
+    return NULL;
+}
+
+typedef struct {
+    char *path, *tags, *caption;
+} tag_line;
+
+static int by_tag_path(const void *x, const void *y)
+{
+    return strcmp(((const tag_line *)x)->path, ((const tag_line *)y)->path);
+}
+
+char *disc_tags_text(const archive *a, const char *disc_id, const char *burned)
+{
+    tag_line *v = NULL;
+    size_t n = 0;
+    char *text = burned ? read_text(burned) : NULL;
+    for (char *l = text; l && *l;) {                    /* as burned: path <TAB> tags [<TAB> caption] */
+        char *nl = strchr(l, '\n');
+        if (nl) *nl = 0;
+        if (*l && *l != '#') {
+            char *t1 = strchr(l, '\t'), *t2 = t1 ? strchr(t1 + 1, '\t') : NULL;
+            if (t1) *t1 = 0;
+            if (t2) *t2 = 0;
+            v = xrealloc(v, (n + 1) * sizeof *v);
+            v[n++] = (tag_line){ xstrdup(l), xstrdup(t1 ? t1 + 1 : ""), xstrdup(t2 ? t2 + 1 : "") };
+        }
+        l = nl ? nl + 1 : l + strlen(l);
+    }
+    free(text);
+    strlist done = { 0 };                               /* each path's newest change, over it */
+    for (size_t i = 0; i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        const char *d = rec_get(e, "Disc");
+        if (!d || strcmp(d, disc_id)) continue;
+        for (size_t f = 0; f < e->nfields; f++) {
+            if (strcmp(e->fields[f].name, "Sets") || (strncmp(e->fields[f].value, "Tags:", 5) && strncmp(e->fields[f].value, "Caption:", 8)))
+                continue;
+            const char *key = e->fields[f].value, *colon = strchr(key, ':'), *path = colon + 1;
+            if (strlist_has(&done, key)) continue;
+            strlist_add(&done, key);
+            char field[8];
+            snprintf(field, sizeof field, "%.*s", (int)(colon - key), key);
+            strlist heads;
+            field_heads(a, disc_id, key, &heads);
+            const char *value = NULL;                   /* of two made apart (a conflict), the later */
+            for (size_t k = 0; k < a->events.n; k++) {
+                char id[33];
+                event_key(a->events.v[k], id);
+                if (strlist_has(&heads, id) && changed_value(a->events.v[k], field, path)) value = changed_value(a->events.v[k], field, path);
+            }
+            strlist_free(&heads);
+            if (!value) continue;
+            size_t at = 0;
+            while (at < n && strcmp(v[at].path, path)) at++;
+            if (at == n) {
+                v = xrealloc(v, (n + 1) * sizeof *v);
+                v[n++] = (tag_line){ xstrdup(path), xstrdup(""), xstrdup("") };
+            }
+            char **slot = !strcmp(field, "Tags") ? &v[at].tags : &v[at].caption;
+            free(*slot);
+            *slot = xstrdup(value);
+        }
+    }
+    strlist_free(&done);
+    if (n) qsort(v, n, sizeof *v, by_tag_path);
+    sbuf out = { 0 };
+    sb_puts(&out, "# path (a folder or a file, relative to data/)\ttags\tcaption (what sampled images show, if analysed)\n");
+    size_t kept = 0;
+    for (size_t i = 0; i < n; i++) {
+        if (*v[i].tags || *v[i].caption) {
+            sb_printf(&out, "%s\t%s%s%s\n", v[i].path, v[i].tags, *v[i].caption ? "\t" : "", v[i].caption);
+            kept++;
+        }
+        free(v[i].path);
+        free(v[i].tags);
+        free(v[i].caption);
+    }
+    free(v);
+    if (!kept) {
+        free(out.s);
+        return NULL;
+    }
+    return out.s;
+}
+
+/* the disc's tags now, to read as its tags.tsv would be read; NULL when there are none */
+FILE *disc_tags_open(const archive *a, const char *disc_id, const char *burned)
+{
+    char *text = disc_tags_text(a, disc_id, burned);
+    FILE *fp = text ? tmpfile() : NULL;
+    if (fp) {
+        fputs(text, fp);
+        rewind(fp);
+    }
+    free(text);
+    return fp;
+}
+
 /* fields changed apart, in two catalogues: printed (CONFLICT), counted */
 size_t field_conflicts(const archive *a)
 {
