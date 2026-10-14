@@ -1403,5 +1403,46 @@ work on it). Since checkpoints went (issue #42), a collection is exactly that li
 says what is kept; the plan says how this edition is arranged (the albums above). `diff` between
 editions then shows the renames as moves, by content, as `git log --follow` would.
 
+**Two kinds of move** (added 2026-10-14). A burned disc cannot change, and its files may no longer
+be on any drive, so a move is either:
+
+- **In the record only**, for files already on discs: "on disc D, `day1/IMG_0001.JPG` is now
+  `Fushimi Inari/torii gates.jpg`". An appended event, as every change is (`Sets`, `Replaces`, so
+  two catalogues merge), carried by the next disc's catalogue snapshot. It is the file's one name
+  now, a correction of the record, and the commands honour it: `find` finds it by either name,
+  `restore` puts it back under the new one (`--as-burned` for the old), and the next edition made
+  from those discs uses it. The spec says how, so Katalog can show the current names too.
+- **Planned for the next edition**, for files still on a drive: a plan's `--as` and `rename`. In a
+  collection's own folder no arv command is needed: `mv` the files; `status` sees the move by
+  content (`>`), and the next edition carries it.
+
+They join: a move in the record becomes a move on discs the next time those files are made into
+discs, as `git mv` waits for the next commit. So there is no need to re-burn to rename. The
+physical rename waits for a remake that happens anyway: new media, several old discs gathered
+into one, a damaged copy replaced.
+
+**Remaking from discs, with no staging area.** When the files are only on discs, a plan reads
+them from the copies:
+
+- A plan's source may be a disc's files: `arv plan add NAME DISC-ID[:path]` (arv reading its own
+  format, within principle 7).
+- The copy read is the handiest the record knows: a stored image or folder on the NAS (no disc
+  to fetch), else a disc in a drive (warm before cold, as `objects` lists them).
+- Each file is read straight from the image or disc by its sectors (`extents.tsv`, on every disc)
+  and checked against the old disc's manifest as it is read: a damaged file stops the make rather
+  than being copied onto the new disc. No copy to a staging folder.
+- With one drive and several source discs, `plan make` reads in disc order and asks for each disc
+  once; a jukebox loads them from the same kind of worklist as `todo --tsv`.
+- The names on the new discs are the record's: moves in the record, then the plan's `--as` and
+  `rename`.
+
+A disc that cannot be read or repaired cannot be remade; that is the old problem of two good
+copies, which `todo` already watches.
+
+**Open:** albums made by moving photos (one name and place a file) fit the above. Albums that share
+photos, or a "best of" across many discs, would be the cross-disc virtual folders removed in issue
+#42 (`arv selection`, given to Katalog): wanted or not is the owner's call.
+
 Order: the folder split first (it fixes the silent duplicate), then `rename` and `--list`, then
-the original name (format), then plans as editions, which builds on all of them.
+the original name (format), then moves in the record, then plans as editions and plans from discs,
+which build on all of them.
