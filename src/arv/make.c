@@ -1099,6 +1099,8 @@ static rec_record *disc_record(const maker *mk, const plan *p)
     rec_add(d, "Sequence", seq);
     free(seq);
     rec_add(d, "Coverage", mk->coverage);
+    if (mk->dplan && plan_layout(mk->dplan, (int)(p - mk->plans) + 1))   /* its tree, made from its objects' tags */
+        rec_add(d, "Layout", plan_layout(mk->dplan, (int)(p - mk->plans) + 1));
     rec_add(d, "Date", mk->today);
     if (p->parts > 1) {
         char *part = xprintf("%d of %d", p->part, p->parts);
@@ -1956,8 +1958,8 @@ int cmd_make(int argc, char **argv)
         strlist clashes = { 0 };
         plan_scan(&h, &dp, o.links, &files, &noted, &left_out, &plan_tagged, &clashes);
         if (clashes.n) {
-            fprintf(stderr, "Error: the layout puts two files at one path. Give one another name, and it stays laid "
-                            "out under it: arv plan add %s SOURCE --as NAME\n", dp.name);
+            fprintf(stderr, "Error: the layout puts two things at one path. Give one another name (the layout keeps "
+                            "placing it): arv plan rename %s PATH NEWPATH; arv plan show %s lists them\n", dp.name, dp.name);
             for (size_t i = 0; i < clashes.n; i++) fprintf(stderr, "  %s\n", clashes.v[i]);
             exit(1);
         }

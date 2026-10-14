@@ -201,7 +201,7 @@ typedef struct {
     char *source;           /* absolute: a file or folder, read when the discs are made */
     char *path;             /* where it goes under data/ ("." : a folder's contents at the top) */
     char *seen;             /* "FILES BYTES STAMP" when planned (names, sizes, dates), or NULL */
-    char *layout;           /* its files placed by their tags ("year/event, year"), or NULL: by hand */
+    char *placed;           /* plan_scan: where the disc's layout put it, whole; NULL: at path */
 } plan_item;
 typedef struct {
     char *file, *name;
@@ -214,10 +214,11 @@ typedef struct {
 } disc_plan;
 int cmd_plan(int argc, char **argv);
 void plan_load(const char *file, disc_plan *out);
-/* the files of a plan, each where it goes (laid out by its tags for an item with a layout; origin
- * then says where it would be by hand); tagged: "PATH\tTAGS" for each file the plan gives tags to;
- * clashes: two files given one path by a layout */
-void plan_scan(const arv_home *h, const disc_plan *p, const char *links, entries *files, entries *noted, size_t *left_out,
+/* the files of a plan, each where it goes (on a disc with a layout, each item placed whole by its
+ * tags: it->placed, and each file's origin says where it was arranged); tagged: "PATH\tTAGS" for
+ * each file the plan gives tags to; clashes: two files given one path by a layout */
+const char *plan_layout(const disc_plan *p, int disc);
+void plan_scan(const arv_home *h, disc_plan *p, const char *links, entries *files, entries *noted, size_t *left_out,
                strlist *tagged, strlist *clashes);
 void plan_made(const char *file, const strlist *disc_ids, const char *date);
 void text_sha256(const char *text, char hex[65]);

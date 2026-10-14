@@ -1,23 +1,20 @@
-%rec: Snapshot
-%doc: When this catalogue snapshot was taken and what it covers. The home
-+ archive.rec stays authoritative for anything recorded after this date.
+%rec: Archive
+%doc: Entry point of a smart-archive disc: which format and version this is, which disc,
++ and where its other catalogue files are (paths relative to the disc root).
++ Specification: tools/arv/docs/spec/smart-archive-format.md
+%mandatory: Format Version Disc Uuid
 
-Date: 2026-01-01
-Scope: full
-Discs: 1
-
-%rec: Home
-%doc: This archive's identity: one per home catalogue, made by arv init (or on first use).
-+ Each home is its own privacy sphere: a disc carries the catalogue of its home only, and
-+ names it (HomeUuid in catalog.rec). A home rebuilt from a disc keeps the disc's Uuid;
-+ arv rebuild refuses a disc of another home unless told otherwise. Name is for people.
-%key: Uuid
-%mandatory: Uuid
-%type: Uuid uuid
-%type: Date date
-
+Format: smart-archive
+Version: 0.5
+Disc: PHOTO-01_1974-2021_F
 Uuid: UUID
-Date: 2026-01-01
+HomeUuid: UUID
+Manifest: manifest-sha256.txt
+Listing: catalog/volumes/PHOTO-01_1974-2021_F/listing.tsv
+Tags: catalog/volumes/PHOTO-01_1974-2021_F/tags.tsv
+Snapshot: catalog/archive.rec
+Viewer: index.html
+Payload: data/
 
 %rec: Disc
 %doc: One record per physical disc image (an OAIS AIP). Field names follow
@@ -26,6 +23,8 @@ Date: 2026-01-01
 + (copies burned from one image share it); Id is for people and is
 + derived from Set, Sequence and Coverage (EDTF) under IdScheme, so it
 + can always be regenerated and checked (see docs/spec/smart-archive-format.md).
++ Layout, when given, is how its tree was made from its objects' tags: levels split by
++ /, alternatives by , (year/event, year); each object placed whole.
 %key: Id
 %mandatory: Id Title Date
 %type: Uuid uuid
@@ -36,20 +35,23 @@ Date: 2026-01-01
 %type: Access enum public private sealed
 %type: Retired date
 
-Id: PHOTO-01_1974-2019_0
+Id: PHOTO-01_1974-2021_F
 Uuid: UUID
 IdScheme: set-seq-coverage/1
-Label: PHOTO-01_1974-2019_0 Album
+Label: PHOTO-01_1974-2021_F Album
 Title: Album
 Set: PHOTO
+Category: CODE
 Path: MEMORIES/PHOTO
+Path: PROJECTS/CODE
 Sequence: 1
-Coverage: 1974/2019
+Coverage: 1974/2021
+Layout: year/event, project, decade
 Date: 2026-01-01
 Creator: archivist
 Access: private
-Files: 6
-Bytes: 68
+Files: 8
+Bytes: 107
 Software: SW
 
 %rec: Binding
@@ -63,7 +65,7 @@ Software: SW
 %mandatory: Volume Container Protection
 %type: MediumSectors int
 
-Volume: PHOTO-01_1974-2019_0
+Volume: PHOTO-01_1974-2021_F
 Container: udf-2.50
 Protection: none
 Media: M-DISC BD-R 25GB
@@ -80,9 +82,9 @@ Ecc: none
 + (Path under data/; "." for the whole of data/). Source is where it was read from: it is
 + kept in the home catalogue only, and discs carry their objects without it. Except (one
 + for each) names a file or folder of the source left out of the object because a disc plan
-+ placed it elsewhere (a folder split): the object is the folder without them. Layout, when
-+ given, is the disc plan layout that placed its files by their tags (year/event, year): they
-+ are not under Path, and are found by their SHA-256 in the disc's manifest.
++ placed it elsewhere (a folder split): the object is the folder without them. Arranged, on a disc with
++ a Layout, is where it was arranged (its path in the disc plan) before the layout placed it
++ at Path; Name keeps its name where it was read from.
 + Title, Description, Coverage (EDTF), Rights and Origin (where it was published, as host/path)
 + say what it is: read from its own files when it is archived (its README, package manifest,
 + licence, a repository's commits and origin remote), or written by a person or a model
@@ -97,40 +99,88 @@ Ecc: none
 
 Uuid: UUID
 Version: 1
-Name: DCIM
-Kind: folder
-Tree: 6f46052e64e673177469e81fba626220a6a27a0f9f6c43920912ec8bfa92a15a
-Disc: PHOTO-01_1974-2019_0
-Path: DCIM
-Layout: year/event, year
-Files: 4
-Bytes: 50
+Name: IMG_0001.JPG
+Kind: file
+Tree: 2374fcfa13ace634b72a4499ba0ff2662c90b2a0445fa9d514efa33f506f8d23
+Disc: PHOTO-01_1974-2021_F
+Path: year/2019/event/kyoto trip/IMG_0001.JPG
+Arranged: DCIM/IMG_0001.JPG
+Files: 1
+Bytes: 14
 Date: 2026-01-01
-Except: day2/IMG_0001.JPG
+
+Uuid: UUID
+Version: 1
+Name: IMG_0002.JPG
+Kind: file
+Tree: 5264fad6a513e5edaa12f4e0d8bc7084306bd8617940636c56ca6112d93c9cd9
+Disc: PHOTO-01_1974-2021_F
+Path: year/2019/event/kyoto trip/IMG_0002.JPG
+Arranged: DCIM/IMG_0002.JPG
+Files: 1
+Bytes: 14
+Date: 2026-01-01
+
+Uuid: UUID
+Version: 1
+Name: IMG_0003.JPG
+Kind: file
+Tree: 3b872cb3b09d1305026bb4c2f6b54ba41cee70b6833119cd83cb7e0a287bbf62
+Disc: PHOTO-01_1974-2021_F
+Path: year/2019/event/kyoto trip/IMG_0003.JPG
+Arranged: DCIM/IMG_0003.JPG
+Files: 1
+Bytes: 14
+Date: 2026-01-01
 
 Uuid: UUID
 Version: 1
 Name: IMG_0001.JPG
 Kind: file
 Tree: dd9489592413320ace1242fc5383a7d6e8bc0f745801b1aad3933aacdfd6e8e1
-Disc: PHOTO-01_1974-2019_0
-Path: IMG_0001-day2.JPG
-Layout: year/event, year
+Disc: PHOTO-01_1974-2021_F
+Path: year/2019/event/kyoto trip/IMG_0001-day2.JPG
+Arranged: DCIM/day2/IMG_0001-day2.JPG
 Files: 1
 Bytes: 10
 Date: 2026-01-01
 
 Uuid: UUID
 Version: 1
-Name: scans
-Kind: folder
-Tree: 1b207975c3522591c8e891347f8a6e534c342856d75d6b4274267c24347924e5
-Disc: PHOTO-01_1974-2019_0
-Path: scans
-Layout: decade
+Name: notes.txt
+Kind: file
+Tree: 90b79d7758a8618e3a0eaeb19bf50b50c13e5cd04a199e1a7ea14d68e78bab85
+Disc: PHOTO-01_1974-2021_F
+Path: year/2019/event/kyoto trip/notes.txt
+Arranged: DCIM/notes.txt
 Files: 1
 Bytes: 8
 Date: 2026-01-01
+
+Uuid: UUID
+Version: 1
+Name: print1.tif
+Kind: file
+Tree: 3e25a178432fbc96260fc77dcdaf5bb8529de309f822af20a4bd43707c4e8cec
+Disc: PHOTO-01_1974-2021_F
+Path: decade/1970s/print1.tif
+Arranged: scans/print1.tif
+Files: 1
+Bytes: 8
+Date: 2026-01-01
+
+Uuid: UUID
+Version: 1
+Name: station
+Kind: folder
+Tree: 6d3749e9e70df1147115f45fcec8878025c3000d0f3dd22e911bc58da8f33fae
+Disc: PHOTO-01_1974-2021_F
+Path: project/weather-station/station
+Arranged: station
+Files: 2
+Bytes: 39
+Date: 2026-01-01
+Title: Station
 
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
@@ -169,10 +219,10 @@ Date: 2026-01-01
 %type: Location rec Location
 
 EventId: ID
-Disc: PHOTO-01_1974-2019_0
+Disc: PHOTO-01_1974-2021_F
 Type: message digest calculation
 Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: sha256 and sha512 manifests of 6 files
+Note: sha256 and sha512 manifests of 8 files

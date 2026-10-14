@@ -1476,20 +1476,30 @@ do not give is order (a slideshow's sequence): that is names (`01 torii gates.jp
   specific wins). A folder `date:2019` with one scan inside `date:1974` is not a conflict; two
   dates on one path is. Not yet: `From` is declared but nothing suggests from it.
 - **Done (2026-10-14): layouts in disc plans.** `plan tag` (and `--list`) gives files tags before
-  they are on a disc, kept in the plan as `Tags` records by source; `plan layout` sets an item's
-  layout (a layout is an item's, not the plan's: a project in the same plan keeps its tree). What
-  was decided on the way:
-  - **Year from the file's time** when there is no `date:` tag, as `From: file-date` declares. So
-    `year` alone places every file; `plan show` lists the folders before anything is made, which
-    is where a scan dated by its scanning shows up.
-  - **Two files one path** (two cameras' `IMG_0001.JPG`) are refused, not renamed: a silent
-    `IMG_0001-2.JPG` would be a name nobody chose. The fix is `plan add SOURCE --as NAME`, and a
-    file split off a laid-out folder stays laid out, under its new name: the slug of the design
-    above, given the existing way.
-  - **The object is the source, not the layout**: its manifest and `Tree` are its files' paths in
-    the source, so the same folder laid out two ways is the same version. `Layout` on the object
-    says its files are not under `Path`; they are found by hash. Not yet: the original name on the
-    disc (`Origin`), titles, and a layout chosen in `make` for a folder that is not a plan.
+  they are on a disc, kept in the plan as `Tags` records by source; `plan layout` gives a disc
+  its layout. What was decided on the way:
+  - **A layout is the disc's, and places objects whole** (corrected the same day, the owner's
+    point: an object has tags, not a path; a disc has a tree). First built per item, placing each
+    file of a folder by its own tags: that split data objects across folders, which this design
+    says never to do, and needed per-item layouts only so a project would not be scattered by its
+    files' dates. Placing objects whole needs neither: a project tagged `project:weather-station`
+    goes to `project/weather-station/station/` with its tree, and a photo is placed on its own
+    only when it is its own object.
+  - **`plan add --each`**: a folder's every file an item, and so a data object, of its own. Both
+    levels are normal, as in archival description (ISAD(G): a file, or an item): a folder of 500
+    photos added whole is described and placed as one, by choice (the "More Product, Less
+    Process" approach); `--each` when each photo deserves its own tags and name.
+  - **Original order kept**: an object placed by a layout records `Arranged` (its path in the plan,
+    before the layout), and `Name` keeps its name where it was read from (PREMIS `originalName`).
+  - **Year from the files' time** when there is no `date:` tag, as `From: file-date` declares
+    (for a folder, its earliest file). `plan show` says where each item goes before anything is
+    made, which is where a scan dated by its scanning shows up.
+  - **Two at one path** (two cameras' `IMG_0001.JPG`) are refused, not renamed: a silent
+    `IMG_0001-2.JPG` would be a name nobody chose. `plan rename` gives one another name, and the
+    layout keeps placing it, under that name (the slug of the design above).
+  - **The object is the source, not the layout**: its manifest and `Tree` are its files' paths
+    within it, so the same object placed two ways is the same version.
+  Not yet: titles, and a layout for `arv make` of a folder that is not a plan.
 
 **A layout is a view of tags** (planned; corrected 2026-10-14). First written the other way round
 (a declared folder layout from which tags are derived), but the owner's experience is that the

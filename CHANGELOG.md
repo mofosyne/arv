@@ -82,19 +82,23 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   each path's newest change. A later disc's catalogue carries the other discs' tags as they are
   now, for readers that do not read events.
 
-**Layouts: a plan's files placed by their tags**
+**Layouts: a disc's tree made from its objects' tags**
 - `arv plan tag NAME SOURCE TAGS`, and `--list FILE|-` (`SOURCE<tab>TAGS` lines, all or none, as
   exiftool writes them): tags for files still on a drive, kept in the plan, checked against the
-  vocabulary (one value of a one-valued namespace, a `date:` in EDTF). A file has its folders'
-  tags and its own; of a one-valued namespace its own value replaces its folder's.
-- `arv plan layout NAME LAYOUT [PATH...]`: the items' files placed in namespace folders,
-  `year/2019/event/kyoto-trip/IMG_0001.JPG`. `/` nests, `,` falls back; a file with none of the
-  alternatives keeps its place by hand. A date is filed by its start, and with no `date:` tag by
-  the file's own time (`From: file-date`). `plan show` lists the folders a layout makes and the
-  files it leaves; two files given one path stop `plan make` (another name with `plan add --as`
-  stays laid out).
-- The plan's tags go into the disc's `tags.tsv`; a `date:` tag counts for the disc's coverage
-  instead of the file's time; an Object records its `Layout` (`objects` says "laid out by").
+  vocabulary (one value of a one-valued namespace, a `date:` in EDTF). A file or folder has the
+  tags of the folders above it and its own; of a one-valued namespace its own value replaces its
+  folder's.
+- `arv plan layout NAME LAYOUT [--disc N]`: a disc's tree from its items' tags, each item (a data
+  object) placed whole in namespace folders: `year/2019/event/kyoto-trip/IMG_0001.JPG`,
+  `project/weather-station/station/`. `/` nests, `,` falls back; an item with none of the
+  alternatives keeps its arranged place. A date is filed by its start, and with no `date:` tag by
+  its earliest file's time (`From: file-date`). Recorded on the disc (`Layout`); each object
+  placed records where it was arranged (`Arranged`). `plan show` says where each item goes; two
+  at one path stop `plan make` (`plan rename` gives one another name).
+- `arv plan add NAME FOLDER --each`: each file in the folder an item, and so a data object, of its
+  own, to be placed on its own (a photo is an archive's item; a folder of them added whole is one).
+- The plan's tags go into the disc's `tags.tsv` (a folder object's once, on its folder); a `date:`
+  tag counts for the disc's coverage instead of the file's time.
 
 **Declared namespaces**
 - The tag vocabulary (`config/tags.rec`) declares namespaces: `Namespace` records with

@@ -134,6 +134,7 @@ Version 0.1 (samples only, never burned) kept these files by kind instead: `cata
 | `Path`* | Vocabulary paths of the set and categories | e.g. `MEMORIES/PHOTO/TRIP`; recorded at burn time |
 | `Title`, `Description`, `Creator`, `Subject`*, `Coverage`, `Rights` | Dublin Core description | `Subject` repeats; `Coverage` is [EDTF](#coverage-edtf) |
 | `Date` | Date the image was made | `YYYY-MM-DD` |
+| `Layout` | How its tree was made from its objects' tags | Levels split by `/`, alternatives by `,` (`year/event, year`); see [Object records](#object-records-data-objects-format-05); absent when placed by hand |
 | `Set`, `Part` | Set name and `n of N` for multi-disc sets | |
 | `Access` | `public`, `private` (default) or `sealed` | What *other* discs' snapshots may show of this one, see [Access](#access) |
 | `Withheld` | What was left out of this record | Only on the cut-down copy of a sealed disc in another disc's snapshot |
@@ -475,12 +476,12 @@ from, relative to the folder holding the home when inside it) and keeps each man
 `Except`* names a file or folder of the source, relative to it, that a disc plan placed elsewhere
 (a folder split: the more specific of two plan items that hold a file places it); the object is
 the folder without them, so comparing it with the folder later leaves them out.
-`Layout`* says its files were placed by their tags rather than kept under `Path`: a disc plan's
-layout, levels split by `/` and alternatives by `,` (`year/event, year`). Each level is a
-namespace folder holding a folder for its value (`event/kyoto-trip/`; `year` and `decade` are made
-from `date`, by its start), so the tree reads back as tags. A file with none of the alternatives
-is under `Path` as usual. A laid-out file is found by its SHA-256: the object's manifest gives its
-path within the object, the disc's manifest its place on the disc.
+On a disc with a `Layout`, each object is placed whole by its tags: each level is a namespace
+folder holding a folder for its value, then the object's name (`year/2019/event/kyoto-trip/IMG_0001.JPG`,
+`project/weather-station/station/`; `year` and `decade` are made from `date`, by its start), so the
+tree reads back as tags. An object is never split across folders. `Path` is where it is;
+`Arranged`, where it was arranged before the layout placed it (its path in the plan); `Name` keeps
+its name where it was read from. An object with none of the alternatives is at its arranged path.
 Readers merge objects by `Uuid`, `Version` and `Disc`.
 
 **What an object is** (added in format 0.5; all optional): `Title`, `Description`, `Coverage`

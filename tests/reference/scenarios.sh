@@ -527,31 +527,38 @@ keep hp/drafts/plans/card-2.rec plan/card-2.rec
 keep_stages out-plan plan/discs
 keep_home hp plan/home
 
-# ------------------------------------------------------------------ layouts: a plan's files placed by their tags
-mkdir -p lay/DCIM/day2 lay/scans
+# ------------------------------------------------------------------ layouts: a disc's tree made from its objects' tags
+mkdir -p lay/DCIM/day2 lay/scans lay/station/src
 for f in IMG_0001 IMG_0002 IMG_0003; do echo "jpeg $f" > lay/DCIM/$f.JPG; done
 echo "jpeg day2" > lay/DCIM/day2/IMG_0001.JPG
 echo "no date" > lay/DCIM/notes.txt
 echo "a print" > lay/scans/print1.tif
+echo "int main(void) { return 0; }" > lay/station/src/main.c
+echo "# Station" > lay/station/README.md
 for f in lay/DCIM/*.JPG lay/DCIM/day2/IMG_0001.JPG; do stamp 1562025600 "$f"; done    # 2019-07-02
-stamp 1700000000 lay/scans/print1.tif                                                # scanned 2023
-stamp 1700000000 lay/DCIM/notes.txt
+for f in lay/scans/print1.tif lay/DCIM/notes.txt; do stamp 1700000000 "$f"; done     # 2023: scanned, or written
+stamp 1600000000 lay/station/src/main.c && stamp 1610000000 lay/station/README.md       # 2020 and 2021
 log lay.out --home hy plan new album --set PHOTO
-log lay.out --home hy plan add album lay/DCIM lay/scans
+log lay.out --home hy plan add album lay/DCIM --each                          # each photo a data object of its own
+log lay.out --home hy plan add album lay/scans/print1.tif --as scans/print1.tif
+log lay.out --home hy plan add album lay/station                             # a project: one object, kept whole
+log lay.out --home hy plan add album lay/nope --each
 log lay.out --home hy plan tag album lay/DCIM "Event: Kyoto trip, place:kyoto"
 log lay.out --home hy plan tag album lay/scans/print1.tif "date:1974~, person:ann"
+log lay.out --home hy plan tag album lay/station "project:weather-station"
 log lay.out --home hy plan tag album lay/DCIM "date:2019, date:2020"          # two values of a one-valued namespace
 log lay.out --home hy plan tag album lay/DCIM "date:soon"                     # not EDTF
 log lay.out --home hy plan tag album lay/elsewhere "x"                        # not there
-log lay.out --home hy plan tag album lay "x"                                  # not in the plan
+echo "elsewhere" > lay-outside.txt
+log lay.out --home hy plan tag album lay-outside.txt "x"                      # not in the plan
 log lay.out --home hy plan layout album "person"                              # many-valued: refused
 log lay.out --home hy plan layout album "year/, year"                         # an empty level
-log lay.out --home hy plan layout album "year/event, year" DCIM
-log lay.out --home hy plan layout album "decade" scans
-log lay.out --home hy plan layout album "year" nope
+log lay.out --home hy plan layout album "year" --disc 2                       # no disc 2
+log lay.out --home hy plan layout album "decade" --disc 1
+log lay.out --home hy plan layout album "year/event, project, decade"         # every disc: replaces disc 1's too
 log lay.out --home hy plan show album                                         # day2/IMG_0001.JPG: two at one path
 log lay.out --home hy plan make album -y --no-ecc --no-formats --output-dir out-lay
-log lay.out --home hy plan add album lay/DCIM/day2/IMG_0001.JPG --as IMG_0001-day2.JPG   # another name, laid out still
+log lay.out --home hy plan rename album DCIM/day2/IMG_0001.JPG DCIM/day2/IMG_0001-day2.JPG   # another name, laid out still
 printf 'lay/DCIM/notes.txt\tdate:2019-07\n# a comment\nlay/DCIM/IMG_0003.JPG\tevent:other\n' > lay-tags.tsv
 log lay.out --home hy plan tag album --list lay-tags.tsv
 printf 'lay/DCIM/IMG_0002.JPG\tbest\nlay/nope.JPG\tbest\n' > lay-tags-bad.tsv

@@ -1,10 +1,10 @@
 Album
 =====
 
-Disc id:  PHOTO-01_1974-2019_0
+Disc id:  PHOTO-01_1974-2021_F
 Set:      PHOTO
 Burned:   2026-01-01
-Contents: 6 files, 68 bytes (in data/)
+Contents: 8 files, 107 bytes (in data/)
 Made by:  SW
 
 This is an archive disc by archivist, made on 2026-01-01: Album. Its files
@@ -83,12 +83,12 @@ WITHOUT A UDF READER (cut the files out of the image)
   If nothing can read the disc's file system but its image reads (and
   repairs, above), every file can still be cut out of it: each one is
   stored whole, in one run of 2048-byte sectors. Where each starts is in
-  catalog/volumes/PHOTO-01_1974-2019_0/extents.tsv (start sector, size in bytes, path),
+  catalog/volumes/PHOTO-01_1974-2021_F/extents.tsv (start sector, size in bytes, path),
   which this disc cannot carry for itself but every later disc of the
   archive does, and so does the home catalogue. For each line:
     dd if=disc.iso bs=2048 skip=START count=$(( (SIZE + 2047) / 2048 )) \
       | head -c SIZE > FILE
-  then check FILE against catalog/volumes/PHOTO-01_1974-2019_0/manifest.sha256 (sha256sum).
+  then check FILE against catalog/volumes/PHOTO-01_1974-2021_F/manifest.sha256 (sha256sum).
 
 CATALOGUE
   catalog.rec             this disc's record (GNU recutils format, plain text)
