@@ -433,6 +433,16 @@ log plan.out --home hp plan disc trip drop 1
 log plan.out --home hp plan disc trip drop 3
 log plan.out --home hp plan move trip notes.txt --disc 2
 log plan.out --home hp plan add trip plan-nas/photos/2025/b.jpg --as best/b.jpg --disc 1   # split: b leaves photos/
+log plan.out --home hp plan rename trip best/b.jpg best/kyoto-b.jpg            # an item's new place
+log plan.out --home hp plan rename trip photos/a.jpg best/kyoto-a.jpg          # inside photos/: split off
+log plan.out --home hp plan rename trip best/kyoto-a.jpg photos               # taken on its disc
+log plan.out --home hp plan rename trip photos/nope.jpg x.jpg                  # not there
+printf 'plan-pc/gone.txt\tg.txt\nplan-pc/nope.txt\tn.txt\n' > plan-list-bad.tsv
+log plan.out --home hp plan add trip --list plan-list-bad.tsv                   # a bad line: none added
+printf 'plan-pc/gone.txt\tnotes/gone.txt\t2\n' > plan-list.tsv
+log plan.out --home hp plan add trip --list plan-list.tsv
+log plan.out --home hp plan drop trip notes/gone.txt
+log plan.out --home hp plan drop trip best/kyoto-a.jpg                         # back into photos/
 log plan.out --home hp plan show trip
 log plan.out --home hp plan show trip --json
 log plan.out --home hp plan list

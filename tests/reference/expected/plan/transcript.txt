@@ -20,7 +20,7 @@ $ --home hp plan add trip plan-pc/notes.txt
 notes.txt: disc 1, now 1% full
 rc=0
 $ --home hp plan add trip plan-pc/notes.txt --disc 2
-Error: ROOT/plan-pc/notes.txt is in the plan already, on disc 1
+Error: ROOT/plan-pc/notes.txt is in the plan already, on disc 1 (arv plan rename gives it another place)
 rc=1
 $ --home hp plan add trip plan-pc/Videos --as ../up
 Error: ../up cannot be a path under data/ (relative, no . or .. parts; . only for a folder's contents)
@@ -43,20 +43,45 @@ rc=0
 $ --home hp plan add trip plan-nas/photos/2025/b.jpg --as best/b.jpg --disc 1
 best/b.jpg: disc 1, now 1% full
 rc=0
+$ --home hp plan rename trip best/b.jpg best/kyoto-b.jpg
+best/b.jpg -> best/kyoto-b.jpg (disc 1; the source is untouched)
+rc=0
+$ --home hp plan rename trip photos/a.jpg best/kyoto-a.jpg
+photos/a.jpg (in photos/) -> best/kyoto-a.jpg: disc 2, now 1% full
+rc=0
+$ --home hp plan rename trip best/kyoto-a.jpg photos
+Error: disc 2 already has something at photos (--as another name)
+rc=1
+$ --home hp plan rename trip photos/nope.jpg x.jpg
+Error: ROOT/plan-nas/photos/2025/nope.jpg: no such file or folder in the planned folder
+rc=1
+$ --home hp plan add trip --list plan-list-bad.tsv
+Error: plan-pc/nope.txt, line 2: no such file or folder (nothing was added)
+rc=1
+$ --home hp plan add trip --list plan-list.tsv
+notes/gone.txt: disc 2, now 1% full
+1 item added from plan-list.tsv
+rc=0
+$ --home hp plan drop trip notes/gone.txt
+notes/gone.txt: off disc 2 (the source is untouched)
+rc=0
+$ --home hp plan drop trip best/kyoto-a.jpg
+best/kyoto-a.jpg: off disc 2 (the source is untouched)
+rc=0
 $ --home hp plan show trip
 Plan trip  "Holiday 2025"  set TRIP  BD-R 25GB: about 18.4 GiB a disc for files
 Disc 1  [#-------------------]    1%  14 B in 2 items
-  best/b.jpg  7 B  ROOT/plan-nas/photos/2025/b.jpg
+  best/kyoto-b.jpg  7 B  ROOT/plan-nas/photos/2025/b.jpg
   video/wedding.mkv  7 B  ROOT/plan-pc/Videos/wedding.mkv
 Disc 2  [#-------------------]    1%  13 B in 2 items
   notes.txt  6 B  ROOT/plan-pc/notes.txt
   photos/  7 B, 1 file  ROOT/plan-nas/photos/2025
-      not b.jpg: placed as best/b.jpg on disc 1
+      not b.jpg: placed as best/kyoto-b.jpg on disc 1
 Next: arv plan make trip (one image a disc; arv make's options apply)
 Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
 rc=0
 $ --home hp plan show trip --json
-{"name": "trip", "title": "Holiday 2025", "set": "TRIP", "medium": "bd25", "description": null, "access": null, "from": null, "mediumLabel": "BD-R 25GB", "room": 19804278784, "made": null, "volumes": [], "discs": [{"disc": 1, "bytes": 14, "used": 12288, "items": [{"path": "best/b.jpg", "source": "ROOT/plan-nas/photos/2025/b.jpg", "changed": false, "kind": "file", "bytes": 7, "files": 1, "archived": null}, {"path": "video/wedding.mkv", "source": "ROOT/plan-pc/Videos/wedding.mkv", "changed": false, "kind": "file", "bytes": 7, "files": 1, "archived": null}]}, {"disc": 2, "bytes": 13, "used": 14336, "items": [{"path": "notes.txt", "source": "ROOT/plan-pc/notes.txt", "changed": false, "kind": "file", "bytes": 6, "files": 1, "archived": null}, {"path": "photos", "source": "ROOT/plan-nas/photos/2025", "changed": false, "kind": "folder", "bytes": 7, "files": 1, "archived": null}]}]}
+{"name": "trip", "title": "Holiday 2025", "set": "TRIP", "medium": "bd25", "description": null, "access": null, "from": null, "mediumLabel": "BD-R 25GB", "room": 19804278784, "made": null, "volumes": [], "discs": [{"disc": 1, "bytes": 14, "used": 12288, "items": [{"path": "best/kyoto-b.jpg", "source": "ROOT/plan-nas/photos/2025/b.jpg", "changed": false, "kind": "file", "bytes": 7, "files": 1, "archived": null}, {"path": "video/wedding.mkv", "source": "ROOT/plan-pc/Videos/wedding.mkv", "changed": false, "kind": "file", "bytes": 7, "files": 1, "archived": null}]}, {"disc": 2, "bytes": 13, "used": 14336, "items": [{"path": "notes.txt", "source": "ROOT/plan-pc/notes.txt", "changed": false, "kind": "file", "bytes": 6, "files": 1, "archived": null}, {"path": "photos", "source": "ROOT/plan-nas/photos/2025", "changed": false, "kind": "folder", "bytes": 7, "files": 1, "archived": null}]}]}
 rc=0
 $ --home hp plan list
 trip  2 discs, 4 items  "Holiday 2025"
@@ -68,7 +93,7 @@ $ --home hp plan make trip -y --no-ecc --no-formats --keep-stage --output-dir ou
 Plan trip: scanning and hashing its 4 items ...
 Categories from Match rules in hp/config/sets.rec: MEDIA (--category to choose, --no-rules to skip)
 Classified as: MEMORIES/PHOTO/TRIP, COLLECT/MEDIA
-Object b.jpg (data/best/b.jpg on TRIP-01_2025_B): new
+Object b.jpg (data/best/kyoto-b.jpg on TRIP-01_2025_B): new
 Object wedding.mkv (data/video/wedding.mkv on TRIP-01_2025_B): new
 Object notes.txt (data/notes.txt on TRIP-02_2025_9): new
 Object 2025/ (data/photos on TRIP-02_2025_9): new
@@ -83,12 +108,12 @@ rc=0
 $ --home hp plan show trip
 Plan trip  "Holiday 2025"  set TRIP  BD-R 25GB: about 18.4 GiB a disc for files
 Disc 1  [#-------------------]    1%  14 B in 2 items
-  best/b.jpg  7 B  ROOT/plan-nas/photos/2025/b.jpg
+  best/kyoto-b.jpg  7 B  ROOT/plan-nas/photos/2025/b.jpg
   video/wedding.mkv  7 B  ROOT/plan-pc/Videos/wedding.mkv
 Disc 2  [#-------------------]    1%  13 B in 2 items
   notes.txt  6 B  ROOT/plan-pc/notes.txt
   photos/  7 B, 1 file  ROOT/plan-nas/photos/2025
-      not b.jpg: placed as best/b.jpg on disc 1
+      not b.jpg: placed as best/kyoto-b.jpg on disc 1
 Made 2026-01-01: TRIP-01_2025_B TRIP-02_2025_9
 The same again, as a new plan: arv plan again trip NEW (this one is kept as it was; deleting it is safe)
 rc=0
@@ -114,12 +139,12 @@ rc=1
 $ --home hp plan show trip-2026
 Plan trip-2026  "Holiday 2026"  set TRIP  (from plan trip)  BD-R 25GB: about 18.4 GiB a disc for files
 Disc 1  [#-------------------]    1%  14 B in 2 items
-  best/b.jpg  7 B  ROOT/plan-nas/photos/2025/b.jpg
+  best/kyoto-b.jpg  7 B  ROOT/plan-nas/photos/2025/b.jpg
   video/wedding.mkv  7 B  ROOT/plan-pc/Videos/wedding.mkv
 Disc 2  [#-------------------]    1%  13 B in 2 items
   notes.txt  6 B  ROOT/plan-pc/notes.txt
   photos/  7 B, 1 file  ROOT/plan-nas/photos/2025
-      not b.jpg: placed as best/b.jpg on disc 1
+      not b.jpg: placed as best/kyoto-b.jpg on disc 1
 Next: arv plan make trip-2026 (one image a disc; arv make's options apply)
 Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
 rc=0
@@ -216,7 +241,7 @@ $ --home hp objects
 Data objects:
   b.jpg  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
     from ROOT/plan-nas/photos/2025/b.jpg (there now: arv status says if it changed)
-    version 1  TRIP-01_2025_B  data/best/b.jpg  no copy yet
+    version 1  TRIP-01_2025_B  data/best/kyoto-b.jpg  no copy yet
   wedding.mkv  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
     from ROOT/plan-pc/Videos/wedding.mkv (there now: arv status says if it changed)
     version 1  TRIP-01_2025_B  data/video/wedding.mkv  no copy yet
@@ -280,7 +305,7 @@ Data objects no longer where they came from, with fewer than two copies of their
   wedding.mkv  version 1: 1 copy; was at ROOT/plan-pc/Videos/wedding.mkv
 rc=0
 $ --home hp objects --json
-{"objects": [{"uuid": "UUID", "name": "b.jpg", "kind": "file", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 1, "cold": 0, "readBack": 1, "discs": 1}, "sources": [{"path": "ROOT/plan-nas/photos/2025/b.jpg", "there": true}], "todo": ["no cold copy"], "held": [{"version": 1, "path": "best/b.jpg", "files": 1, "bytes": 7, "on": {"disc": "TRIP-01_2025_B", "retired": false, "where": "", "copies": [{"copy": "A", "form": "iso", "temperature": "warm", "location": "", "at": "", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": true}]}}]}, {"uuid": "UUID", "name": "wedding.mkv", "kind": "file", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 1, "cold": 0, "readBack": 1, "discs": 1}, "sources": [{"path": "ROOT/plan-pc/Videos/wedding.mkv", "there": false}], "todo": ["no cold copy", "no longer where it came from, fewer than two copies"], "held": [{"version": 1, "path": "video/wedding.mkv", "files": 1, "bytes": 7, "on": {"disc": "TRIP-01_2025_B", "retired": false, "where": "", "copies": [{"copy": "A", "form": "iso", "temperature": "warm", "location": "", "at": "", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": true}]}}]}, {"uuid": "UUID", "name": "notes.txt", "kind": "file", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 0, "cold": 0, "readBack": 0, "discs": 1}, "sources": [{"path": "ROOT/plan-pc/notes.txt", "there": true}], "todo": [], "held": [{"version": 1, "path": "notes.txt", "files": 1, "bytes": 6, "on": {"disc": "TRIP-02_2025_9", "retired": false, "where": "", "copies": []}}]}, {"uuid": "UUID", "name": "2025", "kind": "folder", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 2, "newest": {"copies": 2, "cold": 1, "readBack": 1, "discs": 2}, "sources": [{"path": "ROOT/plan-nas/photos/2025", "there": true}, {"path": "ROOT/plan-copy", "there": false}], "todo": [], "held": [{"version": 2, "path": "photos", "files": 3, "bytes": 21, "on": {"disc": "TRIP-03_2025_7", "retired": false, "where": "BOX1", "copies": [{"copy": "A", "form": "disc", "temperature": "cold", "location": "BOX1", "at": "BOX1", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": false}]}}, {"version": 2, "path": "plan-copy", "files": 3, "bytes": 21, "on": {"disc": "TRIP-04_2025_5", "retired": false, "where": "", "copies": [{"copy": "A", "form": "iso", "temperature": "warm", "location": "", "at": "", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": true}]}}, {"version": 1, "path": "photos", "files": 1, "bytes": 7, "on": {"disc": "TRIP-02_2025_9", "retired": false, "where": "", "copies": []}}]}], "collections": []}
+{"objects": [{"uuid": "UUID", "name": "b.jpg", "kind": "file", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 1, "cold": 0, "readBack": 1, "discs": 1}, "sources": [{"path": "ROOT/plan-nas/photos/2025/b.jpg", "there": true}], "todo": ["no cold copy"], "held": [{"version": 1, "path": "best/kyoto-b.jpg", "files": 1, "bytes": 7, "on": {"disc": "TRIP-01_2025_B", "retired": false, "where": "", "copies": [{"copy": "A", "form": "iso", "temperature": "warm", "location": "", "at": "", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": true}]}}]}, {"uuid": "UUID", "name": "wedding.mkv", "kind": "file", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 1, "cold": 0, "readBack": 1, "discs": 1}, "sources": [{"path": "ROOT/plan-pc/Videos/wedding.mkv", "there": false}], "todo": ["no cold copy", "no longer where it came from, fewer than two copies"], "held": [{"version": 1, "path": "video/wedding.mkv", "files": 1, "bytes": 7, "on": {"disc": "TRIP-01_2025_B", "retired": false, "where": "", "copies": [{"copy": "A", "form": "iso", "temperature": "warm", "location": "", "at": "", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": true}]}}]}, {"uuid": "UUID", "name": "notes.txt", "kind": "file", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 0, "cold": 0, "readBack": 0, "discs": 1}, "sources": [{"path": "ROOT/plan-pc/notes.txt", "there": true}], "todo": [], "held": [{"version": 1, "path": "notes.txt", "files": 1, "bytes": 6, "on": {"disc": "TRIP-02_2025_9", "retired": false, "where": "", "copies": []}}]}, {"uuid": "UUID", "name": "2025", "kind": "folder", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 2, "newest": {"copies": 2, "cold": 1, "readBack": 1, "discs": 2}, "sources": [{"path": "ROOT/plan-nas/photos/2025", "there": true}, {"path": "ROOT/plan-copy", "there": false}], "todo": [], "held": [{"version": 2, "path": "photos", "files": 3, "bytes": 21, "on": {"disc": "TRIP-03_2025_7", "retired": false, "where": "BOX1", "copies": [{"copy": "A", "form": "disc", "temperature": "cold", "location": "BOX1", "at": "BOX1", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": false}]}}, {"version": 2, "path": "plan-copy", "files": 3, "bytes": 21, "on": {"disc": "TRIP-04_2025_5", "retired": false, "where": "", "copies": [{"copy": "A", "form": "iso", "temperature": "warm", "location": "", "at": "", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": true}]}}, {"version": 1, "path": "photos", "files": 1, "bytes": 7, "on": {"disc": "TRIP-02_2025_9", "retired": false, "where": "", "copies": []}}]}], "collections": []}
 rc=0
 $ --home hp plan new later --medium bd100
 Plan later: 1 empty disc (hp/drafts/plans/later.rec). Next: arv plan add later FILE-OR-FOLDER...
@@ -367,11 +392,14 @@ $ --home hp plan show card-2 --archived --json
 rc=0
 $ --home hp plan delete card --yes
 arv plan: unexpected or missing arguments: delete card --yes
-  arv plan new|list|show|add|move|drop|disc|make|again|delete NAME ...
+  arv plan new|list|show|add|rename|move|drop|disc|make|again|delete NAME ...
          discs composed by hand from files and folders anywhere; the sources stay where they are:
          add NAME SOURCE... [--disc N|new|auto] [--as PATH] puts them on a disc, under PATH;
+         add NAME --list FILE|- takes SOURCE<tab>PATH[<tab>DISC] lines, all or none;
+         rename NAME PATH NEWPATH gives an item a new place, or splits one off a planned folder;
          move NAME PATH... --disc N|new moves them; drop NAME PATH... takes them off; disc NAME add|drop N;
          show NAME; make NAME makes the images; again NAME NEW starts the same plan anew; delete NAME
+DISC: the root of a mounted arv disc or an extracted image (the folder with catalog.rec)
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2
 $ --home hp retire TRIP-04_2025_5

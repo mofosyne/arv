@@ -73,6 +73,12 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   reference outputs and `data.c`, committing a new `disc-tools.txt` path first). Both go on
   every disc with the source.
 
+**Renaming in a plan, and lists**
+- `arv plan rename NAME PATH NEWPATH`: an item's new place on its disc (a folder, all of it); a
+  file or folder inside a planned folder is split off under the new name, as `git mv` would.
+- `arv plan add NAME --list FILE|-`: `SOURCE<tab>PATH[<tab>DISC]` a line, as exiftool, a
+  spreadsheet or a script sorted them; all are added, or none if any line is wrong.
+
 **Splitting a folder in a disc plan**
 - A file or folder inside a planned folder can be added on its own, under another name or on
   another disc. It used to go on the discs twice, silently; now the more specific of two items

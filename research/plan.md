@@ -1385,11 +1385,12 @@ changes. What is missing:
   item puts the file back). `plan show` says what each folder leaves to others. What is stored is
   on the archived data object, a fact about what was archived: `Except: PATH`, so `status` does
   not take a split folder for a changed one and invite a version that duplicates the file.
-- **`arv plan rename NAME PATH NEWPATH`**: rename or move an item on its disc, a folder with all
-  under it (the `git mv` of a plan). Today it is drop and add again.
-- **`arv plan add NAME --list FILE`**: a TSV of source and path on the disc, one a line, so the
-  sorting is done by what is good at it (exiftool for dates, a spreadsheet, a script, a model
-  looking at the photos) and arv records the result (principle 7).
+- **`arv plan rename NAME PATH NEWPATH`** (done 2026-10-14): an item's new place on its disc, a
+  folder with all under it (the `git mv` of a plan); PATH inside a planned folder splits that file
+  or folder off, under the new name.
+- **`arv plan add NAME --list FILE|-`** (done 2026-10-14): `SOURCE<tab>PATH[<tab>DISC]` a line, so
+  the sorting is done by what is good at it (exiftool for dates, a spreadsheet, a script, a model
+  looking at the photos) and arv records the result (principle 7); all or none.
 - **The original name kept** (a format question: decide before 1.0). `git mv` keeps a file's
   identity through a rename because the content is the same; arv already matches files by hash
   (`status` reports moves, `>`), so a renamed photo is found again by its content. What is lost is

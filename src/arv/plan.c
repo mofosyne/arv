@@ -5,6 +5,9 @@
  *   arv plan show NAME [--json] [--archived]   (--archived: hashes each item, through the hash
  *                                  cache, and says what of it is on discs already)
  *   arv plan add NAME SOURCE... [--disc N|new|auto] [--as PATH]
+ *   arv plan add NAME --list FILE|- [--disc N|new|auto]   SOURCE<TAB>PATH[<TAB>DISC] lines, all or none
+ *   arv plan rename NAME PATH NEWPATH [--from N]   a new place on its disc (inside a planned folder:
+ *                                  split off, as plan add of that file or folder --as NEWPATH)
  *   arv plan move NAME PATH... --disc N|new [--from N]
  *   arv plan drop NAME PATH... [--from N]
  *   arv plan disc NAME add | drop N
@@ -704,9 +707,77 @@ static void say_where(const arv_home *h, disc_plan *p, int disc, const char *wha
 
 /* ------------------------------------------------------------------ arv plan */
 
+/* puts one source on a disc of the plan, under path (default: its own name); dies on anything
+ * wrong, before the plan is saved, so a list of them goes in whole or not at all */
+static void add_item(const arv_home *h, disc_plan *p, const char *given, const char *as, const char *disc, int quiet)
+{
+    char *src = realpath(given, NULL);
+    struct stat st;
+    if (!src || stat(src, &st) || (!S_ISDIR(st.st_mode) && !S_ISREG(st.st_mode))) die("%s is not a file or folder", given);
+    if (strpbrk(src, "\r\n") || (as && strpbrk(as, "\r\n"))) die("%s: a name with a line break cannot be planned", src);
+    for (size_t j = 0; j < p->n; j++)
+        if (!strcmp(p->v[j].source, src)) {
+            char n[16];
+            snprintf(n, sizeof n, "%d", p->v[j].disc);
+            die2("%s is in the plan already, on disc %s (arv plan rename gives it another place)", src, n);
+        }
+    char *base = strrchr(src, '/') ? strrchr(src, '/') + 1 : src;
+    const char *path = as && *as ? as : *base ? base : NULL;
+    if (!path || !path_ok(path, S_ISDIR(st.st_mode)))
+        die("%s cannot be a path under data/ (relative, no . or .. parts; . only for a folder's contents)", path ? path : "/");
+    plan_item it = { 0, src, xstrdup(path), NULL };
+    int d = pick_disc(h, p, disc, item_size(p, &it).sectors);
+    check_free(p, path, d);
+    if (d > p->discs) p->discs = d;
+    it.disc = d;
+    it.seen = stamp_of(it.source);
+    p->v = xrealloc(p->v, (p->n + 1) * sizeof *p->v);
+    p->v[p->n++] = it;
+    if (quiet) return;
+    char *what = xprintf("%s%s", path, S_ISDIR(st.st_mode) && strcmp(path, ".") ? "/" : "");
+    say_where(h, p, d, what);
+    free(what);
+}
+
+/* arv plan add NAME --list FILE|-: SOURCE <TAB> PATH [<TAB> DISC] a line, # a comment; what a
+ * script, a spreadsheet or exiftool sorted, added as one change */
+static void add_list(const arv_home *h, disc_plan *p, const char *file, const char *disc)
+{
+    FILE *in = strcmp(file, "-") ? fopen(file, "r") : stdin;
+    if (!in) die("cannot read %s", file);
+    char *line = NULL;
+    size_t cap = 0, n = 0, first = p->n;
+    ssize_t len;
+    strlist src = { 0 }, as = { 0 }, on = { 0 };
+    while ((len = getline(&line, &cap, in)) >= 0) {     /* every line read and its source found first */
+        n++;
+        while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) line[--len] = 0;
+        if (!len || line[0] == '#') continue;
+        char *cols[3] = { line, NULL, NULL };
+        int k = split_tabs(line, cols, 3);
+        if (k < 1 || !*cols[0]) continue;
+        if (access(cols[0], F_OK)) {
+            char at[24];
+            snprintf(at, sizeof at, "%zu", n);
+            die2("%s, line %s: no such file or folder (nothing was added)", cols[0], at);
+        }
+        strlist_add(&src, cols[0]);
+        strlist_add(&as, k > 1 ? cols[1] : "");
+        strlist_add(&on, k > 2 && *cols[2] ? cols[2] : disc ? disc : "auto");
+    }
+    if (in != stdin) fclose(in);
+    free(line);
+    for (size_t i = 0; i < src.n; i++) add_item(h, p, src.v[i], as.v[i], on.v[i], 1);   /* dies before any is saved */
+    for (size_t i = first; i < p->n; i++) say_where(h, p, p->v[i].disc, p->v[i].path);
+    printf("%zu item%s added from %s\n", src.n, src.n == 1 ? "" : "s", strcmp(file, "-") ? file : "standard input");
+    strlist_free(&src);
+    strlist_free(&as);
+    strlist_free(&on);
+}
+
 int cmd_plan(int argc, char **argv)
 {
-    const char *given = NULL, *action = NULL, *name = NULL, *disc = NULL, *as = NULL, *from_s = NULL;
+    const char *given = NULL, *action = NULL, *name = NULL, *disc = NULL, *as = NULL, *from_s = NULL, *list = NULL;
     int as_json = 0, all = 0, on_discs = 0;
     strlist args = { 0 }, defaults = { 0 }, rest = { 0 };
     static const char *const SETTINGS[][2] = { { "--medium", "Medium" }, { "--set", "Set" }, { "--title", "Title" },
@@ -728,7 +799,7 @@ int cmd_plan(int argc, char **argv)
         else if (i + 1 < argc && !strcmp(argv[i], "--as")) as = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--from")) from_s = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--discs")) disc = argv[++i];
-
+        else if (i + 1 < argc && !strcmp(argv[i], "--list")) list = argv[++i];
         else {
             int setting = 0;
             for (int k = 0; k < 5 && !setting; k++)
@@ -893,36 +964,48 @@ int cmd_plan(int argc, char **argv)
         return 0;
     }
     if (!strcmp(action, "add")) {
-        if (!args.n) die("%s", "arv plan add NAME SOURCE...: the files or folders to put on a disc");
-        if (as && args.n > 1) die("%s", "--as names one thing: add one SOURCE at a time with it");
-        for (size_t k = 0; k < args.n; k++) {
-            char *src = realpath(args.v[k], NULL);
+        if (!args.n && !list) die("%s", "arv plan add NAME SOURCE... (or --list FILE): the files or folders to put on a disc");
+        if (as && (args.n > 1 || list)) die("%s", "--as names one thing: add one SOURCE at a time with it");
+        for (size_t k = 0; k < args.n; k++) add_item(&h, &p, args.v[k], as, disc, 0);
+        if (list) add_list(&h, &p, list, disc);
+        plan_save(&p);
+        return 0;
+    }
+    if (!strcmp(action, "rename")) {        /* a new place on its disc; inside a planned folder: split off */
+        if (args.n != 2) die("%s", "arv plan rename NAME PATH NEWPATH [--from N]");
+        const char *path = args.v[0], *to = args.v[1];
+        int from = from_s ? atoi(from_s) : 0, count = 0;
+        plan_item *it = NULL;
+        for (size_t k = 0; k < p.n; k++)
+            if (!strcmp(p.v[k].path, path) && (!from || p.v[k].disc == from)) it = &p.v[k], count++;
+        if (count > 1) die("%s is on more than one disc: say which with --from N", path);
+        if (it) {
             struct stat st;
-            if (!src || stat(src, &st) || (!S_ISDIR(st.st_mode) && !S_ISREG(st.st_mode)))
-                die("%s is not a file or folder", args.v[k]);
-            if (strpbrk(src, "\r\n") || (as && strpbrk(as, "\r\n"))) die("%s: a name with a line break cannot be planned", src);
-            for (size_t j = 0; j < p.n; j++)
-                if (!strcmp(p.v[j].source, src)) {
-                    char n[16];
-                    snprintf(n, sizeof n, "%d", p.v[j].disc);
-                    die2("%s is in the plan already, on disc %s", src, n);
-                }
-            char *base = strrchr(src, '/') ? strrchr(src, '/') + 1 : src;
-            const char *path = as ? as : *base ? base : NULL;
-            if (!path || !path_ok(path, S_ISDIR(st.st_mode)))
-                die("%s cannot be a path under data/ (relative, no . or .. parts; . only for a folder's contents)", path ? path : "/");
-            plan_item it = { 0, src, xstrdup(path), NULL };
-            int d = pick_disc(&h, &p, disc, item_size(&p, &it).sectors);
-            check_free(&p, path, d);
-            if (d > p.discs) p.discs = d;
-            it.disc = d;
-
-            it.seen = stamp_of(it.source);
-            p.v = xrealloc(p.v, (p.n + 1) * sizeof *p.v);
-            p.v[p.n++] = it;
-            char *what = xprintf("%s%s", path, S_ISDIR(st.st_mode) && strcmp(path, ".") ? "/" : "");
-            say_where(&h, &p, d, what);
-            free(what);
+            int folder = !stat(it->source, &st) && S_ISDIR(st.st_mode);
+            if (!path_ok(to, folder))
+                die("%s cannot be a path under data/ (relative, no . or .. parts; . only for a folder's contents)", to);
+            if (!strcmp(it->path, to)) return 0;
+            check_free(&p, to, it->disc);
+            printf("%s -> %s (disc %d; the source is untouched)\n", it->path, to, it->disc);
+            free(it->path);
+            it->path = xstrdup(to);
+        } else {                            /* a file or folder inside a planned folder */
+            const plan_item *in = NULL;
+            const char *under = NULL;
+            for (size_t k = 0; k < p.n; k++) {
+                const char *ip = p.v[k].path;
+                size_t n = strlen(ip);
+                const char *r = !strcmp(ip, ".") ? path : !strncmp(path, ip, n) && path[n] == '/' ? path + n + 1 : NULL;
+                if (r && *r && (!from || p.v[k].disc == from) && (!in || strlen(ip) > strlen(in->path))) in = &p.v[k], under = r;
+            }
+            if (!in) die("nothing at %s in the plan (arv plan show)", path);
+            char *src = join(in->source, under), dn[16];
+            snprintf(dn, sizeof dn, "%d", in->disc);
+            if (access(src, F_OK)) die("%s: no such file or folder in the planned folder", src);
+            printf("%s (in %s/) -> ", path, in->path);
+            fflush(stdout);
+            add_item(&h, &p, src, to, dn, 0);
+            free(src);
         }
         plan_save(&p);
         return 0;
