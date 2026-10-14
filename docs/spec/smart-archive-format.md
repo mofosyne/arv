@@ -402,11 +402,12 @@ folders): `Object: collection:CODE` (or `Disc: ID`), `Folder:` the folder's abso
 catalogue, as any `.arv` pointer file) and `Collection:` (the collection's `Uuid`). It is arv's
 own and never goes on a disc (nor does any `.arv` at the root of a folder being archived).
 
-**A restored folder's marker** is a `.arv` file `arv restore` writes at the root of what it
-restored: `Restored:` (the disc id), `Disc:` (its `Uuid`) and `Date:`, with no `Home:`. It is
-provenance, not a guess from bytes: a disc plan of a file or folder under it continues the data
-object at the same path on that disc (the same bytes another copy of its version, changed ones its
-next version), as `plan add --of OBJECT` says of a copy made by hand.
+**A restore** is recorded by the home that knows the disc, as an `Event` about it with `Type:
+dissemination` (PREMIS's word for giving out a copy) and `Path:` the folder restored to; the
+folder holds exactly the disc's files, nothing of arv's. It is provenance, not a guess from bytes:
+a disc plan of a file or folder under that folder continues the data object at the same path on
+the disc (the same bytes another copy of its version, changed ones its next version), as `plan add
+--of OBJECT` says of a copy made by hand.
 
 ### Access
 

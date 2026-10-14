@@ -118,13 +118,13 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   new disc's `tags.tsv`.
 
 **A remake is a new plan, of the same objects**
-- `arv restore` leaves `DEST/.arv` naming the disc the files came from. A disc plan of a file or
-  folder under it continues the data object at the same path there: the same bytes are another
-  copy of its version, changed ones its next version, and a layout files it by its tags now
-  (set on it, or its disc's at its path) and names it by its name now. Provenance, not bytes.
+- `arv restore` records where it restored a disc to (a `dissemination` event, in the home that
+  knows the disc; the folder holds exactly the disc's files). A disc plan of a file or folder there
+  continues the data object at the same path on the disc: the same bytes are another copy of its
+  version, changed ones its next version, and a layout files it by its tags now (set on it, or its
+  disc's at its path) and names it by its name now. Provenance, not bytes.
 - `arv plan add NAME SOURCE --of OBJECT`: SOURCE continues that object (a copy you made of it,
   which arv cannot tell from its bytes); `plan show` says what each item continues.
-- A `.arv` file with `Restored:` and no `Home:` is not taken for a pointer to a home.
 
 **Byte-identical files reported**
 - `make` notes files whose bytes another file on the same disc has (each is written in full), and

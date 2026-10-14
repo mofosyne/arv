@@ -1519,8 +1519,11 @@ archived before places it by its tags now and names it by its name now.
 So a remake is a new plan, not a clone (the owner's words): restore the discs to folders, plan
 them. What was missing for that was knowing the restored files are the same objects. They are
 (the owner's point), and arv can know it from provenance rather than bytes, because it wrote them:
-`arv restore` leaves `DEST/.arv` (`Restored:` the disc id, its `Uuid`, the date; no `Home:`), and a
-plan of a file or folder under it continues the object at the same path on that disc. For copies
+`arv restore` records where it put a disc's files (a `dissemination` event with `Path`, in the
+home that knows the disc), and a plan of a file or folder under it continues the object at the
+same path on that disc. (First built as a `.arv` file left in the folder; a check caught that a
+restored git repository was then not exactly its commit, and the manual says restore writes only
+what it restores, so the record keeps it instead.) For copies
 arv did not make, `plan add --of OBJECT` says the same; `SameBytes` suggests it. An object's tags
 now are its own (set on it), else what its disc gives its path (its folders' too), so a burned
 `date:1974~` still files a scan under `decade/1970s/` on the remade disc.

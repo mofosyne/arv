@@ -597,11 +597,10 @@ log lay.out --home hy plan add again lay/DCIM/IMG_0002.JPG          # placed by 
 log lay.out --home hy plan layout again "year/event"
 log lay.out --home hy plan show again
 7z x -olay-disc out-lay/$lid.noecc.iso >/dev/null
-log lay.out --home hy restore lay-disc lay-restored                 # as burned, and says where from (.arv)
+log lay.out --home hy restore lay-disc lay-restored                 # as burned, and recorded where
 find lay-restored -type f | sort >> lay.out
-cat lay-restored/.arv >> lay.out
-# a remake is a new plan: the restored files are the same objects (their .arv says so); a copy made by
-# hand is the same object only when said (--of)
+# a remake is a new plan: the restored files are the same objects (the record says where they were
+# restored); a copy made by hand is the same object only when said (--of)
 cp -p "lay-restored/decade/1970s/print1.tif" lay-print-copy.tif
 log lay.out --home hy plan new remake --set PHOTO
 log lay.out --home hy plan add remake "lay-restored/year/2019/event/kyoto trip/IMG_0002.JPG" lay-restored/project/weather-station/station

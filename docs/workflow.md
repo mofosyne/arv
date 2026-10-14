@@ -295,8 +295,8 @@ holding several). The bits stay the same and the check is the same, so nothing n
 the copying is the burner's, `dd`'s or `rsync`'s work.
 
 A disc made anew from old discs (re-arranged, gathered, laid out by today's tags) is a new plan:
-`arv restore` the discs to folders, then plan them as anything else. `restore` leaves a `.arv` in
-each folder naming its disc, so the plan knows the files are the same data objects: each is
+`arv restore` the discs to folders, then plan them as anything else. `restore` records where it
+put each disc's files, so the plan knows they are the same data objects: each is
 another copy of its version (or its next version, if edited since), filed by its tags now and
 named by its name now. For a copy you made yourself, say so: `arv plan add NAME COPY --of
 OBJECT`.

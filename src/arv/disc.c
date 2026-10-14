@@ -408,14 +408,50 @@ void set_time(const char *path, const char *modified)
     utimensat(AT_FDCWD, path, ts, AT_SYMLINK_NOFOLLOW);
 }
 
+/* a restore in the record of the home that knows the disc (a dissemination event, with the folder):
+ * so a disc plan of the restored files knows they are its data objects. Not in a copy of a catalogue. */
+static void restore_recorded(const char *given, const char *disc_id, const char *dest)
+{
+    arv_home h;
+    if (home_try(&h, given, NULL)) return;
+    archive cat;
+    archive_load(&cat, h.rec_path);
+    if (!archive_disc(&cat, disc_id)) return;
+    strlist known;
+    home_paths(h.path, &known);
+    char *real = realpath(h.path, NULL), *abs = realpath(dest, NULL);
+    if (known.n && real && !strlist_has(&known, real)) {
+        printf("Note: not recorded in %s, a copy of the catalogue\n", h.rec_path);
+    } else if (abs) {
+        char *who = person(), *note = xprintf("restored to %s", abs);
+        rec_record *e = new_event(disc_id, "dissemination", "success", who, "human", note);
+        rec_add(e, "Path", abs);
+        recs_add(&cat.events, e);
+        archive_save(&cat, h.rec_path);
+        printf("Recorded: a disc plan of these files continues %s's data objects\n", disc_id);
+        free(who);
+        free(note);
+    }
+    strlist_free(&known);
+    free(real);
+    free(abs);
+}
+
 int cmd_restore(int argc, char **argv)
 {
-    if (argc != 2) return 2;
+    const char *given = NULL, *root = NULL, *dest = NULL;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (argv[i][0] == '-') return 2;
+        else if (!root) root = argv[i];
+        else if (!dest) dest = argv[i];
+        else return 2;
+    }
+    if (!dest) return 2;
     ondisc d;
     manifest m;
     listing l = { 0 };
-    const char *dest = argv[1];
-    open_disc(argv[0], &d);
+    open_disc(root, &d);
     char *mpath = join(d.root, "manifest-sha256.txt");
     if (read_manifest(mpath, &m)) die("%s: no manifest-sha256.txt (not a bag?)", d.root);
     free(mpath);
@@ -523,15 +559,6 @@ int cmd_restore(int argc, char **argv)
         free(dst);
     }
 
-    {                                       /* where these files came from: a plan of them continues its objects */
-        char *mk = join(dest, ".arv"), today[11];
-        today_iso(today);
-        char *text = xprintf("# arv: these files were restored from disc %s; a disc plan of them continues its data objects\n"
-                             "Restored: %s\nDisc: %s\nDate: %s\n", d.id, d.id, rec_get(d.disc, "Uuid") ? rec_get(d.disc, "Uuid") : "", today);
-        write_text(mk, text);
-        free(text);
-        free(mk);
-    }
     printf("%s: restored %zu file%s (%llu bytes) and %zu link%s to %s", d.id, restored, restored == 1 ? "" : "s",
            (unsigned long long)total, made_links, made_links == 1 ? "" : "s", dest);
     if (kept) printf("; %zu links kept as copies", kept);
@@ -539,6 +566,7 @@ int cmd_restore(int argc, char **argv)
     putchar('\n');
     free_listing(&l);
     free_manifest(&m);
+    if (!damaged && !missing) restore_recorded(given, d.id, dest);
     if (damaged || missing) {
         printf("%zu DAMAGED, %zu MISSING. Repair the image with its RS03 error correction first "
                "(dvdisaster -f), then restore again.\n", damaged, missing);

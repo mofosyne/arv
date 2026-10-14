@@ -420,39 +420,30 @@ static char *item_place(const arv_home *h, const disc_plan *p, const plan_item *
     return at;
 }
 
-/* the data object a restored file or folder is: a .arv marker above it (arv restore leaves one)
- * names the disc, and the object at the same path on it; NULL for none. Its provenance, not its bytes. */
+/* the data object a restored file or folder is: arv restore records where it put a disc's files (a
+ * dissemination event, with Path), and the object at the same path on that disc is this; NULL for
+ * none. Its provenance, not its bytes. The nearest restore above it decides. */
 static const rec_record *restored_object(const archive *cat, const char *source, const char **disc)
 {
-    char *dir = xstrdup(source);
-    const rec_record *found = NULL;
-    for (;;) {                              /* the folder itself, then each above it; the nearest marker decides */
-        char *mk = join(*dir ? dir : "/", ".arv"), *id = NULL;
-        struct stat st;
-        rec_file f;
-        int bad = 0;
-        if (!stat(mk, &st) && S_ISREG(st.st_mode) && !rec_read(mk, &f, &bad)) {
-            for (size_t i = 0; i < f.nrecords && !id; i++)
-                if (rec_get(&f.records[i], "Restored")) id = xstrdup(rec_get(&f.records[i], "Restored"));
-            rec_free(&f);
-        }
-        free(mk);
-        if (id) {
-            size_t n = strlen(dir);
-            const char *rel = source[n] == '/' ? source + n + 1 : ".";
-            for (size_t i = 0; i < cat->objects.n && !found; i++)
-                if (!strcmp(get_or(cat->objects.v[i], "Disc", ""), id) && !strcmp(get_or(cat->objects.v[i], "Path", ""), rel))
-                    found = cat->objects.v[i];
-            if (found && disc) *disc = rec_get(found, "Disc");
-            free(id);
-            break;
-        }
-        char *slash = strrchr(dir, '/');
-        if (!slash || !*dir) break;
-        *slash = 0;
+    const rec_record *best = NULL;
+    size_t best_n = 0;
+    for (size_t i = 0; i < cat->events.n; i++) {
+        const rec_record *e = cat->events.v[i];
+        const char *t = rec_get(e, "Type"), *at = rec_get(e, "Path");
+        if (!t || strcmp(t, "dissemination") || !at || !rec_get(e, "Disc")) continue;
+        size_t n = strlen(at);
+        if (strncmp(source, at, n) || (source[n] && source[n] != '/') || n < best_n) continue;
+        best = e;
+        best_n = n;
     }
-    free(dir);
-    return found;
+    if (!best) return NULL;
+    const char *rel = source[best_n] == '/' ? source + best_n + 1 : ".", *id = rec_get(best, "Disc");
+    for (size_t i = 0; i < cat->objects.n; i++)
+        if (!strcmp(get_or(cat->objects.v[i], "Disc", ""), id) && !strcmp(get_or(cat->objects.v[i], "Path", ""), rel)) {
+            if (disc) *disc = id;
+            return cat->objects.v[i];
+        }
+    return NULL;
 }
 
 /* the object this item continues: the one it was said to be (--of), else the newest archived from its

@@ -245,8 +245,8 @@ Planned, not archived: keep the originals until the discs are burned and read ba
 rc=0
 $ --home hy restore lay-disc lay-restored
 PHOTO-01_1974-2021_F: restored 9 files (121 bytes) and 0 links to lay-restored
+Recorded: a disc plan of these files continues PHOTO-01_1974-2021_F's data objects
 rc=0
-lay-restored/.arv
 lay-restored/decade/1970s/print1.tif
 lay-restored/project/weather-station/station/README.md
 lay-restored/project/weather-station/station/src/main.c
@@ -256,10 +256,6 @@ lay-restored/year/2019/event/kyoto trip/IMG_0002-copy.JPG
 lay-restored/year/2019/event/kyoto trip/IMG_0002.JPG
 lay-restored/year/2019/event/kyoto trip/IMG_0003.JPG
 lay-restored/year/2019/event/kyoto trip/notes.txt
-# arv: these files were restored from disc PHOTO-01_1974-2021_F; a disc plan of them continues its data objects
-Restored: PHOTO-01_1974-2021_F
-Disc: UUID
-Date: 2026-01-01
 $ --home hy plan new remake --set PHOTO
 Plan remake: 1 empty disc (hy/drafts/plans/remake.rec). Next: arv plan add remake FILE-OR-FOLDER...
 rc=0

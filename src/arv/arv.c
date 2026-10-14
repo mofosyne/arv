@@ -127,8 +127,8 @@ static const char USAGE_REST[] =
           "  arv drives [--check] [DRIVE...]   what is in each optical drive: which disc, which copy\n"
           "  arv inventory [-v] PLACE [FILE]   a library's barcodes (mtx status, or a list) against the copies\n"
           "         recorded at PLACE: missing, unknown, recorded elsewhere\n"
-          "  arv restore DISC DEST   copy a disc's files to DEST, checking each; dates, execute bits and links back,\n"
-          "         and DEST/.arv saying which disc they are (a plan of them continues its data objects)\n"
+          "  arv restore DISC DEST   copy a disc's files to DEST, checking each; dates, execute bits and links back;\n"
+          "         recorded, when the home knows the disc, so a plan of them continues its data objects\n"
           "  arv rebuild [--prefer-disc] [--any-archive] DISC|CATALOG   merge a disc's, or another .arv's, catalogue\n"
           "  arv audit [DISC...]   every event as written; with discs, the home against what they carry\n"
           "\n"
@@ -461,7 +461,7 @@ static const char MANUAL_NOTES[] =
     "`sets`, `tags`, `keywords`, `info`, `audit`, `inventory`, `drives` (without\n"
     "`--check`), `where` (without `--here`), `names`, `plan list|show`, `collection list|show`, `location\n"
     "list`, `appraise --due`, and `retire` without `--yes` (a preview). `restore`\n"
-    "writes only the files it restores, where it is told.\n"
+    "writes only the files it restores, where it is told, and records where (when the home knows the disc).\n"
     "\n"
     "These change the record, each leaving an event that says who and when: `init`, `make`, `plan make`,\n"
     "`collection init|keep`, `link`, `burned`, `stored`, `identify`,\n"
@@ -759,8 +759,7 @@ int main(int argc, char **argv)
                     }
             char **args = argv + 2;
             int n = argc - 2;
-            int reads_disc = !strcmp(cmds[i].name, "restore");
-            if (home && !reads_disc) {      /* the command reads -C HOME first (a disc's own commands need no home) */
+            if (home) {                     /* the command reads -C HOME first */
                 args = xmalloc(((size_t)n + 3) * sizeof *args);
                 args[0] = "-C";
                 args[1] = (char *)home;
