@@ -104,7 +104,7 @@ catalogue rebuilt from a disc takes the disc's archive identity.
 | `bagit.txt`, `bag-info.txt` | BagIt | Bag declaration; `External-Identifier` = disc Id, `External-Description` = title and description, `Bag-Group-Identifier` = the disc's collection code, else its set (or the range of a multi-disc set, with `Bag-Count`), `Payload-Oxum`, and `Bag-Software-Agent` = `arv@<commit> <https://github.com/mofosyne/arv>` |
 | `manifest-sha256.txt`, `manifest-sha512.txt` | BagIt manifest | `<hash>  data/<path>`, one per payload file (`sha256sum -c` compatible) |
 | `catalog/volumes/<id>/listing.tsv` | TSV | Size, modification time and path of every payload file |
-| `catalog/volumes/<id>/tags.tsv` | TSV | Folder tags and optional image captions |
+| `catalog/volumes/<id>/tags.tsv` | TSV | Tags of folders and files, and optional image captions |
 | `catalog/volumes/<id>/git.tsv` | TSV | For each git repository on the disc: its root commits, heads, shallow boundary and every commit it holds (see [Git repositories](#git-repositories)) |
 | `catalog/volumes/<id>/formats.csv` | CSV | PRONOM format identification per file (optional) |
 | `catalog/volumes/<id>/manifest.sha256` | BagIt manifest | Copy of the disc's `manifest-sha256.txt` |
@@ -627,12 +627,17 @@ sockets and pipes are refused. To restore a link, read its row: `ln -s <target> 
 ### Tags TSV
 
 ```
-# folder (relative to data/)	tags	caption (what sampled images show, if analysed)
+# path (a folder or a file, relative to data/)	tags	caption (what sampled images show, if analysed)
 photos/2019 trip	travel, japan	People at a temple gate in autumn.
+photos/2019 trip/IMG_0042.JPG	best
 ```
 
-Folder paths use `/`, relative to `data/`; `.` is the payload root. Tags are
-comma-separated and lower case. The caption column is optional.
+Each line names a folder or a file (format 0.5): paths use `/`, relative to `data/`; `.` is the
+payload root. A path is a file when the listing names it, else a folder (the listing names files
+only). A file has the tags of every folder above it, and its own: so a tag that belongs to a few
+files across folders (`best`, `person:alice`) is given to each file, and one that belongs to a
+whole folder is given once. Tags are comma-separated and lower case. The caption column is
+optional.
 
 A tag is either a plain word or phrase (`travel`) or `namespace:value`
 (`person:alice`, `place:kyoto`, `event:wedding-2019`, `source:pixel-7`,

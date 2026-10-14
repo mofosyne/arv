@@ -133,7 +133,7 @@ void write_tags_file(const char *path, const ftags *f)
         if ((f->tags[i].n || f->caption[i]) && !strlist_has(&keys, f->folder[i])) strlist_add(&keys, f->folder[i]);
     if (keys.n) qsort(keys.v, keys.n, sizeof *keys.v, by_name);
     sbuf b = { 0 };
-    sb_puts(&b, "# folder (relative to data/)\ttags\tcaption (what sampled images show, if analysed)\n");
+    sb_puts(&b, "# path (a folder or a file, relative to data/)\ttags\tcaption (what sampled images show, if analysed)\n");
     for (size_t k = 0; k < keys.n; k++)
         for (size_t i = 0; i < f->n; i++) {
             if (strcmp(f->folder[i], keys.v[k])) continue;

@@ -1,3 +1,4 @@
-# folder (relative to data/)	tags	caption (what sampled images show, if analysed)
+# path (a folder or a file, relative to data/)	tags	caption (what sampled images show, if analysed)
 .	travel, family, place:kyoto
 letters	letters, family	two pages, one scan and a stamp
+letters/2001-05-01.txt	best

@@ -73,6 +73,12 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   reference outputs and `data.c`, committing a new `disc-tools.txt` path first). Both go on
   every disc with the source.
 
+**Tags on files** (format 0.5)
+- A line of a disc's `tags.tsv` names a folder or a file, and a file has its folders' tags and its
+  own, so a few files across folders can share a tag (`best`, `person:alice`). Drafts take a
+  file's path (`make --draft`, `describe --apply`); `find` shows the file, `tags` counts files
+  apart from folders, and `keywords` writes one file's keywords. "Best of" is a tag.
+
 **Read without arv: notes on BagIt and recutils** (format 0.5)
 - `docs/notes/bagit.md`: checking a disc with the Library of Congress's validator, which every
   disc carries (`tools/arv/upstream/bagit-python/bagit.py --validate .`), what the full and fast

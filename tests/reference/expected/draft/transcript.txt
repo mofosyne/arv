@@ -45,3 +45,16 @@ Warning: broken link dead -> missing.txt (recorded in the listing, not archived)
 Links: 1 copied, 1 recorded, 1 broken (policy: default)
 Error: draft-broken.json is not a JSON draft (arv describe --save writes them)
 rc=1
+$ --home hd find best
+TAG   CODE-01_2001_0  [?]  data/letters/2001-05-01.txt  (best)
+rc=0
+$ --home hd tags
+(no namespace)
+  best                         1 file on 1 disc   (not in hd/config/tags.rec)
+  family                       2 folders on 1 disc
+  letters                      3 folders on 3 discs   (not in hd/config/tags.rec)
+  scan                         2 folders on 2 discs   (not in hd/config/tags.rec)
+  travel                       1 folder on 1 disc
+place:
+  kyoto                        1 folder on 1 disc
+rc=0

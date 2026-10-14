@@ -176,11 +176,11 @@ static int by_cstr(const void *a, const void *b)
     return strcmp(*(char *const *)a, *(char *const *)b);
 }
 
-/* the folder tags and captions for the folders on one disc ("." and every folder above a file), as
- * tags.tsv (catalog.write_tags); 0 when there are none */
+/* the tags and captions for the paths on one disc ("." and every folder above a file, and every
+ * file: a file has its folders' tags and its own), as tags.tsv; 0 when there are none */
 static int write_plan_tags(const char *path, const draft *d, const entries *files)
 {
-    strlist folders = { 0 };
+    strlist folders = { 0 };        /* the folders a tag may name; or it names a file */
     strlist_add(&folders, ".");
     for (size_t i = 0; i < files->n; i++)
         for (const char *s = strchr(files->v[i].path, '/'); s; s = strchr(s + 1, '/')) {
@@ -188,6 +188,11 @@ static int write_plan_tags(const char *path, const draft *d, const entries *file
             if (!strlist_has(&folders, f)) strlist_add(&folders, f);
             free(f);
         }
+    for (size_t i = 0; i < d->nft + d->ncap; i++) {    /* a draft's paths that are files on this disc */
+        const char *p = i < d->nft ? d->ft_folder[i] : d->cap_folder[i - d->nft];
+        for (size_t k = 0; k < files->n && !strlist_has(&folders, p); k++)
+            if (!strcmp(files->v[k].path, p)) strlist_add(&folders, p);
+    }
     strlist keys = { 0 };
     for (size_t i = 0; i < d->nft; i++)
         if (strlist_has(&folders, d->ft_folder[i]) && !strlist_has(&keys, d->ft_folder[i])) strlist_add(&keys, d->ft_folder[i]);
@@ -197,7 +202,7 @@ static int write_plan_tags(const char *path, const draft *d, const entries *file
     if (!keys.n) return 0;
     qsort(keys.v, keys.n, sizeof *keys.v, by_cstr);
     sbuf b = { 0 };
-    sb_puts(&b, "# folder (relative to data/)\ttags\tcaption (what sampled images show, if analysed)\n");
+    sb_puts(&b, "# path (a folder or a file, relative to data/)\ttags\tcaption (what sampled images show, if analysed)\n");
     for (size_t k = 0; k < keys.n; k++) {
         sb_puts(&b, keys.v[k]);
         sb_puts(&b, "\t");

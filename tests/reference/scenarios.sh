@@ -194,7 +194,8 @@ keep_home hb rebuild/home
 cat > draft-model.json <<'JSON'
 {"title": "Letters and scans", "description": "Old letters.", "subjects": ["letters", "family"],
  "notes": ["Drafted by a model."], "agent": "llm:qwen2.5 (local)", "authorship": "suggested",
- "folder_tags": {".": ["Holiday", "kids", "place: Kyoto"], "letters": ["letters", "relatives"], "elsewhere": ["x"]},
+ "folder_tags": {".": ["Holiday", "kids", "place: Kyoto"], "letters": ["letters", "relatives"], "elsewhere": ["x"],
+                 "letters/2001-05-01.txt": ["best"]},
  "folder_captions": {"letters": "two pages,\tone scan\nand a stamp", "missing": "not on this disc"}}
 JSON
 cat > draft-human.json <<'JSON'
@@ -212,6 +213,8 @@ log draft.out --home hd make -y --no-ecc --no-formats --set SCAN --split --mediu
     --keep-stage --output-dir out-d4 big
 printf 'not json' > draft-broken.json
 log draft.out --home hd make -y --no-ecc --no-formats --set CODE --draft draft-broken.json --output-dir out-d5 src
+log draft.out --home hd find best            # a tag on one file: found as the file
+log draft.out --home hd tags
 keep draft.out draft/transcript.txt
 for k in 1 2 3 4; do keep_stages out-d$k draft/d$k; done
 keep_home hd draft/home

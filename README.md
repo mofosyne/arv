@@ -465,7 +465,7 @@ EOF
 | `title`, `description` | text | replace the disc's |
 | `subjects` | list of words | replace the disc's `Subject`s |
 | `notes` | list of texts | added as `Note`s |
-| `folder_tags` | folder (relative to `data/`, `.` for all of it): list of tags | that folder's tags replaced; other folders keep theirs |
+| `folder_tags` | a folder or a file (relative to `data/`, `.` for all of it): list of tags | its tags replaced; the rest keep theirs. A file has its folders' tags and its own |
 | `folder_captions` | folder: text | that folder's caption |
 | `objects` | data object (its path on the disc, its name or its Uuid): `{"title", "description", "notes"}` | that object's, on every copy of its version |
 | `questions` | list of texts | kept for later: `arv todo` lists them, `arv describe ID --answer` asks them |

@@ -1443,6 +1443,38 @@ copies, which `todo` already watches.
 photos, or a "best of" across many discs, would be the cross-disc virtual folders removed in issue
 #42 (`arv selection`, given to Katalog): wanted or not is the owner's call.
 
+**Folders, tags, and "best of"** (decided 2026-10-14). A folder is a tag a file has only one of (a
+move changes it); a tag is a grouping a file may have any number of (`best`, `person:alice`). So
+"best of" across discs is a tag, not a cross-disc virtual folder: `arv find best` lists it,
+`arv keywords` writes it into the files for photo software, Katalog shows it. The one thing tags
+do not give is order (a slideshow's sequence): that is names (`01 torii gates.jpg`), by a move or
+`--as`. Selections stay removed.
+
+- **Done (2026-10-14): tags on files.** A line of `tags.tsv` names a folder or a file; a file has
+  its folders' tags and its own. `make --draft` and `describe --apply` take a file's path,
+  `find` shows it as the file, `tags` counts files apart from folders, `keywords` writes one
+  file's keywords. A path is a file when the disc's listing names it (folders are not listed).
+- **Planned: tags added after burning as events**, carried by the next disc's snapshot, as moves
+  are. Today `describe --apply` rewrites the home's copy of the tag list and logs that it did.
+
+**Structured tags from the layout** (planned). A disc (or a collection) may say how its `data/` is
+laid out: `Layout: {year}/{event}`. Then a file under `2019/Kyoto trip/` has `year:2019` and
+`event:kyoto-trip` without anyone tagging it, and they cannot go stale: a move changes them, as
+they are read from the path. Folder names are also the metadata most likely to survive without
+any software. So:
+
+- **Structured** (one value a file: year, event, place, project): from the layout, not stored.
+  `find`, `tags` and `keywords` derive them; the spec defines the pattern so Katalog can too, and
+  a disc's `tags.tsv` may list them as well for readers that do not.
+- **Unstructured** (any number: `best`, people): stored tags, as above; the vocabulary
+  (`config/tags.rec`) keeps their spelling one.
+- **Limits:** one hierarchy a file (year/event or place, not both: the other is a tag); folders
+  that break the pattern (`misc/`, an event in the wrong year) get no structured tags, and are
+  listed (as `names` and `status` list odd folders) so they are noticed rather than misread.
+- **What it saves:** most folder tags today repeat the folder (`place:kyoto` on `Kyoto/`). With a
+  layout, `arv tag` and the model need only suggest the unstructured ones.
+
 Order: the folder split first (it fixes the silent duplicate), then `rename` and `--list`, then
 the original name (format), then moves in the record, then plans as editions and plans from discs,
-which build on all of them.
+which build on all of them. Tags after burning as events, and layouts, are apart from that order:
+either can come first.

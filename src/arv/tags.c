@@ -198,7 +198,7 @@ static void print_padded(const char *s, size_t width)
 
 typedef struct {
     char *tag;
-    strlist folders, discs;     /* "disc\tfolder" pairs; disc ids */
+    strlist folders, files, discs;  /* "disc\tpath" pairs, for folders and for files; disc ids */
 } usage;
 
 static int by_tag(const void *a, const void *b)
@@ -225,10 +225,11 @@ int cmd_tags(int argc, char **argv)
     for (size_t i = 0; i < cat.discs.n; i++) {
         const char *id = rec_get(cat.discs.v[i], "Id");
         if (!id) continue;
-        char *path = home_volume_file(&h, id, "tags.tsv");
+        char *path = home_volume_file(&h, id, "tags.tsv"), *lst = home_volume_file(&h, id, "listing.tsv");
         tag_file tf;
         read_tags(path, &tf);
-        for (size_t k = 0; k < tf.n; k++)
+        for (size_t k = 0; k < tf.n; k++) {
+            int file = strcmp(tf.v[k].folder, ".") && listing_has_file(lst, tf.v[k].folder);
             for (size_t t = 0; t < tf.v[k].tags.n; t++) {
                 const char *tag = tf.v[k].tags.v[t];
                 usage *x = NULL;
@@ -241,12 +242,15 @@ int cmd_tags(int argc, char **argv)
                     x->tag = xstrdup(tag);
                 }
                 char *pair = xprintf("%s\t%s", id, tf.v[k].folder);
-                if (!strlist_has(&x->folders, pair)) strlist_add(&x->folders, pair);
+                strlist *into = file ? &x->files : &x->folders;
+                if (!strlist_has(into, pair)) strlist_add(into, pair);
                 free(pair);
                 if (!strlist_has(&x->discs, id)) strlist_add(&x->discs, id);
             }
+        }
         tag_file_free(&tf);
         free(path);
+        free(lst);
     }
     strlist spaces = { 0 };                        /* the namespaces in use, sorted */
     for (size_t j = 0; j < nu; j++) {
@@ -274,8 +278,9 @@ int cmd_tags(int argc, char **argv)
             const usage *x = mine[k];
             fputs("  ", stdout);
             print_padded(*ns ? x->tag + strlen(ns) + 1 : x->tag, 28);
-            printf(" %zu folder%s on %zu disc%s", x->folders.n, x->folders.n == 1 ? "" : "s", x->discs.n,
-                   x->discs.n == 1 ? "" : "s");
+            if (x->folders.n) printf(" %zu folder%s", x->folders.n, x->folders.n == 1 ? "" : "s");
+            if (x->files.n) printf("%s %zu file%s", x->folders.n ? "," : "", x->files.n, x->files.n == 1 ? "" : "s");
+            printf(" on %zu disc%s", x->discs.n, x->discs.n == 1 ? "" : "s");
             if (have_vocab && !*ns && !strlist_has(&tv.names, x->tag)) {
                 char *norm = tag_normalise(x->tag);
                 const char *canon = norm;
@@ -348,7 +353,7 @@ int cmd_keywords(int argc, char **argv)
     free(path);
     printf("# exiftool argument file for disc %s: from the root of a restored copy, run\n", rec_get(d, "Id"));
     puts("#   exiftool -@ this-file");
-    puts("# Each section adds the keywords to every file under one folder (-r). Removing each value");
+    puts("# Each section adds the keywords to one file, or to every file under one folder (-r). Removing each value");
     puts("# before adding it keeps a second run from adding it twice.");
     for (size_t i = 0; i < kw.n; i++) {
         puts("-r");

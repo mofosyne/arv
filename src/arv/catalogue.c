@@ -459,10 +459,12 @@ int cmd_find(int argc, char **argv)
             }
             free(tags);
             if (!hit) continue;
-            char *w = found_at(&c, d);
+            char *w = found_at(&c, d), *lst = catalogue_volume(&c, rec_get(d, "Id"), "listing.tsv");
+            int file = strcmp(cols[0], ".") && listing_has_file(lst, cols[0]);   /* a tag names a file or a folder */
             if (!strcmp(cols[0], ".")) printf("TAG   %s  [%s]  data/  (%s)\n", rec_get(d, "Id"), *w ? w : "?", shown);
-            else printf("TAG   %s  [%s]  data/%s/  (%s)\n", rec_get(d, "Id"), *w ? w : "?", cols[0], shown);
+            else printf("TAG   %s  [%s]  data/%s%s  (%s)\n", rec_get(d, "Id"), *w ? w : "?", cols[0], file ? "" : "/", shown);
             free(w);
+            free(lst);
             any = 1;
         }
         if (fp) fclose(fp);

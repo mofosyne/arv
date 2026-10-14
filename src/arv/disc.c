@@ -197,6 +197,18 @@ void free_listing(listing *l)
     free(l->r);
 }
 
+/* whether a disc's listing names this path (relative to data/) as a file: a tag list's line names a
+ * file or a folder, and folders are not listed */
+int listing_has_file(const char *listing_file, const char *rel)
+{
+    listing l;
+    if (read_listing(listing_file, &l)) return 0;
+    int found = 0;
+    for (size_t i = 0; i < l.n && !found; i++) found = !strcmp(l.r[i].path, rel);
+    free_listing(&l);
+    return found;
+}
+
 int has_word(const char *kind, const char *word)
 {
     size_t n = strlen(word);

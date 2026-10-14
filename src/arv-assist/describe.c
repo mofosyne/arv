@@ -216,6 +216,7 @@ static const char *draft_note(const char *how)
 }
 
 /* a folder of the disc (its listing has a file under it), or "." for the whole of data/ */
+/* whether the disc has this folder, or this file (a tag may name either) */
 static int disc_has_folder(const arv_home *h, const char *id, const char *folder)
 {
     if (!strcmp(folder, ".")) return 1;
@@ -228,7 +229,7 @@ static int disc_has_folder(const arv_home *h, const char *id, const char *folder
         if (*line == '#') continue;
         char *p = strrchr(line, '\t');           /* the path is the last column */
         p = p ? p + 1 : line;
-        found = !strncmp(p, folder, n) && p[n] == '/';
+        found = !strncmp(p, folder, n) && (p[n] == '/' || !p[n]);
     }
     free(text);
     return found;
@@ -356,7 +357,7 @@ static void apply_to_disc(const arv_home *h, archive *cat, rec_record *disc, con
         size_t skipped = 0;
         for (size_t i = 0; i < d->nft; i++) {
             if (!disc_has_folder(h, id, d->ft_folder[i])) {
-                fprintf(stderr, "%s has no folder %s: its tags are skipped\n", id, d->ft_folder[i]);
+                fprintf(stderr, "%s has no folder or file %s: its tags are skipped\n", id, d->ft_folder[i]);
                 skipped++;
                 continue;
             }
@@ -366,7 +367,7 @@ static void apply_to_disc(const arv_home *h, archive *cat, rec_record *disc, con
         }
         for (size_t i = 0; i < d->ncap; i++) {
             if (!disc_has_folder(h, id, d->cap_folder[i])) {
-                fprintf(stderr, "%s has no folder %s: its caption is skipped\n", id, d->cap_folder[i]);
+                fprintf(stderr, "%s has no folder or file %s: its caption is skipped\n", id, d->cap_folder[i]);
                 skipped++;
                 continue;
             }

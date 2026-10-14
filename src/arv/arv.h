@@ -411,6 +411,7 @@ char *volume_file(const ondisc *d, const char *name);
 int split_tabs(char *line, char **cols, int want);
 int read_listing(const char *file, listing *l);
 void free_listing(listing *l);
+int listing_has_file(const char *listing_file, const char *rel);
 int has_word(const char *kind, const char *word);
 long long parse_utc(const char *s);
 void print_record(const rec_record *r);
