@@ -918,8 +918,19 @@ static int retire_one(const arv_home *h, archive *cat, rec_record *d, int yes, i
         long top = newest(cat, get_or(o, "Uuid", ""), NULL, NULL);
         int file = !strcmp(get_or(o, "Kind", ""), "file");
         printf("  %s%s version %ld", get_or(o, "Name", "?"), file ? "" : "/", version_of(o));
+        const rec_record *twin = NULL;      /* the same bytes as another object, on a disc that stays */
+        for (size_t k = 0; k < cat->objects.n && !elsewhere && !twin; k++) {
+            const rec_record *x = cat->objects.v[k];
+            if (x != o && strcmp(get_or(x, "Disc", ""), id) && !retired(cat, get_or(x, "Disc", ""))
+                && strcmp(get_or(x, "Uuid", ""), get_or(o, "Uuid", "-")) && !strcmp(get_or(x, "Tree", ""), get_or(o, "Tree", "-")))
+                twin = x;
+        }
         if (elsewhere) printf(": also on %s\n", elsewhere);
         else if (version_of(o) < top) printf(": only here; replaced by version %ld\n", top);
+        else if (twin)
+            printf(": the newest version, only here as this object; the same bytes are %s%s version %ld on %s\n",
+                   get_or(twin, "Name", "?"), strcmp(get_or(twin, "Kind", ""), "file") ? "/" : "", version_of(twin),
+                   get_or(twin, "Disc", "?"));
         else {
             printf(": the newest version, and its only copy is here\n");
             newest_lost++;

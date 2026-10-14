@@ -100,6 +100,13 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - The plan's tags go into the disc's `tags.tsv` (a folder object's once, on its folder); a `date:`
   tag counts for the disc's coverage instead of the file's time.
 
+**Identity is the lineage, not the bytes**
+- A data object is the same version as another only within its lineage (where it was read from).
+  The same bytes read from elsewhere are a new object that records `SameBytes: UUID VERSION`; arv
+  says so when it is made, and `status` says "its bytes are the data object ...". Before, any
+  matching `Tree` merged two objects, though identical bytes can be two things with two
+  provenances. `retire` names the same bytes on a disc that stays.
+
 **Declared namespaces**
 - The tag vocabulary (`config/tags.rec`) declares namespaces: `Namespace` records with
   `Description`, `Values: one|many` and `From: file-date` (where a value may be suggested).

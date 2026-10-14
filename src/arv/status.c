@@ -731,8 +731,8 @@ static void objects_status(const arv_home *h, const archive *cat, const char *ab
         const rec_record *o = cat->objects.v[i];
         if (strcmp(get_or(o, "Tree", ""), tree) || strlist_has(&seen, get_or(o, "Uuid", ""))) continue;
         strlist_add(&seen, get_or(o, "Uuid", ""));
-        printf("  this folder is the data object %s/, version %s (data/%s on %s), unchanged\n", get_or(o, "Name", "?"),
-               get_or(o, "Version", "?"), get_or(o, "Path", "?"), get_or(o, "Disc", "?"));
+        printf("  its bytes are the data object %s/, version %s (data/%s on %s), archived from elsewhere\n",
+               get_or(o, "Name", "?"), get_or(o, "Version", "?"), get_or(o, "Path", "?"), get_or(o, "Disc", "?"));
     }
     free(text.s);
     strlist_free(&all);

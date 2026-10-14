@@ -469,9 +469,12 @@ Note: Q: What is Tool for?                              any number
 
 The manifest is each file's SHA-256 and its path within the object, sorted by path, in
 `manifest-sha256.txt` form, without a repository's `.git` (`git.tsv` describes that). The same
-`Tree` on several discs is the same version, copied. Each version is recorded when it is archived:
-the same content as an earlier version is that version; from the same place but changed, the
-next version; else a new `Uuid`. The home catalogue adds `Source` (the path it was read
+`Tree` on several discs is the same version, copied, within one lineage. Each version is recorded
+when it is archived: from the same place, the same content as a version of it is that version,
+and changed content the next version; from a place not archived before, a new `Uuid`. Identity is
+the lineage, never the bytes: two identical files can be two things (a copy you made, or the same
+photo sent by two people, with two provenances), and only a person can tell. So the same `Tree`
+in another lineage is another object, and records `SameBytes: UUID VERSION` naming that one. The home catalogue adds `Source` (the path it was read
 from, relative to the folder holding the home when inside it) and keeps each manifest in `catalog/objects/<Tree>.sha256`; neither goes on a disc.
 `Except`* names a file or folder of the source, relative to it, that a disc plan placed elsewhere
 (a folder split: the more specific of two plan items that hold a file places it); the object is

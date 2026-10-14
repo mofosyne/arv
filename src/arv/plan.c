@@ -47,6 +47,12 @@
 #define SECTOR 2048
 #define TOOLS_RESERVE 65536L        /* sectors kept for tools/ (arv's source and programs): about 128 MiB */
 
+static const char *get_or(const rec_record *r, const char *name, const char *dflt)
+{
+    const char *v = rec_get(r, name);
+    return v ? v : dflt;
+}
+
 /* ------------------------------------------------------------------ the plan file */
 
 static char *plans_dir(const arv_home *h)
@@ -1755,17 +1761,26 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
         } else {
             text_sha256(text.s, tree);
         }
-        /* its lineage: the same content is the same version (a copy); from the same source,
-         * the next version; else a new object. An empty one is never the same as another. */
-        const rec_record *same = NULL, *from = NULL;
+        /* its lineage, from where it was read: the same content as a version of it is that version
+         * (a copy); changed, the next version; from nowhere archived before, a new object. Identity
+         * is the lineage, never the bytes: the same bytes in another lineage (another source) are
+         * another object, noted as SameBytes, for a person to say whether they are one. An empty
+         * object is never the same as another. */
+        const rec_record *same = NULL, *from = NULL, *twin = NULL;
         long latest = 0;
         char *stored = path_rel(dp->root, it->source);   /* as the home keeps it */
         const recs *both[2] = { &cat->objects, made_now };
         for (int b = 0; b < 2; b++)
             for (size_t i = 0; i < both[b]->n; i++) {
                 const rec_record *o = both[b]->v[i];
-                if (lines.n && rec_get(o, "Tree") && !strcmp(rec_get(o, "Tree"), tree)) same = o;
                 if (rec_get(o, "Source") && !strcmp(rec_get(o, "Source"), stored)) from = o;
+            }
+        for (int b = 0; b < 2; b++)
+            for (size_t i = 0; lines.n && i < both[b]->n; i++) {
+                const rec_record *o = both[b]->v[i];
+                if (!rec_get(o, "Tree") || strcmp(rec_get(o, "Tree"), tree)) continue;
+                if (from && rec_get(o, "Uuid") && !strcmp(rec_get(o, "Uuid"), rec_get(from, "Uuid"))) same = o;
+                else twin = o;
             }
         char uuid[37], version[24];
         if (same) {
@@ -1801,6 +1816,11 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
         rec_add(r, "Bytes", n_bytes);
         rec_add(r, "Date", today);
         object_about(r, same, from ? uuid : NULL, latest, cat, made_now, is_file ? NULL : it->source, git);
+        if (!same && twin) {                /* the same bytes, another lineage: noted, not merged */
+            char *v = xprintf("%s %s", rec_get(twin, "Uuid"), rec_get(twin, "Version") ? rec_get(twin, "Version") : "1");
+            rec_add(r, "SameBytes", v);
+            free(v);
+        }
         rec_add(r, "Source", stored);
         for (size_t j = 0; !is_file && j < dp->n; j++)      /* what of the folder other items placed */
             if (holder(dp, &dp->v[j]) == it) rec_add(r, "Except", dp->v[j].source + strlen(it->source) + 1);
@@ -1810,6 +1830,11 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
         fprintf(stderr, "Object %s%s (%s on %s): %s\n", rec_get(r, "Name"), is_file ? "" : "/", where, disc_id,
                 same ? "the same as a version already archived (another copy of it)"
                 : from ? "a new version of what was archived from there before" : "new");
+        if (!same && twin)
+            fprintf(stderr, "  the same bytes as %s%s version %s on %s, archived from elsewhere: recorded as another object "
+                            "(SameBytes), since the bytes cannot say whether it is the same thing\n",
+                    get_or(twin, "Name", "?"), strcmp(get_or(twin, "Kind", ""), "file") ? "/" : "", get_or(twin, "Version", "?"),
+                    get_or(twin, "Disc", "?"));
         free(where);
         sbuf said = { 0}, facts = { 0 };         /* "Title": description (coverage; rights; origin) */
         const char *t = rec_get(r, "Title"), *d = rec_get(r, "Description");

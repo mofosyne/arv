@@ -201,7 +201,8 @@ $ --home hp plan make again -y --no-ecc --no-formats --output-dir out-plan2
 Plan again: scanning and hashing its 2 items ...
 Classified as: MEMORIES/PHOTO/TRIP
 Object 2025/ (data/photos on TRIP-03_2025_7): a new version of what was archived from there before
-Object plan-copy/ (data/plan-copy on TRIP-04_2025_5): the same as a version already archived (another copy of it)
+Object plan-copy/ (data/plan-copy on TRIP-04_2025_5): new
+  the same bytes as 2025/ version 2 on TRIP-03_2025_7, archived from elsewhere: recorded as another object (SameBytes), since the bytes cannot say whether it is the same thing
 Building ROOT/out-plan2/TRIP-03_2025_7.noecc.iso (1 of 2, 1.7 MiB) ...
 Building ROOT/out-plan2/TRIP-04_2025_5.noecc.iso (2 of 2, 1.7 MiB) ...
 Hashing ROOT/out-plan2/TRIP-03_2025_7.noecc.iso ...
@@ -218,7 +219,8 @@ ROOT/plan-nas/photos/2025: not a collection's workflow folder
   also TRIP-01_2025_B: 50% of its files are here (1 of 2)
   data objects archived from here:
   b.jpg (b.jpg): version 1 on TRIP-01_2025_B; unchanged
-  2025/: version 2 on TRIP-03_2025_7, TRIP-04_2025_5; unchanged
+  2025/: version 2 on TRIP-03_2025_7; unchanged
+  its bytes are the data object plan-copy/, version 1 (data/plan-copy on TRIP-04_2025_5), archived from elsewhere
 rc=0
 $ --home hp status plan-moved
 3 files: 3 read, 0 unchanged since last read (hash cache)
@@ -227,7 +229,8 @@ ROOT/plan-moved: not a collection's workflow folder
   most like TRIP-03_2025_7: 100% of its files are here (3 of 3)
   also TRIP-04_2025_5: 100% of its files are here (3 of 3)
   also TRIP-01_2025_B: 50% of its files are here (1 of 2)
-  this folder is the data object 2025/, version 2 (data/photos on TRIP-03_2025_7), unchanged
+  its bytes are the data object 2025/, version 2 (data/photos on TRIP-03_2025_7), archived from elsewhere
+  its bytes are the data object plan-copy/, version 1 (data/plan-copy on TRIP-04_2025_5), archived from elsewhere
 rc=0
 $ --home hp find photos
 OBJECT  2025/  version 1  TRIP-02_2025_9  data/photos/  [?]
@@ -248,12 +251,13 @@ Data objects:
   notes.txt  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
     from ROOT/plan-pc/notes.txt (there now: arv status says if it changed)
     version 1  TRIP-02_2025_9  data/notes.txt  no copy yet
-  2025/  folder, 2 versions; newest: 0 copies on 2 discs, 0 cold, 0 read back
+  2025/  folder, 2 versions; newest: 0 copies on 1 disc, 0 cold, 0 read back
     from ROOT/plan-nas/photos/2025 (there now: arv status says if it changed)
-    and ROOT/plan-copy (not there now)
     version 2  TRIP-03_2025_7  data/photos/  no copy yet
-    version 2  TRIP-04_2025_5  data/plan-copy/  no copy yet
     version 1  TRIP-02_2025_9  data/photos/  no copy yet
+  plan-copy/  folder, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
+    from ROOT/plan-copy (not there now)
+    version 1  TRIP-04_2025_5  data/plan-copy/  no copy yet
 rc=0
 $ --home hp burned TRIP-03_2025_7 --location BOX1
 Note: BOX1 is not one of the archive's locations (arv location list): recorded as written. arv location add CODE NAME makes a place arv knows.
@@ -270,11 +274,9 @@ TRIP-01_2025_B: copy A recorded (iso, warm, checked), 1 in all
 rc=0
 $ --home hp objects 2025
 Data objects:
-  2025/  folder, 2 versions; newest: 2 copies on 2 discs, 1 cold, 1 read back
+  2025/  folder, 2 versions; newest: 1 copy on 1 disc, 1 cold, 0 read back
     from ROOT/plan-nas/photos/2025 (there now: arv status says if it changed)
-    and ROOT/plan-copy (not there now)
     version 2  TRIP-03_2025_7  data/photos/  A: disc cold at BOX1
-    version 2  TRIP-04_2025_5  data/plan-copy/  A: iso warm (read back)
     version 1  TRIP-02_2025_9  data/photos/  no copy yet
 rc=0
 $ --home hp objects wedding.mkv
@@ -303,9 +305,11 @@ Data objects with no cold copy of their newest version (burn one for the shelf):
   wedding.mkv  version 1
 Data objects no longer where they came from, with fewer than two copies of their newest version:
   wedding.mkv  version 1: 1 copy; was at ROOT/plan-pc/Videos/wedding.mkv
+  plan-copy/  version 1
+  plan-copy/  version 1: 1 copy; was at ROOT/plan-copy
 rc=0
 $ --home hp objects --json
-{"objects": [{"uuid": "UUID", "name": "b.jpg", "kind": "file", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 1, "cold": 0, "readBack": 1, "discs": 1}, "sources": [{"path": "ROOT/plan-nas/photos/2025/b.jpg", "there": true}], "todo": ["no cold copy"], "held": [{"version": 1, "path": "best/kyoto-b.jpg", "arranged": null, "files": 1, "bytes": 7, "on": {"disc": "TRIP-01_2025_B", "retired": false, "where": "", "copies": [{"copy": "A", "form": "iso", "temperature": "warm", "location": "", "at": "", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": true}]}}]}, {"uuid": "UUID", "name": "wedding.mkv", "kind": "file", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 1, "cold": 0, "readBack": 1, "discs": 1}, "sources": [{"path": "ROOT/plan-pc/Videos/wedding.mkv", "there": false}], "todo": ["no cold copy", "no longer where it came from, fewer than two copies"], "held": [{"version": 1, "path": "video/wedding.mkv", "arranged": null, "files": 1, "bytes": 7, "on": {"disc": "TRIP-01_2025_B", "retired": false, "where": "", "copies": [{"copy": "A", "form": "iso", "temperature": "warm", "location": "", "at": "", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": true}]}}]}, {"uuid": "UUID", "name": "notes.txt", "kind": "file", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 0, "cold": 0, "readBack": 0, "discs": 1}, "sources": [{"path": "ROOT/plan-pc/notes.txt", "there": true}], "todo": [], "held": [{"version": 1, "path": "notes.txt", "arranged": null, "files": 1, "bytes": 6, "on": {"disc": "TRIP-02_2025_9", "retired": false, "where": "", "copies": []}}]}, {"uuid": "UUID", "name": "2025", "kind": "folder", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 2, "newest": {"copies": 2, "cold": 1, "readBack": 1, "discs": 2}, "sources": [{"path": "ROOT/plan-nas/photos/2025", "there": true}, {"path": "ROOT/plan-copy", "there": false}], "todo": [], "held": [{"version": 2, "path": "photos", "arranged": null, "files": 3, "bytes": 21, "on": {"disc": "TRIP-03_2025_7", "retired": false, "where": "BOX1", "copies": [{"copy": "A", "form": "disc", "temperature": "cold", "location": "BOX1", "at": "BOX1", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": false}]}}, {"version": 2, "path": "plan-copy", "arranged": null, "files": 3, "bytes": 21, "on": {"disc": "TRIP-04_2025_5", "retired": false, "where": "", "copies": [{"copy": "A", "form": "iso", "temperature": "warm", "location": "", "at": "", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": true}]}}, {"version": 1, "path": "photos", "arranged": null, "files": 1, "bytes": 7, "on": {"disc": "TRIP-02_2025_9", "retired": false, "where": "", "copies": []}}]}], "collections": []}
+{"objects": [{"uuid": "UUID", "name": "b.jpg", "kind": "file", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 1, "cold": 0, "readBack": 1, "discs": 1}, "sources": [{"path": "ROOT/plan-nas/photos/2025/b.jpg", "there": true}], "todo": ["no cold copy"], "held": [{"version": 1, "path": "best/kyoto-b.jpg", "arranged": null, "files": 1, "bytes": 7, "on": {"disc": "TRIP-01_2025_B", "retired": false, "where": "", "copies": [{"copy": "A", "form": "iso", "temperature": "warm", "location": "", "at": "", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": true}]}}]}, {"uuid": "UUID", "name": "wedding.mkv", "kind": "file", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 1, "cold": 0, "readBack": 1, "discs": 1}, "sources": [{"path": "ROOT/plan-pc/Videos/wedding.mkv", "there": false}], "todo": ["no cold copy", "no longer where it came from, fewer than two copies"], "held": [{"version": 1, "path": "video/wedding.mkv", "arranged": null, "files": 1, "bytes": 7, "on": {"disc": "TRIP-01_2025_B", "retired": false, "where": "", "copies": [{"copy": "A", "form": "iso", "temperature": "warm", "location": "", "at": "", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": true}]}}]}, {"uuid": "UUID", "name": "notes.txt", "kind": "file", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 0, "cold": 0, "readBack": 0, "discs": 1}, "sources": [{"path": "ROOT/plan-pc/notes.txt", "there": true}], "todo": [], "held": [{"version": 1, "path": "notes.txt", "arranged": null, "files": 1, "bytes": 6, "on": {"disc": "TRIP-02_2025_9", "retired": false, "where": "", "copies": []}}]}, {"uuid": "UUID", "name": "2025", "kind": "folder", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 2, "newest": {"copies": 1, "cold": 1, "readBack": 0, "discs": 1}, "sources": [{"path": "ROOT/plan-nas/photos/2025", "there": true}], "todo": [], "held": [{"version": 2, "path": "photos", "arranged": null, "files": 3, "bytes": 21, "on": {"disc": "TRIP-03_2025_7", "retired": false, "where": "BOX1", "copies": [{"copy": "A", "form": "disc", "temperature": "cold", "location": "BOX1", "at": "BOX1", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": false}]}}, {"version": 1, "path": "photos", "arranged": null, "files": 1, "bytes": 7, "on": {"disc": "TRIP-02_2025_9", "retired": false, "where": "", "copies": []}}]}, {"uuid": "UUID", "name": "plan-copy", "kind": "folder", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 1, "cold": 0, "readBack": 1, "discs": 1}, "sources": [{"path": "ROOT/plan-copy", "there": false}], "todo": ["no cold copy", "no longer where it came from, fewer than two copies"], "held": [{"version": 1, "path": "plan-copy", "arranged": null, "files": 3, "bytes": 21, "on": {"disc": "TRIP-04_2025_5", "retired": false, "where": "", "copies": [{"copy": "A", "form": "iso", "temperature": "warm", "location": "", "at": "", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": true}]}}]}], "collections": []}
 rc=0
 $ --home hp plan new later --medium bd100
 Plan later: 1 empty disc (hp/drafts/plans/later.rec). Next: arv plan add later FILE-OR-FOLDER...
@@ -407,12 +411,12 @@ All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2
 $ --home hp retire TRIP-04_2025_5
 TRIP-04_2025_5: Again
-  plan-copy/ version 2: also on TRIP-03_2025_7
+  plan-copy/ version 1: the newest version, only here as this object; the same bytes are 2025/ version 2 on TRIP-03_2025_7
 Nothing recorded. arv retire TRIP-04_2025_5 --yes records it as retired (arv deletes nothing: the disc is yours to keep or destroy).
 rc=0
 $ --home hp retire TRIP-04_2025_5 --yes
 TRIP-04_2025_5: Again
-  plan-copy/ version 2: also on TRIP-03_2025_7
+  plan-copy/ version 1: the newest version, only here as this object; the same bytes are 2025/ version 2 on TRIP-03_2025_7
 TRIP-04_2025_5 retired (logged)
 rc=0
 $ --home hp retire TRIP-04_2025_5
@@ -452,9 +456,7 @@ $ --home hp objects 2025
 Data objects:
   2025/  folder, 2 versions; newest: 1 copy on 1 disc, 1 cold, 0 read back
     from ROOT/plan-nas/photos/2025 (there now: arv status says if it changed)
-    and ROOT/plan-copy (not there now)
     version 2  TRIP-03_2025_7  data/photos/  A: disc cold at BOX1
-    version 2  TRIP-04_2025_5  data/plan-copy/  retired
     version 1  TRIP-02_2025_9  data/photos/  retired
 rc=0
 $ --home hp retire NOPE-01

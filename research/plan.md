@@ -1501,6 +1501,28 @@ do not give is order (a slideshow's sequence): that is names (`01 torii gates.jp
     within it, so the same object placed two ways is the same version.
   Not yet: titles, and a layout for `arv make` of a folder that is not a plan.
 
+## Decision (2026-10-14): identity is the lineage, never the bytes
+
+The owner's point: the same bytes can be different data objects (the colour of the bits, after
+Skala's *What Colour are your bits?*; in legal terms, provenance: the same PDF from a solicitor
+and from a download), and one object changes bytes from edition to edition, with an identity
+joining them. That is OCFL's model (an object id, versions mapping paths to digests, bytes shared
+only within an object) and PREMIS's (an Intellectual Entity above its representations and files).
+Archivematica gives every package and every file a UUID and keeps checksums for fixity, not
+identity, but has no lineage of a file across ingests.
+
+arv had it half right: an object's `Uuid` and `Version` are a lineage, but any matching `Tree`
+was taken as the same version, wherever it came from. Now the lineage decides (the object
+archived from the same `Source`); the same `Tree` elsewhere is a new object with `SameBytes`,
+noted and shown (`make`, `status`, `retire`), not merged. A way for a person to say "these are
+one" (merging two lineages, an event) is not built yet. Files are still found by hash (`status`
+reports moves, `retire` counts files on discs that stay): that is fixity and finding, not identity.
+
+Considered, not built: sharing identical bytes on one disc (UDF lets two names point to one File
+Entry, with a link count, which FAT cannot). It is a format feature to test on real readers, for a
+saving nobody has measured: first a report of byte-identical files, then hard links only if the
+report shows them worth it, after the first burns.
+
 **A layout is a view of tags** (planned; corrected 2026-10-14). First written the other way round
 (a declared folder layout from which tags are derived), but the owner's experience is that the
 order changes between discs: year first on one, event first on another, as each is handier. So the

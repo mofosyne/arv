@@ -86,7 +86,9 @@ Ecc: none
 + for each) names a file or folder of the source left out of the object because a disc plan
 + placed it elsewhere (a folder split): the object is the folder without them. Arranged, on a disc with
 + a Layout, is where it was arranged (its path in the disc plan) before the layout placed it
-+ at Path; Name keeps its name where it was read from.
++ at Path; Name keeps its name where it was read from. SameBytes (UUID VERSION) names an
++ object of another lineage with the same Tree: identity is the lineage, never the bytes,
++ so the same bytes read from elsewhere are another object, and this says so.
 + Title, Description, Coverage (EDTF), Rights and Origin (where it was published, as host/path)
 + say what it is: read from its own files when it is archived (its README, package manifest,
 + licence, a repository's commits and origin remote), or written by a person or a model
