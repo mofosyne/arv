@@ -1516,6 +1516,15 @@ reading images by their sectors to be right. The design above stays, for if the 
 What it taught stays too: an object's tags and name follow its Uuid, and a plan of a source
 archived before places it by its tags now and names it by its name now.
 
+So a remake is a new plan, not a clone (the owner's words): restore the discs to folders, plan
+them. What was missing for that was knowing the restored files are the same objects. They are
+(the owner's point), and arv can know it from provenance rather than bytes, because it wrote them:
+`arv restore` leaves `DEST/.arv` (`Restored:` the disc id, its `Uuid`, the date; no `Home:`), and a
+plan of a file or folder under it continues the object at the same path on that disc. For copies
+arv did not make, `plan add --of OBJECT` says the same; `SameBytes` suggests it. An object's tags
+now are its own (set on it), else what its disc gives its path (its folders' too), so a burned
+`date:1974~` still files a scan under `decade/1970s/` on the remade disc.
+
 ## Done (2026-10-14): a plan as a collection's next edition
 
 `arv plan new NAME --collection CODE` (a plan setting, like `--set`, kept as `Collection`): `plan

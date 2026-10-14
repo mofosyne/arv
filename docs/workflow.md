@@ -294,6 +294,13 @@ keep the images on newer storage (`arv stored DISC IMAGE`, with `--carrier` for 
 holding several). The bits stay the same and the check is the same, so nothing needs remaking;
 the copying is the burner's, `dd`'s or `rsync`'s work.
 
+A disc made anew from old discs (re-arranged, gathered, laid out by today's tags) is a new plan:
+`arv restore` the discs to folders, then plan them as anything else. `restore` leaves a `.arv` in
+each folder naming its disc, so the plan knows the files are the same data objects: each is
+another copy of its version (or its next version, if edited since), filed by its tags now and
+named by its name now. For a copy you made yourself, say so: `arv plan add NAME COPY --of
+OBJECT`.
+
 **After burning: names and tags, not places.** A burned disc does not change, and its paths are
 facts about it. What changes is the record of each data object: `arv retag torii.jpg
 'event:osaka-trip, place:osaka, best'` gives it new tags, and `arv rename IMG_0002.JPG torii.jpg`

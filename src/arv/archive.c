@@ -1062,10 +1062,83 @@ const rec_record *object_at(const archive *a, const char *disc_id, const char *p
     return NULL;
 }
 
+char *object_tags_now(const arv_home *h, const archive *a, const rec_record *o)
+{
+    const char *set = rec_get(o, "Uuid") ? object_field(a, rec_get(o, "Uuid"), "Tags") : NULL;
+    if (set) return xstrdup(set);
+    const char *disc = rec_get(o, "Disc"), *path = rec_get(o, "Path");
+    if (!disc || !path) return xstrdup("");
+    char *tf = home_volume_file(h, disc, "tags.tsv"), *text = disc_tags_text(a, disc, access(tf, F_OK) ? NULL : tf);
+    sbuf b = { 0 };
+    sb_puts(&b, "");
+    strlist seen = { 0 };
+    for (char *l = text; l && *l;) {        /* its folders' lines and its own */
+        char *nl = strchr(l, '\n');
+        if (nl) *nl = 0;
+        char *t1 = *l != '#' ? strchr(l, '\t') : NULL;
+        if (t1) {
+            *t1 = 0;
+            char *t2 = strchr(t1 + 1, '\t');
+            if (t2) *t2 = 0;
+            size_t n = strlen(l);
+            if (!strcmp(l, ".") || !strcmp(l, path) || (!strncmp(path, l, n) && path[n] == '/'))
+                for (char *t = strtok(t1 + 1, ","); t; t = strtok(NULL, ",")) {
+                    while (*t == ' ') t++;
+                    if (!*t || strlist_has(&seen, t)) continue;
+                    strlist_add(&seen, t);
+                    sb_printf(&b, "%s%s", b.len ? ", " : "", t);
+                }
+        }
+        l = nl ? nl + 1 : l + strlen(l);
+    }
+    strlist_free(&seen);
+    free(text);
+    free(tf);
+    return b.s;
+}
+
+const rec_record *object_at_uuid(const archive *a, const char *uuid)
+{
+    const rec_record *o = NULL;             /* its newest record */
+    for (size_t i = 0; i < a->objects.n; i++)
+        if (rec_get(a->objects.v[i], "Uuid") && !strcmp(rec_get(a->objects.v[i], "Uuid"), uuid)) o = a->objects.v[i];
+    return o;
+}
+
 const char *object_slug(const archive *a, const rec_record *o)
 {
     const char *s = rec_get(o, "Uuid") ? object_field(a, rec_get(o, "Uuid"), "Slug") : NULL;
     return s ? s : rec_get(o, "Slug") ? rec_get(o, "Slug") : rec_get(o, "Name") ? rec_get(o, "Name") : "?";
+}
+
+/* the data object a word names: its Uuid (or its first 8 or more characters), or its name on discs
+ * now; refused when it names none, or more than one */
+const char *object_by_word(const archive *cat, const char *text)
+{
+    strlist uuids = { 0 }, names = { 0 };
+    size_t n = strlen(text);
+    for (int pass = 0; pass < 2 && !uuids.n; pass++)
+        for (size_t i = 0; i < cat->objects.n; i++) {
+            const rec_record *o = cat->objects.v[i];
+            const char *u = rec_get(o, "Uuid");
+            if (!u || strlist_has(&uuids, u)) continue;
+            int hit = !pass ? n >= 8 && !strncmp(u, text, n) : !strcmp(object_slug(cat, o), text) || !strcmp(get_or(o, "Name", ""), text);
+            if (!hit) continue;
+            strlist_add(&uuids, u);
+            char *line = xprintf("  %s  %s (version %s on %s, data/%s)", u, object_slug(cat, o), get_or(o, "Version", "?"),
+                                 get_or(o, "Disc", "?"), get_or(o, "Path", "?"));
+            strlist_add(&names, line);
+            free(line);
+        }
+    if (!uuids.n) die("%s: no data object has that name or Uuid (arv objects lists them)", text);
+    if (uuids.n > 1) {
+        fprintf(stderr, "Error: %s names %zu data objects; give one by its Uuid:\n", text, uuids.n);
+        for (size_t i = 0; i < names.n; i++) fprintf(stderr, "%s\n", names.v[i]);
+        exit(1);
+    }
+    for (size_t i = 0; i < cat->objects.n; i++)
+        if (!strcmp(get_or(cat->objects.v[i], "Uuid", ""), uuids.v[0])) return rec_get(cat->objects.v[i], "Uuid");
+    return NULL;
 }
 
 /* the disc's tags now, to read as its tags.tsv would be read; NULL when there are none */

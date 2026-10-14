@@ -130,7 +130,7 @@ Classified as: MEMORIES/PHOTO, PROJECTS/CODE
 Object IMG_0001.JPG (data/year/2019/event/kyoto trip/IMG_0001.JPG, by the layout on PHOTO-01_1974-2021_F): new
 Object IMG_0002-copy.JPG (data/year/2019/event/kyoto trip/IMG_0002-copy.JPG, by the layout on PHOTO-01_1974-2021_F): new
 Object IMG_0002.JPG (data/year/2019/event/kyoto trip/IMG_0002.JPG, by the layout on PHOTO-01_1974-2021_F): new
-  the same bytes as IMG_0002-copy.JPG version 1 on PHOTO-01_1974-2021_F, archived from elsewhere: recorded as another object (SameBytes), since the bytes cannot say whether it is the same thing
+  the same bytes as IMG_0002-copy.JPG version 1 on PHOTO-01_1974-2021_F, archived from elsewhere: recorded as another object (SameBytes), since the bytes cannot say whether it is the same thing (a copy you made of it is: plan it with plan add --of)
 Object IMG_0003.JPG (data/year/2019/event/kyoto trip/IMG_0003.JPG, by the layout on PHOTO-01_1974-2021_F): new
 Object IMG_0001.JPG (data/year/2019/event/kyoto trip/IMG_0001-day2.JPG, by the layout on PHOTO-01_1974-2021_F): new
 Object notes.txt (data/year/2019/event/kyoto trip/notes.txt, by the layout on PHOTO-01_1974-2021_F): new
@@ -246,6 +246,7 @@ rc=0
 $ --home hy restore lay-disc lay-restored
 PHOTO-01_1974-2021_F: restored 9 files (121 bytes) and 0 links to lay-restored
 rc=0
+lay-restored/.arv
 lay-restored/decade/1970s/print1.tif
 lay-restored/project/weather-station/station/README.md
 lay-restored/project/weather-station/station/src/main.c
@@ -255,3 +256,67 @@ lay-restored/year/2019/event/kyoto trip/IMG_0002-copy.JPG
 lay-restored/year/2019/event/kyoto trip/IMG_0002.JPG
 lay-restored/year/2019/event/kyoto trip/IMG_0003.JPG
 lay-restored/year/2019/event/kyoto trip/notes.txt
+# arv: these files were restored from disc PHOTO-01_1974-2021_F; a disc plan of them continues its data objects
+Restored: PHOTO-01_1974-2021_F
+Disc: UUID
+Date: 2026-01-01
+$ --home hy plan new remake --set PHOTO
+Plan remake: 1 empty disc (hy/drafts/plans/remake.rec). Next: arv plan add remake FILE-OR-FOLDER...
+rc=0
+$ --home hy plan add remake lay-restored/year/2019/event/kyoto trip/IMG_0002.JPG lay-restored/project/weather-station/station
+IMG_0002.JPG: disc 1, now 1% full
+station/: disc 1, now 1% full
+rc=0
+$ --home hy plan add remake lay-print-copy.tif --of print1.tif
+lay-print-copy.tif: disc 1, now 1% full
+  it continues data object print1.tif (UUID): the same bytes are another copy of its version, changed ones its next
+rc=0
+$ --home hy plan add remake lay-restored/decade --of nothing
+Error: nothing: no data object has that name or Uuid (arv objects lists them)
+rc=1
+$ --home hy plan layout remake year/event, project, decade
+Every disc laid out by year/event, project, decade: each item placed whole by its tags. Where: arv plan show remake
+rc=0
+$ --home hy plan show remake
+Plan remake  set PHOTO  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  61 B in 3 items
+  laid out by year/event, project, decade
+  IMG_0002.JPG  14 B  ROOT/lay-restored/year/2019/event/kyoto trip/IMG_0002.JPG
+      continues data object torii.jpg version 1 (restored from that disc)
+      -> data/year/2019/event/osaka-trip/torii.jpg
+  lay-print-copy.tif  8 B  ROOT/lay-print-copy.tif
+      continues data object print1.tif version 1 (said with --of)
+      -> data/decade/1970s/print1.tif
+  station/  39 B, 2 files  ROOT/lay-restored/project/weather-station/station
+      continues data object station version 1 (restored from that disc)
+      -> data/project/weather-station/station/
+Next: arv plan make remake (one image a disc; arv make's options apply)
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hy plan make remake -y --no-ecc --no-formats --output-dir out-remake
+Plan remake: scanning and hashing its 3 items ...
+Categories from Match rules in hy/config/sets.rec: CODE (--category to choose, --no-rules to skip)
+Classified as: MEMORIES/PHOTO, PROJECTS/CODE
+Object IMG_0002.JPG (data/year/2019/event/osaka-trip/torii.jpg, by the layout on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
+Object lay-print-copy.tif (data/decade/1970s/print1.tif, by the layout on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
+Object station/ (data/project/weather-station/station, by the layout on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
+  about it: "Station"
+Building ROOT/out-remake/PHOTO-02_1974-2021_D.noecc.iso (1 of 1, 1.8 MiB) ...
+Hashing ROOT/out-remake/PHOTO-02_1974-2021_D.noecc.iso ...
+PHOTO-02_1974-2021_D	ROOT/out-remake/PHOTO-02_1974-2021_D.noecc.iso	Remake
+rc=0
+link target
+decade/1970s/print1.tif
+project/weather-station/station/README.md
+project/weather-station/station/src/main.c
+year/2019/event/osaka-trip/torii.jpg
+$ --home hy objects torii.jpg
+Data objects:
+  torii.jpg  file, 1 version; newest: 0 copies on 2 discs, 0 cold, 0 read back
+    renamed: it was read as IMG_0002.JPG
+    tags now: event:osaka-trip, place:osaka, best
+    from ROOT/lay/DCIM/IMG_0002.JPG (there now: arv status says if it changed)
+    and ROOT/lay-restored/year/2019/event/kyoto trip/IMG_0002.JPG (there now: arv status says if it changed)
+    version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/IMG_0002.JPG  no copy yet
+    version 1  PHOTO-02_1974-2021_D  data/year/2019/event/osaka-trip/torii.jpg  no copy yet
+rc=0

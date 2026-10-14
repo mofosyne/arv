@@ -202,7 +202,7 @@ Plan again: scanning and hashing its 2 items ...
 Classified as: MEMORIES/PHOTO/TRIP
 Object 2025/ (data/photos on TRIP-03_2025_7): a new version of what was archived from there before
 Object plan-copy/ (data/plan-copy on TRIP-04_2025_5): new
-  the same bytes as 2025/ version 2 on TRIP-03_2025_7, archived from elsewhere: recorded as another object (SameBytes), since the bytes cannot say whether it is the same thing
+  the same bytes as 2025/ version 2 on TRIP-03_2025_7, archived from elsewhere: recorded as another object (SameBytes), since the bytes cannot say whether it is the same thing (a copy you made of it is: plan it with plan add --of)
 Building ROOT/out-plan2/TRIP-03_2025_7.noecc.iso (1 of 2, 1.7 MiB) ...
 Building ROOT/out-plan2/TRIP-04_2025_5.noecc.iso (2 of 2, 1.7 MiB) ...
 Hashing ROOT/out-plan2/TRIP-03_2025_7.noecc.iso ...
@@ -403,7 +403,7 @@ arv plan: unexpected or missing arguments: delete card --yes
          discs composed by hand from files and folders anywhere; the sources stay where they are:
          new NAME [--collection CODE] (its discs that collection's next edition, arranged as planned);
          add NAME SOURCE... [--disc N|new|auto] [--as PATH] [--each] puts them on a disc, under PATH
-         (--each: each file in a folder an object of its own);
+         (--each: each file in a folder an object of its own; --of OBJECT: SOURCE continues that object);
          add NAME --list FILE|- takes SOURCE<tab>PATH[<tab>DISC] lines, all or none;
          rename NAME PATH NEWPATH gives an item a new place, or splits one off a planned folder;
          tag NAME SOURCE TAGS (or --list FILE|-: SOURCE<tab>TAGS lines) tags files before they are on discs;

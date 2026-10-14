@@ -6,6 +6,8 @@
  *   arv plan show NAME [--json] [--archived] [--duplicates]   (--duplicates: byte-identical files on a
  *                                  disc; --archived: hashes each item, through the hash
  *                                  cache, and says what of it is on discs already)
+ *   arv plan add NAME SOURCE [--of OBJECT]   SOURCE continues that data object (a copy of it you made); files
+ *                                  restored by arv restore continue theirs on their own (its .arv marker)
  *   arv plan add NAME SOURCE... [--disc N|new|auto] [--as PATH] [--each]   (--each: a folder's every
  *                                  file an item, a data object, of its own)
  *   arv plan add NAME --list FILE|- [--disc N|new|auto]   SOURCE<TAB>PATH[<TAB>DISC] lines, all or none
@@ -142,6 +144,7 @@ void plan_load(const char *file, disc_plan *out)
         it->source = rec_get(r, "Source") && *rec_get(r, "Source") ? path_abs(out->root, rec_get(r, "Source")) : xstrdup("");
         it->path = xstrdup(rec_get(r, "Path") ? rec_get(r, "Path") : "");
         it->seen = rec_get(r, "Seen") ? xstrdup(rec_get(r, "Seen")) : NULL;
+        it->of = rec_get(r, "Of") ? xstrdup(rec_get(r, "Of")) : NULL;
         if (it->disc < 1 || it->disc > out->discs || !*it->source || !*it->path)
             die("%s: an Item needs a Disc between 1 and the plan's Discs, a Source and a Path", file);
     }
@@ -175,6 +178,7 @@ static void plan_save(disc_plan *p)
         sb_printf(&b, "\nDisc: %d\nSource: %s\nPath: %s\n", p->v[i].disc, src, p->v[i].path);
         free(src);
         if (p->v[i].seen) sb_printf(&b, "Seen: %s\n", p->v[i].seen);
+        if (p->v[i].of) sb_printf(&b, "Of: %s\n", p->v[i].of);
     }
     for (size_t i = 0; i < p->tag_src.n; i++) {
         if (!i) sb_puts(&b, "\n%rec: Tags\n");
@@ -387,21 +391,19 @@ static int plan_uses_tags(const disc_plan *p)
 /* where a layout puts an item, whole: folders from the item's tags (its source's and its folders'),
  * then its name; first is its earliest file's time, for a date it has no tag for. NULL when it has
  * a value for no alternative: it keeps its place by hand. */
-static char *item_place(const disc_plan *p, const plan_item *it, const char *layout, const strlist *one, int date_from_file,
-                        time_t first, const archive *cat)
+static const rec_record *lineage_of(const disc_plan *p, const plan_item *it, const archive *cat);
+
+static char *item_place(const arv_home *h, const disc_plan *p, const plan_item *it, const char *layout, const strlist *one,
+                        int date_from_file, time_t first, const archive *cat)
 {
     strlist tags;
     plan_tags_of(p, it->source, one, &tags);
     const char *name = !strcmp(it->path, ".") ? strrchr(it->source, '/') + 1
                        : strrchr(it->path, '/') ? strrchr(it->path, '/') + 1 : it->path;
-    const rec_record *was = NULL;           /* archived from here before: its tags and name now, in the record */
-    char *stored = cat ? path_rel(p->root, it->source) : NULL;
-    for (size_t i = 0; stored && i < cat->objects.n; i++)
-        if (rec_get(cat->objects.v[i], "Source") && !strcmp(rec_get(cat->objects.v[i], "Source"), stored)) was = cat->objects.v[i];
-    free(stored);
+    const rec_record *was = cat ? lineage_of(p, it, cat) : NULL;   /* archived before: its tags and name now */
     if (was && rec_get(was, "Uuid")) {
-        const char *now = object_field(cat, rec_get(was, "Uuid"), "Tags"), *base = strrchr(it->source, '/') + 1;
-        char *copy = now ? xstrdup(now) : NULL;
+        const char *base = strrchr(it->source, '/') + 1;
+        char *copy = object_tags_now(h, cat, was);
         for (char *t = copy ? strtok(copy, ",") : NULL; t; t = strtok(NULL, ",")) {
             while (*t == ' ') t++;
             size_t l = ns_of(t);
@@ -418,16 +420,68 @@ static char *item_place(const disc_plan *p, const plan_item *it, const char *lay
     return at;
 }
 
-/* the tags now of the object archived from this item's source before (its lineage), or NULL */
-static char *lineage_tags(const disc_plan *p, const plan_item *it, const archive *cat)
+/* the data object a restored file or folder is: a .arv marker above it (arv restore leaves one)
+ * names the disc, and the object at the same path on it; NULL for none. Its provenance, not its bytes. */
+static const rec_record *restored_object(const archive *cat, const char *source, const char **disc)
 {
-    char *stored = path_rel(p->root, it->source);
+    char *dir = xstrdup(source);
+    const rec_record *found = NULL;
+    for (;;) {                              /* the folder itself, then each above it; the nearest marker decides */
+        char *mk = join(*dir ? dir : "/", ".arv"), *id = NULL;
+        struct stat st;
+        rec_file f;
+        int bad = 0;
+        if (!stat(mk, &st) && S_ISREG(st.st_mode) && !rec_read(mk, &f, &bad)) {
+            for (size_t i = 0; i < f.nrecords && !id; i++)
+                if (rec_get(&f.records[i], "Restored")) id = xstrdup(rec_get(&f.records[i], "Restored"));
+            rec_free(&f);
+        }
+        free(mk);
+        if (id) {
+            size_t n = strlen(dir);
+            const char *rel = source[n] == '/' ? source + n + 1 : ".";
+            for (size_t i = 0; i < cat->objects.n && !found; i++)
+                if (!strcmp(get_or(cat->objects.v[i], "Disc", ""), id) && !strcmp(get_or(cat->objects.v[i], "Path", ""), rel))
+                    found = cat->objects.v[i];
+            if (found && disc) *disc = rec_get(found, "Disc");
+            free(id);
+            break;
+        }
+        char *slash = strrchr(dir, '/');
+        if (!slash || !*dir) break;
+        *slash = 0;
+    }
+    free(dir);
+    return found;
+}
+
+/* the object this item continues: the one it was said to be (--of), else the newest archived from its
+ * source, else the one it was restored from; NULL for none */
+static const rec_record *lineage_of(const disc_plan *p, const plan_item *it, const archive *cat)
+{
     const rec_record *was = NULL;
+    if (it->of) {
+        for (size_t i = 0; i < cat->objects.n; i++)
+            if (rec_get(cat->objects.v[i], "Uuid") && !strcmp(rec_get(cat->objects.v[i], "Uuid"), it->of)) was = cat->objects.v[i];
+        return was;
+    }
+    char *stored = path_rel(p->root, it->source);
     for (size_t i = 0; i < cat->objects.n; i++)
         if (rec_get(cat->objects.v[i], "Source") && !strcmp(rec_get(cat->objects.v[i], "Source"), stored)) was = cat->objects.v[i];
     free(stored);
-    const char *now = was && rec_get(was, "Uuid") ? object_field(cat, rec_get(was, "Uuid"), "Tags") : NULL;
-    return now && *now ? xstrdup(now) : NULL;
+    return was ? was : restored_object(cat, it->source, NULL);
+}
+
+/* the tags now of the object this item continues, or NULL */
+static char *lineage_tags(const arv_home *h, const disc_plan *p, const plan_item *it, const archive *cat)
+{
+    const rec_record *was = lineage_of(p, it, cat);
+    if (was) {
+        char *t = object_tags_now(h, cat, was);
+        if (*t) return t;
+        free(t);
+    }
+    return NULL;
 }
 
 /* a (taken) with b's tags it lacks, ", "-joined */
@@ -511,9 +565,9 @@ void plan_scan(const arv_home *h, disc_plan *p, const char *links, entries *file
                 if (mine && (!first || f.v[j].mtime < first)) first = f.v[j].mtime;
                 free(abs);
             }
-            it->placed = item_place(p, it, layout, &one, date_from_file, first, h ? &cat : NULL);
+            it->placed = item_place(h, p, it, layout, &one, date_from_file, first, h ? &cat : NULL);
         }
-        char *was_tags = h ? lineage_tags(p, it, &cat) : NULL;   /* its tags now, if archived from here before */
+        char *was_tags = h ? lineage_tags(h, p, it, &cat) : NULL;   /* its tags now, if archived from here before */
         char *folder_tags = NULL;           /* a folder item's tags: once, on its folder */
         if (S_ISDIR(st.st_mode) && tagged && (p->tag_src.n || was_tags)) {
             folder_tags = merged_tags(p->tag_src.n ? plan_tags_text(p, it->source, &one) : xstrdup(""), was_tags);
@@ -963,7 +1017,7 @@ static char **show_places(const arv_home *h, const disc_plan *p)
         }
         time_t first = 0;
         first_walk(p, &p->v[i], p->v[i].source, 1, &first);
-        at[i] = item_place(p, &p->v[i], layout, &one, date_from_file, first, &cat);
+        at[i] = item_place(h, p, &p->v[i], layout, &one, date_from_file, first, &cat);
     }
     strlist_free(&one);
     return at;
@@ -982,6 +1036,8 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
     size_t changed = 0;
     archived *ar = want_archived ? xmalloc((p->n + 1) * sizeof *ar) : NULL;
     char **at = show_places(h, p);          /* where a disc's layout puts each item */
+    archive scat;                           /* what each item continues, when said or restored */
+    archive_load(&scat, h->rec_path);
     if (want_archived) {
         archive cat;
         strlist have = { 0 };
@@ -1100,6 +1156,14 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
                         const plan_item *in = &p->v[j];
                         if (holder(p, in) != &p->v[i]) continue;
                         printf("      not %s: placed as %s on disc %d\n", in->source + strlen(p->v[i].source) + 1, in->path, in->disc);
+                    }
+                    {
+                        const char *rdisc = NULL;
+                        const rec_record *was = p->v[i].of ? object_at_uuid(&scat, p->v[i].of)
+                                                           : restored_object(&scat, p->v[i].source, &rdisc);
+                        if (was)
+                            printf("      continues data object %s version %s (%s)\n", object_slug(&scat, was),
+                                   get_or(was, "Version", "?"), p->v[i].of ? "said with --of" : "restored from that disc");
                     }
                     if (at[i]) printf("      -> data/%s%s\n", at[i], m[i].folder ? "/" : "");
                     else if (plan_layout(p, d)) printf("      by hand: it has a value for no alternative of the layout\n");
@@ -1235,7 +1299,7 @@ static void add_item(const arv_home *h, disc_plan *p, const char *given, const c
     const char *path = as && *as ? as : *base ? base : NULL;
     if (!path || !path_ok(path, S_ISDIR(st.st_mode)))
         die("%s cannot be a path under data/ (relative, no . or .. parts; . only for a folder's contents)", path ? path : "/");
-    plan_item it = { 0, src, xstrdup(path), NULL, NULL };
+    plan_item it = { 0, src, xstrdup(path), NULL, NULL, NULL };
     int d = pick_disc(h, p, disc, item_size(p, &it).sectors);
     check_free(p, path, d);
     if (d > p->discs) p->discs = d;
@@ -1408,7 +1472,7 @@ static int set_tags(const arv_home *h, disc_plan *p, const char *given, const ch
 
 int cmd_plan(int argc, char **argv)
 {
-    const char *given = NULL, *action = NULL, *name = NULL, *disc = NULL, *as = NULL, *from_s = NULL, *list = NULL;
+    const char *given = NULL, *action = NULL, *name = NULL, *disc = NULL, *as = NULL, *from_s = NULL, *list = NULL, *of = NULL;
     int as_json = 0, all = 0, on_discs = 0, each = 0, dups = 0;
     strlist args = { 0 }, defaults = { 0 }, rest = { 0 };
     static const char *const SETTINGS[][2] = { { "--medium", "Medium" }, { "--set", "Set" }, { "--title", "Title" },
@@ -1431,6 +1495,7 @@ int cmd_plan(int argc, char **argv)
             }
         } else if (i + 1 < argc && !strcmp(argv[i], "--disc")) disc = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--as")) as = argv[++i];
+        else if (i + 1 < argc && !strcmp(argv[i], "--of")) of = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--from")) from_s = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--discs")) disc = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--list")) list = argv[++i];
@@ -1616,9 +1681,21 @@ int cmd_plan(int argc, char **argv)
         if (!args.n && !list) die("%s", "arv plan add NAME SOURCE... (or --list FILE): the files or folders to put on a disc");
         if (as && (args.n > 1 || list)) die("%s", "--as names one thing: add one SOURCE at a time with it");
         if (each && list) die("%s", "--each is for folders given as SOURCE, not --list");
+        if (of && (args.n != 1 || each || list)) die("%s", "--of says what one SOURCE is: add one at a time with it");
+        const char *of_uuid = NULL;         /* the data object it continues: a copy you made of it, or restored */
+        archive ocat;
+        if (of) {
+            archive_load(&ocat, h.rec_path);
+            of_uuid = object_by_word(&ocat, of);
+        }
         for (size_t k = 0; k < args.n; k++) {
             if (each) add_each(&h, &p, args.v[k], as, disc);
             else add_item(&h, &p, args.v[k], as, disc, 0);
+        }
+        if (of_uuid) {
+            p.v[p.n - 1].of = xstrdup(of_uuid);
+            printf("  it continues data object %s (%s): the same bytes are another copy of its version, changed ones its next\n",
+                   object_slug(&ocat, object_at_uuid(&ocat, of_uuid)), of_uuid);
         }
         if (list) add_list(&h, &p, list, disc);
         plan_save(&p);
@@ -1948,8 +2025,17 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
         for (int b = 0; b < 2; b++)
             for (size_t i = 0; i < both[b]->n; i++) {
                 const rec_record *o = both[b]->v[i];
-                if (rec_get(o, "Source") && !strcmp(rec_get(o, "Source"), stored)) from = o;
+                if (it->of ? rec_get(o, "Uuid") && !strcmp(rec_get(o, "Uuid"), it->of)   /* said to be it (--of) */
+                           : rec_get(o, "Source") && !strcmp(rec_get(o, "Source"), stored))
+                    from = o;
             }
+        if (!from && !it->of) {             /* restored from a disc (its .arv marker): the object it was there */
+            const rec_record *was = restored_object(cat, it->source, NULL);
+            for (int b = 0; was && b < 2; b++)    /* the newest of that lineage */
+                for (size_t i = 0; i < both[b]->n; i++)
+                    if (rec_get(both[b]->v[i], "Uuid") && !strcmp(rec_get(both[b]->v[i], "Uuid"), rec_get(was, "Uuid")))
+                        from = both[b]->v[i];
+        }
         const recs *any[3] = { &cat->objects, made_now, out };    /* this disc's own so far too */
         for (int b = 0; b < 3; b++)
             for (size_t i = 0; lines.n && i < any[b]->n; i++) {
@@ -2012,7 +2098,8 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
                 : from ? "a new version of what was archived from there before" : "new");
         if (!same && twin)
             fprintf(stderr, "  the same bytes as %s%s version %s on %s, archived from elsewhere: recorded as another object "
-                            "(SameBytes), since the bytes cannot say whether it is the same thing\n",
+                            "(SameBytes), since the bytes cannot say whether it is the same thing (a copy you made of it "
+                            "is: plan it with plan add --of)\n",
                     get_or(twin, "Name", "?"), strcmp(get_or(twin, "Kind", ""), "file") ? "/" : "", get_or(twin, "Version", "?"),
                     get_or(twin, "Disc", "?"));
         free(where);

@@ -989,36 +989,6 @@ static const char *get_or(const rec_record *r, const char *name, const char *dfl
     return v ? v : dflt;
 }
 
-/* the data object a word names: its Uuid (or its first 8 or more characters), or its name on discs
- * now; refused when it names none, or more than one */
-static const char *object_named(const archive *cat, const char *text)
-{
-    strlist uuids = { 0 }, names = { 0 };
-    size_t n = strlen(text);
-    for (int pass = 0; pass < 2 && !uuids.n; pass++)
-        for (size_t i = 0; i < cat->objects.n; i++) {
-            const rec_record *o = cat->objects.v[i];
-            const char *u = rec_get(o, "Uuid");
-            if (!u || strlist_has(&uuids, u)) continue;
-            int hit = !pass ? n >= 8 && !strncmp(u, text, n) : !strcmp(object_slug(cat, o), text) || !strcmp(get_or(o, "Name", ""), text);
-            if (!hit) continue;
-            strlist_add(&uuids, u);
-            char *line = xprintf("  %s  %s (version %s on %s, data/%s)", u, object_slug(cat, o), get_or(o, "Version", "?"),
-                                 get_or(o, "Disc", "?"), get_or(o, "Path", "?"));
-            strlist_add(&names, line);
-            free(line);
-        }
-    if (!uuids.n) die("%s: no data object has that name or Uuid (arv objects lists them)", text);
-    if (uuids.n > 1) {
-        fprintf(stderr, "Error: %s names %zu data objects; give one by its Uuid:\n", text, uuids.n);
-        for (size_t i = 0; i < names.n; i++) fprintf(stderr, "%s\n", names.v[i]);
-        exit(1);
-    }
-    for (size_t i = 0; i < cat->objects.n; i++)
-        if (!strcmp(get_or(cat->objects.v[i], "Uuid", ""), uuids.v[0])) return rec_get(cat->objects.v[i], "Uuid");
-    return NULL;
-}
-
 /* a change to one of a data object's fields now (Tags, Slug): an event about it, Sets FIELD */
 static void object_change(archive *cat, const char *uuid, const char *field, const char *value, const char *note)
 {
@@ -1056,7 +1026,7 @@ int cmd_rename(int argc, char **argv)
     home_find(&h, given, NULL);
     home_guard(h.path);
     archive_load(&cat, h.rec_path);
-    const char *uuid = object_named(&cat, which);
+    const char *uuid = object_by_word(&cat, which);
     const rec_record *o = NULL;
     for (size_t i = 0; i < cat.objects.n; i++)
         if (!strcmp(get_or(cat.objects.v[i], "Uuid", ""), uuid)) o = cat.objects.v[i];
@@ -1092,7 +1062,7 @@ int cmd_retag(int argc, char **argv)
     home_find(&h, given, NULL);
     home_guard(h.path);
     archive_load(&cat, h.rec_path);
-    const char *uuid = object_named(&cat, which);
+    const char *uuid = object_by_word(&cat, which);
     strlist tags = { 0 };
     char *copy = xstrdup(text);
     for (char *t = strtok(copy, ","); t; t = strtok(NULL, ",")) {

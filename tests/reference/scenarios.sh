@@ -597,8 +597,21 @@ log lay.out --home hy plan add again lay/DCIM/IMG_0002.JPG          # placed by 
 log lay.out --home hy plan layout again "year/event"
 log lay.out --home hy plan show again
 7z x -olay-disc out-lay/$lid.noecc.iso >/dev/null
-log lay.out --home hy restore lay-disc lay-restored                 # as burned
+log lay.out --home hy restore lay-disc lay-restored                 # as burned, and says where from (.arv)
 find lay-restored -type f | sort >> lay.out
+cat lay-restored/.arv >> lay.out
+# a remake is a new plan: the restored files are the same objects (their .arv says so); a copy made by
+# hand is the same object only when said (--of)
+cp -p "lay-restored/decade/1970s/print1.tif" lay-print-copy.tif
+log lay.out --home hy plan new remake --set PHOTO
+log lay.out --home hy plan add remake "lay-restored/year/2019/event/kyoto trip/IMG_0002.JPG" lay-restored/project/weather-station/station
+log lay.out --home hy plan add remake lay-print-copy.tif --of print1.tif
+log lay.out --home hy plan add remake lay-restored/decade --of nothing
+log lay.out --home hy plan layout remake "year/event, project, decade"
+log lay.out --home hy plan show remake
+log lay.out --home hy plan make remake -y --no-ecc --no-formats --output-dir out-remake
+cut -f5 hy/catalog/volumes/PHOTO-02_*/listing.tsv >> lay.out
+log lay.out --home hy objects torii.jpg
 keep lay.out lay/transcript.txt
 keep hy/drafts/plans/album.rec lay/album.rec
 keep_stages out-lay lay/discs

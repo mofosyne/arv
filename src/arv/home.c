@@ -38,7 +38,13 @@ static char *read_pointer(const char *file)
     if (rec_read(file, &f, &bad)) die("cannot read the pointer file %s", file);
     const char *target = NULL;
     for (size_t i = 0; i < f.nrecords && !target; i++) target = rec_get(&f.records[i], "Home");
-    if (!target) die("%s is a .arv pointer file without a 'Home: PATH' line", file);
+    if (!target) {                          /* a marker naming no home (restored files): look further up */
+        int restored = 0;
+        for (size_t i = 0; i < f.nrecords && !restored; i++) restored = rec_get(&f.records[i], "Restored") != NULL;
+        if (!restored) die("%s is a .arv pointer file without a 'Home: PATH' line", file);
+        rec_free(&f);
+        return NULL;
+    }
     char *dir = xstrdup(file), *slash = strrchr(dir, '/');
     if (slash) *slash = 0;
     char *out;
@@ -62,8 +68,7 @@ static char *walk_up(const char *start, char **how)
         if (is_dir(cand)) {
             found = xstrdup(cand);
             *how = xprintf("the .arv folder in %s", folder);
-        } else if (is_reg(cand)) {
-            found = read_pointer(cand);
+        } else if (is_reg(cand) && (found = read_pointer(cand))) {
             *how = xprintf("the pointer file %s", cand);
         } else {
             char *rec = join(folder, "catalog.rec"), *cat = join(folder, "catalog/archive.rec");

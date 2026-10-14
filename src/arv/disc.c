@@ -523,6 +523,15 @@ int cmd_restore(int argc, char **argv)
         free(dst);
     }
 
+    {                                       /* where these files came from: a plan of them continues its objects */
+        char *mk = join(dest, ".arv"), today[11];
+        today_iso(today);
+        char *text = xprintf("# arv: these files were restored from disc %s; a disc plan of them continues its data objects\n"
+                             "Restored: %s\nDisc: %s\nDate: %s\n", d.id, d.id, rec_get(d.disc, "Uuid") ? rec_get(d.disc, "Uuid") : "", today);
+        write_text(mk, text);
+        free(text);
+        free(mk);
+    }
     printf("%s: restored %zu file%s (%llu bytes) and %zu link%s to %s", d.id, restored, restored == 1 ? "" : "s",
            (unsigned long long)total, made_links, made_links == 1 ? "" : "s", dest);
     if (kept) printf("; %zu links kept as copies", kept);
