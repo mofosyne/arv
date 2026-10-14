@@ -1,6 +1,7 @@
 /* Disc plans: discs composed by hand from files and folders anywhere (the mastering workspace).
  *
  *   arv plan new NAME [--medium M] [--set CODE] [--title TEXT] [--description TEXT] [--access LEVEL] [--discs N]
+ *                    [--collection CODE]   (--collection: its discs are that collection's next edition)
  *   arv plan list [--all]           open plans (--all: made ones too)
  *   arv plan show NAME [--json] [--archived] [--duplicates]   (--duplicates: byte-identical files on a
  *                                  disc; --archived: hashes each item, through the hash
@@ -936,7 +937,7 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
         used[p->v[i].disc] += m[i].sectors;
         bytes[p->v[i].disc] += m[i].bytes;
     }
-    const char *fields[] = { "Title", "Set", "Medium", "Description", "Access", "From", NULL };
+    const char *fields[] = { "Title", "Set", "Medium", "Description", "Access", "From", "Collection", NULL };
     if (as_json) {
         sbuf b = { 0 };
         sb_puts(&b, "{\"name\": ");
@@ -1005,6 +1006,7 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
         if (rec_get(hd, "Title")) printf("  \"%s\"", rec_get(hd, "Title"));
         if (rec_get(hd, "Set")) printf("  set %s", rec_get(hd, "Set"));
         if (rec_get(hd, "From")) printf("  (from plan %s)", rec_get(hd, "From"));
+        if (rec_get(hd, "Collection")) printf("  the next edition of %s", rec_get(hd, "Collection"));
         if (cap) printf("  %s: about %s a disc for files\n", label, rs);
         else printf("  medium auto: arv make chooses each disc's\n");
         size_t missing = 0;
@@ -1351,7 +1353,8 @@ int cmd_plan(int argc, char **argv)
     int as_json = 0, all = 0, on_discs = 0, each = 0, dups = 0;
     strlist args = { 0 }, defaults = { 0 }, rest = { 0 };
     static const char *const SETTINGS[][2] = { { "--medium", "Medium" }, { "--set", "Set" }, { "--title", "Title" },
-                                               { "--description", "Description" }, { "--access", "Access" } };
+                                               { "--description", "Description" }, { "--access", "Access" },
+                                               { "--collection", "Collection" } };   /* the last: plan make reads it */
     int i = 0;
     for (; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
@@ -1374,7 +1377,7 @@ int cmd_plan(int argc, char **argv)
         else if (i + 1 < argc && !strcmp(argv[i], "--list")) list = argv[++i];
         else {
             int setting = 0;
-            for (int k = 0; k < 5 && !setting; k++)
+            for (int k = 0; k < 6 && !setting; k++)
                 if (i + 1 < argc && !strcmp(argv[i], SETTINGS[k][0])) {
                     strlist_add(&defaults, SETTINGS[k][1]);
                     strlist_add(&defaults, argv[++i]);
@@ -1389,6 +1392,15 @@ int cmd_plan(int argc, char **argv)
     if (!action) return 2;
     arv_home h;
     home_find(&h, given, NULL);
+    for (size_t k = 0; k + 1 < defaults.n; k += 2)     /* a collection: one there is, as its code */
+        if (!strcmp(defaults.v[k], "Collection") && *defaults.v[k + 1]) {
+            archive cat;
+            archive_load(&cat, h.rec_path);
+            const rec_record *c = archive_collection(&cat, defaults.v[k + 1]);
+            if (!c) die("--collection %s: no such collection (arv collection list)", defaults.v[k + 1]);
+            free(defaults.v[k + 1]);
+            defaults.v[k + 1] = xstrdup(rec_get(c, "Code"));
+        }
 
     if (!strcmp(action, "list")) {
         char *dir = plans_dir(&h);

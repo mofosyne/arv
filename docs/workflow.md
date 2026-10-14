@@ -282,6 +282,12 @@ name with `plan rename`, and the layout keeps placing it, under that name. The d
 go into the disc's `tags.tsv` and the dates into its coverage. Re-filing a photo later is changing
 its tags; the next disc made puts it there.
 
+**A plan as a collection's edition.** `arv plan new family-2026 --collection FAM` makes the plan's
+discs the collection's next edition when it is made: the same revision, edition number and
+history as `arv make` of the collection's folder, but arranged as the plan says (sorted into
+albums, laid out by tags, gathered from several places). `arv diff FAM/2 FAM/3` then shows the
+re-arrangement as moves, by content.
+
 **Renaming after burning.** A disc cannot change, but its record can: `arv rename DISC-ID
 "day1/IMG_0001.JPG" "Fushimi Inari/torii gates.jpg"` records the new name (a folder's moves all
 under it). `find` finds it by either name, `restore` puts it back under the new one

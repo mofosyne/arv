@@ -307,6 +307,16 @@ log coll.out --home hc status lay
 log coll.out --home hc list
 log coll.out --home hc objects
 log coll.out --home hc objects FAM
+# a plan as the collection's next edition: the collection says what is kept, the plan how it is arranged
+log coll.out --home hc plan new famsort --collection NOPE
+log coll.out --home hc plan new famsort --collection fam --title "Family photos, sorted"
+log coll.out --home hc plan add famsort coll/fam/b.txt --as letters/b.txt
+log coll.out --home hc plan add famsort coll/fam/c2.txt --as letters/c.txt
+log coll.out --home hc plan add famsort coll/fam/e.txt
+log coll.out --home hc plan show famsort
+log coll.out --home hc plan make famsort -y --no-ecc --no-formats --message "sorted into letters" --output-dir out-c4
+log coll.out --home hc diff FAM/2 FAM/3
+log coll.out --home hc collection show FAM
 keep coll.out coll/transcript.txt
 keep coll/fam/.arv coll/marker
 for k in 1 2; do keep_stages out-c$k coll/c$k; done

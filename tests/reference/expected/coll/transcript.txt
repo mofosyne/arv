@@ -299,3 +299,54 @@ Collections:
     FAM-02_2019_Y  A: disc cold (read back) at BOX1, B: iso warm (read back) at The NAS, C: folder warm (read back) at The NAS
     workflow folder ROOT/coll/plain (there now)
 rc=0
+$ --home hc plan new famsort --collection NOPE
+Error: --collection NOPE: no such collection (arv collection list)
+rc=1
+$ --home hc plan new famsort --collection fam --title Family photos, sorted
+Plan famsort: 1 empty disc (hc/drafts/plans/famsort.rec). Next: arv plan add famsort FILE-OR-FOLDER...
+rc=0
+$ --home hc plan add famsort coll/fam/b.txt --as letters/b.txt
+letters/b.txt: disc 1, now 1% full
+rc=0
+$ --home hc plan add famsort coll/fam/c2.txt --as letters/c.txt
+letters/c.txt: disc 1, now 1% full
+rc=0
+$ --home hc plan add famsort coll/fam/e.txt
+e.txt: disc 1, now 1% full
+rc=0
+$ --home hc plan show famsort
+Plan famsort  "Family photos, sorted"  the next edition of FAM  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  6 B in 3 items
+  e.txt  2 B  ROOT/coll/fam/e.txt
+  letters/b.txt  2 B  ROOT/coll/fam/b.txt
+  letters/c.txt  2 B  ROOT/coll/fam/c2.txt
+Next: arv plan make famsort (one image a disc; arv make's options apply)
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hc plan make famsort -y --no-ecc --no-formats --message sorted into letters --output-dir out-c4
+Collection FAM (Family photos): its next edition
+Plan famsort: scanning and hashing its 3 items ...
+Classified as: PROJECTS/CODE
+Object e.txt (data/e.txt on FAM-03_2019-2020_S): new
+Object b.txt (data/letters/b.txt on FAM-03_2019-2020_S): new
+Object c2.txt (data/letters/c.txt on FAM-03_2019-2020_S): new
+Building ROOT/out-c4/FAM-03_2019-2020_S.noecc.iso (1 of 1, 1.7 MiB) ...
+Hashing ROOT/out-c4/FAM-03_2019-2020_S.noecc.iso ...
+FAM: edition 3, revision 8f89f1bace03, +2 ~0 -1 >1 files
+FAM-03_2019-2020_S	ROOT/out-c4/FAM-03_2019-2020_S.noecc.iso	Family photos, sorted
+rc=0
+$ --home hc diff FAM/2 FAM/3
+edition 2 (kept), 2026-01-01, revision 95a366ff6ab0 -> edition 3, 2026-01-01, revision 8f89f1bace03
+  +2 new, ~0 changed, -1 removed, >1 moved
+  + e.txt
+  + letters/b.txt
+  - b.txt
+  > c.txt -> letters/c.txt
+rc=0
+$ --home hc collection show FAM
+FAM       Family photos  (3 editions; last edition 3, 2026-01-01)
+  uuid UUID; set CODE; access public
+  1436106577dc  2026-01-01  edition 1         +2 ~0 -0 >0 files  FAM-01_2019_0
+  95a366ff6ab0  2026-01-01  edition 2   kept  +1 ~1 -1 >0 files  FAM-02_2019_Y  the 2019 sort
+  8f89f1bace03  2026-01-01  edition 3         +2 ~0 -1 >1 files  FAM-03_2019-2020_S  sorted into letters
+rc=0

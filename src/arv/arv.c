@@ -52,6 +52,7 @@ static const char USAGE_ARCHIVE[] =
           "         disc images of a folder, recorded in the home (arv make --help lists every option)\n"
           "  arv plan new|list|show|add|rename|tag|layout|move|drop|disc|make|again|delete NAME ...\n"
           "         discs composed by hand from files and folders anywhere; the sources stay where they are:\n"
+          "         new NAME [--collection CODE] (its discs that collection's next edition, arranged as planned);\n"
           "         add NAME SOURCE... [--disc N|new|auto] [--as PATH] [--each] puts them on a disc, under PATH\n"
           "         (--each: each file in a folder an object of its own);\n"
           "         add NAME --list FILE|- takes SOURCE<tab>PATH[<tab>DISC] lines, all or none;\n"

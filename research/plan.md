@@ -1501,6 +1501,16 @@ do not give is order (a slideshow's sequence): that is names (`01 torii gates.jp
     within it, so the same object placed two ways is the same version.
   Not yet: titles, and a layout for `arv make` of a folder that is not a plan.
 
+## Done (2026-10-14): a plan as a collection's next edition
+
+`arv plan new NAME --collection CODE` (a plan setting, like `--set`, kept as `Collection`): `plan
+make` makes the plan's discs the collection's next edition, through the same path as a make of
+the collection's folder (its title and set as defaults, the id prefix, the `Revision` with its
+manifest and changes, `--keep` and `--message`). The plan's items are still data objects. So the
+collection is what is kept, a lineage of editions, and the plan is how this one is arranged:
+`diff` shows the arrangement as moves, by content. Not yet: plans whose sources are discs (below),
+which is what makes remaking an old edition onto new media one step.
+
 ## Done (2026-10-14): moves in the record
 
 `arv rename DISC-ID PATH NEWPATH`, as designed under "Two kinds of move" above: an event about the

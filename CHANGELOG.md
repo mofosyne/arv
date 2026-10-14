@@ -100,6 +100,12 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - The plan's tags go into the disc's `tags.tsv` (a folder object's once, on its folder); a `date:`
   tag counts for the disc's coverage instead of the file's time.
 
+**A plan as a collection's next edition**
+- `arv plan new NAME --collection CODE` (or `--collection` given to any plan action): `plan make`
+  makes the plan's discs the collection's next edition, with its revision and manifest, as a
+  make of the collection's folder would. The collection says what is kept; the plan, how this
+  edition is arranged, so `diff` between editions shows the arrangement as moves.
+
 **Moves in the record**
 - `arv rename DISC-ID PATH NEWPATH`: a burned disc's file or folder is called NEWPATH now. The disc
   stays as burned; the change is an event (`Moved: BURNED<TAB>NOW`, with `Sets` and `Replaces`, so

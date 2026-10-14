@@ -1935,7 +1935,14 @@ int cmd_make(int argc, char **argv)
 
     /* a collection's workflow folder: the collection gives what the options leave open */
     char *coll_uuid = o.plan ? NULL : marker_collection(src);
-    rec_record *coll = o.plan ? NULL : folder_collection(&cat, src, NULL);   /* its marker, or a declaration (arv link) */
+    rec_record *coll = NULL;            /* a plan's collection (its next edition), or a folder's marker or declaration */
+    if (o.plan && rec_get(rec_first(&dp.rec, "Plan"), "Collection")) {
+        coll = archive_collection(&cat, rec_get(rec_first(&dp.rec, "Plan"), "Collection"));
+        if (!coll) die2("plan %s names collection %s, which is not in the home catalogue", dp.name,
+                        rec_get(rec_first(&dp.rec, "Plan"), "Collection"));
+    } else if (!o.plan) {
+        coll = folder_collection(&cat, src, NULL);
+    }
     if (coll_uuid && !coll) die("this folder's .arv marker names collection %s, which is not in the home catalogue", coll_uuid);
     if (coll) {
         if (!o.title || !*o.title) o.title = rec_get(coll, "Title");
