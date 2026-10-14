@@ -166,6 +166,8 @@ FILE *disc_tags_open(const archive *a, const char *disc_id, const char *burned);
  * is called now; a burned path as it is called now (malloc'd) */
 void disc_moves(const archive *a, const char *disc_id, strlist *from, strlist *to);
 char *moved_path(const strlist *from, const strlist *to, const char *burned);
+/* the paths a disc's listing names, and the folders above them, as burned (record.c) */
+void listing_names(const char *lst, strlist *files, strlist *folders);
 size_t field_conflicts(const archive *a);    /* a field changed apart in two catalogues: printed, counted */    /* recorded twice, on two discs, two BCAs: printed, counted */
 /* the BCA serial of the disc in a drive (Linux): 32 hex digits; -1 when there is none (drive.c) */
 int drive_bca(const char *device, char out[33]);
@@ -207,6 +209,7 @@ typedef struct {
     char *path;             /* where it goes under data/ ("." : a folder's contents at the top) */
     char *seen;             /* "FILES BYTES STAMP" when planned (names, sizes, dates), or NULL */
     char *placed;           /* plan_scan: where the disc's layout put it, whole; NULL: at path */
+    char *from;             /* read from a disc's copy: "DISC-ID:PATH" (as burned; "" the whole), or NULL */
 } plan_item;
 typedef struct {
     char *file, *name;

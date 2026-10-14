@@ -142,6 +142,7 @@ void plan_load(const char *file, disc_plan *out)
         it->source = rec_get(r, "Source") && *rec_get(r, "Source") ? path_abs(out->root, rec_get(r, "Source")) : xstrdup("");
         it->path = xstrdup(rec_get(r, "Path") ? rec_get(r, "Path") : "");
         it->seen = rec_get(r, "Seen") ? xstrdup(rec_get(r, "Seen")) : NULL;
+        it->from = rec_get(r, "From") ? xstrdup(rec_get(r, "From")) : NULL;
         if (it->disc < 1 || it->disc > out->discs || !*it->source || !*it->path)
             die("%s: an Item needs a Disc between 1 and the plan's Discs, a Source and a Path", file);
     }
@@ -175,6 +176,7 @@ static void plan_save(disc_plan *p)
         sb_printf(&b, "\nDisc: %d\nSource: %s\nPath: %s\n", p->v[i].disc, src, p->v[i].path);
         free(src);
         if (p->v[i].seen) sb_printf(&b, "Seen: %s\n", p->v[i].seen);
+        if (p->v[i].from) sb_printf(&b, "From: %s\n", p->v[i].from);
     }
     for (size_t i = 0; i < p->tag_src.n; i++) {
         if (!i) sb_puts(&b, "\n%rec: Tags\n");
@@ -420,6 +422,119 @@ static const plan_item *placed_by(const disc_plan *p, const plan_item *it, const
     return best;
 }
 
+/* the discs a plan reads from: each one's manifest ("data/PATH\tSHA-256", sorted) and its moves */
+typedef struct {
+    char *id;
+    strlist sums, from, to;     /* "data/PATH<TAB>SHA-256", sorted; moves */
+    strlist times;              /* "PATH<TAB>modified", sorted: as its listing gives them */
+    strlist tag_paths, tag_vals;    /* its tags now: each path's own (as burned) */
+} source_disc;
+
+static int by_sum_path(const void *a, const void *b)
+{
+    const char *x = *(char *const *)a, *y = *(char *const *)b;
+    size_t nx = strcspn(x, "\t"), ny = strcspn(y, "\t");
+    int c = strncmp(x, y, nx < ny ? nx : ny);
+    return c ? c : nx < ny ? -1 : nx > ny;
+}
+
+static source_disc *source_disc_get(const arv_home *h, const archive *cat, source_disc **v, size_t *n, const char *id)
+{
+    for (size_t i = 0; i < *n; i++)
+        if (!strcmp((*v)[i].id, id)) return &(*v)[i];
+    *v = xrealloc(*v, (*n + 1) * sizeof **v);
+    source_disc *d = &(*v)[(*n)++];
+    memset(d, 0, sizeof *d);
+    d->id = xstrdup(id);
+    char *m = home_volume_file(h, id, "manifest.sha256"), *text = access(m, F_OK) ? NULL : read_text(m);
+    for (char *l = text; l && *l;) {
+        char *nl = strchr(l, '\n');
+        if (nl) *nl = 0;
+        if (strlen(l) > 66) {
+            char *line = xprintf("%s\t%.64s", l + 66, l);
+            strlist_add(&d->sums, line);
+            free(line);
+        }
+        l = nl ? nl + 1 : l + strlen(l);
+    }
+    if (d->sums.n) qsort(d->sums.v, d->sums.n, sizeof *d->sums.v, by_sum_path);
+    free(text);
+    free(m);
+    char *lst = home_volume_file(h, id, "listing.tsv");
+    text = access(lst, F_OK) ? NULL : read_text(lst);
+    for (char *l = text; l && *l;) {        /* size, modified, kind, link, path */
+        char *nl = strchr(l, '\n');
+        if (nl) *nl = 0;
+        char *cols[5] = { 0 };
+        if (*l != '#' && split_tabs(l, cols, 5) == 5) {
+            char *line = xprintf("%s\t%s", cols[4], cols[1]);
+            strlist_add(&d->times, line);
+            free(line);
+        }
+        l = nl ? nl + 1 : l + strlen(l);
+    }
+    if (d->times.n) qsort(d->times.v, d->times.n, sizeof *d->times.v, by_sum_path);
+    free(text);
+    free(lst);
+    char *tf = home_volume_file(h, id, "tags.tsv");
+    text = disc_tags_text(cat, id, access(tf, F_OK) ? NULL : tf);
+    for (char *l = text; l && *l;) {
+        char *nl = strchr(l, '\n');
+        if (nl) *nl = 0;
+        char *cols[3] = { 0 };
+        if (*l != '#' && split_tabs(l, cols, 3) >= 2 && *cols[1]) {
+            strlist_add(&d->tag_paths, cols[0]);
+            strlist_add(&d->tag_vals, cols[1]);
+        }
+        l = nl ? nl + 1 : l + strlen(l);
+    }
+    free(text);
+    free(tf);
+    disc_moves(cat, id, &d->from, &d->to);
+    return d;
+}
+
+/* the time its listing gives a burned path, or -1 */
+static long long source_time(const source_disc *d, const char *burned)
+{
+    char *key = xprintf("%s\t", burned);
+    char **hit = d->times.n ? bsearch(&key, d->times.v, d->times.n, sizeof *d->times.v, by_sum_path) : NULL;
+    free(key);
+    return hit ? parse_utc(strchr(*hit, '\t') + 1) : -1;
+}
+
+/* the tags a burned path has on its disc now: its folders' and its own, ", "-joined ("" for none) */
+static char *source_tags(const source_disc *d, const char *burned)
+{
+    sbuf b = { 0 };
+    sb_puts(&b, "");
+    strlist seen = { 0 };
+    for (size_t i = 0; i < d->tag_paths.n; i++) {
+        const char *f = d->tag_paths.v[i];
+        size_t n = strlen(f);
+        if (strcmp(f, ".") && strcmp(f, burned) && !(!strncmp(burned, f, n) && burned[n] == '/')) continue;
+        char *list = xstrdup(d->tag_vals.v[i]);
+        for (char *t = strtok(list, ","); t; t = strtok(NULL, ",")) {
+            while (*t == ' ') t++;
+            if (!*t || strlist_has(&seen, t)) continue;
+            strlist_add(&seen, t);
+            sb_printf(&b, "%s%s", b.len ? ", " : "", t);
+        }
+        free(list);
+    }
+    strlist_free(&seen);
+    return b.s;
+}
+
+/* the SHA-256 the disc's manifest gives data/PATH, or NULL */
+static const char *source_sum(const source_disc *d, const char *burned)
+{
+    char *key = xprintf("data/%s\t", burned);
+    char **hit = d->sums.n ? bsearch(&key, d->sums.v, d->sums.n, sizeof *d->sums.v, by_sum_path) : NULL;
+    free(key);
+    return hit ? strchr(*hit, '\t') + 1 : NULL;
+}
+
 static int by_bin_path(const void *a, const void *b)
 {
     const entry *x = *(entry *const *)a, *y = *(entry *const *)b;
@@ -435,6 +550,13 @@ void plan_scan(const arv_home *h, disc_plan *p, const char *links, entries *file
     strlist one = { 0 };
     int date_from_file = 0;
     if (h && plan_uses_tags(p)) tag_namespaces(h, &one, NULL, &date_from_file);   /* the vocabulary only when needed */
+    archive cat;                            /* items read from discs: their manifests and moves */
+    int from_discs = 0;
+    for (size_t i = 0; i < p->n && !from_discs; i++) from_discs = p->v[i].from != NULL;
+    if (h && from_discs) archive_load(&cat, h->rec_path);
+    source_disc *sd = NULL;
+    size_t nsd = 0;
+    strlist damaged = { 0 };
     for (size_t i = 0; i < p->n; i++) {
         plan_item *it = &p->v[i];
         struct stat st;
@@ -488,14 +610,49 @@ void plan_scan(const arv_home *h, disc_plan *p, const char *links, entries *file
                     }
                 }
                 char *dest = !*e.path ? xstrdup(it->path) : !strcmp(it->path, ".") ? xstrdup(e.path) : join(it->path, e.path);
+                char *old_tags = NULL;              /* its tags on the disc it is read from */
+                if (h && it->from) {                /* read from a disc: checked against its manifest; named as now */
+                    char *id = xstrdup(it->from), *colon = strchr(id, ':'), *root = colon + 1;
+                    *colon = 0;
+                    source_disc *d = source_disc_get(h, &cat, &sd, &nsd, id);
+                    char *burned = !*e.path ? xstrdup(root) : !*root ? xstrdup(e.path) : join(root, e.path);
+                    const char *want = source_sum(d, burned);
+                    if (!k && (!want || strcmp(want, e.sha256))) {
+                        char *line = xprintf("%s:data/%s (%s)", id, burned, want ? "its bytes differ" : "not in its manifest");
+                        strlist_add(&damaged, line);
+                        free(line);
+                    }
+                    long long t = source_time(d, burned);   /* its time as burned, not the copy's */
+                    if (t >= 0) e.mtime = (time_t)t;
+                    if (!k && tagged) {             /* its tags on the old disc, for the new one's tags.tsv */
+                        old_tags = source_tags(d, burned);
+                    }
+                    if (*e.path) {                  /* a folder's file renamed in the record, after the folder */
+                        char *now = moved_path(&d->from, &d->to, burned), *top = *root ? moved_path(&d->from, &d->to, root) : xstrdup("");
+                        size_t tn = strlen(top);
+                        free(dest);
+                        if (!*top) dest = !strcmp(it->path, ".") ? xstrdup(now) : join(it->path, now);
+                        else if (!strncmp(now, top, tn) && now[tn] == '/') dest = !strcmp(it->path, ".") ? xstrdup(now + tn + 1) : join(it->path, now + tn + 1);
+                        else dest = xstrdup(now);       /* renamed out of the folder: where the record puts it */
+                        free(now);
+                        free(top);
+                    }
+                    free(burned);
+                    free(id);
+                }
                 if (it->placed) {                   /* where the layout put the item; dest: where it was arranged */
                     e.origin = dest;
                     dest = *e.path ? join(it->placed, e.path) : xstrdup(it->placed);
                 }
-                if (!k && tagged && p->tag_src.n) {   /* the plan's tags, for the disc's tags.tsv: a file's */
+                if (!k && tagged && (p->tag_src.n || (old_tags && *old_tags))) {   /* the disc's tags.tsv: a file's */
                     char *abs = *e.path ? join(it->source, e.path) : xstrdup(it->source);   /* when not its folder's */
-                    char *mine = plan_tags_text(p, abs, &one);
-                    if (*mine && (!folder_tags || strcmp(mine, folder_tags))) {
+                    char *mine = p->tag_src.n ? plan_tags_text(p, abs, &one) : xstrdup("");
+                    if (old_tags && *old_tags) {    /* the old disc's, and the plan's added */
+                        char *joined = *mine ? xprintf("%s, %s", old_tags, mine) : xstrdup(old_tags);
+                        free(mine);
+                        mine = joined;
+                    }
+                    if (*mine && (!folder_tags || strcmp(mine, folder_tags) || (old_tags && *old_tags))) {
                         char *line = xprintf("%s\t%s", dest, mine);
                         strlist_add(tagged, line);
                         free(line);
@@ -503,6 +660,7 @@ void plan_scan(const arv_home *h, disc_plan *p, const char *links, entries *file
                     free(mine);
                     free(abs);
                 }
+                free(old_tags);
                 free(e.path);
                 e.path = dest;
                 e.bin = it->disc - 1;
@@ -517,6 +675,15 @@ void plan_scan(const arv_home *h, disc_plan *p, const char *links, entries *file
         free(f.v);
         free(n.v);
         free(folder_tags);
+    }
+    if (damaged.n) {                        /* a damaged file is not copied onto a new disc */
+        fprintf(stderr, "Error: %zu file%s read from discs do%s not match %s: the copy read is damaged. "
+                        "Repair it (its RS03 error correction: dvdisaster -f), or record another copy as files (arv stored), "
+                        "and make again:\n", damaged.n, damaged.n == 1 ? "" : "s", damaged.n == 1 ? "es" : "",
+                damaged.n == 1 ? "its disc's manifest" : "their discs' manifests");
+        for (size_t i = 0; i < damaged.n && i < 20; i++) fprintf(stderr, "  %s\n", damaged.v[i]);
+        if (damaged.n > 20) fprintf(stderr, "  ... %zu more\n", damaged.n - 20);
+        exit(1);
     }
     if (clashes && files->n > 1) {          /* two files one path: only a layout can do that */
         entry **by = xmalloc(files->n * sizeof *by);
@@ -1042,6 +1209,10 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
                         if (holder(p, in) != &p->v[i]) continue;
                         printf("      not %s: placed as %s on disc %d\n", in->source + strlen(p->v[i].source) + 1, in->path, in->disc);
                     }
+                    if (p->v[i].from) {         /* a disc's, read from a copy the record knows */
+                        const char *c = strchr(p->v[i].from, ':');
+                        printf("      %.*s:data/%s, checked against its manifest when made\n", (int)(c - p->v[i].from), p->v[i].from, c + 1);
+                    }
                     if (at[i]) printf("      -> data/%s%s\n", at[i], m[i].folder ? "/" : "");
                     else if (plan_layout(p, d)) printf("      by hand: it has a value for no alternative of the layout\n");
                     for (size_t j = 0; j < i; j++)  /* two items at one place: only a layout can do that */
@@ -1160,9 +1331,78 @@ static void say_where(const arv_home *h, disc_plan *p, int disc, const char *wha
 
 /* puts one source on a disc of the plan, under path (default: its own name); dies on anything
  * wrong, before the plan is saved, so a list of them goes in whole or not at all */
-static void add_item(const arv_home *h, disc_plan *p, const char *given, const char *as, const char *disc, int quiet)
+/* a disc's file or folder as a plan source, DISC-ID[:PATH] (PATH as it is called now, moves in the
+ * record followed): the same in a copy the record knows as files (a stored folder, or a mounted
+ * disc recorded with arv stored). Returns its path there, with *from "DISC-ID:BURNED-PATH" and *now
+ * its name now ("." for a whole disc); NULL when given names no disc in the record. */
+static char *disc_source(const arv_home *h, const char *given, char **from, char **now)
 {
-    char *src = realpath(given, NULL);
+    const char *colon = strchr(given, ':');
+    char *id = colon ? xprintf("%.*s", (int)(colon - given), given) : xstrdup(given);
+    const char *path = colon ? colon + 1 : "";
+    if (!strncmp(path, "data/", 5)) path += 5;
+    else if (!strcmp(path, "data")) path = "";
+    archive cat;
+    archive_load(&cat, h->rec_path);
+    if (!archive_disc(&cat, id)) {
+        free(id);
+        return NULL;
+    }
+    const char *folder = NULL, *image = NULL;   /* a copy as files, else an image the record knows */
+    for (size_t i = 0; i < cat.events.n && !folder; i++) {
+        const rec_record *e = cat.events.v[i];
+        if (!is_copy_event(e, id)) continue;
+        const char *at = copy_path(&cat, id, e);
+        if (!at) continue;
+        char *data = join(at, "data");
+        struct stat st;
+        if (!stat(data, &st) && S_ISDIR(st.st_mode)) folder = at;
+        else if (!stat(at, &st) && S_ISREG(st.st_mode)) image = at;
+        free(data);
+    }
+    if (!folder && image)
+        die2("%s: the record knows it only as an image (%s): unpack or mount it (7z x -oFOLDER IMAGE), record the folder "
+             "with arv stored, and add it again", id, image);
+    if (!folder)
+        die("%s: the record knows no copy of it as files: put the disc in a drive, mount it, record it with arv stored "
+            "DISC-ID FOLDER, and add it again", id);
+    char *lst = home_volume_file(h, id, "listing.tsv");
+    strlist files, folders, mf, mt;
+    listing_names(lst, &files, &folders);
+    disc_moves(&cat, id, &mf, &mt);
+    const char *burned = *path ? NULL : "";
+    const strlist *both[2] = { &files, &folders };
+    for (int k = 0; k < 2 && !burned; k++)
+        for (size_t i = 0; i < both[k]->n && !burned; i++) {
+            char *m = moved_path(&mf, &mt, both[k]->v[i]);
+            if (!strcmp(m, path)) burned = both[k]->v[i];
+            free(m);
+        }
+    if (!burned) die2("%s is not a file or folder of %s (as it is called now: arv find lists them)", path, id);
+    *from = xprintf("%s:%s", id, burned);
+    *now = *burned ? moved_path(&mf, &mt, burned) : xstrdup(".");
+    char *data = join(folder, "data"), *src = *burned ? join(data, burned) : xstrdup(data);
+    free(data);
+    free(lst);
+    free(id);
+    return src;
+}
+
+/* a disc source's own part, "DISC-ID:PATH" joined with a path inside it */
+static char *from_join(const char *from, const char *rel)
+{
+    const char *colon = strchr(from, ':');
+    return !*rel ? xstrdup(from) : colon[1] ? xprintf("%s/%s", from, rel) : xprintf("%s%s", from, rel);
+}
+
+/* from: what of a disc it is (add_each), else worked out: a disc given as DISC-ID[:PATH], or a file
+ * or folder inside a planned item read from a disc */
+static void add_item(const arv_home *h, disc_plan *p, const char *given, const char *as, const char *disc, int quiet,
+                     const char *from_in)
+{
+    char *from = from_in ? xstrdup(from_in) : NULL, *now = NULL;
+    char *src = access(given, F_OK) ? NULL : realpath(given, NULL);
+    if (!src && (src = disc_source(h, given, &from, &now)) && (!as || !*as)) as = now;   /* named as the record names it */
     struct stat st;
     if (!src || stat(src, &st) || (!S_ISDIR(st.st_mode) && !S_ISREG(st.st_mode))) die("%s is not a file or folder", given);
     if (strpbrk(src, "\r\n") || (as && strpbrk(as, "\r\n"))) die("%s: a name with a line break cannot be planned", src);
@@ -1176,7 +1416,9 @@ static void add_item(const arv_home *h, disc_plan *p, const char *given, const c
     const char *path = as && *as ? as : *base ? base : NULL;
     if (!path || !path_ok(path, S_ISDIR(st.st_mode)))
         die("%s cannot be a path under data/ (relative, no . or .. parts; . only for a folder's contents)", path ? path : "/");
-    plan_item it = { 0, src, xstrdup(path), NULL, NULL };
+    plan_item it = { 0, src, xstrdup(path), NULL, NULL, from };
+    const plan_item *outer = from ? NULL : holder(p, &it);    /* inside an item read from a disc: that disc too */
+    if (outer && outer->from) it.from = from_join(outer->from, src + strlen(outer->source) + 1);
     int d = pick_disc(h, p, disc, item_size(p, &it).sectors);
     check_free(p, path, d);
     if (d > p->discs) p->discs = d;
@@ -1216,7 +1458,9 @@ static void each_walk(const char *disk, const char *rel, strlist *out, size_t *l
  * placed on its own by a layout), arranged as ROOT/its path in DIR (ROOT: DIR's name) */
 static void add_each(const arv_home *h, disc_plan *p, const char *dir, const char *as, const char *disc)
 {
-    char *src = realpath(dir, NULL);
+    char *from = NULL, *now = NULL;
+    char *src = access(dir, F_OK) ? NULL : realpath(dir, NULL);
+    if (!src && (src = disc_source(h, dir, &from, &now)) && (!as || !*as)) as = now;   /* a disc's folder */
     struct stat st;
     if (!src || stat(src, &st) || !S_ISDIR(st.st_mode)) die("%s is not a folder (--each adds each file in a folder)", dir);
     strlist files = { 0 };
@@ -1225,7 +1469,9 @@ static void add_each(const arv_home *h, disc_plan *p, const char *dir, const cha
     const char *root = as && *as ? as : strrchr(src, '/') + 1;
     for (size_t i = 0; i < files.n; i++) {
         char *abs = join(src, files.v[i]), *at = !strcmp(root, ".") ? xstrdup(files.v[i]) : join(root, files.v[i]);
-        add_item(h, p, abs, at, disc, 1);   /* dies before any is saved */
+        char *of = from ? from_join(from, files.v[i]) : NULL;
+        add_item(h, p, abs, at, disc, 1, of);   /* dies before any is saved */
+        free(of);
         free(abs);
         free(at);
     }
@@ -1241,6 +1487,60 @@ static void add_each(const arv_home *h, disc_plan *p, const char *dir, const cha
                       links == 1 ? "" : "s", links == 1 ? "" : "s", dir);
     strlist_free(&files);
     free(src);
+}
+
+/* arv plan add NAME DISC-ID: a disc remade, each of its data objects an item (so each continues its
+ * lineage, a copy of the same version), and any file in none of them an item of its own; a disc
+ * with no objects (a collection's edition) as one folder. 0 when given names no disc. */
+static int add_disc(const arv_home *h, disc_plan *p, const char *given, const char *disc)
+{
+    if (strchr(given, ':') || !access(given, F_OK)) return 0;
+    archive cat;
+    archive_load(&cat, h->rec_path);
+    if (!archive_disc(&cat, given)) return 0;
+    strlist paths = { 0 };
+    for (size_t i = 0; i < cat.objects.n; i++) {
+        const rec_record *o = cat.objects.v[i];
+        if (!strcmp(get_or(o, "Disc", ""), given) && rec_get(o, "Path") && !strlist_has(&paths, rec_get(o, "Path")))
+            strlist_add(&paths, rec_get(o, "Path"));
+    }
+    if (!paths.n || strlist_has(&paths, ".")) {     /* one folder: the disc's data/ */
+        add_item(h, p, given, NULL, disc, 0, NULL);
+        strlist_free(&paths);
+        return 1;
+    }
+    char *lst = home_volume_file(h, given, "listing.tsv");
+    strlist files, folders;
+    listing_names(lst, &files, &folders);
+    size_t first = p->n, loose = 0;
+    for (size_t i = 0; i < files.n; i++) {          /* files no object holds */
+        int in = 0;
+        for (size_t k = 0; k < paths.n && !in; k++) {
+            size_t n = strlen(paths.v[k]);
+            in = !strncmp(files.v[i], paths.v[k], n) && (!files.v[i][n] || files.v[i][n] == '/');
+        }
+        if (!in) {
+            strlist_add(&paths, files.v[i]);
+            loose++;
+        }
+    }
+    strlist mf, mt;                         /* each named as it is called now */
+    disc_moves(&cat, given, &mf, &mt);
+    for (size_t k = 0; k < paths.n; k++) {
+        char *now = moved_path(&mf, &mt, paths.v[k]), *spec = xprintf("%s:%s", given, now);
+        free(now);
+        add_item(h, p, spec, NULL, disc, 1, NULL);  /* dies before any is saved */
+        free(spec);
+    }
+    printf("%s: %zu item%s (%zu data object%s", given, p->n - first, p->n - first == 1 ? "" : "s", paths.n - loose,
+           paths.n - loose == 1 ? "" : "s");
+    if (loose) printf(", and %zu file%s in none", loose, loose == 1 ? "" : "s");
+    printf(") on disc %d\n", p->v[first].disc);
+    strlist_free(&paths);
+    strlist_free(&files);
+    strlist_free(&folders);
+    free(lst);
+    return 1;
 }
 
 /* arv plan add NAME --list FILE|-: SOURCE <TAB> PATH [<TAB> DISC] a line, # a comment; what a
@@ -1271,7 +1571,7 @@ static void add_list(const arv_home *h, disc_plan *p, const char *file, const ch
     }
     if (in != stdin) fclose(in);
     free(line);
-    for (size_t i = 0; i < src.n; i++) add_item(h, p, src.v[i], as.v[i], on.v[i], 1);   /* dies before any is saved */
+    for (size_t i = 0; i < src.n; i++) add_item(h, p, src.v[i], as.v[i], on.v[i], 1, NULL);   /* dies before any is saved */
     for (size_t i = first; i < p->n; i++) say_where(h, p, p->v[i].disc, p->v[i].path);
     printf("%zu item%s added from %s\n", src.n, src.n == 1 ? "" : "s", strcmp(file, "-") ? file : "standard input");
     strlist_free(&src);
@@ -1559,7 +1859,7 @@ int cmd_plan(int argc, char **argv)
         if (each && list) die("%s", "--each is for folders given as SOURCE, not --list");
         for (size_t k = 0; k < args.n; k++) {
             if (each) add_each(&h, &p, args.v[k], as, disc);
-            else add_item(&h, &p, args.v[k], as, disc, 0);
+            else if (as || !add_disc(&h, &p, args.v[k], disc)) add_item(&h, &p, args.v[k], as, disc, 0, NULL);
         }
         if (list) add_list(&h, &p, list, disc);
         plan_save(&p);
@@ -1676,7 +1976,7 @@ int cmd_plan(int argc, char **argv)
             if (access(src, F_OK)) die("%s: no such file or folder in the planned folder", src);
             printf("%s (in %s/) -> ", path, in->path);
             fflush(stdout);
-            add_item(&h, &p, src, to, dn, 0);
+            add_item(&h, &p, src, to, dn, 0, NULL);
             free(src);
         }
         plan_save(&p);
@@ -1886,6 +2186,19 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
         long latest = 0;
         char *stored = path_rel(dp->root, it->source);   /* as the home keeps it */
         const recs *both[2] = { &cat->objects, made_now };
+        if (it->from) {                     /* read from a disc: the object there is its lineage, and its source */
+            const char *colon = strchr(it->from, ':'), *at = *(colon + 1) ? colon + 1 : ".";
+            for (size_t i = 0; i < cat->objects.n; i++) {
+                const rec_record *o = cat->objects.v[i];
+                if (!strncmp(get_or(o, "Disc", ""), it->from, (size_t)(colon - it->from)) && !get_or(o, "Disc", "")[colon - it->from]
+                    && !strcmp(get_or(o, "Path", ""), at))
+                    from = o;
+            }
+            if (from && rec_get(from, "Source")) {
+                free(stored);
+                stored = xstrdup(rec_get(from, "Source"));
+            }
+        }
         for (int b = 0; b < 2; b++)
             for (size_t i = 0; i < both[b]->n; i++) {
                 const rec_record *o = both[b]->v[i];

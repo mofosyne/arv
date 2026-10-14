@@ -288,6 +288,15 @@ history as `arv make` of the collection's folder, but arranged as the plan says 
 albums, laid out by tags, gathered from several places). `arv diff FAM/2 FAM/3` then shows the
 re-arrangement as moves, by content.
 
+**Remaking discs from discs.** When old discs need new media, or several are to be gathered onto
+one, a plan can read them: `arv plan add new-media PHOTO-01_2019_4` (a whole disc: each of its
+data objects) or `PHOTO-01_2019_4:Kyoto` (one folder, as it is called now). The files are read from
+a copy the record knows as files: a stored folder (`arv stored ID FOLDER`), or a disc mounted and
+recorded the same way; for an image, unpack it first (`7z x -oFOLDER IMAGE`). As they are read, each
+is checked against the old disc's manifest, and a damaged one stops the make (repair the copy, or
+use another). The new disc keeps each file's time, tags and name now (moves in the record), and
+each data object stays the same version, now one more copy.
+
 **Renaming after burning.** A disc cannot change, but its record can: `arv rename DISC-ID
 "day1/IMG_0001.JPG" "Fushimi Inari/torii gates.jpg"` records the new name (a folder's moves all
 under it). `find` finds it by either name, `restore` puts it back under the new one

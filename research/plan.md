@@ -1501,6 +1501,25 @@ do not give is order (a slideshow's sequence): that is names (`01 torii gates.jp
     within it, so the same object placed two ways is the same version.
   Not yet: titles, and a layout for `arv make` of a folder that is not a plan.
 
+## Done (2026-10-14): plans from discs
+
+`arv plan add NAME DISC-ID[:PATH]` (and `--each`), as designed above, with one step left for
+later: a source is read from a copy the record knows *as files* (a stored folder, or a mounted
+disc recorded with `arv stored`), not yet from an image by its sectors (that needs the image
+writer to read extents of another image; until then arv says to unpack it). What it does:
+- **A whole disc adds its data objects**, one item each (named as now), and any file in none as
+  its own; a disc with no objects (a collection's edition) is one folder. Each object found again
+  continues its lineage: same `Tree`, so the new disc is another copy of the same version, as
+  remaking for new media should be.
+- **Checked as read**: each file's SHA-256 (hashed for the new disc anyway) against the old disc's
+  manifest; any that differ stop the make, listed, with what to do. Nothing damaged is copied on.
+- **Faithful**: each file's time from the old disc's listing (a copy's own times may be the day it
+  was copied), its tags now (burned, with changes since) into the new disc's `tags.tsv`, and its
+  name now (moves in the record, a folder's files under a renamed folder too).
+- The item records `From: DISC-ID:PATH`; a file split off such an item (`plan rename`) is read
+  from the same disc.
+Not yet: reading images by their sectors, and one drive with several discs asked for in turn.
+
 ## Done (2026-10-14): a plan as a collection's next edition
 
 `arv plan new NAME --collection CODE` (a plan setting, like `--set`, kept as `Collection`): `plan

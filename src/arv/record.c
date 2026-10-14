@@ -984,7 +984,7 @@ int cmd_note(int argc, char **argv)
 }
 
 /* the paths a disc's listing names (files and links), and the folders above them, as burned */
-static void listing_paths(const char *lst, strlist *files, strlist *folders)
+void listing_names(const char *lst, strlist *files, strlist *folders)
 {
     memset(files, 0, sizeof *files);
     memset(folders, 0, sizeof *folders);
@@ -1033,7 +1033,7 @@ int cmd_rename(int argc, char **argv)
     if (!ok) die("%s cannot be a path under data/ (relative, no . or .. parts, no tabs or line breaks)", to);
     char *lst = home_volume_file(&o.h, disc_id, "listing.tsv");
     strlist files, folders, from, now;
-    listing_paths(lst, &files, &folders);
+    listing_names(lst, &files, &folders);
     if (!files.n) die2("%s has no listing at home (%s): arv rebuild it from the disc first", disc_id, lst);
     disc_moves(&o.cat, disc_id, &from, &now);
     const char *burned = NULL;              /* PATH, as burned */
