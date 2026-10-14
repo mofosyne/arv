@@ -51,8 +51,8 @@ Date: 2026-01-01
 Part: 1 of 2
 Creator: archivist
 Access: private
-Files: 1
-Bytes: 7
+Files: 2
+Bytes: 14
 Software: SW
 
 Id: TRIP-02_2025_9
@@ -70,8 +70,8 @@ Date: 2026-01-01
 Part: 2 of 2
 Creator: archivist
 Access: private
-Files: 3
-Bytes: 20
+Files: 2
+Bytes: 13
 Software: SW
 
 %rec: Binding
@@ -107,7 +107,9 @@ Ecc: none
 + sorted; a repository's .git aside, as git.tsv describes it); Version counts its versions,
 + and the same Tree on another disc is the same version. Disc and Path say where it is
 + (Path under data/; "." for the whole of data/). Source is where it was read from: it is
-+ kept in the home catalogue only, and discs carry their objects without it.
++ kept in the home catalogue only, and discs carry their objects without it. Except (one
++ for each) names a file or folder of the source left out of the object because a disc plan
++ placed it elsewhere (a folder split): the object is the folder without them.
 + Title, Description, Coverage (EDTF), Rights and Origin (where it was published, as host/path)
 + say what it is: read from its own files when it is archived (its README, package manifest,
 + licence, a repository's commits and origin remote), or written by a person or a model
@@ -119,6 +121,17 @@ Ecc: none
 %type: Bytes int
 %type: Date date
 %type: Kind enum file folder git
+
+Uuid: UUID
+Version: 1
+Name: b.jpg
+Kind: file
+Tree: e32501874d95ba18bba2662bd7f761f30aae2879c4a0bdc1e6498612b99e3449
+Disc: TRIP-01_2025_B
+Path: best/b.jpg
+Files: 1
+Bytes: 7
+Date: 2026-01-01
 
 Uuid: UUID
 Version: 1
@@ -146,12 +159,13 @@ Uuid: UUID
 Version: 1
 Name: 2025
 Kind: folder
-Tree: dbfbcd823eab3716e2af573d93ab9e04b6d8f4622e7cffeb827ec2ee98468f99
+Tree: e550671844b95a75f140e24e592ad394c1890bf9e4c1fbb7dd097a2d5cd45595
 Disc: TRIP-02_2025_9
 Path: photos
-Files: 2
-Bytes: 14
+Files: 1
+Bytes: 7
 Date: 2026-01-01
+Except: b.jpg
 
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
@@ -194,7 +208,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: sha256 and sha512 manifests of 1 file
+Note: sha256 and sha512 manifests of 2 files
 
 EventId: ID
 Disc: TRIP-02_2025_9
@@ -203,4 +217,4 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: sha256 and sha512 manifests of 3 files
+Note: sha256 and sha512 manifests of 2 files

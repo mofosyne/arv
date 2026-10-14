@@ -73,6 +73,14 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   reference outputs and `data.c`, committing a new `disc-tools.txt` path first). Both go on
   every disc with the source.
 
+**Splitting a folder in a disc plan**
+- A file or folder inside a planned folder can be added on its own, under another name or on
+  another disc. It used to go on the discs twice, silently; now the more specific of two items
+  holding a file places it, and the folder goes without it. `plan show` lists what each folder
+  leaves to other items; sizes count each file once; dropping the specific item puts the file
+  back. The folder's data object records what it left out (`Except:`, format 0.5), so `arv
+  status` compares the folder with the object without them.
+
 **Tags on files** (format 0.5)
 - A line of a disc's `tags.tsv` names a folder or a file, and a file has its folders' tags and its
   own, so a few files across folders can share a tag (`best`, `person:alice`). Drafts take a

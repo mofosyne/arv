@@ -4,7 +4,7 @@ Holiday 2025
 Disc id:  TRIP-02_2025_9  (part 2 of 2)
 Set:      TRIP
 Burned:   2026-01-01
-Contents: 3 files, 20 bytes (in data/)
+Contents: 2 files, 13 bytes (in data/)
 Made by:  SW
 
 This is an archive disc by archivist, made on 2026-01-01: Holiday 2025. Its

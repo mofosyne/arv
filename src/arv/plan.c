@@ -169,6 +169,25 @@ void plan_made(const char *file, const strlist *disc_ids, const char *date)
 
 /* ------------------------------------------------------------------ the files a plan puts on its discs */
 
+/* A file two items cover goes where the more specific one puts it: an item whose source is inside
+ * this item's source, and holds the file (or is it), places it instead; the deepest such item wins.
+ * So a folder can be split (the folder as one item, some of its files or folders placed elsewhere)
+ * and each file is on the discs once (arv plan add refuses a source twice). NULL when this item
+ * places the file itself. */
+static const plan_item *placed_by(const disc_plan *p, const plan_item *it, const char *abs)
+{
+    size_t n = strlen(it->source);
+    const plan_item *best = NULL;
+    for (size_t i = 0; i < p->n; i++) {
+        const plan_item *o = &p->v[i];
+        size_t m = strlen(o->source);
+        if (o == it || m <= n || strncmp(o->source, it->source, n) || o->source[n] != '/') continue;
+        if (strncmp(abs, o->source, m) || (abs[m] && abs[m] != '/')) continue;
+        if (!best || m > strlen(best->source)) best = o;
+    }
+    return best;
+}
+
 void plan_scan(const disc_plan *p, const char *links, entries *files, entries *noted, size_t *left_out)
 {
     memset(files, 0, sizeof *files);
@@ -194,6 +213,15 @@ void plan_scan(const disc_plan *p, const char *links, entries *files, entries *n
                     if (!k) (*left_out)++;          /* a folder's own .arv: arv's, never content */
                     continue;
                 }
+                if (S_ISDIR(st.st_mode)) {          /* placed by a more specific item instead */
+                    char *abs = join(it->source, e.path);
+                    const plan_item *other = placed_by(p, it, abs);
+                    free(abs);
+                    if (other) {
+                        free(e.path);
+                        continue;
+                    }
+                }
                 char *dest = !*e.path ? xstrdup(it->path) : !strcmp(it->path, ".") ? xstrdup(e.path) : join(it->path, e.path);
                 free(e.path);
                 e.path = dest;
@@ -213,6 +241,19 @@ void plan_scan(const disc_plan *p, const char *links, entries *files, entries *n
     if (!noted->v) noted->v = xmalloc(sizeof *noted->v);
 }
 
+/* the item whose source most closely holds this item's source (the folder it was split from), or NULL */
+static const plan_item *holder(const disc_plan *p, const plan_item *in)
+{
+    const plan_item *near = NULL;
+    for (size_t k = 0; k < p->n; k++) {
+        size_t n = strlen(p->v[k].source);
+        if (&p->v[k] != in && strlen(in->source) > n && !strncmp(in->source, p->v[k].source, n)
+            && in->source[n] == '/' && (!near || n > strlen(near->source)))
+            near = &p->v[k];
+    }
+    return near;
+}
+
 /* ------------------------------------------------------------------ sizes */
 
 typedef struct {
@@ -221,10 +262,11 @@ typedef struct {
     int missing, folder;
 } measure;
 
-static void walk_size(const char *disk, const char *rel, int top, measure *m)
+static void walk_size(const disc_plan *pl, const plan_item *it, const char *disk, const char *rel, int top, measure *m)
 {
     struct stat st;
     if (lstat(disk, &st)) return;
+    if (pl && !top && placed_by(pl, it, disk)) return;  /* counted with the item that places it */
     if (S_ISREG(st.st_mode)) {
         m->bytes += (uint64_t)st.st_size;
         m->files++;
@@ -237,7 +279,7 @@ static void walk_size(const char *disk, const char *rel, int top, measure *m)
     while (d && (e = readdir(d))) {
         if (!strcmp(e->d_name, ".") || !strcmp(e->d_name, "..") || (top && !strcmp(e->d_name, ".arv"))) continue;
         char *p = join(disk, e->d_name), *r = *rel ? join(rel, e->d_name) : xstrdup(e->d_name);
-        walk_size(p, r, 0, m);
+        walk_size(pl, it, p, r, 0, m);
         free(p);
         free(r);
     }
@@ -245,7 +287,7 @@ static void walk_size(const char *disk, const char *rel, int top, measure *m)
     m->sectors += 1;
 }
 
-static measure item_size(const plan_item *it)
+static measure item_size(const disc_plan *p, const plan_item *it)
 {
     measure m = { 0 };
     struct stat st;
@@ -254,7 +296,7 @@ static measure item_size(const plan_item *it)
         return m;
     }
     m.folder = S_ISDIR(st.st_mode);
-    if (m.folder) walk_size(it->source, strcmp(it->path, ".") ? it->path : "", 1, &m);
+    if (m.folder) walk_size(p, it, it->source, strcmp(it->path, ".") ? it->path : "", 1, &m);
     else {
         m.bytes = (uint64_t)st.st_size;
         m.files = 1;
@@ -266,7 +308,7 @@ static measure item_size(const plan_item *it)
 static long tree_sectors(const char *path)
 {
     measure m = { 0 };
-    walk_size(path, "", 0, &m);
+    walk_size(NULL, NULL, path, "", 0, &m);
     return m.sectors;
 }
 
@@ -453,7 +495,7 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
     }
     for (size_t i = 0; i < p->n; i++) {
         changed += (chg[i] = !made && changed_since(&p->v[i]));
-        m[i] = item_size(&p->v[i]);
+        m[i] = item_size(p, &p->v[i]);
         used[p->v[i].disc] += m[i].sectors;
         bytes[p->v[i].disc] += m[i].bytes;
     }
@@ -547,9 +589,13 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
                     printf("  %s  %s  %s", p->v[i].path, sz, p->v[i].source);
                 }
                 if (!m[i].missing) {
-
                     if (chg[i]) printf("  CHANGED since planned");
                     putchar('\n');
+                    for (size_t j = 0; m[i].folder && j < p->n; j++) {   /* what of it another item places */
+                        const plan_item *in = &p->v[j];
+                        if (holder(p, in) != &p->v[i]) continue;
+                        printf("      not %s: placed as %s on disc %d\n", in->source + strlen(p->v[i].source) + 1, in->path, in->disc);
+                    }
                     if (ar && ar[i].object) {
                         printf("      archived already: %s version %s, on", (rec_get(ar[i].object, "Name") ? rec_get(ar[i].object, "Name") : "?"),
                                (rec_get(ar[i].object, "Version") ? rec_get(ar[i].object, "Version") : "0"));
@@ -635,7 +681,7 @@ static int pick_disc(const arv_home *h, disc_plan *p, const char *how, long need
         for (int d = 1; d <= p->discs; d++) {
             long used = 0;
             for (size_t i = 0; i < p->n; i++)
-                if (p->v[i].disc == d) used += item_size(&p->v[i]).sectors;
+                if (p->v[i].disc == d) used += item_size(p, &p->v[i]).sectors;
             if (!cap || used + need <= cap) return d;
         }
         return p->discs + 1;
@@ -651,7 +697,7 @@ static void say_where(const arv_home *h, disc_plan *p, int disc, const char *wha
 {
     long cap = room(h, head(p), NULL), used = 0;
     for (size_t i = 0; i < p->n; i++)
-        if (p->v[i].disc == disc) used += item_size(&p->v[i]).sectors;
+        if (p->v[i].disc == disc) used += item_size(p, &p->v[i]).sectors;
     if (cap) printf("%s: disc %d, now %ld%% full%s\n", what, disc, (used * 100 + cap - 1) / cap, used > cap ? " (OVER)" : "");
     else printf("%s: disc %d\n", what, disc);
 }
@@ -866,7 +912,7 @@ int cmd_plan(int argc, char **argv)
             if (!path || !path_ok(path, S_ISDIR(st.st_mode)))
                 die("%s cannot be a path under data/ (relative, no . or .. parts; . only for a folder's contents)", path ? path : "/");
             plan_item it = { 0, src, xstrdup(path), NULL };
-            int d = pick_disc(&h, &p, disc, item_size(&it).sectors);
+            int d = pick_disc(&h, &p, disc, item_size(&p, &it).sectors);
             check_free(&p, path, d);
             if (d > p.discs) p.discs = d;
             it.disc = d;
@@ -1122,6 +1168,8 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
         rec_add(r, "Date", today);
         object_about(r, same, from ? uuid : NULL, latest, cat, made_now, is_file ? NULL : it->source, git);
         rec_add(r, "Source", stored);
+        for (size_t j = 0; !is_file && j < dp->n; j++)      /* what of the folder other items placed */
+            if (holder(dp, &dp->v[j]) == it) rec_add(r, "Except", dp->v[j].source + strlen(it->source) + 1);
         recs_add(out, r);
         strlist_add(manifests, text.s);
         fprintf(stderr, "Object %s%s (data/%s on %s): %s\n", rec_get(r, "Name"), is_file ? "" : "/", top ? "" : it->path, disc_id,

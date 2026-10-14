@@ -432,6 +432,7 @@ log plan.out --home hp plan disc trip add
 log plan.out --home hp plan disc trip drop 1
 log plan.out --home hp plan disc trip drop 3
 log plan.out --home hp plan move trip notes.txt --disc 2
+log plan.out --home hp plan add trip plan-nas/photos/2025/b.jpg --as best/b.jpg --disc 1   # split: b leaves photos/
 log plan.out --home hp plan show trip
 log plan.out --home hp plan show trip --json
 log plan.out --home hp plan list

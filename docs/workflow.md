@@ -241,11 +241,19 @@ nothing, and the sources are read where they are when the images are made.
 arv plan new family --title "Family 2025" --set FAMILY [--medium bd25]
 arv plan add family ~/Videos/wedding.mkv                    # --disc auto: the first disc with room
 arv plan add family /nas/photos/2025 --as photos --disc new # a folder, as data/photos/, on a new disc
+arv plan add family /nas/photos/2025/IMG_0042.JPG --as best/kyoto.jpg   # one of them, placed elsewhere
 arv plan move family photos --disc 1                        # by its path under data/
 arv plan drop family photos                                 # off the disc; the source is untouched
 arv plan show family                                        # each disc's fill, its items and sources
 arv plan make family [--output-dir DIR] [arv make's options]
 ```
+
+**Splitting a folder.** A file (or folder) inside a planned folder can be added on its own, under
+another name or on another disc: it goes where that item puts it, and the folder goes without it.
+Of two items holding a file, the more specific one places it, so each file is on the discs once;
+`plan show` lists what each folder leaves to other items, and dropping the specific item puts the
+file back in its folder. Nothing on the drive moves. The folder's data object records what was
+left out (`Except:`), so `arv status` does not later take it for a change.
 
 `arv plan show` measures the sources each time, against about what a disc has for files once
 `tools/` and the catalogue are on it, and says which discs are over and which sources are gone.

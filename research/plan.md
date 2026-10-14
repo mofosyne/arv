@@ -1378,10 +1378,13 @@ What a plan does today (tried 2026-10-13): `plan add SOURCE --as PATH` names and
 a disc, a file or a folder, and `plan move` moves items between discs; nothing on the drive
 changes. What is missing:
 
-- **A folder split.** A file added again from inside a planned folder ends up on the disc twice,
-  silently (tried: `plan add trip DCIM --as Unsorted`, then one of its photos `--as
-  Kinkaku-ji/pond.jpg`). Instead, the folder item gets `Except: PATH` for it: whatever is not
-  placed elsewhere stays where the folder put it. A file wanted twice is asked for on purpose.
+- **A folder split** (done 2026-10-14). A file added again from inside a planned folder ended up on
+  the disc twice, silently (tried: `plan add trip DCIM --as Unsorted`, then one of its photos `--as
+  Kinkaku-ji/pond.jpg`). Built as a rule rather than a stored `Except:` on the plan item: of two
+  items holding a file, the more specific places it (nothing to go stale; dropping the specific
+  item puts the file back). `plan show` says what each folder leaves to others. What is stored is
+  on the archived data object, a fact about what was archived: `Except: PATH`, so `status` does
+  not take a split folder for a changed one and invite a version that duplicates the file.
 - **`arv plan rename NAME PATH NEWPATH`**: rename or move an item on its disc, a folder with all
   under it (the `git mv` of a plan). Today it is drop and add again.
 - **`arv plan add NAME --list FILE`**: a TSV of source and path on the disc, one a line, so the

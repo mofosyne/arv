@@ -472,6 +472,9 @@ The manifest is each file's SHA-256 and its path within the object, sorted by pa
 the same content as an earlier version is that version; from the same place but changed, the
 next version; else a new `Uuid`. The home catalogue adds `Source` (the path it was read
 from, relative to the folder holding the home when inside it) and keeps each manifest in `catalog/objects/<Tree>.sha256`; neither goes on a disc.
+`Except`* names a file or folder of the source, relative to it, that a disc plan placed elsewhere
+(a folder split: the more specific of two plan items that hold a file places it); the object is
+the folder without them, so comparing it with the folder later leaves them out.
 Readers merge objects by `Uuid`, `Version` and `Disc`.
 
 **What an object is** (added in format 0.5; all optional): `Title`, `Description`, `Coverage`
