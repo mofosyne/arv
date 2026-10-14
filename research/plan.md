@@ -1463,15 +1463,30 @@ order changes between discs: year first on one, event first on another, as each 
 tags are the facts about a file (`year:2019`, `event:kyoto-trip`, `best`, `person:alice`), kept with
 it, and a disc's folders are one view of them, chosen when the disc is made:
 
-- **A plan or make takes a layout**: `--layout '{year}/{event}'` (or `'{event}/{year}'` on the next
-  disc) builds each file's path from its tags, then its name. The same files, the same tags, a
-  different tree. A file missing a tag the layout needs goes under `unsorted/` (or the layout's
-  fallback) and is listed, so it is noticed.
-- **The disc says which layout it used** (a `Layout` field in its record), so a reader can tell a
-  folder that is a view of `year` from one somebody named by hand, and turn the tree back into
-  tags. The spec defines the pattern, as it defines the virtual trees a catalogue program may
-  build (by date, by place, by tag: "Building a virtual file system from the catalogue"); a
-  layout is that same idea, written onto the disc.
+- **The folders name their namespace**, so the tree describes itself (the owner's idea): a layout
+  level is a namespace folder holding a folder for each value, `event/kyoto-trip/IMG_0001.JPG`.
+  Anyone browsing the disc decades on reads `event/kyoto-trip/` without arv, and turning the tree
+  back into tags is reading the path. (The compact form, `event=kyoto-trip/`, is what Hive and Spark
+  use; plain nested folders are kinder in a file manager, so they are the default.)
+- **A plan or make takes a layout**, chosen a disc at a time and recorded on it (a `Layout` field,
+  for tools; people need not read it): `/` nests, `,` falls back.
+  - `--layout 'year/event, year'`: a photo with an event goes to `year/2019/event/kyoto-trip/`,
+    one without to `year/2019/`. Year first never needs its fallback (every photo has a date),
+    but an event across New Year is split between two years.
+  - `--layout 'event/year, year'`: events whole (`event/kyoto-trip/year/2019/`), and the photos
+    with no event by year. Which comes first is the disc's purpose (browsing by time or by
+    occasion), and it changes between discs, which is why it is chosen a disc at a time.
+  - Each file appears once, under the first alternative it has every tag for; the tags a layout
+    does not use stay tags (`find year:2019` finds a photo filed under `event/`). A file with
+    none of the alternatives goes to the layout's last resort (its plain folder from the source),
+    and is listed. So there is no `unsorted/` folder in the usual case.
+- **Only namespaces with one value a file make folders.** The vocabulary declares them:
+  `Namespace` records in `config/tags.rec` (`Name`, `Description`, `Values: one|many`, and
+  `From: date` for `year`, filled from the file's own date). `year`, `event`, `place` and `project`
+  are `one`; `person`, `source` and plain tags (`best`) are `many`, and a layout refuses them (a
+  photo of two people cannot be in two folders). `arv tags` lists a file with two values of a `one`
+  namespace, before it reaches a disc. (Not "categories": a disc's categories are already the set
+  vocabulary's.)
 - **Tags come from where they can**: `year` from the file's own date (EXIF, or its time) with no
   one tagging it; the rest from a person, a model (`arv describe`, `arv tag`) or a folder the
   files came in (an existing `Kyoto trip/` gives `event:kyoto-trip` once, when the file is first
@@ -1479,10 +1494,9 @@ it, and a disc's folders are one view of them, chosen when the disc is made:
 - **Moves become tag changes**: re-filing a photo under another event is changing its `event` tag;
   the next disc made with a layout puts it there. A plain rename (the file's own name) is still a
   move, as above.
-- **Limits:** a layout is a tree, so it shows each file once, under one path; the tags it does not
-  use stay tags (`best`, people), found with `find` and shown by Katalog. Files with no structure
-  to speak of (a software project, a document folder) keep the tree they came with: a layout is
-  for collections whose structure is their tags (photos, scans, recordings).
+- **Limits:** files with no structure to speak of (a software project, a document folder) keep the
+  tree they came with: a layout is for collections whose structure is their tags (photos, scans,
+  recordings).
 
 Order: the folder split first (it fixes the silent duplicate), then `rename` and `--list`, then
 the original name (format), then moves in the record, then plans as editions and plans from discs,
