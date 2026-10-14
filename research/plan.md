@@ -1501,6 +1501,17 @@ do not give is order (a slideshow's sequence): that is names (`01 torii gates.jp
     within it, so the same object placed two ways is the same version.
   Not yet: titles, and a layout for `arv make` of a folder that is not a plan.
 
+## Done (2026-10-14): moves in the record
+
+`arv rename DISC-ID PATH NEWPATH`, as designed under "Two kinds of move" above: an event about the
+disc, `Moved: BURNED<TAB>NOW` with `Sets: Moved:BURNED`. Keyed by the burned path, not the name
+now: the burned path never changes, so a second rename replaces the first instead of chaining,
+tags and listings stay keyed as they are, and a rename back to the burned name is no move. PATH is
+given as called now (the burned name of something renamed is refused, naming the new one). `find`
+matches either name and shows both; `objects` shows the place now; `restore` writes the names now
+(it reads the home's record when one is found; `--as-burned` for the disc's). Not yet: the next
+disc made from these discs using the names (that is plans from discs, below).
+
 ## Decision (2026-10-14): identity is the lineage, never the bytes
 
 The owner's point: the same bytes can be different data objects (the colour of the bits, after

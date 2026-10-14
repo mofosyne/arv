@@ -410,12 +410,26 @@ void set_time(const char *path, const char *modified)
 
 int cmd_restore(int argc, char **argv)
 {
-    if (argc != 2) return 2;
+    const char *given = NULL, *root = NULL, *dest = NULL;
+    int as_burned = 0;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (!strcmp(argv[i], "--as-burned")) as_burned = 1;
+        else if (argv[i][0] == '-') return 2;
+        else if (!root) root = argv[i];
+        else if (!dest) dest = argv[i];
+        else return 2;
+    }
+    if (!dest) return 2;
     ondisc d;
     manifest m;
     listing l = { 0 };
-    const char *dest = argv[1];
-    open_disc(argv[0], &d);
+    open_disc(root, &d);
+    strlist from = { 0 }, to = { 0 };       /* moves in the home's record: restored under the new names */
+    catalogue c;
+    if (!as_burned && !find_catalogue(given, &c, 0)) disc_moves(&c.records, d.id, &from, &to);
+    if (from.n) printf("%s: %zu file%s or folder%s renamed in the record since burning: restored under the new names "
+                       "(--as-burned for the names on the disc)\n", d.id, from.n, from.n == 1 ? "" : "s", from.n == 1 ? "" : "s");
     char *mpath = join(d.root, "manifest-sha256.txt");
     if (read_manifest(mpath, &m)) die("%s: no manifest-sha256.txt (not a bag?)", d.root);
     free(mpath);
@@ -439,7 +453,14 @@ int cmd_restore(int argc, char **argv)
             skipped++;
             continue;
         }
-        rel += 5;
+        char *as = moved_path(&from, &to, rel + 5);
+        if (!safe_rel(as)) {
+            printf("SKIPPED  %s (renamed in the record to %s, not a safe path)\n", rel, as);
+            free(as);
+            skipped++;
+            continue;
+        }
+        rel = as;
         char *src = join(d.root, m.e[i].path), *dst = join(dest, rel), hex[65];
         uint64_t bytes = 0;
         int fd = -1;
@@ -468,6 +489,7 @@ int cmd_restore(int argc, char **argv)
         }
         free(src);
         free(dst);
+        free(as);
     }
 
     char *lpath = volume_file(&d, "listing.tsv");
@@ -476,7 +498,8 @@ int cmd_restore(int argc, char **argv)
     for (size_t i = 0; i < l.n; i++) {
         lrow *r = &l.r[i];
         if (!safe_rel(r->path)) continue;
-        char *dst = join(dest, r->path);
+        char *now = moved_path(&from, &to, r->path);
+        char *dst = join(dest, now);
         int is_link = has_word(r->kind, "link");
         if (r->size >= 0) {                     /* a file in data/: its mode and time */
             struct stat st;
@@ -512,7 +535,7 @@ int cmd_restore(int argc, char **argv)
             if (has_word(r->kind, "copied")) {
                 printf("KEPT     %s (a copy of the folder %s)\n", r->path, r->link);
                 kept++;
-            } else if (make_parents(dest, r->path) || symlink(r->link, dst)) {
+            } else if (make_parents(dest, now) || symlink(r->link, dst)) {
                 printf("FAILED   %s -> %s (%s)\n", r->path, r->link, strerror(errno));
                 missing++;
             } else {
@@ -521,6 +544,7 @@ int cmd_restore(int argc, char **argv)
             }
         }
         free(dst);
+        free(now);
     }
 
     printf("%s: restored %zu file%s (%llu bytes) and %zu link%s to %s", d.id, restored, restored == 1 ? "" : "s",

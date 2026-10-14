@@ -100,6 +100,13 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - The plan's tags go into the disc's `tags.tsv` (a folder object's once, on its folder); a `date:`
   tag counts for the disc's coverage instead of the file's time.
 
+**Moves in the record**
+- `arv rename DISC-ID PATH NEWPATH`: a burned disc's file or folder is called NEWPATH now. The disc
+  stays as burned; the change is an event (`Moved: BURNED<TAB>NOW`, with `Sets` and `Replaces`, so
+  renames merge and conflict as any field). `find` finds by either name and shows the new one
+  ("burned as"); `objects` shows the new place; `restore` writes the new names, or the disc's
+  with `--as-burned`. `restore` now reads the home's record for this, when there is one.
+
 **Byte-identical files reported**
 - `make` notes files whose bytes another file on the same disc has (each is written in full), and
   `arv plan show NAME --duplicates` lists them, as arranged, before anything is made: dropping a

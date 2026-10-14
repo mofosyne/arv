@@ -507,9 +507,16 @@ int cmd_objects(int argc, char **argv)
                 const rec_record *x = cat.objects.v[k];
                 if (strcmp(get_or(x, "Uuid", ""), uuid) || version_of(x) != v) continue;
                 char *c = copies_text(&cat, get_or(x, "Disc", "?"));
-                const char *path = get_or(x, "Path", "?");
-                printf("    version %ld  %s  data/%s%s  %s\n", v, get_or(x, "Disc", "?"), strcmp(path, ".") ? path : "",
+                strlist from, to;               /* as it is called now (moves in the record) */
+                disc_moves(&cat, get_or(x, "Disc", ""), &from, &to);
+                char *path = moved_path(&from, &to, get_or(x, "Path", "?"));
+                printf("    version %ld  %s  data/%s%s  %s", v, get_or(x, "Disc", "?"), strcmp(path, ".") ? path : "",
                        file || !strcmp(path, ".") ? "" : "/", c);
+                if (strcmp(path, get_or(x, "Path", "?"))) printf("  (burned as data/%s)", get_or(x, "Path", "?"));
+                putchar('\n');
+                free(path);
+                strlist_free(&from);
+                strlist_free(&to);
                 free(c);
             }
         free(top.v);

@@ -572,6 +572,22 @@ log lay.out --home hy plan make album -y --no-ecc --no-formats --keep-stage --ou
 log lay.out --home hy objects
 log lay.out --home hy objects --json
 log lay.out --home hy find kyoto
+# moves in the record: the disc stays as burned
+lid=PHOTO-01_1974-2021_F
+log lay.out --home hy rename $lid "year/2019/event/kyoto trip/IMG_0002.JPG" "year/2019/event/kyoto trip/torii.jpg"
+log lay.out --home hy rename $lid "data/project/weather-station/station" "project/weather-station/station-v1"   # a folder
+log lay.out --home hy rename $lid "year/2019/event/kyoto trip/IMG_0002.JPG" x.jpg     # called torii.jpg now
+log lay.out --home hy rename $lid "year/2019/event/kyoto trip/IMG_0003.JPG" "year/2019/event/kyoto trip/notes.txt"
+log lay.out --home hy rename $lid nope.jpg x.jpg
+log lay.out --home hy rename $lid "decade/1970s/print1.tif" "../x.tif"
+log lay.out --home hy find torii
+log lay.out --home hy find main.c
+log lay.out --home hy objects station
+7z x -olay-disc out-lay/$lid.noecc.iso >/dev/null
+log lay.out --home hy restore lay-disc lay-restored
+find lay-restored -type f | sort >> lay.out
+log lay.out --home hy restore lay-disc lay-restored-burned --as-burned
+find lay-restored-burned -type f | sort >> lay.out
 keep lay.out lay/transcript.txt
 keep hy/drafts/plans/album.rec lay/album.rec
 keep_stages out-lay lay/discs

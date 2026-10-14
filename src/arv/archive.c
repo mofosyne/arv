@@ -1002,6 +1002,64 @@ char *disc_tags_text(const archive *a, const char *disc_id, const char *burned)
     return out.s;
 }
 
+/* ------------------------------------------------------------------ moves in the record
+ * A burned disc cannot change; renaming one of its files or folders is recorded instead: an event
+ * about the disc with "Moved: BURNED<TAB>NOW" and "Sets: Moved:BURNED". The burned path is the
+ * key, since it never changes; a later move of the same thing replaces the earlier. A move of a
+ * folder moves all under it; a move of a path inside it wins over the folder's. */
+
+static int by_len_desc(const void *x, const void *y)
+{
+    size_t a = strlen(*(char *const *)x), b = strlen(*(char *const *)y);
+    return a < b ? 1 : a > b ? -1 : strcmp(*(char *const *)x, *(char *const *)y);
+}
+
+void disc_moves(const archive *a, const char *disc_id, strlist *from, strlist *to)
+{
+    memset(from, 0, sizeof *from);
+    memset(to, 0, sizeof *to);
+    strlist keys = { 0 };
+    for (size_t i = 0; i < a->events.n; i++) {
+        const rec_record *e = a->events.v[i];
+        const char *d = rec_get(e, "Disc");
+        if (!d || strcmp(d, disc_id)) continue;
+        for (size_t f = 0; f < e->nfields; f++)
+            if (!strcmp(e->fields[f].name, "Sets") && !strncmp(e->fields[f].value, "Moved:", 6)
+                && !strlist_has(&keys, e->fields[f].value + 6))
+                strlist_add(&keys, e->fields[f].value + 6);
+    }
+    if (keys.n) qsort(keys.v, keys.n, sizeof *keys.v, by_len_desc);   /* the most specific first */
+    for (size_t k = 0; k < keys.n; k++) {
+        char *key = xprintf("Moved:%s", keys.v[k]);
+        strlist heads;
+        field_heads(a, disc_id, key, &heads);
+        const char *value = NULL;                   /* of two made apart (a conflict), the later */
+        for (size_t i = 0; i < a->events.n; i++) {
+            char id[33];
+            event_key(a->events.v[i], id);
+            if (strlist_has(&heads, id) && changed_value(a->events.v[i], "Moved", keys.v[k]))
+                value = changed_value(a->events.v[i], "Moved", keys.v[k]);
+        }
+        if (value && strcmp(value, keys.v[k])) {    /* moved back to its burned name: no move */
+            strlist_add(from, keys.v[k]);
+            strlist_add(to, value);
+        }
+        strlist_free(&heads);
+        free(key);
+    }
+    strlist_free(&keys);
+}
+
+char *moved_path(const strlist *from, const strlist *to, const char *burned)
+{
+    for (size_t i = 0; i < from->n; i++) {      /* the most specific first */
+        size_t n = strlen(from->v[i]);
+        if (!strncmp(burned, from->v[i], n) && (!burned[n] || burned[n] == '/'))
+            return xprintf("%s%s", to->v[i], burned + n);
+    }
+    return xstrdup(burned);
+}
+
 /* the disc's tags now, to read as its tags.tsv would be read; NULL when there are none */
 FILE *disc_tags_open(const archive *a, const char *disc_id, const char *burned)
 {

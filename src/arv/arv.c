@@ -88,6 +88,7 @@ static const char USAGE_RECORD[] =
           "         catalogues gave one letter to two copies: --at or --identifier says which)\n"
           "  arv locate DISC-ID COPY PLACE   where a copy is kept now\n"
           "  arv note DISC-ID TEXT   a note on a disc\n"
+          "  arv rename DISC-ID PATH NEWPATH   a burned disc's file or folder called NEWPATH now, in the record\n"
           "  arv access DISC-ID public|private|sealed   what later discs' catalogues may show of it\n"
           "  arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)\n"
           "  arv find [-C CATALOG] [--limit N] PATTERN   discs, copies (by identifier or carrier), objects, tags\n"
@@ -124,7 +125,8 @@ static const char USAGE_REST[] =
           "  arv drives [--check] [DRIVE...]   what is in each optical drive: which disc, which copy\n"
           "  arv inventory [-v] PLACE [FILE]   a library's barcodes (mtx status, or a list) against the copies\n"
           "         recorded at PLACE: missing, unknown, recorded elsewhere\n"
-          "  arv restore DISC DEST   copy a disc's files to DEST, checking each; dates, execute bits and links back\n"
+          "  arv restore DISC DEST [--as-burned]   copy a disc's files to DEST, checking each; dates, execute bits\n"
+          "         and links back; under the names the record gives them now (--as-burned: the disc's)\n"
           "  arv rebuild [--prefer-disc] [--any-archive] DISC|CATALOG   merge a disc's, or another .arv's, catalogue\n"
           "  arv audit [DISC...]   every event as written; with discs, the home against what they carry\n"
           "\n"
@@ -461,7 +463,7 @@ static const char MANUAL_NOTES[] =
     "\n"
     "These change the record, each leaving an event that says who and when: `init`, `make`, `plan make`,\n"
     "`collection init|keep`, `link`, `burned`, `stored`, `identify`,\n"
-    "`relabel`, `note`, `locate`, `access`, `location add|move`, `appraise`,\n"
+    "`relabel`, `note`, `rename`, `locate`, `access`, `location add|move`, `appraise`,\n"
     "`retire --yes`, `rebuild`, `check` and `drives --check` (a check is logged), `describe` and `tag`\n"
     "(when a draft is applied). `where --here` changes only where the catalogue may be written.\n"
     "arv never deletes a file, an image or a disc.\n"
@@ -676,7 +678,7 @@ int main(int argc, char **argv)
     } cmds[] = { { "info", cmd_info }, { "restore", cmd_restore },
                  { "find", cmd_find }, { "list", cmd_list },
                  { "init", cmd_init }, { "make", cmd_make }, { "check", cmd_check },
-                 { "burned", cmd_burned }, { "note", cmd_note }, { "locate", cmd_locate },
+                 { "burned", cmd_burned }, { "note", cmd_note }, { "rename", cmd_rename }, { "locate", cmd_locate },
                  { "access", cmd_access }, { "location", cmd_location }, { "collection", cmd_collection },
                  { "status", cmd_status }, { "log", cmd_log }, { "diff", cmd_diff },
                  { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },
@@ -755,8 +757,7 @@ int main(int argc, char **argv)
                     }
             char **args = argv + 2;
             int n = argc - 2;
-            int reads_disc = !strcmp(cmds[i].name, "restore");
-            if (home && !reads_disc) {      /* the command reads -C HOME first (a disc's own commands need no home) */
+            if (home) {                     /* the command reads -C HOME first (restore: for moves in its record) */
                 args = xmalloc(((size_t)n + 3) * sizeof *args);
                 args[0] = "-C";
                 args[1] = (char *)home;

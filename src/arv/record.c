@@ -983,6 +983,104 @@ int cmd_note(int argc, char **argv)
     return 0;
 }
 
+/* the paths a disc's listing names (files and links), and the folders above them, as burned */
+static void listing_paths(const char *lst, strlist *files, strlist *folders)
+{
+    memset(files, 0, sizeof *files);
+    memset(folders, 0, sizeof *folders);
+    char *text = access(lst, F_OK) ? NULL : read_text(lst);
+    for (char *l = text; l && *l;) {
+        char *nl = strchr(l, '\n');
+        if (nl) *nl = 0;
+        char *cols[5] = { 0 };
+        if (*l != '#' && split_tabs(l, cols, 5) == 5 && *cols[4]) {
+            strlist_add(files, cols[4]);
+            for (char *s = strchr(cols[4], '/'); s; s = strchr(s + 1, '/')) {
+                char *f = xprintf("%.*s", (int)(s - cols[4]), cols[4]);
+                if (!strlist_has(folders, f)) strlist_add(folders, f);
+                free(f);
+            }
+        }
+        l = nl ? nl + 1 : l + strlen(l);
+    }
+    free(text);
+}
+
+/* arv rename DISC-ID PATH NEWPATH: a file or folder of a burned disc is called NEWPATH now. The disc
+ * stays as burned; the record says so (Moved: BURNED<TAB>NEWPATH), and find, restore and the next
+ * discs made from it use the new name. PATH is as it is called now. */
+int cmd_rename(int argc, char **argv)
+{
+    const char *given = NULL, *disc_id = NULL, *path = NULL, *to = NULL;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (argv[i][0] == '-') return 2;
+        else if (!disc_id) disc_id = argv[i];
+        else if (!path) path = argv[i];
+        else if (!to) to = argv[i];
+        else return 2;
+    }
+    if (!to) return 2;
+    if (!strncmp(path, "data/", 5)) path += 5;
+    if (!strncmp(to, "data/", 5)) to += 5;
+    opened o;
+    (void)open_disc_record(&o, given, disc_id);
+    int ok = *to && to[0] != '/' && to[strlen(to) - 1] != '/' && !strpbrk(to, "\t\r\n");
+    for (const char *s = to; ok && *s; s = strchr(s, '/') ? strchr(s, '/') + 1 : s + strlen(s)) {
+        size_t n = strcspn(s, "/");
+        ok = n && !(n == 1 && s[0] == '.') && !(n == 2 && s[0] == '.' && s[1] == '.');
+    }
+    if (!ok) die("%s cannot be a path under data/ (relative, no . or .. parts, no tabs or line breaks)", to);
+    char *lst = home_volume_file(&o.h, disc_id, "listing.tsv");
+    strlist files, folders, from, now;
+    listing_paths(lst, &files, &folders);
+    if (!files.n) die2("%s has no listing at home (%s): arv rebuild it from the disc first", disc_id, lst);
+    disc_moves(&o.cat, disc_id, &from, &now);
+    const char *burned = NULL;              /* PATH, as burned */
+    int folder = 0;
+    const strlist *both[2] = { &files, &folders };
+    for (int k = 0; k < 2 && !burned; k++)
+        for (size_t i = 0; i < both[k]->n && !burned; i++) {
+            char *m = moved_path(&from, &now, both[k]->v[i]);
+            if (!strcmp(m, path)) burned = both[k]->v[i], folder = k;
+            free(m);
+        }
+    if (!burned) {
+        for (int k = 0; k < 2; k++)
+            if (strlist_has(both[k], path)) {
+                char *m = moved_path(&from, &now, path);
+                die2("%s is called %s now (arv rename it by that name)", path, m);
+            }
+        die2("%s is not a file or folder of %s (arv find lists what it holds)", path, disc_id);
+    }
+    if (!strcmp(path, to)) {
+        printf("%s: %s is called that already\n", disc_id, path);
+        return 0;
+    }
+    for (int k = 0; k < 2; k++)            /* NEWPATH free: no other file or folder called that, or under it */
+        for (size_t i = 0; i < both[k]->n; i++) {
+            const char *b = both[k]->v[i];
+            size_t bn = strlen(burned);
+            if (!strncmp(b, burned, bn) && (!b[bn] || b[bn] == '/')) continue;     /* what is being moved */
+            char *m = moved_path(&from, &now, b);
+            size_t tn = strlen(to), mn = strlen(m);
+            int clash = !strcmp(m, to) || (!strncmp(m, to, tn) && m[tn] == '/') || (k == 0 && !strncmp(to, m, mn) && to[mn] == '/');
+            if (clash) die2("%s: another file or folder is called %s now (choose another name)", to, m);
+            free(m);
+        }
+    char *who = person(), *note = xprintf("renamed %s to %s in the record (the disc is as burned)", path, to);
+    rec_record *e = new_event(disc_id, "metadata modification", "success", who, "human", note);
+    tag_change(&o.cat, e, disc_id, "Moved", burned, to);
+    recs_add(&o.cat.events, e);
+    archive_save(&o.cat, o.h.rec_path);
+    printf("%s: %s%s is %s%s now, in the record (the disc is as burned: arv find shows both names; arv restore "
+           "uses the new one)\n", disc_id, path, folder ? "/" : "", to, folder ? "/" : "");
+    free(who);
+    free(note);
+    free(lst);
+    return 0;
+}
+
 int cmd_locate(int argc, char **argv)
 {
     const char *given = NULL, *disc_id = NULL, *letter = NULL, *where = NULL;

@@ -133,7 +133,8 @@ Date: 2026-01-01
 + copy's replication EventId) and Copy (its letter then; the newest is its letter now). A change
 + to a field says Sets: FIELD and Replaces: the EventIds of the changes it follows (a path's
 + tags or caption after burning: Tags: PATH<TAB>TAGS or Caption: PATH<TAB>TEXT, with Sets:
-+ Tags:PATH or Caption:PATH; the disc's tags.tsv stays as burned); two that
++ Tags:PATH or Caption:PATH; the disc's tags.tsv stays as burned; a file or folder renamed
++ after burning: Moved: BURNED<TAB>NOW, with Sets: Moved:BURNED); two that
 + replace the same one were made apart, a conflict to settle by setting the field again. Deaccession retires a disc (its Disc record gets
 + Retired).
 %mandatory: Type Date Outcome

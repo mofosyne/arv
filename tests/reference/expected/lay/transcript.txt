@@ -193,3 +193,59 @@ PHOTO-01_1974-2021_F  [?]  data/year/2019/event/kyoto trip/IMG_0002.JPG
 PHOTO-01_1974-2021_F  [?]  data/year/2019/event/kyoto trip/IMG_0003.JPG
 PHOTO-01_1974-2021_F  [?]  data/year/2019/event/kyoto trip/notes.txt
 rc=0
+$ --home hy rename PHOTO-01_1974-2021_F year/2019/event/kyoto trip/IMG_0002.JPG year/2019/event/kyoto trip/torii.jpg
+PHOTO-01_1974-2021_F: year/2019/event/kyoto trip/IMG_0002.JPG is year/2019/event/kyoto trip/torii.jpg now, in the record (the disc is as burned: arv find shows both names; arv restore uses the new one)
+rc=0
+$ --home hy rename PHOTO-01_1974-2021_F data/project/weather-station/station project/weather-station/station-v1
+PHOTO-01_1974-2021_F: project/weather-station/station/ is project/weather-station/station-v1/ now, in the record (the disc is as burned: arv find shows both names; arv restore uses the new one)
+rc=0
+$ --home hy rename PHOTO-01_1974-2021_F year/2019/event/kyoto trip/IMG_0002.JPG x.jpg
+Error: year/2019/event/kyoto trip/IMG_0002.JPG is called year/2019/event/kyoto trip/torii.jpg now (arv rename it by that name)
+rc=1
+$ --home hy rename PHOTO-01_1974-2021_F year/2019/event/kyoto trip/IMG_0003.JPG year/2019/event/kyoto trip/notes.txt
+Error: year/2019/event/kyoto trip/notes.txt: another file or folder is called year/2019/event/kyoto trip/notes.txt now (choose another name)
+rc=1
+$ --home hy rename PHOTO-01_1974-2021_F nope.jpg x.jpg
+Error: nope.jpg is not a file or folder of PHOTO-01_1974-2021_F (arv find lists what it holds)
+rc=1
+$ --home hy rename PHOTO-01_1974-2021_F decade/1970s/print1.tif ../x.tif
+Error: ../x.tif cannot be a path under data/ (relative, no . or .. parts, no tabs or line breaks)
+rc=1
+$ --home hy find torii
+PHOTO-01_1974-2021_F  [?]  data/year/2019/event/kyoto trip/torii.jpg  (burned as data/year/2019/event/kyoto trip/IMG_0002.JPG)
+rc=0
+$ --home hy find main.c
+PHOTO-01_1974-2021_F  [?]  data/project/weather-station/station-v1/src/main.c  (burned as data/project/weather-station/station/src/main.c)
+rc=0
+$ --home hy objects station
+Data objects:
+  station/  folder, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
+    "Station"
+    from ROOT/lay/station (there now: arv status says if it changed)
+    version 1  PHOTO-01_1974-2021_F  data/project/weather-station/station-v1/  no copy yet  (burned as data/project/weather-station/station)
+rc=0
+$ --home hy restore lay-disc lay-restored
+PHOTO-01_1974-2021_F: 2 files or folders renamed in the record since burning: restored under the new names (--as-burned for the names on the disc)
+PHOTO-01_1974-2021_F: restored 9 files (121 bytes) and 0 links to lay-restored
+rc=0
+lay-restored/decade/1970s/print1.tif
+lay-restored/project/weather-station/station-v1/README.md
+lay-restored/project/weather-station/station-v1/src/main.c
+lay-restored/year/2019/event/kyoto trip/IMG_0001-day2.JPG
+lay-restored/year/2019/event/kyoto trip/IMG_0001.JPG
+lay-restored/year/2019/event/kyoto trip/IMG_0002-copy.JPG
+lay-restored/year/2019/event/kyoto trip/IMG_0003.JPG
+lay-restored/year/2019/event/kyoto trip/notes.txt
+lay-restored/year/2019/event/kyoto trip/torii.jpg
+$ --home hy restore lay-disc lay-restored-burned --as-burned
+PHOTO-01_1974-2021_F: restored 9 files (121 bytes) and 0 links to lay-restored-burned
+rc=0
+lay-restored-burned/decade/1970s/print1.tif
+lay-restored-burned/project/weather-station/station/README.md
+lay-restored-burned/project/weather-station/station/src/main.c
+lay-restored-burned/year/2019/event/kyoto trip/IMG_0001-day2.JPG
+lay-restored-burned/year/2019/event/kyoto trip/IMG_0001.JPG
+lay-restored-burned/year/2019/event/kyoto trip/IMG_0002-copy.JPG
+lay-restored-burned/year/2019/event/kyoto trip/IMG_0002.JPG
+lay-restored-burned/year/2019/event/kyoto trip/IMG_0003.JPG
+lay-restored-burned/year/2019/event/kyoto trip/notes.txt

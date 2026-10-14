@@ -282,6 +282,12 @@ name with `plan rename`, and the layout keeps placing it, under that name. The d
 go into the disc's `tags.tsv` and the dates into its coverage. Re-filing a photo later is changing
 its tags; the next disc made puts it there.
 
+**Renaming after burning.** A disc cannot change, but its record can: `arv rename DISC-ID
+"day1/IMG_0001.JPG" "Fushimi Inari/torii gates.jpg"` records the new name (a folder's moves all
+under it). `find` finds it by either name, `restore` puts it back under the new one
+(`--as-burned` for the disc's), and the next disc made from these files uses it. On a disc with a
+layout, re-filing is changing tags instead; renaming suits a name.
+
 **Copies.** `arv plan show NAME --duplicates` lists byte-identical files on each disc (a folder
 copied twice, a card imported twice, an export that repeats photos in each album), and `plan make`
 notes them. Each is written in full, and each stays an object of its own (the same bytes can be
