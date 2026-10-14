@@ -130,6 +130,7 @@ Classified as: MEMORIES/PHOTO, PROJECTS/CODE
 Object IMG_0001.JPG (data/year/2019/event/kyoto trip/IMG_0001.JPG, by the layout on PHOTO-01_1974-2021_F): new
 Object IMG_0002-copy.JPG (data/year/2019/event/kyoto trip/IMG_0002-copy.JPG, by the layout on PHOTO-01_1974-2021_F): new
 Object IMG_0002.JPG (data/year/2019/event/kyoto trip/IMG_0002.JPG, by the layout on PHOTO-01_1974-2021_F): new
+  the same bytes as IMG_0002-copy.JPG version 1 on PHOTO-01_1974-2021_F, archived from elsewhere: recorded as another object (SameBytes), since the bytes cannot say whether it is the same thing
 Object IMG_0003.JPG (data/year/2019/event/kyoto trip/IMG_0003.JPG, by the layout on PHOTO-01_1974-2021_F): new
 Object IMG_0001.JPG (data/year/2019/event/kyoto trip/IMG_0001-day2.JPG, by the layout on PHOTO-01_1974-2021_F): new
 Object notes.txt (data/year/2019/event/kyoto trip/notes.txt, by the layout on PHOTO-01_1974-2021_F): new

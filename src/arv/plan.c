@@ -1879,9 +1879,10 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
                 const rec_record *o = both[b]->v[i];
                 if (rec_get(o, "Source") && !strcmp(rec_get(o, "Source"), stored)) from = o;
             }
-        for (int b = 0; b < 2; b++)
-            for (size_t i = 0; lines.n && i < both[b]->n; i++) {
-                const rec_record *o = both[b]->v[i];
+        const recs *any[3] = { &cat->objects, made_now, out };    /* this disc's own so far too */
+        for (int b = 0; b < 3; b++)
+            for (size_t i = 0; lines.n && i < any[b]->n; i++) {
+                const rec_record *o = any[b]->v[i];
                 if (!rec_get(o, "Tree") || strcmp(rec_get(o, "Tree"), tree)) continue;
                 if (from && rec_get(o, "Uuid") && !strcmp(rec_get(o, "Uuid"), rec_get(from, "Uuid"))) same = o;
                 else twin = o;
