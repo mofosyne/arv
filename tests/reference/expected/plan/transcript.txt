@@ -403,8 +403,7 @@ arv plan: unexpected or missing arguments: delete card --yes
          discs composed by hand from files and folders anywhere; the sources stay where they are:
          new NAME [--collection CODE] (its discs that collection's next edition, arranged as planned);
          add NAME SOURCE... [--disc N|new|auto] [--as PATH] [--each] puts them on a disc, under PATH
-         (--each: each file in a folder an object of its own; SOURCE may be DISC-ID[:PATH], read from a
-         copy the record knows as files, checked against its manifest: a disc remade);
+         (--each: each file in a folder an object of its own);
          add NAME --list FILE|- takes SOURCE<tab>PATH[<tab>DISC] lines, all or none;
          rename NAME PATH NEWPATH gives an item a new place, or splits one off a planned folder;
          tag NAME SOURCE TAGS (or --list FILE|-: SOURCE<tab>TAGS lines) tags files before they are on discs;

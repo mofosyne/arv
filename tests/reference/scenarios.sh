@@ -592,24 +592,13 @@ log lay.out --home hy retag torii.jpg "event:osaka-trip, place:osaka, Best"
 log lay.out --home hy retag torii.jpg "event:osaka-trip, place:osaka, best"
 log lay.out --home hy objects torii.jpg
 log lay.out --home hy find osaka
+log lay.out --home hy plan new again --set PHOTO                     # the photo planned again, from the drive:
+log lay.out --home hy plan add again lay/DCIM/IMG_0002.JPG          # placed by its tags now, named by its name now
+log lay.out --home hy plan layout again "year/event"
+log lay.out --home hy plan show again
 7z x -olay-disc out-lay/$lid.noecc.iso >/dev/null
 log lay.out --home hy restore lay-disc lay-restored                 # as burned
 find lay-restored -type f | sort >> lay.out
-# a plan from discs: remade from a copy the record knows as files, checked as read, named as now
-cp -R lay-disc lay-nas
-log lay.out --home hy stored $lid lay-nas
-log lay.out --home hy plan new remake --set PHOTO
-log lay.out --home hy plan add remake "$lid:nope"
-log lay.out --home hy plan add remake $lid
-log lay.out --home hy plan layout remake "year/event, project, decade"
-log lay.out --home hy plan show remake
-echo damage >> lay-nas/data/decade/1970s/print1.tif
-log lay.out --home hy plan make remake -y --no-ecc --no-formats --output-dir out-remake
-cp -p lay-disc/data/decade/1970s/print1.tif lay-nas/data/decade/1970s/print1.tif
-log lay.out --home hy plan make remake -y --no-ecc --no-formats --output-dir out-remake
-cut -f5 hy/catalog/volumes/PHOTO-02_*/listing.tsv >> lay.out
-cat hy/catalog/volumes/PHOTO-02_*/tags.tsv >> lay.out
-log lay.out --home hy objects torii.jpg
 keep lay.out lay/transcript.txt
 keep hy/drafts/plans/album.rec lay/album.rec
 keep_stages out-lay lay/discs

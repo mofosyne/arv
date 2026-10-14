@@ -983,29 +983,6 @@ int cmd_note(int argc, char **argv)
     return 0;
 }
 
-/* the paths a disc's listing names (files and links), and the folders above them, as burned */
-void listing_names(const char *lst, strlist *files, strlist *folders)
-{
-    memset(files, 0, sizeof *files);
-    memset(folders, 0, sizeof *folders);
-    char *text = access(lst, F_OK) ? NULL : read_text(lst);
-    for (char *l = text; l && *l;) {
-        char *nl = strchr(l, '\n');
-        if (nl) *nl = 0;
-        char *cols[5] = { 0 };
-        if (*l != '#' && split_tabs(l, cols, 5) == 5 && *cols[4]) {
-            strlist_add(files, cols[4]);
-            for (char *s = strchr(cols[4], '/'); s; s = strchr(s + 1, '/')) {
-                char *f = xprintf("%.*s", (int)(s - cols[4]), cols[4]);
-                if (!strlist_has(folders, f)) strlist_add(folders, f);
-                free(f);
-            }
-        }
-        l = nl ? nl + 1 : l + strlen(l);
-    }
-    free(text);
-}
-
 static const char *get_or(const rec_record *r, const char *name, const char *dflt)
 {
     const char *v = rec_get(r, name);

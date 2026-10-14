@@ -100,15 +100,6 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - The plan's tags go into the disc's `tags.tsv` (a folder object's once, on its folder); a `date:`
   tag counts for the disc's coverage instead of the file's time.
 
-**Discs remade from discs**
-- `arv plan add NAME DISC-ID[:PATH]`: a disc's file or folder (as called now) as a plan source,
-  read from a copy the record knows as files (a stored folder, a mounted disc recorded with
-  `arv stored`); an image only is refused with how to unpack it. A whole disc adds each of its
-  data objects as an item, so each continues its lineage: the new disc holds another copy of the
-  same versions. At `plan make` every file is checked against the old disc's manifest (a damaged
-  copy stops the make), keeps its time from the old listing, its tags now (burned, and changed
-  since), and its name now. No staging copy is made.
-
 **A plan as a collection's next edition**
 - `arv plan new NAME --collection CODE` (or `--collection` given to any plan action): `plan make`
   makes the plan's discs the collection's next edition, with its revision and manifest, as a
@@ -122,8 +113,9 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   disc made from it, not a path on one disc. OBJECT is its Uuid or name; two of the same name are
   refused, listed. The discs stay as burned.
 - `describe --apply` and `tag --apply` record a change to an object's own path as its tags, so
-  they follow it too. `find`, `tags`, `keywords` and `objects` read them; a remade disc places each
-  object by its tags now (a layout) and names it by its name now.
+  they follow it too. `find`, `tags`, `keywords` and `objects` read them, and a plan of the same
+  source places it by its tags now (a layout), names it by its name now, and writes them into the
+  new disc's `tags.tsv`.
 
 **Byte-identical files reported**
 - `make` notes files whose bytes another file on the same disc has (each is written in full), and

@@ -288,20 +288,17 @@ history as `arv make` of the collection's folder, but arranged as the plan says 
 albums, laid out by tags, gathered from several places). `arv diff FAM/2 FAM/3` then shows the
 re-arrangement as moves, by content.
 
-**Remaking discs from discs.** When old discs need new media, or several are to be gathered onto
-one, a plan can read them: `arv plan add new-media PHOTO-01_2019_4` (a whole disc: each of its
-data objects) or `PHOTO-01_2019_4:Kyoto` (one folder, as it is called now). The files are read from
-a copy the record knows as files: a stored folder (`arv stored ID FOLDER`), or a disc mounted and
-recorded the same way; for an image, unpack it first (`7z x -oFOLDER IMAGE`). As they are read, each
-is checked against the old disc's manifest, and a damaged one stops the make (repair the copy, or
-use another). The new disc keeps each file's time, and each object's tags and name now, and
-each data object stays the same version, now one more copy.
+**New media for old discs.** Before a disc's media gets old, or its drives scarce, copy it as it
+is: burn the same image again (`arv burned DISC --device ...` records copy B of the same disc), or
+keep the images on newer storage (`arv stored DISC IMAGE`, with `--carrier` for a tape or drive
+holding several). The bits stay the same and the check is the same, so nothing needs remaking;
+the copying is the burner's, `dd`'s or `rsync`'s work.
 
 **After burning: names and tags, not places.** A burned disc does not change, and its paths are
 facts about it. What changes is the record of each data object: `arv retag torii.jpg
 'event:osaka-trip, place:osaka, best'` gives it new tags, and `arv rename IMG_0002.JPG torii.jpg`
 a new name. Both follow the object, by its Uuid, to every disc it is on; `find` finds it by them,
-and the next disc made from it (a remake, below) files it by its tags and names it by its name.
+and a plan of the same file again (from the drive) files it by its tags and names it by its name.
 Re-filing a photo is changing its tags; there is no moving it.
 
 **Copies.** `arv plan show NAME --duplicates` lists byte-identical files on each disc (a folder

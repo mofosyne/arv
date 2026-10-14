@@ -1501,24 +1501,20 @@ do not give is order (a slideshow's sequence): that is names (`01 torii gates.jp
     within it, so the same object placed two ways is the same version.
   Not yet: titles, and a layout for `arv make` of a folder that is not a plan.
 
-## Done (2026-10-14): plans from discs
+## Decision (2026-10-14): no remaking discs from discs
 
-`arv plan add NAME DISC-ID[:PATH]` (and `--each`), as designed above, with one step left for
-later: a source is read from a copy the record knows *as files* (a stored folder, or a mounted
-disc recorded with `arv stored`), not yet from an image by its sectors (that needs the image
-writer to read extents of another image; until then arv says to unpack it). What it does:
-- **A whole disc adds its data objects**, one item each (named as now), and any file in none as
-  its own; a disc with no objects (a collection's edition) is one folder. Each object found again
-  continues its lineage: same `Tree`, so the new disc is another copy of the same version, as
-  remaking for new media should be.
-- **Checked as read**: each file's SHA-256 (hashed for the new disc anyway) against the old disc's
-  manifest; any that differ stop the make, listed, with what to do. Nothing damaged is copied on.
-- **Faithful**: each file's time from the old disc's listing (a copy's own times may be the day it
-  was copied), its tags now (burned, with changes since) into the new disc's `tags.tsv`, and its
-  each object's tags and name now (by its Uuid).
-- The item records `From: DISC-ID:PATH`; a file split off such an item (`plan rename`) is read
-  from the same disc.
-Not yet: reading images by their sectors, and one drive with several discs asked for in turn.
+Built the same day (`arv plan add NAME DISC-ID[:PATH]`, read from a copy the record knows as files,
+each file checked against the old disc's manifest, each object continuing its lineage, times,
+tags and names carried) and removed: the owner asked whether it was important, and it is not.
+What preservation needs over the years is refreshment and replication (OAIS): the same image on
+new media (`arv burned`, another copy of the same disc), or the images kept on newer storage
+(`arv stored`, a `Carrier` for a tape or drive holding several). The bits stay identical, the
+check stays trivial, and the copying is other tools' work (principle 7). Remaking adds only
+re-arranged or gathered discs from discs whose originals are gone, which is rare (arranging is
+done before burning, from the originals, which plans do), and it cost about 250 lines, and wanted
+reading images by their sectors to be right. The design above stays, for if the need turns up.
+What it taught stays too: an object's tags and name follow its Uuid, and a plan of a source
+archived before places it by its tags now and names it by its name now.
 
 ## Done (2026-10-14): a plan as a collection's next edition
 
@@ -1527,8 +1523,7 @@ make` makes the plan's discs the collection's next edition, through the same pat
 the collection's folder (its title and set as defaults, the id prefix, the `Revision` with its
 manifest and changes, `--keep` and `--message`). The plan's items are still data objects. So the
 collection is what is kept, a lineage of editions, and the plan is how this one is arranged:
-`diff` shows the arrangement as moves, by content. Not yet: plans whose sources are discs (below),
-which is what makes remaking an old edition onto new media one step.
+`diff` shows the arrangement as moves, by content.
 
 ## Decision (2026-10-14): after burning, an object's name and tags change, never its place
 
@@ -1538,14 +1533,15 @@ before an object's place became its tags'. The owner's point: it is just tags, n
 - **A disc's paths are facts about that disc**, and stay. Nothing moves.
 - **Re-filing is a tag change**, and **renaming is the object's name** (its slug), both events
   about the object by its Uuid (`Object: object:UUID`, `Tags:` or `Slug:`, `Sets`), so they follow
-  it to every copy and every remake, as Archivematica's identifiers do, rather than a path on one
+  it to every copy and every disc made from it, as Archivematica's identifiers do, rather than a path on one
   disc. `arv retag OBJECT TAGS`, `arv rename OBJECT NEWNAME`.
 - **Tags by object**: `describe --apply` and `tag --apply` record a change to an object's own path
   as the object's tags; path-keyed changes stay for files inside a folder object, which have no
   identity of their own.
-- **`restore` restores the disc as burned.** Wanting today's arrangement is a remake, not a restore.
-- **A remake places by tags now and names by name now**: in the test, a photo re-tagged
-  `event:osaka-trip` and renamed `torii.jpg` goes to `year/2019/event/osaka-trip/torii.jpg`.
+- **`restore` restores the disc as burned.** Today's arrangement is a new disc, not a restore.
+- **A plan of the same source places by its tags now and names by its name now**: in the test, a
+  photo re-tagged `event:osaka-trip` and renamed `torii.jpg`, planned again from the drive, goes to
+  `year/2019/event/osaka-trip/torii.jpg`.
 The path moves, `--as-burned` and the name mapping in `find`, `objects` and `restore` were removed.
 
 ## Decision (2026-10-14): identity is the lineage, never the bytes

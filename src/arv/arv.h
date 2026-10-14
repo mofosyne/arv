@@ -169,8 +169,6 @@ const char *object_field(const archive *a, const char *uuid, const char *field);
 const char *object_slug(const archive *a, const rec_record *o);
 rec_record *object_event_like(const rec_record *ev, const char *uuid);   /* an event about it, as ev is */
 const rec_record *object_at(const archive *a, const char *disc_id, const char *path);   /* the object at path on a disc */
-/* the paths a disc's listing names, and the folders above them, as burned (record.c) */
-void listing_names(const char *lst, strlist *files, strlist *folders);
 size_t field_conflicts(const archive *a);    /* a field changed apart in two catalogues: printed, counted */    /* recorded twice, on two discs, two BCAs: printed, counted */
 /* the BCA serial of the disc in a drive (Linux): 32 hex digits; -1 when there is none (drive.c) */
 int drive_bca(const char *device, char out[33]);
@@ -212,7 +210,6 @@ typedef struct {
     char *path;             /* where it goes under data/ ("." : a folder's contents at the top) */
     char *seen;             /* "FILES BYTES STAMP" when planned (names, sizes, dates), or NULL */
     char *placed;           /* plan_scan: where the disc's layout put it, whole; NULL: at path */
-    char *from;             /* read from a disc's copy: "DISC-ID:PATH" (as burned; "" the whole), or NULL */
 } plan_item;
 typedef struct {
     char *file, *name;
