@@ -224,7 +224,7 @@ class GuiTest(unittest.TestCase):
         replies = os.path.join(self.tmp, "text.reply")
         with open(replies, "w") as f:
             json.dump({"title": "Holiday photos", "description": "Photos.", "subjects": ["Travel"], "questions": ["Where?"],
-                       "folder_tags": {}}, f)
+                       "tags": {}}, f)
         port = os.path.join(self.tmp, "port")
         self.fake = subprocess.Popen([FAKE_LLM, port, os.path.join(self.tmp, "log"), replies, replies])
         for _ in range(50):

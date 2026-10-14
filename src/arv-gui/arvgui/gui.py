@@ -19,7 +19,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-DRAFT_FIELDS = ("title", "description", "subjects", "folder_tags")
+DRAFT_FIELDS = ("title", "description", "subjects", "tags")
 PLAN_NAME = re.compile(r"^[A-Za-z0-9_-][A-Za-z0-9._-]{0,63}$")   # as arv plan takes them
 
 
@@ -326,8 +326,8 @@ class App:
         path = os.path.join(folder, "draft-%s.json" % secrets.token_hex(4))
         data = {"title": draft.get("title"), "description": draft.get("description"),
                 "subjects": draft.get("subjects") or [], "notes": draft.get("notes") or [],
-                "folder_tags": draft.get("folder_tags") or {},
-                "folder_captions": draft.get("folder_captions") or {},
+                "tags": draft.get("tags") or {},
+                "captions": draft.get("captions") or {},
                 "authorship": self.draft_authorship(draft), "agent": draft.get("agent") or "llm"}
         with open(path, "w", encoding="utf-8") as f:    # a draft, as arv describe --save writes them
             json.dump(data, f, ensure_ascii=False, indent=2)

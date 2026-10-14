@@ -77,10 +77,10 @@ static char *hierarchical(const char *tag)
 typedef struct {
     char *folder;
     strlist tags;
-} folder_tags;
+} tags;
 
 typedef struct {
-    folder_tags *v;
+    tags *v;
     size_t n;
 } tag_file;
 
@@ -100,7 +100,7 @@ static void read_tags(const char *path, tag_file *out)
         *tab = 0;
         char *rest = tab + 1, *tab2 = strchr(rest, '\t');
         if (tab2) *tab2 = 0;
-        folder_tags *ft = NULL;
+        tags *ft = NULL;
         for (size_t i = 0; i < out->n && !ft; i++)
             if (!strcmp(out->v[i].folder, line)) ft = &out->v[i];
         if (ft) {
@@ -334,7 +334,7 @@ int cmd_keywords(int argc, char **argv)
     tag_file tf;
     read_tags(path, &tf);
     for (size_t k = 0; k < tf.n; k++) {
-        folder_tags *ft = NULL;
+        tags *ft = NULL;
         for (size_t i = 0; i < kw.n && !ft; i++)
             if (!strcmp(kw.v[i].folder, tf.v[k].folder)) ft = &kw.v[i];
         if (!ft) {

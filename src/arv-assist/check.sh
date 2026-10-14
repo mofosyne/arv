@@ -25,7 +25,7 @@ put() { mkdir -p "$(dirname "$1")"; printf '%s' "$2" > "$1"; touch -d "@${3:-156
 cat > text.reply <<'EOF'
 {"title": "Family trip photos 2019", "description": "Photos from a 2019 trip, one folder per day.",
  "subjects": ["Travel", "family", "travel"], "questions": ["Where was the 2019 trip?", "Who took the photos?"],
- "folder_tags": {"photos/2019 trip": ["travel", "2019"], "no/such/folder": ["x"]}}
+ "tags": {"photos/2019 trip": ["travel", "2019"], "no/such/folder": ["x"]}}
 EOF
 printf 'Caption: People on a sandy beach.\nTags: beach, sea, Beach' > image.reply
 "$fake" port log text.reply image.reply &
@@ -46,7 +46,7 @@ grep -q "Pictures from our holiday." inv.txt && grep -q "photos/2019 trip/ - 1 f
 "$tool" --home home describe Trip $llm --save draft.json </dev/null 2>/dev/null || no "describe --save"
 grep -q '"agent": "llm:fake-model"' draft.json && grep -q '"model": "fake-model"' log \
     && tr -d '\n ' < draft.json | grep -q '"subjects":\["travel","family"\]' \
-    && tr -d '\n ' < draft.json | grep -q '"folder_tags":{"photos/2019trip":\["travel","2019"\]}' \
+    && tr -d '\n ' < draft.json | grep -q '"tags":{"photos/2019trip":\["travel","2019"\]}' \
     && grep -q '"authorship": "suggested"' draft.json \
     && ok "describe --save: the model from /models; subjects lowercased and once each; a folder that is not there dropped" \
     || { cat draft.json; no "the draft"; }
@@ -71,12 +71,12 @@ grep -q "not a local address" err.txt && ok "fenced JSON is read, prose is refus
 printf 'Kyoto, Japan\n\n\n\n\nn\n' > answers
 "$ptyrun" answers "$tool" --home home describe Trip $llm --rounds 1 --save d2.json > pty.out 2>&1 || { cat pty.out; no "interactive describe"; }
 tail -1 log | grep -q "Kyoto, Japan" && grep -q '"Q: Where was the 2019 trip?\\nA: Kyoto, Japan"' d2.json \
-    && tr -d '\n ' < d2.json | grep -q '"folder_tags":{}' && grep -q '"authorship": "edited"' d2.json \
+    && tr -d '\n ' < d2.json | grep -q '"tags":{}' && grep -q '"authorship": "edited"' d2.json \
     && ok "interactive: the answer refines the next request and becomes a note; dropped tags make it edited" \
     || { cat d2.json; no "interactive describe"; }
 
 # a draft applied to a disc that exists
-printf '{"title": "New title", "subjects": ["travel"], "notes": ["Q: Who?\\nA: Us"], "folder_tags": {"photos": ["travel"]}, "agent": "llm:test"}\n' > apply.json
+printf '{"title": "New title", "subjects": ["travel"], "notes": ["Q: Who?\\nA: Us"], "tags": {"photos": ["travel"]}, "agent": "llm:test"}\n' > apply.json
 "$tool" --home home describe "$id" --apply apply.json > apply.out || no "describe --apply"
 grep -q "^Title: New title" home/catalog/archive.rec && grep -q "^Note: Q: Who?" home/catalog/archive.rec \
     && grep -A6 "^Note: updated Title" home/catalog/archive.rec >/dev/null \
@@ -87,7 +87,7 @@ grep -q "^Title: New title" home/catalog/archive.rec && grep -q "^Note: Q: Who?"
 
 # a draft from elsewhere, on standard input, left a suggestion: one folder's tags and one file's join
 # the others', and a path the disc does not have is skipped
-printf '{"folder_tags": {"photos/2019 trip": ["event:trip-2019"], "photos/2019 trip/IMG_0001.JPG": ["best"], "no/such": ["x"]}, "agent": "llm:other"}\n' \
+printf '{"tags": {"photos/2019 trip": ["event:trip-2019"], "photos/2019 trip/IMG_0001.JPG": ["best"], "no/such": ["x"]}, "agent": "llm:other"}\n' \
     | "$tool" --home home describe "$id" --apply - --suggested > apply2.out 2> apply2.err || no "describe --apply -"
 tsv=$(find home -path "*$id*" -name tags.tsv | head -1)
 grep -q "^photos	travel" "$tsv" && grep -q "^photos/2019 trip	event:trip-2019" "$tsv" && ! grep -q "^no/such" "$tsv" \
@@ -192,7 +192,7 @@ while [ $i -lt 5 ]; do
     put "Beach/photos/beach day/IMG_$i.png" "$(cat "img$i.png")"
     i=$((i + 1))
 done
-printf '{"title": "Beach", "description": "A day at the beach.", "subjects": ["beach"], "questions": [], "folder_tags": {}}' > text.reply
+printf '{"title": "Beach", "description": "A day at the beach.", "subjects": ["beach"], "questions": [], "tags": {}}' > text.reply
 : > log
 PATH=/usr/bin:/bin "$tool" describe Beach $llm --vision --vision-per-folder 2 --save v.json </dev/null 2>/dev/null || no "describe --vision"
 [ "$(grep -c '"image_url"' log)" -eq 2 ] && grep -q 'data:image/png;base64,' log \
@@ -214,7 +214,7 @@ for reply in 'Caption: A dog on grass.|Tags: Dog, grass, dog, park.|A dog on gra
     if [ -n "$want_cap" ]; then
         grep -q "\"photos/beach day\": \"$want_cap\"" r.json || { cat r.json; no "caption from: $reply"; }
     else
-        grep -q '"folder_captions": {}' r.json || { cat r.json; no "an echoed answer kept: $reply"; }
+        grep -q '"captions": {}' r.json || { cat r.json; no "an echoed answer kept: $reply"; }
     fi
     [ -z "$want_tags" ] || tr -d '\n' < r.json | sed 's/  */ /g' | grep -q "\"photos/beach day\": \[ \"$(echo "$want_tags" | sed 's/, /", "/g')\" \]" \
         || { cat r.json; no "tags from: $reply"; }
@@ -251,7 +251,7 @@ emb="--embed-url $url --vocab $dir/tags.rec"
 "$tool" --home th tag Stuff --show-summaries $emb > sum.txt
 ! grep -q DSC sum.txt && grep -q "beach trip: 1 photos" sum.txt || { cat sum.txt; no "summaries"; }
 "$tool" --home th tag Stuff --top 1 $emb </dev/null > t.json 2>/dev/null || no "tag"
-tr -d '\n ' < t.json | grep -q '"folder_tags":{"beachtrip":\["travel"\],"catsandkittens":\["pets"\],"scripts":\["code"\]}' \
+tr -d '\n ' < t.json | grep -q '"tags":{"beachtrip":\["travel"\],"catsandkittens":\["pets"\],"scripts":\["code"\]}' \
     && grep -q '"agent": "embeddings:fake-model"' t.json && grep -q '"authorship": "suggested"' t.json \
     && ok "tag: each folder gets its closest tag; camera names left out of the summaries" || { cat t.json; no "tag suggestions"; }
 "$tool" --home th tag Stuff --save td.json $emb </dev/null 2>/dev/null || no "tag --save"
@@ -282,7 +282,7 @@ tr -d '\n ' < l.json | grep -q '"kyototemplesgarden":\[[^]]*"japan"' && ! tr -d 
 printf 'Alias: holiday\n\nName: electronics\nDescription: circuits\nMatch: *.kicad_pcb\n' >> tags.rec
 put Stuff/board/x.kicad_pcb x
 "$tool" --home th tag Stuff --rules-only --vocab "$dir/tags.rec" </dev/null > r.json 2>/dev/null
-tr -d '\n ' < r.json | grep -q '"folder_tags":{"board":\["electronics"\]}' && grep -q '"agent": "match rules"' r.json \
+tr -d '\n ' < r.json | grep -q '"tags":{"board":\["electronics"\]}' && grep -q '"agent": "match rules"' r.json \
     && grep -q '"authorship": "automatic"' r.json || { cat r.json; no "rules only"; }
 printf 'a\n' > answers
 printf 'holiday, Place : Kyoto\na\n' > answers

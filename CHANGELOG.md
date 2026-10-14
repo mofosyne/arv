@@ -78,6 +78,8 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   own, so a few files across folders can share a tag (`best`, `person:alice`). Drafts take a
   file's path (`make --draft`, `describe --apply`); `find` shows the file, `tags` counts files
   apart from folders, and `keywords` writes one file's keywords. "Best of" is a tag.
+- A draft's tags and captions are `tags` and `captions` (were `folder_tags` and `folder_captions`):
+  each maps a folder or a file to its tags, or its caption.
 
 **Read without arv: notes on BagIt and recutils** (format 0.5)
 - `docs/notes/bagit.md`: checking a disc with the Library of Congress's validator, which every

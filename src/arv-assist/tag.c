@@ -764,8 +764,8 @@ int assist_tag(int argc, char **argv)
         jv *d = NULL;
         char *old = access(save, F_OK) ? NULL : read_text(save);
         if (old && (d = json_parse(old)) && d->kind == 'o') {     /* merged into a draft (from arv describe, say) */
-            jv *ft = (jv *)json_get(d, "folder_tags");
-            if (!ft || ft->kind != 'o') { ft = jobj(); jput(d, "folder_tags", ft); }
+            jv *ft = (jv *)json_get(d, "tags");
+            if (!ft || ft->kind != 'o') { ft = jobj(); jput(d, "tags", ft); }
             for (size_t i = 0; i < accepted.n; i++)
                 if (accepted.tags[i].n) jput(ft, accepted.folder[i], jstrings(&accepted.tags[i]));
             const char *oa = jstr_of(json_get(d, "agent")), *oh = jstr_of(json_get(d, "authorship"));
@@ -776,7 +776,7 @@ int assist_tag(int argc, char **argv)
         } else {
             jfree(d);
             d = jobj();
-            jput(d, "folder_tags", tags_json(&accepted, 1));
+            jput(d, "tags", tags_json(&accepted, 1));
             jput(d, "agent", jstr(agent));
             jput(d, "authorship", jstr(how));
         }
@@ -806,7 +806,7 @@ int assist_tag(int argc, char **argv)
         free(tf);
     } else {
         jv *d = jobj();
-        jput(d, "folder_tags", tags_json(&accepted, 0));
+        jput(d, "tags", tags_json(&accepted, 0));
         jput(d, "agent", jstr(agent));
         jput(d, "authorship", jstr(how));
         sbuf b = { 0 };

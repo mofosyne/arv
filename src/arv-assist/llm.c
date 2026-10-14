@@ -54,13 +54,13 @@ static const char SYSTEM_PROMPT[] =
     "design files for a raised-bed garden project. Photos are grouped by day; the "
     "garden folder holds sketches and a parts list.\",\n"
     " \"subjects\": [\"travel\", \"portugal\", \"family\", \"gardening\", \"diy\"],\n"
-    " \"folder_tags\": {\"photos/2016-06_Lisbon\": [\"travel\", \"lisbon\", \"family\"],\n"
+    " \"tags\": {\"photos/2016-06_Lisbon\": [\"travel\", \"lisbon\", \"family\"],\n"
     "                 \"garden\": [\"diy\", \"gardening\", \"plans\"]},\n"
     " \"questions\": [\"Who is in the Lisbon photos?\",\n"
     "               \"What is in scan_03.tif in misc/, and why was it kept?\"]}\n\n"
     "Reply with a single JSON object with exactly these keys and nothing else:\n"
     "{\"title\": \"...\", \"description\": \"...\", \"subjects\": [\"...\"],\n"
-    " \"folder_tags\": {\"folder/path\": [\"tag\", \"...\"]}, \"questions\": [\"...\"]}";
+    " \"tags\": {\"folder/path\": [\"tag\", \"...\"]}, \"questions\": [\"...\"]}";
 
 /* ------------------------------------------------------------------ the client */
 
@@ -480,7 +480,7 @@ int llm_parse(const char *content, const strlist *folders, suggestion *out, char
     out->description = clean_text(jstr_of(json_get(d, "description")), 1500);
     clean_items(json_get(d, "subjects"), 40, 10, 1, &out->subjects);
     clean_items(json_get(d, "questions"), 300, 8, 0, &out->questions);
-    const jv *ft = json_get(d, "folder_tags");
+    const jv *ft = json_get(d, "tags");
     for (size_t i = 0; ft && ft->kind == 'o' && i < ft->n; i++) {
         char *folder = clean_text(ft->keys[i], 4096);
         char *f = folder;
@@ -508,7 +508,7 @@ jv *suggestion_json(const suggestion *s, int with_questions)
     jput(o, "subjects", jstrings(&s->subjects));
     for (size_t i = 0; i < s->folders.n; i++)
         if (s->folders.tags[i].n) jput(ft, s->folders.folder[i], jstrings(&s->folders.tags[i]));
-    jput(o, "folder_tags", ft);
+    jput(o, "tags", ft);
     if (with_questions) jput(o, "questions", jstrings(&s->questions));
     int caps = 0;
     for (size_t i = 0; i < s->folders.n; i++) caps |= s->folders.caption[i] != NULL;
@@ -516,7 +516,7 @@ jv *suggestion_json(const suggestion *s, int with_questions)
         jv *c = jobj();
         for (size_t i = 0; i < s->folders.n; i++)
             if (s->folders.caption[i]) jput(c, s->folders.folder[i], jstr(s->folders.caption[i]));
-        jput(o, "folder_captions", c);
+        jput(o, "captions", c);
     }
     return o;
 }

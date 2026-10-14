@@ -1457,24 +1457,34 @@ do not give is order (a slideshow's sequence): that is names (`01 torii gates.jp
 - **Planned: tags added after burning as events**, carried by the next disc's snapshot, as moves
   are. Today `describe --apply` rewrites the home's copy of the tag list and logs that it did.
 
-**Structured tags from the layout** (planned). A disc (or a collection) may say how its `data/` is
-laid out: `Layout: {year}/{event}`. Then a file under `2019/Kyoto trip/` has `year:2019` and
-`event:kyoto-trip` without anyone tagging it, and they cannot go stale: a move changes them, as
-they are read from the path. Folder names are also the metadata most likely to survive without
-any software. So:
+**A layout is a view of tags** (planned; corrected 2026-10-14). First written the other way round
+(a declared folder layout from which tags are derived), but the owner's experience is that the
+order changes between discs: year first on one, event first on another, as each is handier. So the
+tags are the facts about a file (`year:2019`, `event:kyoto-trip`, `best`, `person:alice`), kept with
+it, and a disc's folders are one view of them, chosen when the disc is made:
 
-- **Structured** (one value a file: year, event, place, project): from the layout, not stored.
-  `find`, `tags` and `keywords` derive them; the spec defines the pattern so Katalog can too, and
-  a disc's `tags.tsv` may list them as well for readers that do not.
-- **Unstructured** (any number: `best`, people): stored tags, as above; the vocabulary
-  (`config/tags.rec`) keeps their spelling one.
-- **Limits:** one hierarchy a file (year/event or place, not both: the other is a tag); folders
-  that break the pattern (`misc/`, an event in the wrong year) get no structured tags, and are
-  listed (as `names` and `status` list odd folders) so they are noticed rather than misread.
-- **What it saves:** most folder tags today repeat the folder (`place:kyoto` on `Kyoto/`). With a
-  layout, `arv tag` and the model need only suggest the unstructured ones.
+- **A plan or make takes a layout**: `--layout '{year}/{event}'` (or `'{event}/{year}'` on the next
+  disc) builds each file's path from its tags, then its name. The same files, the same tags, a
+  different tree. A file missing a tag the layout needs goes under `unsorted/` (or the layout's
+  fallback) and is listed, so it is noticed.
+- **The disc says which layout it used** (a `Layout` field in its record), so a reader can tell a
+  folder that is a view of `year` from one somebody named by hand, and turn the tree back into
+  tags. The spec defines the pattern, as it defines the virtual trees a catalogue program may
+  build (by date, by place, by tag: "Building a virtual file system from the catalogue"); a
+  layout is that same idea, written onto the disc.
+- **Tags come from where they can**: `year` from the file's own date (EXIF, or its time) with no
+  one tagging it; the rest from a person, a model (`arv describe`, `arv tag`) or a folder the
+  files came in (an existing `Kyoto trip/` gives `event:kyoto-trip` once, when the file is first
+  archived). After that the tag, not the folder, is the record.
+- **Moves become tag changes**: re-filing a photo under another event is changing its `event` tag;
+  the next disc made with a layout puts it there. A plain rename (the file's own name) is still a
+  move, as above.
+- **Limits:** a layout is a tree, so it shows each file once, under one path; the tags it does not
+  use stay tags (`best`, people), found with `find` and shown by Katalog. Files with no structure
+  to speak of (a software project, a document folder) keep the tree they came with: a layout is
+  for collections whose structure is their tags (photos, scans, recordings).
 
 Order: the folder split first (it fixes the silent duplicate), then `rename` and `--list`, then
 the original name (format), then moves in the record, then plans as editions and plans from discs,
-which build on all of them. Tags after burning as events, and layouts, are apart from that order:
-either can come first.
+which build on all of them. Tags after burning as events come before layouts (a layout needs every
+file's tags to be in the record).

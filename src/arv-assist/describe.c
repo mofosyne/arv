@@ -138,7 +138,7 @@ static void notes_of(const strlist *answers, strlist *notes)
 static jv *draft_json(const suggestion *s, const strlist *notes, const char *authorship, const char *agent, int with_questions)
 {
     jv *d = suggestion_json(s, with_questions);
-    if (!json_get(d, "folder_captions")) jput(d, "folder_captions", jobj());
+    if (!json_get(d, "captions")) jput(d, "captions", jobj());
     jput(d, "notes", jstrings(notes));
     jput(d, "authorship", jstr(authorship));
     if (agent) jput(d, "agent", jstr(agent));
