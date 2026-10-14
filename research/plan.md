@@ -1367,3 +1367,41 @@ One way to do each thing.
 - **Help:** each command has its own usage entry, with a line saying what it does; the manual,
   the man page, completion and `--help` all come from it, so they agree.
 
+
+## Design (2026-10-14, not implemented): rearranging in a plan, and a plan as a collection's edition
+
+Asked for: during planning, split folders and rearrange files (rename photos, sort them into
+albums) without touching them on the drive, like `git mv`: the disc gets the new names and
+places, the originals stay as they are, and arv still knows each file is the same file.
+
+What a plan does today (tried 2026-10-13): `plan add SOURCE --as PATH` names and places an item on
+a disc, a file or a folder, and `plan move` moves items between discs; nothing on the drive
+changes. What is missing:
+
+- **A folder split.** A file added again from inside a planned folder ends up on the disc twice,
+  silently (tried: `plan add trip DCIM --as Unsorted`, then one of its photos `--as
+  Kinkaku-ji/pond.jpg`). Instead, the folder item gets `Except: PATH` for it: whatever is not
+  placed elsewhere stays where the folder put it. A file wanted twice is asked for on purpose.
+- **`arv plan rename NAME PATH NEWPATH`**: rename or move an item on its disc, a folder with all
+  under it (the `git mv` of a plan). Today it is drop and add again.
+- **`arv plan add NAME --list FILE`**: a TSV of source and path on the disc, one a line, so the
+  sorting is done by what is good at it (exiftool for dates, a spreadsheet, a script, a model
+  looking at the photos) and arv records the result (principle 7).
+- **The original name kept** (a format question: decide before 1.0). `git mv` keeps a file's
+  identity through a rename because the content is the same; arv already matches files by hash
+  (`status` reports moves, `>`), so a renamed photo is found again by its content. What is lost is
+  the name it had: `IMG_0001.JPG`, which ties it to the card and the camera. The disc's listing
+  could keep it (an `Origin` column: the source path relative to the item), or the home only (as
+  an object's `Source` is today), so the disc does not carry the layout of someone's drive.
+
+**A plan as a collection's next edition.** A plan and a collection answer different questions:
+the plan is how this disc's contents are chosen and laid out (by hand, from anywhere); the
+collection is what is kept over the years, a lineage of editions (`status`, `diff` and `retire`
+work on it). Since checkpoints went (issue #42), a collection is exactly that lineage, and
+`plan again` is nearly an edition without one. So: `arv plan new NAME --collection CODE` (or
+`plan make --edition CODE`) makes the plan's discs the collection's next edition. The collection
+says what is kept; the plan says how this edition is arranged (the albums above). `diff` between
+editions then shows the renames as moves, by content, as `git log --follow` would.
+
+Order: the folder split first (it fixes the silent duplicate), then `rename` and `--list`, then
+the original name (format), then plans as editions, which builds on all of them.
