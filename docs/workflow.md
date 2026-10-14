@@ -282,6 +282,11 @@ name with `plan rename`, and the layout keeps placing it, under that name. The d
 go into the disc's `tags.tsv` and the dates into its coverage. Re-filing a photo later is changing
 its tags; the next disc made puts it there.
 
+**Copies.** `arv plan show NAME --duplicates` lists byte-identical files on each disc (a folder
+copied twice, a card imported twice, an export that repeats photos in each album), and `plan make`
+notes them. Each is written in full, and each stays an object of its own (the same bytes can be
+two things); drop the copies you do not want.
+
 **Splitting a folder.** A file (or folder) inside a planned folder can be added on its own, or
 renamed in place (`plan rename`), under another name or on another disc: it goes where that item puts it, and the folder goes without it.
 Of two items holding a file, the more specific one places it, so each file is on the discs once;

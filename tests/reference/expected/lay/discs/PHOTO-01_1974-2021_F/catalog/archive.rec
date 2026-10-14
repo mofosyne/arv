@@ -53,8 +53,8 @@ Layout: year/event, project, decade
 Date: 2026-01-01
 Creator: archivist
 Access: private
-Files: 8
-Bytes: 107
+Files: 9
+Bytes: 121
 Software: SW
 
 %rec: Binding
@@ -110,6 +110,18 @@ Tree: 2374fcfa13ace634b72a4499ba0ff2662c90b2a0445fa9d514efa33f506f8d23
 Disc: PHOTO-01_1974-2021_F
 Path: year/2019/event/kyoto trip/IMG_0001.JPG
 Arranged: DCIM/IMG_0001.JPG
+Files: 1
+Bytes: 14
+Date: 2026-01-01
+
+Uuid: UUID
+Version: 1
+Name: IMG_0002-copy.JPG
+Kind: file
+Tree: 5264fad6a513e5edaa12f4e0d8bc7084306bd8617940636c56ca6112d93c9cd9
+Disc: PHOTO-01_1974-2021_F
+Path: year/2019/event/kyoto trip/IMG_0002-copy.JPG
+Arranged: DCIM/IMG_0002-copy.JPG
 Files: 1
 Bytes: 14
 Date: 2026-01-01
@@ -230,4 +242,4 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: sha256 and sha512 manifests of 8 files
+Note: sha256 and sha512 manifests of 9 files

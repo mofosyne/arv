@@ -2,5 +2,5 @@ Bagging-Date: 2026-01-01
 External-Identifier: PHOTO-01_1974-2021_F
 External-Description: Album
 Bag-Group-Identifier: PHOTO
-Payload-Oxum: 107.8
+Payload-Oxum: 121.9
 Bag-Software-Agent: SW <https://github.com/mofosyne/arv>

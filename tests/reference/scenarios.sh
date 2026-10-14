@@ -531,6 +531,7 @@ keep_home hp plan/home
 mkdir -p lay/DCIM/day2 lay/scans lay/station/src
 for f in IMG_0001 IMG_0002 IMG_0003; do echo "jpeg $f" > lay/DCIM/$f.JPG; done
 echo "jpeg day2" > lay/DCIM/day2/IMG_0001.JPG
+cp lay/DCIM/IMG_0002.JPG lay/DCIM/IMG_0002-copy.JPG                          # byte-identical: noted, written in full
 echo "no date" > lay/DCIM/notes.txt
 echo "a print" > lay/scans/print1.tif
 echo "int main(void) { return 0; }" > lay/station/src/main.c
@@ -566,6 +567,7 @@ log lay.out --home hy plan tag album --list lay-tags-bad.tsv                  # 
 log lay.out --home hy plan tag album lay/DCIM/IMG_0003.JPG ""                  # its own tags gone: the folder's again
 log lay.out --home hy plan show album
 log lay.out --home hy plan show album --json
+log lay.out --home hy plan show album --duplicates
 log lay.out --home hy plan make album -y --no-ecc --no-formats --keep-stage --output-dir out-lay
 log lay.out --home hy objects
 log lay.out --home hy objects --json

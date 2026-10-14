@@ -11,6 +11,8 @@ $ --home hd make -y --no-ecc --no-formats --set CODE --draft draft-human.json --
 Scanning and hashing ROOT/src ...
 Warning: broken link dead -> missing.txt (recorded in the listing, not archived)
 Links: 1 copied, 1 recorded, 1 broken (policy: default)
+Note: 1 file (6 B) is byte-identical to others in the folder, and written in full:
+  README.md = docs/guide.md
 Classified as: PROJECTS/CODE
 Object src/ (data/ on CODE-02_2020_Y): new
 Building ROOT/out-d2/CODE-02_2020_Y.noecc.iso (1 of 1, 1.7 MiB) ...
@@ -43,6 +45,8 @@ $ --home hd make -y --no-ecc --no-formats --set CODE --draft draft-broken.json -
 Scanning and hashing ROOT/src ...
 Warning: broken link dead -> missing.txt (recorded in the listing, not archived)
 Links: 1 copied, 1 recorded, 1 broken (policy: default)
+Note: 1 file (6 B) is byte-identical to others in the folder, and written in full:
+  README.md = docs/guide.md
 Error: draft-broken.json is not a JSON draft (arv describe --save writes them)
 rc=1
 $ --home hd find best

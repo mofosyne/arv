@@ -2,6 +2,8 @@ $ --home h make -y --no-ecc --no-formats --set CODE --importance essential for s
 Scanning and hashing ROOT/src ...
 Warning: broken link dead -> missing.txt (recorded in the listing, not archived)
 Links: 1 copied, 1 recorded, 1 broken (policy: default)
+Note: 1 file (6 B) is byte-identical to others in the folder, and written in full:
+  README.md = docs/guide.md
 Classified as: PROJECTS/CODE
 Object src/ (data/ on CODE-01_2020_0): new
 Building ROOT/out-src/CODE-01_2020_0.noecc.iso (1 of 1, 1.7 MiB) ...

@@ -100,6 +100,12 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - The plan's tags go into the disc's `tags.tsv` (a folder object's once, on its folder); a `date:`
   tag counts for the disc's coverage instead of the file's time.
 
+**Byte-identical files reported**
+- `make` notes files whose bytes another file on the same disc has (each is written in full), and
+  `arv plan show NAME --duplicates` lists them, as arranged, before anything is made: dropping a
+  copy is the person's choice. Sharing the bytes on the disc (UDF hard links) waits for this
+  report to show it is worth a format feature, and for the first burns.
+
 **Identity is the lineage, not the bytes**
 - A data object is the same version as another only within its lineage (where it was read from).
   The same bytes read from elsewhere are a new object that records `SameBytes: UUID VERSION`; arv

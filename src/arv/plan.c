@@ -2,7 +2,8 @@
  *
  *   arv plan new NAME [--medium M] [--set CODE] [--title TEXT] [--description TEXT] [--access LEVEL] [--discs N]
  *   arv plan list [--all]           open plans (--all: made ones too)
- *   arv plan show NAME [--json] [--archived]   (--archived: hashes each item, through the hash
+ *   arv plan show NAME [--json] [--archived] [--duplicates]   (--duplicates: byte-identical files on a
+ *                                  disc; --archived: hashes each item, through the hash
  *                                  cache, and says what of it is on discs already)
  *   arv plan add NAME SOURCE... [--disc N|new|auto] [--as PATH] [--each]   (--each: a folder's every
  *                                  file an item, a data object, of its own)
@@ -766,6 +767,107 @@ static void archived_hashes(const arv_home *h, const archive *cat, strlist *out)
     if (out->n) qsort(out->v, out->n, sizeof *out->v, by_str);
 }
 
+/* ------------------------------------------------------------------ byte-identical files on a disc */
+
+static int by_bin_sha(const void *a, const void *b)
+{
+    const entry *x = *(entry *const *)a, *y = *(entry *const *)b;
+    int c = x->bin != y->bin ? (x->bin < y->bin ? -1 : 1) : strcmp(x->sha256, y->sha256);
+    return c ? c : strcmp(x->path, y->path);
+}
+
+static int by_sha(const void *a, const void *b)
+{
+    const entry *x = *(entry *const *)a, *y = *(entry *const *)b;
+    int c = strcmp(x->sha256, y->sha256);
+    return c ? c : strcmp(x->path, y->path);
+}
+
+/* files whose bytes another file on the same disc has (bin; all one disc unless by_bin), each
+ * written in full: a line for each set ("A = B"), at most limit (0: all); how many files beyond the
+ * first of each set, and their bytes */
+size_t duplicates_report(const entries *files, int by_bin, size_t limit, FILE *out, uint64_t *bytes)
+{
+    *bytes = 0;
+    if (files->n < 2) return 0;
+    entry **by = xmalloc(files->n * sizeof *by);
+    for (size_t i = 0; i < files->n; i++) by[i] = &files->v[i];
+    qsort(by, files->n, sizeof *by, by_bin ? by_bin_sha : by_sha);
+    size_t extra = 0, sets = 0;
+    for (size_t i = 0; i < files->n;) {
+        size_t j = i + 1;
+        while (j < files->n && (!by_bin || by[j]->bin == by[i]->bin) && !strcmp(by[j]->sha256, by[i]->sha256) && by[i]->size)
+            j++;
+        if (j - i > 1) {
+            extra += j - i - 1;
+            *bytes += (uint64_t)(j - i - 1) * by[i]->size;
+            if (out && (!limit || sets < limit)) {
+                fputs("  ", out);
+                if (by_bin) fprintf(out, "disc %d: ", by[i]->bin + 1);
+                for (size_t k = i; k < j; k++) fprintf(out, "%s%s", k > i ? " = " : "", by[k]->path);
+                fputc('\n', out);
+            }
+            sets++;
+        }
+        i = j;
+    }
+    if (out && limit && sets > limit) fprintf(out, "  ... %zu more\n", sets - limit);
+    free(by);
+    return extra;
+}
+
+/* plan show --duplicates: byte-identical files on each disc of the plan, as arranged (hashed
+ * through the hash cache) */
+static void show_duplicates(const arv_home *h, const disc_plan *p)
+{
+    entries all = { 0 };
+    size_t cap = 0;
+    for (size_t i = 0; i < p->n; i++) {
+        const plan_item *it = &p->v[i];
+        struct stat st;
+        size_t n = 0;
+        char *text = stat(it->source, &st) ? NULL : path_manifest(h, it->source, &n);
+        int dir = text && S_ISDIR(st.st_mode);
+        for (char *l = text; l && *l;) {
+            char *nl = strchr(l, '\n');
+            if (nl) *nl = 0;
+            if (strlen(l) > 66) {
+                char *abs = dir ? join(it->source, l + 66) : xstrdup(it->source);
+                struct stat fs;
+                if ((!dir || !placed_by(p, it, abs)) && !stat(abs, &fs)) {
+                    if (all.n == cap) {
+                        cap = cap ? 2 * cap : 64;
+                        all.v = xrealloc(all.v, cap * sizeof *all.v);
+                    }
+                    entry *e = &all.v[all.n++];
+                    memset(e, 0, sizeof *e);
+                    memcpy(e->sha256, l, 64);
+                    e->path = !dir ? xstrdup(it->path) : !strcmp(it->path, ".") ? xstrdup(l + 66) : join(it->path, l + 66);
+                    e->size = (uint64_t)fs.st_size;
+                    e->bin = it->disc - 1;
+                }
+                free(abs);
+            }
+            l = nl ? nl + 1 : l + strlen(l);
+        }
+        free(text);
+    }
+    uint64_t bytes;
+    size_t extra = duplicates_report(&all, 1, 0, NULL, &bytes);
+    if (!extra) {
+        printf("No byte-identical files on any disc of plan %s\n", p->name);
+    } else {
+        char sz[32];
+        human_size(bytes, sz);
+        printf("%zu file%s (%s) %s byte-identical to others on the same disc, and written in full:\n", extra,
+               extra == 1 ? "" : "s", sz, extra == 1 ? "is" : "are");
+        duplicates_report(&all, 1, 0, stdout, &bytes);
+        puts("Drop the copies you do not want (arv plan drop), or keep them: the plan is yours.");
+    }
+    for (size_t i = 0; i < all.n; i++) free(all.v[i].path);
+    free(all.v);
+}
+
 /* the earliest time of the files an item places (no hashing), 0 for none */
 static void first_walk(const disc_plan *p, const plan_item *it, const char *disk, int top, time_t *first)
 {
@@ -1246,7 +1348,7 @@ static int set_tags(const arv_home *h, disc_plan *p, const char *given, const ch
 int cmd_plan(int argc, char **argv)
 {
     const char *given = NULL, *action = NULL, *name = NULL, *disc = NULL, *as = NULL, *from_s = NULL, *list = NULL;
-    int as_json = 0, all = 0, on_discs = 0, each = 0;
+    int as_json = 0, all = 0, on_discs = 0, each = 0, dups = 0;
     strlist args = { 0 }, defaults = { 0 }, rest = { 0 };
     static const char *const SETTINGS[][2] = { { "--medium", "Medium" }, { "--set", "Set" }, { "--title", "Title" },
                                                { "--description", "Description" }, { "--access", "Access" } };
@@ -1257,6 +1359,7 @@ int cmd_plan(int argc, char **argv)
         else if (!strcmp(argv[i], "--all")) all = 1;
         else if (!strcmp(argv[i], "--archived")) on_discs = 1;
         else if (!strcmp(argv[i], "--each")) each = 1;
+        else if (!strcmp(argv[i], "--duplicates")) dups = 1;
         else if (!action) action = argv[i];
         else if (!name) {
             name = argv[i];
@@ -1434,7 +1537,8 @@ int cmd_plan(int argc, char **argv)
 
     if (!strcmp(action, "show")) {
         if (args.n) return 2;
-        show(&h, &p, as_json, on_discs);
+        if (dups) show_duplicates(&h, &p);
+        else show(&h, &p, as_json, on_discs);
         return 0;
     }
     if (!strcmp(action, "add")) {

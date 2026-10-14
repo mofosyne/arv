@@ -1976,6 +1976,19 @@ int cmd_make(int argc, char **argv)
     }
     char *summary = link_summary(&files, &noted, o.links);
     if (summary) fprintf(stderr, "Links: %s\n", summary + strlen("links: "));
+    {                                   /* byte-identical files: each is written in full; the person decides */
+        uint64_t dup_bytes;
+        size_t dups = duplicates_report(&files, o.plan != NULL, 0, NULL, &dup_bytes);
+        if (dups) {
+            char sz[32];
+            human_size(dup_bytes, sz);
+            fprintf(stderr, "Note: %zu file%s (%s) %s byte-identical to others %s, and written in full", dups,
+                    dups == 1 ? "" : "s", sz, dups == 1 ? "is" : "are", o.plan ? "on the same disc" : "in the folder");
+            if (o.plan) fprintf(stderr, " (arv plan show %s --duplicates lists them):\n", dp.name);
+            else fputs(":\n", stderr);
+            duplicates_report(&files, o.plan != NULL, 5, stderr, &dup_bytes);
+        }
+    }
     {
         char **paths = xmalloc((files.n + 1) * sizeof *paths);
         for (size_t i = 0; i < files.n; i++) paths[i] = files.v[i].path;

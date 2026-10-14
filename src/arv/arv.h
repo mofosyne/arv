@@ -218,6 +218,7 @@ void plan_load(const char *file, disc_plan *out);
  * tags: it->placed, and each file's origin says where it was arranged); tagged: "PATH\tTAGS" for
  * each file the plan gives tags to; clashes: two files given one path by a layout */
 const char *plan_layout(const disc_plan *p, int disc);
+size_t duplicates_report(const entries *files, int by_bin, size_t limit, FILE *out, uint64_t *bytes);
 void plan_scan(const arv_home *h, disc_plan *p, const char *links, entries *files, entries *noted, size_t *left_out,
                strlist *tagged, strlist *clashes);
 void plan_made(const char *file, const strlist *disc_ids, const char *date);

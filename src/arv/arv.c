@@ -59,7 +59,7 @@ static const char USAGE_ARCHIVE[] =
           "         tag NAME SOURCE TAGS (or --list FILE|-: SOURCE<tab>TAGS lines) tags files before they are on discs;\n"
           "         layout NAME 'year/event, year' [--disc N] makes a disc's tree from its objects' tags;\n"
           "         move NAME PATH... --disc N|new moves them; drop NAME PATH... takes them off; disc NAME add|drop N;\n"
-          "         show NAME;"
+          "         show NAME [--duplicates];"
           " make NAME makes the images; again NAME NEW starts the same plan anew; delete NAME\n"
           "  arv collection init [FOLDER] --code CODE --title TITLE [--set CODE] [--access LEVEL] | list | show CODE\n"
           "         a folder kept over time, its states made into editions of discs (show: its editions)\n"

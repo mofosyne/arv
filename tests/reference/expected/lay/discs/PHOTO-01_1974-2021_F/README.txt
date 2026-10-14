@@ -4,7 +4,7 @@ Album
 Disc id:  PHOTO-01_1974-2021_F
 Set:      PHOTO
 Burned:   2026-01-01
-Contents: 8 files, 107 bytes (in data/)
+Contents: 9 files, 121 bytes (in data/)
 Made by:  SW
 
 This is an archive disc by archivist, made on 2026-01-01: Album. Its files
