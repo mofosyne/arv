@@ -1,0 +1,6 @@
+3e25a178432fbc96260fc77dcdaf5bb8529de309f822af20a4bd43707c4e8cec  data/decade/1970s/print1.tif
+dd9489592413320ace1242fc5383a7d6e8bc0f745801b1aad3933aacdfd6e8e1  data/year/2019/event/kyoto trip/IMG_0001-day2.JPG
+2374fcfa13ace634b72a4499ba0ff2662c90b2a0445fa9d514efa33f506f8d23  data/year/2019/event/kyoto trip/IMG_0001.JPG
+5264fad6a513e5edaa12f4e0d8bc7084306bd8617940636c56ca6112d93c9cd9  data/year/2019/event/kyoto trip/IMG_0002.JPG
+3b872cb3b09d1305026bb4c2f6b54ba41cee70b6833119cd83cb7e0a287bbf62  data/year/2019/event/kyoto trip/IMG_0003.JPG
+90b79d7758a8618e3a0eaeb19bf50b50c13e5cd04a199e1a7ea14d68e78bab85  data/year/2019/event/kyoto trip/notes.txt

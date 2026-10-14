@@ -252,6 +252,31 @@ arv plan show family                                        # each disc's fill, 
 arv plan make family [--output-dir DIR] [arv make's options]
 ```
 
+**Placing files by their tags: layouts.** For photos, scans and recordings, whose structure is
+what they show and when, tag the files in the plan and let a layout place them, rather than
+placing each by hand:
+
+```sh
+arv plan tag family /nas/photos/2025/kyoto 'event:kyoto-trip, place:kyoto'   # a folder: all in it
+arv plan tag family /nas/scans/print-07.tif 'date:1974~, person:ann'         # one file
+exiftool -q -r -d %Y-%m-%d -p '$Directory/$FileName	date:$DateTimeOriginal' /nas/photos/2025 \
+    | arv plan tag family --list -                          # many at once: SOURCE<tab>TAGS
+arv plan layout family 'year/event, year' photos            # the items' files, by date, then event
+arv plan show family                                        # the folders it makes, and how full
+```
+
+A layout's folders name their namespace, so the disc describes itself: `year/2019/event/kyoto-trip/IMG_0001.JPG`.
+`/` nests and `,` falls back: a photo with an event goes under it, one without under its year only,
+and one with none of the alternatives keeps its place by hand (`plan show` lists it). Only
+namespaces with one value a file can be levels (`event`, `project`, and `year` or `decade`, made
+from `date`); `arv tags` lists them. A date is filed by its start, and with no `date:` tag by the
+file's own time (the vocabulary's `From: file-date`), which is right for a camera's photo and
+wrong for a scan of an old print: tag those. Of a one-valued namespace, a file's own value
+replaces its folder's. Two files given one path (two cameras' `IMG_0001.JPG`) stop `plan make`:
+give one another name with `plan add --as`, and it stays laid out, under that name. The tags go
+into the disc's `tags.tsv`, the dates into its coverage, and each data object records its
+`Layout`. Re-filing a photo later is changing its tags; the next disc made puts it there.
+
 **Splitting a folder.** A file (or folder) inside a planned folder can be added on its own, or
 renamed in place (`plan rename`), under another name or on another disc: it goes where that item puts it, and the folder goes without it.
 Of two items holding a file, the more specific one places it, so each file is on the discs once;

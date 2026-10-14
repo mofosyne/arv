@@ -334,6 +334,9 @@ static void objects_json(const archive *cat, const char *root)
                 if (strcmp(get_or(x, "Uuid", ""), uuid) || version_of(x) != v) continue;
                 sb_printf(&b, "%s{\"version\": %ld, \"path\": ", first ? "" : ", ", v);
                 json_str(&b, get_or(x, "Path", ""));
+                sb_puts(&b, ", \"layout\": ");
+                if (rec_get(x, "Layout")) json_str(&b, rec_get(x, "Layout"));
+                else sb_puts(&b, "null");
                 sb_puts(&b, ", \"files\": ");
                 sb_puts(&b, get_or(x, "Files", "0"));
                 sb_puts(&b, ", \"bytes\": ");
@@ -505,8 +508,11 @@ int cmd_objects(int argc, char **argv)
                 if (strcmp(get_or(x, "Uuid", ""), uuid) || version_of(x) != v) continue;
                 char *c = copies_text(&cat, get_or(x, "Disc", "?"));
                 const char *path = get_or(x, "Path", "?");
-                printf("    version %ld  %s  data/%s%s  %s\n", v, get_or(x, "Disc", "?"), strcmp(path, ".") ? path : "",
-                       file || !strcmp(path, ".") ? "" : "/", c);
+                if (rec_get(x, "Layout"))       /* its files placed by their tags, not under Path */
+                    printf("    version %ld  %s  laid out by %s  %s\n", v, get_or(x, "Disc", "?"), rec_get(x, "Layout"), c);
+                else
+                    printf("    version %ld  %s  data/%s%s  %s\n", v, get_or(x, "Disc", "?"), strcmp(path, ".") ? path : "",
+                           file || !strcmp(path, ".") ? "" : "/", c);
                 free(c);
             }
         free(top.v);

@@ -475,6 +475,12 @@ from, relative to the folder holding the home when inside it) and keeps each man
 `Except`* names a file or folder of the source, relative to it, that a disc plan placed elsewhere
 (a folder split: the more specific of two plan items that hold a file places it); the object is
 the folder without them, so comparing it with the folder later leaves them out.
+`Layout`* says its files were placed by their tags rather than kept under `Path`: a disc plan's
+layout, levels split by `/` and alternatives by `,` (`year/event, year`). Each level is a
+namespace folder holding a folder for its value (`event/kyoto-trip/`; `year` and `decade` are made
+from `date`, by its start), so the tree reads back as tags. A file with none of the alternatives
+is under `Path` as usual. A laid-out file is found by its SHA-256: the object's manifest gives its
+path within the object, the disc's manifest its place on the disc.
 Readers merge objects by `Uuid`, `Version` and `Disc`.
 
 **What an object is** (added in format 0.5; all optional): `Title`, `Description`, `Coverage`

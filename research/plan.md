@@ -1475,6 +1475,21 @@ do not give is order (a slideshow's sequence): that is names (`01 torii gates.jp
   namespace **a path's own value replaces its folder's**, the rule the folder split uses (the more
   specific wins). A folder `date:2019` with one scan inside `date:1974` is not a conflict; two
   dates on one path is. Not yet: `From` is declared but nothing suggests from it.
+- **Done (2026-10-14): layouts in disc plans.** `plan tag` (and `--list`) gives files tags before
+  they are on a disc, kept in the plan as `Tags` records by source; `plan layout` sets an item's
+  layout (a layout is an item's, not the plan's: a project in the same plan keeps its tree). What
+  was decided on the way:
+  - **Year from the file's time** when there is no `date:` tag, as `From: file-date` declares. So
+    `year` alone places every file; `plan show` lists the folders before anything is made, which
+    is where a scan dated by its scanning shows up.
+  - **Two files one path** (two cameras' `IMG_0001.JPG`) are refused, not renamed: a silent
+    `IMG_0001-2.JPG` would be a name nobody chose. The fix is `plan add SOURCE --as NAME`, and a
+    file split off a laid-out folder stays laid out, under its new name: the slug of the design
+    above, given the existing way.
+  - **The object is the source, not the layout**: its manifest and `Tree` are its files' paths in
+    the source, so the same folder laid out two ways is the same version. `Layout` on the object
+    says its files are not under `Path`; they are found by hash. Not yet: the original name on the
+    disc (`Origin`), titles, and a layout chosen in `make` for a folder that is not a plan.
 
 **A layout is a view of tags** (planned; corrected 2026-10-14). First written the other way round
 (a declared folder layout from which tags are derived), but the owner's experience is that the

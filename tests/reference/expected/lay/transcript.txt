@@ -1,0 +1,128 @@
+$ --home hy plan new album --set PHOTO
+Plan album: 1 empty disc (hy/drafts/plans/album.rec). Next: arv plan add album FILE-OR-FOLDER...
+rc=0
+$ --home hy plan add album lay/DCIM lay/scans
+DCIM/: disc 1, now 1% full
+scans/: disc 1, now 1% full
+rc=0
+$ --home hy plan tag album lay/DCIM Event: Kyoto trip, place:kyoto
+lay/DCIM: event:kyoto trip, place:kyoto
+rc=0
+$ --home hy plan tag album lay/scans/print1.tif date:1974~, person:ann
+lay/scans/print1.tif: date:1974~, person:ann
+rc=0
+$ --home hy plan tag album lay/DCIM date:2019, date:2020
+Error: lay/DCIM: date:2019 and date:2020: date takes one value (nothing was changed)
+rc=1
+$ --home hy plan tag album lay/DCIM date:soon
+Error: lay/DCIM: date:soon is not an EDTF date or range (2019-07, 1995/2008, 197X, 1995~; nothing was changed)
+rc=1
+$ --home hy plan tag album lay/elsewhere x
+Error: lay/elsewhere: no such file or folder (nothing was changed)
+rc=1
+$ --home hy plan tag album lay x
+Error: ROOT/lay is not in the plan (arv plan add it first; nothing was changed)
+rc=1
+$ --home hy plan layout album person
+Error: layout person: person is not a one-valued namespace (a file with two values would need two folders; arv tags lists the namespaces)
+rc=1
+$ --home hy plan layout album year/, year
+Error: layout year/, year: an empty level (levels are split by / and alternatives by ,)
+rc=1
+$ --home hy plan layout album year/event, year DCIM
+1 item laid out by year/event, year. Where each file goes: arv plan show album
+rc=0
+$ --home hy plan layout album decade scans
+1 item laid out by decade. Where each file goes: arv plan show album
+rc=0
+$ --home hy plan layout album year nope
+Error: nope is not an item of plan album (arv plan show lists them)
+rc=1
+$ --home hy plan show album
+Plan album  set PHOTO  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  68 B in 2 items
+  DCIM/  60 B, 5 files  ROOT/lay/DCIM
+      laid out by year/event, year: 5 files placed
+        year/2019/event/kyoto trip/  4 files
+        year/2023/event/kyoto trip/  1 file
+        TWO FILES at year/2019/event/kyoto trip/IMG_0001.JPG: give one another name (arv plan add album SOURCE --as NAME)
+  scans/  8 B, 1 file  ROOT/lay/scans
+      laid out by decade: 1 file placed
+        decade/1970s/  1 file
+Next: arv plan make album (one image a disc; arv make's options apply)
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hy plan make album -y --no-ecc --no-formats --output-dir out-lay
+Plan album: scanning and hashing its 2 items ...
+Error: the layout puts two files at one path. Give one another name, and it stays laid out under it: arv plan add album SOURCE --as NAME
+  data/year/2019/event/kyoto trip/IMG_0001.JPG on disc 1: ROOT/lay/DCIM/IMG_0001.JPG and ROOT/lay/DCIM/day2/IMG_0001.JPG
+rc=1
+$ --home hy plan add album lay/DCIM/day2/IMG_0001.JPG --as IMG_0001-day2.JPG
+IMG_0001-day2.JPG: disc 1, now 1% full
+rc=0
+$ --home hy plan tag album --list lay-tags.tsv
+2 lines read from lay-tags.tsv: tags of 2 changed
+rc=0
+$ --home hy plan tag album --list lay-tags-bad.tsv
+Error: lay/nope.JPG, line 2: no such file or folder (nothing was changed)
+rc=1
+$ --home hy plan tag album lay/DCIM/IMG_0003.JPG 
+lay/DCIM/IMG_0003.JPG: no tags
+rc=0
+$ --home hy plan show album
+Plan album  set PHOTO  BD-R 25GB: about 18.4 GiB a disc for files
+Disc 1  [#-------------------]    1%  68 B in 3 items
+  DCIM/  50 B, 4 files  ROOT/lay/DCIM
+      not day2/IMG_0001.JPG: placed as IMG_0001-day2.JPG on disc 1
+      laid out by year/event, year: 4 files placed
+        year/2019/event/kyoto trip/  4 files
+  IMG_0001-day2.JPG  10 B  ROOT/lay/DCIM/day2/IMG_0001.JPG
+      laid out by year/event, year: 1 file placed
+        year/2019/event/kyoto trip/  1 file
+  scans/  8 B, 1 file  ROOT/lay/scans
+      laid out by decade: 1 file placed
+        decade/1970s/  1 file
+Next: arv plan make album (one image a disc; arv make's options apply)
+Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
+rc=0
+$ --home hy plan show album --json
+{"name": "album", "title": null, "set": "PHOTO", "medium": "bd25", "description": null, "access": null, "from": null, "mediumLabel": "BD-R 25GB", "room": 19804278784, "made": null, "volumes": [], "discs": [{"disc": 1, "bytes": 68, "used": 43008, "items": [{"path": "DCIM", "source": "ROOT/lay/DCIM", "layout": "year/event, year", "changed": false, "kind": "folder", "bytes": 50, "files": 4, "archived": null}, {"path": "IMG_0001-day2.JPG", "source": "ROOT/lay/DCIM/day2/IMG_0001.JPG", "layout": "year/event, year", "changed": false, "kind": "file", "bytes": 10, "files": 1, "archived": null}, {"path": "scans", "source": "ROOT/lay/scans", "layout": "decade", "changed": false, "kind": "folder", "bytes": 8, "files": 1, "archived": null}]}]}
+rc=0
+$ --home hy plan make album -y --no-ecc --no-formats --keep-stage --output-dir out-lay
+Plan album: scanning and hashing its 3 items ...
+Classified as: MEMORIES/PHOTO
+Object DCIM/ (laid out by year/event, year on PHOTO-01_1974-2019_0): new
+Object IMG_0001.JPG (laid out by year/event, year on PHOTO-01_1974-2019_0): new
+Object scans/ (laid out by decade on PHOTO-01_1974-2019_0): new
+Building ROOT/out-lay/PHOTO-01_1974-2019_0.noecc.iso (1 of 1, 1.7 MiB) ...
+Hashing ROOT/out-lay/PHOTO-01_1974-2019_0.noecc.iso ...
+Kept staging directory ROOT/out-lay/.archive-make-XXXXXX
+PHOTO-01_1974-2019_0	ROOT/out-lay/PHOTO-01_1974-2019_0.noecc.iso	Album
+rc=0
+$ --home hy objects
+Data objects:
+  DCIM/  folder, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
+    from ROOT/lay/DCIM (there now: arv status says if it changed)
+    version 1  PHOTO-01_1974-2019_0  laid out by year/event, year  no copy yet
+  IMG_0001.JPG  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
+    from ROOT/lay/DCIM/day2/IMG_0001.JPG (there now: arv status says if it changed)
+    version 1  PHOTO-01_1974-2019_0  laid out by year/event, year  no copy yet
+  scans/  folder, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
+    from ROOT/lay/scans (there now: arv status says if it changed)
+    version 1  PHOTO-01_1974-2019_0  laid out by decade  no copy yet
+rc=0
+$ --home hy objects --json
+{"objects": [{"uuid": "UUID", "name": "DCIM", "kind": "folder", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 0, "cold": 0, "readBack": 0, "discs": 1}, "sources": [{"path": "ROOT/lay/DCIM", "there": true}], "todo": [], "held": [{"version": 1, "path": "DCIM", "layout": "year/event, year", "files": 4, "bytes": 50, "on": {"disc": "PHOTO-01_1974-2019_0", "retired": false, "where": "", "copies": []}}]}, {"uuid": "UUID", "name": "IMG_0001.JPG", "kind": "file", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 0, "cold": 0, "readBack": 0, "discs": 1}, "sources": [{"path": "ROOT/lay/DCIM/day2/IMG_0001.JPG", "there": true}], "todo": [], "held": [{"version": 1, "path": "IMG_0001-day2.JPG", "layout": "year/event, year", "files": 1, "bytes": 10, "on": {"disc": "PHOTO-01_1974-2019_0", "retired": false, "where": "", "copies": []}}]}, {"uuid": "UUID", "name": "scans", "kind": "folder", "title": "", "description": "", "coverage": "", "rights": "", "origin": "", "notes": [], "versions": 1, "newest": {"copies": 0, "cold": 0, "readBack": 0, "discs": 1}, "sources": [{"path": "ROOT/lay/scans", "there": true}], "todo": [], "held": [{"version": 1, "path": "scans", "layout": "decade", "files": 1, "bytes": 8, "on": {"disc": "PHOTO-01_1974-2019_0", "retired": false, "where": "", "copies": []}}]}], "collections": []}
+rc=0
+$ --home hy find kyoto
+TAG   PHOTO-01_1974-2019_0  [?]  data/year/2019/event/kyoto trip/IMG_0001-day2.JPG  (event:kyoto trip, place:kyoto)
+TAG   PHOTO-01_1974-2019_0  [?]  data/year/2019/event/kyoto trip/IMG_0001.JPG  (event:kyoto trip, place:kyoto)
+TAG   PHOTO-01_1974-2019_0  [?]  data/year/2019/event/kyoto trip/IMG_0002.JPG  (event:kyoto trip, place:kyoto)
+TAG   PHOTO-01_1974-2019_0  [?]  data/year/2019/event/kyoto trip/IMG_0003.JPG  (event:kyoto trip, place:kyoto)
+TAG   PHOTO-01_1974-2019_0  [?]  data/year/2019/event/kyoto trip/notes.txt  (event:kyoto trip, place:kyoto, date:2019-07)
+PHOTO-01_1974-2019_0  [?]  data/year/2019/event/kyoto trip/IMG_0001-day2.JPG
+PHOTO-01_1974-2019_0  [?]  data/year/2019/event/kyoto trip/IMG_0001.JPG
+PHOTO-01_1974-2019_0  [?]  data/year/2019/event/kyoto trip/IMG_0002.JPG
+PHOTO-01_1974-2019_0  [?]  data/year/2019/event/kyoto trip/IMG_0003.JPG
+PHOTO-01_1974-2019_0  [?]  data/year/2019/event/kyoto trip/notes.txt
+rc=0

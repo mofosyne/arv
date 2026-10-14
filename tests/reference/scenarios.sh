@@ -527,4 +527,44 @@ keep hp/drafts/plans/card-2.rec plan/card-2.rec
 keep_stages out-plan plan/discs
 keep_home hp plan/home
 
+# ------------------------------------------------------------------ layouts: a plan's files placed by their tags
+mkdir -p lay/DCIM/day2 lay/scans
+for f in IMG_0001 IMG_0002 IMG_0003; do echo "jpeg $f" > lay/DCIM/$f.JPG; done
+echo "jpeg day2" > lay/DCIM/day2/IMG_0001.JPG
+echo "no date" > lay/DCIM/notes.txt
+echo "a print" > lay/scans/print1.tif
+for f in lay/DCIM/*.JPG lay/DCIM/day2/IMG_0001.JPG; do stamp 1562025600 "$f"; done    # 2019-07-02
+stamp 1700000000 lay/scans/print1.tif                                                # scanned 2023
+stamp 1700000000 lay/DCIM/notes.txt
+log lay.out --home hy plan new album --set PHOTO
+log lay.out --home hy plan add album lay/DCIM lay/scans
+log lay.out --home hy plan tag album lay/DCIM "Event: Kyoto trip, place:kyoto"
+log lay.out --home hy plan tag album lay/scans/print1.tif "date:1974~, person:ann"
+log lay.out --home hy plan tag album lay/DCIM "date:2019, date:2020"          # two values of a one-valued namespace
+log lay.out --home hy plan tag album lay/DCIM "date:soon"                     # not EDTF
+log lay.out --home hy plan tag album lay/elsewhere "x"                        # not there
+log lay.out --home hy plan tag album lay "x"                                  # not in the plan
+log lay.out --home hy plan layout album "person"                              # many-valued: refused
+log lay.out --home hy plan layout album "year/, year"                         # an empty level
+log lay.out --home hy plan layout album "year/event, year" DCIM
+log lay.out --home hy plan layout album "decade" scans
+log lay.out --home hy plan layout album "year" nope
+log lay.out --home hy plan show album                                         # day2/IMG_0001.JPG: two at one path
+log lay.out --home hy plan make album -y --no-ecc --no-formats --output-dir out-lay
+log lay.out --home hy plan add album lay/DCIM/day2/IMG_0001.JPG --as IMG_0001-day2.JPG   # another name, laid out still
+printf 'lay/DCIM/notes.txt\tdate:2019-07\n# a comment\nlay/DCIM/IMG_0003.JPG\tevent:other\n' > lay-tags.tsv
+log lay.out --home hy plan tag album --list lay-tags.tsv
+printf 'lay/DCIM/IMG_0002.JPG\tbest\nlay/nope.JPG\tbest\n' > lay-tags-bad.tsv
+log lay.out --home hy plan tag album --list lay-tags-bad.tsv                  # a bad line: none changed
+log lay.out --home hy plan tag album lay/DCIM/IMG_0003.JPG ""                  # its own tags gone: the folder's again
+log lay.out --home hy plan show album
+log lay.out --home hy plan show album --json
+log lay.out --home hy plan make album -y --no-ecc --no-formats --keep-stage --output-dir out-lay
+log lay.out --home hy objects
+log lay.out --home hy objects --json
+log lay.out --home hy find kyoto
+keep lay.out lay/transcript.txt
+keep hy/drafts/plans/album.rec lay/album.rec
+keep_stages out-lay lay/discs
+
 echo "scenarios: $(find "$out" -type f | wc -l) files in $out"

@@ -105,7 +105,9 @@ Ecc: none
 + (Path under data/; "." for the whole of data/). Source is where it was read from: it is
 + kept in the home catalogue only, and discs carry their objects without it. Except (one
 + for each) names a file or folder of the source left out of the object because a disc plan
-+ placed it elsewhere (a folder split): the object is the folder without them.
++ placed it elsewhere (a folder split): the object is the folder without them. Layout, when
++ given, is the disc plan layout that placed its files by their tags (year/event, year): they
++ are not under Path, and are found by their SHA-256 in the disc's manifest.
 + Title, Description, Coverage (EDTF), Rights and Origin (where it was published, as host/path)
 + say what it is: read from its own files when it is archived (its README, package manifest,
 + licence, a repository's commits and origin remote), or written by a person or a model

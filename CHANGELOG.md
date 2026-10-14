@@ -82,6 +82,20 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   each path's newest change. A later disc's catalogue carries the other discs' tags as they are
   now, for readers that do not read events.
 
+**Layouts: a plan's files placed by their tags**
+- `arv plan tag NAME SOURCE TAGS`, and `--list FILE|-` (`SOURCE<tab>TAGS` lines, all or none, as
+  exiftool writes them): tags for files still on a drive, kept in the plan, checked against the
+  vocabulary (one value of a one-valued namespace, a `date:` in EDTF). A file has its folders'
+  tags and its own; of a one-valued namespace its own value replaces its folder's.
+- `arv plan layout NAME LAYOUT [PATH...]`: the items' files placed in namespace folders,
+  `year/2019/event/kyoto-trip/IMG_0001.JPG`. `/` nests, `,` falls back; a file with none of the
+  alternatives keeps its place by hand. A date is filed by its start, and with no `date:` tag by
+  the file's own time (`From: file-date`). `plan show` lists the folders a layout makes and the
+  files it leaves; two files given one path stop `plan make` (another name with `plan add --as`
+  stays laid out).
+- The plan's tags go into the disc's `tags.tsv`; a `date:` tag counts for the disc's coverage
+  instead of the file's time; an Object records its `Layout` (`objects` says "laid out by").
+
 **Declared namespaces**
 - The tag vocabulary (`config/tags.rec`) declares namespaces: `Namespace` records with
   `Description`, `Values: one|many` and `From: file-date` (where a value may be suggested).

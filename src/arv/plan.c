@@ -8,6 +8,10 @@
  *   arv plan add NAME --list FILE|- [--disc N|new|auto]   SOURCE<TAB>PATH[<TAB>DISC] lines, all or none
  *   arv plan rename NAME PATH NEWPATH [--from N]   a new place on its disc (inside a planned folder:
  *                                  split off, as plan add of that file or folder --as NEWPATH)
+ *   arv plan tag NAME SOURCE TAGS   tags for a file or folder in the plan ("" for none)
+ *   arv plan tag NAME --list FILE|-   SOURCE<TAB>TAGS lines, all or none
+ *   arv plan layout NAME LAYOUT [PATH...] [--from N]   the items' files placed by their tags: '/' nests,
+ *                                  ',' falls back ('year/event, year'); '' places by hand again
  *   arv plan move NAME PATH... --disc N|new [--from N]
  *   arv plan drop NAME PATH... [--from N]
  *   arv plan disc NAME add | drop N
@@ -20,7 +24,8 @@
  * A plan says which file or folder goes on which disc, and where under data/; it copies nothing.
  * The sources are read where they are when the discs are made (arv make --plan). It is kept in the
  * home's drafts/plans/NAME.rec, a recfile: a Plan record (its name, discs and the defaults make
- * takes), then an Item record for each thing on a disc (Disc, Source, Path). Sizes are measured
+ * takes), then an Item record for each thing on a disc (Disc, Source, Path, and Layout when its
+ * files are placed by their tags), then a Tags record for each source given tags. Sizes are measured
  * when shown, never stored, so a plan always shows its sources as they are now.
  */
 #define _XOPEN_SOURCE 700
@@ -113,12 +118,20 @@ void plan_load(const char *file, disc_plan *out)
     out->v = xmalloc((out->rec.nrecords + 1) * sizeof *out->v);
     for (size_t i = 0; i < out->rec.nrecords; i++) {
         const rec_record *r = &out->rec.records[i];
+        if (!r->descriptor && r->type && !strcmp(r->type, "Tags") && rec_get(r, "Source") && *rec_get(r, "Source")) {
+            char *src = path_abs(out->root, rec_get(r, "Source"));
+            strlist_add(&out->tag_src, src);
+            strlist_add(&out->tag_val, rec_get(r, "Tags") ? rec_get(r, "Tags") : "");
+            free(src);
+            continue;
+        }
         if (r->descriptor || !r->type || strcmp(r->type, "Item")) continue;
         plan_item *it = &out->v[out->n++];
         it->disc = rec_get(r, "Disc") ? atoi(rec_get(r, "Disc")) : 0;
         it->source = rec_get(r, "Source") && *rec_get(r, "Source") ? path_abs(out->root, rec_get(r, "Source")) : xstrdup("");
         it->path = xstrdup(rec_get(r, "Path") ? rec_get(r, "Path") : "");
         it->seen = rec_get(r, "Seen") ? xstrdup(rec_get(r, "Seen")) : NULL;
+        it->layout = rec_get(r, "Layout") && *rec_get(r, "Layout") ? xstrdup(rec_get(r, "Layout")) : NULL;
         if (it->disc < 1 || it->disc > out->discs || !*it->source || !*it->path)
             die("%s: an Item needs a Disc between 1 and the plan's Discs, a Source and a Path", file);
     }
@@ -152,6 +165,13 @@ static void plan_save(disc_plan *p)
         sb_printf(&b, "\nDisc: %d\nSource: %s\nPath: %s\n", p->v[i].disc, src, p->v[i].path);
         free(src);
         if (p->v[i].seen) sb_printf(&b, "Seen: %s\n", p->v[i].seen);
+        if (p->v[i].layout) sb_printf(&b, "Layout: %s\n", p->v[i].layout);
+    }
+    for (size_t i = 0; i < p->tag_src.n; i++) {
+        if (!i) sb_puts(&b, "\n%rec: Tags\n");
+        char *src = path_rel(p->root, p->tag_src.v[i]);
+        sb_printf(&b, "\nSource: %s\nTags: %s\n", src, p->tag_val.v[i]);
+        free(src);
     }
     char *tmp = xprintf("%s.tmp", p->file);
     write_text(tmp, b.s);
@@ -168,6 +188,149 @@ void plan_made(const char *file, const strlist *disc_ids, const char *date)
     rec_add(hd, "Made", date);
     for (size_t i = 0; i < disc_ids->n; i++) rec_add(hd, "Volume", disc_ids->v[i]);
     plan_save(&p);
+}
+
+/* ------------------------------------------------------------------ tags and layouts */
+
+/* a tag's namespace length ("event:trip" -> 5), 0 for a plain tag */
+static size_t ns_of(const char *tag)
+{
+    const char *c = strchr(tag, ':');
+    if (!c || c == tag) return 0;
+    for (const char *t = tag; t < c; t++)
+        if (*t == ' ') return 0;
+    return (size_t)(c - tag);
+}
+
+/* the tags the plan gives a file or folder (absolute): those of each folder above it, then its own; of
+ * a one-valued namespace, the nearest value replaces the ones above it */
+static void plan_tags_of(const disc_plan *p, const char *abs, const strlist *one, strlist *out)
+{
+    memset(out, 0, sizeof *out);
+    size_t *at = xmalloc((p->tag_src.n + 1) * sizeof *at), n = 0;
+    for (size_t i = 0; i < p->tag_src.n; i++) {
+        const char *src = p->tag_src.v[i];
+        size_t l = strlen(src);
+        if (!strncmp(abs, src, l) && (!abs[l] || abs[l] == '/')) at[n++] = i;
+    }
+    for (size_t a = 1; a < n; a++)          /* nearest last */
+        for (size_t b = a; b > 0 && strlen(p->tag_src.v[at[b - 1]]) > strlen(p->tag_src.v[at[b]]); b--) {
+            size_t t = at[b];
+            at[b] = at[b - 1];
+            at[b - 1] = t;
+        }
+    for (size_t a = 0; a < n; a++) {
+        char *list = xstrdup(p->tag_val.v[at[a]]);
+        for (char *t = strtok(list, ","); t; t = strtok(NULL, ",")) {
+            while (*t == ' ') t++;
+            char *e = t + strlen(t);
+            while (e > t && e[-1] == ' ') *--e = 0;
+            if (!*t) continue;
+            size_t l = ns_of(t);
+            if (l) {
+                char *ns = xprintf("%.*s", (int)l, t);
+                for (size_t k = 0; strlist_has(one, ns) && k < out->n;) {
+                    if (ns_of(out->v[k]) == l && !strncmp(out->v[k], t, l)) {
+                        free(out->v[k]);
+                        out->v[k] = out->v[--out->n];
+                    } else {
+                        k++;
+                    }
+                }
+                free(ns);
+            }
+            if (!strlist_has(out, t)) strlist_add(out, t);
+        }
+        free(list);
+    }
+    free(at);
+}
+
+/* a layout checked against the vocabulary: alternatives split by ",", levels by "/"; each level a
+ * one-valued namespace, or year or decade (made from date). NULL, or what is wrong */
+static char *layout_problem(const char *layout, const strlist *one)
+{
+    char *copy = xstrdup(layout), *problem = NULL;
+    int alts = 0;
+    for (char *alt = copy, *next; alt && !problem; alt = next) {
+        next = strchr(alt, ',');
+        if (next) *next++ = 0;
+        int levels = 0;
+        for (char *lv = alt, *nl; lv && !problem; lv = nl) {
+            nl = strchr(lv, '/');
+            if (nl) *nl++ = 0;
+            while (*lv == ' ') lv++;
+            char *e = lv + strlen(lv);
+            while (e > lv && e[-1] == ' ') *--e = 0;
+            if (!*lv) problem = xstrdup("an empty level (levels are split by / and alternatives by ,)");
+            else if (!strcmp(lv, "year") || !strcmp(lv, "decade")) {
+                if (!strlist_has(one, "date")) problem = xprintf("%s needs a one-valued date namespace in the tag vocabulary", lv);
+            } else if (!strlist_has(one, lv)) {
+                problem = xprintf("%s is not a one-valued namespace (a file with two values would need two folders; "
+                                  "arv tags lists the namespaces)", lv);
+            }
+            levels++;
+        }
+        alts += levels > 0;
+    }
+    if (!problem && !alts) problem = xstrdup("it is empty");
+    free(copy);
+    return problem;
+}
+
+/* where a layout puts a file with these tags: the first alternative it has a value for at every level,
+ * as namespace/value/.../slug (year/2019/event/kyoto-trip/IMG_0001.JPG); NULL for none. A date is
+ * filed by its start; without one, by the file's own time when the vocabulary allows it. */
+static char *laid_out(const char *layout, const strlist *tags, time_t mtime, int date_from_file, const char *slug)
+{
+    char *copy = xstrdup(layout), *out = NULL;
+    for (char *alt = copy, *next; alt && !out; alt = next) {
+        next = strchr(alt, ',');
+        if (next) *next++ = 0;
+        sbuf b = { 0 };
+        int ok = 1;
+        for (char *lv = alt, *nl; lv && ok; lv = nl) {
+            nl = strchr(lv, '/');
+            if (nl) *nl++ = 0;
+            while (*lv == ' ') lv++;
+            char *e = lv + strlen(lv);
+            while (e > lv && e[-1] == ' ') *--e = 0;
+            int year = !strcmp(lv, "year"), decade = !strcmp(lv, "decade");
+            const char *ns = year || decade ? "date" : lv, *value = NULL;
+            size_t l = strlen(ns);
+            for (size_t t = 0; t < tags->n && !value; t++)
+                if (ns_of(tags->v[t]) == l && !strncmp(tags->v[t], ns, l)) {
+                    value = tags->v[t] + l + 1;
+                    while (*value == ' ') value++;
+                }
+            if (year || decade) {
+                long first = 0, last = 0, y = 0;
+                if (value && edtf_span(value, &first, &last) == 1 && first > EDTF_MIN) y = first / 10000;
+                else if (!value && date_from_file) {
+                    struct tm tm;
+                    localtime_r(&mtime, &tm);
+                    y = tm.tm_year + 1900;
+                }
+                if (!y) ok = 0;
+                else if (year) sb_printf(&b, "year/%ld/", y);
+                else sb_printf(&b, "decade/%lds/", y / 10 * 10);
+            } else if (!value || !*value) {
+                ok = 0;
+            } else {
+                sb_printf(&b, "%s/", lv);
+                for (const char *c = value; *c; c++) sb_add(&b, *c == '/' ? "-" : c, 1);
+                sb_puts(&b, "/");
+            }
+        }
+        if (ok && b.s) {
+            sb_puts(&b, slug);
+            out = b.s;
+        } else {
+            free(b.s);
+        }
+    }
+    free(copy);
+    return out;
 }
 
 /* ------------------------------------------------------------------ the files a plan puts on its discs */
@@ -191,11 +354,23 @@ static const plan_item *placed_by(const disc_plan *p, const plan_item *it, const
     return best;
 }
 
-void plan_scan(const disc_plan *p, const char *links, entries *files, entries *noted, size_t *left_out)
+static int by_bin_path(const void *a, const void *b)
+{
+    const entry *x = *(entry *const *)a, *y = *(entry *const *)b;
+    return x->bin != y->bin ? (x->bin < y->bin ? -1 : 1) : strcmp(x->path, y->path);
+}
+
+void plan_scan(const arv_home *h, const disc_plan *p, const char *links, entries *files, entries *noted, size_t *left_out,
+               strlist *tagged, strlist *clashes)
 {
     memset(files, 0, sizeof *files);
     memset(noted, 0, sizeof *noted);
     size_t fcap = 0, ncap = 0;
+    strlist one = { 0 };
+    int date_from_file = 0;
+    int uses_tags = p->tag_src.n > 0;       /* the vocabulary is read (and made) only for a plan that needs it */
+    for (size_t i = 0; i < p->n && !uses_tags; i++) uses_tags = p->v[i].layout != NULL;
+    if (h && uses_tags) tag_namespaces(h, &one, NULL, &date_from_file);
     for (size_t i = 0; i < p->n; i++) {
         const plan_item *it = &p->v[i];
         struct stat st;
@@ -226,6 +401,26 @@ void plan_scan(const disc_plan *p, const char *links, entries *files, entries *n
                     }
                 }
                 char *dest = !*e.path ? xstrdup(it->path) : !strcmp(it->path, ".") ? xstrdup(e.path) : join(it->path, e.path);
+                if (!k && (it->layout || p->tag_src.n)) {      /* the plan's tags, and its layout */
+                    char *abs = *e.path ? join(it->source, e.path) : xstrdup(it->source);
+                    strlist tags;
+                    plan_tags_of(p, abs, &one, &tags);
+                    const char *slug = strrchr(dest, '/') ? strrchr(dest, '/') + 1 : dest;
+                    char *placed = it->layout ? laid_out(it->layout, &tags, e.mtime, date_from_file, slug) : NULL;
+                    if (placed) {
+                        e.origin = dest;
+                        dest = placed;
+                    }
+                    if (tagged && tags.n) {
+                        sbuf b = { 0 };
+                        sb_printf(&b, "%s\t", dest);
+                        for (size_t t = 0; t < tags.n; t++) sb_printf(&b, "%s%s", t ? ", " : "", tags.v[t]);
+                        strlist_add(tagged, b.s);
+                        free(b.s);
+                    }
+                    strlist_free(&tags);
+                    free(abs);
+                }
                 free(e.path);
                 e.path = dest;
                 e.bin = it->disc - 1;
@@ -240,6 +435,20 @@ void plan_scan(const disc_plan *p, const char *links, entries *files, entries *n
         free(f.v);
         free(n.v);
     }
+    if (clashes && files->n > 1) {          /* two files one path: only a layout can do that */
+        entry **by = xmalloc(files->n * sizeof *by);
+        for (size_t i = 0; i < files->n; i++) by[i] = &files->v[i];
+        qsort(by, files->n, sizeof *by, by_bin_path);
+        for (size_t i = 1; i < files->n; i++)
+            if (by[i]->bin == by[i - 1]->bin && !strcmp(by[i]->path, by[i - 1]->path)) {
+                char *line = xprintf("data/%s on disc %d: %s and %s", by[i]->path, by[i]->bin + 1, by[i - 1]->source,
+                                     by[i]->source);
+                strlist_add(clashes, line);
+                free(line);
+            }
+        free(by);
+    }
+    strlist_free(&one);
     if (!files->v) files->v = xmalloc(sizeof *files->v);
     if (!noted->v) noted->v = xmalloc(sizeof *noted->v);
 }
@@ -476,6 +685,87 @@ static void archived_hashes(const arv_home *h, const archive *cat, strlist *out)
     if (out->n) qsort(out->v, out->n, sizeof *out->v, by_str);
 }
 
+/* where an item's layout puts its files (no hashing: names and dates only), for plan show: dests
+ * gets each laid-out file's path, by_hand each file the layout has no place for */
+typedef struct {
+    const disc_plan *p;
+    const plan_item *it;
+    const strlist *one;
+    int date_from_file;
+    strlist dests, by_hand;
+} preview;
+
+static void preview_walk(preview *pv, const char *disk, const char *rel, int top)
+{
+    struct stat st;
+    if (lstat(disk, &st)) return;
+    if (!top && placed_by(pv->p, pv->it, disk)) return;
+    if (S_ISREG(st.st_mode)) {
+        const char *ip = pv->it->path;
+        char *dest = !*rel ? xstrdup(ip) : !strcmp(ip, ".") ? xstrdup(rel) : join(ip, rel);
+        strlist tags;
+        plan_tags_of(pv->p, disk, pv->one, &tags);
+        char *placed = laid_out(pv->it->layout, &tags, st.st_mtime, pv->date_from_file,
+                                strrchr(dest, '/') ? strrchr(dest, '/') + 1 : dest);
+        if (placed) strlist_add(&pv->dests, placed);
+        else strlist_add(&pv->by_hand, dest);
+        free(placed);
+        free(dest);
+        strlist_free(&tags);
+        return;
+    }
+    if (!S_ISDIR(st.st_mode)) return;
+    DIR *d = opendir(disk);
+    struct dirent *e;
+    while (d && (e = readdir(d))) {
+        if (!strcmp(e->d_name, ".") || !strcmp(e->d_name, "..") || (top && !strcmp(e->d_name, ".arv"))) continue;
+        char *q = join(disk, e->d_name), *r = *rel ? join(rel, e->d_name) : xstrdup(e->d_name);
+        preview_walk(pv, q, r, 0);
+        free(q);
+        free(r);
+    }
+    if (d) closedir(d);
+}
+
+/* plan show's lines for an item with a layout: each folder it makes and how many files go there,
+ * the files it has no place for (they keep their place by hand), and two files given one path */
+static void show_layout(const arv_home *h, const disc_plan *p, const plan_item *it)
+{
+    strlist one = { 0 };
+    preview pv = { p, it, &one, 0, { 0 }, { 0 } };
+    tag_namespaces(h, &one, NULL, &pv.date_from_file);
+    preview_walk(&pv, it->source, "", 1);
+    printf("      laid out by %s: %zu file%s placed", it->layout, pv.dests.n, pv.dests.n == 1 ? "" : "s");
+    if (pv.by_hand.n) printf(", %zu by hand (no value for any alternative)", pv.by_hand.n);
+    putchar('\n');
+    if (pv.dests.n) qsort(pv.dests.v, pv.dests.n, sizeof *pv.dests.v, by_str);
+    strlist dirs = { 0 };                   /* each folder the layout makes, with its files */
+    size_t *count = xmalloc((pv.dests.n + 1) * sizeof *count);
+    for (size_t i = 0; i < pv.dests.n; i++) {
+        const char *slash = strrchr(pv.dests.v[i], '/');
+        char *dir = xprintf("%.*s", slash ? (int)(slash - pv.dests.v[i]) : 0, pv.dests.v[i]);
+        size_t k = 0;
+        while (k < dirs.n && strcmp(dirs.v[k], dir)) k++;
+        if (k == dirs.n) {
+            strlist_add(&dirs, dir);
+            count[k] = 0;
+        }
+        count[k]++;
+        free(dir);
+    }
+    for (size_t k = 0; k < dirs.n; k++) printf("        %s/  %zu file%s\n", dirs.v[k], count[k], count[k] == 1 ? "" : "s");
+    strlist_free(&dirs);
+    free(count);
+    for (size_t i = 0; i < pv.by_hand.n && i < 5; i++) printf("        by hand: %s\n", pv.by_hand.v[i]);
+    if (pv.by_hand.n > 5) printf("        by hand: %zu more\n", pv.by_hand.n - 5);
+    for (size_t i = 1; i < pv.dests.n; i++)
+        if (!strcmp(pv.dests.v[i], pv.dests.v[i - 1]))
+            printf("        TWO FILES at %s: give one another name (arv plan add %s SOURCE --as NAME)\n", pv.dests.v[i], p->name);
+    strlist_free(&pv.dests);
+    strlist_free(&pv.by_hand);
+    strlist_free(&one);
+}
+
 static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived)
 {
     rec_record *hd = head(p);
@@ -536,6 +826,9 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
                 json_str(&b, p->v[i].path);
                 sb_puts(&b, ", \"source\": ");
                 json_str(&b, p->v[i].source);
+                sb_puts(&b, ", \"layout\": ");
+                if (p->v[i].layout) json_str(&b, p->v[i].layout);
+                else sb_puts(&b, "null");
 
                 sb_printf(&b, ", \"changed\": %s, \"kind\": \"%s\", \"bytes\": %llu, \"files\": %ld, \"archived\": ", chg[i] ? "true" : "false",
                           m[i].missing ? "missing" : m[i].folder ? "folder" : "file", (unsigned long long)m[i].bytes, m[i].files);
@@ -599,6 +892,7 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
                         if (holder(p, in) != &p->v[i]) continue;
                         printf("      not %s: placed as %s on disc %d\n", in->source + strlen(p->v[i].source) + 1, in->path, in->disc);
                     }
+                    if (p->v[i].layout) show_layout(h, p, &p->v[i]);
                     if (ar && ar[i].object) {
                         printf("      archived already: %s version %s, on", (rec_get(ar[i].object, "Name") ? rec_get(ar[i].object, "Name") : "?"),
                                (rec_get(ar[i].object, "Version") ? rec_get(ar[i].object, "Version") : "0"));
@@ -725,12 +1019,14 @@ static void add_item(const arv_home *h, disc_plan *p, const char *given, const c
     const char *path = as && *as ? as : *base ? base : NULL;
     if (!path || !path_ok(path, S_ISDIR(st.st_mode)))
         die("%s cannot be a path under data/ (relative, no . or .. parts; . only for a folder's contents)", path ? path : "/");
-    plan_item it = { 0, src, xstrdup(path), NULL };
+    plan_item it = { 0, src, xstrdup(path), NULL, NULL };
     int d = pick_disc(h, p, disc, item_size(p, &it).sectors);
     check_free(p, path, d);
     if (d > p->discs) p->discs = d;
     it.disc = d;
     it.seen = stamp_of(it.source);
+    const plan_item *from = holder(p, &it);  /* split off a laid-out folder: laid out the same, under its name */
+    if (from && from->layout) it.layout = xstrdup(from->layout);
     p->v = xrealloc(p->v, (p->n + 1) * sizeof *p->v);
     p->v[p->n++] = it;
     if (quiet) return;
@@ -773,6 +1069,73 @@ static void add_list(const arv_home *h, disc_plan *p, const char *file, const ch
     strlist_free(&src);
     strlist_free(&as);
     strlist_free(&on);
+}
+
+/* the plan's tags for a source (a file or folder in the plan, as given), as typed: each normalised,
+ * aliases made names; refused with two values of a one-valued namespace, or a date that is not
+ * EDTF. Empty tags take the source's away. Returns 1 when they changed. */
+static int set_tags(const arv_home *h, disc_plan *p, const char *given, const char *text, const strlist *one, const char *where)
+{
+    char *src = realpath(given, NULL);
+    if (!src) die2("%s%s: no such file or folder (nothing was changed)", given, where);
+    int in = 0;
+    for (size_t i = 0; i < p->n && !in; i++) {
+        size_t l = strlen(p->v[i].source);
+        in = !strncmp(src, p->v[i].source, l) && (!src[l] || src[l] == '/');
+    }
+    if (!in) die2("%s%s is not in the plan (arv plan add it first; nothing was changed)", src, where);
+    strlist tags = { 0 };
+    char *copy = xstrdup(text);
+    for (char *t = strtok(copy, ","); t; t = strtok(NULL, ",")) {
+        char *n = tag_normalise(t);
+        if (*n) strlist_add(&tags, n);
+        free(n);
+    }
+    free(copy);
+    tags_canonical(h, &tags);
+    for (size_t i = 0; i < tags.n; i++) {
+        size_t l = ns_of(tags.v[i]);
+        if (!l) continue;
+        char *ns = xprintf("%.*s", (int)l, tags.v[i]);
+        for (size_t k = i + 1; k < tags.n && strlist_has(one, ns); k++)
+            if (ns_of(tags.v[k]) == l && !strncmp(tags.v[k], ns, l))
+                die("%s", xprintf("%s%s: %s and %s: %s takes one value (nothing was changed)", given, where, tags.v[i], tags.v[k], ns));
+        long a, b;
+        if (!strcmp(ns, "date") && edtf_span(tags.v[i] + 5, &a, &b) != 1)
+            die("%s", xprintf("%s%s: %s is not an EDTF date or range (2019-07, 1995/2008, 197X, 1995~; nothing was changed)",
+                              given, where, tags.v[i]));
+        free(ns);
+    }
+    sbuf b = { 0 };
+    sb_puts(&b, "");
+    for (size_t i = 0; i < tags.n; i++) sb_printf(&b, "%s%s", i ? ", " : "", tags.v[i]);
+    strlist_free(&tags);
+    size_t k = 0;
+    while (k < p->tag_src.n && strcmp(p->tag_src.v[k], src)) k++;
+    int changed = 1;
+    if (k < p->tag_src.n && !strcmp(p->tag_val.v[k], b.s)) {
+        changed = 0;
+    } else if (k < p->tag_src.n && !*b.s) {     /* none now: its record goes */
+        free(p->tag_src.v[k]);
+        free(p->tag_val.v[k]);
+        for (size_t j = k + 1; j < p->tag_src.n; j++) {
+            p->tag_src.v[j - 1] = p->tag_src.v[j];
+            p->tag_val.v[j - 1] = p->tag_val.v[j];
+        }
+        p->tag_src.n--;
+        p->tag_val.n--;
+    } else if (k < p->tag_src.n) {
+        free(p->tag_val.v[k]);
+        p->tag_val.v[k] = xstrdup(b.s);
+    } else if (*b.s) {
+        strlist_add(&p->tag_src, src);
+        strlist_add(&p->tag_val, b.s);
+    } else {
+        changed = 0;
+    }
+    free(b.s);
+    free(src);
+    return changed;
 }
 
 int cmd_plan(int argc, char **argv)
@@ -942,6 +1305,10 @@ int cmd_plan(int argc, char **argv)
             it.seen = stamp_of(it.source);
             q.v[q.n++] = it;
         }
+        for (size_t k = 0; k < p.tag_src.n; k++) {
+            strlist_add(&q.tag_src, p.tag_src.v[k]);
+            strlist_add(&q.tag_val, p.tag_val.v[k]);
+        }
         plan_save(&q);
         size_t gone = 0;
         for (size_t k = 0; k < q.n; k++) gone += access(q.v[k].source, F_OK) != 0;
@@ -969,6 +1336,75 @@ int cmd_plan(int argc, char **argv)
         for (size_t k = 0; k < args.n; k++) add_item(&h, &p, args.v[k], as, disc, 0);
         if (list) add_list(&h, &p, list, disc);
         plan_save(&p);
+        return 0;
+    }
+    if (!strcmp(action, "tag")) {           /* tags for files still on a drive: the plan keeps them */
+        strlist one = { 0 };
+        tag_namespaces(&h, &one, NULL, NULL);
+        if (list) {
+            if (args.n) die("%s", "arv plan tag NAME --list FILE|-: SOURCE<TAB>TAGS a line (no SOURCE besides)");
+            FILE *in = strcmp(list, "-") ? fopen(list, "r") : stdin;
+            if (!in) die("cannot read %s", list);
+            char *line = NULL;
+            size_t cap = 0, n = 0, changed = 0, lines = 0;
+            ssize_t len;
+            while ((len = getline(&line, &cap, in)) >= 0) {   /* all or none: a refusal dies before the plan is saved */
+                n++;
+                while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) line[--len] = 0;
+                if (!len || line[0] == '#') continue;
+                char *cols[2] = { line, NULL };
+                if (split_tabs(line, cols, 2) < 1 || !*cols[0]) continue;
+                char at[32];
+                snprintf(at, sizeof at, ", line %zu", n);
+                changed += set_tags(&h, &p, cols[0], cols[1] ? cols[1] : "", &one, at);
+                lines++;
+            }
+            if (in != stdin) fclose(in);
+            free(line);
+            plan_save(&p);
+            printf("%zu line%s read from %s: tags of %zu changed\n", lines, lines == 1 ? "" : "s",
+                   strcmp(list, "-") ? list : "standard input", changed);
+        } else {
+            if (args.n != 2) die("%s", "arv plan tag NAME SOURCE TAGS: the tags, comma-separated (\"\" for none)");
+            int changed = set_tags(&h, &p, args.v[0], args.v[1], &one, "");
+            plan_save(&p);
+            char *src = realpath(args.v[0], NULL);
+            size_t k = 0;
+            while (k < p.tag_src.n && strcmp(p.tag_src.v[k], src)) k++;
+            printf("%s: %s%s\n", args.v[0], k < p.tag_src.n ? p.tag_val.v[k] : "no tags", changed ? "" : " (as it was)");
+            free(src);
+        }
+        strlist_free(&one);
+        return 0;
+    }
+    if (!strcmp(action, "layout")) {        /* its items' files placed by their tags */
+        if (!args.n) die("%s", "arv plan layout NAME LAYOUT [PATH...]: e.g. 'year/event, year'; '' places by hand again");
+        const char *layout = args.v[0];
+        if (*layout) {
+            strlist one = { 0 };
+            tag_namespaces(&h, &one, NULL, NULL);
+            char *problem = layout_problem(layout, &one);
+            if (problem) die2("layout %s: %s", layout, problem);
+            strlist_free(&one);
+        }
+        int from = from_s ? atoi(from_s) : 0;
+        size_t set = 0;
+        for (size_t k = 0; k < p.n; k++) {
+            int named = args.n == 1;
+            for (size_t a = 1; a < args.n && !named; a++) named = !strcmp(p.v[k].path, args.v[a]);
+            if (!named || (from && p.v[k].disc != from)) continue;
+            free(p.v[k].layout);
+            p.v[k].layout = *layout ? xstrdup(layout) : NULL;
+            set++;
+        }
+        for (size_t a = 1; a < args.n; a++) {
+            int found = 0;
+            for (size_t k = 0; k < p.n && !found; k++) found = !strcmp(p.v[k].path, args.v[a]);
+            if (!found) die2("%s is not an item of plan %s (arv plan show lists them)", args.v[a], name);
+        }
+        plan_save(&p);
+        if (*layout) printf("%zu item%s laid out by %s. Where each file goes: arv plan show %s\n", set, set == 1 ? "" : "s", layout, name);
+        else printf("%zu item%s placed by hand again\n", set, set == 1 ? "" : "s");
         return 0;
     }
     if (!strcmp(action, "rename")) {        /* a new place on its disc; inside a planned folder: split off */
@@ -1175,7 +1611,7 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
         uint64_t bytes = 0;
         int git = 0;
         for (size_t i = 0; i < files->n; i++) {
-            const char *p = files->v[i].path, *rel;
+            const char *p = files->v[i].origin ? files->v[i].origin : files->v[i].path, *rel;
             if (top) {
                 int other = 0;
                 for (size_t j = 0; j < dp->n && !other; j++)
@@ -1246,6 +1682,7 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
         rec_add(r, "Tree", tree);
         rec_add(r, "Disc", disc_id);
         rec_add(r, "Path", it->path);
+        if (it->layout) rec_add(r, "Layout", it->layout);
         rec_add(r, "Files", n_files);
         rec_add(r, "Bytes", n_bytes);
         rec_add(r, "Date", today);
@@ -1255,9 +1692,11 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
             if (holder(dp, &dp->v[j]) == it) rec_add(r, "Except", dp->v[j].source + strlen(it->source) + 1);
         recs_add(out, r);
         strlist_add(manifests, text.s);
-        fprintf(stderr, "Object %s%s (data/%s on %s): %s\n", rec_get(r, "Name"), is_file ? "" : "/", top ? "" : it->path, disc_id,
+        char *where = it->layout ? xprintf("laid out by %s", it->layout) : xprintf("data/%s", top ? "" : it->path);
+        fprintf(stderr, "Object %s%s (%s on %s): %s\n", rec_get(r, "Name"), is_file ? "" : "/", where, disc_id,
                 same ? "the same as a version already archived (another copy of it)"
                 : from ? "a new version of what was archived from there before" : "new");
+        free(where);
         sbuf said = { 0}, facts = { 0 };         /* "Title": description (coverage; rights; origin) */
         const char *t = rec_get(r, "Title"), *d = rec_get(r, "Description");
         if (t) sb_printf(&said, "\"%s\"%s", t, d ? ": " : "");

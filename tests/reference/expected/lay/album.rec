@@ -1,0 +1,40 @@
+%rec: Plan
+
+Name: album
+Created: 2026-01-01
+Medium: bd25
+Set: PHOTO
+Discs: 1
+Made: 2026-01-01
+Volume: PHOTO-01_1974-2019_0
+
+%rec: Item
+
+Disc: 1
+Source: lay/DCIM
+Path: DCIM
+Seen: 5 60 c3528d8fb048707d
+Layout: year/event, year
+
+Disc: 1
+Source: lay/DCIM/day2/IMG_0001.JPG
+Path: IMG_0001-day2.JPG
+Seen: 1 10 a22eb8b27c314312
+Layout: year/event, year
+
+Disc: 1
+Source: lay/scans
+Path: scans
+Seen: 1 8 f44130575291651f
+Layout: decade
+
+%rec: Tags
+
+Source: lay/DCIM
+Tags: event:kyoto trip, place:kyoto
+
+Source: lay/scans/print1.tif
+Tags: date:1974~, person:ann
+
+Source: lay/DCIM/notes.txt
+Tags: date:2019-07

@@ -66,6 +66,7 @@ char *path_abs(const char *root, const char *stored);   /* back to absolute */
 int cmd_init(int argc, char **argv);
 int cmd_tags(int argc, char **argv);
 void tags_canonical(const arv_home *h, strlist *tags);
+int tag_namespaces(const arv_home *h, strlist *one, strlist *declared, int *date_from_file);
 int cmd_keywords(int argc, char **argv);
 int cmd_make(int argc, char **argv);
 long medium_budget(const char *medium, const char **label);
@@ -186,6 +187,7 @@ typedef struct {
     time_t mtime;
     int via_folder;         /* reached through a copied folder link */
     int bin;                /* arv make --plan: which disc of the plan (0 = the first) */
+    char *origin;           /* arv make --plan: where a laid-out file would be by hand (NULL: at path) */
     char sha256[65], sha512[129];
 } entry;
 typedef struct {
@@ -199,6 +201,7 @@ typedef struct {
     char *source;           /* absolute: a file or folder, read when the discs are made */
     char *path;             /* where it goes under data/ ("." : a folder's contents at the top) */
     char *seen;             /* "FILES BYTES STAMP" when planned (names, sizes, dates), or NULL */
+    char *layout;           /* its files placed by their tags ("year/event, year"), or NULL: by hand */
 } plan_item;
 typedef struct {
     char *file, *name;
@@ -207,10 +210,15 @@ typedef struct {
     plan_item *v;
     size_t n;
     rec_file rec;           /* the plan as read: the Plan record gives make's defaults */
+    strlist tag_src, tag_val;   /* tags given in the plan: a source file or folder (absolute), its tags */
 } disc_plan;
 int cmd_plan(int argc, char **argv);
 void plan_load(const char *file, disc_plan *out);
-void plan_scan(const disc_plan *p, const char *links, entries *files, entries *noted, size_t *left_out);
+/* the files of a plan, each where it goes (laid out by its tags for an item with a layout; origin
+ * then says where it would be by hand); tagged: "PATH\tTAGS" for each file the plan gives tags to;
+ * clashes: two files given one path by a layout */
+void plan_scan(const arv_home *h, const disc_plan *p, const char *links, entries *files, entries *noted, size_t *left_out,
+               strlist *tagged, strlist *clashes);
 void plan_made(const char *file, const strlist *disc_ids, const char *date);
 void text_sha256(const char *text, char hex[65]);
 void json_str(sbuf *b, const char *s);     /* a JSON string, quoted */

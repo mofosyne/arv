@@ -136,6 +136,7 @@ static void tag_file_free(tag_file *f)
 typedef struct {
     strlist names, alias_from, alias_to;
     strlist ns_names, ns_desc, ns_one;       /* declared namespaces; ns_one holds the one-valued */
+    strlist ns_file_date;                   /* and those whose values may come from a file's date */
     char *path;
 } tag_vocab;
 
@@ -156,6 +157,9 @@ static int load_tag_vocab(tag_vocab *tv, const arv_home *h)
             strlist_add(&tv->ns_names, ns);
             strlist_add(&tv->ns_desc, d ? d : "");
             if (v && !strcmp(v, "one")) strlist_add(&tv->ns_one, ns);
+            for (size_t j = 0; j < r->nfields; j++)
+                if (!strcmp(r->fields[j].name, "From") && !strcmp(r->fields[j].value, "file-date"))
+                    strlist_add(&tv->ns_file_date, ns);
             continue;
         }
         if (r->type && strcmp(r->type, "Tag")) continue;
@@ -172,6 +176,19 @@ static int load_tag_vocab(tag_vocab *tv, const arv_home *h)
     }
     rec_free(&f);
     return tv->names.n ? 0 : -1;
+}
+
+/* the home's declared namespaces that take one value a file (into one), and whether date's values
+ * may come from a file's own date (From: file-date); -1 when there is no vocabulary */
+int tag_namespaces(const arv_home *h, strlist *one, strlist *declared, int *date_from_file)
+{
+    tag_vocab tv;
+    if (load_tag_vocab(&tv, h)) return -1;
+    for (size_t i = 0; i < tv.ns_one.n; i++) strlist_add(one, tv.ns_one.v[i]);
+    if (declared)
+        for (size_t i = 0; i < tv.ns_names.n; i++) strlist_add(declared, tv.ns_names.v[i]);
+    if (date_from_file) *date_from_file = strlist_has(&tv.ns_file_date, "date");
+    return 0;
 }
 
 /* the vocabulary's names for tags, without repeats or blanks (tagger.TagVocab.canonical_list); the
