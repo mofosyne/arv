@@ -98,8 +98,8 @@ Date: 2026-01-01
 Part: 1 of 2
 Creator: archivist
 Access: private
-Files: 54
-Bytes: 5400000
+Files: 53
+Bytes: 5300000
 Software: SW
 
 Id: SCAN-02_2001-2007_B
@@ -116,8 +116,8 @@ Date: 2026-01-01
 Part: 2 of 2
 Creator: archivist
 Access: private
-Files: 16
-Bytes: 1600000
+Files: 17
+Bytes: 1700000
 Software: SW
 
 %rec: Binding
@@ -164,7 +164,7 @@ Protection: none
 Media: M-DISC custom medium
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 3666
+ImageSectors: 3634
 ImageSha256: SHA256
 
 Volume: SCAN-02_2001-2007_B
@@ -173,7 +173,7 @@ Protection: none
 Media: M-DISC custom medium
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 1746
+ImageSectors: 1778
 ImageSha256: SHA256
 
 %rec: Object
@@ -376,7 +376,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: sha256 and sha512 manifests of 54 files
+Note: sha256 and sha512 manifests of 53 files
 
 EventId: ID
 Disc: SCAN-01_2001-2007_D
@@ -395,7 +395,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image SCAN-01_2001-2007_D.noecc.iso, 3666 sectors
+Note: image SCAN-01_2001-2007_D.noecc.iso, 3634 sectors
 
 EventId: ID
 Disc: SCAN-02_2001-2007_B
@@ -404,7 +404,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: sha256 and sha512 manifests of 16 files
+Note: sha256 and sha512 manifests of 17 files
 
 EventId: ID
 Disc: SCAN-02_2001-2007_B
@@ -423,4 +423,4 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image SCAN-02_2001-2007_B.noecc.iso, 1746 sectors
+Note: image SCAN-02_2001-2007_B.noecc.iso, 1778 sectors

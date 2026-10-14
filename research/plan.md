@@ -1501,6 +1501,25 @@ do not give is order (a slideshow's sequence): that is names (`01 torii gates.jp
     within it, so the same object placed two ways is the same version.
   Not yet: titles, and a layout for `arv make` of a folder that is not a plan.
 
+## Done (2026-10-14, issue #41): the README for readers without English
+
+A short note (two to four lines each) near the top of every disc's `README.txt`, after the facts
+and before the description, in Chinese, Spanish, Hindi, Arabic, French, Russian, Portuguese,
+Japanese, German and Bengali: an archive disc; ordinary files in `data/` any computer opens; the
+instructions below are in English, a translation tool or AI assistant can translate them, and the
+commands work as written. Not full translations, as the issue says: each would be another copy to
+keep in step, and a wrong translated repair step is costly.
+
+**The translations are drafts, not reviewed by native speakers.** Before the first real burns,
+each wants a native speaker's check (wording, and in Arabic the right-to-left rendering of the
+`data/` name). Later, perhaps: the owner's language added through the config.
+
+Two fallback checks in VERIFY, for a person with only a shell: `shasum -a 256 -c` (macOS has no
+`sha256sum`), and a count of the payload's bytes and files (`find data -type f -exec wc -c {} + |
+awk ...`, which prints `BYTES.FILES`) to compare with `Payload-Oxum`, since `sha256sum -c` does not
+notice a missing or extra file. Tried on a disc: it matches, and is one file and its bytes short
+after one is removed. `wc -c` takes a file's size from the file system, so this is quick.
+
 ## Decision (2026-10-14): no remaking discs from discs
 
 Built the same day (`arv plan add NAME DISC-ID[:PATH]`, read from a copy the record knows as files,

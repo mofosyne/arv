@@ -28,7 +28,7 @@ int main(int argc, char **argv)
         }
         *eq = 0;
         fprintf(out, "\n/* %s */\nconst char %s[] = {", strrchr(eq + 1, '/') ? strrchr(eq + 1, '/') + 1 : eq + 1, argv[i]);
-        while ((c = getc(in)) != EOF) fprintf(out, "%s%d,", n++ % 24 ? "" : "\n    ", c);
+        while ((c = getc(in)) != EOF) fprintf(out, "%s%d,", n++ % 24 ? "" : "\n    ", c > 127 ? c - 256 : c);   /* a char either way */
         fprintf(out, "\n    0\n};\n");
         fclose(in);
     }

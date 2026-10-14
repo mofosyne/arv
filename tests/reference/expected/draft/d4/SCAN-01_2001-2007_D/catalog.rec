@@ -49,8 +49,8 @@ Date: 2026-01-01
 Part: 1 of 2
 Creator: archivist
 Access: private
-Files: 54
-Bytes: 5400000
+Files: 53
+Bytes: 5300000
 Software: SW
 
 %rec: Binding
@@ -116,7 +116,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: sha256 and sha512 manifests of 54 files
+Note: sha256 and sha512 manifests of 53 files
 
 EventId: ID
 Disc: SCAN-01_2001-2007_D

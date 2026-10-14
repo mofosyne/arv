@@ -7,6 +7,40 @@ Burned:   2026-01-01
 Contents: 2 files, 4 bytes (in data/)
 Made by:  SW
 
+中文       这是一张档案光盘。data/ 文件夹里是普通文件，任何电脑都能打开。下面的说明
+           是英文的：可以用翻译工具或 AI 助手翻译，命令照原样输入即可。
+Español    Este es un disco de archivo. Los archivos de la carpeta data/ son archivos
+           normales que cualquier ordenador puede abrir. Las instrucciones de abajo
+           están en inglés: una herramienta de traducción o un asistente de IA puede
+           traducirlas, y los comandos funcionan tal como están escritos.
+हिन्दी       यह एक आर्काइव डिस्क है। data/ फ़ोल्डर में साधारण फ़ाइलें हैं, जिन्हें कोई भी
+           कंप्यूटर खोल सकता है। नीचे के निर्देश अंग्रेज़ी में हैं: अनुवाद टूल या AI सहायक
+           उनका अनुवाद कर सकता है, और कमांड जैसे लिखे हैं वैसे ही काम करते हैं।
+العربية    هذا قرص أرشيف. الملفات في المجلد data/ ملفات عادية يستطيع أي حاسوب فتحها.
+           التعليمات أدناه بالإنجليزية: يمكن ترجمتها بأداة ترجمة أو بمساعد ذكاء
+           اصطناعي، والأوامر تعمل كما هي مكتوبة.
+Français   Ceci est un disque d'archive. Les fichiers du dossier data/ sont des
+           fichiers ordinaires, que tout ordinateur peut ouvrir. Les instructions
+           ci-dessous sont en anglais : un outil de traduction ou un assistant d'IA
+           peut les traduire, et les commandes fonctionnent telles qu'elles sont écrites.
+Русский    Это архивный диск. В папке data/ лежат обычные файлы, которые откроет любой
+           компьютер. Инструкции ниже на английском: их можно перевести переводчиком
+           или ИИ-помощником, а команды работают так, как написаны.
+Português  Este é um disco de arquivo. Os arquivos da pasta data/ são arquivos comuns,
+           que qualquer computador consegue abrir. As instruções abaixo estão em
+           inglês: uma ferramenta de tradução ou um assistente de IA pode traduzi-las,
+           e os comandos funcionam exatamente como estão escritos.
+日本語     これはアーカイブ用のディスクです。data/ フォルダーのファイルは普通のファイル
+           で、どのコンピューターでも開けます。以下の説明は英語です。翻訳ツールや AI
+           アシスタントで翻訳でき、コマンドは書かれたとおりに使えます。
+Deutsch    Dies ist eine Archiv-Disc. Die Dateien im Ordner data/ sind gewöhnliche
+           Dateien, die jeder Computer öffnen kann. Die Anleitung unten ist auf
+           Englisch: Ein Übersetzungsprogramm oder ein KI-Assistent kann sie
+           übersetzen, und die Befehle funktionieren so, wie sie dastehen.
+বাংলা       এটি একটি আর্কাইভ ডিস্ক। data/ ফোল্ডারের ফাইলগুলো সাধারণ ফাইল, যেকোনো কম্পিউটারে
+           খোলা যায়। নিচের নির্দেশনা ইংরেজিতে: অনুবাদ টুল বা এআই সহকারী দিয়ে অনুবাদ করা
+           যায়, আর কমান্ডগুলো যেমন লেখা আছে ঠিক তেমনই কাজ করে।
+
 This is an archive disc by archivist, made on 2026-01-01: Family photos. Its
 files are ordinary files in the data/ folder, and any computer can open
 them.
@@ -34,6 +68,10 @@ SEARCH
 VERIFY (detect damage)
   From the root of the mounted disc, any of:
     sha256sum -c manifest-sha256.txt   (any Unix-like system; nothing else)
+    shasum -a 256 -c manifest-sha256.txt   (macOS, which has no sha256sum)
+  These find a changed file, not a missing or an extra one. For that, this
+  prints BYTES.FILES, which must be the Payload-Oxum line in bag-info.txt:
+    find data -type f -exec wc -c {} + | awk '$2 != "total" {s += $1; n++} END {print s "." n}'
     ./arv check .                      (arv: see RESTORE; checks it as a BagIt
                                         bag: every manifest, every file, no
                                         file too many or missing)

@@ -117,6 +117,17 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   source places it by its tags now (a layout), names it by its name now, and writes them into the
   new disc's `tags.tsv`.
 
+**The disc's README for readers without English, and two more checks** (issue #41)
+- A short note near the top of every disc's `README.txt` in ten languages (Chinese, Spanish,
+  Hindi, Arabic, French, Russian, Portuguese, Japanese, German, Bengali): this is an archive disc,
+  its files in `data/` are ordinary files, the instructions are in English and a translation tool
+  or AI assistant can translate them, and the commands work as written. Drafts until a native
+  speaker checks each (`research/plan.md`).
+- VERIFY gains `shasum -a 256 -c manifest-sha256.txt` for macOS, and a line that counts the
+  payload's bytes and files with `find`, `wc` and `awk`, to compare with `Payload-Oxum`: a missing
+  or extra file, which `sha256sum -c` does not notice.
+- `dev-tools/embed.c` writes bytes above 127 so that `data.c` compiles cleanly with UTF-8 data.
+
 **A remake is a new plan, of the same objects**
 - `arv restore` records where it restored a disc to (a `dissemination` event, in the home that
   knows the disc; the folder holds exactly the disc's files). A disc plan of a file or folder there
