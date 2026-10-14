@@ -67,15 +67,16 @@ VERIFY (detect damage)
   From the root of the mounted disc, any of:
     sha256sum -c manifest-sha256.txt   (any Unix-like system; nothing else)
     shasum -a 256 -c manifest-sha256.txt   (macOS, which has no sha256sum)
-  These find a changed file, not a missing or an extra one. For that, this
-  prints BYTES.FILES, which must be the Payload-Oxum line in bag-info.txt:
-    find data -type f -exec wc -c {{}} + | awk '$2 != "total" {{s += $1; n++}} END {{print s "." n}}'
     ./arv check .                      (arv: see RESTORE; checks it as a BagIt
                                         bag: every manifest, every file, no
                                         file too many or missing)
     python3 tools/{repo}/upstream/bagit-python/bagit.py --validate .
                                        (the Library of Congress's BagIt
                                         validator; tools/{repo}/docs/notes/bagit.md)
+  sha256sum and shasum find a changed file, not a missing or an extra one
+  (arv and bagit.py do). With only a shell, this prints BYTES.FILES, which
+  must be the Payload-Oxum line in bag-info.txt:
+    find data -type f -exec wc -c {{}} + | awk '$2 != "total" {{s += $1; n++}} END {{print s "." n}}'
 
 RESTORE (copy the files back)
   Copying data/ anywhere is enough for most files. Symbolic links in the
