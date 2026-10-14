@@ -79,7 +79,6 @@ int cmd_access(int argc, char **argv);
 int cmd_location(int argc, char **argv);
 int cmd_collection(int argc, char **argv);
 int cmd_status(int argc, char **argv);
-int cmd_checkpoint(int argc, char **argv);
 int cmd_log(int argc, char **argv);
 int cmd_diff(int argc, char **argv);
 int cmd_link(int argc, char **argv);

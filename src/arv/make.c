@@ -1137,7 +1137,6 @@ static rec_record *revision_record(const maker *mk)
     rec_add(r, "Tree", tree);
     if (parent) rec_add(r, "Parent", parent);
     rec_add(r, "Date", mk->today);
-    rec_add(r, "Stage", "edition");
     if (o->keep) rec_add(r, "Keep", "yes");
     char *n = xprintf("%d", collection_editions(mk->cat, uuid) + 1);
     rec_add(r, "Edition", n);

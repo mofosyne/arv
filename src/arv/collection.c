@@ -164,7 +164,7 @@ static void list_line(const archive *cat, const rec_record *c)
     const rec_record *head = collection_head(cat, uuid);
     int editions = collection_editions(cat, uuid);
     printf("%-8s  %s  (%d edition%s", get_or(c, "Code", ""), get_or(c, "Title", ""), editions, editions == 1 ? "" : "s");
-    if (head) printf("; last %s, %s", get_or(head, "Date", ""), rec_get(head, "Edition") ? "an edition" : "a checkpoint");
+    if (head) printf("; last edition %s, %s", get_or(head, "Edition", "?"), get_or(head, "Date", ""));
     puts(")");
 }
 
@@ -254,12 +254,7 @@ static void collection_json(const archive *cat)
                       kept ? "true" : "false", safe ? "true" : "false", retired ? "true" : "false",
                       lost, newer_safe && !kept && !retired ? "true" : "false");
         }
-        sb_puts(&b, "], \"checkpoints\": ");
-        size_t checkpoints = 0;
-        for (size_t j = 0; j < cat->revisions.n; j++)
-            checkpoints += rec_get(cat->revisions.v[j], "Collection") && !strcmp(rec_get(cat->revisions.v[j], "Collection"), uuid)
-                && !rec_get(cat->revisions.v[j], "Edition");
-        sb_printf(&b, "%zu}", checkpoints);
+        sb_puts(&b, "]}");
     }
     sb_puts(&b, "]}\n");
     fputs(b.s, stdout);
@@ -415,7 +410,7 @@ int cmd_collection(int argc, char **argv)
         sb_puts(&vols, "");
         for (size_t f = 0; f < r->nfields; f++)
             if (!strcmp(r->fields[f].name, "Volume")) sb_printf(&vols, "%s%s", vols.len ? " " : "", r->fields[f].value);
-        char *what = rec_get(r, "Edition") ? xprintf("edition %s", rec_get(r, "Edition")) : xstrdup("checkpoint");
+        char *what = xprintf("edition %s", get_or(r, "Edition", "?"));
         printf("  %.12s  %s  %-10s  %-4s  %s  %s%s%s\n", get_or(r, "Node", ""), get_or(r, "Date", ""), what,
                rec_get(r, "Keep") ? "kept" : "", get_or(r, "Changes", ""), vols.s, rec_get(r, "Message") ? "  " : "",
                get_or(r, "Message", ""));

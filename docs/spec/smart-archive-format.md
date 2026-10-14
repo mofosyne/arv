@@ -269,8 +269,8 @@ it stays self-describing; a full snapshot carries all of them.
 
 A **collection** is something kept over time and made into discs again and again, e.g. a
 family's photos: one folder on everyday storage (its *workflow folder*), one history. Each
-**revision** records one state of it, as a git commit does; a revision that became discs is
-an **edition**, a set of discs made together, each holding part of the collection and a
+**revision** records the state it was in when it became discs, as a git commit does: an
+**edition**, a set of discs made together, each holding part of the collection and a
 copy of the catalogue, with as many copies as its owner makes. A later
 edition, once safely burned, replaces earlier ones, except those marked `Keep: yes`. (Format 0.5 defines the records; arv writes
 them from `arv collection init` on. Readers must accept them.)
@@ -293,7 +293,6 @@ Collection: 0b6c2f1e-8d1a-4c1e-9a77-3f2f6f0c9e10
 Tree: 81d0...
 Parent: c47e...
 Date: 2026-01-10
-Stage: edition
 Edition: 4
 Keep: yes
 Volume: FAMILY-05_2001-2025_X
@@ -309,10 +308,9 @@ Message: the 2025 sort
 | `Tree` | SHA-256 of the revision's manifest: every file's path and SHA-256, sorted by path, in `manifest-sha256.txt` form |
 | `Node` | SHA-256 of `Tree`, each `Parent`, `Date` and `Message`, each line `Field: value`; it names the revision |
 | `Parent`* | the revision(s) it follows (two for a merge); none for the first |
-| `Stage` | `checkpoint` (state recorded, no discs) or `edition` |
 | `Keep` | `yes`: never offered for retiring; may be added later (it is not part of `Node`) |
 | `Lost`* | `SHA256  PATH` (as in `manifest-sha256.txt`): a file of this edition that was on no other disc when it was retired, and whose loss was accepted; added later (not part of `Node`) |
-| `Edition`, `Volume`* | for an edition: its number and its discs |
+| `Edition`, `Volume`* | its number, and its discs |
 | `Changes` | since the parent: files new (`+`), changed (`~`), removed (`-`) and moved (`>`: the same content under a new path) |
 
 Revisions are appended, never edited, and merged by `Node` (the fields added later, `Keep` and

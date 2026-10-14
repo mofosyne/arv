@@ -30,8 +30,8 @@ video, documents and source code that should outlive them, and puts them in cold
 what it does:
 
 - **Archive: what goes on discs.** A folder you sort and grow becomes a *collection* with its
-  own history, like git's but for any files: each state is a revision, and each set of discs made
-  from it is an edition. Or compose discs by hand from files and folders anywhere, as Nero's
+  own history: each set of discs made from it is an edition, and arv says what changed between
+  editions, and since the last. Or compose discs by hand from files and folders anywhere, as Nero's
   compilation window did (`arv plan`). Each disc holds part of a collection and a copy of the catalogue,
   so any one of them can tell you about the whole archive.
 - **Record: what exists, and where.** Which files are on which discs and which are on none; each
@@ -283,7 +283,7 @@ groups, as `arv --help` shows them; a group's name on its own lists its commands
 first (`arv record burned` is `arv burned`):
 
 ```sh
-arv archive    # make, plan, collection, status, checkpoint, link, names, describe, tag
+arv archive    # make, plan, collection, status, link, names, describe, tag
 arv record     # burned, stored, identify, relabel, locate, note, access, objects, find, list, info, ...
 arv verify     # todo, check, drives, inventory, restore, rebuild, audit
 arv home       # init, where, gui, help

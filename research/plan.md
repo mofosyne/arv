@@ -1357,8 +1357,11 @@ One way to do each thing.
   tests. An image whose hash differs is also tested with its RS03 data, which says which sectors.
 - **`arv info`** takes a disc root, an image or a disc id (`id` and `ls` were the same question
   asked of different things).
-- **`checkpoint`** alone records a state; `status` only reads. Whether recording states with no
-  discs is worth keeping at all (it edges into version control) is still open.
+- **`checkpoint`** is removed (decided 2026-10-14): a state with no discs is not in the archive's
+  care, and recording only its hashes keeps nothing that could be got back. Snapshots of the
+  everyday storage (ZFS, btrfs, Time Machine, restic) keep a folder's history, files and all
+  (principle 7). Revisions are editions only, so `Stage` is gone; `status`, `log` and `diff` stay,
+  as the history of what went onto discs.
 - **`--barcode`** always means the copy's own; `stored` names a tape with `--carrier`.
 - **One rule for "last checked"** (`disc_last_check`), one age syntax for `todo` and `list`.
 - **Help:** each command has its own usage entry, with a line saying what it does; the manual,

@@ -45,7 +45,9 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
     gone, and `arv stored --copy X` at the copy's own path says to use `arv check`.
   - `arv info` is `id`, `info` and `ls` in one: a disc root (`--files`: its listing), an image, or a
     disc id.
-  - `arv checkpoint` is the one way to record a folder's state (`status --record` is gone).
+  - A collection's revisions are its editions only: `arv checkpoint` (and `status --record`), which
+    recorded a folder's state with no discs, is gone, with the `Stage` field. `status`, `log` and
+    `diff` work on editions as before.
   - `--barcode` names the copy's own barcode everywhere; a tape's is `stored --carrier barcode:CODE`.
   - `todo --overdue` takes an age as `list --unchecked-since` does (`5y`, `18m`, `90d`), and both
     read a disc's last check the same way (a repair that made it whole counts).

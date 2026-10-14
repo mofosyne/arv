@@ -61,7 +61,6 @@ static const char USAGE_ARCHIVE[] =
           "  arv collection keep CODE N   keep edition N: never offered for retiring\n"
           "  arv status [-v] [--deep] [FOLDER]   what changed in a folder since it was archived, or what of it is\n"
           "         on discs (--deep: read every file again, not trusting sizes and times)\n"
-          "  arv checkpoint [--message TEXT] [FOLDER]   record a collection folder's state with no discs (arv log)\n"
           "  arv link FOLDER COLLECTION|DISC-ID [--past]   say what a folder is: a collection's workflow folder,\n"
           "         or a disc's source (--past: an older state, kept for reference); logged, nothing written in it\n"
           "  arv names [--limit N] FOLDER   names a disc cannot hold, or Windows would show changed\n"
@@ -99,7 +98,7 @@ static const char USAGE_RECORD[] =
           "  arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]\n"
           "         how much something matters and to whom (essential, important, useful); TARGET: DISC-ID,\n"
           "         DISC-ID:folder/, DISC-ID:file or set:CODE; --due: the appraisals due for review by DATE\n"
-          "  arv log [COLLECTION]   a collection's revisions: its checkpoints and editions\n"
+          "  arv log [COLLECTION]   a collection's editions, and what changed in each\n"
           "  arv diff REV [REV]   what changed between two revisions, or from one to the folder now\n"
           "         (REV: a revision's first digits, or CODE/N for edition N)\n"
           "  arv retire CODE|DISC-ID [--yes [--accept-loss]]   retire the editions a newer safe one replaces (not kept\n"
@@ -455,7 +454,7 @@ static const char MANUAL_NOTES[] =
     "writes only the files it restores, where it is told.\n"
     "\n"
     "These change the record, each leaving an event that says who and when: `init`, `make`, `plan make`,\n"
-    "`collection init|keep`, `checkpoint`, `link`, `burned`, `stored`, `identify`,\n"
+    "`collection init|keep`, `link`, `burned`, `stored`, `identify`,\n"
     "`relabel`, `note`, `locate`, `access`, `location add|move`, `appraise`,\n"
     "`retire --yes`, `rebuild`, `check` and `drives --check` (a check is logged), `describe` and `tag`\n"
     "(when a draft is applied). `where --here` changes only where the catalogue may be written.\n"
@@ -673,7 +672,7 @@ int main(int argc, char **argv)
                  { "init", cmd_init }, { "make", cmd_make }, { "check", cmd_check },
                  { "burned", cmd_burned }, { "note", cmd_note }, { "locate", cmd_locate },
                  { "access", cmd_access }, { "location", cmd_location }, { "collection", cmd_collection },
-                 { "status", cmd_status }, { "checkpoint", cmd_checkpoint }, { "log", cmd_log }, { "diff", cmd_diff },
+                 { "status", cmd_status }, { "log", cmd_log }, { "diff", cmd_diff },
                  { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
                  { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit }, { "drives", cmd_drives }, { "relabel", cmd_relabel }, { "inventory", cmd_inventory }, { "identify", cmd_identify },

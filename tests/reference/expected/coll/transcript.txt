@@ -57,23 +57,6 @@ FAM (Family photos): workflow folder ROOT/coll/fam (marker)
   ~ b.txt
   > c.txt -> c2.txt
 rc=0
-$ --home hc checkpoint --message renamed c coll/fam
-3 files: 0 read, 3 unchanged since last read (hash cache)
-FAM (Family photos): workflow folder ROOT/coll/fam (marker)
-  since edition 2, 2026-01-01, revision 95a366ff6ab0:
-  +1 new, ~1 changed, -0 removed, >1 moved
-  + e.txt
-  ~ b.txt
-  > c.txt -> c2.txt
-FAM: checkpoint 266394586162, +1 ~1 -0 >1 files
-rc=0
-$ --home hc checkpoint coll/fam
-3 files: 0 read, 3 unchanged since last read (hash cache)
-FAM (Family photos): workflow folder ROOT/coll/fam (marker)
-  since checkpoint, 2026-01-01, revision 266394586162:
-  nothing changed
-FAM: nothing changed since 266394586162; no checkpoint recorded
-rc=0
 $ --home hc diff FAM/1 FAM/2
 edition 1, 2026-01-01, revision 1436106577dc -> edition 2, 2026-01-01, revision 95a366ff6ab0
   +1 new, ~1 changed, -1 removed, >0 moved
@@ -99,9 +82,6 @@ FAM/1  edition 1, 2026-01-01, revision 1436106577dc
 FAM/2  edition 2, 2026-01-01, revision 95a366ff6ab0
     +1 ~1 -1 >0 files  FAM-02_2019_Y
     the 2019 sort
-FAM/-  checkpoint, 2026-01-01, revision 266394586162
-    +1 ~1 -0 >1 files
-    renamed c
 rc=0
 $ --home hc status coll/loose
 2 files: 2 read, 0 unchanged since last read (hash cache)
@@ -128,11 +108,9 @@ rc=0
 $ --home hc status coll/plain
 1 file: 1 read, 0 unchanged since last read (hash cache)
 FAM (Family photos): workflow folder ROOT/coll/plain (declared)
-  since checkpoint, 2026-01-01, revision 266394586162:
-  +0 new, ~0 changed, -2 removed, >1 moved
+  since edition 2, 2026-01-01, revision 95a366ff6ab0:
+  +0 new, ~0 changed, -1 removed, >0 moved
   - b.txt
-  - e.txt
-  > c2.txt -> c.txt
 rc=0
 $ --home hc link coll/plain NOPE
 Error: no collection or disc NOPE in the catalogue
@@ -148,14 +126,13 @@ ROOT/coll/loose: the source of disc FAM-01_2019_0 (declared 2026-01-01)
   + n.txt
 rc=0
 $ --home hc collection list
-FAM       Family photos  (2 editions; last 2026-01-01, a checkpoint)
+FAM       Family photos  (2 editions; last edition 2, 2026-01-01)
 rc=0
 $ --home hc collection show FAM
-FAM       Family photos  (2 editions; last 2026-01-01, a checkpoint)
+FAM       Family photos  (2 editions; last edition 2, 2026-01-01)
   uuid UUID; set CODE; access public
   1436106577dc  2026-01-01  edition 1         +2 ~0 -0 >0 files  FAM-01_2019_0
   95a366ff6ab0  2026-01-01  edition 2         +1 ~1 -1 >0 files  FAM-02_2019_Y  the 2019 sort
-  266394586162  2026-01-01  checkpoint        +1 ~1 -0 >1 files    renamed c
 rc=0
 $ --home hc collection keep FAM 9
 Error: no edition 9 of that collection
@@ -232,9 +209,6 @@ FAM/1  edition 1, 2026-01-01, revision 1436106577dc
 FAM/2  edition 2, 2026-01-01, revision 95a366ff6ab0
     +1 ~1 -1 >0 files  FAM-02_2019_Y
     the 2019 sort
-FAM/-  checkpoint, 2026-01-01, revision 266394586162
-    +1 ~1 -0 >1 files
-    renamed c
 rc=0
 $ --home hc find a.txt
 FAM-01_2019_0  [retired 2026-01-01]  data/2019/a.txt

@@ -27,7 +27,7 @@ shelving in [shelving.md](shelving.md), and the reasons for each choice in
 ```mermaid
 flowchart TD
     subgraph keep [Archive: what you keep]
-        W[a workflow folder<br/>arv collection init] --> S[sort, add, rename<br/>arv status, arv checkpoint]
+        W[a workflow folder<br/>arv collection init] --> S[sort, add, rename<br/>arv status]
     end
     subgraph make [Archive: an edition]
         S --> M[arv make<br/>disc images: a selection of the<br/>collection + the catalogue, bag, tools, RS03]
@@ -55,7 +55,7 @@ flowchart TD
 |---|---|
 | **archive** (home) | one archive's catalogue: a `.arv` folder with its own identity (`arv where` shows it). Each archive is its own privacy sphere: its discs carry its catalogue only |
 | **collection** | something kept over time, e.g. *Family photos*: one **workflow folder**, one code (`FAMILY`), one history |
-| **revision** | one recorded state of a collection, as a git commit: a **checkpoint** (hashes only, nothing copied) or an **edition** |
+| **revision** | the state of a collection when an **edition** of it was made: its files and their hashes, as a git commit |
 | **edition** | a set of discs made together from what a collection's workflow folder holds at the time; each disc holds part of it and a copy of the catalogue; numbered; replaced by a newer safe edition unless **kept** |
 | **copy** | one physical or stored copy of a disc: a burned **disc**, the image as an **iso** file, or the disc's files as a **folder**; each named by a letter (A, B ...), with its own place and **temperature** |
 | **temperature** | **hot**: in active use; **warm**: online or reachable, left alone (an image on a NAS); **cold**: offline (discs on a shelf, unplugged drives) |
@@ -179,13 +179,12 @@ questions; `arv make --draft d.json` takes either.
 
 ### 2. Sort, and see what changed
 
-Work in the folder as you like. arv tells you what changed since the last edition, and keeps a
-history if you want one between editions:
+Work in the folder as you like. arv tells you what changed since the last edition, and between
+editions:
 
 ```sh
-arv status ~/family          # new, changed, removed and moved files since the last revision
-arv checkpoint ~/family --message "sorted 2019"   # record this state (hashes only, nothing copied)
-arv log FAMILY               # the revisions: checkpoints and editions
+arv status ~/family          # new, changed, removed and moved files since the last edition
+arv log FAMILY               # the editions, and what changed in each
 arv diff FAMILY/3            # edition 3 against the folder now; or arv diff FAMILY/2 FAMILY/3
 ```
 

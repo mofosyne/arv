@@ -788,7 +788,6 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var replaced = c.editions.filter(function (e) { return e.replaced; }).length;
     card.appendChild(el("h3", {}, [el("span", { class: "mono", text: c.code }), el("span", { text: c.title || "" }),
       el("span", { class: "facts", text: c.editions.length + (c.editions.length === 1 ? " edition" : " editions") +
-        (c.checkpoints ? ", " + c.checkpoints + (c.checkpoints === 1 ? " checkpoint" : " checkpoints") : "") +
         (c.set ? "; set " + c.set : "") + (c.access ? "; " + c.access : "") })]));
     var out = el("pre", { class: "log", hidden: "" });
     var t = el("table");

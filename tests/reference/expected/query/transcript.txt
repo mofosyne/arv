@@ -393,7 +393,7 @@ Record: what exists, and where
   arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]
          how much something matters and to whom (essential, important, useful); TARGET: DISC-ID,
          DISC-ID:folder/, DISC-ID:file or set:CODE; --due: the appraisals due for review by DATE
-  arv log [COLLECTION]   a collection's revisions: its checkpoints and editions
+  arv log [COLLECTION]   a collection's editions, and what changed in each
   arv diff REV [REV]   what changed between two revisions, or from one to the folder now
          (REV: a revision's first digits, or CODE/N for edition N)
   arv retire CODE|DISC-ID [--yes [--accept-loss]]   retire the editions a newer safe one replaces (not kept

@@ -242,8 +242,6 @@ stamp 1580000000 coll/fam/e.txt
 stamp 1580000000 coll/fam/b.txt
 log coll.out --home hc status coll/fam
 log coll.out --home hc status coll/fam
-log coll.out --home hc checkpoint --message "renamed c" coll/fam
-log coll.out --home hc checkpoint coll/fam
 log coll.out --home hc diff FAM/1 FAM/2
 log coll.out --home hc diff FAM/1
 log coll.out --home hc diff 0000000
