@@ -1470,23 +1470,31 @@ it, and a disc's folders are one view of them, chosen when the disc is made:
   use; plain nested folders are kinder in a file manager, so they are the default.)
 - **A plan or make takes a layout**, chosen a disc at a time and recorded on it (a `Layout` field,
   for tools; people need not read it): `/` nests, `,` falls back.
-  - `--layout 'year/event, year'`: a photo with an event goes to `year/2019/event/kyoto-trip/`,
-    one without to `year/2019/`. Year first never needs its fallback (every photo has a date),
-    but an event across New Year is split between two years.
+  - `--layout 'year/event, year'` (`year` and `decade` are levels made from `date`): a photo with an
+    event goes to `year/2019/event/kyoto-trip/`, one without to `year/2019/`. Year first never needs its fallback (every photo has a date),
+    but an event across New Year is filed by its start, and a photo of its second day may be dated
+    in the new year: tag the photos with the event, and they stay together under `event/`.
   - `--layout 'event/year, year'`: events whole (`event/kyoto-trip/year/2019/`), and the photos
     with no event by year. Which comes first is the disc's purpose (browsing by time or by
     occasion), and it changes between discs, which is why it is chosen a disc at a time.
   - Each file appears once, under the first alternative it has every tag for; the tags a layout
-    does not use stay tags (`find year:2019` finds a photo filed under `event/`). A file with
+    does not use stay tags (`find 2019` finds a photo filed under `event/` by its date). A file with
     none of the alternatives goes to the layout's last resort (its plain folder from the source),
     and is listed. So there is no `unsorted/` folder in the usual case.
 - **Only namespaces with one value a file make folders.** The vocabulary declares them:
-  `Namespace` records in `config/tags.rec` (`Name`, `Description`, `Values: one|many`, and
-  `From: date` for `year`, filled from the file's own date). `year`, `event`, `place` and `project`
-  are `one`; `person`, `source` and plain tags (`best`) are `many`, and a layout refuses them (a
-  photo of two people cannot be in two folders). `arv tags` lists a file with two values of a `one`
-  namespace, before it reaches a disc. (Not "categories": a disc's categories are already the set
-  vocabulary's.)
+  `Namespace` records in `config/tags.rec` (`Name`, `Description`, `Values: one|many`, and `From`
+  for where a value may be suggested). `date`, `event`, `place` and `project` are `one`; `person`,
+  `source` and plain tags (`best`) are `many`, and a layout refuses them (a photo of two people
+  cannot be in two folders). `arv tags` lists a file with two values of a `one` namespace, before it
+  reaches a disc. (Not "categories": a disc's categories are already the set vocabulary's.)
+- **Dates are EDTF, and may be ranges** (corrected 2026-10-14: an object can span years). A project
+  folder of 2020 to 2023, letters of 1995 to 2008, a trip over New Year: one object, many years. So
+  the namespace is `date`, not `year`, holding one EDTF value (`2019-07`, `1995/2008`, `197X`,
+  `1995~`), as a disc's `Coverage` does. It is the date of the content: the file's own date (EXIF,
+  its time) is only a suggestion (`From: file-date`), right for a camera photo, wrong for a scan of
+  a 1970s print made in 2019. A layout files a range by its start (`year/1995/` for the letters,
+  whole), or by `decade` (`decade/1990s/`, kind to long ranges and approximate dates); the range
+  stays in the record (`list --covers`, `find`). A data object is never split across folders.
 - **Tags come from where they can**: `year` from the file's own date (EXIF, or its time) with no
   one tagging it; the rest from a person, a model (`arv describe`, `arv tag`) or a folder the
   files came in (an existing `Kyoto trip/` gives `event:kyoto-trip` once, when the file is first
