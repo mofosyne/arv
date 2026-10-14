@@ -82,6 +82,15 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   each path's newest change. A later disc's catalogue carries the other discs' tags as they are
   now, for readers that do not read events.
 
+**Declared namespaces**
+- The tag vocabulary (`config/tags.rec`) declares namespaces: `Namespace` records with
+  `Description`, `Values: one|many` and `From: file-date` (where a value may be suggested).
+  `date`, `event` and `project` take one value a file, its own replacing its folder's; `person`,
+  `place` (places nest) and `source` take many. Vocabulary readers take only `Tag` records.
+- `arv tags` says under each namespace what it holds and how many values, marks one that is not
+  declared, and lists the paths to correct: two values of a one-valued namespace on one path, and
+  a `date:` that is not EDTF (`date:2019-07`, `date:1995/2008`).
+
 **Renaming in a plan, and lists**
 - `arv plan rename NAME PATH NEWPATH`: an item's new place on its disc (a folder, all of it); a
   file or folder inside a planned folder is split off under the new name, as `git mv` would.

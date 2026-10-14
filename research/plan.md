@@ -1466,6 +1466,15 @@ do not give is order (a slideshow's sequence): that is names (`01 torii gates.jp
   readers without event support see them (applying the events again changes nothing). Not yet: a
   command in arv itself to set tags by hand (today it is `arv-assist`'s `describe --apply` with a
   draft, or `tag --apply`).
+- **Done (2026-10-14): declared namespaces.** `Namespace` records in the tag vocabulary (`Name`,
+  `Description`, `Values: one|many`, `From: file-date`); `arv tags` shows them, marks undeclared
+  ones, and lists a path given two values of a one-valued namespace and a `date:` that is not EDTF.
+  Two corrections, found by the reference scenario's own data (a disc tagged `place:kyoto` with
+  folders `place:fushimi-inari`, `place:arashiyama`): **places nest**, so `place` takes many values
+  (a layout cannot file by it until places have parents, as set codes do); and for a one-valued
+  namespace **a path's own value replaces its folder's**, the rule the folder split uses (the more
+  specific wins). A folder `date:2019` with one scan inside `date:1974` is not a conflict; two
+  dates on one path is. Not yet: `From` is declared but nothing suggests from it.
 
 **A layout is a view of tags** (planned; corrected 2026-10-14). First written the other way round
 (a declared folder layout from which tags are derived), but the owner's experience is that the
@@ -1493,7 +1502,8 @@ it, and a disc's folders are one view of them, chosen when the disc is made:
     and is listed. So there is no `unsorted/` folder in the usual case.
 - **Only namespaces with one value a file make folders.** The vocabulary declares them:
   `Namespace` records in `config/tags.rec` (`Name`, `Description`, `Values: one|many`, and `From`
-  for where a value may be suggested). `date`, `event`, `place` and `project` are `one`; `person`,
+  for where a value may be suggested). `date`, `event` and `project` are `one` (`place` was, until
+  places were seen to nest: see "declared namespaces" above); `person`, `place`,
   `source` and plain tags (`best`) are `many`, and a layout refuses them (a photo of two people
   cannot be in two folders). `arv tags` lists a file with two values of a `one` namespace, before it
   reaches a disc. (Not "categories": a disc's categories are already the set vocabulary's.)

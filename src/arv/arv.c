@@ -106,7 +106,8 @@ static const char USAGE_RECORD[] =
           "  arv retire CODE|DISC-ID [--yes [--accept-loss]]   retire the editions a newer safe one replaces (not kept\n"
           "         ones), or one disc of no edition; refused while a file is on no disc that stays\n"
           "  arv sets [-v]   the set codes and categories, as a tree\n"
-          "  arv tags [--namespace NS]   the folder tags in use, and on how many folders and discs\n"
+          "  arv tags [--namespace NS]   the tags in use, by namespace, on how many paths and discs; and the\n"
+          "         paths to correct: two values of a one-valued namespace, a date that is not EDTF\n"
           "  arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files\n"
           "\n";
 static const char USAGE_REST[] =

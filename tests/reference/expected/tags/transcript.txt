@@ -10,28 +10,44 @@ $ --home tags tags
   kids                         1 folder on 1 disc   (alias of family)
   nature                       2 folders on 2 discs
   travel                       2 folders on 2 discs
-event:
+date:   one value: when the content is from, as an EDTF date or range: 2019-07, 1995/2008, 197X, 1995~
+  1995/2008                    1 folder on 1 disc
+  2019-07                      1 folder on 1 disc
+  soon                         1 folder on 1 disc
+event:   one value: the occasion: a trip, a wedding, a move
   birthday-2020                1 folder on 1 disc
-person:
+  party                        1 folder on 1 disc
+  trip                         1 folder on 1 disc
+  wedding                      1 folder on 1 disc
+mood:   (not declared in tags/config/tags.rec)
+  calm                         1 folder on 1 disc
+person:   many values: who is in it, or who made it
   Ålice                        1 folder on 1 disc
-place:
+place:   many values: where it is from; places nest, so a photo may be both kyoto and fushimi-inari
   arashiyama                   1 folder on 1 disc
   beach                        1 folder on 1 disc
   fushimi-inari                1 folder on 1 disc
   kinkaku-ji                   1 folder on 1 disc
   kiyomizu-dera                1 folder on 1 disc
   kyoto                        1 folder on 1 disc
-project:
+  osaka                        1 folder on 1 disc
+project:   one value: the piece of work it belongs to
   weather-station              2 folders on 1 disc
+
+2 to correct (a one-valued namespace has one value a file, and a date is EDTF: 2019-07, 1995/2008):
+  TWO VALUES  TRIP-01_2019_4  2019/x.jpg  event: wedding, party
+  BAD DATE    TRIP-01_2019_4  2019/x.jpg  date:soon
+Change the tags with arv-assist describe --apply or tag --apply; arv tags then checks again.
 rc=0
 $ --home tags tags --namespace place
-place:
+place:   many values: where it is from; places nest, so a photo may be both kyoto and fushimi-inari
   arashiyama                   1 folder on 1 disc
   beach                        1 folder on 1 disc
   fushimi-inari                1 folder on 1 disc
   kinkaku-ji                   1 folder on 1 disc
   kiyomizu-dera                1 folder on 1 disc
   kyoto                        1 folder on 1 disc
+  osaka                        1 folder on 1 disc
 rc=0
 $ --home tags tags --namespace 
 (no namespace)
@@ -47,7 +63,17 @@ $ --home tags tags --namespace
   travel                       2 folders on 2 discs
 rc=0
 $ --home tags tags --namespace nope
-nope:
+nope:   (not declared in tags/config/tags.rec)
+rc=0
+$ --home tags tags --namespace date
+date:   one value: when the content is from, as an EDTF date or range: 2019-07, 1995/2008, 197X, 1995~
+  1995/2008                    1 folder on 1 disc
+  2019-07                      1 folder on 1 disc
+  soon                         1 folder on 1 disc
+
+1 to correct (a one-valued namespace has one value a file, and a date is EDTF: 2019-07, 1995/2008):
+  BAD DATE    TRIP-01_2019_4  2019/x.jpg  date:soon
+Change the tags with arv-assist describe --apply or tag --apply; arv tags then checks again.
 rc=0
 $ --home tags keywords TRIP-01_2019_4 --format exiftool
 arv keywords: unexpected or missing arguments: TRIP-01_2019_4 --format exiftool

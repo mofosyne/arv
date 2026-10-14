@@ -44,7 +44,7 @@ static int load_vocab(const arv_home *h, const char *given, tag_vocab *v)
     if (rec_read(path, &f, &bad)) die("cannot read the tag vocabulary %s", path);
     for (size_t i = 0; i < f.nrecords; i++) {
         const rec_record *r = &f.records[i];
-        if (r->descriptor || !rec_get(r, "Name")) continue;
+        if (r->descriptor || !rec_get(r, "Name") || (r->type && strcmp(r->type, "Tag"))) continue;
         char *name = tag_normalise(rec_get(r, "Name"));
         const char *desc = rec_get(r, "Description");
         strlist_add(&v->names, name);

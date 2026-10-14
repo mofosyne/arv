@@ -373,10 +373,14 @@ keep init/c/sub/.arv init/pointer-sub
 cp -r "$here/home" tags
 rm -f tags/config/tags.rec
 printf '.\tHoliday, Zzz, person:\303\205lice, place:kyoto\nsub dir\tkids,  travel ,\n' >> tags/catalog/volumes/TRIP-01_2019_4/tags.tsv
+# a place for sub dir/a as well as the disc's (places are many); for 2019/x.jpg, events that replace
+# its folder's, two of them, and a date that is not EDTF; a range; a namespace not declared
+printf 'sub dir/a\tplace:osaka, mood:calm\n2019\tevent:trip, date:2019-07\n2019/x.jpg\tevent:wedding, event:party, date:soon\n2019/y.jpg\tdate:1995/2008\n' >> tags/catalog/volumes/TRIP-01_2019_4/tags.tsv
 log tags.out --home tags tags
 log tags.out --home tags tags --namespace place
 log tags.out --home tags tags --namespace ""
 log tags.out --home tags tags --namespace nope
+log tags.out --home tags tags --namespace date
 
 for d in $(a --home tags list | cut -f1) NOPE-01_2000_X; do
     for k in exiftool; do log tags.out --home tags keywords "$d" --format $k; done

@@ -655,8 +655,13 @@ changes nothing.
 A tag is either a plain word or phrase (`travel`) or `namespace:value`
 (`person:alice`, `place:kyoto`, `event:wedding-2019`, `source:pixel-7`,
 `project:weather-station`), as in Hydrus. Namespaces keep facets apart: who,
-where, which occasion, which device. Suggested namespaces are `person`,
-`place`, `event`, `source` and `project`; any single word works. The
+where, which occasion, which device. Any single word works; the tag vocabulary
+(`catalog/config/tags.rec`) declares the usual ones as `Namespace` records: `Name`,
+`Description`, `Values` (`one` or `many`) and `From` (where a value may be suggested:
+`file-date`, the file's own date). A one-valued namespace has one value a path, and a path's
+own value replaces the one it has from its folder: `date` (the date of the content, one EDTF
+date or range, as `Coverage`), `event` and `project`. `person`, `place` (places nest: `kyoto`
+and `fushimi-inari`) and `source` take many. The
 hierarchical keyword form used by XMP `lr:hierarchicalSubject` (Lightroom,
 digiKam) replaces the colon with `|`: `place|kyoto`; set paths become
 `MEMORIES|PHOTO|TRIP`.

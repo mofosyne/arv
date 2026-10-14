@@ -55,6 +55,6 @@ $ --home hd tags
   letters                      3 folders on 3 discs   (not in hd/config/tags.rec)
   scan                         2 folders on 2 discs   (not in hd/config/tags.rec)
   travel                       1 folder on 1 disc
-place:
+place:   many values: where it is from; places nest, so a photo may be both kyoto and fushimi-inari
   kyoto                        1 folder on 1 disc
 rc=0

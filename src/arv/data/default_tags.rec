@@ -15,7 +15,9 @@
 # Tags may be namespaced as namespace:value, e.g. person:alice, place:kyoto,
 # event:wedding-2019, source:pixel-7, project:weather-station. Namespaces keep
 # facets apart (who, where, which occasion, which device) and export as
-# hierarchical keywords (place|kyoto) with `archive keywords`.
+# hierarchical keywords (place|kyoto) with `arv keywords`. The Namespace records
+# at the end declare them: what each holds, and whether a file has one value
+# (Values: one, which a disc's layout can make folders of) or many.
 
 %rec: Tag
 %key: Name
@@ -170,3 +172,38 @@ Name: games
 Description: games and gaming: save files, mods, screenshots, game projects
 Alias: gaming
 Alias: saves
+
+# Namespaces. Values: one means a file has one value: its own replaces its
+# folder's, and `arv tags` lists a path given two. Values: many means any number. From says where a value may be
+# suggested from: file-date is the file's own date (EXIF, or its time), right
+# for a camera's photo, wrong for a scan of an old print.
+%rec: Namespace
+%key: Name
+%mandatory: Name Values
+%allowed: Name Description Values From
+%type: Values enum one many
+
+Name: date
+Description: when the content is from, as an EDTF date or range: 2019-07, 1995/2008, 197X, 1995~
+Values: one
+From: file-date
+
+Name: event
+Description: the occasion: a trip, a wedding, a move
+Values: one
+
+Name: place
+Description: where it is from; places nest, so a photo may be both kyoto and fushimi-inari
+Values: many
+
+Name: project
+Description: the piece of work it belongs to
+Values: one
+
+Name: person
+Description: who is in it, or who made it
+Values: many
+
+Name: source
+Description: what made it: a camera, a phone, a scanner, an account
+Values: many

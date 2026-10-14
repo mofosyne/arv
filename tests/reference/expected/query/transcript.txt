@@ -399,7 +399,8 @@ Record: what exists, and where
   arv retire CODE|DISC-ID [--yes [--accept-loss]]   retire the editions a newer safe one replaces (not kept
          ones), or one disc of no edition; refused while a file is on no disc that stays
   arv sets [-v]   the set codes and categories, as a tree
-  arv tags [--namespace NS]   the folder tags in use, and on how many folders and discs
+  arv tags [--namespace NS]   the tags in use, by namespace, on how many paths and discs; and the
+         paths to correct: two values of a one-valued namespace, a date that is not EDTF
   arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files
 (arv record COMMAND or arv COMMAND; arv COMMAND --help says more; arv --help lists every group)
 rc=0
