@@ -10,13 +10,9 @@ Discs: 1
 %rec: Item
 
 Disc: 1
-Source: plan-sd/DCIM
-Path: camera
-
-Disc: 1
 Source: plan-docs/letter.txt
-Path: letter.txt
-Seen: 1 15 2f4aac3a102a8f20
+Path: letter
+Seen: 1 7 cbbce0f0d98cb1b9
 
 Disc: 1
 Source: plan-pc
@@ -26,7 +22,7 @@ Seen: 2 13 e1adae2dd8eb7d10
 Disc: 1
 Source: plan-mix
 Path: plan-mix
-Seen: 2 25 06c86f97c0dcbb10
+Seen: 2 17 5f732b1a353184ca
 
 Disc: 1
 Source: plan-new.txt

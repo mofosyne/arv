@@ -1,1 +1,1 @@
-"""arv-gui: arv's graphical interface (the web page and the catalogue reader behind it)."""
+"""arv-gui: arv's graphical interface over the arv command."""

@@ -1,5 +1,4 @@
-"""Tests for arv-gui (src/arv-gui), the one part of arv in Python: its catalogue reader and its web
-API, which runs arv (and arv-assist) for every action.
+"""Tests for arv-gui (src/arv-gui), the web API that runs arv (and arv-assist) for every action.
 
 Run: python3 -m unittest discover -s tests (make check runs it after the C checks, which build what
 it needs: src/arv/build/arv, src/arv-assist/build/arv-assist and its fake model server).
@@ -20,7 +19,7 @@ import urllib.request
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "src", "arv-gui"))
 
-from arvgui import catalog, gui, recfile  # noqa: E402
+from arvgui import gui  # noqa: E402
 
 os.environ["ARV_APE"] = "none"   # the small test media have no room for tools/arv.com
 ARV = os.path.join(REPO, "src", "arv", "build", "arv")
@@ -36,22 +35,6 @@ def write(path, text, year=None):
         ts = __import__("datetime").datetime(year, 6, 1).timestamp()
         os.utime(path, (ts, ts))
 
-
-class RecfileTest(unittest.TestCase):
-    def test_roundtrip_multiline_and_repeated_fields(self):
-        r = recfile.Record("Disc", [("Id", "X"), ("Note", "line one\nline two\n\nafter blank"), ("Note", "second")])
-        parsed = recfile.parse(recfile.dumps(catalog.Catalog().records()[:1] + [r]))
-        disc = [p for p in parsed if not p.is_descriptor][0]
-        self.assertEqual(disc.type, "Disc")
-        self.assertEqual(disc.get_all("Note"), ["line one\nline two\n\nafter blank", "second"])
-
-    def test_records_follow_their_descriptor(self):
-        c = catalog.Catalog()
-        c.discs.append(recfile.Record("Disc", [("Id", "A"), ("Title", "t"), ("Date", "2026-01-01")]))
-        c.events.append(catalog.new_event("A", "creation", "success", "test"))
-        again = catalog.Catalog(recfile.parse(recfile.dumps(c.records())))
-        self.assertEqual([d.get("Id") for d in again.discs], ["A"])
-        self.assertEqual([e.get("Type") for e in again.events], ["creation"])
 
 
 class IconTest(unittest.TestCase):
@@ -124,6 +107,14 @@ class GuiTest(unittest.TestCase):
         self.assertIn(self.token, page)
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
+    def test_start_does_not_touch_legacy_files(self):
+        os.makedirs(self.home)
+        legacy = os.path.join(self.home, "archive.sqlite")
+        write(legacy, "preserve this file")
+        self.start()
+        with open(legacy, encoding="utf-8") as f:
+            self.assertEqual(f.read(), "preserve this file")
+
     def test_first_run_makes_an_archive(self):
         """No archive here or above and no default: the page offers to make one, and nothing else answers."""
         where = os.path.join(self.tmp, "nas")
@@ -162,7 +153,7 @@ class GuiTest(unittest.TestCase):
         for n in (1, 2):
             if n == 2:
                 write(os.path.join(fam, "b.txt"), "b", 2019)
-            made = arv("make", fam, "-y", "--no-ecc", "--formats", "no", "--output-dir", os.path.join(out, str(n)))
+            made = arv("make", fam, "-y", "--no-ecc", "--no-formats", "--output-dir", os.path.join(out, str(n)))
             self.assertEqual(made.returncode, 0, made.stderr)
             image = [f for f in os.listdir(os.path.join(out, str(n))) if f.endswith(".iso")][0]
             burned = arv("burned", "--device", os.path.join(out, str(n), image))
@@ -219,7 +210,7 @@ class GuiTest(unittest.TestCase):
                      {"command": "stored", "disc_id": disc, "path": image, "location": "NAS"}):
             done = self.wait(json.loads(self.request("/api/command", body)[1]))
             self.assertEqual(done["returncode"], 0, "\n".join(done["lines"]))
-        check = self.wait(json.loads(self.request("/api/check", {"disc_id": disc, "device": image, "copy": "B"})[1]))
+        check = self.wait(json.loads(self.request("/api/check", {"disc_id": disc, "source": image, "copy": "B"})[1]))
         self.assertEqual(check["returncode"], 0, "\n".join(check["lines"]))
         copies = json.loads(self.request("/api/copies?disc=" + disc)[1])["copies"]
         self.assertEqual([(c["copy"], c["form"], c["at"], c["readBack"]) for c in copies],
@@ -261,7 +252,7 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(listing["files"], [{"name": "wedding.mkv", "bytes": 4}])
         post = lambda body: json.loads(self.request("/api/plan", body)[1])
         self.assertEqual(post({"action": "new", "name": "trip", "title": "Trip", "set": "TRIP", "medium": "bd25"})["returncode"], 0)
-        self.assertEqual(json.loads(self.request("/api/plans")[1]), {"plans": [{"name": "trip", "made": None}]})
+        self.assertEqual(json.loads(self.request("/api/plans")[1]), {"plans": [{"name": "trip", "discs": 1, "items": 0, "made": None}]})
         self.assertEqual(post({"action": "add", "name": "trip", "sources": [video, photos], "disc": "auto"})["returncode"], 0)
         self.assertEqual(post({"action": "move", "name": "trip", "paths": ["photos"], "from": 1, "disc": "new"})["returncode"], 0)
         shown = json.loads(self.request("/api/plan?name=trip")[1])
@@ -286,12 +277,11 @@ class GuiTest(unittest.TestCase):
                           for d in checked["discs"] for i in d["items"]], [("wedding.mkv", 1, True), ("photos", 1, True)])
         card = os.path.join(self.tmp, "card", "IMG_0001.JPG")
         write(card, "raw", 2025)
-        added = post({"action": "add", "name": "trip2", "sources": [card], "disc": "1", "copy": True})
+        added = post({"action": "add", "name": "trip2", "sources": [card], "disc": "1"})
         self.assertEqual(added["returncode"], 0, added["output"])
         item = [i for d in json.loads(self.request("/api/plan?name=trip2")[1])["discs"] for i in d["items"]
                 if i["path"] == "IMG_0001.JPG"][0]
-        self.assertEqual(item["origin"], card)
-        self.assertTrue(item["source"].startswith(os.path.join(self.home, "drafts", "plans", "trip2")))
+        self.assertEqual(item["source"], card)
         self.assertEqual(len(json.loads(self.request("/api/discs")[1])["discs"]), 2)
         kept = json.loads(self.request("/api/objects")[1])
         self.assertEqual(sorted((o["name"], o["kind"], o["versions"]) for o in kept["objects"]),

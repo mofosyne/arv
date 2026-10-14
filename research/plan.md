@@ -638,9 +638,9 @@ ones, except those kept (`arv make --keep`, `arv collection keep CODE N`).
   across editions and is never reused. Set and Category become classification only. A disc
   made outside any collection (`arv make FOLDER`, as today) is a collection of one edition,
   coded by its set as now, so today's discs need no change.
-- **A name clash**: today's `Collection` records are virtual folders across discs ("Best of
-  Kyoto"). They become `Selection` (format 0.5; readers accept both), so "collection" means
-  the thing in a workflow folder.
+- **A name clash**: at this design stage, `Collection` meant virtual folders across discs ("Best
+  of Kyoto"). They were renamed `Selection` in format 0.5 so "collection" could mean the thing
+  in a workflow folder; issue #42 later removes those records (see the decision below).
 - **Tracked folders** get `arv status PATH` too: for each file, archived on which discs, or
   not yet; the first part of the organiser below.
 - **Recognising a plain folder (no git) as the same but changed**, strongest evidence first:
@@ -944,7 +944,7 @@ a disc into a second place, and both take writes. Merging them back is `archive_
 `rebuild` uses).
 
 - **Merges cleanly:** everything that only grows: events, revisions (by `Node`), data object
-  versions, appraisals, selection items. A union, in any order.
+  versions and appraisals. A union, in any order.
 - **Breaks, silently:**
   - *Numbers.* The next disc sequence and edition number come from the local catalogue
     (`archive_next_number`), so two forks each make `FAMILY-02_...`, each "edition 2": two discs,
@@ -1148,7 +1148,8 @@ content so it follows moved files), written in batches by `arv annotate`.
     (`arv keywords --format exiftool`).
   - *Typed links between items* ("scan of", "same event as"). Nothing reads them yet; selections
     group items, collections and data objects carry lineage. Worth a field when a reader needs
-    it, and `Relation` (Dublin Core) is the name to use then.
+    `Relation` (Dublin Core) is the name to use then. Cross-disc virtual folders were removed by
+    the later issue #42 decision below.
   - *Notes on a data object, following it across moves.* The one real gap; it waits until data
     objects are used enough to show whether disc and folder notes fall short.
 
@@ -1311,3 +1312,137 @@ because the disc is built from standards. What a reader needs is a note on how t
 - **What helps all of them** is the stable machine-readable output put off until the commands
   settle ("Later: an interface for other software"): every one of these reads files or JSON,
   not arv's text for people.
+
+## Decision (2026-10-13, issue #42): no cross-disc selection records
+
+Approved: remove `arv selection` and the `Selection` record type. Catalogue snapshots and rebuilds
+carry and merge no such records or their events. Appraisals target discs, files, folders and sets.
+Places belong to copies only: `Disc.Location` is removed, `arv locate DISC-ID COPY PLACE` appends
+a copy-specific `Location` change, and disc summaries and place filters derive from recorded copies.
+`burned` and `stored` record a copy's initial place; `make --location` is not accepted. `Location`
+records remain. There are no discs to migrate before 1.0.
+
+## Decision (2026-10-14, issue #42): the clarity round, part 1
+
+What a review of every command found to cost more than it gives, removed (the list and the
+evidence for each item: issue #42). The test for each was principle 7, then use: is it in the
+workflow, is it tested, does another command or tool already do it.
+
+- **Removed:** the `make` options for other tools' work (`--ro-crate`, `--tools-history`,
+  `--git-since`, `--extra-tools`, `--sf-home`) or that hid problems (`--ignore-names`,
+  `--no-verify`) or guessed (`--media`); `plan refresh`, `plan add --copy`, `restore --no-links`,
+  `verify files`, `tags --vocab`, `keywords --format tsv`, `init --pointer`; the weak copy
+  identifiers `label:` and `hub:`; `arv models` (downloading models and building llama.cpp is a
+  package manager's work); the GUI's own reader of the catalogue; the code reading old formats.
+- **Kept, though suggested:** the UDF/ECMA standards zip and `upstream/` stay in the repository (off
+  the discs) for reference and for the work offered upstream.
+- **Found on the way:** the reference homes had no event ids, so with the old-format code gone their
+  copies could not be named; they now carry ids (and temperatures), checked by `arv audit`. The fake
+  embeddings server in the checks makes bag-of-words vectors, as the fake llama-embedding did, so
+  the test of remembered tags means something.
+- **Next (part 2):** one way to do each thing: `arv check SOURCE` for every kind of copy; `id`, `info`
+  and `ls` as `info`; one spelling for recording a state; `--barcode` with one meaning; one rule for
+  what is due a check; each command's own help.
+
+## Decision (2026-10-14, issue #42): the clarity round, part 2
+
+One way to do each thing.
+
+- **`arv check SOURCE`** for every kind of copy. What SOURCE is (a device, a file, a folder) says
+  which check: every sector read back, the image against its hash, or every file against the
+  manifests. Before, the same question had three spellings (`check --device`, `check --image`,
+  `verify`, and `stored --copy X` at its own path), and `verify` recorded nothing. A check is
+  logged whenever the disc is in the catalogue. `--drive` stays for a file that is a whole disc
+  read (a ddrescue dump is the medium's size, past the image), and stands in for a drive in the
+  tests. An image whose hash differs is also tested with its RS03 data, which says which sectors.
+- **`arv info`** takes a disc root, an image or a disc id (`id` and `ls` were the same question
+  asked of different things).
+- **`checkpoint`** is removed (decided 2026-10-14): a state with no discs is not in the archive's
+  care, and recording only its hashes keeps nothing that could be got back. Snapshots of the
+  everyday storage (ZFS, btrfs, Time Machine, restic) keep a folder's history, files and all
+  (principle 7). Revisions are editions only, so `Stage` is gone; `status`, `log` and `diff` stay,
+  as the history of what went onto discs.
+- **`--barcode`** always means the copy's own; `stored` names a tape with `--carrier`.
+- **One rule for "last checked"** (`disc_last_check`), one age syntax for `todo` and `list`.
+- **Help:** each command has its own usage entry, with a line saying what it does; the manual,
+  the man page, completion and `--help` all come from it, so they agree.
+
+
+## Design (2026-10-14, not implemented): rearranging in a plan, and a plan as a collection's edition
+
+Asked for: during planning, split folders and rearrange files (rename photos, sort them into
+albums) without touching them on the drive, like `git mv`: the disc gets the new names and
+places, the originals stay as they are, and arv still knows each file is the same file.
+
+What a plan does today (tried 2026-10-13): `plan add SOURCE --as PATH` names and places an item on
+a disc, a file or a folder, and `plan move` moves items between discs; nothing on the drive
+changes. What is missing:
+
+- **A folder split.** A file added again from inside a planned folder ends up on the disc twice,
+  silently (tried: `plan add trip DCIM --as Unsorted`, then one of its photos `--as
+  Kinkaku-ji/pond.jpg`). Instead, the folder item gets `Except: PATH` for it: whatever is not
+  placed elsewhere stays where the folder put it. A file wanted twice is asked for on purpose.
+- **`arv plan rename NAME PATH NEWPATH`**: rename or move an item on its disc, a folder with all
+  under it (the `git mv` of a plan). Today it is drop and add again.
+- **`arv plan add NAME --list FILE`**: a TSV of source and path on the disc, one a line, so the
+  sorting is done by what is good at it (exiftool for dates, a spreadsheet, a script, a model
+  looking at the photos) and arv records the result (principle 7).
+- **The original name kept** (a format question: decide before 1.0). `git mv` keeps a file's
+  identity through a rename because the content is the same; arv already matches files by hash
+  (`status` reports moves, `>`), so a renamed photo is found again by its content. What is lost is
+  the name it had: `IMG_0001.JPG`, which ties it to the card and the camera. The disc's listing
+  could keep it (an `Origin` column: the source path relative to the item), or the home only (as
+  an object's `Source` is today), so the disc does not carry the layout of someone's drive.
+
+**A plan as a collection's next edition.** A plan and a collection answer different questions:
+the plan is how this disc's contents are chosen and laid out (by hand, from anywhere); the
+collection is what is kept over the years, a lineage of editions (`status`, `diff` and `retire`
+work on it). Since checkpoints went (issue #42), a collection is exactly that lineage, and
+`plan again` is nearly an edition without one. So: `arv plan new NAME --collection CODE` (or
+`plan make --edition CODE`) makes the plan's discs the collection's next edition. The collection
+says what is kept; the plan says how this edition is arranged (the albums above). `diff` between
+editions then shows the renames as moves, by content, as `git log --follow` would.
+
+**Two kinds of move** (added 2026-10-14). A burned disc cannot change, and its files may no longer
+be on any drive, so a move is either:
+
+- **In the record only**, for files already on discs: "on disc D, `day1/IMG_0001.JPG` is now
+  `Fushimi Inari/torii gates.jpg`". An appended event, as every change is (`Sets`, `Replaces`, so
+  two catalogues merge), carried by the next disc's catalogue snapshot. It is the file's one name
+  now, a correction of the record, and the commands honour it: `find` finds it by either name,
+  `restore` puts it back under the new one (`--as-burned` for the old), and the next edition made
+  from those discs uses it. The spec says how, so Katalog can show the current names too.
+- **Planned for the next edition**, for files still on a drive: a plan's `--as` and `rename`. In a
+  collection's own folder no arv command is needed: `mv` the files; `status` sees the move by
+  content (`>`), and the next edition carries it.
+
+They join: a move in the record becomes a move on discs the next time those files are made into
+discs, as `git mv` waits for the next commit. So there is no need to re-burn to rename. The
+physical rename waits for a remake that happens anyway: new media, several old discs gathered
+into one, a damaged copy replaced.
+
+**Remaking from discs, with no staging area.** When the files are only on discs, a plan reads
+them from the copies:
+
+- A plan's source may be a disc's files: `arv plan add NAME DISC-ID[:path]` (arv reading its own
+  format, within principle 7).
+- The copy read is the handiest the record knows: a stored image or folder on the NAS (no disc
+  to fetch), else a disc in a drive (warm before cold, as `objects` lists them).
+- Each file is read straight from the image or disc by its sectors (`extents.tsv`, on every disc)
+  and checked against the old disc's manifest as it is read: a damaged file stops the make rather
+  than being copied onto the new disc. No copy to a staging folder.
+- With one drive and several source discs, `plan make` reads in disc order and asks for each disc
+  once; a jukebox loads them from the same kind of worklist as `todo --tsv`.
+- The names on the new discs are the record's: moves in the record, then the plan's `--as` and
+  `rename`.
+
+A disc that cannot be read or repaired cannot be remade; that is the old problem of two good
+copies, which `todo` already watches.
+
+**Open:** albums made by moving photos (one name and place a file) fit the above. Albums that share
+photos, or a "best of" across many discs, would be the cross-disc virtual folders removed in issue
+#42 (`arv selection`, given to Katalog): wanted or not is the owner's call.
+
+Order: the folder split first (it fixes the silent duplicate), then `rename` and `--list`, then
+the original name (format), then moves in the record, then plans as editions and plans from discs,
+which build on all of them.

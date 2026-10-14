@@ -114,7 +114,7 @@ for f in src/docs/guide.md src/bin/tool.sh src/README.md src/latest src/dead; do
 stamp 988718400 second/letters/2001-05-01.txt
 stamp 988804800 "second/letters/scan,page1.pdf"
 for folder in src second; do
-    log make.out --home h make -y --no-ecc --formats no --set CODE --location BOX1 --importance "essential for self" \
+    log make.out --home h make -y --no-ecc --no-formats --set CODE --importance "essential for self" \
         --keep-stage --output-dir "out-$folder" "$folder"
     keep_stages "out-$folder" "make/$folder"
 done
@@ -122,33 +122,18 @@ keep make.out make/transcript.txt
 keep_home h make/home
 
 # ------------------------------------------------------------------ --links copy and record, --label, --access, --snapshot
-log links.out --home hl make -y --no-ecc --formats no --set CODE --links copy --label "" --access public \
-    --snapshot disc --keep-stage --output-dir out-links src
-log links.out --home hl make -y --no-ecc --formats no --set CODE --links record --title "Recorded links" \
+log links.out --home hl make -y --no-ecc --no-formats --set CODE --links copy --label "" --access public --snapshot set --keep-stage --output-dir out-links src
+log links.out --home hl make -y --no-ecc --no-formats --set CODE --links record --title "Recorded links" \
     --access sealed --keep-stage --output-dir out-links2 src
 keep links.out links/transcript.txt
 keep_stages out-links links/copy
 keep_stages out-links2 links/record
 keep_home hl links/home
 
-# ------------------------------------------------------------------ --tools-history, --extra-tools, --ro-crate
-mkdir -p hist-src hist-extra/bin "rc-src/sub dir"
+# ------------------------------------------------------------------ a small extra source used by the draft scenarios
+mkdir -p hist-src
 echo a > hist-src/a.txt
-echo x > hist-extra/bin/tool
 stamp 1600000000 hist-src/a.txt
-log extras.out --home hx make -y --no-ecc --formats no --set CODE --tools-history --extra-tools hist-extra \
-    --keep-stage --output-dir out-hist hist-src
-echo a > rc-src/a.txt
-printf '%%PDF-1.4\n%%EOF\n' > "rc-src/sub dir/scan #1.pdf"
-echo '"q"' > "rc-src/sub dir/na$(printf '\303\257')ve.md"
-for f in rc-src/a.txt "rc-src/sub dir/scan #1.pdf" "rc-src/sub dir/na$(printf '\303\257')ve.md"; do stamp 1600000000 "$f"; done
-log extras.out --home hr make -y --no-ecc --formats no --set CODE --ro-crate --title 'T"x' \
-    --description 'Line, with "quotes"' --subject one --subject two --creator Sam \
-    --rights https://creativecommons.org/licenses/by/4.0/ --keep-stage --output-dir out-rc rc-src
-keep extras.out extras/transcript.txt
-keep_stages out-hist extras/history
-keep_stages out-rc extras/ro-crate
-keep_home hr extras/ro-crate-home
 
 # ------------------------------------------------------------------ an interactive make (a terminal, no -y)
 mkdir -p Projects_x/fw
@@ -159,7 +144,7 @@ for i in 1 2 3 4 5 6 7 8; do printf '^D\n'; done > answers2
 questions='(Set code|Extra categories|Title|Description|Creator|Physical location|Subjects|Note)[^:]*: '
 for k in 1 2; do
     # shellcheck disable=SC2086
-    "$ptyrun" answers$k "$ARV0" $ARVARGS --home hi$k make --no-ecc --formats no --output-dir out-i$k Projects_x \
+    "$ptyrun" answers$k "$ARV0" $ARVARGS --home hi$k make --no-ecc --no-formats --output-dir out-i$k Projects_x \
         > interactive$k.raw 2>&1 || true
     grep -oE "$questions" interactive$k.raw > interactive$k.txt || true
     keep interactive$k.txt interactive/questions$k.txt
@@ -175,7 +160,7 @@ while [ $i -lt 70 ]; do
     stamp $((1000000000 + i * 2592000)) "$f"
     i=$((i + 1))
 done
-log split.out --home hs make -y --no-ecc --formats no --set SCAN --split --medium-sectors 4800 --keep-stage \
+log split.out --home hs make -y --no-ecc --no-formats --set SCAN --split --medium-sectors 4800 --keep-stage \
     --output-dir out-split big
 keep split.out split/transcript.txt
 keep_stages out-split split/discs
@@ -217,16 +202,16 @@ cat > draft-human.json <<'JSON'
  "folder_tags": {"letters": ["letters"]}}
 JSON
 printf '{"description": "No agent, no title"}\n' > draft-bare.json
-log draft.out --home hd make -y --no-ecc --formats no --set CODE --draft draft-model.json --title "My own title" \
+log draft.out --home hd make -y --no-ecc --no-formats --set CODE --draft draft-model.json --title "My own title" \
     --note "from the command line" --keep-stage --output-dir out-d1 second
-log draft.out --home hd make -y --no-ecc --formats no --set CODE --draft draft-human.json --keep-stage --output-dir out-d2 src
-log draft.out --home hd make -y --no-ecc --formats no --set CODE --draft draft-bare.json --title T --keep-stage \
+log draft.out --home hd make -y --no-ecc --no-formats --set CODE --draft draft-human.json --keep-stage --output-dir out-d2 src
+log draft.out --home hd make -y --no-ecc --no-formats --set CODE --draft draft-bare.json --title T --keep-stage \
     --output-dir out-d3 hist-src
 printf '{"agent": "embeddings:bge-small", "folder_tags": {"letters": ["letters"], ".": ["scan"]}}\n' > draft-split.json
-log draft.out --home hd make -y --no-ecc --formats no --set SCAN --split --medium-sectors 4800 --draft draft-split.json \
+log draft.out --home hd make -y --no-ecc --no-formats --set SCAN --split --medium-sectors 4800 --draft draft-split.json \
     --keep-stage --output-dir out-d4 big
 printf 'not json' > draft-broken.json
-log draft.out --home hd make -y --no-ecc --formats no --set CODE --draft draft-broken.json --output-dir out-d5 src
+log draft.out --home hd make -y --no-ecc --no-formats --set CODE --draft draft-broken.json --output-dir out-d5 src
 keep draft.out draft/transcript.txt
 for k in 1 2 3 4; do keep_stages out-d$k draft/d$k; done
 keep_home hd draft/home
@@ -241,14 +226,14 @@ log coll.out --home hc collection init coll/fam --code FAM --title "Family photo
 log coll.out --home hc collection init coll/fam --code OTHER --title "Again"
 log coll.out --home hc collection init coll --code fam --title "Code taken"
 log coll.out --home hc collection init coll --code F --title "Code too short"
-log coll.out --home hc make -y --no-ecc --formats no --keep-stage --output-dir out-c1 coll/fam
+log coll.out --home hc make -y --no-ecc --no-formats --keep-stage --output-dir out-c1 coll/fam
 echo B > coll/fam/b.txt
 echo c > coll/fam/c.txt
 rm coll/fam/2019/a.txt
 stamp 1570000000 coll/fam/b.txt
 stamp 1570000000 coll/fam/c.txt
-log coll.out --home hc make -y --no-ecc --formats no --message "the 2019 sort" --keep-stage --output-dir out-c2 coll/fam
-log coll.out --home hc make -y --no-ecc --formats no --keep --set CODE --output-dir out-c3 src
+log coll.out --home hc make -y --no-ecc --no-formats --message "the 2019 sort" --keep-stage --output-dir out-c2 coll/fam
+log coll.out --home hc make -y --no-ecc --no-formats --keep --set CODE --output-dir out-c3 src
 log coll.out --home hc status coll/fam
 echo e > coll/fam/e.txt
 mv coll/fam/c.txt coll/fam/c2.txt
@@ -257,8 +242,6 @@ stamp 1580000000 coll/fam/e.txt
 stamp 1580000000 coll/fam/b.txt
 log coll.out --home hc status coll/fam
 log coll.out --home hc status coll/fam
-log coll.out --home hc checkpoint --message "renamed c" coll/fam
-log coll.out --home hc checkpoint coll/fam
 log coll.out --home hc diff FAM/1 FAM/2
 log coll.out --home hc diff FAM/1
 log coll.out --home hc diff 0000000
@@ -330,15 +313,16 @@ keep hd/config/tags.rec draft/tags.rec
 # ------------------------------------------------------------------ recording, on a copy of the reference home
 cp -r "$here/home" rec
 log record.out --home rec burned TRIP-01_2019_4 --copies 2 --location box1 --media-type MEI-T02 --note "for the attic"
+log record.out --home rec locate TRIP-01_2019_4 A OFFSITE
+log record.out --home rec locate TRIP-01_2019_4 A HOME
 log record.out --home rec note PROJ-01_2020-2023_L "A long note that goes on about the weather station, its board revisions and the spare parts"
-log record.out --home rec locate SCAN-01_1995-2008_D SAFE --add
-log record.out --home rec locate FAMILY-01_2020-2021_K "Somewhere new"
+log record.out --home rec locate SCAN-01_1995-2008_D A SAFE
 log record.out --home rec burned NOPE-01_2000_X
 log record.out --home rec burned TRIP-01_2019_4 --copy K --location OFFSITE --identifier "bca:04 1e 10 15 12 62 02 02 24 03 02 14 50 10 48 af"   # a letter chosen, and the disc's BCA serial
 log record.out --home rec burned TRIP-01_2019_4 --identifier bca:041e10151262020224030214501048af   # the same disc again: refused
 log record.out --home rec burned TRIP-01_2019_4 --identifier bca:0a1b2c       # not a serial: refused
 log record.out --home rec burned TRIP-01_2019_4 --identifier lot:123         # not a scheme: refused
-log record.out --home rec identify TRIP-01_2019_4 C barcode:ARV-000123 "label:TRIP-01_2019_4 C"   # a sticker, and the pen
+log record.out --home rec identify TRIP-01_2019_4 C barcode:ARV-000123 "label:TRIP-01_2019_4 C"   # a sticker; the pen is refused
 log record.out --home rec identify TRIP-01_2019_4 D barcode:ARV-000123       # already copy C: refused
 log record.out --home rec identify TRIP-01_2019_4 K bca:0a0b0c0d0e0f00112233445566778899   # K has its serial: refused
 log record.out --home rec burned TRIP-01_2019_4 --identifier barcode:ARV-000123   # copy C again: refused
@@ -364,16 +348,17 @@ log edit.out names --limit 2 names
 keep edit.out edit/transcript.txt
 keep edit/catalog/archive.rec edit/archive.rec
 
-# ------------------------------------------------------------------ init, named homes, pointers, --archive
+# ------------------------------------------------------------------ init, named homes, pointer reading, --archive
 mkdir -p init/a init/b init/c/sub
 (
     cd init
     for args in "init a --name main" "init b --name other --default" "init a --name main" \
-                "init c --pointer a/.arv" "init c/sub --pointer nowhere" \
-                "init b/../c/sub --pointer ./c/../a/.arv" "--archive main where" "--archive nope where"; do
+                "--archive main where" "--archive nope where"; do
         # shellcheck disable=SC2086
         log ../init.out $args
     done
+    printf '# manually placed pointer\nHome: ../a/.arv\n' > c/.arv
+    printf '# manually placed pointer\nHome: ../../a/.arv\n' > c/sub/.arv
     (cd c/sub && log ../../../init.out where)
 )
 keep init.out init/transcript.txt
@@ -389,9 +374,9 @@ log tags.out --home tags tags
 log tags.out --home tags tags --namespace place
 log tags.out --home tags tags --namespace ""
 log tags.out --home tags tags --namespace nope
-log tags.out --home tags tags --vocab "$repo/src/arv/data/default_tags.rec"
+
 for d in $(a --home tags list | cut -f1) NOPE-01_2000_X; do
-    for f in tsv exiftool; do log tags.out --home tags keywords "$d" --format $f; done
+    for k in exiftool; do log tags.out --home tags keywords "$d" --format $k; done
 done
 keep tags.out tags/transcript.txt
 keep tags/config/tags.rec tags/tags.rec
@@ -404,7 +389,7 @@ for o in "" "--in MEMORIES" "--at BOX1" "--access sealed" "--made 2026" "--cover
     log query.out --home q list $o
 done
 for q in TRIP-01_2019_4 trip-01_2019_4 TRIP-01_2019_5 PROJ-01_2020-2O23_L 2020-2025_PROJECTS_01 "not an id"; do
-    log query.out --home q id "$q"
+    log query.out --home q info "$q"
 done
 log query.out --home q sets
 log query.out --home q sets -v
@@ -414,9 +399,9 @@ log query.out --home q todo --bogus          # arguments a command does not take
 log query.out --home q burned --help         # a command's own lines of the usage
 log query.out --home q-empty todo            # nothing made yet: not "nothing owed"
 log query.out --home q record                # a group lists its commands
-log query.out --home q record id TRIP-01_2019_4   # a group's name first: the same command
+log query.out --home q record info TRIP-01_2019_4   # a group's name first: the same command
 log query.out --home q record make           # a command named under the wrong group
-log query.out --home q verify frob           # not a disc, not a command: the old verify says so
+log query.out --home q verify frob           # a group, and no command frob in it
 (XDG_CONFIG_HOME="$root/no-config" && export XDG_CONFIG_HOME && cd "$work" && log "$root/query.out" todo)   # no archive: arv init, as git
 keep query.out query/transcript.txt
 
@@ -447,8 +432,8 @@ log plan.out --home hp plan move trip notes.txt --disc 2
 log plan.out --home hp plan show trip
 log plan.out --home hp plan show trip --json
 log plan.out --home hp plan list
-log plan.out --home hp plan make trip -y --no-ecc --formats no --split
-log plan.out --home hp plan make trip -y --no-ecc --formats no --keep-stage --output-dir out-plan
+log plan.out --home hp plan make trip -y --no-ecc --no-formats --split
+log plan.out --home hp plan make trip -y --no-ecc --no-formats --keep-stage --output-dir out-plan
 log plan.out --home hp plan show trip
 log plan.out --home hp plan add trip plan-pc/gone.txt
 log plan.out --home hp plan show trip --medium bd100
@@ -467,7 +452,7 @@ log plan.out --home hp plan new again --set TRIP
 log plan.out --home hp plan add again plan-nas/photos/2025 --as photos
 cp -Rp plan-nas/photos/2025 plan-copy
 log plan.out --home hp plan add again plan-copy --disc new
-log plan.out --home hp plan make again -y --no-ecc --formats no --output-dir out-plan2
+log plan.out --home hp plan make again -y --no-ecc --no-formats --output-dir out-plan2
 log plan.out --home hp status plan-nas/photos/2025
 mv plan-copy plan-moved
 log plan.out --home hp status plan-moved
@@ -486,31 +471,18 @@ log plan.out --home hp plan new later --medium bd100
 log plan.out --home hp plan add later plan-pc/gone.txt
 rm plan-pc/gone.txt
 log plan.out --home hp plan show later
-log plan.out --home hp plan make later -y --no-ecc --formats no
+log plan.out --home hp plan make later -y --no-ecc --no-formats
 log plan.out --home hp plan drop later gone.txt
 log plan.out --home hp plan delete later
 log plan.out --home hp plan list
-# a card that will not be here at make: copied into the plan; a linked item that changes after planning
-mkdir -p plan-sd/DCIM plan-docs
-echo "raw image" > plan-sd/DCIM/IMG_0001.JPG
+# A plan points at source files; arv does not copy them into the plan.
+mkdir -p plan-docs
 echo "letter" > plan-docs/letter.txt
-stamp 1751328000 plan-sd/DCIM/IMG_0001.JPG
-stamp 1751328000 plan-sd/DCIM
 stamp 1751328000 plan-docs/letter.txt
 log plan.out --home hp plan new card --set TRIP
-log plan.out --home hp plan add card plan-sd/DCIM --copy --as camera
-log plan.out --home hp plan add card plan-docs/letter.txt
-rm -r plan-sd
-echo "letter, signed" > plan-docs/letter.txt
-stamp 1751414400 plan-docs/letter.txt
+log plan.out --home hp plan add card plan-docs/letter.txt --as letter
 log plan.out --home hp plan show card
-log plan.out --home hp plan add card plan-sd/DCIM
-log plan.out --home hp plan refresh card
-log plan.out --home hp plan show card
-log plan.out --home hp plan delete card
-log plan.out --home hp plan make card -y --no-ecc --formats no --output-dir out-card
-log plan.out --home hp objects DCIM
-log plan.out --home hp plan delete card
+log plan.out --home hp plan make card -y --no-ecc --no-formats --output-dir out-card
 log plan.out --home hp plan again card card-2
 log plan.out --home hp plan show card-2
 log plan.out --home hp plan add card-2 plan-pc --as pc

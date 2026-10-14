@@ -10,7 +10,7 @@ rc=1
 $ --home hc collection init coll --code F --title Code too short
 Error: collection code F: 2-8 capital letters or digits (it starts each disc id)
 rc=1
-$ --home hc make -y --no-ecc --formats no --keep-stage --output-dir out-c1 coll/fam
+$ --home hc make -y --no-ecc --no-formats --keep-stage --output-dir out-c1 coll/fam
 Collection FAM (Family photos): its next edition
 Scanning and hashing ROOT/coll/fam ...
 Classified as: PROJECTS/CODE
@@ -20,7 +20,7 @@ FAM: edition 1, revision 1436106577dc, +2 ~0 -0 >0 files
 Kept staging directory ROOT/out-c1/.archive-make-XXXXXX
 FAM-01_2019_0	ROOT/out-c1/FAM-01_2019_0.noecc.iso	Family photos
 rc=0
-$ --home hc make -y --no-ecc --formats no --message the 2019 sort --keep-stage --output-dir out-c2 coll/fam
+$ --home hc make -y --no-ecc --no-formats --message the 2019 sort --keep-stage --output-dir out-c2 coll/fam
 Collection FAM (Family photos): its next edition
 Scanning and hashing ROOT/coll/fam ...
 Classified as: PROJECTS/CODE
@@ -30,7 +30,7 @@ FAM: edition 2, revision 95a366ff6ab0, +1 ~1 -1 >0 files
 Kept staging directory ROOT/out-c2/.archive-make-XXXXXX
 FAM-02_2019_Y	ROOT/out-c2/FAM-02_2019_Y.noecc.iso	Family photos
 rc=0
-$ --home hc make -y --no-ecc --formats no --keep --set CODE --output-dir out-c3 src
+$ --home hc make -y --no-ecc --no-formats --keep --set CODE --output-dir out-c3 src
 Error: --keep and --message are for a collection's workflow folder (arv collection init)
 rc=1
 $ --home hc status coll/fam
@@ -57,23 +57,6 @@ FAM (Family photos): workflow folder ROOT/coll/fam (marker)
   ~ b.txt
   > c.txt -> c2.txt
 rc=0
-$ --home hc checkpoint --message renamed c coll/fam
-3 files: 0 read, 3 unchanged since last read (hash cache)
-FAM (Family photos): workflow folder ROOT/coll/fam (marker)
-  since edition 2, 2026-01-01, revision 95a366ff6ab0:
-  +1 new, ~1 changed, -0 removed, >1 moved
-  + e.txt
-  ~ b.txt
-  > c.txt -> c2.txt
-FAM: checkpoint 266394586162, +1 ~1 -0 >1 files
-rc=0
-$ --home hc checkpoint coll/fam
-3 files: 0 read, 3 unchanged since last read (hash cache)
-FAM (Family photos): workflow folder ROOT/coll/fam (marker)
-  since checkpoint, 2026-01-01, revision 266394586162:
-  nothing changed
-FAM: nothing changed since 266394586162; no checkpoint recorded
-rc=0
 $ --home hc diff FAM/1 FAM/2
 edition 1, 2026-01-01, revision 1436106577dc -> edition 2, 2026-01-01, revision 95a366ff6ab0
   +1 new, ~1 changed, -1 removed, >0 moved
@@ -99,9 +82,6 @@ FAM/1  edition 1, 2026-01-01, revision 1436106577dc
 FAM/2  edition 2, 2026-01-01, revision 95a366ff6ab0
     +1 ~1 -1 >0 files  FAM-02_2019_Y
     the 2019 sort
-FAM/-  checkpoint, 2026-01-01, revision 266394586162
-    +1 ~1 -0 >1 files
-    renamed c
 rc=0
 $ --home hc status coll/loose
 2 files: 2 read, 0 unchanged since last read (hash cache)
@@ -128,11 +108,9 @@ rc=0
 $ --home hc status coll/plain
 1 file: 1 read, 0 unchanged since last read (hash cache)
 FAM (Family photos): workflow folder ROOT/coll/plain (declared)
-  since checkpoint, 2026-01-01, revision 266394586162:
-  +0 new, ~0 changed, -2 removed, >1 moved
+  since edition 2, 2026-01-01, revision 95a366ff6ab0:
+  +0 new, ~0 changed, -1 removed, >0 moved
   - b.txt
-  - e.txt
-  > c2.txt -> c.txt
 rc=0
 $ --home hc link coll/plain NOPE
 Error: no collection or disc NOPE in the catalogue
@@ -148,14 +126,13 @@ ROOT/coll/loose: the source of disc FAM-01_2019_0 (declared 2026-01-01)
   + n.txt
 rc=0
 $ --home hc collection list
-FAM       Family photos  (2 editions; last 2026-01-01, a checkpoint)
+FAM       Family photos  (2 editions; last edition 2, 2026-01-01)
 rc=0
 $ --home hc collection show FAM
-FAM       Family photos  (2 editions; last 2026-01-01, a checkpoint)
+FAM       Family photos  (2 editions; last edition 2, 2026-01-01)
   uuid UUID; set CODE; access public
   1436106577dc  2026-01-01  edition 1         +2 ~0 -0 >0 files  FAM-01_2019_0
   95a366ff6ab0  2026-01-01  edition 2         +1 ~1 -1 >0 files  FAM-02_2019_Y  the 2019 sort
-  266394586162  2026-01-01  checkpoint        +1 ~1 -0 >1 files    renamed c
 rc=0
 $ --home hc collection keep FAM 9
 Error: no edition 9 of that collection
@@ -186,11 +163,11 @@ FAM-01_2019_0: copy A recorded, 1 in all (not read back: arv burned --device che
 Write its letter on the hub and the case, after the id: FAM-01_2019_0 A
 rc=0
 $ --home hc todo
-Burned, never read back (arv check --device DRIVE --copy X ID):
+Burned, never read back (arv check DRIVE --copy X ID):
   FAM-01_2019_0  copy A
 Replaced by a safe edition, ready to retire (arv retire CODE):
   FAM: edition 1 (replaced by edition 2)
-Kept in fewer than two places (arv locate ID PLACE --add):
+Kept in fewer than two places (arv burned/stored ... --location PLACE, or arv locate ID COPY PLACE):
   FAM-01_2019_0  one place
   FAM-02_2019_Y  one place
 rc=0
@@ -232,9 +209,6 @@ FAM/1  edition 1, 2026-01-01, revision 1436106577dc
 FAM/2  edition 2, 2026-01-01, revision 95a366ff6ab0
     +1 ~1 -1 >0 files  FAM-02_2019_Y
     the 2019 sort
-FAM/-  checkpoint, 2026-01-01, revision 266394586162
-    +1 ~1 -0 >1 files
-    renamed c
 rc=0
 $ --home hc find a.txt
 FAM-01_2019_0  [retired 2026-01-01]  data/2019/a.txt
@@ -261,17 +235,19 @@ FAM-02_2019_Y: copy B recorded (iso, warm, checked), 2 in all
 rc=0
 $ --home hc stored FAM-02_2019_Y bad.iso
 Reading ROOT/bad.iso: the 882 sectors of FAM-02_2019_Y's image ...
-FAM-02_2019_Y: the iso at ROOT/bad.iso is NOT a good copy (different content from the image); not recorded
+FAM-02_2019_Y: the iso at ROOT/bad.iso is NOT a good copy (DIFFERENT from the image arv made); not recorded
 rc=1
 $ --home hc stored FAM-01_2019_0 nas/FAM-02_2019_Y
 FAM-01_2019_0: the folder at ROOT/nas/FAM-02_2019_Y is NOT a good copy (ROOT/nas/FAM-02_2019_Y is not disc FAM-01_2019_0 (its catalog.rec names FAM-02_2019_Y)); not recorded
 rc=1
 $ --home hc stored FAM-02_2019_Y nas/FAM-02_2019_Y --location NAS
-Verifying ROOT/nas/FAM-02_2019_Y (every file against the manifests) ...
-FAM-02_2019_Y: the folder at ROOT/nas/FAM-02_2019_Y is NOT a good copy (2 payload files, 1 failed, 0 missing, 0 extra); not recorded
+Checking ROOT/nas/FAM-02_2019_Y (every file against the manifests) ...
+INVALID  bag-info.txt (Payload-Oxum is 4.2, the payload is 13.2 (bytes.files))
+FAILED   data/c.txt
+FAM-02_2019_Y: the folder at ROOT/nas/FAM-02_2019_Y is NOT a good copy (19 OK, 1 FAILED, 0 MISSING, 0 EXTRA, 1 other problems); not recorded
 rc=1
 $ --home hc stored FAM-02_2019_Y nas/FAM-02-files --location NAS --note unpacked, for quick restores
-Verifying ROOT/nas/FAM-02-files (every file against the manifests) ...
+Checking ROOT/nas/FAM-02-files (every file against the manifests) ...
 FAM-02_2019_Y: copy C recorded (folder, warm, checked), 3 in all
 rc=0
 $ --home hc location list
@@ -279,10 +255,10 @@ NAS        The NAS                        1 disc  [warm]
 BOX1       (free text, not a location code)
 rc=0
 $ --home hc todo
-Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within 5 years.
+Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked since 2021-01-01.
 rc=0
 $ --home hc todo
-Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within 5 years.
+Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked since 2021-01-01.
 rc=0
 $ --home hc appraise FAM-02_2019_Y:c.txt --importance essential for family --importance useful for self
 FAM-02_2019_Y:c.txt: essential for family; useful for self
@@ -295,7 +271,7 @@ $ --home hc appraise FAM-02_2019_Y:c.txt --importance important for family
 FAM-02_2019_Y:c.txt: important for family
 rc=0
 $ --home hc todo
-Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked within 5 years.
+Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked since 2021-01-01.
 rc=0
 $ --home hc collection show NOPE
 Error: no collection NOPE

@@ -27,7 +27,6 @@ Date: 2026-01-01
 %type: Bytes int
 %type: Access enum public private sealed
 %type: Retired date
-%type: Location rec Location
 
 Id: TRIP-01_2019_4
 Uuid: UUID
@@ -44,12 +43,10 @@ Description: Three days in Kyoto: shrines, temples and the bamboo grove.
 Subject: travel
 Subject: Japan
 Note: Sample disc made by samples/make-samples.sh; the photos are generated.
-Location: BOX1
 Access: public
 Files: 16
 Bytes: 9443
 Software: arv@e8c6358ab75d
-Location: OFFSITE
 
 Id: PROJ-01_2020-2023_L
 Uuid: UUID
@@ -67,7 +64,6 @@ Coverage: 2020/2023
 Date: 2026-10-04
 Creator: Sample_Person
 Description: ESP32 weather station: firmware, KiCad board, gerbers and the git repository.
-Location: BOX1
 Access: private
 Files: 56
 Bytes: 32142
@@ -86,7 +82,6 @@ Coverage: 2019/2020
 Date: 2026-10-04
 Creator: Sample_Person
 Description: Tax return and quarterly receipts for 2019.
-Location: SAFE
 Access: private
 Files: 5
 Bytes: 3196
@@ -108,7 +103,6 @@ Date: 2026-10-04
 Part: 1 of 3
 Creator: Sample_Person
 Description: Scans of letters kept since 1995.
-Location: BOX1
 Access: private
 Files: 25
 Bytes: 2504433
@@ -130,7 +124,6 @@ Date: 2026-10-04
 Part: 2 of 3
 Creator: Sample_Person
 Description: Scans of letters kept since 1995.
-Location: BOX1
 Access: private
 Files: 26
 Bytes: 2604875
@@ -152,7 +145,6 @@ Date: 2026-10-04
 Part: 3 of 3
 Creator: Sample_Person
 Description: Scans of letters kept since 1995.
-Location: BOX1
 Access: private
 Files: 5
 Bytes: 500846
@@ -170,7 +162,6 @@ Coverage: 2020/2021
 Date: 2026-10-04
 Creator: Sample_Person
 Description: Birthdays, the garden, the beach and Christmas.
-Location: OFFSITE
 Access: private
 Files: 16
 Bytes: 8828
@@ -244,9 +235,9 @@ Ecc: dvdisaster RS03 augmented image, custom medium (4800 sectors), minimum 20% 
 MediumSectors: 4800
 
 %rec: Location
-%doc: Places where discs are kept: site, room, shelf, box. Parent makes a tree,
-+ so moving a box moves every disc in it. A Disc's Location field (one per
-+ place its copies are kept) names a Code here, or is free text. Temperature says how
+%doc: Places where copies are kept: site, room, shelf, box. Parent makes a tree,
++ so moving a box moves every copy in it. A copy event's Location field names a Code here,
++ or is free text. Temperature says how
 + copies kept there are used: hot (in active use: working files, a synced folder), warm
 + (online or reachable, but left alone: an .iso or archive folder on a NAS) or cold
 + (offline: discs on a shelf, unplugged drives); a place without one takes its parent's.
@@ -277,28 +268,11 @@ Name: Attic, top shelf
 Parent: BOX1
 Description: dusty
 
-%rec: Selection
-%doc: Virtual folders across discs. Item is DISC-ID (a whole disc), DISC-ID:folder/
-+ or DISC-ID:folder/file (paths relative to the disc's data/). Parent nests
-+ selections. Snapshots on other discs carry only items they may show.
-%key: Code
-%mandatory: Code Name
-%type: Parent rec Selection
-
-Code: BEST
-Name: Best
-Item: TRIP-01_2019_4:day1 Fushimi Inari/
-Item: TRIP-01_2019_4:day2 Arashiyama/
-
-Code: KIDS
-Name: KIDS
-Parent: BEST
-
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
-+ Disc names the disc; a change to a location, a selection or a data object names it in Object
-+ (location:CODE, selection:CODE, object:UUID) instead.
++ Disc names the disc; a change to a location or a data object names it in Object
++ (location:CODE, object:UUID) instead.
 + Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion
@@ -309,8 +283,8 @@ Parent: BEST
 + warm for a file or folder), Location (where this copy is kept), Path for a file or folder,
 + MediaType (the media's maker and type, as the drive reports it) and Identifier when known:
 + how this physical copy is recognised, as scheme:value (bca: its factory serial, barcode: a
-+ label stuck on and scanned, label: written or printed, hub: the maker's code in the clear
-+ ring), repeatable, and added later by any event that names the Copy. With ReadBack: identical
++ label stuck on and scanned, serial: a manufacturer's serial), repeatable, and added later by
++ any event that names the Copy. With ReadBack: identical
 + it is a copy read back against its image before it was recorded (known good), as is one a
 + later fixity check with its Copy passed. A disc's copies are its replications, counted as
 + physical discs: two that share a bca:, barcode: or serial: identifier are one disc recorded
@@ -607,6 +581,8 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy
 Copy: A
+Location: BOX1
+Temperature: cold
 
 EventId: ID
 Disc: PROJ-01_2020-2023_L
@@ -617,6 +593,8 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy
 Copy: A
+Location: BOX1
+Temperature: cold
 
 EventId: ID
 Disc: TAXES-01_2019-2020_I
@@ -627,6 +605,8 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy
 Copy: A
+Location: SAFE
+Temperature: cold
 
 EventId: ID
 Disc: SCAN-01_1995-2008_D
@@ -637,6 +617,8 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy
 Copy: A
+Location: BOX1
+Temperature: cold
 
 EventId: ID
 Disc: SCAN-02_1995-2008_B
@@ -647,6 +629,8 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy
 Copy: A
+Location: BOX1
+Temperature: cold
 
 EventId: ID
 Disc: SCAN-03_1995-2008_9
@@ -657,6 +641,8 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy
 Copy: A
+Location: BOX1
+Temperature: cold
 
 EventId: ID
 Disc: FAMILY-01_2020-2021_K
@@ -667,6 +653,8 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy
 Copy: A
+Location: OFFSITE
+Temperature: cold
 
 EventId: ID
 Disc: TRIP-01_2019_4
@@ -677,6 +665,8 @@ Authorship: human
 Agent: human:root
 Note: burned 1 copy, kept at Parents' house; second copy for the parents
 Copy: B
+Location: OFFSITE
+Temperature: cold
 
 EventId: ID
 Disc: PROJ-01_2020-2023_L
@@ -822,52 +812,6 @@ Note: renamed Attic shelf -> Attic, top shelf
 Sets: Name
 
 EventId: ID
-Object: selection:BEST
-Type: metadata modification
-Date: 2026-01-01
-Outcome: success
-Authorship: human
-Agent: human:archivist
-Note: created; 2 items added
-
-EventId: ID
-Object: selection:BEST
-Type: metadata modification
-Date: 2026-01-01
-Outcome: success
-Authorship: human
-Agent: human:archivist
-Note: 1 item added
-
-EventId: ID
-Object: selection:BEST
-Type: metadata modification
-Date: 2026-01-01
-Outcome: success
-Authorship: human
-Agent: human:archivist
-Note: 1 item removed
-
-EventId: ID
-Object: selection:BEST
-Type: metadata modification
-Date: 2026-01-01
-Outcome: success
-Authorship: human
-Agent: human:archivist
-Note: renamed Best of -> Best
-Sets: Name
-
-EventId: ID
-Object: selection:KIDS
-Type: metadata modification
-Date: 2026-01-01
-Outcome: success
-Authorship: human
-Agent: human:archivist
-Note: created in BEST
-
-EventId: ID
 Disc: TAXES-01_2019-2020_I
 Type: metadata modification
 Date: 2026-01-01
@@ -881,8 +825,8 @@ Sets: Access
 %doc: The archivist log: how much something matters, to whom, and why. Appended and
 + never edited; the newest appraisal of a target replaces earlier ones, and one a
 + person made or reviewed outranks a machine's. Target is DISC-ID, DISC-ID:folder/,
-+ DISC-ID:folder/file (relative to data/), set:CODE or selection:CODE; a target
-+ without an appraisal takes the nearest one above it (file, folder, disc, set).
++ DISC-ID:folder/file (relative to data/) or set:CODE; a target without an appraisal
++ takes the nearest one above it (file, folder, disc, set).
 + Importance is '<level> for <audience>', one per audience; levels, most first:
 + essential (must survive: 3 copies in 3 places), important (on disc: 2 in 2),
 + useful (on disc if there is room), incidental (everyday storage is enough).
@@ -924,12 +868,6 @@ Date: 2026-01-01
 Authorship: human
 Agent: human:archivist
 Review: 2030-01-01
-
-Target: selection:BEST
-Importance: essential for family
-Date: 2026-01-01
-Authorship: human
-Agent: human:archivist
 
 Target: PROJ-01_2020-2023_L
 Importance: important for heirs

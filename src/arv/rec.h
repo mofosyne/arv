@@ -35,8 +35,8 @@ void rec_add(rec_record *r, const char *name, const char *value);
 void rec_set(rec_record *r, const char *name, const char *value);   /* replace the first, drop the rest */
 void rec_copy(rec_record *dst, const rec_record *src);  /* dst gets src's fields */
 void rec_clear(rec_record *r);
-/* Writes records as recfile.py does: fields "Name: value" ("+ " continuation lines), records
- * separated by a blank line. Returns 0, or -1 with errno set. */
+/* Writes recfiles: fields "Name: value" ("+ " continuation lines), records separated by a blank
+ * line. Returns 0, or -1 with errno set. */
 int rec_write(const char *path, rec_record *const *records, size_t n);
 /* The same as text appended to *buf (*len bytes so far). */
 void rec_format(const rec_record *r, char **buf, size_t *len);

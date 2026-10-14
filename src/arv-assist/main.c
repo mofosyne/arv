@@ -4,7 +4,6 @@
  *   arv describe FOLDER|DISC-ID|OBJECT [--save DRAFT] [--apply DRAFT|-] ...   title, description,
  *                                         subjects and folder tags from a local LLM, reviewed by you
  *   arv tag FOLDER|DISC-ID [--save DRAFT] [--apply] ...   folder tags from your tag vocabulary
- *   arv models fetch|status|build-runtime        the small built-in model for arv tag
  *
  * and arv-gui runs `arv-assist suggest` and `arv-assist llm-status`. --home and --archive work as
  * in arv.
@@ -23,11 +22,9 @@ static const char USAGE[] =
     "                    [--show-inventory] [--llm-url URL] [--llm-model NAME] [--llm-allow-remote]\n"
     "                    [--vision [--vision-model NAME] [--vision-url URL] [--vision-per-folder N] [--vision-max N]]\n"
     "       arv tag FOLDER|DISC-ID [--save DRAFT] [--apply] [--top N] [--vocab FILE] [--disc-root DIR] [--rules-only]\n"
-    "               [--show-summaries] [--llama-embedding PATH] [--model NAME | --model-file GGUF]\n"
-    "               [--embed-url URL [--embed-model NAME] [--llm-allow-remote]]\n"
-    "       arv models fetch|status|build-runtime [--model NAME] [--from FILE] [--llama-embedding PATH]\n"
-    "Local models only: an OpenAI-compatible server on this machine (Ollama: " LLM_DEFAULT_URL "), or\n"
-    "llama.cpp's llama-embedding for arv tag. Drafts (--save) are JSON that arv make --draft takes.\n";
+    "               [--show-summaries] [--embed-url URL [--embed-model NAME] [--llm-allow-remote]]\n"
+    "Model servers are local by default (Ollama: " LLM_DEFAULT_URL "); --llm-allow-remote permits remote URLs.\n"
+    "Tag embeddings use an OpenAI-compatible /v1/embeddings endpoint. Drafts (--save) are JSON that arv make --draft takes.\n";
 
 /* arv COMMAND --help: that command's lines of the usage, then the note on local models */
 static void command_usage(const char *cmd)
@@ -73,7 +70,7 @@ int main(int argc, char **argv)
             return 0;
         }
     int rc = !strcmp(cmd, "describe") ? assist_describe(n, rest) : !strcmp(cmd, "tag") ? assist_tag(n, rest)
-           : !strcmp(cmd, "models") ? assist_models(n, rest) : !strcmp(cmd, "suggest") ? assist_suggest(n, rest)
+           : !strcmp(cmd, "suggest") ? assist_suggest(n, rest)
            : !strcmp(cmd, "llm-status") ? assist_llm_status(n, rest) : 2;
     if (rc == 2) fputs(USAGE, stderr);
     return rc;

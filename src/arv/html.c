@@ -1,4 +1,4 @@
-/* index.html on every disc (src/arv/html.py): no JavaScript, no network, works from file://.
+/* index.html on every disc: no JavaScript, no network, works from file://.
  * A generated view; the recfiles and manifests are the source of truth. */
 #define _XOPEN_SOURCE 700
 #include "arv.h"
@@ -145,7 +145,7 @@ static void field_rows(sbuf *out, const rec_record *r, const char *const *names)
     }
 }
 
-/* lines joined with "\n", as the Python list is */
+/* append a line, separating it from the previous one */
 static void line(sbuf *out, const char *s)
 {
     if (out->len) sb_puts(out, "\n");
@@ -183,6 +183,9 @@ char *render_index(const rec_record *disc, const rec_record *binding, const entr
     for (size_t f = 0; binding && f < binding->nfields; f++)
         if (strcmp(binding->fields[f].name, "Volume") && !rec_get(&view, binding->fields[f].name))
             rec_add(&view, binding->fields[f].name, binding->fields[f].value);
+    char *places = snapshot ? archive_where(snapshot, disc) : xstrdup("");
+    if (*places) rec_add(&view, "Location", places);
+    free(places);
     static const char *const shown[] = { "Id", "Label", "Part", "Set", "Category", "Path", "Sequence", "Coverage",
                                         "Date", "Creator", "Subject", "Location", "Access", "Rights", "Media",
                                         "Container", "Filesystem", "Protection", "Ecc", "Software", NULL };
@@ -220,7 +223,7 @@ char *render_index(const rec_record *disc, const rec_record *binding, const entr
         }
         sbuf tree = { 0 };
         render_tree(&root, &tree, 0);
-        tree.s[--tree.len] = 0;             /* the Python joins its parts with newlines */
+        tree.s[--tree.len] = 0;             /* remove the final separator */
         sb_puts(&out, "\n");
         sb_puts(&out, tree.s);
         free(tree.s);

@@ -1,5 +1,5 @@
-/* The set vocabulary (src/arv/sets.py; tests/fixtures/vocab-*.tsv and match-rules.tsv are the
- * contract): codes in a directed acyclic graph of Parents, with Aliases and Match rules. */
+/* The set vocabulary (tests/fixtures/vocab-*.tsv and match-rules.tsv define the contract): codes
+ * in a directed acyclic graph of Parents, with Aliases and Match rules. */
 #ifndef ARV_VOCAB_H
 #define ARV_VOCAB_H
 

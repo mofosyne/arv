@@ -1,5 +1,5 @@
-/* BagIt (RFC 8493) for a payload that is not moved (src/arv/bag.py), and the listing
- * (src/arv/listing.py, version 2). The links policy is docs/spec/smart-archive-format.md, "Links". */
+/* BagIt (RFC 8493) for a payload that is not moved, and its version-2 listing. The links policy is
+ * docs/spec/smart-archive-format.md, "Links". */
 #define _XOPEN_SOURCE 700
 #include "arv.h"
 

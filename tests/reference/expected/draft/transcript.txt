@@ -1,4 +1,4 @@
-$ --home hd make -y --no-ecc --formats no --set CODE --draft draft-model.json --title My own title --note from the command line --keep-stage --output-dir out-d1 second
+$ --home hd make -y --no-ecc --no-formats --set CODE --draft draft-model.json --title My own title --note from the command line --keep-stage --output-dir out-d1 second
 Scanning and hashing ROOT/second ...
 Classified as: PROJECTS/CODE
 Object second/ (data/ on CODE-01_2001_0): new
@@ -7,7 +7,7 @@ Hashing ROOT/out-d1/CODE-01_2001_0.noecc.iso ...
 Kept staging directory ROOT/out-d1/.archive-make-XXXXXX
 CODE-01_2001_0	ROOT/out-d1/CODE-01_2001_0.noecc.iso	My own title
 rc=0
-$ --home hd make -y --no-ecc --formats no --set CODE --draft draft-human.json --keep-stage --output-dir out-d2 src
+$ --home hd make -y --no-ecc --no-formats --set CODE --draft draft-human.json --keep-stage --output-dir out-d2 src
 Scanning and hashing ROOT/src ...
 Warning: broken link dead -> missing.txt (recorded in the listing, not archived)
 Links: 1 copied, 1 recorded, 1 broken (policy: default)
@@ -18,7 +18,7 @@ Hashing ROOT/out-d2/CODE-02_2020_Y.noecc.iso ...
 Kept staging directory ROOT/out-d2/.archive-make-XXXXXX
 CODE-02_2020_Y	ROOT/out-d2/CODE-02_2020_Y.noecc.iso	Hand-written été 😀
 rc=0
-$ --home hd make -y --no-ecc --formats no --set CODE --draft draft-bare.json --title T --keep-stage --output-dir out-d3 hist-src
+$ --home hd make -y --no-ecc --no-formats --set CODE --draft draft-bare.json --title T --keep-stage --output-dir out-d3 hist-src
 Scanning and hashing ROOT/hist-src ...
 Classified as: PROJECTS/CODE
 Object hist-src/ (data/ on CODE-03_2020_W): new
@@ -27,7 +27,7 @@ Hashing ROOT/out-d3/CODE-03_2020_W.noecc.iso ...
 Kept staging directory ROOT/out-d3/.archive-make-XXXXXX
 CODE-03_2020_W	ROOT/out-d3/CODE-03_2020_W.noecc.iso	T
 rc=0
-$ --home hd make -y --no-ecc --formats no --set SCAN --split --medium-sectors 4800 --draft draft-split.json --keep-stage --output-dir out-d4 big
+$ --home hd make -y --no-ecc --no-formats --set SCAN --split --medium-sectors 4800 --draft draft-split.json --keep-stage --output-dir out-d4 big
 Scanning and hashing ROOT/big ...
 Classified as: MEMORIES/PHOTO/SCAN, RECORDS/SCAN
 Rebalancing: disc 1 was 414 sectors over budget
@@ -39,7 +39,7 @@ Kept staging directory ROOT/out-d4/.archive-make-XXXXXX
 SCAN-01_2001-2007_D	ROOT/out-d4/SCAN-01_2001-2007_D.noecc.iso	Big
 SCAN-02_2001-2007_B	ROOT/out-d4/SCAN-02_2001-2007_B.noecc.iso	Big
 rc=0
-$ --home hd make -y --no-ecc --formats no --set CODE --draft draft-broken.json --output-dir out-d5 src
+$ --home hd make -y --no-ecc --no-formats --set CODE --draft draft-broken.json --output-dir out-d5 src
 Scanning and hashing ROOT/src ...
 Warning: broken link dead -> missing.txt (recorded in the listing, not archived)
 Links: 1 copied, 1 recorded, 1 broken (policy: default)

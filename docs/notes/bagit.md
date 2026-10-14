@@ -56,7 +56,7 @@ For an `.iso` file, mount it read-only, or unpack it and check the folder:
 
 ## How this fits with arv
 
-`arv verify` makes the same check with arv's own BagIt code (`src/bagit`), and arv's tests use
+`arv check FOLDER` makes the same check with arv's own BagIt code (`src/bagit`), and arv's tests use
 bagit-python to referee it (`upstream/README.md`). Use bagit-python when arv is not at hand, or
 when you want a second opinion from code arv did not write. `sha256sum -c manifest-sha256.txt`
 checks the payload with nothing installed.

@@ -42,26 +42,25 @@ char *catalogue_in(const char *path)
  * is none instead of stopping. */
 int find_catalogue(const char *given, catalogue *c, int required)
 {
-    int bad = 0;
     arv_home h;
     if (required) home_find(&h, given, NULL);
     else if (home_try(&h, given, NULL)) {       /* no archive: an empty catalogue */
         memset(&c->rec, 0, sizeof c->rec);
+        memset(&c->records, 0, sizeof c->records);
         c->dir = NULL;
         return -1;
     }
     c->dir = h.catalog_dir;
     char *path = join(c->dir, "archive.rec");
-    if (!is_file(c->dir, "archive.rec")) {      /* an empty home, as the Python arv reads it */
+    if (!is_file(c->dir, "archive.rec")) {      /* a configured but not yet initialised home */
         memset(&c->rec, 0, sizeof c->rec);
+        memset(&c->records, 0, sizeof c->records);
         free(path);
         (void)required;
         return -1;
     }
-    if (rec_read(path, &c->rec, &bad)) {
-        fprintf(stderr, "Error: cannot read %s%s\n", path, errno == EINVAL ? " (a line is not a field)" : "");
-        exit(1);
-    }
+    archive_load(&c->records, path);
+    c->rec = c->records.file;
     free(path);
     return 0;
 }
@@ -118,21 +117,77 @@ void location_path(const catalogue *c, const char *code, char **out, size_t *len
     }
 }
 
-/* every place a disc's copies are kept, "; " between them ("" when not recorded) */
+/* every place a disc's recorded copies are kept, "; " between them ("" when unknown) */
 char *where(const catalogue *c, const rec_record *d)
 {
-    char *out = xstrdup("");
-    size_t len = 0;
-    for (size_t i = 0; i < d->nfields; i++) {
-        if (strcmp(d->fields[i].name, "Location")) continue;
-        if (len) {
-            out = xrealloc(out, len + 3);
-            strcpy(out + len, "; ");
-            len += 2;
-        }
-        location_path(c, d->fields[i].value, &out, &len);
+    return archive_where(&c->records, d);
+}
+
+/* fields a record may give more than once: always a list in JSON, so a script need not check */
+static int repeatable(const char *name)
+{
+    static const char *const names[] = { "Note", "Subject", "Category", "Path", "Agent", "Identifier", "Replaces", NULL };
+    for (size_t k = 0; names[k]; k++)
+        if (!strcmp(names[k], name)) return 1;
+    return 0;
+}
+
+static void json_record_fields(sbuf *b, const rec_record *r, int *first, const rec_record *skip)
+{
+    for (size_t i = 0; i < r->nfields; i++) {
+        const char *name = r->fields[i].name;
+        if ((skip && rec_get(skip, name)) || (i && !strcmp(r->fields[i - 1].name, name))) continue;
+        int earlier = 0;
+        for (size_t j = 0; j < i; j++) earlier |= !strcmp(r->fields[j].name, name);
+        if (earlier) continue;
+        size_t count = 0;
+        for (size_t j = i; j < r->nfields; j++) count += !strcmp(r->fields[j].name, name);
+        sb_puts(b, *first ? "" : ", ");
+        *first = 0;
+        json_str(b, name);
+        sb_puts(b, ": ");
+        int list = count > 1 || repeatable(name);
+        if (list) sb_puts(b, "[");
+        size_t emitted = 0;
+        for (size_t j = i; j < r->nfields; j++)
+            if (!strcmp(r->fields[j].name, name)) {
+                if (emitted++) sb_puts(b, ", ");
+                json_str(b, r->fields[j].value);
+            }
+        if (list) sb_puts(b, "]");
     }
-    return out;
+}
+
+static void json_disc(sbuf *b, const catalogue *c, const rec_record *d)
+{
+    int first = 1;
+    sb_puts(b, "{");
+    json_record_fields(b, d, &first, NULL);
+    const char *id = rec_get(d, "Id");
+    for (size_t i = 0; id && i < c->records.bindings.n; i++) {
+        const rec_record *binding = c->records.bindings.v[i];
+        if (!rec_get(binding, "Volume") || strcmp(rec_get(binding, "Volume"), id)) continue;
+        json_record_fields(b, binding, &first, d);
+    }
+    char *place = where(c, d);
+    sb_puts(b, first ? "" : ", ");
+    json_str(b, "Where");
+    sb_puts(b, ": ");
+    json_str(b, place);
+    free(place);
+    sb_puts(b, ", \"Events\": [");
+    int event_first = 1;
+    for (size_t i = 0; id && i < c->records.events.n; i++) {
+        const rec_record *event = c->records.events.v[i];
+        if (!rec_get(event, "Disc") || strcmp(rec_get(event, "Disc"), id)) continue;
+        if (!event_first) sb_puts(b, ", ");
+        event_first = 0;
+        sb_puts(b, "{");
+        int field_first = 1;
+        json_record_fields(b, event, &field_first, NULL);
+        sb_puts(b, "}");
+    }
+    sb_puts(b, "]}");
 }
 
 char *lower(const char *s)
@@ -172,7 +227,24 @@ char *catalogue_volume(const catalogue *c, const char *id, const char *name)
 }
 
 static const char *const SEARCH_FIELDS[] = { "Id", "Title", "Description", "Subject", "Note", "Coverage",
-                                            "Category", "Path", "Location", NULL };
+                                            "Category", "Path", NULL };
+
+static int matches_location(const catalogue *c, const rec_record *d, const char *pattern, int glob)
+{
+    strlist places;
+    archive_copy_locations(&c->records, rec_get(d, "Id"), &places);
+    int hit = 0;
+    for (size_t i = 0; i < places.n && !hit; i++) {
+        hit = matches(pattern, glob, places.v[i]);
+        char *path = xstrdup("");
+        size_t len = 0;
+        location_path(c, places.v[i], &path, &len);
+        if (!hit) hit = matches(pattern, glob, path);
+        free(path);
+    }
+    strlist_free(&places);
+    return hit;
+}
 
 /* where a found disc is, or that it was retired (a retired disc has left every place) */
 static char *found_at(const catalogue *c, const rec_record *d)
@@ -184,9 +256,11 @@ int cmd_find(int argc, char **argv)
 {
     const char *given = NULL, *pattern = NULL;
     long limit = 200;
+    int as_json = 0;
     for (int i = 0; i < argc; i++) {
         if (!strcmp(argv[i], "-C") && i + 1 < argc) given = argv[++i];
         else if (!strcmp(argv[i], "--limit") && i + 1 < argc) limit = atol(argv[++i]);
+        else if (!strcmp(argv[i], "--json")) as_json = 1;
         else if (!pattern) pattern = argv[i];
         else return 2;
     }
@@ -196,6 +270,8 @@ int cmd_find(int argc, char **argv)
     char *pat = lower(pattern);
     int glob = strpbrk(pat, "*?[") != NULL, any = 0;
     long files = 0;
+    sbuf json_discs = { 0 };
+    int json_disc_first = 1;
 
     for (size_t i = 0; i < c.rec.nrecords; i++) {          /* discs whose description matches */
         const rec_record *d = &c.rec.records[i];
@@ -204,13 +280,58 @@ int cmd_find(int argc, char **argv)
         for (size_t j = 0; j < d->nfields && !hit; j++)
             for (int k = 0; SEARCH_FIELDS[k] && !hit; k++)
                 if (!strcmp(d->fields[j].name, SEARCH_FIELDS[k]) && matches(pat, glob, d->fields[j].value)) hit = 1;
+        if (!hit) hit = matches_location(&c, d, pat, glob);
         if (hit) {
-            char *w = found_at(&c, d);
-            printf("DISC  %s  %s  [%s]\n", rec_get(d, "Id"), rec_get(d, "Title") ? rec_get(d, "Title") : "None",
-                   *w ? w : "location unknown");
-            free(w);
+            if (as_json) {
+                sb_puts(&json_discs, json_disc_first ? "" : ", ");
+                json_disc_first = 0;
+                json_disc(&json_discs, &c, d);
+            } else {
+                char *w = found_at(&c, d);
+                printf("DISC  %s  %s  [%s]\n", rec_get(d, "Id"), rec_get(d, "Title") ? rec_get(d, "Title") : "None",
+                       *w ? w : "location unknown");
+                free(w);
+            }
             any = 1;
         }
+    }
+    if (as_json) {
+        sbuf json_files = { 0 };
+        int file_first = 1;
+        for (size_t i = 0; i < c.rec.nrecords; i++) {
+            const rec_record *d = &c.rec.records[i];
+            if (!is_type(d, "Disc") || !rec_get(d, "Id")) continue;
+            char *path = catalogue_volume(&c, rec_get(d, "Id"), "manifest.sha256"), *line = NULL;
+            size_t cap = 0;
+            ssize_t len;
+            FILE *fp = fopen(path, "r");
+            while (fp && (len = getline(&line, &cap, fp)) >= 0) {
+                while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) line[--len] = 0;
+                char *rel = strstr(line, "  ");
+                if (!rel || !matches(pat, glob, rel + 2)) continue;
+                if (!limit || files < limit) {
+                    char *place = where(&c, d);
+                    sb_puts(&json_files, file_first ? "" : ", ");
+                    file_first = 0;
+                    sb_puts(&json_files, "{\"disc\": "); json_str(&json_files, rec_get(d, "Id"));
+                    sb_puts(&json_files, ", \"title\": "); json_str(&json_files, rec_get(d, "Title") ? rec_get(d, "Title") : "");
+                    sb_puts(&json_files, ", \"location\": "); json_str(&json_files, place);
+                    sb_puts(&json_files, ", \"path\": "); json_str(&json_files, rel + 2);
+                    sb_puts(&json_files, "}");
+                    free(place);
+                }
+                files++;
+            }
+            if (fp) fclose(fp);
+            free(line);
+            free(path);
+        }
+        printf("{\"discs\": [%s], \"files\": [%s], \"total\": %ld}\n",
+               json_discs.s ? json_discs.s : "", json_files.s ? json_files.s : "", files);
+        free(json_discs.s);
+        free(json_files.s);
+        free(pat);
+        return 0;
     }
     {                                                       /* copies, by what they are known by: a scanned barcode */
         char *ap = join(c.dir, "archive.rec");
@@ -219,8 +340,8 @@ int cmd_find(int argc, char **argv)
         if (!access(ap, F_OK)) archive_load(&a, ap);
         for (size_t i = 0; i < a.events.n; i++) {
             const rec_record *e = a.events.v[i];
-            const char *disc = rec_get(e, "Disc"), *t = rec_get(e, "Type"), *o = rec_get(e, "Outcome");
-            if (!disc || !t || strcmp(t, "replication") || (o && !strcmp(o, "failure"))) continue;
+            const char *disc = rec_get(e, "Disc");
+            if (!disc || !is_copy_event(e, disc)) continue;
             strlist ids;
             copy_identifiers(&a, disc, e, &ids);
             const char *carrier = copy_carrier(&a, disc, e), *hit = NULL;
@@ -231,9 +352,7 @@ int cmd_find(int argc, char **argv)
                 hit = carrier, on_carrier = 1;
             if (hit) {
                 const rec_record *d = archive_disc(&a, disc);
-                const char *checked = copy_last_check(&a, disc, e), *loc = rec_get(e, "Location");
-                for (size_t k = 0; k < a.events.n; k++)
-                    if (rec_get(a.events.v[k], "Location") && event_names_copy(&a, disc, a.events.v[k], e)) loc = rec_get(a.events.v[k], "Location");
+                const char *checked = copy_last_check(&a, disc, e), *loc = copy_location(&a, disc, e);
                 rec_record probe = { 0 };
                 probe.type = "Disc";
                 if (loc) rec_add(&probe, "Location", loc);
@@ -399,6 +518,7 @@ int cmd_find(int argc, char **argv)
         }
     }
     if (limit && files > limit) printf("... %ld more file matches (use --limit 0 for all)\n", files - limit);
+    free(json_discs.s);
     free(pat);
     return any ? 0 : 1;
 }
@@ -450,8 +570,8 @@ int cmd_id(int argc, char **argv)
         char again[64];
         if (scheme && !strcmp(scheme, DISCID_SCHEME) && seq
             && !discid_compose(rec_get(d, "Set"), atol(seq), rec_get(d, "Coverage"), again, sizeof again)) {
-            if (!strcmp(again, rec_get(d, "Id"))) printf("fields:    regenerate this id\n");
-            else printf("fields:    regenerate %s (the record and the id disagree)\n", again);
+            if (!strcmp(again, rec_get(d, "Id"))) printf("fields:    the id matches the disc's set, sequence and coverage\n");
+            else printf("fields:    they make %s: the record and the id disagree\n", again);
         }
     } else {
         /* known ids of the same length within two characters, closest first */
@@ -525,7 +645,8 @@ char *upper_trim(const char *s)
 
 /* The date `ago` (5y, 18m, 90d) before today, or a date given as such (2021, 2021-06, 2021-06-30),
    as YYYY-MM-DD; NULL when it is neither */
-static char *cutoff_date(const char *ago)
+/* the date AGE ago (5y, 18m, 90d), or a date given as 2021, 2021-06 or 2021-06-30; NULL if neither */
+char *age_cutoff(const char *ago)
 {
     char *end;
     long n = strtol(ago, &end, 10);
@@ -550,29 +671,13 @@ static char *cutoff_date(const char *ago)
     return NULL;
 }
 
-/* The date of the disc's last successful check (outcome success or warning), not counting the
-   test of the image when it was made: "" when there is none */
-static const char *last_checked(const catalogue *c, const char *id)
-{
-    const char *last = "";
-    for (size_t i = 0; i < c->rec.nrecords; i++) {
-        const rec_record *e = &c->rec.records[i];
-        const char *disc = rec_get(e, "Disc"), *type = rec_get(e, "Type"), *out = rec_get(e, "Outcome"), *date = rec_get(e, "Date"),
-                   *note = rec_get(e, "Note");
-        if (!is_type(e, "Event") || !disc || !type || !out || !date || strcmp(disc, id) || strcmp(type, "fixity check")) continue;
-        if (strcmp(out, "success") && strcmp(out, "warning")) continue;
-        if (note && !strncmp(note, "image test after creation", 25)) continue;
-        if (strncmp(date, last, 10) > 0) last = date;
-    }
-    return last;
-}
-
 int cmd_list(int argc, char **argv)
 {
     const char *given = NULL, *within = NULL, *at = NULL, *made = NULL, *acc = NULL, *covers = NULL, *unchecked = NULL;
-    int one_place = 0;
+    int one_place = 0, as_json = 0;
     for (int i = 0; i < argc; i++) {
         if (!strcmp(argv[i], "--one-place")) { one_place = 1; continue; }
+        if (!strcmp(argv[i], "--json")) { as_json = 1; continue; }
         const char **slot = !strcmp(argv[i], "-C") ? &given : !strcmp(argv[i], "--in") ? &within
             : !strcmp(argv[i], "--at") ? &at : !strcmp(argv[i], "--made") ? &made
             : !strcmp(argv[i], "--access") ? &acc : !strcmp(argv[i], "--covers") ? &covers
@@ -586,44 +691,54 @@ int cmd_list(int argc, char **argv)
             die("--covers: %s is not a date or range (examples: 2019, 2015/2024, 2019-07/2019-08, 199X)", covers);
     }
     char *cutoff = NULL;
-    if (unchecked && !(cutoff = cutoff_date(unchecked)))
+    if (unchecked && !(cutoff = age_cutoff(unchecked)))
         die("--unchecked-since: %s is neither an age (5y, 18m, 90d) nor a date (2021, 2021-06, 2021-06-30)", unchecked);
     catalogue c;
     open_catalogue(given, &c);
     char *code = within ? upper_trim(within) : NULL, *place = at ? upper_trim(at) : NULL;
+    if (as_json) printf("{\"discs\": [");
+    int json_first = 1;
     for (size_t i = 0; i < c.rec.nrecords; i++) {
         const rec_record *d = &c.rec.records[i];
         if (!is_type(d, "Disc")) continue;
         if (code && !disc_in(d, code)) continue;
-        if (place) {
-            int hit = 0;
-            for (size_t j = 0; j < d->nfields && !hit; j++)
-                if (!strcmp(d->fields[j].name, "Location")) {
-                    char *l = upper_trim(d->fields[j].value);
-                    hit = place_under(&c, l, place);
-                    free(l);
-                }
-            if (!hit) continue;
-        }
         if (acc && strcmp(access_of(d), acc)) continue;
         if (made && strncmp(rec_get(d, "Date") ? rec_get(d, "Date") : "", made, strlen(made))) continue;
         if (covers && edtf_covers(rec_get(d, "Coverage"), covers) != 1) continue;
-        const char *checked = cutoff ? last_checked(&c, rec_get(d, "Id") ? rec_get(d, "Id") : "") : NULL;
+        const char *checked = cutoff ? disc_last_check(&c.records, rec_get(d, "Id") ? rec_get(d, "Id") : "") : NULL;
         if (cutoff && *checked && strncmp(checked, cutoff, 10) >= 0) continue;
-        if (one_place) {
-            size_t places = 0;
-            for (size_t j = 0; j < d->nfields; j++) places += !strcmp(d->fields[j].name, "Location");
-            if (places > 1) continue;
+        strlist places;
+        archive_copy_locations(&c.records, rec_get(d, "Id"), &places);
+        if (place) {
+            int hit = 0;
+            for (size_t j = 0; j < places.n && !hit; j++) {
+                char *l = upper_trim(places.v[j]);
+                hit = place_under(&c, l, place);
+                free(l);
+            }
+            if (!hit) { strlist_free(&places); continue; }
         }
-        char *w = where(&c, d);
-        const char *files = rec_get(d, "Files");
-        printf("%s\t%s\t%s\t%s file%s\t%s\t%s", rec_get(d, "Id"), rec_get(d, "Date") ? rec_get(d, "Date") : "None",
-               rec_get(d, "Title") ? rec_get(d, "Title") : "None", files && *files ? files : "?",
-               files && !strcmp(files, "1") ? "" : "s", access_of(d), w);
-        if (cutoff) printf("\tlast checked %.10s", *checked ? checked : "never");
-        putchar('\n');
-        free(w);
+        if (one_place && places.n > 1) { strlist_free(&places); continue; }
+        strlist_free(&places);
+        if (as_json) {
+            printf("%s", json_first ? "" : ", ");
+            json_first = 0;
+            sbuf item = { 0 };
+            json_disc(&item, &c, d);
+            fputs(item.s, stdout);
+            free(item.s);
+        } else {
+            char *w = where(&c, d);
+            const char *files = rec_get(d, "Files");
+            printf("%s\t%s\t%s\t%s file%s\t%s\t%s", rec_get(d, "Id"), rec_get(d, "Date") ? rec_get(d, "Date") : "None",
+                   rec_get(d, "Title") ? rec_get(d, "Title") : "None", files && *files ? files : "?",
+                   files && !strcmp(files, "1") ? "" : "s", access_of(d), w);
+            if (cutoff) printf("\tlast checked %.10s", *checked ? checked : "never");
+            putchar('\n');
+            free(w);
+        }
     }
+    if (as_json) puts("]}");
     free(cutoff);
     free(code);
     free(place);

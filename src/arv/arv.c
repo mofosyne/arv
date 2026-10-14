@@ -1,17 +1,16 @@
 /*
- * arv: Archive, Record, Verify (see README.md). Every command; arv describe, tag and models run
+ * arv: Archive, Record, Verify (see README.md). Every command; arv describe and tag run
  * arv-assist (src/arv-assist), and arv gui runs arv-gui (src/arv-gui).
  *
- *   arv info DISC                 the disc's record, binding and appraisals
- *   arv verify [-v] DISC          every file against the BagIt manifests; extra files in data/
- *   arv ls DISC                   the listing: files, executables and links
- *   arv restore [--no-links] DISC DEST
+ *   arv info DISC|IMAGE|DISC-ID [--files]
+ *                                  a disc's record, binding and appraisals (--files: its listing);
+ *                                  which disc and copy an image is; what a disc id says and names
+ *   arv restore DISC DEST
  *                                  copy data/ to DEST, checking every file on the way; restore
  *                                  modification times, execute bits and the source's links
  *   arv find [-C CATALOG] [--limit N] PATTERN
  *                                  discs, folder tags and files matching PATTERN, on every disc
  *                                  the catalogue knows (substring, or glob with * ? [)
- *   arv id [-C CATALOG] ID         explain a disc id; check its check character (catches typos)
  *   arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]
  *                                  the discs, one per line
  *
@@ -50,62 +49,83 @@ static const char USAGE_ARCHIVE[] =
           "\n"
           "Archive: what goes on discs\n"
           "  arv make [--set CODE] [--title T] [--split] [--no-ecc] [--output-dir DIR] ... FOLDER\n"
-          "         disc images of a folder (arv make --help lists every option)\n"
-          "  arv plan new|list|show|add|move|drop|disc|make|again|refresh|delete NAME ...\n"
-          "         compose discs by hand from files and folders anywhere (add --copy: the plan keeps a copy)\n"
+          "         disc images of a folder, recorded in the home (arv make --help lists every option)\n"
+          "  arv plan new|list|show|add|move|drop|disc|make|again|delete NAME ...\n"
+          "         discs composed by hand from files and folders anywhere; the sources stay where they are:\n"
+          "         add NAME SOURCE... [--disc N|new|auto] [--as PATH] puts them on a disc, under PATH;\n"
+          "         move NAME PATH... --disc N|new moves them; drop NAME PATH... takes them off; disc NAME add|drop N;\n"
+          "         show NAME;"
+          " make NAME makes the images; again NAME NEW starts the same plan anew; delete NAME\n"
           "  arv collection init [FOLDER] --code CODE --title TITLE [--set CODE] [--access LEVEL] | list | show CODE\n"
+          "         a folder kept over time, its states made into editions of discs (show: its editions)\n"
           "  arv collection keep CODE N   keep edition N: never offered for retiring\n"
-          "  arv status [-v] [--deep] [--record [--message TEXT]] [FOLDER]   what changed, or what is archived\n"
-          "  arv checkpoint [--message TEXT] [FOLDER]   record a workflow folder's state (no discs)\n"
-          "  arv link FOLDER COLLECTION|DISC-ID [--past]   say what a folder is (logged)\n"
+          "  arv status [-v] [--deep] [FOLDER]   what changed in a folder since it was archived, or what of it is\n"
+          "         on discs (--deep: read every file again, not trusting sizes and times)\n"
+          "  arv link FOLDER COLLECTION|DISC-ID [--past]   say what a folder is: a collection's workflow folder,\n"
+          "         or a disc's source (--past: an older state, kept for reference); logged, nothing written in it\n"
           "  arv names [--limit N] FOLDER   names a disc cannot hold, or Windows would show changed\n"
           "  arv describe FOLDER|DISC-ID|OBJECT [--save|--apply DRAFT|--answer] ...   title, description, tags (*)\n"
-          "  arv tag FOLDER|DISC-ID [--save DRAFT] ...                folder tags from your vocabulary (*)\n"
-          "  arv models fetch|status|build-runtime                    the small model arv tag uses (*)\n"
+          "  arv tag FOLDER|DISC-ID [--save DRAFT] ...   folder tags from your vocabulary (*)\n"
           "\n";
-static const char USAGE_REST[] =
+static const char USAGE_RECORD[] =
           "Record: what exists, and where\n"
-          "  arv burned (--device DRIVE | --copies N) [--copy X] [--location PLACE] [--identifier ID | --barcode CODE]...\n"
-          "             [--media-type TYPE] [--note TEXT] [DISC-ID]\n"
+          "  arv burned (--device DRIVE | --copies N) [--copy X] [--location PLACE] [--temperature T]\n"
+          "             [--identifier ID | --barcode CODE]... [--media-type TYPE] [--note TEXT] [DISC-ID]\n"
           "         a burned copy, named by a letter (A, B ...: write it on the hub and case after the id;\n"
           "         --device: read back against its image first, recorded only if identical, with its BCA serial;\n"
-          "         --temperature hot|warm|cold: default the place's, else cold)\n"
-          "  arv identify DISC-ID COPY [ID...] [--barcode CODE] [--carrier ID]   what a copy is known by, or is on\n"
-          "         (ID: bca:SERIAL, barcode:CODE, serial:SERIAL, label:TEXT or hub:CODE; the first three name\n"
-          "         one disc, or one tape or drive as a carrier: copies on one carrier count as one)\n"
-          "  arv relabel DISC-ID COPY NEW [--at PLACE | --identifier ID]   a copy's new letter (two copies alike)\n"
-          "  arv stored DISC-ID PATH [--location PLACE] [--temperature T] [--carrier ID | --barcode CODE] [--copy X]\n"
+          "         temperature hot|warm|cold: default the place's, else cold)\n"
+          "  arv stored DISC-ID PATH [--location PLACE] [--temperature T] [--carrier barcode:CODE|serial:SERIAL] [--copy X]\n"
           "         a copy on a drive, NAS or tape: the .iso, or the disc's files as a folder; checked, then\n"
-          "         recorded (default: warm); --copy X: that copy, moved here (at its own path: checked again)\n"
+          "         recorded (default: warm); --copy X: that copy, moved here (to check one: arv check PATH)\n"
+          "  arv identify DISC-ID COPY [ID...] [--barcode CODE] [--carrier ID]   what a copy is known by, or is on\n"
+          "         (ID: bca:SERIAL, barcode:CODE or serial:SERIAL; a carrier is the tape or drive holding it)\n"
+          "  arv relabel DISC-ID COPY NEW [--at PLACE | --identifier ID]   give a copy a new letter (when two\n"
+          "         catalogues gave one letter to two copies: --at or --identifier says which)\n"
+          "  arv locate DISC-ID COPY PLACE   where a copy is kept now\n"
+          "  arv note DISC-ID TEXT   a note on a disc\n"
+          "  arv access DISC-ID public|private|sealed   what later discs' catalogues may show of it\n"
           "  arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)\n"
-          "  arv find [-C CATALOG] [--limit N] PATTERN\n"
+          "  arv find [-C CATALOG] [--limit N] PATTERN   discs, copies (by identifier or carrier), objects, tags\n"
+          "         and files, on every disc the catalogue knows (PATTERN: text, or a glob with * ? [)\n"
           "  arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]\n"
-          "           [--unchecked-since AGE|DATE] [--one-place]   (AGE: 5y, 18m, 90d)\n"
-          "  arv id [-C CATALOG] ID   arv info DISC|IMAGE   arv ls DISC\n"
-          "  arv note DISC-ID TEXT   arv locate [--add] DISC-ID PLACE...   arv access DISC-ID public|private|sealed\n"
+          "           [--unchecked-since AGE|DATE] [--one-place] [--json]   the discs, one a line (--in: a set or\n"
+          "         category; --at: a place and the places in it; --covers: an EDTF date; AGE: 5y, 18m, 90d)\n"
+          "  arv info [-C CATALOG] DISC|IMAGE|DISC-ID [--files]   a disc (--files: its listing), an image\n"
+          "         (which disc and copy), or a disc id (its parts, its check character, the disc it names)\n"
           "  arv location list [-v] | add CODE [NAME] [--in PARENT] [--description TEXT] [--temperature T]\n"
           "               | move CODE [NAME] [--in PARENT] [--temperature T]\n"
-          "  arv selection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]\n"
+          "         the places copies are kept: a tree (a box in a room in a house)\n"
           "  arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]\n"
-          "  arv log [COLLECTION]   arv diff REV [REV]   (REV: a revision's first digits, or CODE/N)\n"
+          "         how much something matters and to whom (essential, important, useful); TARGET: DISC-ID,\n"
+          "         DISC-ID:folder/, DISC-ID:file or set:CODE; --due: the appraisals due for review by DATE\n"
+          "  arv log [COLLECTION]   a collection's editions, and what changed in each\n"
+          "  arv diff REV [REV]   what changed between two revisions, or from one to the folder now\n"
+          "         (REV: a revision's first digits, or CODE/N for edition N)\n"
           "  arv retire CODE|DISC-ID [--yes [--accept-loss]]   retire the editions a newer safe one replaces (not kept\n"
-          "                    ones), or one disc of no edition; refused while a file is on no disc that stays\n"
-          "  arv sets [-v]   arv tags [--namespace NS] [--vocab FILE]   arv keywords [--format tsv|exiftool] DISC-ID\n"
-          "\n"
+          "         ones), or one disc of no edition; refused while a file is on no disc that stays\n"
+          "  arv sets [-v]   the set codes and categories, as a tree\n"
+          "  arv tags [--namespace NS]   the folder tags in use, and on how many folders and discs\n"
+          "  arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files\n"
+          "\n";
+static const char USAGE_REST[] =
           "Verify: still good, and can be got back\n"
-          "  arv todo [--overdue YEARS]   what is owed: copies, read-backs, cold copies, places, checks\n"
-          "  arv check (--image FILE [--repair] | --device DRIVE) [--copy X] [--identifier ID | --barcode CODE]...\n"
-          "            [--note TEXT] [-v] [DISC-ID]\n"
-          "  arv verify [-v] DISC   every file against its checksum (in full: arv verify files DISC)\n"
+          "  arv todo [--overdue AGE] [--tsv]   what is owed: copies, read-backs, cold copies, places, checks\n"
+          "         (--overdue: checks older than AGE, default 5y; --tsv: one copy a line, for scripts)\n"
+          "  arv check [--repair | --drive] [--copy X] [--identifier ID | --barcode CODE]... [--note TEXT] [-v] SOURCE [DISC-ID]\n"
+          "         a copy, against what arv made: SOURCE is a drive (every sector), an image file (--repair:\n"
+          "         mend it with its RS03 data; --drive: a whole disc read, as ddrescue dumps one) or a disc's\n"
+          "         files, mounted or copied (every file); logged, naming the copy when it is known\n"
           "  arv drives [--check] [DRIVE...]   what is in each optical drive: which disc, which copy\n"
           "  arv inventory [-v] PLACE [FILE]   a library's barcodes (mtx status, or a list) against the copies\n"
           "         recorded at PLACE: missing, unknown, recorded elsewhere\n"
-          "  arv restore [--no-links] DISC DEST\n"
+          "  arv restore DISC DEST   copy a disc's files to DEST, checking each; dates, execute bits and links back\n"
           "  arv rebuild [--prefer-disc] [--any-archive] DISC|CATALOG   merge a disc's, or another .arv's, catalogue\n"
           "  arv audit [DISC...]   every event as written; with discs, the home against what they carry\n"
           "\n"
           "The home\n"
-          "  arv init [FOLDER] [--pointer HOME] [--name NAME [--default]]   arv where [--here]\n"
+          "  arv init [FOLDER] [--name NAME [--default]]   make an archive: FOLDER/.arv (--name: known by name,\n"
+          "         for arv --archive NAME; --default: the one used when no other is found)\n"
+          "  arv where [--here]   which home arv uses, and why (--here: this copy of it may be written here too)\n"
           "  arv gui   the interface, in your web browser (*)\n"
           "  arv help [--all | --man | COMMAND]   --all: the whole manual (markdown), for people and agents alike\n"
           "\n"
@@ -113,6 +133,7 @@ static const char USAGE_REST[] =
           "DISC: the root of a mounted arv disc or an extracted image (the folder with catalog.rec)\n"
           "CATALOG: a disc root, its catalog/ folder or a home (.arv); default: $ARV_HOME, or the\n"
           "first .arv folder or disc root from here up\n";
+static const char *const USAGE[] = { USAGE_ARCHIVE, USAGE_RECORD, USAGE_REST, NULL };
 
 /* arv alone: where you are, the commands to start with, and how to find the rest */
 static int orientation(void)
@@ -136,8 +157,7 @@ static int orientation(void)
 
 static void usage(FILE *to)
 {
-    fputs(USAGE_ARCHIVE, to);
-    fputs(USAGE_REST, to);
+    for (int part = 0; USAGE[part]; part++) fputs(USAGE[part], to);
 }
 
 /* "arv NAME" on a line of the usage, as a whole word */
@@ -158,8 +178,8 @@ static void command_usage(FILE *to, const char *name)
 {
     sbuf out = { 0 };
     int in = 0;
-    for (int part = 0; part < 2; part++)
-        for (const char *line = part ? USAGE_REST : USAGE_ARCHIVE, *end; *line; line = end + 1) {
+    for (int part = 0; USAGE[part]; part++)
+        for (const char *line = USAGE[part], *end; *line; line = end + 1) {
             end = strchr(line, '\n');
             size_t len = (size_t)(end - line);
             if (!strncmp(line, "  arv ", 6)) in = names_command(line, len, name);
@@ -194,8 +214,8 @@ static const struct {
 static int group_lines(const char *header, const char *cmd, sbuf *out)
 {
     int in = 0, found = 0;
-    for (int part = 0; part < 2; part++)
-        for (const char *line = part ? USAGE_REST : USAGE_ARCHIVE, *end; *line; line = end + 1) {
+    for (int part = 0; USAGE[part]; part++)
+        for (const char *line = USAGE[part], *end; *line; line = end + 1) {
             end = strchr(line, '\n');
             size_t len = (size_t)(end - line);
             if (!strncmp(line, header, strlen(header))) in = 1;
@@ -226,8 +246,8 @@ static void option_candidates(const char *cmd, const char *cur, strlist *seen)
 {
     sbuf lines = { 0 };
     int in = 0;
-    for (int part = 0; part < 2; part++)
-        for (const char *line = part ? USAGE_REST : USAGE_ARCHIVE, *end; *line; line = end + 1) {
+    for (int part = 0; USAGE[part]; part++)
+        for (const char *line = USAGE[part], *end; *line; line = end + 1) {
             end = strchr(line, '\n');
             size_t len = (size_t)(end - line);
             if (!strncmp(line, "  arv ", 6)) in = names_command(line, len, cmd);
@@ -252,8 +272,8 @@ static void subcommand_candidates(const char *cmd, const char *cur, strlist *see
     char *word = xprintf("arv %s ", cmd);
     size_t wl = strlen(word);
     int in = 0;
-    for (int part = 0; part < 2; part++)
-        for (const char *line = part ? USAGE_REST : USAGE_ARCHIVE, *end; *line; line = end + 1) {
+    for (int part = 0; USAGE[part]; part++)
+        for (const char *line = USAGE[part], *end; *line; line = end + 1) {
             end = strchr(line, '\n');
             const char *p = NULL;
             if (!strncmp(line, "  arv ", 6)) {
@@ -311,13 +331,13 @@ static int complete(int argc, char **argv, const char *const *names, size_t nnam
             if (i + 1 == n) {                     /* a group's commands */
                 for (size_t k = 0; k < nnames; k++)
                     if (group_lines(GROUPS[g].header, names[k], NULL)) candidate(names[k], strlen(names[k]), cur, &seen);
-                if (!strcmp(GROUPS[g].name, "verify")) candidate("files", 5, cur, &seen);
+        
                 return 0;
             }
             i++;
             break;
         }
-    const char *cmd = strcmp(argv[i], "files") ? argv[i] : "verify";
+    const char *cmd = argv[i];
     if (*cur == '-') option_candidates(cmd, cur, &seen);
     else if (i + 1 == n) subcommand_candidates(cmd, cur, &seen);
     return 0;
@@ -383,7 +403,7 @@ static char *helper(const char *env, const char *name, const char *in_checkout)
     return found;
 }
 
-/* arv describe|tag|models runs arv-assist; arv gui runs arv-gui (with the home this arv finds) */
+/* arv describe|tag runs arv-assist; arv gui runs arv-gui (with the home this arv finds) */
 static void run_helper(int argc, char **argv, const char *word)
 {
     int gui = !strcmp(word, "gui");
@@ -427,15 +447,15 @@ static void run_helper(int argc, char **argv, const char *word)
 static const char MANUAL_NOTES[] =
     "## Reading and changing the record\n"
     "\n"
-    "These only read: `list`, `find`, `objects`, `todo`, `status` (without `--record`), `log`, `diff`,\n"
-    "`sets`, `tags`, `keywords`, `id`, `info`, `ls`, `verify`, `audit`, `inventory`, `drives` (without\n"
+    "These only read: `list`, `find`, `objects`, `todo`, `status`, `log`, `diff`,\n"
+    "`sets`, `tags`, `keywords`, `info`, `audit`, `inventory`, `drives` (without\n"
     "`--check`), `where` (without `--here`), `names`, `plan list|show`, `collection list|show`, `location\n"
-    "list`, `selection list|show`, `appraise --due`, and `retire` without `--yes` (a preview). `restore`\n"
+    "list`, `appraise --due`, and `retire` without `--yes` (a preview). `restore`\n"
     "writes only the files it restores, where it is told.\n"
     "\n"
     "These change the record, each leaving an event that says who and when: `init`, `make`, `plan make`,\n"
-    "`collection init|keep`, `status --record`, `checkpoint`, `link`, `burned`, `stored`, `identify`,\n"
-    "`relabel`, `note`, `locate`, `access`, `location add|move`, `selection add|put|drop|move`, `appraise`,\n"
+    "`collection init|keep`, `link`, `burned`, `stored`, `identify`,\n"
+    "`relabel`, `note`, `locate`, `access`, `location add|move`, `appraise`,\n"
     "`retire --yes`, `rebuild`, `check` and `drives --check` (a check is logged), `describe` and `tag`\n"
     "(when a draft is applied). `where --here` changes only where the catalogue may be written.\n"
     "arv never deletes a file, an image or a disc.\n"
@@ -497,8 +517,7 @@ static void manual_md(sbuf *out)
     sb_puts(out, "# arv(1): Archive, Record, Verify\n\n");
     sb_printf(out, "%s, disc format %s.\n\n", VERSION, FORMAT_VERSION);
     sbuf all = { 0 };
-    sb_puts(&all, USAGE_ARCHIVE);
-    sb_puts(&all, USAGE_REST);
+    for (int part = 0; USAGE[part]; part++) sb_puts(&all, USAGE[part]);
     const char *p = all.s;
     const char *nl = strchr(p, '\n');               /* the usage: line is the synopsis */
     sb_puts(out, "## Synopsis\n\n```\n");
@@ -648,12 +667,12 @@ int main(int argc, char **argv)
     static const struct {
         const char *name;
         int (*fn)(int, char **);
-    } cmds[] = { { "info", cmd_info }, { "verify", cmd_verify }, { "ls", cmd_ls }, { "restore", cmd_restore },
-                 { "find", cmd_find }, { "list", cmd_list }, { "id", cmd_id },
+    } cmds[] = { { "info", cmd_info }, { "restore", cmd_restore },
+                 { "find", cmd_find }, { "list", cmd_list },
                  { "init", cmd_init }, { "make", cmd_make }, { "check", cmd_check },
                  { "burned", cmd_burned }, { "note", cmd_note }, { "locate", cmd_locate },
-                 { "access", cmd_access }, { "location", cmd_location }, { "selection", cmd_selection }, { "collection", cmd_collection },
-                 { "status", cmd_status }, { "checkpoint", cmd_checkpoint }, { "log", cmd_log }, { "diff", cmd_diff },
+                 { "access", cmd_access }, { "location", cmd_location }, { "collection", cmd_collection },
+                 { "status", cmd_status }, { "log", cmd_log }, { "diff", cmd_diff },
                  { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
                  { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit }, { "drives", cmd_drives }, { "relabel", cmd_relabel }, { "inventory", cmd_inventory }, { "identify", cmd_identify },
@@ -663,7 +682,7 @@ int main(int argc, char **argv)
         const char *names[sizeof cmds / sizeof *cmds + 5];
         size_t nnames = 0;
         for (size_t i = 0; i < sizeof cmds / sizeof *cmds; i++) names[nnames++] = cmds[i].name;
-        names[nnames++] = "describe", names[nnames++] = "tag", names[nnames++] = "models", names[nnames++] = "gui";
+        names[nnames++] = "describe", names[nnames++] = "tag", names[nnames++] = "gui";
         names[nnames++] = "help";
         return complete(argc - 2, argv + 2, names, nnames);
     }
@@ -676,7 +695,7 @@ int main(int argc, char **argv)
     for (size_t g = 0; at < argc && g < sizeof GROUPS / sizeof *GROUPS; g++) {
         if (strcmp(argv[at], GROUPS[g].name)) continue;
         const char *sub = at + 1 < argc ? argv[at + 1] : NULL, *group = GROUPS[g].name;
-        int verify = !strcmp(group, "verify"), known = 0;
+        int known = 0;
         if (!sub || !strcmp(sub, "-h") || !strcmp(sub, "--help")) {
             sbuf out = { 0 };
             group_lines(GROUPS[g].header, NULL, &out);
@@ -686,11 +705,8 @@ int main(int argc, char **argv)
             return 0;
         }
         for (size_t i = 0; i < sizeof cmds / sizeof *cmds; i++) known |= !strcmp(sub, cmds[i].name);
-        known |= !strcmp(sub, "describe") || !strcmp(sub, "tag") || !strcmp(sub, "models") || !strcmp(sub, "gui");
-        if (verify && !strcmp(sub, "files")) argv[at + 1] = "verify";     /* arv verify files DISC */
-        else if (group_lines(GROUPS[g].header, sub, NULL)) {
-        } else if (verify && !known) {
-            break;                      /* arv verify DISC: the files check, as before */
+        known |= !strcmp(sub, "describe") || !strcmp(sub, "tag") || !strcmp(sub, "gui");
+        if (group_lines(GROUPS[g].header, sub, NULL)) {
         } else if (known) {
             for (size_t h = 0; h < sizeof GROUPS / sizeof *GROUPS; h++)
                 if (group_lines(GROUPS[h].header, sub, NULL)) {
@@ -708,7 +724,7 @@ int main(int argc, char **argv)
     }
     /* the local AI helpers and the interface are programs of their own */
     const char *word = command_word(argc, argv);
-    if (word && (!strcmp(word, "describe") || !strcmp(word, "tag") || !strcmp(word, "models") || !strcmp(word, "gui")))
+    if (word && (!strcmp(word, "describe") || !strcmp(word, "tag") || !strcmp(word, "gui")))
         run_helper(argc, argv, word);
     if (argc < 2) return orientation();
     if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) {
@@ -733,8 +749,7 @@ int main(int argc, char **argv)
                     }
             char **args = argv + 2;
             int n = argc - 2;
-            int reads_disc = !strcmp(cmds[i].name, "info") || !strcmp(cmds[i].name, "verify")
-                             || !strcmp(cmds[i].name, "ls") || !strcmp(cmds[i].name, "restore");
+            int reads_disc = !strcmp(cmds[i].name, "restore");
             if (home && !reads_disc) {      /* the command reads -C HOME first (a disc's own commands need no home) */
                 args = xmalloc(((size_t)n + 3) * sizeof *args);
                 args[0] = "-C";
@@ -761,10 +776,10 @@ int main(int argc, char **argv)
         return rc;
     }
     /* an unknown command: say which, and the nearest ones */
-    static const char *const helpers[] = { "describe", "tag", "models", "gui" };
+    static const char *const helpers[] = { "describe", "tag", "gui" };
     const char *near[3];
     size_t nnear = 0, cutoff = strlen(argv[1]) <= 4 ? 1 : 2;
-    for (size_t i = 0; i < sizeof cmds / sizeof *cmds + 4 && nnear < 3; i++) {
+    for (size_t i = 0; i < sizeof cmds / sizeof *cmds + sizeof helpers / sizeof *helpers && nnear < 3; i++) {
         const char *name = i < sizeof cmds / sizeof *cmds ? cmds[i].name : helpers[i - sizeof cmds / sizeof *cmds];
         if (edit_distance(argv[1], name) <= cutoff || (strlen(argv[1]) >= 3 && !strncmp(argv[1], name, strlen(argv[1]))))
             near[nnear++] = name;

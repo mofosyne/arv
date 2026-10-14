@@ -3,9 +3,7 @@
  *   arv status [-v] [--deep] [FOLDER]   a collection's workflow folder: what changed since its
  *                                       last revision; any other folder: which of its files are on
  *                                       which discs, and which on none
- *   arv checkpoint [FOLDER] [--message TEXT]
- *                                       record the workflow folder's state as a revision (no discs)
- *   arv log COLLECTION                  its revisions
+ *   arv log COLLECTION                  its revisions: its editions
  *   arv diff REV [REV]                  what changed between two revisions (REV: a Node prefix, or
  *                                       CODE/N for edition N); with one, from it to the folder now
  *   arv link FOLDER COLLECTION|DISC-ID [--past]
@@ -531,8 +529,7 @@ static const rec_record *find_revision(const archive *cat, const char *spec)
 
 static void describe_revision(const rec_record *r, sbuf *out)
 {
-    if (rec_get(r, "Edition")) sb_printf(out, "edition %s%s", rec_get(r, "Edition"), rec_get(r, "Keep") ? " (kept)" : "");
-    else sb_puts(out, "checkpoint");
+    sb_printf(out, "edition %s%s", get_or(r, "Edition", "?"), rec_get(r, "Keep") ? " (kept)" : "");
     sb_printf(out, ", %s, revision %.12s", get_or(r, "Date", ""), get_or(r, "Node", ""));
 }
 
@@ -543,47 +540,6 @@ static char *folder_arg(const char *given)
     struct stat st;
     if (stat(abs, &st) || !S_ISDIR(st.st_mode)) die("%s is not a folder", abs);
     return abs;
-}
-
-/* records the folder's state as a checkpoint revision (arv checkpoint, arv status --record) */
-static void record_checkpoint(const arv_home *h, archive *cat, const rec_record *coll, mlist *now, const char *message)
-{
-    char today[11], tree[65], node[65];
-    today_iso(today);
-    const char *uuid = rec_get(coll, "Uuid");
-    const rec_record *head = collection_head(cat, uuid);
-    const char *parent = head ? rec_get(head, "Node") : NULL;
-    char *text = ml_text(now);
-    revision_hashes(text, parent, today, message, tree, node);
-    if (head && !strcmp(get_or(head, "Tree", ""), tree)) {
-        printf("%s: nothing changed since %.12s; no checkpoint recorded\n", rec_get(coll, "Code"), parent);
-        free(text);
-        return;
-    }
-    char *before_text = NULL;
-    if (head) {
-        char *p = revision_manifest_path(h, parent);
-        before_text = access(p, F_OK) ? NULL : read_text(p);
-        free(p);
-    }
-    char *changes = manifest_changes(before_text ? before_text : "", text);
-    rec_record *r = rec_alloc("Revision");
-    rec_add(r, "Node", node);
-    rec_add(r, "Collection", uuid);
-    rec_add(r, "Tree", tree);
-    if (parent) rec_add(r, "Parent", parent);
-    rec_add(r, "Date", today);
-    rec_add(r, "Stage", "checkpoint");
-    rec_add(r, "Changes", changes);
-    if (message && *message) rec_add(r, "Message", message);
-    recs_add(&cat->revisions, r);
-    char *path = revision_manifest_path(h, node), *dir = xstrdup(path);
-    *strrchr(dir, '/') = 0;
-    if (mkdirs(dir)) die("cannot create %s", dir);
-    write_text(path, text);
-    archive_save(cat, h->rec_path);
-    printf("%s: checkpoint %.12s, %s\n", rec_get(coll, "Code"), node, changes);
-    free(path); free(dir); free(text); free(changes); free(before_text);
 }
 
 /* a folder no collection claims: which of its files are on discs, and which discs it resembles */
@@ -1013,14 +969,12 @@ void layout_notes(const arv_home *h, const char *abs, FILE *out, const char *pre
 
 int cmd_status(int argc, char **argv)
 {
-    const char *given = NULL, *folder = NULL, *message = NULL;
-    int verbose = 0, deep = 0, record = 0;
+    const char *given = NULL, *folder = NULL;
+    int verbose = 0, deep = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (!strcmp(argv[i], "-v")) verbose = 1;
         else if (!strcmp(argv[i], "--deep")) deep = 1;
-        else if (!strcmp(argv[i], "--record")) record = 1;
-        else if (i + 1 < argc && !strcmp(argv[i], "--message")) message = argv[++i];
         else if (argv[i][0] != '-' && !folder) folder = argv[i];
         else return 2;
     }
@@ -1039,7 +993,7 @@ int cmd_status(int argc, char **argv)
         printf("%s (%s): workflow folder %s (%s)\n", rec_get(coll, "Code"), get_or(coll, "Title", ""), abs, how);
         const rec_record *head = collection_head(&cat, rec_get(coll, "Uuid"));
         if (!head) {
-            printf("  no revision yet: %zu file%s (arv make for its first edition, arv checkpoint to record it)\n", s.files.n,
+            printf("  no revision yet: %zu file%s (arv make for its first edition)\n", s.files.n,
                    s.files.n == 1 ? "" : "s");
         } else {
             sbuf what = { 0 };
@@ -1077,10 +1031,6 @@ int cmd_status(int argc, char **argv)
     for (size_t i = 0; i < s.silent_paths.n; i++)
         printf("  ! %s: content changed but its modified time did not (bit rot, or a tool that keeps times)\n",
                s.silent_paths.v[i]);
-    if (record) {
-        if (!coll) die("%s", "--record: only a collection's workflow folder has revisions");
-        record_checkpoint(&h, &cat, coll, &s.files, message);
-    }
     ml_free(&s.files);
     strlist_free(&s.silent_paths);
     strlist_free(&s.repos);
@@ -1088,14 +1038,6 @@ int cmd_status(int argc, char **argv)
     return 0;
 }
 
-int cmd_checkpoint(int argc, char **argv)
-{
-    char **args = xmalloc(((size_t)argc + 2) * sizeof *args);
-    for (int i = 0; i < argc; i++) args[i] = argv[i];
-    args[argc] = "--record";
-    args[argc + 1] = NULL;
-    return cmd_status(argc + 1, args);
-}
 
 int cmd_log(int argc, char **argv)
 {

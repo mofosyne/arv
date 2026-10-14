@@ -1,7 +1,8 @@
 # Organising the physical discs
 
-The tool doesn't know where a disc is; it only knows what you record with
-`arv locate`, `arv burned --location` and `arv location`. This guide
+The tool knows where each physical copy is from what you record with
+`arv burned --location`, `arv stored --location`, `arv locate DISC-ID COPY PLACE`
+and `arv location`. This guide
 recommends a physical arrangement that matches the catalogue, so the shelf and
 the records stay easy to keep in step and anyone can find a disc from its id
 alone.
@@ -52,8 +53,8 @@ at one place.
 
 ## The virtual structure: by kind, and every other order
 
-Physically a disc can be in only one place. In the catalogue it can be in many,
-and catalogue software can show any of these trees from the newest disc alone
+Each physical copy is in one place; copies of the same disc can be in different
+places. Catalogue software can show any of these trees from the newest disc alone
 (see [the format spec](spec/smart-archive-format.md#building-a-virtual-file-system-from-the-catalogue)):
 - **by kind**, through the vocabulary: the main view, where a disc appears under
   each of its paths;
@@ -112,7 +113,7 @@ arv location add PARENTS-PRV-2026 "Private copies, made 2026" --in PARENTS
   site it belongs to even after a box moves. Codes allow 1–24 capital letters,
   digits, `-` and `_`.
 - **Names:** say what's inside. They show up in `arv list`, `arv find` and
-  every disc's catalogue ("stored at Home / Study / Private, made 2026").
+  every disc's catalogue, derived from its copies ("stored at Home / Study / Private, made 2026").
 - **Which box a new disc goes in:** `arv list --access private --made 2026`
   lists the discs that belong in `HOME-PRV-2026`.
 - **Moving a box:** `arv location move HOME-PRV-2020 --in PARENTS` moves
@@ -127,6 +128,7 @@ two copies, in two places: the usual 3-2-1 idea, with an off-site copy.
 ```sh
 arv burned SCAN-01_1995-2008_D --location HOME-PRV-2026      # copy A
 arv burned SCAN-01_1995-2008_D --location PARENTS-PRV-2026   # copy B
+arv locate SCAN-01_1995-2008_D A PARENTS-PRV-2026  # update copy A's recorded place
 arv list --at PARENTS          # what the off-site boxes hold
 ```
 
@@ -166,7 +168,7 @@ conditions and copies in more than one place still matter.
 ## Checking over time
 
 - Every few years, **read one copy of every disc fully**:
-  `arv check --device /dev/sr0` logs a fixity-check event.
+  `arv check /dev/sr0` logs a fixity-check event.
 - Alternate which copy (home or off-site) you check.
 - A disc that needed repair is a warning sign: burn a fresh copy from a good
   image, record it with `arv burned`, and retire the weak one.

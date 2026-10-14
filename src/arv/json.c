@@ -1,6 +1,5 @@
 /*
- * A small JSON tree: written as Python's json.dumps(indent=1, ensure_ascii=False) writes it
- * (ro-crate-metadata.json), and read (make --draft: the drafts arv describe and arv tag save).
+ * A small JSON tree: used to read drafts for arv make and to write JSON output for scripts.
  */
 #define _XOPEN_SOURCE 700
 #include "arv.h"

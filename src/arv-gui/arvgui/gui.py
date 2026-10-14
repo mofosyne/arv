@@ -2,8 +2,8 @@
 
 Serves a single page on 127.0.0.1 and opens it in the default browser. Every
 action runs the same arv commands as the terminal (and arv-assist for the local
-LLM's suggestions), so the GUI adds no behaviour of its own; it only reads the
-catalogue to show it. The page URL and every API request must carry a
+LLM's suggestions). arv owns home discovery and archive state; the GUI only renders
+structured command output. The page URL and every API request must carry a
 per-session token, and the Host header must be the loopback address, so other
 web pages and other local users cannot drive it.
 """
@@ -19,21 +19,12 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import catalog, recfile
-
-DISC_FIELDS = ("Id", "Part", "Title", "Set", "Category", "Path", "Coverage", "Date", "Location", "Description", "Subject", "Note", "Files")
-
-
 DRAFT_FIELDS = ("title", "description", "subjects", "folder_tags")
 PLAN_NAME = re.compile(r"^[A-Za-z0-9_-][A-Za-z0-9._-]{0,63}$")   # as arv plan takes them
 
-def disc_summary(disc):
-    out = {}
-    for name in DISC_FIELDS:
-        values = disc.get_all(name)
-        if values:
-            out[name] = values if name in ("Subject", "Note", "Category", "Path", "Location") else values[0]
-    return out
+
+def is_model(agent):
+    return any(prefix in (agent or "") for prefix in ("llm:", "embeddings:", "vision:"))
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -78,65 +69,62 @@ class Job:
 
 class App:
     def __init__(self, home, llm_options=None):
-        try:
-            self.home = catalog.Home(home)
-        except SystemExit:          # no archive here or above, and no default: the page offers to make one
-            self.home = None
+        self.home = self.find_home(home)
         self.llm_options = llm_options or {}
         self.token = secrets.token_urlsafe(24)
         self.jobs = {}
         self.lock = threading.Lock()
 
+    def find_home(self, home=None):
+        argv = [ARV]
+        if home:
+            argv += ["--home", home]
+        argv += ["where", "--json"]
+        try:
+            proc = subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=30)
+            if proc.returncode == 0:
+                return json.loads(proc.stdout)
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            pass
+        return None
+
     def start_job(self, argv):
         with self.lock:
             job_id = str(len(self.jobs) + 1)
-            self.jobs[job_id] = Job(job_id, ["--home", self.home.path] + argv)
+            self.jobs[job_id] = Job(job_id, ["--home", self.home["path"]] + argv)
         return self.jobs[job_id]
 
     # ------------------------------------------------------------ API
 
     def discs(self, _params):
-        cat = self.home.load()
-        out = []
-        for d in cat.discs:
-            summary = disc_summary(d)
-            full = cat.with_binding(d)
-            summary.update({k: full.get(k) for k in ("Media", "Bytes", "Ecc", "Rights", "Creator", "Access") if full.get(k)})
-            summary["Where"] = cat.where(d)
-            summary["Events"] = [dict(e.fields) for e in cat.events_for(d.get("Id"))]
-            out.append(summary)
-        return {"home": self.home.path, "discs": out}
+        result = self.arv_json(["list", "--json"])
+        result["home"] = self.home["path"]
+        return result
 
     def find(self, params):
         pattern = params.get("q", "").strip()
         if not pattern:
             return {"discs": [], "files": [], "total": 0}
-        cat = self.home.load()
-        disc_hits, file_hits = catalog.find(self.home, cat, pattern)
-        return {"discs": [disc_summary(d) for d in disc_hits],
-                "files": [{"disc": d.get("Id"), "title": d.get("Title"), "location": cat.where(d), "path": p}
-                          for d, p in file_hits[:500]],
-                "total": len(file_hits)}
+        return self.arv_json(["find", "--json", "--limit", "500", pattern])
 
     # ------------------------------------------------------------ the first run: no archive yet
 
     def setup(self, params):
-        return {"needed": self.home is None, "cwd": os.getcwd(), "home": self.home.path if self.home else None}
+        return {"needed": self.home is None, "cwd": os.getcwd(), "home": self.home["path"] if self.home else None}
 
     def post_init(self, body):
         """arv init FOLDER [--name NAME [--default]]: an archive where the person chooses, then this one."""
         folder = os.path.abspath(os.path.expanduser(body.get("folder") or ""))
         name = (body.get("name") or "").strip()
-        if not os.path.isdir(folder):
-            raise ValueError("%s is not a folder" % folder)
+
         if body.get("default") and not name:
             raise ValueError("a name is needed to use it from anywhere")
         argv = [ARV, "init", folder] + (["--name", name] if name else []) + (["--default"] if body.get("default") else [])
         proc = subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=60)
         if proc.returncode == 0:
-            self.home = catalog.Home(os.path.join(folder, ".arv"))
+            self.home = self.find_home(os.path.join(folder, ".arv"))
         return {"returncode": proc.returncode, "output": (proc.stdout + proc.stderr).strip(),
-                "home": self.home.path if self.home else None}
+                "home": self.home["path"] if self.home else None}
 
     def browse(self, params):
         path = os.path.abspath(os.path.expanduser(params.get("path") or "~"))
@@ -161,9 +149,18 @@ class App:
 
     def arv_now(self, argv):
         """arv run to its end (quick commands): its exit status and what it printed."""
-        proc = subprocess.run([ARV, "--home", self.home.path] + argv, stdin=subprocess.DEVNULL,
+        proc = subprocess.run([ARV, "--home", self.home["path"]] + argv, stdin=subprocess.DEVNULL,
                               capture_output=True, text=True)
         return proc.returncode, (proc.stdout + proc.stderr).strip()
+
+    def arv_json(self, argv):
+        code, text = self.arv_now(argv)
+        if code:
+            raise LookupError(text)
+        try:
+            return json.loads(text)
+        except ValueError as err:
+            raise LookupError("arv %s did not return JSON: %s" % (argv[0], err))
 
     def todo(self, _params):
         """arv todo: what is owed (the Verify tab, and the line above the tabs)."""
@@ -189,37 +186,7 @@ class App:
     def collections(self, _params):
         """Each collection and its editions (the Collections tab): the discs of each, their copies,
         and whether the edition is safe (every disc read back), kept, replaced, retired."""
-        cat = self.home.load()
-        good = {e.get("Disc") for e in cat.events          # a copy read back as burned, or checked since
-                if (e.get("Type") == "replication" and e.get("ReadBack") == "identical" and e.get("Outcome") != "failure")
-                or (e.get("Type") == "fixity check" and e.get("Outcome") == "success"
-                    and (e.get("Copy") or (e.get("Note") or "").startswith(("read-back of the whole image from", "disc scan with"))))}
-        copies = {}
-        for e in cat.events:
-            if e.get("Type") == "replication" and e.get("Outcome") != "failure":
-                copies[e.get("Disc")] = copies.get(e.get("Disc"), 0) + 1
-        out = []
-        for c in cat.collections:
-            revs = [r for r in cat.revisions if r.get("Collection") == c.get("Uuid")]
-            editions = []
-            for r in sorted((r for r in revs if r.get("Edition")), key=lambda r: int(r.get("Edition"))):
-                discs = []
-                for vol in r.get_all("Volume"):
-                    d = cat.disc(vol)
-                    discs.append({"id": vol, "copies": copies.get(vol, 0), "readBack": vol in good,
-                                  "retired": d.get("Retired") if d is not None else None, "where": cat.where(d) if d is not None else ""})
-                editions.append({"edition": int(r.get("Edition")), "date": r.get("Date"), "message": r.get("Message"),
-                                 "discs": discs, "kept": (r.get("Keep") or "").lower() == "yes",
-                                 "safe": bool(discs) and all(x["readBack"] for x in discs),
-                                 "retired": bool(discs) and all(x["retired"] for x in discs),
-                                 "lost": len(r.get_all("Lost"))})
-            newest_safe = max((e["edition"] for e in editions if e["safe"] and not e["retired"]), default=None)
-            for e in editions:          # what arv retire CODE would offer
-                e["replaced"] = (newest_safe is not None and e["edition"] < newest_safe and not e["kept"]
-                                 and not e["retired"])
-            out.append({"code": c.get("Code"), "title": c.get("Title"), "set": c.get("Set"), "access": c.get("Access"),
-                        "editions": editions, "checkpoints": sum(1 for r in revs if not r.get("Edition"))})
-        return {"collections": out}
+        return self.arv_json(["collection", "list", "--json"])
 
     def post_collection(self, body):
         """arv collection keep CODE N, or arv retire CODE (a preview; --yes, and --accept-loss only
@@ -237,19 +204,7 @@ class App:
         return {"returncode": code_, "output": text}
 
     def plans(self, _params):
-        folder = os.path.join(self.home.drafts_dir, "plans")
-        try:
-            names = sorted(n[:-4] for n in os.listdir(folder) if n.endswith(".rec") and not n.startswith("."))
-        except OSError:
-            names = []
-        plans = []
-        for name in names:              # open, or made (its Plan record carries Made: DATE)
-            try:
-                head = [r for r in recfile.read(os.path.join(folder, name + ".rec")) if r.type == "Plan" and not r.is_descriptor]
-            except (OSError, ValueError):
-                head = []
-            plans.append({"name": name, "made": head[0].get("Made") if head else None})
-        return {"plans": plans}
+        return self.arv_json(["plan", "list", "--all", "--json"])
 
     def plan(self, params):
         name = params.get("name", "")
@@ -280,8 +235,7 @@ class App:
             argv += sources + ["--disc", str(body.get("disc") or "auto")]
             if body.get("as"):
                 argv += ["--as", body["as"]]
-            if body.get("copy"):
-                argv.append("--copy")
+
         elif action in ("move", "drop"):
             paths = [p for p in body["paths"] if p and not p.startswith("-")]
             if not paths:
@@ -293,8 +247,7 @@ class App:
                 argv += ["--disc", str(body["disc"]) if str(body["disc"]) == "new" else str(int(body["disc"]))]
         elif action == "disc":
             argv += ["add"] if body.get("op") == "add" else ["drop", str(int(body["disc"]))]
-        elif action == "refresh":
-            pass
+
         elif action == "again":
             if not PLAN_NAME.match(body["new"]):
                 raise ValueError("not a plan name: %r" % body["new"])
@@ -337,7 +290,7 @@ class App:
         if o.get("allow_remote"):
             opts.append("--llm-allow-remote")
         try:
-            proc = subprocess.run([ASSIST, "--home", self.home.path] + argv + opts, capture_output=True, text=True,
+            proc = subprocess.run([ASSIST, "--home", self.home["path"]] + argv + opts, capture_output=True, text=True,
                                   input=json.dumps(request) if request is not None else "")
             return json.loads(proc.stdout)
         except (OSError, ValueError) as err:
@@ -348,10 +301,7 @@ class App:
 
     def post_llm_suggest(self, body):
         """One suggestion round for a folder (source) or a disc (disc_id); may take a minute."""
-        if body.get("disc_id"):
-            if not self.home.load().disc(body["disc_id"]):
-                raise LookupError("no such disc")
-        elif not os.path.isdir(os.path.abspath(os.path.expanduser(body["source"]))):
+        if not body.get("disc_id") and not os.path.isdir(os.path.abspath(os.path.expanduser(body["source"]))):
             raise ValueError("not a folder: %s" % body["source"])
         request = {k: body.get(k) for k in ("disc_id", "answers", "previous", "seen", "vision") if body.get(k)}
         if not body.get("disc_id"):
@@ -363,7 +313,7 @@ class App:
 
     def draft_authorship(self, draft):
         """accepted when the person sent back the model's last suggestion unchanged, else edited."""
-        if not catalog.is_model(draft.get("agent") or "llm"):
+        if not is_model(draft.get("agent") or "llm"):
             return "human"
         last = getattr(self, "last_suggestion", None)
         sent = {k: draft.get(k) for k in DRAFT_FIELDS}
@@ -371,7 +321,7 @@ class App:
         return "accepted" if last is not None and norm(last) == norm(sent) else "edited"
 
     def write_draft(self, draft):
-        folder = self.home.drafts_dir
+        folder = self.home["drafts"]
         os.makedirs(folder, exist_ok=True)
         path = os.path.join(folder, "draft-%s.json" % secrets.token_hex(4))
         data = {"title": draft.get("title"), "description": draft.get("description"),
@@ -388,7 +338,7 @@ class App:
         argv = ["make", "-y", body["source"]]
         if body.get("draft"):
             argv += ["--draft", self.write_draft(body["draft"])]
-        for key in ("set", "title", "description", "creator", "location", "rights", "medium",
+        for key in ("set", "title", "description", "creator", "rights", "medium",
                     "min_redundancy", "snapshot", "output_dir"):
             value = str(body.get(key) or "").strip()
             if value:
@@ -397,31 +347,31 @@ class App:
             for value in body.get(key) or []:
                 if value.strip():
                     argv += ["--" + key, value.strip()]
-        for flag in ("split", "ro_crate", "no_defect_management", "no_ecc"):
+        for flag in ("split", "no_defect_management", "no_ecc"):
             if body.get(flag):
                 argv.append("--" + flag.replace("_", "-"))
         return self.start_job(argv).as_dict()
 
     def post_check(self, body):
         argv = ["check"]
-        argv += ["--device", body["device"]] if body.get("device") else ["--image", body["image"]]
-        if body.get("repair") and not body.get("device"):
+        if body.get("repair"):
             argv.append("--repair")
         if body.get("copy"):
             argv += ["--copy", body["copy"]]
         if (body.get("note") or "").strip():
             argv += ["--note", body["note"].strip()]
+        argv.append(body["source"])                 # a drive, an image file, or a disc's files
         if body.get("disc_id"):
             argv.append(body["disc_id"])
         return self.start_job(argv).as_dict()
 
     def post_simple(self, body):
-        """note / locate / burned / rebuild, run as jobs so errors show like the CLI's."""
+        """note / locate / burned / stored / rebuild / restore, run as jobs so errors show like the CLI's."""
         command = body["command"]
         if command == "note":
             argv = ["note", body["disc_id"], body["text"]]
         elif command == "locate":
-            argv = ["locate", body["disc_id"]] + [l.strip() for l in body["location"].split(";") if l.strip()]
+            argv = ["locate", body["disc_id"], body["copy"], body["location"].strip()]
         elif command == "burned":
             argv = ["burned", body["disc_id"]]      # with a drive: one copy, read back first
             argv += ["--device", body["device"]] if body.get("device") else ["--copies", str(int(body.get("copies") or 1))]
@@ -434,8 +384,6 @@ class App:
                 argv += ["--location", body["location"].strip()]
         elif command == "rebuild":
             argv = ["rebuild", body["path"]]
-        elif command == "verify":
-            argv = ["verify", body["path"]]
         elif command == "restore":
             argv = ["restore", body["path"], body["dest"]]
         elif command == "apply_draft":

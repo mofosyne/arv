@@ -20,7 +20,7 @@ TSV, one case per line:
 |---|---|
 | `check-chars.tsv` | disc id check character (Luhn mod 36) |
 | `disc-id-compose.tsv` | Set + Sequence + Coverage → disc id (`set-seq-coverage/1`) |
-| `disc-id-parse.tsv` | disc id → fields and validity; every single typo and neighbour swap of one id is invalid; legacy ids |
+| `disc-id-parse.tsv` | current disc id → fields and validity; every single typo and neighbour swap of one id is invalid |
 | `coverage.tsv` | EDTF coverage: normalised form, form used in ids, first and last day covered |
 | `covers.tsv` | does a coverage overlap a query date or range |
 | `tags.tsv` | folder tag normalisation, namespaces, XMP hierarchical form |

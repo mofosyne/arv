@@ -7,11 +7,13 @@
  *   GET  /v1/models             {"data": [{"id": "fake-model"}]}
  *   POST /v1/chat/completions   the content of IMAGE-REPLY-FILE when the request shows an image,
  *                               else of TEXT-REPLY-FILE (both read afresh for each request)
- *   POST /v1/embeddings         three-number vectors: "cat" in the text, "code" or "python", 0.3
+ *   POST /v1/embeddings         bag-of-words vectors: each word (a-z) adds 1 to one of 64 numbers,
+ *                               chosen by a hash of the word; then L2-normalised
  * Every request body is appended to LOG-FILE, one per line.
  */
 #define _XOPEN_SOURCE 700
 #include <arpa/inet.h>
+#include <math.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,11 +74,22 @@ static char *embeddings(const char *body)
         const char *e = q + 1;
         while (*e && *e != '"') e += *e == '\\' ? 2 : 1;
         char *text = strndup(q + 1, (size_t)(e - q - 1));
-        for (char *t = text; *t; t++) *t = (char)(*t >= 'A' && *t <= 'Z' ? *t + 32 : *t);
-        double cat = strstr(text, "cat") ? 3.0 : 0.0, code = strstr(text, "code") || strstr(text, "python") ? 3.0 : 0.0;
+        double v[64] = { 0 }, norm = 0;
+        for (char *t = text; *t;) {             /* each word a-z, lowercased, adds 1 at its hash */
+            while (*t && !((*t >= 'a' && *t <= 'z') || (*t >= 'A' && *t <= 'Z'))) t++;
+            unsigned long h = 0;
+            int any = 0;
+            for (; (*t >= 'a' && *t <= 'z') || (*t >= 'A' && *t <= 'Z'); t++, any = 1)
+                h = (h * 31 + (unsigned long)(*t >= 'A' && *t <= 'Z' ? *t + 32 : *t)) % 1000003;
+            if (any) v[h % 64] += 1;
+        }
         free(text);
-        if (len + 200 > cap) out = realloc(out, cap *= 2);
-        len += (size_t)sprintf(out + len, "%s{\"index\": %d, \"embedding\": [%.1f, %.1f, 0.3]}", index ? ", " : "", index, cat, code);
+        for (int k = 0; k < 64; k++) norm += v[k] * v[k];
+        norm = norm > 0 ? sqrt(norm) : 1;
+        if (len + 64 * 12 + 64 > cap) out = realloc(out, cap = (cap + 64 * 12 + 64) * 2);
+        len += (size_t)sprintf(out + len, "%s{\"index\": %d, \"embedding\": [", index ? ", " : "", index);
+        for (int k = 0; k < 64; k++) len += (size_t)sprintf(out + len, "%s%.6f", k ? ", " : "", v[k] / norm);
+        len += (size_t)sprintf(out + len, "]}");
         index++;
         p = e + 1;
         while (*p == ' ' || *p == ',' || *p == '\n') p++;

@@ -21,6 +21,45 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Less to learn: a clarity round** (issue #42)
+- Removed, each the work of another tool or unused: `make --ro-crate`, `--tools-history`,
+  `--git-since`, `--ignore-names`, `--no-verify`, `--media`, `--sf-home`, `--extra-tools`,
+  `--snapshot disc`; `plan refresh` and `plan add --copy`; `restore --no-links`; `verify files`;
+  `tags --vocab`; `keywords --format tsv`; `init --pointer`; the copy identifiers `label:` and
+  `hub:` (nothing used them; the copy letter is what is written on a disc); `arv models` (tag uses
+  any OpenAI-compatible embeddings server, `--embed-url`). Formats are identified when `sf` is on
+  `PATH` (`--no-formats` skips it).
+- Old formats are no longer read: earlier disc-id schemes, copies recorded before letters, events
+  written before ids. `arv audit` reports an event with no `EventId` (`NO ID`): arv cannot name or
+  merge it.
+- arv-gui reads only through arv (`--json`), not with a parser of its own; it no longer moves or
+  deletes anything in an old home.
+- In arv's JSON a field that can repeat (`Note`, `Subject`, `Category`, `Path`, `Agent`,
+  `Identifier`, `Replaces`) is always a list.
+- One way to do each thing:
+  - `arv check SOURCE [DISC-ID]` checks any copy: a drive (every sector against the image's
+    SHA-256), an image file (against the same; its RS03 data says which sectors when it differs;
+    `--repair` mends it) or a disc's files, mounted or copied (every file against the manifests).
+    It is logged, naming the copy when it is known, by its recorded path too. `--drive` reads a file
+    as a whole disc (a ddrescue dump). `arv verify DISC`, `check --device` and `check --image` are
+    gone, and `arv stored --copy X` at the copy's own path says to use `arv check`.
+  - `arv info` is `id`, `info` and `ls` in one: a disc root (`--files`: its listing), an image, or a
+    disc id.
+  - A collection's revisions are its editions only: `arv checkpoint` (and `status --record`), which
+    recorded a folder's state with no discs, is gone, with the `Stage` field. `status`, `log` and
+    `diff` work on editions as before.
+  - `--barcode` names the copy's own barcode everywhere; a tape's is `stored --carrier barcode:CODE`.
+  - `todo --overdue` takes an age as `list --unchecked-since` does (`5y`, `18m`, `90d`), and both
+    read a disc's last check the same way (a repair that made it whole counts).
+  - Every command's `--help` says what it does; none share a line of the usage any more.
+  - The README is shorter: what arv is, how to install it, a first disc start to finish, and the
+    manual (`arv help --all`) and the workflow for the rest.
+- Issue #42: remove `arv selection`, `Selection` records and selection appraisal targets. Snapshots
+  and rebuilds no longer carry or merge selections; appraisals remain for discs, files, folders and sets.
+- Issue #42: locations belong to copies only. `Disc.Location` and `make --location` are removed;
+  `arv locate DISC-ID COPY PLACE` appends a copy-specific location change, and disc summaries and
+  place filters derive their views from copies. `burned` and `stored` still set a copy's initial place.
+
 **The whole manual, for people and agents alike**
 - `arv help --all`: the manual as one markdown document, built from the same usage text as
   `--help`, so it cannot drift: every command, which only read and which change the record, exit
@@ -42,8 +81,8 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   a barcode's disc, a disc's history; and what only arv works out (counting copies, letters,
   conflicts). Read with recutils, change with arv.
 - The record descriptors now say which fields name another record (`%type: Location rec
-  Location` in `Disc` and `Event`, `Disc rec Disc` in `Event`, `Parent` in `Location` and
-  `Selection`), so `recsel -j` joins them: `recsel -t Disc -j Location -p Id,Location_Name`.
+  Location` in `Event`, `Disc rec Disc` in `Event`, and `Parent` in `Location`), so `recsel -j`
+  joins a copy to its disc and its place.
 
 **Each copy has a letter** (format 0.5)
 - A copy of a disc (burned, an image file, or a folder) is its `replication` event, now named by
@@ -74,8 +113,7 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - Commands come in four groups, as `arv --help` shows them: `arv archive`, `arv record`,
   `arv verify` and `arv home` each list theirs, and a group's name may come first (`arv record
   burned` is `arv burned`), for finding a command whose name you forgot; the short form stays the
-  one the docs use. A command named under the wrong group says where it is. `arv verify DISC` is
-  `arv verify files DISC` in full (bare `arv verify` lists the group).
+  one the docs use. A command named under the wrong group says where it is.
 - `arv` on its own says whether there is an archive here, and gives the five commands to start
   with, the groups and `arv --help`, instead of the whole usage.
 - Tab completion for bash and zsh (`src/arv/completion/`, installed by `make install`): it asks
@@ -84,18 +122,16 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - `arv gui` with no archive opens on **Make an archive** (a folder, a name, whether to use it from
   anywhere), which runs `arv init`, instead of stopping.
 - **What discs carry in `tools/` is a whitelist,** `disc-tools.txt`: arv's source, tests, the tools
-  the tests build, the docs and the reasons, about 5 MB. The UDF and ECMA standards' zip (70 MB,
-  97% of the old tree, its terms not written down: issue #32) no longer goes on every disc or in
-  the package, nor do `samples/` and the work for other projects in `upstream/`. A new file goes
-  on discs only when it is listed. The trimmed tree builds and passes `make check` on its own.
+  the tests build, the docs and the reasons, about 5 MB. The UDF and ECMA standards archive remains
+  in the repository for offline reference but is not carried on discs; upstream source is retained
+  in the repository for planned community contribution. A new file goes on discs only when listed.
 - **Reading a disc without a UDF reader:** every disc's `README.txt` says how ("WITHOUT A UDF
   READER"): each file is stored whole, so `dd` cuts it out of the image at the start sector the
   map gives (`catalog/volumes/<id>/extents.tsv`, kept at home and on every later disc), and the
   manifest beside it checks it. The spec documents `extents.tsv`, and `make check` cuts every file
   of a real image out this way.
-- `arv make` with an installed or copied (not git) source copies only what `disc-tools.txt` lists
-  and never build output; it used to copy its own work folder into itself when run from inside
-  such a tree. `--tools-history` without git history now says so.
+- `arv make` with an installed or copied source copies only what `disc-tools.txt` lists and never
+  build output; it used to copy its own work folder into itself when run from inside such a tree.
 - `just install` / `just uninstall` (yourself, `~/.local`), `just install-system` /
   `just uninstall-system` (`/usr/local`, sudo), `just where`, `just deb`, `just arch`: no prefix to
   remember.
@@ -116,7 +152,7 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   twice by mistake counts them twice). A location that looks like a code but is not one of the
   archive's (`--location ATIC`) is noted, on `burned`, `stored`, `locate` and `make`; it is still
   recorded as written.
-- `arv selection add` on a selection that exists adds the items, as `put` does (with a note).
+
 - Plurals: "1 file", "3 issues", "1 link" (also in `arv list`, `arv status`, and a disc's README.txt and index.html).
 - `arv burned` ends with what to write on the hub and case: `TRIP-01_2019_4 B`. `arv make`'s
   size line and the burned line are split in two, so they fit a narrow terminal.
@@ -185,8 +221,8 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   NEW [--at PLACE | --identifier ID]` gives a copy a new letter, keeping its history: for two
   copies lettered alike by two catalogues (rebuild says which command to run), or a label written
   wrong. Letters once given are not given again.
-- A change to a field (a disc's access, places, title, description or subjects; a place's or a
-  selection's name or parent; a place's temperature) says `Sets: FIELD` and `Replaces:` the
+- A change to a field (a disc's access, places, title, description or subjects; a place's name or
+  parent or temperature) says `Sets: FIELD` and `Replaces:` the
   changes it follows. Two catalogues that each changed a field are a `CONFLICT`, reported by
   `arv rebuild` and `arv audit`; the home's value stands until the field is set again, even to
   the value it has, which settles it.
@@ -224,9 +260,9 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 
 **Copies known by what is on them** (format 0.5)
 - A copy's **identifiers** say how that physical disc is recognised, as `scheme:value`:
-  `bca:` (its factory serial, read by the drive), `barcode:` (a sticker, scanned), `label:`
-  (written or printed), `hub:` (the maker's batch code). Repeatable, and added later by any
-  event that names the copy. `Identifier: bca:...` replaces `Bca:`.
+  `bca:` (its factory serial, read by the drive), `barcode:` (a sticker, scanned), or `serial:`
+  (a manufacturer's serial). Repeatable, and added later by any event that names the copy.
+  `Identifier: bca:...` replaces `Bca:`.
 - `arv burned` and `arv check` take `--identifier` (repeatable; `--bca` is gone). `arv identify
   DISC-ID COPY ID...` adds one later (a sticker put on, a serial read on another machine). An
   identifier already on another copy is refused, as is a second BCA serial on one copy.
@@ -305,8 +341,9 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   The GUI's Mastering tab has a button for it ("What is on discs already?") and flags each item.
 
 **Format identification for disc plans**
-- `arv plan make` identifies formats with Siegfried as `arv make` does (`--formats auto|yes|no`):
-  each item is identified where it is, and its rows in `formats.csv` are at its place on the disc.
+- `arv plan make` identifies formats with Siegfried when `sf` is on `PATH`, as `arv make` does;
+  `--no-formats` skips it. Each item is identified where it is, with rows in `formats.csv` at its
+  place on the disc.
 
 **Icons for kinds of file in the GUI**
 - The Mastering file browser, the plan's discs, Search results and Objects show an icon for the
@@ -343,11 +380,10 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   NAS): which goes on which disc, and where under `data/`. A plan points at its sources and copies
   nothing; `arv plan show` measures them against each disc's room, and `arv plan make` makes
   one image a disc (`arv make --plan`). The GUI's new Mastering tab is the same, with drag and drop.
-  Plans point at their sources; `arv plan add --copy` copies an item into the plan instead (an
-  SD card that will not be there at make time), and `plan show`/`plan make` say which items changed
-  since they were planned (`arv plan refresh`). Sources inside the home's drive are kept relative.
+  Plans point at their sources; `plan show` and `plan make` say which items changed since they were
+  planned. Sources inside the home's drive are kept relative.
   A made plan is kept as a template: `arv plan list` hides it unless `--all`, and `arv plan again
-  NAME NEW` starts the same selection again as a new plan (the GUI: "Make it again").
+  NAME NEW` starts the same plan again as a new plan (the GUI: "Make it again").
 - Each planned file or folder becomes a **data object** (`Object` record, format 0.5): known by
   the hash of its content, in linked versions, with no `.arv` marker. `arv status` says whether
   each object archived from a folder is unchanged, changed or gone, and recognises a moved folder
@@ -364,8 +400,8 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 **Collections over time** (format 0.5; design in research/plan.md, being built)
 - A *collection* is something kept and made into discs again and again, from one workflow
   folder with one history: `Collection` records (with a Uuid) and `Revision` records (git-like:
-  `Tree` and `Node` hashes; checkpoints, and editions, each a set of discs holding a selection
-  of the collection and a copy of the catalogue; `--keep` for one never to retire).
+  `Tree` and `Node` hashes; checkpoints, and editions, each a set of discs holding part of the
+  collection and a copy of the catalogue; `--keep` for one never to retire).
 - `arv burned --device DRIVE` reads a burned copy back against its image and records it only
   if identical (arv never drives the burner: `arv make` prints the command). An edition is safe
   once each disc has such a copy; `arv retire CODE` then retires the editions it replaces
@@ -374,10 +410,9 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   or reachable, left alone: an image on a NAS) or cold (offline: discs on a shelf); places carry
   a default (`arv location add|move --temperature`), and `arv todo` lists discs with no cold copy.
 - Git repositories go on a disc as working files plus a compacted `.git` (one pack; no hooks,
-  reflogs but the stash's, or credentials in remote URLs), optionally trimmed with
-  `--git-since DATE`; `git.tsv` lists each repository's roots, heads and commits. `arv status`
-  recognises a repository by its history (archived, ahead of a branch on a disc, diverged, not
-  archived) and `arv find COMMIT` names the discs holding a commit.
+  reflogs but the stash's, or credentials in remote URLs); `git.tsv` lists each repository's roots,
+  heads and commits. `arv status` recognises a repository by its history (archived, ahead of a
+  branch on a disc, diverged, not archived) and `arv find COMMIT` names the discs holding a commit.
 - `arv stored DISC-ID PATH`: a copy kept on a drive or NAS, as the image file or as a folder,
   checked (read back, or verified as the bag) and then recorded; warm unless its place says.
 - Each home catalogue (archive) has an identity: a `Home` record with a Uuid, made by `arv init`;
@@ -387,14 +422,12 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   `arv status` (what changed since the last revision, or for any folder which files are on
   which discs), `arv checkpoint`, `arv log`, `arv diff`, `arv link [--past]`; a hash cache
   (path, device, inode, size, time) so a second `status` reads nothing (`--deep` rereads).
-- The virtual folders across discs are now *selections* (`arv selection`, `Selection`
-  records, `selection:CODE`). No compatibility with earlier drafts: nothing has been burned.
+
 
 **Making discs**
 - One standard output: a closed **UDF 2.50** image by arv's own writer (src/udfwrite), with a
   real metadata mirror, contiguous files in a fixed order, and reproducible bytes
-  ([docs/spec/archival-udf.md](docs/spec/archival-udf.md)). Hybrid ISO 9660 images and the NetBSD makefs
-  writer are gone; makefs lives on in `upstream/` for the fixes offered to NetBSD.
+  ([docs/spec/archival-udf.md](docs/spec/archival-udf.md)). Hybrid ISO 9660 images and the NetBSD makefs writer are gone; makefs lives on in `upstream/` for the fixes offered to NetBSD.
 - **RS03 error correction added by arv itself** (src/rs03), byte for byte what dvdisaster
   writes, then every sector tested. No dvdisaster needed to make a disc.
 - Every disc carries arv's source and **`tools/arv.com`**, one executable for Linux, macOS,
@@ -429,12 +462,12 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 ## Earlier formats
 
 From the spec's versioning section:
-- **0.5** (2026-10-05): `Selection` (was `Collection`), and the new `Collection` and `Revision`.
+- **0.5** (2026-10-05): the new `Collection` and `Revision` records. `Selection` was added in
+  the draft and removed before 1.0 (issue #42); no discs have been burned.
 - **0.4** (2026-10-03): `Authorship` on events, `Appraisal` records, listing version 2 (links,
   executables).
 - **0.3**: the medium's fields moved into `Binding` records.
 - **0.2**: per-volume files grouped by volume (`catalog/volumes/<id>/`).
 - **0.1**: the first sample discs, never burned; per-volume files kept by kind.
 
-The history before arv, the original shell scripts, is in `scripts/`; the design and the
-reasons behind each decision are in [research/plan.md](research/plan.md).
+The design and the reasons behind each decision are in [research/plan.md](research/plan.md).

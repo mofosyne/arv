@@ -230,9 +230,8 @@ archive, a company records system) should be routine, not a rescue. So:
   [metadata-standards.md](../research/metadata-standards.md), section 6;
 - **identifiers are stable and paths are plain:** disc ids plus UUIDs, file paths
   relative to `data/`, SHA-256 for every file;
-- **exports, not rewrites:** an RO-Crate description already exists
-  (`--ro-crate`); a METS/PREMIS export can be added the same way when someone
-  needs it, generated from the recfiles rather than replacing them;
+- **exports, not rewrites:** when a reader needs another metadata format, add an
+  export from the catalogue rather than replacing the plain-text recfiles;
 - **a path to Piql:** an organisation that wants film storage later should not
   have to start over. Piql's ingest (PiqlConnect) is built on Archivematica,
   which takes BagIt bags as they are; and our per-file records are kept mappable
@@ -280,7 +279,7 @@ of the job, so arv reads back, hashes and verifies. Doing the work the record de
 |---|---|---|
 | Burning a disc | xorriso, cdrecord, your burning program | `arv burned --device`: reads it back against the image, then records the copy |
 | Copying an image to a NAS | cp, rsync | `arv stored`: checks the copy, then records it |
-| Reading a damaged or old disc | GNU ddrescue, dvdisaster Light | `arv check --image --repair` on the image; `arv found` records an old disc's image (planned) |
+| Reading a damaged or old disc | GNU ddrescue, dvdisaster Light | `arv check IMAGE --repair` on the image; `arv found` records an old disc's image (planned) |
 | Listing and browsing every drive and disc | Katalog, `7z l`, `isoinfo`, fiwalk | keeps its own discs' listings for `arv find`; indexes nothing else |
 | Format identification | Siegfried | records what it says (`formats.csv`) |
 

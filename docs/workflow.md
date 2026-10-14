@@ -27,7 +27,7 @@ shelving in [shelving.md](shelving.md), and the reasons for each choice in
 ```mermaid
 flowchart TD
     subgraph keep [Archive: what you keep]
-        W[a workflow folder<br/>arv collection init] --> S[sort, add, rename<br/>arv status, arv checkpoint]
+        W[a workflow folder<br/>arv collection init] --> S[sort, add, rename<br/>arv status]
     end
     subgraph make [Archive: an edition]
         S --> M[arv make<br/>disc images: a selection of the<br/>collection + the catalogue, bag, tools, RS03]
@@ -40,10 +40,10 @@ flowchart TD
         B --> T[arv todo<br/>copies owed, checks due, editions to retire]
         N --> T
         T --> R[arv retire<br/>older editions a safe one replaces]
-        T --> C[arv check --device<br/>every few years]
+        T --> C[arv check DRIVE<br/>every few years]
     end
     subgraph recover [Verify: recover]
-        C -- damage --> D[ddrescue, then<br/>arv check --image --repair]
+        C -- damage --> D[ddrescue, then<br/>arv check IMAGE --repair]
         B -- home catalogue lost --> RB[arv rebuild /media/disc]
         B -- tools lost --> P[plain tools:<br/>sha256sum, a browser, a text editor]
     end
@@ -55,7 +55,7 @@ flowchart TD
 |---|---|
 | **archive** (home) | one archive's catalogue: a `.arv` folder with its own identity (`arv where` shows it). Each archive is its own privacy sphere: its discs carry its catalogue only |
 | **collection** | something kept over time, e.g. *Family photos*: one **workflow folder**, one code (`FAMILY`), one history |
-| **revision** | one recorded state of a collection, as a git commit: a **checkpoint** (hashes only, nothing copied) or an **edition** |
+| **revision** | the state of a collection when an **edition** of it was made: its files and their hashes, as a git commit |
 | **edition** | a set of discs made together from what a collection's workflow folder holds at the time; each disc holds part of it and a copy of the catalogue; numbered; replaced by a newer safe edition unless **kept** |
 | **copy** | one physical or stored copy of a disc: a burned **disc**, the image as an **iso** file, or the disc's files as a **folder**; each named by a letter (A, B ...), with its own place and **temperature** |
 | **temperature** | **hot**: in active use; **warm**: online or reachable, left alone (an image on a NAS); **cold**: offline (discs on a shelf, unplugged drives) |
@@ -94,7 +94,7 @@ NAS share above your photos and projects:
 
 ```sh
 cd /nas && arv init --name family --default   # /nas/.arv: the archive's catalogue, with its identity
-cd ~/git && arv init --pointer /nas/.arv      # another tree of the same archive: a pointer file
+printf 'Home: /nas/.arv\n' > ~/git/.arv     # another tree of the same archive: a pointer file
 arv where                                     # which archive is used here, and why
 ```
 
@@ -179,13 +179,12 @@ questions; `arv make --draft d.json` takes either.
 
 ### 2. Sort, and see what changed
 
-Work in the folder as you like. arv tells you what changed since the last edition, and keeps a
-history if you want one between editions:
+Work in the folder as you like. arv tells you what changed since the last edition, and between
+editions:
 
 ```sh
-arv status ~/family          # new, changed, removed and moved files since the last revision
-arv checkpoint ~/family --message "sorted 2019"   # record this state (hashes only, nothing copied)
-arv log FAMILY               # the revisions: checkpoints and editions
+arv status ~/family          # new, changed, removed and moved files since the last edition
+arv log FAMILY               # the editions, and what changed in each
 arv diff FAMILY/3            # edition 3 against the folder now; or arv diff FAMILY/2 FAMILY/3
 ```
 
@@ -205,8 +204,7 @@ disc, how many commits newer it is than a branch on a disc, whether it has diver
 commits are on no disc), or whether no disc holds its history at all; and whether it has
 uncommitted changes. `arv find COMMIT` names the discs that hold a commit. On a disc, a
 repository is its working files plus a compacted `.git` (one pack; no hooks, no reflogs but the
-stash's, no credentials in remote URLs), so the restored folder is a working repository; `arv
-make --git-since DATE` keeps only the history since then (shallow, as git itself does it).
+stash's, no credentials in remote URLs), so the restored folder is a working repository.
 
 ### 3. Make an edition
 
@@ -228,7 +226,7 @@ matter then:
 |---|---|---|
 | `--set` / `--category` | guessed from the folder name and the files (vocabulary aliases and match rules) | the guess is wrong; `arv sets -v` shows the vocabulary |
 | `--medium` | `bd25` (about 20 GB of data at 20% RS03) | `bd100` for BDXL M-DISC |
-| `--access` | `private`: your own archive's discs only | `public` to appear on discs you give away; `sealed` so other discs carry only its id and location |
+| `--access` | `private`: your own archive's discs only | `public` to appear on discs you give away; `sealed` so other discs carry only its id |
 | `--snapshot` | `full`: every disc carries the whole catalogue | `set` for a disc given to someone else |
 | `--split` | off: stop if it does not fit | the folder needs several discs |
 
@@ -260,12 +258,8 @@ says so). By default a plan points at its sources (as Nero's compilations did), 
 copied, and what is there at `plan make` is what goes on the disc:
 
 - `plan add` notes each item's names, sizes and dates (`Seen:`, quick: contents are not read);
-  `plan show` and `plan make` say which changed since (`arv plan refresh NAME` accepts them).
-- `arv plan add NAME SOURCE --copy` copies an item into the plan's own folder
-  (`drafts/plans/NAME/`, dates and permissions kept), for a source that will not be there at make
-  time: an SD card, a phone, a friend's USB stick. Its object still records where it came from.
-  `arv plan delete` refuses to delete those copies until every disc of the plan has a copy read back
-  (`--yes` to delete them anyway).
+  `plan show` and `plan make` say which changed since planning. The plan points at sources and never
+  copies or removes them.
 - `arv make` (every make, not only a plan's) checks each file's bytes against its manifest as the
   image is written: a file that changed after it was hashed stops the make, and nothing is recorded.
 - Sources inside the home's drive are kept relative to the folder holding `.arv`, so a plan on a
@@ -335,11 +329,11 @@ arv stored FAMILY-04_2001-2025_X /nas/archive/FAMILY-04_2001-2025_X.iso --locati
 - Each copy gets a letter, A, B, C ... (`arv burned` says which): write it on the hub and the
   case after the id, `FAMILY-04_2001-2025_X B`. Copies are the same image, so the letter tells
   them apart only in the catalogue and on the label: each has its own place, and a check names
-  the copy it read (`arv check --device /dev/sr0 --copy B`). `arv todo` lists burned copies never
+  the copy it read (`arv check /dev/sr0 --copy B`). `arv todo` lists burned copies never
   read back, by letter.
 - A copy can also be **known by** what is on it: its factory serial (`bca:`, read by the drive
   on Linux and recorded by `--device`), a barcode on its case (`barcode:`; `--barcode CODE`
-  with a handheld scanner), what you wrote (`label:`). Give them with `--identifier`, or later:
+  with a handheld scanner). Give them with `--identifier`, or later:
   `arv identify FAMILY-04_2001-2025_X B --barcode ARV-000123`. `arv find ARV-000123` says which
   disc and copy a scanned case is, and a drive that reads one knows which copy is in it. Copies
   are counted as physical discs: two records sharing a serial or barcode are one disc recorded
@@ -356,7 +350,7 @@ arv stored FAMILY-04_2001-2025_X /nas/archive/FAMILY-04_2001-2025_X.iso --locati
 - An edition is **safe** once each of its discs has a copy checked this way.
 
 Write the disc id on the hub and the case; its last character is a check character, so a
-mistyped id is caught (`arv id FAMILY-04_2001-2025_Y`). [burning.md](burning.md) has the burning
+mistyped id is caught (`arv info FAMILY-04_2001-2025_Y`). [burning.md](burning.md) has the burning
 commands, the pitfalls and the drill to run before trusting a new drive or media.
 
 ### 5. Store
@@ -368,7 +362,7 @@ places, at least one of them cold.
 
 ```sh
 arv list --access private --made 2026     # what belongs in this year's private box
-arv locate FAMILY-04_2001-2025_X HOME-2026 PARENTS   # one location per place copies are kept
+arv locate FAMILY-04_2001-2025_X A PARENTS        # update copy A's place
 arv location move HOME-2026 --in PARENTS             # moving a box moves its discs
 arv location list -v                                 # places, their temperature and their discs
 ```
@@ -382,7 +376,6 @@ arv location list -v                                 # places, their temperature
 | Everything under a category or a place | `arv list --in MEMORIES`, `arv list --at PARENTS` |
 | What has this collection been through? | `arv collection show FAMILY`, `arv log FAMILY` |
 | Which tags do I use? | `arv tags`; `arv find place:kyoto` |
-| Group things across discs | `arv selection add BEST --name "Best of" DISC:folder/ DISC:file`: virtual folders, shown as a tree by other software too |
 | Without this tool installed? | every disc carries it: `tools/arv.com find PATTERN` from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
 | Changes after burning | `arv note`, `arv locate`, `arv access` (home catalogue; later discs carry them) |
 | How important is it, and to whom? | `arv appraise` (the archivist's log; `make --importance` at the start) |
@@ -476,7 +469,7 @@ about a git repository with no README ("What is it for?"). `arv describe ID --an
 with no model needed: each answer is kept as a note, Enter skips one for good, `.` leaves the rest
 for another day. They are kept in the home only (`drafts/questions.rec`), never on a disc.
 
-**Checking** every few years: `arv check --device /dev/sr0` reads a disc back against its
+**Checking** every few years: `arv check /dev/sr0` reads a disc back against its
 image's hash and logs it, for the copy in the drive: named with `--copy B`, found by its BCA
 serial where the drive reads one, or the disc's only burned copy. A disc that needed repair is a
 warning: make a new copy.
@@ -510,11 +503,11 @@ to look through a whole drive or NAS, let `find` do the walking:
 
 | What happened | What to do |
 |---|---|
-| A disc reads with errors | Follow REPAIR in the disc's `README.txt`: read it into an image (`ddrescue -b 2048 /dev/sr0 disc.iso disc.map`, or dvdisaster Light `-r --rescue`), then `arv check --image disc.iso --repair` (the disc's own `tools/arv.com` works too). Too damaged? Copies are sector-identical: read another copy into the same image (the same map file) and repair again; a stored iso is such a copy. When arv cannot repair, it prints the dvdisaster Light commands to paste, with the disc's medium size from the catalogue. Then make a new copy. |
+| A disc reads with errors | Follow REPAIR in the disc's `README.txt`: read it into an image (`ddrescue -b 2048 /dev/sr0 disc.iso disc.map`, or dvdisaster Light `-r --rescue`), then `arv check disc.iso --repair` (the disc's own `tools/arv.com` works too). Too damaged? Copies are sector-identical: read another copy into the same image (the same map file) and repair again; a stored iso is such a copy. When arv cannot repair, it prints the dvdisaster Light commands to paste, with the disc's medium size from the catalogue. Then make a new copy. |
 | The home catalogue is lost | `arv rebuild /media/disc` with the newest disc: discs, copies, places, collections, their history, file lists, the archive's identity, and its vocabularies (`config/sets.rec`, `config/tags.rec`, unless the home has its own). A disc of another archive is refused (`--any-archive` to merge it anyway). |
 | The home catalogue may have been changed (a bad edit, a script, a failing drive) | `arv audit` checks every event against its id (each id is the hash of what was written), and `arv audit /media/disc ...` checks the home against each disc's copy of the catalogue: an event the disc has that the home lost or changed is listed. The newest discs see the most; `arv rebuild` brings lost events back. |
 | This tool is lost | every disc has `tools/` (the source at that time) and `README.txt`. Without it: `sha256sum -c manifest-sha256.txt` verifies, `index.html` browses, `grep` searches `catalog/volumes/*/listing.tsv`, and `catalog.rec` is plain text. |
-| dvdisaster is lost | arv repairs RS03 itself; the format is written up in [rs03-format.md](spec/rs03-format.md) (on every disc), with test vectors. A copy of dvdisaster can go in `tools/extra/` with `--extra-tools`. |
+| dvdisaster is lost | arv repairs RS03 itself; the format is written up in [rs03-format.md](spec/rs03-format.md) (on every disc), with test vectors. |
 | Decades later, unknown software | [smart-archive-format.md](spec/smart-archive-format.md) (on every disc under `tools/`) explains every file; BagIt is RFC 8493; recfiles are plain text. |
 
 The rule behind all of this: **the discs describe themselves**. Nothing on a disc needs this
@@ -524,14 +517,14 @@ tool, the home catalogue or the network to be found, verified, read or repaired.
 
 ```
 src/arv/                  arv: the C program (C99 and POSIX, no libraries)
-  arv.c                   the commands; runs arv-assist for describe, tag, models and arv-gui for gui
-  make.c  bag.c  html.c  rocrate.c  formats.c   making discs (plan, stage, build, protect)
+  arv.c                   the commands; runs arv-assist for describe and tag, and arv-gui for gui
+  make.c  bag.c  html.c  formats.c   making discs (plan, stage, build, protect)
   collection.c  status.c  upkeep.c              collections, revisions, status, copies owed, retiring
   about.c  questions.c                          what data objects say about themselves; questions waiting
   record.c  edit.c  tags.c  catalogue.c  disc.c recording copies and checks, editing, queries, reading a disc
   archive.c  home.c  rec.c  json.c  vocab.c  discid.c  edtf.c   the catalogue and its rules
   data/                   descriptors.rec  readme.txt  index.css  default_sets.rec  default_tags.rec
-src/arv-assist/           optional, C: the local AI helpers (describe, tag, models); they write drafts
+src/arv-assist/           optional, C: the local AI helpers (describe, tag); they write drafts
 src/arv-gui/              optional, Python standard library only: the local web interface
 src/bagit/  src/rs03/  src/udfwrite/   BagIt checking, RS03, the UDF 2.50 writer (built into arv; also programs)
 arv                       runs src/arv/build/arv in a checkout (make first if needed)
@@ -542,7 +535,6 @@ docs/spec/                the disc format, the UDF profile, RS03
 dev-tools/                not part of arv: test helpers, the spec cross-check, diagrams, screenshots
 research/                 research notes, standards survey, plan and decisions, RS03 experiments
 upstream/                 not part of arv: drafts for other projects, and bagit-python as a referee
-scripts/                  the original shell scripts, before arv
 ```
 
 The layers, from most to least durable:

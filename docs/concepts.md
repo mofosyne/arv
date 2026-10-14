@@ -162,7 +162,7 @@ The name is the shape of the work, and of the interface (`arv --help` and the GU
 
 | | What it is for | Commands |
 |---|---|---|
-| **Archive** | what goes on discs | `make`, `plan`, `collection`, `status`, `checkpoint`, `link`, `names`, `describe`, `tag` |
+| **Archive** | what goes on discs | `make`, `plan`, `collection`, `status`, `link`, `names`, `describe`, `tag` |
 | **Record** | what exists, and where | `burned`, `stored`, `objects`, `find`, `list`, `note`, `locate`, `location`, `selection`, `appraise`, `log`, `retire` |
 | **Verify** | still good, and can be got back | `todo`, `check`, `verify`, `restore`, `rebuild` |
 
@@ -177,7 +177,7 @@ back.
 | **collection** | something kept over time: one workflow folder, one code, one history. *What you keep.* |
 | **data object** | a file or folder put on a disc as a whole (a plan's item, or `arv make FOLDER`); known by its content (Tree), in versions |
 | **set** | a vocabulary classification (`PHOTO`, `TRIP`), not a thing you keep; the id prefix |
-| **revision** | one recorded state of a collection: a **checkpoint** (hashes only) or an **edition** |
+| **revision** | the state of a collection when an **edition** of it was made (its files and their hashes) |
 | **edition** | a set of discs made together from what a collection's workflow folder holds at the time; each disc holds part of it and a copy of the catalogue; numbered; replaced by a newer safe edition unless kept |
 | **volume (disc)** | one bag, one image; belongs to exactly one edition |
 | **copy** | one physical or stored copy of a disc: burned, an iso, or a folder; named by a letter written after the disc id (`TRIP-01_2019_4 B`), with its own place and temperature |

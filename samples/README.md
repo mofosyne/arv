@@ -52,10 +52,10 @@ Check the error correction, then damage a copy and repair it, with arv alone (or
 own `arv.com`; any dvdisaster does the same with `-t` and `-f`):
 
 ```sh
-./arv check --image samples/discs/TRIP-01_2019_4.iso --repair   # whole: nothing to do (not logged: no home)
+./arv check samples/discs/TRIP-01_2019_4.iso --repair   # whole: nothing to do (not logged: no home)
 cp samples/discs/TRIP-01_2019_4.iso /tmp/damaged.iso
 python3 -c "f=open('/tmp/damaged.iso','r+b'); [ (f.seek(s*2048), f.write(bytes(100*2048))) for s in (40,600,1500) ]"
-./arv check --image /tmp/damaged.iso --repair     # "the image was damaged and is whole again"
+./arv check /tmp/damaged.iso --repair     # "the image was damaged and is whole again"
 cmp /tmp/damaged.iso samples/discs/TRIP-01_2019_4.iso && echo identical
 ```
 

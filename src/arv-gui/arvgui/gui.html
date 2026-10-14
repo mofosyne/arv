@@ -94,7 +94,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 .item.missing .path { color:var(--bad); }
 .item .flag { font-size:11px; padding:0 6px; border-radius:8px; border:1px solid var(--line); margin-left:4px; white-space:nowrap; display:inline-block; }
 .item .flag.changed { color:var(--warn); border-color:var(--warn); }
-.item .flag.copy { color:var(--accent); border-color:var(--accent); }
+
 .item .flag.on { color:var(--ok); border-color:var(--ok); }
 .item .flag.some { color:var(--accent); border-color:var(--accent); }
 .files { border:1px solid var(--line); border-radius:8px; padding:10px 12px; align-self:start; }
@@ -224,7 +224,6 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       <div><label for="m-set">Set name</label><input type="text" id="m-set" placeholder="e.g. PHOTOS"></div>
       <div><label for="m-title">Title</label><input type="text" id="m-title" placeholder="default: from folder name"></div>
       <div><label for="m-creator">Creator</label><input type="text" id="m-creator"></div>
-      <div><label for="m-location">Physical location</label><input type="text" id="m-location" placeholder="Shelf A / Box 3"></div>
     </div>
     <label for="m-description">Description</label><textarea id="m-description"></textarea>
     <div class="row">
@@ -240,13 +239,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         <option value="auto">auto (smallest standard size)</option></select></div>
       <div><label for="m-redundancy">Minimum error correction (%)</label><input type="number" id="m-redundancy" value="20" min="5" max="200"></div>
       <div><label for="m-snapshot">Catalogue on the disc</label><select id="m-snapshot">
-        <option value="full">Whole archive</option><option value="set">This set only (for other people)</option>
-        <option value="disc">This disc only</option></select></div>
+        <option value="full">Whole archive</option><option value="set">This set only (for other people)</option></select></div>
       <div><label for="m-outdir">Save images in</label><input type="text" id="m-outdir" placeholder="default: GUI start folder"></div>
     </div>
     <div class="checks row">
       <label><input type="checkbox" id="m-split"> Split across several discs if needed</label>
-      <label><input type="checkbox" id="m-rocrate"> Add RO-Crate metadata</label>
+
       <label><input type="checkbox" id="m-nodm"> Discs burned without defect management</label>
     </div>
     <button class="primary" type="submit">Make disc image</button>
@@ -255,8 +253,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 
 <section id="tab-master" hidden>
   <p class="muted">Compose discs by hand from files and folders anywhere: drag them from the right onto a disc, or tick
-    them and press Add. A plan points at the files where they are (or keeps its own copy, if you tick Copy below);
-    the images read them when they are made.</p>
+    them and press Add. A plan points at its sources; the images read them where they are when they are made.</p>
   <div class="inline">
     <div><label for="p-pick">Disc plan</label><select id="p-pick"></select></div>
     <button class="plain" type="button" id="p-new-btn">New plan…</button>
@@ -288,8 +285,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         <div><label for="f-to">Put the ticked ones on</label><select id="f-to"></select></div>
         <button class="primary" type="button" id="f-add">Add</button>
       </div>
-      <div class="checks"><label><input type="checkbox" id="f-copy"> Copy them into the plan (an SD card, a phone, a USB
-        stick: anything that will not be here when the images are made)</label></div>
+
     </div>
   </div>
   <div class="card" id="p-make">
@@ -302,10 +298,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 </section>
 
 <section id="tab-tools" hidden>
-  <h2>Check a disc or image</h2>
+  <h2>Check a copy</h2>
+  <p class="muted">A drive (every sector against the image), an image file, or a disc's files (mounted, or copied to a folder: every file against its checksum).</p>
   <form id="check-form" class="inline">
-    <div><label for="c-device">Drive (e.g. /dev/sr0)</label><input type="text" id="c-device"></div>
-    <div><label for="c-image">…or image file</label><input type="text" id="c-image"></div>
+    <div><label for="c-source">Drive, image file or disc folder</label><input type="text" id="c-source" placeholder="/dev/sr0"></div>
     <div><label for="c-copy">Copy (optional)</label><input type="text" id="c-copy" size="3" placeholder="A"></div>
     <label><input type="checkbox" id="c-repair"> repair the image</label>
     <button class="primary" type="submit">Check</button>
@@ -313,12 +309,6 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 </section>
 
 <section id="tab-restore" hidden>
-  <h2>Verify a disc's files</h2>
-  <p class="muted">Every file on a mounted disc (or an extracted image) against its checksum.</p>
-  <form id="verify-form" class="inline">
-    <div><label for="v-path">Mounted disc folder</label><input type="text" id="v-path" placeholder="/media/disc"></div>
-    <button class="primary" type="submit">Verify</button>
-  </form>
   <h2>Restore files from a disc</h2>
   <form id="restore-form" class="inline">
     <div><label for="rs-path">Mounted disc folder</label><input type="text" id="rs-path" placeholder="/media/disc"></div>
@@ -483,6 +473,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var wrap = el("div"), list = el("div", { class: "muted", text: "Reading the copies…" });
     wrap.appendChild(list);
     var letters = el("select", { "aria-label": "Which copy" }, [el("option", { value: "", text: "any (by its identifier)" })]);
+    var moveLetter = el("select", { "aria-label": "Copy to move" });
+    var movePlace = el("input", { type: "text", placeholder: "a location code, or text" });
+    var move = el("button", { class: "plain", text: "Update place" });
+    move.onclick = function () {
+      if (moveLetter.value && movePlace.value.trim()) run({ command: "locate", disc_id: d.Id, copy: moveLetter.value, location: movePlace.value.trim() }, true);
+    };
     api("/api/copies?disc=" + encodeURIComponent(d.Id)).then(function (res) {
       list.textContent = "";
       list.className = "";
@@ -496,7 +492,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
           el("td", { text: c.form + (c.temperature ? ", " + c.temperature : "") }),
           el("td", { text: c.at || "not recorded" }), el("td", { text: c.made }),
           el("td", { class: c.readBack ? "ok" : "warn", text: checked }), el("td", { class: "mono muted", text: (c.identifiers || []).join(", ") + (c.sameAs ? " (the same disc as copy " + c.sameAs + ")" : "") })]));
-        if (c.copy) letters.appendChild(el("option", { value: c.copy, text: "copy " + c.copy }));
+        if (c.copy) {
+          letters.appendChild(el("option", { value: c.copy, text: "copy " + c.copy }));
+          moveLetter.appendChild(el("option", { value: c.copy, text: "copy " + c.copy }));
+        }
       });
       list.appendChild(el("div", { class: "scroll" }, [t]));
       list.appendChild(el("p", { class: "muted", text: "Each copy's letter is written on its hub and case, after the id: " + d.Id + " " + (res.copies[0].copy || "A") + "." }));
@@ -520,6 +519,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     stored.onclick = function () { run({ command: "stored", disc_id: d.Id, path: path.value, location: where.value }); };
     wrap.appendChild(el("h3", { text: "Record a copy on a drive or NAS" }));
     wrap.appendChild(el("div", { class: "inline" }, [field("Image or folder", path), field("Kept at", where), stored]));
+    wrap.appendChild(el("h3", { text: "Update a known copy's place" }));
+    wrap.appendChild(el("p", { class: "muted", text: "This appends a location change for that copy only." }));
+    wrap.appendChild(el("div", { class: "inline" }, [field("Copy", moveLetter), field("New place", movePlace), move]));
 
     // a check of one copy: in the drive, or an image read from it
     var cdrive = el("input", { type: "text", placeholder: "/dev/sr0" }), cimage = el("input", { type: "text", placeholder: "or an image file" });
@@ -538,7 +540,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (!d) return;
     box.appendChild(el("h2", { text: d.Title || d.Id }));
     var rows = [["Id", d.Id], ["Part", d.Part], ["Set", d.Set], ["Coverage", d.Coverage], ["Created", d.Date],
-                ["Creator", d.Creator], ["Subjects", [].concat(d.Subject || []).join(", ")], ["Media", d.Media],
+                ["Kept at", d.Where], ["Creator", d.Creator], ["Subjects", [].concat(d.Subject || []).join(", ")], ["Media", d.Media],
                 ["Contents", (d.Files || 0) + (String(d.Files) === "1" ? " file, " : " files, ") + human(d.Bytes)], ["Error correction", d.Ecc], ["Rights", d.Rights]];
     var t = el("table");
     rows.forEach(function (r) { if (r[1]) t.appendChild(el("tr", {}, [el("th", { text: r[0] }), el("td", { text: r[1] })])); });
@@ -554,13 +556,6 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 
     box.appendChild(el("h2", { text: "Copies" }));
     box.appendChild(copiesBox(d));
-    var loc = el("input", { type: "text", value: [].concat(d.Location || []).join("; "),
-                            "aria-label": "Places (location codes or text, separated by ;)" });
-    var saveLoc = el("button", { class: "plain", text: "Save places" });
-    saveLoc.onclick = function () { run({ command: "locate", disc_id: d.Id, location: loc.value }, true); };
-    box.appendChild(el("h2", { text: "Places" }));
-    box.appendChild(el("p", { class: "muted", text: "Where the disc's copies are kept, as arv locate records them; each copy above keeps its own." }));
-    box.appendChild(el("div", { class: "inline" }, [loc, saveLoc]));
 
     box.appendChild(el("h2", { text: "Improve the description" }));
     var llmBox = el("div", { class: "llm" });
@@ -586,7 +581,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       out.textContent = "";
       if (res.discs.length) {
         out.appendChild(el("h2", { text: "Discs" }));
-        res.discs.forEach(function (d) { out.appendChild(el("div", { class: "note", text: d.Id + " — " + (d.Title || "") + (d.Location ? " — " + [].concat(d.Location).join("; ") : "") })); });
+        res.discs.forEach(function (d) { out.appendChild(el("div", { class: "note", text: d.Id + " — " + (d.Title || "") + (d.Where ? " — " + d.Where : "") })); });
       }
       out.appendChild(el("h2", { text: "Files (" + res.total + (res.total > res.files.length ? ", showing " + res.files.length : "") + ")" }));
       var t = el("table");
@@ -617,10 +612,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var split = function (v) { return v.split(",").map(function (s) { return s.trim(); }).filter(Boolean); };
     run({
       source: $("m-source").value, set: $("m-set").value, title: $("m-title").value, creator: $("m-creator").value,
-      location: $("m-location").value, description: $("m-description").value, rights: $("m-rights").value,
+      description: $("m-description").value, rights: $("m-rights").value,
       subject: split($("m-subject").value), note: $("m-note").value ? [$("m-note").value] : [],
       medium: $("m-medium").value, min_redundancy: $("m-redundancy").value, snapshot: $("m-snapshot").value,
-      output_dir: $("m-outdir").value, split: $("m-split").checked, ro_crate: $("m-rocrate").checked,
+      output_dir: $("m-outdir").value, split: $("m-split").checked,
       no_defect_management: $("m-nodm").checked,
       draft: (makeLLM.agent || $("m-tags").value.trim()) ? {
         notes: qaNotes(makeLLM), folder_tags: textToTags($("m-tags").value), folder_captions: makeLLM.captions || {},
@@ -793,7 +788,6 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var replaced = c.editions.filter(function (e) { return e.replaced; }).length;
     card.appendChild(el("h3", {}, [el("span", { class: "mono", text: c.code }), el("span", { text: c.title || "" }),
       el("span", { class: "facts", text: c.editions.length + (c.editions.length === 1 ? " edition" : " editions") +
-        (c.checkpoints ? ", " + c.checkpoints + (c.checkpoints === 1 ? " checkpoint" : " checkpoints") : "") +
         (c.set ? "; set " + c.set : "") + (c.access ? "; " + c.access : "") })]));
     var out = el("pre", { class: "log", hidden: "" });
     var t = el("table");
@@ -947,7 +941,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     node.ondrop = function (ev) {
       ev.preventDefault(); node.classList.remove("target");
       var data = JSON.parse(ev.dataTransfer.getData("application/x-arv") || "{}");
-      if (data.sources) planDo({ action: "add", sources: data.sources, disc: disc, copy: $("f-copy").checked });
+      if (data.sources) planDo({ action: "add", sources: data.sources, disc: disc });
       else if (data.path && String(data.from) !== String(disc)) planDo({ action: "move", paths: [data.path], from: data.from, disc: disc });
     };
   }
@@ -983,7 +977,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       d.items.forEach(function (it) {
         var name = el("span", { class: "path mono" }, [it.kind === "missing" ? null : icon(it.path, it.kind),
                                                        document.createTextNode(it.path + (it.kind === "folder" ? "/" : ""))]);
-        if (it.origin) name.appendChild(el("span", { class: "flag copy", text: "copied", title: "the plan's own copy of " + it.origin }));
+
         var a = it.archived;
         if (a && a.object) name.appendChild(el("span", { class: "flag on", text: "archived: version " + a.version,
           title: a.object + " version " + a.version + ", on " + a.discs.join(", ") }));
@@ -996,7 +990,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         var row = el("div", { class: "item" + (it.kind === "missing" ? " missing" : ""), draggable: plan.made ? "false" : "true" }, [
           name,
           el("span", { class: "muted", text: it.kind === "missing" ? "missing" : human(it.bytes) + (it.kind === "folder" ? ", " + it.files + (it.files === 1 ? " file" : " files") : "") }),
-          el("span", { class: "src", text: it.origin ? "copy of " + it.origin : it.source })]);
+          el("span", { class: "src", text: it.source })]);
         if (!plan.made) {
           var move = el("select", { "aria-label": "Move to disc" });
           move.appendChild(el("option", { value: "", text: "move…" }));
@@ -1058,7 +1052,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var ticked = Array.prototype.map.call($("f-list").querySelectorAll("input:checked"), function (c) { return c.dataset.path; });
     if (!plan) { say("Create a plan first (New plan…).", true); return; }
     if (!ticked.length) { say("Tick the files or folders to add first.", true); return; }
-    planDo({ action: "add", sources: ticked, disc: $("f-to").value, copy: $("f-copy").checked });
+    planDo({ action: "add", sources: ticked, disc: $("f-to").value });
   };
   $("p-pick").onchange = function () { say(""); loadPlan(); };
   $("p-new-btn").onclick = function () { $("p-new").hidden = !$("p-new").hidden; };
@@ -1089,11 +1083,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // ---------------------------------------------------------------- tools
   $("check-form").onsubmit = function (ev) {
     ev.preventDefault();
-    run({ device: $("c-device").value.trim(), image: $("c-image").value.trim(), copy: $("c-copy").value.trim(),
+    run({ source: $("c-source").value.trim(), copy: $("c-copy").value.trim(),
           repair: $("c-repair").checked }, false, "/api/check");
   };
   $("rebuild-form").onsubmit = function (ev) { ev.preventDefault(); run({ command: "rebuild", path: $("r-path").value }); };
-  $("verify-form").onsubmit = function (ev) { ev.preventDefault(); run({ command: "verify", path: $("v-path").value }); };
   $("restore-form").onsubmit = function (ev) {
     ev.preventDefault(); run({ command: "restore", path: $("rs-path").value, dest: $("rs-dest").value });
   };

@@ -35,7 +35,6 @@ Date: 2026-01-01
 %type: Bytes int
 %type: Access enum public private sealed
 %type: Retired date
-%type: Location rec Location
 
 Id: FAM-01_2019_0
 Uuid: UUID
@@ -90,26 +89,23 @@ Set: CODE
 Access: public
 
 %rec: Revision
-%doc: One state of a collection, as git's commits are: appended, never edited. Tree is
-+ the SHA-256 of its manifest (every file's path and SHA-256, sorted); Node is the
-+ SHA-256 of Tree, Parent(s), Date and Message, and names the revision. A checkpoint
-+ only records the state (the files stay on everyday storage); an edition became discs:
-+ Edition numbers it, Volume names each disc. An edition is a set of discs made together,
-+ each holding a selection of the collection and a copy of the catalogue, with as many
+%doc: One edition of a collection: the state it was in when it became discs, appended, never
++ edited. Tree is the SHA-256 of its manifest (every file's path and SHA-256, sorted); Node is
++ the SHA-256 of Tree, Parent(s), Date and Message, and names the revision. Edition numbers
++ it, Volume names each disc. An edition is a set of discs made together,
++ each holding part of the collection and a copy of the catalogue, with as many
 + copies as its owner makes (discs, NAS); a later safe edition replaces earlier ones,
 + except those with Keep: yes (which may be added later: it is not part of Node).
 %key: Node
-%mandatory: Node Collection Tree Date Stage
+%mandatory: Node Collection Tree Date Edition
 %type: Date date
 %type: Edition int
-%type: Stage enum checkpoint edition
 %type: Keep enum yes
 
 Node: 1436106577dc489c0d805d34f07fce5c8af9e3fed51904b8c7e368f5ebc1cd7d
 Collection: UUID
 Tree: 8c351f9d3f15c68d437ff4e7046b540ae7b587cb8693c1da450c39fb95c605f8
 Date: 2026-01-01
-Stage: edition
 Edition: 1
 Volume: FAM-01_2019_0
 Changes: +2 ~0 -0 >0 files
@@ -117,8 +113,8 @@ Changes: +2 ~0 -0 >0 files
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
-+ Disc names the disc; a change to a location, a selection or a data object names it in Object
-+ (location:CODE, selection:CODE, object:UUID) instead.
++ Disc names the disc; a change to a location or a data object names it in Object
++ (location:CODE, object:UUID) instead.
 + Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion
@@ -129,8 +125,8 @@ Changes: +2 ~0 -0 >0 files
 + warm for a file or folder), Location (where this copy is kept), Path for a file or folder,
 + MediaType (the media's maker and type, as the drive reports it) and Identifier when known:
 + how this physical copy is recognised, as scheme:value (bca: its factory serial, barcode: a
-+ label stuck on and scanned, label: written or printed, hub: the maker's code in the clear
-+ ring), repeatable, and added later by any event that names the Copy. With ReadBack: identical
++ label stuck on and scanned, serial: a manufacturer's serial), repeatable, and added later by
++ any event that names the Copy. With ReadBack: identical
 + it is a copy read back against its image before it was recorded (known good), as is one a
 + later fixity check with its Copy passed. A disc's copies are its replications, counted as
 + physical discs: two that share a bca:, barcode: or serial: identifier are one disc recorded

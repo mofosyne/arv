@@ -180,25 +180,25 @@ SCAN-01_1995-2008_D	2026-10-04	Letters 1995-2008, scanned	25 files	private	Home 
 SCAN-02_1995-2008_B	2026-10-04	Letters 1995-2008, scanned	26 files	private	Home / Study / Box 1, blue lid
 SCAN-03_1995-2008_9	2026-10-04	Letters 1995-2008, scanned	5 files	private	Home / Study / Box 1, blue lid
 rc=0
-$ --home q id TRIP-01_2019_4
+$ --home q info TRIP-01_2019_4
 scheme:    set-seq-coverage/1
 set:       TRIP
 sequence:  1
 coverage:  2019
 check:     4 (correct)
 disc:      Kyoto, July 2019 [Home / Study / Box 1, blue lid; Parents' house]
-fields:    regenerate this id
+fields:    the id matches the disc's set, sequence and coverage
 rc=0
-$ --home q id trip-01_2019_4
+$ --home q info trip-01_2019_4
 scheme:    set-seq-coverage/1
 set:       TRIP
 sequence:  1
 coverage:  2019
 check:     4 (correct)
 disc:      Kyoto, July 2019 [Home / Study / Box 1, blue lid; Parents' house]
-fields:    regenerate this id
+fields:    the id matches the disc's set, sequence and coverage
 rc=0
-$ --home q id TRIP-01_2019_5
+$ --home q info TRIP-01_2019_5
 scheme:    set-seq-coverage/1
 set:       TRIP
 sequence:  1
@@ -206,17 +206,13 @@ coverage:  2019
 check:     5 (WRONG: probably a typo)
 disc:      not in the catalogue - did you mean TRIP-01_2019_4?
 rc=1
-$ --home q id PROJ-01_2020-2O23_L
+$ --home q info PROJ-01_2020-2O23_L
 PROJ-01_2020-2O23_L: not a disc id of a known scheme
 rc=1
-$ --home q id 2020-2025_PROJECTS_01
-scheme:    coverage-set-seq/0
-set:       PROJECTS
-sequence:  1
-coverage:  2020-2025
-disc:      not in the catalogue
-rc=0
-$ --home q id not an id
+$ --home q info 2020-2025_PROJECTS_01
+2020-2025_PROJECTS_01: not a disc id of a known scheme
+rc=1
+$ --home q info not an id
 not an id: not a disc id of a known scheme
 rc=1
 $ --home q sets
@@ -351,15 +347,16 @@ arv --help lists every command.
 rc=2
 $ --home q todo --bogus
 arv todo: unexpected or missing arguments: --bogus
-  arv todo [--overdue YEARS]   what is owed: copies, read-backs, cold copies, places, checks
+  arv todo [--overdue AGE] [--tsv]   what is owed: copies, read-backs, cold copies, places, checks
+         (--overdue: checks older than AGE, default 5y; --tsv: one copy a line, for scripts)
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2
 $ --home q burned --help
-  arv burned (--device DRIVE | --copies N) [--copy X] [--location PLACE] [--identifier ID | --barcode CODE]...
-             [--media-type TYPE] [--note TEXT] [DISC-ID]
+  arv burned (--device DRIVE | --copies N) [--copy X] [--location PLACE] [--temperature T]
+             [--identifier ID | --barcode CODE]... [--media-type TYPE] [--note TEXT] [DISC-ID]
          a burned copy, named by a letter (A, B ...: write it on the hub and case after the id;
          --device: read back against its image first, recorded only if identical, with its BCA serial;
-         --temperature hot|warm|cold: default the place's, else cold)
+         temperature hot|warm|cold: default the place's, else cold)
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=0
 $ --home q-empty todo
@@ -367,49 +364,60 @@ No discs yet, so nothing is owed. Start with arv collection init FOLDER (or arv 
 rc=0
 $ --home q record
 Record: what exists, and where
-  arv burned (--device DRIVE | --copies N) [--copy X] [--location PLACE] [--identifier ID | --barcode CODE]...
-             [--media-type TYPE] [--note TEXT] [DISC-ID]
+  arv burned (--device DRIVE | --copies N) [--copy X] [--location PLACE] [--temperature T]
+             [--identifier ID | --barcode CODE]... [--media-type TYPE] [--note TEXT] [DISC-ID]
          a burned copy, named by a letter (A, B ...: write it on the hub and case after the id;
          --device: read back against its image first, recorded only if identical, with its BCA serial;
-         --temperature hot|warm|cold: default the place's, else cold)
-  arv identify DISC-ID COPY [ID...] [--barcode CODE] [--carrier ID]   what a copy is known by, or is on
-         (ID: bca:SERIAL, barcode:CODE, serial:SERIAL, label:TEXT or hub:CODE; the first three name
-         one disc, or one tape or drive as a carrier: copies on one carrier count as one)
-  arv relabel DISC-ID COPY NEW [--at PLACE | --identifier ID]   a copy's new letter (two copies alike)
-  arv stored DISC-ID PATH [--location PLACE] [--temperature T] [--carrier ID | --barcode CODE] [--copy X]
+         temperature hot|warm|cold: default the place's, else cold)
+  arv stored DISC-ID PATH [--location PLACE] [--temperature T] [--carrier barcode:CODE|serial:SERIAL] [--copy X]
          a copy on a drive, NAS or tape: the .iso, or the disc's files as a folder; checked, then
-         recorded (default: warm); --copy X: that copy, moved here (at its own path: checked again)
+         recorded (default: warm); --copy X: that copy, moved here (to check one: arv check PATH)
+  arv identify DISC-ID COPY [ID...] [--barcode CODE] [--carrier ID]   what a copy is known by, or is on
+         (ID: bca:SERIAL, barcode:CODE or serial:SERIAL; a carrier is the tape or drive holding it)
+  arv relabel DISC-ID COPY NEW [--at PLACE | --identifier ID]   give a copy a new letter (when two
+         catalogues gave one letter to two copies: --at or --identifier says which)
+  arv locate DISC-ID COPY PLACE   where a copy is kept now
+  arv note DISC-ID TEXT   a note on a disc
+  arv access DISC-ID public|private|sealed   what later discs' catalogues may show of it
   arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)
-  arv find [-C CATALOG] [--limit N] PATTERN
+  arv find [-C CATALOG] [--limit N] PATTERN   discs, copies (by identifier or carrier), objects, tags
+         and files, on every disc the catalogue knows (PATTERN: text, or a glob with * ? [)
   arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]
-           [--unchecked-since AGE|DATE] [--one-place]   (AGE: 5y, 18m, 90d)
-  arv id [-C CATALOG] ID   arv info DISC|IMAGE   arv ls DISC
-  arv note DISC-ID TEXT   arv locate [--add] DISC-ID PLACE...   arv access DISC-ID public|private|sealed
+           [--unchecked-since AGE|DATE] [--one-place] [--json]   the discs, one a line (--in: a set or
+         category; --at: a place and the places in it; --covers: an EDTF date; AGE: 5y, 18m, 90d)
+  arv info [-C CATALOG] DISC|IMAGE|DISC-ID [--files]   a disc (--files: its listing), an image
+         (which disc and copy), or a disc id (its parts, its check character, the disc it names)
   arv location list [-v] | add CODE [NAME] [--in PARENT] [--description TEXT] [--temperature T]
                | move CODE [NAME] [--in PARENT] [--temperature T]
-  arv selection list | show CODE | add|put|drop CODE [ITEM...] | move CODE [--in PARENT] [--name NAME]
+         the places copies are kept: a tree (a box in a room in a house)
   arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]
-  arv log [COLLECTION]   arv diff REV [REV]   (REV: a revision's first digits, or CODE/N)
+         how much something matters and to whom (essential, important, useful); TARGET: DISC-ID,
+         DISC-ID:folder/, DISC-ID:file or set:CODE; --due: the appraisals due for review by DATE
+  arv log [COLLECTION]   a collection's editions, and what changed in each
+  arv diff REV [REV]   what changed between two revisions, or from one to the folder now
+         (REV: a revision's first digits, or CODE/N for edition N)
   arv retire CODE|DISC-ID [--yes [--accept-loss]]   retire the editions a newer safe one replaces (not kept
-                    ones), or one disc of no edition; refused while a file is on no disc that stays
-  arv sets [-v]   arv tags [--namespace NS] [--vocab FILE]   arv keywords [--format tsv|exiftool] DISC-ID
+         ones), or one disc of no edition; refused while a file is on no disc that stays
+  arv sets [-v]   the set codes and categories, as a tree
+  arv tags [--namespace NS]   the folder tags in use, and on how many folders and discs
+  arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files
 (arv record COMMAND or arv COMMAND; arv COMMAND --help says more; arv --help lists every group)
 rc=0
-$ --home q record id TRIP-01_2019_4
+$ --home q record info TRIP-01_2019_4
 scheme:    set-seq-coverage/1
 set:       TRIP
 sequence:  1
 coverage:  2019
 check:     4 (correct)
 disc:      Kyoto, July 2019 [Home / Study / Box 1, blue lid; Parents' house]
-fields:    regenerate this id
+fields:    the id matches the disc's set, sequence and coverage
 rc=0
 $ --home q record make
 arv record make: make is in archive (arv make, or arv archive make)
 rc=2
 $ --home q verify frob
-Error: frob: no catalog.rec here (give the root of a mounted disc or an extracted image)
-rc=1
+arv verify: no command frob (arv verify lists them)
+rc=2
 $ todo
 arv: no archive here or in any folder above, and no default archive on this machine.
   arv init FOLDER                          make one at the root of what it describes (e.g. /nas)

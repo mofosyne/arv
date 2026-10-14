@@ -1,5 +1,5 @@
-# Catalogue-editing commands that check.sh runs with the Python arv and with arv, on copies
-# of samples/home: output, exit codes and the catalogue afterwards must be the same.
+# Catalogue-editing commands that scenarios.sh runs on a copy of the reference home: their output,
+# exit codes and the catalogue afterwards are kept in expected/.
 location list
 location list -v
 location add ATTIC "Attic shelf" --in HOME --description dusty
@@ -8,16 +8,6 @@ location move ATTIC "Attic, top shelf"
 location move NOPE
 location add attic
 location list
-selection list
-selection add BEST --name "Best of" "TRIP-01_2019_4:day1 Fushimi Inari/" PROJ-01_2020-2023_L
-selection put BEST "TRIP-01_2019_4:day2 Arashiyama"
-selection put BEST TRIP-01_2019_4:nothing.txt
-selection show BEST
-selection drop BEST PROJ-01_2020-2023_L
-selection move BEST --name Best
-selection add KIDS --in BEST
-selection move BEST --in KIDS
-selection list
 access TAXES-01_2019-2020_I private
 access TRIP-01_2019_4 public
 appraise "TRIP-01_2019_4:day1 Fushimi Inari/IMG_0101.png"

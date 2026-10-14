@@ -27,7 +27,6 @@ Date: 2026-01-01
 %type: Bytes int
 %type: Access enum public private sealed
 %type: Retired date
-%type: Location rec Location
 
 Id: TRIP-01_2025_B
 Uuid: UUID
@@ -85,7 +84,6 @@ Access: private
 Files: 3
 Bytes: 21
 Software: SW
-Location: BOX1
 
 Id: TRIP-04_2025_5
 Uuid: UUID
@@ -117,8 +115,8 @@ Coverage: 2025
 Date: 2026-01-01
 Creator: archivist
 Access: private
-Files: 2
-Bytes: 25
+Files: 1
+Bytes: 7
 Software: SW
 
 %rec: Binding
@@ -260,33 +258,21 @@ Source: plan-copy
 
 Uuid: UUID
 Version: 1
-Name: DCIM
-Kind: folder
-Tree: ede560777c2480cec2356fc25b9c065b6c0fe658a3cf1daab949593d752e85e9
-Disc: TRIP-05_2025_3
-Path: camera
-Files: 1
-Bytes: 10
-Date: 2026-01-01
-Source: plan-sd/DCIM
-
-Uuid: UUID
-Version: 1
 Name: letter.txt
 Kind: file
-Tree: eaff1c9dc8fa3aabf4065c49a4e4ebbbe4a7ca7e16fdafabc7fc0b75ac0afa01
+Tree: 5f9f00f8c446e4bf63fcd2636fb71477c8e3766a0675f03e0912852078eb443e
 Disc: TRIP-05_2025_3
-Path: letter.txt
+Path: letter
 Files: 1
-Bytes: 15
+Bytes: 7
 Date: 2026-01-01
 Source: plan-docs/letter.txt
 
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
-+ Disc names the disc; a change to a location, a selection or a data object names it in Object
-+ (location:CODE, selection:CODE, object:UUID) instead.
++ Disc names the disc; a change to a location or a data object names it in Object
++ (location:CODE, object:UUID) instead.
 + Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion
@@ -297,8 +283,8 @@ Source: plan-docs/letter.txt
 + warm for a file or folder), Location (where this copy is kept), Path for a file or folder,
 + MediaType (the media's maker and type, as the drive reports it) and Identifier when known:
 + how this physical copy is recognised, as scheme:value (bca: its factory serial, barcode: a
-+ label stuck on and scanned, label: written or printed, hub: the maker's code in the clear
-+ ring), repeatable, and added later by any event that names the Copy. With ReadBack: identical
++ label stuck on and scanned, serial: a manufacturer's serial), repeatable, and added later by
++ any event that names the Copy. With ReadBack: identical
 + it is a copy read back against its image before it was recorded (known good), as is one a
 + later fixity check with its Copy passed. A disc's copies are its replications, counted as
 + physical discs: two that share a bca:, barcode: or serial: identifier are one disc recorded
@@ -408,7 +394,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: arv 0.4
-Note: check of a stored copy (iso) at ROOT/out-plan2/TRIP-04_2025_5.noecc.iso: identical to the image
+Note: check of a stored copy (iso) at ROOT/out-plan2/TRIP-04_2025_5.noecc.iso: identical to the image arv made
 
 EventId: ID
 Disc: TRIP-04_2025_5
@@ -431,7 +417,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: arv 0.4
-Note: check of a stored copy (iso) at ROOT/out-plan/TRIP-01_2025_B.noecc.iso: identical to the image
+Note: check of a stored copy (iso) at ROOT/out-plan/TRIP-01_2025_B.noecc.iso: identical to the image arv made
 
 EventId: ID
 Disc: TRIP-01_2025_B
@@ -454,7 +440,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: sha256 and sha512 manifests of 2 files
+Note: sha256 and sha512 manifests of 1 file
 
 EventId: ID
 Disc: TRIP-05_2025_3

@@ -7,9 +7,9 @@
 #   RS03 is added, tested (and damage found) and repaired by arv itself; with dvdisaster Light, it
 #   accepts and repairs arv's images; with Siegfried, formats are identified; with arv's
 #   git checkout as the source, tools/ gets the commit and its history; git repositories in a
-#   folder go on as a compacted .git (trimmed with --git-since) and are recognised by their history;
+#   folder go on as a compacted .git and are recognised by their history;
 # - SHA-256 and SHA-512 against sha256sum and sha512sum, and the recfile writer.
-# - that describe, tag and models go to arv-assist, and gui to arv-gui.
+# - that describe and tag go to arv-assist, and gui to arv-gui.
 # (tests/fixtures/ is checked by build/fixtures, which make check runs first.)
 #
 #   sh check.sh build/arv
@@ -35,7 +35,7 @@ if ! diff -r -x recfile "$expected" ref > ref.diff; then
     no "the reference scenarios differ from tests/reference/expected (diff in $dir/ref.diff)"
 fi
 ok "reference scenarios: $(find ref -type f | wc -l) files as expected/ holds them (make, --split, --draft, rebuild,"
-echo "    links, --tools-history, --ro-crate, an interactive make, recording, editing, names, init, tags, queries)"
+echo "    links, an interactive make, recording, editing, names, init, tags, queries)"
 n=0
 for f in "$repo"/tests/fixtures/recfile/*.rec "$repo/tests/reference/home/catalog/archive.rec"; do
     name=$(basename "$f")
@@ -47,6 +47,9 @@ done
 ok "recfile writer: $n files written byte for byte as expected"
 
 # ------------------------------------------------------------------ a real disc: verify, restore, damage
+rc=0
+"$tool" make --location BOX1 src >/dev/null 2>&1 || rc=$?
+[ "$rc" -eq 2 ] || no "make still accepts --location"
 mkdir -p src/docs src/bin
 echo guide > src/docs/guide.md
 printf '#!/bin/sh\necho hi\n' > src/bin/tool.sh
@@ -57,9 +60,10 @@ ln -s missing.txt src/dead
 git -C src init -q -b main
 git -C src -c user.name=t -c user.email=t@example.invalid add -A
 git -C src -c user.name=t -c user.email=t@example.invalid commit -q -m test
-"$tool" make -C home --no-ecc --formats no --set CODE --output disc.iso src >/dev/null 2>&1 || no "arv make"
+"$tool" make -C home --no-ecc --no-formats --set CODE --output disc.iso src >/dev/null 2>&1 || no "arv make"
 7z x -odisc disc.iso >/dev/null || no "7z cannot read the image"
-"$tool" verify disc >/dev/null && ok "verify: every file matches the manifests" || no "verify"
+"$tool" check -C home disc >/dev/null && ok "check FOLDER: every file matches the manifests" || no "check FOLDER"
+"$tool" info --files disc | grep -q "  docs/guide.md$" && ok "info --files: the disc's listing" || no "info --files"
 "$tool" restore disc out >/dev/null && ok "restore: no errors" || no "restore"
 [ -z "$(git -C out status --porcelain)" ] && ok "restored tree is exactly the commit (git status clean)" \
     || no "git status: $(git -C out status --porcelain)"
@@ -87,8 +91,8 @@ done < "$ext"
     || no "dd from extents.tsv: $wrong of $carved files differ from the manifest"
 cp -r disc bad
 printf X | dd of=bad/data/docs/guide.md bs=1 seek=0 conv=notrunc 2>/dev/null
-if "$tool" verify bad >out.txt; then no "verify missed damage"; fi
-grep -q "FAILED   data/docs/guide.md" out.txt && ok "verify finds a damaged file" || no "damage report"
+if "$tool" check -C home bad >out.txt; then no "check missed damage"; fi
+grep -q "FAILED   data/docs/guide.md" out.txt && ok "check FOLDER finds a damaged file" || no "damage report"
 if "$tool" restore bad out-bad >out.txt; then no "restore missed damage"; fi
 [ -f out-bad/README.md ] && [ ! -L out-bad/README.md ] \
     && ok "restore keeps a link's copy when its target is damaged" || no "copy of a damaged target"
@@ -97,12 +101,20 @@ if "$tool" restore bad out-bad >out.txt; then no "restore missed damage"; fi
 if [ -f "$here/build/arv.com" ]; then
     [ -f disc/tools/arv.com ] && grep -q "tools/arv.com" disc/README.txt || no "tools/arv.com missing, or README.txt silent on it"
     cp disc/tools/arv.com ape.com && chmod 755 ape.com     # copied off the disc, as README.txt says (7z drops modes)
-    (cd disc && ../ape.com verify . >/dev/null) && ok "tools/arv.com (Actually Portable Executable), copied off the disc, verifies it" \
+    (cd disc && ../ape.com check . >/dev/null) && ok "tools/arv.com (Actually Portable Executable), copied off the disc, checks it" \
         || no "tools/arv.com from the disc"
 fi
 
 "$tool" --home fresh-home location add HOME "Home" >/dev/null && [ -s fresh-home/catalog/archive.rec ] \
     && ok "a catalogue command on a home that does not exist yet creates it" || no "location add on a new home"
+
+"$tool" init init-missing/nested/archive >/dev/null && mkdir -p init-missing/nested/archive/source \
+    && echo init > init-missing/nested/archive/source/file.txt \
+    && [ -s init-missing/nested/archive/.arv/catalog/archive.rec ] \
+    && (cd init-missing/nested/archive && "$tool" make -y --no-ecc --no-formats --set MISSING --output missing.iso source >/dev/null 2>&1) \
+    && grep -q '^Id: MISSING-' init-missing/nested/archive/.arv/catalog/archive.rec \
+    && ok "init creates a missing folder, and make finds that new home from its source" \
+    || no "init on a missing folder or make home discovery"
 
 
 # ------------------------------------------------------------------ git repositories: compacted, trimmed, recognised
@@ -118,7 +130,7 @@ mkdir -p g/src/proj
     printf '#!/bin/sh\nexit 0\n' > .git/hooks/post-checkout && chmod +x .git/hooks/post-checkout
     echo wip > f1 && gitenv git stash -q && echo dirty > f2
 )
-"$tool" make -C g/home -y --no-ecc --formats no --set CODE --output g/full.iso g/src >g/make.txt 2>&1 || { cat g/make.txt; no "arv make (git)"; }
+"$tool" make -C g/home -y --no-ecc --no-formats --set CODE --output g/full.iso g/src >g/make.txt 2>&1 || { cat g/make.txt; no "arv make (git)"; }
 7z x -og/full g/full.iso >/dev/null
 r=g/full/data/proj
 git -C $r fsck --no-progress >/dev/null 2>&1 && [ "$(git -C $r rev-list --all | wc -l)" -eq 5 ] \
@@ -129,16 +141,9 @@ git -C $r fsck --no-progress >/dev/null 2>&1 && [ "$(git -C $r rev-list --all | 
 [ ! -e $r/.git/hooks/post-checkout ] && ! grep -q secret $r/.git/config && grep -q "url = https://example.invalid/x.git" $r/.git/config \
     && ok "git: hooks and the credentials in remote URLs are left out" || no "git: hooks or credentials on the disc"
 grep -q "^proj	root	" g/full/catalog/volumes/*/git.tsv && grep -q "^proj	commit	" g/full/catalog/volumes/*/git.tsv \
-    && grep -q "git repository proj: 1 branch, 0 tags, 5 commits, history full" g/home/catalog/archive.rec \
+    && grep -q "git repository proj: 1 branch, 0 tags, 5 commits, full history" g/home/catalog/archive.rec \
     && ok "git: git.tsv lists its roots, heads and commits; the ingestion event says what was done" || no "git: git.tsv or event"
-"$tool" make -C g/home -y --no-ecc --formats no --set CODE --git-since 2002-06-01 --output g/trim.iso g/src >/dev/null 2>&1 \
-    || no "arv make --git-since"
-7z x -og/trim g/trim.iso >/dev/null
-t=g/trim/data/proj
-git -C $t fsck --no-progress >/dev/null 2>&1 && [ -f $t/.git/shallow ] && ! git -C $t cat-file -e HEAD~1 2>/dev/null \
-    && grep -q "^proj	root	$(git -C g/src/proj rev-list --max-parents=0 HEAD)" g/trim/catalog/volumes/CODE-02*/git.tsv \
-    && ok "git: --git-since keeps the history since then (shallow, fsck clean); git.tsv keeps the true root" \
-    || no "git: --git-since"
+
 "$tool" status -C g/home g/src 2>/dev/null | grep -q "git proj: archived: its HEAD .* is on CODE-0.*; uncommitted changes" \
     && ok "git: status knows the repository is archived (by its HEAD)" || no "git: status, archived"
 (cd g/src/proj && git checkout -q f2 && echo 4 > f4 && git add f4 && gitenv git commit -qm c4)
@@ -167,7 +172,7 @@ echo x > ab/pc/bare/x.dat
 mkdir -p ab/pc/nodoc && (cd ab/pc/nodoc && git init -q -b main && echo 1 > main.c && git add main.c && gitenv git commit -qm one)
 { "$tool" -C ab/home plan new kit --set KIT && "$tool" -C ab/home plan add kit ab/pc/tool && "$tool" -C ab/home plan add kit ab/pc/bare \
     && "$tool" -C ab/home plan add kit ab/pc/nodoc; } >/dev/null 2>&1 || no "a plan of three objects"
-"$tool" -C ab/home plan make kit -y --no-ecc --formats no --output-dir ab/out >ab/make.txt 2>&1 || { cat ab/make.txt; no "plan make (objects)"; }
+"$tool" -C ab/home plan make kit -y --no-ecc --no-formats --output-dir ab/out >ab/make.txt 2>&1 || { cat ab/make.txt; no "plan make (objects)"; }
 "$tool" objects -C ab/home tool > ab/objects.txt
 grep -qx '    "Tool": Tool turns sensor logs into plots. It is small.' ab/objects.txt \
     && grep -qx '    2011-02-03/2014-05-06; MIT; example.invalid/tools/tool' ab/objects.txt \
@@ -189,22 +194,12 @@ grep -q "1 question kept for later" ab/make.txt && grep -q "^Questions waiting f
     && ok "questions: a repository that says nothing about itself gets one, from arv; arv todo lists it last; never on a disc" \
     || { cat ab/make.txt ab/todo.txt; no "questions: kept, and listed by todo"; }
 # ------------------------------------------------------------------ what depends on the machine
-"$tool" make -C hist --no-ecc --formats no --set CODE --tools-history --output-dir hist-out src >hist.txt 2>&1 \
-    || no "arv make --tools-history"
-7z x -ohist-disc hist-out/*.iso >/dev/null
-if [ -f hist-disc/tools/arv.bundle ]; then
-    git bundle list-heads hist-disc/tools/arv.bundle | grep -q refs/ \
-        && ok "--tools-history: tools/arv.bundle holds arv's branches" || no "the bundle holds no branches"
-else
-    grep -q "git bundle failed\|no history to bundle" hist.txt && ok "--tools-history: no history to bundle here, as warned" \
-        || no "--tools-history: no bundle and no warning"
-fi
 # RS03, added and tested by arv itself (src/rs03); no dvdisaster needed. A small stand-in for
 # tools/: the real checkout is far larger than this test's medium (a real disc carries it all)
 mkdir -p ecc-tools/src/arv
 echo "arv@test" > ecc-tools/VERSION
 printf '/* arv.c stand-in */\n' > ecc-tools/src/arv/arv.c
-"$tool" make -C ecc-home --formats no --set CODE --medium-sectors 9600 --output-dir ecc-out --tools ecc-tools src >/dev/null 2>&1 \
+"$tool" make -C ecc-home --no-formats --set CODE --medium-sectors 9600 --output-dir ecc-out --tools ecc-tools src >/dev/null 2>&1 \
     || no "arv make with RS03"
 iso=$(ls ecc-out/*.iso)
 grep -q "RS03: " ecc-home/catalog/archive.rec && grep -q "Type: fixity check" ecc-home/catalog/archive.rec \
@@ -216,7 +211,7 @@ grep -q "RS03: " ecc-home/catalog/archive.rec && grep -q "Type: fixity check" ec
 mkdir -p race-src
 echo "first" > race-src/a.txt
 echo "steady" > race-src/b.txt
-out=$(ARV_TEST_AFTER_HASH="echo second > race-src/a.txt" "$tool" make -y -C race-home --formats no --no-ecc --set CODE \
+out=$(ARV_TEST_AFTER_HASH="echo second > race-src/a.txt" "$tool" make -y -C race-home --no-formats --no-ecc --set CODE \
       --output-dir race-out --tools ecc-tools race-src 2>&1) && no "a file changed mid-make was not refused"
 echo "$out" | grep -q "changed after it was hashed" && echo "$out" | grep -q "^  a.txt$" \
     && [ -z "$(ls race-out/*.iso 2>/dev/null)" ] && ! grep -q "^Id:" race-home/catalog/archive.rec 2>/dev/null \
@@ -236,35 +231,35 @@ echo "$where" | grep -q "drive/.arv$" && echo "$where" | grep -q "beside arv its
     && [ "$(sed -n 's/^ImageSectors: //p' ecc-home/catalog/archive.rec)" -eq $(($(wc -c < "$iso") / 2048)) ] \
     && ok "the home's Binding records the finished image's size and SHA-256 (to check a burned disc against)" \
     || no "ImageSectors / ImageSha256"
-# check --device reads the image's sectors back and compares (a file stands in for the drive)
+# check --drive reads the image's sectors back and compares (a file stands in for the drive)
 id=$(sed -n 's/^Id: //p' ecc-home/catalog/archive.rec | head -1)
 cp "$iso" drive.img
 dd if=/dev/zero bs=2048 count=40 >> drive.img 2>/dev/null       # a drive gives sectors past the image too
-out=$(PATH=/usr/bin:/bin "$tool" check -C ecc-home --device drive.img "$id" 2>&1) \
+out=$(PATH=/usr/bin:/bin "$tool" check -C ecc-home --drive drive.img "$id" 2>&1) \
     && echo "$out" | grep -q "holds exactly the image arv made" && grep -q "Note: read-back of the whole image" ecc-home/catalog/archive.rec \
-    || { echo "$out"; no "check --device read-back"; }
+    || { echo "$out"; no "check --drive read-back"; }
 printf X | dd of=drive.img bs=1 seek=$((7000 * 2048)) conv=notrunc 2>/dev/null
-"$tool" check -C ecc-home --device drive.img "$id" >/dev/null 2>&1 && no "check --device missed a changed sector"
+"$tool" check -C ecc-home --drive drive.img "$id" >/dev/null 2>&1 && no "check --drive missed a changed sector"
 head -c $((4000 * 2048)) "$iso" > drive.img
-out=$("$tool" check -C ecc-home --device drive.img "$id" 2>&1) && no "check --device missed a short disc"
+out=$("$tool" check -C ecc-home --drive drive.img "$id" 2>&1) && no "check --drive missed a short disc"
 echo "$out" | grep -q "the disc ends at sector 4000" \
-    && ok "check --device: reads the image back past the cache, no dvdisaster needed; finds a changed sector, a short disc" \
-    || { echo "$out"; no "check --device on a short disc"; }
+    && ok "check --drive: reads the image back past the cache, no dvdisaster needed; finds a changed sector, a short disc" \
+    || { echo "$out"; no "check --drive on a short disc"; }
 checks=$(grep -c 'Type: fixity check' ecc-home/catalog/archive.rec)
-"$tool" check -C ecc-home --image "$iso" --note "yearly check" >/dev/null 2>&1 \
+"$tool" check -C ecc-home "$iso" --note "yearly check" >/dev/null 2>&1 \
     && [ "$(grep -c 'Type: fixity check' ecc-home/catalog/archive.rec)" -eq $((checks + 1)) ] \
-    && ok "arv check --image: the image is whole, logged" || no "arv check"
+    && ok "arv check IMAGE: identical to the image arv made, logged" || no "arv check"
 cp "$iso" damaged.iso
 printf X | dd of=damaged.iso bs=1 seek=$((40 * 2048)) conv=notrunc 2>/dev/null
-out=$("$tool" check -C ecc-home --image damaged.iso "$id" 2>&1) && no "check missed damage"
-echo "$out" | grep -q "1 data sectors with a wrong CRC" && ok "arv check --image finds a damaged sector" || { echo "$out"; no "damage report"; }
+out=$("$tool" check -C ecc-home damaged.iso "$id" 2>&1) && no "check missed damage"
+echo "$out" | grep -q "1 data sectors with a wrong CRC" && ok "arv check IMAGE finds a damaged sector (its RS03 data says which)" || { echo "$out"; no "damage report"; }
 cp damaged.iso light.iso
 # repaired by arv itself: a damaged sector, a zero-filled run (as ddrescue or dd leave) and a missing end
 printf '\0\0\0\0\0\0\0\0' | dd of=damaged.iso bs=1 seek=$((3000 * 2048)) conv=notrunc 2>/dev/null
 dd if=/dev/zero of=damaged.iso bs=2048 seek=5000 count=20 conv=notrunc 2>/dev/null
 cp damaged.iso nohome.iso
 truncate -s $(( ($(wc -c < "$iso") / 2048 - 100) * 2048 )) damaged.iso
-out=$("$tool" check -C ecc-home --image damaged.iso --repair "$id" 2>&1) || { echo "$out"; no "arv check --repair"; }
+out=$("$tool" check -C ecc-home damaged.iso --repair "$id" 2>&1) || { echo "$out"; no "arv check --repair"; }
 cmp -s damaged.iso "$iso" && echo "$out" | grep -q "$id: REPAIRED" && grep -q "Outcome: warning" ecc-home/catalog/archive.rec \
     && ok "arv check --repair: damaged sectors, a zero-filled run and a missing end, back to the very image; logged" \
     || { echo "$out"; no "arv check --repair"; }
@@ -276,7 +271,7 @@ cp "$iso" lost.iso
 dd if=/dev/zero of=lost.iso bs=2048 seek=$D count=2 conv=notrunc 2>/dev/null
 dd if=/dev/zero of=lost.iso bs=2048 seek=$((nd * spl)) count=10 conv=notrunc 2>/dev/null
 printf 'damage' | dd of=lost.iso bs=1 seek=$((300 * 2048)) conv=notrunc 2>/dev/null
-"$tool" check -C ecc-home --image lost.iso --repair "$id" >lost.txt 2>&1 && no "--repair claims to have repaired a lost layout"
+"$tool" check -C ecc-home lost.iso --repair "$id" >lost.txt 2>&1 && no "--repair claims to have repaired a lost layout"
 grep -q "^    dvdisaster -i 'lost.iso' -f -n 9600$" lost.txt \
     && ok "--repair without a layout: prints the dvdisaster Light commands, with the catalogue's medium size" \
     || { cat lost.txt; no "the dvdisaster hand-over"; }
@@ -287,20 +282,25 @@ if command -v dvdisaster >/dev/null && dvdisaster --help 2>&1 | grep -q no-bdr-d
         || no "the pasted dvdisaster commands"
 fi
 mkdir -p nowhere
-out=$(cd nowhere && ARV_HOME="$dir/nowhere/none" "$tool" check --image ../nohome.iso --repair 2>&1) || { echo "$out"; no "repair without a home"; }
+out=$(cd nowhere && ARV_HOME="$dir/nowhere/none" "$tool" check ../nohome.iso --repair 2>&1) || { echo "$out"; no "repair without a home"; }
 cmp -s nohome.iso "$iso" && echo "$out" | grep -q "not logged" \
     && ok "arv check --repair works on an image in no catalogue (as from a disc found decades on)" || { echo "$out"; no "repair without a home"; }
 # overdue checks: a disc checked today is not overdue now, but is five years on; one never checked is
 [ -z "$("$tool" list -C ecc-home --unchecked-since 5y)" ] \
     && SOURCE_DATE_EPOCH=$(( $(date +%s) + 6 * 366 * 86400 )) "$tool" list -C ecc-home --unchecked-since 5y | grep -q "last checked 20" \
-    && "$tool" list -C hist --unchecked-since 1y | grep -q "last checked never" \
-    && "$tool" list -C hist --one-place | grep -q "^CODE" \
+    && "$tool" make -C due-home --no-formats --no-ecc --set CODE --output-dir due-out --tools ecc-tools src >/dev/null 2>&1 \
+    && "$tool" list -C due-home --unchecked-since 1y | grep -q "last checked never" \
+    && due=$("$tool" list -C due-home | cut -f1) \
+    && "$tool" --home due-home burned --copies 1 --location BOX "$due" >/dev/null 2>&1 \
+    && "$tool" list -C due-home --one-place | grep -q "^CODE" \
+    && "$tool" --home due-home burned --copies 1 --location SHELF "$due" >/dev/null 2>&1 \
+    && [ -z "$("$tool" list -C due-home --one-place)" ] \
     && ok "list --unchecked-since and --one-place: the discs due a check, and those kept in one place" \
     || no "list --unchecked-since / --one-place"
 # the one cc line README.txt gives, from the disc's own tools/
 mkdir -p cc-build
 (cd disc && cc -O2 -pthread -o ../cc-build/arv tools/arv/src/arv/*.c tools/arv/src/bagit/bagit.c tools/arv/src/udfwrite/udfwrite.c \
-    tools/arv/src/rs03/rs03.c >/dev/null 2>&1) && cc-build/arv verify disc >/dev/null \
+    tools/arv/src/rs03/rs03.c >/dev/null 2>&1) && cc-build/arv check disc >/dev/null \
     && ok "README.txt's one cc line builds arv from the disc's tools/" || no "building arv from tools/"
 if command -v dvdisaster >/dev/null && dvdisaster --help 2>&1 | grep -q no-bdr-defect-management; then
     dvdisaster -i "$iso" -t --no-progress 2>&1 | grep -q "Ecc block test *: pass" \
@@ -309,8 +309,8 @@ if command -v dvdisaster >/dev/null && dvdisaster --help 2>&1 | grep -q no-bdr-d
     cmp -s light.iso "$iso" && ok "dvdisaster Light repairs it back to the image arv made" || no "dvdisaster Light -f"
 fi
 if command -v sf >/dev/null && sf -version >/dev/null 2>&1; then
-    "$tool" make -C sf-home --no-ecc --formats yes --set CODE --output-dir sf-out src >/dev/null 2>&1 \
-        || no "arv make --formats yes"
+    "$tool" make -C sf-home --no-ecc --set CODE --output-dir sf-out src >/dev/null 2>&1 \
+        || no "arv make with Siegfried"
     grep -q '^docs/guide.md,' sf-home/catalog/volumes/*/formats.csv \
         && grep -q "Type: format identification" sf-home/catalog/archive.rec \
         && ok "Siegfried: formats.csv and the format identification event" || no "Siegfried formats"
@@ -332,8 +332,8 @@ echo a > plan-sf/pc/photos/a.jpg; echo b > plan-sf/pc/photos/b.jpg; echo n > pla
 "$tool" init plan-sf >/dev/null 2>&1
 ( cd plan-sf && "$tool" plan new sf --set TRIP >/dev/null && "$tool" plan add sf pc/photos >/dev/null \
     && "$tool" plan add sf elsewhere/notes.txt --as docs/notes.txt >/dev/null \
-    && PATH="$fake_sf:$PATH" "$tool" plan make sf -y --no-ecc --formats yes --output-dir out >/dev/null 2>&1 ) \
-    || no "arv plan make --formats yes"
+    && PATH="$fake_sf:$PATH" "$tool" plan make sf -y --no-ecc --output-dir out >/dev/null 2>&1 ) \
+    || no "arv plan make with Siegfried"
 f=$(ls plan-sf/.arv/catalog/volumes/*/formats.csv 2>/dev/null | head -1)
 [ -n "$f" ] && grep -q '^photos/a.jpg,x-fmt/test,' "$f" && grep -q '^photos/b.jpg,' "$f" && grep -q '^docs/notes.txt,' "$f" \
     && ok "a disc plan's formats.csv: each item identified where it is, at its place on the disc" || no "plan formats"
@@ -351,7 +351,7 @@ done > bytes
 n=0
 while [ $n -le 130 ]; do head -c $n bytes > "lengths/data/$(printf %03d $n)"; n=$((n + 1)); done
 (cd lengths && sha256sum data/* > manifest-sha256.txt && sha256sum catalog.rec manifest-sha256.txt > tagmanifest-sha256.txt)
-"$tool" verify lengths >/dev/null && ok "SHA-256 matches sha256sum for 0 to 130 bytes" || no "SHA-256"
+"$tool" check lengths LEN-01_2026_X >/dev/null && ok "SHA-256 matches sha256sum for 0 to 130 bytes" || no "SHA-256"
 (cd lengths && "$here/build/fixtures" --hash data/* > ../sha512.c.txt && sha512sum data/* > ../sha512.txt)
 cmp -s sha512.c.txt sha512.txt && ok "SHA-512 matches sha512sum for 0 to 130 bytes" || no "SHA-512"
 
@@ -383,7 +383,7 @@ awk -v id="$first" 'BEGIN { RS = ""; ORS = "\n\n" } $0 !~ "EventId: " id { print
 # ------------------------------------------------------------------ two catalogues of one archive: the guard, and merging
 mkdir -p two/a/T1 two/a/T2 two/a/T3
 echo 1 > two/a/T1/f && echo 2 > two/a/T2/f && echo 3 > two/a/T3/f
-(cd two/a && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --formats no --set CODE --output t1.iso T1 >/dev/null 2>&1) || no "make in two/a"
+(cd two/a && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --no-formats --set CODE --output t1.iso T1 >/dev/null 2>&1) || no "make in two/a"
 t1=$(sed -n 's/^Id: //p' two/a/.arv/catalog/archive.rec | head -1)
 cp -r two/a two/b
 "$tool" -C two/b/.arv note "$t1" "from b" 2>guard.err && no "a copied catalogue took a change"
@@ -391,8 +391,8 @@ grep -q "a copy of it" guard.err && grep -q "where --here" guard.err || { cat gu
 "$tool" -C two/b/.arv where --here >/dev/null && "$tool" -C two/b/.arv note "$t1" "from b" >/dev/null || no "where --here"
 "$tool" -C two/b/.arv burned "$t1" --copies 1 --location ATTIC >/dev/null 2>&1 && "$tool" -C two/a/.arv burned "$t1" --copies 1 --location SHELF >/dev/null 2>&1 \
     || no "burned in both"
-(cd two/b && "$tool" make -y --no-ecc --formats no --set CODE --output t2.iso T2 >/dev/null 2>&1) \
-    && (cd two/a && "$tool" make -y --no-ecc --formats no --set CODE --output t3.iso T3 >/dev/null 2>&1) || no "make in both"
+(cd two/b && "$tool" make -y --no-ecc --no-formats --set CODE --output t2.iso T2 >/dev/null 2>&1) \
+    && (cd two/a && "$tool" make -y --no-ecc --no-formats --set CODE --output t3.iso T3 >/dev/null 2>&1) || no "make in both"
 "$tool" -C two/a/.arv rebuild two/b > merge.out 2> merge.err && no "a clashing disc id was merged"
 grep -q "two copies lettered A" merge.err && grep -q "^Not merged: CODE-02" merge.err && grep -q "^Note: from b" two/a/.arv/catalog/archive.rec \
     && [ "$(grep -c '^Type: replication' two/a/.arv/catalog/archive.rec)" = 2 ] \
@@ -401,7 +401,7 @@ grep -q "two copies lettered A" merge.err && grep -q "^Not merged: CODE-02" merg
 
 # one disc recorded in both: counted once, by the identifier both recorded
 mkdir -p dup/a/T && echo d > dup/a/T/f
-(cd dup/a && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --formats no --set CODE --output d.iso T >/dev/null 2>&1) || no "make in dup/a"
+(cd dup/a && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --no-formats --set CODE --output d.iso T >/dev/null 2>&1) || no "make in dup/a"
 d1=$(sed -n 's/^Id: //p' dup/a/.arv/catalog/archive.rec | head -1)
 cp -r dup/a dup/b && "$tool" -C dup/b/.arv where --here >/dev/null
 "$tool" -C dup/a/.arv burned "$d1" --identifier barcode:ARV-7 --location SHELF >/dev/null 2>&1 && "$tool" -C dup/b/.arv burned "$d1" --identifier barcode:ARV-7 --location ATTIC >/dev/null 2>&1 \
@@ -415,8 +415,8 @@ grep -q "^TWICE .* copies A and A are one disc (barcode:ARV-7)" dup.out && ! gre
 
 # ------------------------------------------------------------------ what is in a drive, and what an image is
 mkdir -p drv/T1 drv/T2 && echo 1 > drv/T1/a && echo 2 > drv/T2/b
-(cd drv && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --formats no --set CODE --output i1.iso T1 >/dev/null 2>&1 \
-    && "$tool" make -y --no-ecc --formats no --set CODE --output i2.iso T2 >/dev/null 2>&1) || no "make in drv"
+(cd drv && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --no-formats --set CODE --output i1.iso T1 >/dev/null 2>&1 \
+    && "$tool" make -y --no-ecc --no-formats --set CODE --output i2.iso T2 >/dev/null 2>&1) || no "make in drv"
 v1=$(sed -n 's/^Id: //p' drv/.arv/catalog/archive.rec | head -1)
 "$tool" -C drv/.arv burned "$v1" --device drv/i1.iso --location SHELF >/dev/null 2>&1 || no "burned in drv"
 mkdir -p drv/nas && cp drv/i1.iso drv/nas/ && "$tool" -C drv/.arv stored "$v1" drv/nas/i1.iso --location NAS >/dev/null 2>&1 || no "stored in drv"
@@ -453,7 +453,7 @@ grep -q "count as one" carrier.out || { cat carrier.out; no "stored notes a shar
 # a tape library or jukebox: the worklist (todo --tsv), the inventory, and the example mtx loop
 mkdir -p lib/T1 lib/T2 lib/T3 lib/mnt lib/bin && echo 1 > lib/T1/a && echo 2 > lib/T2/b && echo 3 > lib/T3/c
 (cd lib && "$tool" init . >/dev/null && "$tool" location add LIB1 "Tape library" >/dev/null \
-    && for t in T1 T2 T3; do "$tool" make -y --no-ecc --formats no --set CODE --output $t.iso $t >/dev/null 2>&1 || exit 1; done) \
+    && for t in T1 T2 T3; do "$tool" make -y --no-ecc --no-formats --set CODE --output $t.iso $t >/dev/null 2>&1 || exit 1; done) \
     || no "make in lib"
 l1=$(sed -n 's/^Id: \(CODE-01.*\)/\1/p' lib/.arv/catalog/archive.rec | head -1)
 l2=$(sed -n 's/^Id: \(CODE-02.*\)/\1/p' lib/.arv/catalog/archive.rec | head -1)
@@ -464,7 +464,7 @@ cp lib/T2.iso lib/mnt/ && "$tool" -C lib/.arv stored "$l2" lib/mnt/T2.iso --carr
 "$tool" -C lib/.arv burned "$l3" --copies 1 --location LIB1 >/dev/null 2>&1 || no "burned, no barcode"
 "$tool" -C lib/.arv todo --tsv > todo.tsv
 grep -q "^read-back	$l1	A	disc	barcode:DISC01		LIB1		$" todo.tsv && ! grep -q "	$l2	" todo.tsv || { cat todo.tsv; no "todo --tsv"; }
-"$tool" -C lib/.arv todo --tsv --overdue -1 | grep -q "^overdue	$l2	A	iso		barcode:TAPE01L8	LIB1	.*/lib/mnt/T2.iso	" \
+"$tool" -C lib/.arv todo --tsv --overdue 2999 | grep -q "^overdue	$l2	A	iso		barcode:TAPE01L8	LIB1	.*/lib/mnt/T2.iso	" \
     || no "todo --tsv: an overdue copy on a tape"
 printf '%s\n' '  Storage Changer /dev/sg3:1 Drives, 4 Slots ( 0 Import/Export )' 'Data Transfer Element 0:Empty' \
     '      Storage Element 1:Full :VolumeTag=DISC01' '      Storage Element 2:Full :VolumeTag=TAPE01L8' \
@@ -477,10 +477,10 @@ grep -v TAPE01L8 lib/status.txt | "$tool" -C lib/.arv inventory LIB1 > inv.out &
 grep -q "^MISSING    $l2 copy A" inv.out || { cat inv.out; no "inventory: the missing tape"; }
 printf '#!/bin/sh\ncase "$3" in status) cat "%s/lib/status.txt";; *) echo "$3 $4 $5" >> "%s/lib/mtx.log";; esac\n' "$PWD" "$PWD" > lib/bin/mtx
 chmod +x lib/bin/mtx
-(cd lib && ARV="$tool" MTX="$PWD/bin/mtx" OVERDUE=-1 LTFS_MOUNT=true LTFS_UMOUNT=true \
+(cd lib && ARV="$tool" MTX="$PWD/bin/mtx" OVERDUE=2999 LTFS_MOUNT=true LTFS_UMOUNT=true \
     sh "$repo/docs/examples/library-check.sh" /dev/sg3 0 T1.iso "$PWD/mnt") > loop.out 2>&1 || { cat loop.out; no "library-check.sh"; }
 [ "$(cat lib/mtx.log)" = "$(printf 'load 1 0\nunload 1 0\nload 2 0\nunload 2 0')" ] && grep -q "^skip: $l3 copy A has no barcode" loop.out \
-    && grep -q "^$l1 copy A: OK" loop.out && grep -q "^$l2: copy A checked at .*/lib/mnt/T2.iso: identical" loop.out \
+    && grep -q "^$l1 copy A: OK" loop.out && grep -q "^$l2 copy A: OK" loop.out \
     && ! "$tool" -C lib/.arv todo --tsv | grep -q "^read-back	$l1" \
     && ok "a library: todo --tsv is the worklist, inventory reconciles mtx status with the record, and the example mtx loop loads, checks and unloads by barcode" \
     || { cat loop.out lib/mtx.log; no "the library loop"; }
@@ -498,7 +498,7 @@ grep -q "^MISSING    $l2 copy A" scan.out && grep -q "^UNKNOWN    NOPE9: " scan.
 
 # a field changed apart in two catalogues, and a copy relabelled
 mkdir -p rl/a/T && echo r > rl/a/T/f
-(cd rl/a && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --formats no --set CODE --output r.iso T >/dev/null 2>&1) || no "make in rl"
+(cd rl/a && "$tool" init . >/dev/null && "$tool" make -y --no-ecc --no-formats --set CODE --output r.iso T >/dev/null 2>&1) || no "make in rl"
 r1=$(sed -n 's/^Id: //p' rl/a/.arv/catalog/archive.rec | head -1)
 "$tool" -C rl/a/.arv access "$r1" public && cp -r rl/a rl/b && "$tool" -C rl/b/.arv where --here >/dev/null || no "rl setup"
 "$tool" -C rl/b/.arv access "$r1" sealed && "$tool" -C rl/a/.arv access "$r1" private || no "access in both"
@@ -512,7 +512,7 @@ rc=0; "$tool" -C rl/a/.arv audit > rl.out || rc=$?
 "$tool" -C rl/a/.arv relabel "$r1" A B 2> rl.out && no "relabel of an ambiguous letter"
 grep -q "has 2 copies lettered A" rl.out || { cat rl.out; no "relabel says which"; }
 "$tool" -C rl/a/.arv relabel "$r1" A B --at ATTIC >/dev/null || no "relabel --at"
-"$tool" -C rl/a/.arv check --device rl/a/r.iso --copy B "$r1" >/dev/null 2>&1 || no "check of a relabelled copy"
+"$tool" -C rl/a/.arv check --drive rl/a/r.iso --copy B "$r1" >/dev/null 2>&1 || no "check of a relabelled copy"
 "$tool" -C rl/a/.arv objects "$r1" > rl.out
 grep -q "^  A  disc, cold, .*SHELF; not read back" rl.out && grep -q "^  B  disc, cold, .*ATTIC; last checked" rl.out \
     && ok "two catalogues: a field changed in both is a conflict until set again; relabel gives one of two copies lettered alike a new letter, and a check finds it by it" \
@@ -542,10 +542,10 @@ chmod +x helpers/assist helpers/gui
 cp -r "$repo/tests/reference/home" arv-home
 [ "$(ARV_ASSIST=helpers/assist "$tool" --home arv-home describe Photos --save d.json)" = "assist --home arv-home describe Photos --save d.json" ] \
     || no "arv describe was not handed to arv-assist"
-[ "$(ARV_ASSIST=helpers/assist "$tool" models status)" = "assist models status" ] || no "arv models"
+
 [ "$(ARV_GUI=helpers/gui "$tool" -C arv-home gui --port 0)" = "gui --home arv-home --port 0" ] \
     || no "arv gui was not handed to arv-gui with the home"
 ARV_ASSIST=/nonexistent/arv-assist PATH=/nonexistent "$tool" tag x 2>&1 | grep -q "needs arv-assist" || no "missing arv-assist message"
 "$tool" --help 2>&1 | grep -q "usage: arv" || no "arv --help"
-ok "arv: describe, tag and models go to arv-assist, gui to arv-gui (with the home); the rest runs here"
+ok "arv: describe and tag go to arv-assist, gui to arv-gui (with the home); the rest runs here"
 echo "all checks passed"

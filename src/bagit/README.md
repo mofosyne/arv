@@ -16,7 +16,7 @@ for all its algorithms); the tag manifests' files; `Payload-Oxum` in `bag-info.t
 file `fetch.txt` names is in the manifests and was fetched. Paths in manifests may carry `%0A`,
 `%0D` and `%25`.
 
-`arv verify` is this check plus arv's wording; `arv make` uses its SHA-256 and SHA-512.
+`arv check FOLDER` is this check plus arv's wording; `arv make` uses its SHA-256 and SHA-512.
 
 `check.sh` runs it on twelve good and broken bags and, with python3, has the Library of
 Congress's bagit-python (`upstream/bagit-python/`) judge the same bags: the verdicts must agree.

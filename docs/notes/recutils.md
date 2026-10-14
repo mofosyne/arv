@@ -30,22 +30,13 @@ recinf archive.rec                        # how many of each record
 recfix --check archive.rec && echo ok     # well formed, mandatory fields there, types right
 ```
 
-The discs, and where they are kept. A `Location` field holds a place's code. `-j` joins it to the
-`Location` record, so `Location_Name` is the place's name:
+Places belong to physical copies, not `Disc` records. A copy's `replication` event has its
+initial `Location`; later `metadata modification` events name that copy by its `Replication` id
+and `Copy`. Use arv for the current disc-level view and filters:
 
 ```sh
-recsel -t Disc -j Location -p Id,Title,Location_Name archive.rec
-```
-```
-Id: PHOTO-01_2026_3
-Title: Photos
-Location_Name: Study shelf
-```
-
-Discs kept in one place, as a bare list:
-
-```sh
-recsel -t Disc -e 'Location = "BOX"' -C -P Id archive.rec
+arv objects PHOTO-01_2026_3       # current place of each copy
+arv list --at BOX                  # discs with a copy at BOX or inside it
 ```
 
 Every copy (a copy is a `replication` event), with the title of its disc:
@@ -97,16 +88,17 @@ recsel -t Location -j Parent -p Code,Name,Parent_Name archive.rec
 Into a spreadsheet, or a line of your own:
 
 ```sh
-recsel -t Disc -p Id,Title,Location archive.rec | rec2csv > discs.csv
+recsel -t Event -e 'Type = "replication"' -j Disc -p Disc_Id,Copy,Disc_Title,Location archive.rec | rec2csv > copies.csv
 recsel -t Disc archive.rec | recfmt '{{Id}}  {{Title}}
 '
 ```
 
 ## Things to know
 
-- **A join keeps only records that match.** A disc whose `Location` is free text rather than a
+- **A join keeps only records that match.** A copy whose `Location` is free text rather than a
   place's code, and a place with no `Parent`, drop out of a joined query. Leave out `-j` to see
-  every record. A disc kept in two places appears once for each place.
+  every record. A disc with two copies appears once per replication event; arv combines copies
+  when showing unique places for the disc.
 - **recsel shows the record; arv draws the conclusions.** Two replication events can be one
   physical disc (they share a `bca:`, `barcode:` or `serial:` identifier). Two copies on one tape
   count as one. A copy's letter is the newest one given. A field changed twice apart is a

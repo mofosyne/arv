@@ -43,12 +43,10 @@ Description: Three days in Kyoto: shrines, temples and the bamboo grove.
 Subject: travel
 Subject: Japan
 Note: Sample disc made by samples/make-samples.sh; the photos are generated.
-Location: BOX1
 Access: public
 Files: 16
 Bytes: 9443
 Software: arv@f4b5548cabfe
-Location: OFFSITE
 
 Id: PROJ-01_2020-2023_L
 Uuid: 1b8be21e-bbf6-4da9-b034-7fc840053553
@@ -66,7 +64,6 @@ Coverage: 2020/2023
 Date: 2026-10-05
 Creator: Sample_Person
 Description: ESP32 weather station: firmware, KiCad board, gerbers and the git repository.
-Location: BOX1
 Access: private
 Files: 27
 Bytes: 9023
@@ -85,7 +82,6 @@ Coverage: 2019/2020
 Date: 2026-10-05
 Creator: Sample_Person
 Description: Tax return and quarterly receipts for 2019.
-Location: SAFE
 Access: sealed
 Files: 5
 Bytes: 3196
@@ -106,7 +102,6 @@ Coverage: 1995/2008
 Date: 2026-10-05
 Creator: Sample_Person
 Description: Scans of letters kept since 1995.
-Location: BOX1
 Access: private
 Files: 56
 Bytes: 2089113
@@ -144,12 +139,10 @@ Coverage: 2020/2021
 Date: 2026-10-05
 Creator: Sample_Person
 Description: Birthdays, the garden, the beach and Christmas.
-Location: OFFSITE
 Access: private
 Files: 16
 Bytes: 8828
 Software: arv@f4b5548cabfe
-Location: NAS
 
 %rec: Binding
 %doc: How one volume is stored on its medium: the container (filesystem) and the
@@ -223,9 +216,9 @@ ImageSectors: 8925
 ImageSha256: c5a8fcb15fc012e42a4961303ed8fe0ed8488a04374e7aa17bfb975fd7b129b9
 
 %rec: Location
-%doc: Places where discs are kept: site, room, shelf, box. Parent makes a tree,
-+ so moving a box moves every disc in it. A Disc's Location field (one per
-+ place its copies are kept) names a Code here, or is free text. Temperature says how
+%doc: Places where copies are kept: site, room, shelf, box. Parent makes a tree,
++ so moving a box moves every copy in it. A copy event's Location field names a Code here,
++ or is free text. Temperature says how
 + copies kept there are used: hot (in active use: working files, a synced folder), warm
 + (online or reachable, but left alone: an .iso or archive folder on a NAS) or cold
 + (offline: discs on a shelf, unplugged drives); a place without one takes its parent's.
@@ -296,7 +289,6 @@ Node: 63340d2964bf2ca073e6967288cb8e6339abe43f3d92eaaaddb06066d3626116
 Collection: 6621ee23-bc27-461e-b447-767cac324dcd
 Tree: 05be161ee1d96d3a05c207fe9feb24ed20c380c65540588495929089a80dc60a
 Date: 2026-10-05
-Stage: edition
 Edition: 1
 Volume: FAMILY-01_2020_Q
 Changes: +8 ~0 -0 >0 files
@@ -307,7 +299,6 @@ Collection: 6621ee23-bc27-461e-b447-767cac324dcd
 Tree: 0d19cf1920aa642961b34442d7482ee67175301f947b761979a3746682ddda86
 Parent: 63340d2964bf2ca073e6967288cb8e6339abe43f3d92eaaaddb06066d3626116
 Date: 2026-10-05
-Stage: edition
 Edition: 2
 Volume: FAMILY-02_2020-2021_I
 Changes: +8 ~0 -0 >0 files
@@ -330,6 +321,7 @@ Message: 2021 added
 %type: Outcome enum success failure warning
 %type: Authorship enum automatic suggested accepted edited human
 
+EventId: 1c97fc7330211a701ab732c8d551c90f
 Object: location:HOME
 Type: metadata modification
 Date: 2026-10-05
@@ -338,6 +330,7 @@ Authorship: human
 Agent: human:root
 Note: created
 
+EventId: 8fc5f38dd8953780f76b27cc26063569
 Object: location:STUDY
 Type: metadata modification
 Date: 2026-10-05
@@ -346,6 +339,7 @@ Authorship: human
 Agent: human:root
 Note: created in HOME
 
+EventId: d700c1235dd649a92d34dc4b23ad7fb5
 Object: location:BOX1
 Type: metadata modification
 Date: 2026-10-05
@@ -354,6 +348,7 @@ Authorship: human
 Agent: human:root
 Note: created in STUDY
 
+EventId: 9527990c2ec97702ec9d2ebabe8d21d6
 Object: location:SAFE
 Type: metadata modification
 Date: 2026-10-05
@@ -362,6 +357,7 @@ Authorship: human
 Agent: human:root
 Note: created in HOME
 
+EventId: b2007d4bce90d9f03688b749f73540ef
 Object: location:OFFSITE
 Type: metadata modification
 Date: 2026-10-05
@@ -370,6 +366,7 @@ Authorship: human
 Agent: human:root
 Note: created
 
+EventId: 3d3fb38fdb655eb00fd6a139b2b9dab1
 Object: location:NAS
 Type: metadata modification
 Date: 2026-10-05
@@ -378,6 +375,7 @@ Authorship: human
 Agent: human:root
 Note: created in HOME
 
+EventId: 57a55d04b888bcf04289d27d5ef9300a
 Disc: TRIP-01_2019_4
 Type: message digest calculation
 Date: 2026-10-05
@@ -386,6 +384,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: sha256 and sha512 manifests of 16 files
 
+EventId: f64bf1cbb08513bfdba0a18f81d7160f
 Disc: TRIP-01_2019_4
 Type: metadata modification
 Date: 2026-10-05
@@ -394,6 +393,7 @@ Authorship: human
 Agent: sample script (hand-written)
 Note: title, description, subjects and folder tags taken from a draft (made by: sample script (hand-written))
 
+EventId: 261941168e3f158a31daf29dd544e1fe
 Disc: TRIP-01_2019_4
 Type: creation
 Date: 2026-10-05
@@ -402,6 +402,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: image TRIP-01_2019_4.iso, 5394 sectors; RS03: 10 MiB data, 6 MiB ecc (99 roots; 63.5% redundancy), 0 MiB padding.
 
+EventId: a6b132cef57a3e4e317398dd99f45057
 Disc: TRIP-01_2019_4
 Type: fixity check
 Date: 2026-10-05
@@ -410,6 +411,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: image test after creation
 
+EventId: 925783d87e44366348e85879efbb8cb0
 Disc: PROJ-01_2020-2023_L
 Type: message digest calculation
 Date: 2026-10-05
@@ -418,6 +420,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: sha256 and sha512 manifests of 27 files
 
+EventId: c56290baaff7cce2cde6daf56f129065
 Disc: PROJ-01_2020-2023_L
 Type: ingestion
 Date: 2026-10-05
@@ -426,6 +429,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: links: 1 copied, 1 recorded (policy: default)
 
+EventId: 66572d5cde657bc30c07cba3b6123c8e
 Disc: PROJ-01_2020-2023_L
 Type: metadata modification
 Date: 2026-10-05
@@ -434,6 +438,7 @@ Authorship: human
 Agent: sample script (hand-written)
 Note: title, description, subjects and folder tags taken from a draft (made by: sample script (hand-written))
 
+EventId: 44aa386d13097ab3342783d32dd89ab8
 Disc: PROJ-01_2020-2023_L
 Type: ingestion
 Date: 2026-10-05
@@ -442,6 +447,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: git repository .: 1 branch, 0 tags, 1 commit, history full; hooks and reflogs (but the stash's) left out
 
+EventId: 680caed61733b7085dd79071e805d5f7
 Disc: PROJ-01_2020-2023_L
 Type: creation
 Date: 2026-10-05
@@ -450,6 +456,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: image PROJ-01_2020-2023_L.iso, 5522 sectors; RS03: 10 MiB data, 6 MiB ecc (96 roots; 60.4% redundancy), 0 MiB padding.
 
+EventId: 1694c2647765797c9d65ac4538118006
 Disc: PROJ-01_2020-2023_L
 Type: fixity check
 Date: 2026-10-05
@@ -458,6 +465,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: image test after creation
 
+EventId: a3f666e53d6f6f7e62bb175a6944c182
 Disc: TAXES-01_2019-2020_I
 Type: message digest calculation
 Date: 2026-10-05
@@ -466,6 +474,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: sha256 and sha512 manifests of 5 files
 
+EventId: fc187c96d45d4fe1454cf63227a1c48d
 Disc: TAXES-01_2019-2020_I
 Type: creation
 Date: 2026-10-05
@@ -474,6 +483,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: image TAXES-01_2019-2020_I.iso, 5458 sectors; RS03: 10 MiB data, 6 MiB ecc (98 roots; 62.4% redundancy).
 
+EventId: 4c8bd80fdb994e98524f512556e4c9dd
 Disc: TAXES-01_2019-2020_I
 Type: fixity check
 Date: 2026-10-05
@@ -482,6 +492,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: image test after creation
 
+EventId: 536239cc49d93ed5fa517a8509dc6b62
 Disc: SCAN-01_1995-2008_D
 Type: message digest calculation
 Date: 2026-10-05
@@ -490,6 +501,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: sha256 and sha512 manifests of 56 files
 
+EventId: 32053cd16d9e8bc9baa53da32e6cc4b7
 Disc: SCAN-01_1995-2008_D
 Type: creation
 Date: 2026-10-05
@@ -498,6 +510,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: image SCAN-01_1995-2008_D.iso, 6642 sectors; RS03: 12 MiB data, 4 MiB ecc (64 roots; 33.5% redundancy), 0 MiB padding.
 
+EventId: 6d268b3290019f9c1d662e16ffc09c65
 Disc: SCAN-01_1995-2008_D
 Type: fixity check
 Date: 2026-10-05
@@ -506,6 +519,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: image test after creation
 
+EventId: 494dd1d44807ef0a7989a79574090567
 Object: collection:FAMILY
 Type: accession
 Date: 2026-10-05
@@ -517,6 +531,7 @@ Folder: /tmp/arv-samples/family
 How: marker
 State: present
 
+EventId: ae88b3395337a715c18a21514818d8aa
 Disc: FAMILY-01_2020_Q
 Type: message digest calculation
 Date: 2026-10-05
@@ -525,6 +540,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: sha256 and sha512 manifests of 8 files
 
+EventId: 44f27341569480dcf13b21429938a024
 Disc: FAMILY-01_2020_Q
 Type: metadata modification
 Date: 2026-10-05
@@ -533,6 +549,7 @@ Authorship: human
 Agent: sample script (hand-written)
 Note: title, description, subjects and folder tags taken from a draft (made by: sample script (hand-written))
 
+EventId: 6f6b5c99db587f33c6c149fe89e5809f
 Disc: FAMILY-01_2020_Q
 Type: creation
 Date: 2026-10-05
@@ -541,6 +558,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: image FAMILY-01_2020_Q.iso, 5490 sectors; RS03: 10 MiB data, 6 MiB ecc (97 roots; 61.4% redundancy), 0 MiB padding.
 
+EventId: 5537e31ee909acfbad4f15b7c528bc53
 Disc: FAMILY-01_2020_Q
 Type: fixity check
 Date: 2026-10-05
@@ -549,6 +567,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: image test after creation
 
+EventId: 964e2522914890d58564d0fc3f11cdfc
 Disc: FAMILY-02_2020-2021_I
 Type: message digest calculation
 Date: 2026-10-05
@@ -557,6 +576,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: sha256 and sha512 manifests of 16 files
 
+EventId: 0172cefdee53adc7eaeec47986a6799d
 Disc: FAMILY-02_2020-2021_I
 Type: metadata modification
 Date: 2026-10-05
@@ -565,6 +585,7 @@ Authorship: human
 Agent: sample script (hand-written)
 Note: title, description, subjects and folder tags taken from a draft (made by: sample script (hand-written))
 
+EventId: 90ba0bf3282d1fd51ddec98167de76b0
 Disc: FAMILY-02_2020-2021_I
 Type: creation
 Date: 2026-10-05
@@ -573,6 +594,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: image FAMILY-02_2020-2021_I.iso, 5586 sectors; RS03: 10 MiB data, 6 MiB ecc (94 roots; 58.4% redundancy), 0 MiB padding.
 
+EventId: 9f855f597139f6443cefd4c5d8d2ffb7
 Disc: FAMILY-02_2020-2021_I
 Type: fixity check
 Date: 2026-10-05
@@ -581,6 +603,7 @@ Authorship: automatic
 Agent: arv@f4b5548cabfe
 Note: image test after creation
 
+EventId: 889cbc365cacb45bace05ee2ba88c6a0
 Disc: TRIP-01_2019_4
 Type: replication
 Date: 2026-10-05
@@ -591,7 +614,9 @@ Note: burned 1 copy; not read back
 Copy: A
 Form: disc
 Temperature: cold
+Location: BOX1
 
+EventId: 7c00db7be13b2d8b94d60b4112d4d244
 Disc: PROJ-01_2020-2023_L
 Type: replication
 Date: 2026-10-05
@@ -602,7 +627,9 @@ Note: burned 1 copy; not read back
 Copy: A
 Form: disc
 Temperature: cold
+Location: BOX1
 
+EventId: 452e7cfb500de8fc3d029f3901c61de7
 Disc: TAXES-01_2019-2020_I
 Type: replication
 Date: 2026-10-05
@@ -613,7 +640,9 @@ Note: burned 1 copy; not read back
 Copy: A
 Form: disc
 Temperature: cold
+Location: SAFE
 
+EventId: 85e7ea4b35567311cf6fef3512db7d36
 Disc: SCAN-01_1995-2008_D
 Type: replication
 Date: 2026-10-05
@@ -624,7 +653,9 @@ Note: burned 1 copy; not read back
 Copy: A
 Form: disc
 Temperature: cold
+Location: BOX1
 
+EventId: 167eae2cc220e95b365c4b8975fbc20b
 Disc: FAMILY-01_2020_Q
 Type: replication
 Date: 2026-10-05
@@ -636,6 +667,7 @@ Copy: A
 Form: disc
 Temperature: cold
 
+EventId: 2f692f7519fdc6b1c8055454088f7541
 Disc: FAMILY-02_2020-2021_I
 Type: replication
 Date: 2026-10-05
@@ -646,7 +678,9 @@ Note: burned 1 copy; not read back
 Copy: A
 Form: disc
 Temperature: cold
+Location: OFFSITE
 
+EventId: ac5d9c51a8e0c6be25bdc35f25881391
 Disc: FAMILY-02_2020-2021_I
 Type: fixity check
 Date: 2026-10-05
@@ -655,6 +689,7 @@ Authorship: automatic
 Agent: arv 0.4
 Note: check of a stored copy (iso) at /tmp/arv-samples/nas/FAMILY-02_2020-2021_I.iso: identical to the image
 
+EventId: 6b673f3681a60a29bc8e9a0b72931549
 Disc: FAMILY-02_2020-2021_I
 Type: replication
 Date: 2026-10-05
@@ -666,8 +701,10 @@ Copy: B
 ReadBack: identical
 Form: iso
 Temperature: warm
+Location: NAS
 Path: /tmp/arv-samples/nas/FAMILY-02_2020-2021_I.iso
 
+EventId: 24ea8f9cd328e7f1eb1ddc33fd8e75e0
 Disc: FAMILY-01_2020_Q
 Type: deaccession
 Date: 2026-10-05
@@ -676,6 +713,7 @@ Authorship: human
 Agent: human:root
 Note: retired: edition 1 of FAMILY, replaced by edition 2 (revision a2da9fde4f52); was kept at Parents' house
 
+EventId: 3c5bb28366969bba011e05d45cefd7e1
 Disc: TRIP-01_2019_4
 Type: replication
 Date: 2026-10-05
@@ -686,7 +724,9 @@ Note: burned 1 copy, kept at Parents' house; second copy for the parents; not re
 Copy: B
 Form: disc
 Temperature: cold
+Location: OFFSITE
 
+EventId: 85346b0ef21c46529c2b9a8760c3b84c
 Disc: PROJ-01_2020-2023_L
 Type: metadata modification
 Date: 2026-10-05
@@ -695,6 +735,7 @@ Authorship: human
 Agent: human:root
 Note: Note added: Board rev B; rev A gerbers were never ordered.
 
+EventId: 4e93552b59de02984fec2dfa62690e97
 Disc: FAMILY-01_2020_Q
 Type: fixity check
 Date: 2026-10-05
@@ -706,6 +747,7 @@ Note: image test (RS03: every sector against its CRC, the parity against the dat
 + header good; 0 data sectors with a wrong CRC, 0 CRC sectors and 0 parity sectors damaged
 + the image is whole
 
+EventId: e0c69f3735e8675b66d4804c3d589af0
 Disc: FAMILY-02_2020-2021_I
 Type: fixity check
 Date: 2026-10-05
@@ -717,6 +759,7 @@ Note: image test (RS03: every sector against its CRC, the parity against the dat
 + header good; 0 data sectors with a wrong CRC, 0 CRC sectors and 0 parity sectors damaged
 + the image is whole
 
+EventId: 7929220cc265b7adc450a15da9cba465
 Disc: PROJ-01_2020-2023_L
 Type: fixity check
 Date: 2026-10-05
@@ -728,6 +771,7 @@ Note: image test (RS03: every sector against its CRC, the parity against the dat
 + header good; 0 data sectors with a wrong CRC, 0 CRC sectors and 0 parity sectors damaged
 + the image is whole
 
+EventId: 1e173074771383c16a7556cba7e54a5f
 Disc: SCAN-01_1995-2008_D
 Type: fixity check
 Date: 2026-10-05
@@ -739,6 +783,7 @@ Note: image test (RS03: every sector against its CRC, the parity against the dat
 + header good; 0 data sectors with a wrong CRC, 0 CRC sectors and 0 parity sectors damaged
 + the image is whole
 
+EventId: 29ac6923d8361a202f0032af13e7eb79
 Disc: TAXES-01_2019-2020_I
 Type: fixity check
 Date: 2026-10-05
@@ -750,6 +795,7 @@ Note: image test (RS03: every sector against its CRC, the parity against the dat
 + header good; 0 data sectors with a wrong CRC, 0 CRC sectors and 0 parity sectors damaged
 + the image is whole
 
+EventId: 13c345c843175905d94627ba77e4f461
 Disc: TRIP-01_2019_4
 Type: fixity check
 Date: 2026-10-05

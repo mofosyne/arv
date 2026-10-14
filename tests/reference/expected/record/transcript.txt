@@ -2,17 +2,19 @@ $ --home rec burned TRIP-01_2019_4 --copies 2 --location box1 --media-type MEI-T
 TRIP-01_2019_4: copies C and D recorded, 4 in all (not read back: arv burned --device checks a copy as it records it).
 Write each one's letter on the hub and the case, after the id: TRIP-01_2019_4 C, and so on
 rc=0
+$ --home rec locate TRIP-01_2019_4 A OFFSITE
+TRIP-01_2019_4 copy A: kept at Parents' house
+rc=0
+$ --home rec locate TRIP-01_2019_4 A HOME
+TRIP-01_2019_4 copy A: kept at Home
+rc=0
 $ --home rec note PROJ-01_2020-2023_L A long note that goes on about the weather station, its board revisions and the spare parts
 rc=0
-$ --home rec locate SCAN-01_1995-2008_D SAFE --add
-SCAN-01_1995-2008_D: Home / Study / Box 1, blue lid; Home / Fire safe
-rc=0
-$ --home rec locate FAMILY-01_2020-2021_K Somewhere new
-Note: Somewhere new is not a location code ('arv location add' to define it); stored as text
-FAMILY-01_2020-2021_K: Somewhere new
+$ --home rec locate SCAN-01_1995-2008_D A SAFE
+SCAN-01_1995-2008_D copy A: kept at Home / Fire safe
 rc=0
 $ --home rec burned NOPE-01_2000_X
-Error: no disc NOPE-01_2000_X in rec/catalog/archive.rec (arv list shows them; arv id checks one)
+Error: no disc NOPE-01_2000_X in rec/catalog/archive.rec (arv list shows them; arv info ID checks one)
 rc=1
 $ --home rec burned TRIP-01_2019_4 --copy K --location OFFSITE --identifier bca:04 1e 10 15 12 62 02 02 24 03 02 14 50 10 48 af
 TRIP-01_2019_4: copy K recorded, 5 in all (not read back: arv burned --device checks a copy as it records it).
@@ -25,19 +27,19 @@ $ --home rec burned TRIP-01_2019_4 --identifier bca:0a1b2c
 Error: --identifier bca:0a1b2c: bca:SERIAL, the BCA serial: 32 hex digits (dev-tools/disc-probe prints it)
 rc=1
 $ --home rec burned TRIP-01_2019_4 --identifier lot:123
-Error: --identifier lot:123: SCHEME:VALUE, the scheme one of bca, barcode, serial, label, hub (bca:041e..., barcode:ARV-000123)
+Error: --identifier lot:123: SCHEME:VALUE, the scheme one of bca, barcode, serial (bca:041e..., barcode:ARV-000123)
 rc=1
 $ --home rec identify TRIP-01_2019_4 C barcode:ARV-000123 label:TRIP-01_2019_4 C
-TRIP-01_2019_4 copy C: known by barcode:ARV-000123, label:TRIP-01_2019_4 C, recorded.
-rc=0
-$ --home rec identify TRIP-01_2019_4 D barcode:ARV-000123
-Error: barcode:ARV-000123 is already copy C of TRIP-01_2019_4; one physical disc is one copy.
+Error: label:TRIP-01_2019_4 C: SCHEME:VALUE, the scheme one of bca, barcode, serial (bca:041e..., barcode:ARV-000123)
 rc=1
+$ --home rec identify TRIP-01_2019_4 D barcode:ARV-000123
+TRIP-01_2019_4 copy D: known by barcode:ARV-000123, recorded.
+rc=0
 $ --home rec identify TRIP-01_2019_4 K bca:0a0b0c0d0e0f00112233445566778899
 Error: copy K already has a BCA serial (bca:041e10151262020224030214501048af): one disc has one
 rc=1
 $ --home rec burned TRIP-01_2019_4 --identifier barcode:ARV-000123
-Error: this disc is already recorded: copy C of TRIP-01_2019_4 (barcode:ARV-000123). Each copy is recorded once.
+Error: this disc is already recorded: copy D of TRIP-01_2019_4 (barcode:ARV-000123). Each copy is recorded once.
 rc=1
 $ --home rec burned TRIP-01_2019_4 --copy K
 Error: TRIP-01_2019_4 already has a copy K: name this one another letter (or leave --copy out, and arv takes the next)
@@ -46,7 +48,7 @@ $ --home rec burned TRIP-01_2019_4 --copy k2
 Error: --copy k2: 1-3 capital letters, as written on the disc (A, B ... Z, AA)
 rc=1
 $ --home rec todo
-Burned, never read back (arv check --device DRIVE --copy X ID):
+Burned, never read back (arv check DRIVE --copy X ID):
   TRIP-01_2019_4  copies A, B, C, D, K
   PROJ-01_2020-2023_L  copy A
   TAXES-01_2019-2020_I  copy A
@@ -54,30 +56,23 @@ Burned, never read back (arv check --device DRIVE --copy X ID):
   SCAN-02_1995-2008_B  copy A
   SCAN-03_1995-2008_9  copy A
   FAMILY-01_2020-2021_K  copy A
-No cold copy, every copy is online or in use (burn one for the shelf):
-  PROJ-01_2020-2023_L
-  TAXES-01_2019-2020_I
-  SCAN-01_1995-2008_D
-  SCAN-02_1995-2008_B
-  SCAN-03_1995-2008_9
-  FAMILY-01_2020-2021_K
 Fewer copies or places than its appraisal asks for (essential: 3 copies in 3 places; important: 2 in 2; useful: 1):
-  TRIP-01_2019_4  essential for self: 5 copies in 2 places
   PROJ-01_2020-2023_L  important for self: 1 copy in 1 place
-Kept in fewer than two places (arv locate ID PLACE --add):
+Kept in fewer than two places (arv burned/stored ... --location PLACE, or arv locate ID COPY PLACE):
   TAXES-01_2019-2020_I  one place
+  SCAN-01_1995-2008_D  one place
   SCAN-02_1995-2008_B  one place
   SCAN-03_1995-2008_9  one place
   FAMILY-01_2020-2021_K  one place
 rc=0
 $ --home rec objects TRIP-01_2019_4
 TRIP-01_2019_4: 5 copies
-  A  disc, made 2026-10-04; its place not recorded; not read back
-  B  disc, made 2026-10-04; its place not recorded; not read back
-  C  disc, cold, made 2026-01-01; Home / Study / Box 1, blue lid; not read back; barcode:ARV-000123, label:TRIP-01_2019_4 C
-  D  disc, cold, made 2026-01-01; Home / Study / Box 1, blue lid; not read back
+  A  disc, cold, made 2026-10-04; Home; not read back
+  B  disc, cold, made 2026-10-04; Parents' house; not read back
+  C  disc, cold, made 2026-01-01; Home / Study / Box 1, blue lid; not read back
+  D  disc, cold, made 2026-01-01; Home / Study / Box 1, blue lid; not read back; barcode:ARV-000123
   K  disc, cold, made 2026-01-01; Parents' house; not read back; bca:041e10151262020224030214501048af
 rc=0
 $ --home rec objects TRIP-01_2019_4 --json
-{"disc": "TRIP-01_2019_4", "retired": false, "where": "Home / Study / Box 1, blue lid; Parents' house", "copies": [{"copy": "A", "form": "disc", "temperature": "", "location": "", "at": "", "made": "2026-10-04", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": false}, {"copy": "B", "form": "disc", "temperature": "", "location": "", "at": "", "made": "2026-10-04", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": false}, {"copy": "C", "form": "disc", "temperature": "cold", "location": "BOX1", "at": "Home / Study / Box 1, blue lid", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": ["barcode:ARV-000123", "label:TRIP-01_2019_4 C"], "readBack": false}, {"copy": "D", "form": "disc", "temperature": "cold", "location": "BOX1", "at": "Home / Study / Box 1, blue lid", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": false}, {"copy": "K", "form": "disc", "temperature": "cold", "location": "OFFSITE", "at": "Parents' house", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": ["bca:041e10151262020224030214501048af"], "readBack": false}]}
+{"disc": "TRIP-01_2019_4", "retired": false, "where": "Home; Parents' house; Home / Study / Box 1, blue lid", "copies": [{"copy": "A", "form": "disc", "temperature": "cold", "location": "HOME", "at": "Home", "made": "2026-10-04", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": false}, {"copy": "B", "form": "disc", "temperature": "cold", "location": "OFFSITE", "at": "Parents' house", "made": "2026-10-04", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": false}, {"copy": "C", "form": "disc", "temperature": "cold", "location": "BOX1", "at": "Home / Study / Box 1, blue lid", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": [], "readBack": false}, {"copy": "D", "form": "disc", "temperature": "cold", "location": "BOX1", "at": "Home / Study / Box 1, blue lid", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": ["barcode:ARV-000123"], "readBack": false}, {"copy": "K", "form": "disc", "temperature": "cold", "location": "OFFSITE", "at": "Parents' house", "made": "2026-01-01", "checked": "", "sameAs": "", "carrier": "", "carrierWith": "", "identifiers": ["bca:041e10151262020224030214501048af"], "readBack": false}]}
 rc=0

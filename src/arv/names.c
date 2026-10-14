@@ -1,5 +1,5 @@
-/* File names a disc image cannot keep exactly (src/arv/names.py; tests/fixtures/names.tsv), and
- * volume labels (src/arv/image.py volume_label; tests/fixtures/labels.tsv). */
+/* File names a disc image cannot keep exactly and volume labels. The language-neutral fixtures
+ * are tests/fixtures/names.tsv and tests/fixtures/labels.tsv. */
 #define _XOPEN_SOURCE 700
 #include "arv.h"
 
@@ -18,7 +18,7 @@ static void issue(name_issues *out, const char *path, int error, const char *pro
     out->n++;
 }
 
-/* the characters of name that are in set, sorted and space separated (Python: sorted(set(...))) */
+/* the unique characters of name that are in set, sorted and space separated */
 static void chars_in(const char *name, const char *set, char *out)
 {
     size_t n = 0;
@@ -30,7 +30,7 @@ static void chars_in(const char *name, const char *set, char *out)
     out[n] = 0;
 }
 
-/* the issues of one name (the last part of key), worded as src/arv/names.py words them */
+/* the issues of one name (the last part of key) */
 static void check_one(const char *key, const char *name, name_issues *out)
 {
     size_t chars = 0;
@@ -104,7 +104,7 @@ void names_check(char *const *paths, size_t n, name_issues *out)
                 int same = 1;
                 for (size_t k = 0; na[k] && same; k++) same = tolower((unsigned char)na[k]) == tolower((unsigned char)nb[k]);
                 if (same) {
-                    /* Python's repr of the other name: '...', or "..." when it holds a ' */
+                    /* quote the other name with whichever quote mark it does not contain */
                     char *msg = strchr(nb, '\'') && !strchr(nb, '"')
                         ? xprintf("differs from \"%s\" only in letter case: Windows shows only one", nb)
                         : xprintf("differs from '%s' only in letter case: Windows shows only one", nb);

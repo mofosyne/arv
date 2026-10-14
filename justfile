@@ -74,6 +74,7 @@ diagrams:
 site port="8000":
     python3 -m http.server {{port}} -d docs
 
+
 # Show the three NetBSD makefs bugs and their fixes (fetches upstream NetBSD sources)
 netbsd-repro:
     sh upstream/netbsd-makefs/repro/repro.sh

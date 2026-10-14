@@ -1,6 +1,5 @@
-/* Editing the catalogue and looking at it (src/arv/cli.py): access, location, selection,
- * appraise, sets, names, where. Every change appends an Event, as the Python arv does, and the
- * output is the Python arv's, line for line. */
+/* Editing and querying the catalogue: access, location, appraise, sets, names and where.
+ * Every change appends an Event. */
 #define _XOPEN_SOURCE 700
 #include "arv.h"
 #include "data.h"
@@ -13,7 +12,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-/* printf's %-Ns counts bytes; Python counts characters */
+/* printf's %-Ns counts bytes; this width is in UTF-8 characters */
 static void pad(sbuf *b, const char *s, size_t width)
 {
     sb_puts(b, s);
@@ -49,7 +48,7 @@ static void change(archive *cat, const char *disc_id, const char *obj, const cha
 {
     char *who = person();
     rec_record *e = new_event(disc_id ? disc_id : obj, "metadata modification", "success", who, "human", note);
-    if (!disc_id) {                  /* a place or a selection: Object instead of Disc */
+    if (!disc_id) {                  /* a place: Object instead of Disc */
         free(e->fields[0].name);
         e->fields[0].name = xstrdup("Object");
     }
@@ -58,12 +57,6 @@ static void change(archive *cat, const char *disc_id, const char *obj, const cha
     free(who);
 }
 
-static int count_field(const rec_record *r, const char *name)
-{
-    int n = 0;
-    for (size_t i = 0; i < r->nfields; i++) n += !strcmp(r->fields[i].name, name);
-    return n;
-}
 
 /* list.insert(2, (name, value)): after Code and Name */
 static void insert_at(rec_record *r, size_t at, const char *name, const char *value)
@@ -150,16 +143,18 @@ static void show_location(const archive *cat, const rec_record *l, int depth, in
     size_t direct = 0, inside = 0;
     for (size_t i = 0; i < cat->discs.n; i++) {
         const rec_record *d = cat->discs.v[i];
+        strlist places;
+        archive_copy_locations(cat, rec_get(d, "Id"), &places);
         int here = 0, in = 0;
-        for (size_t f = 0; f < d->nfields; f++) {
-            if (strcmp(d->fields[f].name, "Location")) continue;
-            char *v = upper_trim_copy(d->fields[f].value);
+        for (size_t f = 0; f < places.n; f++) {
+            char *v = upper_trim_copy(places.v[f]);
             here |= !strcmp(v, code);
             free(v);
-            in |= location_under(cat, d->fields[f].value, code);
+            in |= location_under(cat, places.v[f], code);
         }
         direct += here;
         inside += in;
+        strlist_free(&places);
     }
     sbuf line = { 0 };
     for (int i = 0; i < depth; i++) sb_puts(&line, "  ");
@@ -174,13 +169,15 @@ static void show_location(const archive *cat, const rec_record *l, int depth, in
     if (verbose)
         for (size_t i = 0; i < cat->discs.n; i++) {
             const rec_record *d = cat->discs.v[i];
+            strlist places;
+            archive_copy_locations(cat, rec_get(d, "Id"), &places);
             int here = 0;
-            for (size_t f = 0; f < d->nfields; f++)
-                if (!strcmp(d->fields[f].name, "Location")) {
-                    char *v = upper_trim_copy(d->fields[f].value);
-                    here |= !strcmp(v, code);
-                    free(v);
-                }
+            for (size_t f = 0; f < places.n; f++) {
+                char *v = upper_trim_copy(places.v[f]);
+                here |= !strcmp(v, code);
+                free(v);
+            }
+            strlist_free(&places);
             if (here) printf("%*s  %s  %s\n", depth * 2 + 11, "", get_or(d, "Id", "None"), get_or(d, "Title", "None"));
         }
     for (size_t i = 0; i < cat->locations.n; i++) {
@@ -228,12 +225,13 @@ int cmd_location(int argc, char **argv)
         strlist seen = { 0 }, loose = { 0 };
         for (size_t i = 0; i < cat.locations.n; i++)
             if (!loc(&cat, rec_get(cat.locations.v[i], "Parent"))) show_location(&cat, cat.locations.v[i], 0, verbose, &seen);
-        for (size_t i = 0; i < cat.discs.n; i++)
-            for (size_t f = 0; f < cat.discs.v[i]->nfields; f++) {
-                const rec_field *fl = &cat.discs.v[i]->fields[f];
-                if (!strcmp(fl->name, "Location") && !loc(&cat, fl->value) && !strlist_has(&loose, fl->value))
-                    strlist_add(&loose, fl->value);
-            }
+        for (size_t i = 0; i < cat.discs.n; i++) {
+            strlist places;
+            archive_copy_locations(&cat, rec_get(cat.discs.v[i], "Id"), &places);
+            for (size_t f = 0; f < places.n; f++)
+                if (!loc(&cat, places.v[f]) && !strlist_has(&loose, places.v[f])) strlist_add(&loose, places.v[f]);
+            strlist_free(&places);
+        }
         if (loose.n) qsort(loose.v, loose.n, sizeof *loose.v, by_string);
         for (size_t i = 0; i < loose.n; i++) {
             sbuf l = { 0 };
@@ -306,55 +304,7 @@ int cmd_location(int argc, char **argv)
     return 0;
 }
 
-/* ------------------------------------------------------------------ selections */
-
-static rec_record *coll(const archive *cat, const char *code)
-{
-    char *want = upper_trim_copy(code);
-    rec_record *found = NULL;
-    for (size_t i = 0; i < cat->selections.n && !found; i++)
-        if (rec_get(cat->selections.v[i], "Code") && !strcmp(rec_get(cat->selections.v[i], "Code"), want))
-            found = cat->selections.v[i];
-    free(want);
-    return found;
-}
-
-static char *selection_path(const archive *cat, const char *code)
-{
-    const rec_record *chain[64];
-    size_t n = 0;
-    for (rec_record *c = coll(cat, code); c && n < 64; c = coll(cat, rec_get(c, "Parent"))) {
-        size_t k;
-        for (k = 0; k < n && chain[k] != c; k++) {}
-        if (k < n) break;
-        chain[n++] = c;
-    }
-    if (!n) return xstrdup(code);
-    sbuf b = { 0 };
-    while (n--) sb_printf(&b, "%s%s", get_or(chain[n], "Name", get_or(chain[n], "Code", "")), n ? " / " : "");
-    return b.s;
-}
-
-static void show_selection(const archive *cat, const rec_record *c, int depth)
-{
-    if (depth > 64) return;
-    int items = count_field(c, "Item");
-    sbuf line = { 0 };
-    for (int i = 0; i < depth; i++) sb_puts(&line, "  ");
-    pad(&line, get_or(c, "Code", "None"), 12);
-    sb_puts(&line, " ");
-    pad(&line, get_or(c, "Name", "None"), 36);
-    sb_printf(&line, " %d item%s", items, items == 1 ? "" : "s");
-    puts(line.s);
-    free(line.s);
-    for (size_t i = 0; i < cat->selections.n; i++) {
-        char *p = upper_trim_copy(get_or(cat->selections.v[i], "Parent", ""));
-        if (!strcmp(p, get_or(c, "Code", ""))) show_selection(cat, cat->selections.v[i], depth + 1);
-        free(p);
-    }
-}
-
-/* "DISC-ID:path" -> disc id and path (relative to data/); 1 when the path names a folder */
+/* Disc paths are appraisal targets: files, folders or a whole disc. */
 static int parse_item(const char *item, char **disc_id, char **path)
 {
     while (isspace((unsigned char)*item)) item++;
@@ -375,7 +325,6 @@ static int parse_item(const char *item, char **disc_id, char **path)
     return !**path || (*path)[strlen(*path) - 1] == '/';
 }
 
-/* paths in a disc's listing at home (files in data/ only), or NULL without a listing */
 static strlist *listing_paths(const arv_home *h, const char *disc_id)
 {
     char *p = home_volume_file(h, disc_id, "listing.tsv");
@@ -398,175 +347,7 @@ static int any_prefix(const strlist *l, const char *prefix)
     return 0;
 }
 
-int cmd_selection(int argc, char **argv)
-{
-    const char *given = NULL, *action = NULL, *code_arg = NULL, *name = NULL, *within = NULL, *description = NULL;
-    strlist items = { 0 };
-    for (int i = 0; i < argc; i++) {
-        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
-        else if (i + 1 < argc && !strcmp(argv[i], "--name")) name = argv[++i];
-        else if (i + 1 < argc && !strcmp(argv[i], "--in")) within = argv[++i];
-        else if (i + 1 < argc && !strcmp(argv[i], "--description")) description = argv[++i];
-        else if (!action) action = argv[i];
-        else if (!code_arg) code_arg = argv[i];
-        else strlist_add(&items, argv[i]);
-    }
-    static const char *const actions[] = { "list", "show", "add", "put", "drop", "move", NULL };
-    int known = 0;
-    for (int k = 0; actions[k] && action; k++) known |= !strcmp(action, actions[k]);
-    if (!known) return 2;
-    arv_home h;
-    archive cat;
-    open_home(given, &h, &cat);
-    if (!strcmp(action, "list")) {
-        for (size_t i = 0; i < cat.selections.n; i++)
-            if (!coll(&cat, rec_get(cat.selections.v[i], "Parent"))) show_selection(&cat, cat.selections.v[i], 0);
-        return 0;
-    }
-    if (!code_arg) die("arv selection %s needs a selection code", action);
-    char *code = upper_trim_copy(code_arg);
-    rec_record *c = coll(&cat, code);
-    if (!strcmp(action, "show")) {
-        if (!c) die("no selection %s", code);
-        char *path = selection_path(&cat, code);
-        printf("%s  %s\n", code, path);
-        free(path);
-        if (rec_get(c, "Description")) printf("  %s\n", rec_get(c, "Description"));
-        for (size_t f = 0; f < c->nfields; f++) {
-            if (strcmp(c->fields[f].name, "Item")) continue;
-            char *id, *p;
-            parse_item(c->fields[f].value, &id, &p);
-            rec_record *d = archive_disc(&cat, id);
-            char *w = d ? archive_where(&cat, d) : xstrdup("not in the catalogue");
-            sbuf line = { 0 };
-            sb_puts(&line, "  ");
-            pad(&line, *p ? p : "(whole disc)", 50);
-            sb_printf(&line, " %s  [%s]", id, w);
-            puts(line.s);
-            free(line.s);
-            free(w);
-            free(id);
-            free(p);
-        }
-        return 0;
-    }
-    sbuf changes = { 0 };
-    if (!strcmp(action, "add") && c) {     /* add to one that exists: its items go in, as put does */
-        if (name || within || description || !items.n)
-            die("selection %s already exists (arv selection put CODE ITEM... adds to it; move changes its name or place)",
-                code);
-        fprintf(stderr, "Note: selection %s already exists: adding to it (as arv selection put does)\n", code);
-        action = "put";
-    }
-    if (!strcmp(action, "add")) {
-        if (!code_ok(code, 32)) die("selection code %s: use 1-32 capital letters, digits, - or _", code_arg);
-        if (within && !coll(&cat, within)) {
-            char *w = upper_trim_copy(within);
-            die("no selection %s (add it first)", w);
-        }
-        c = rec_alloc("Selection");
-        rec_add(c, "Code", code);
-        rec_add(c, "Name", name ? name : code);
-        char *w = within ? upper_trim_copy(within) : NULL;
-        if (w) rec_add(c, "Parent", w);
-        if (description) rec_add(c, "Description", description);
-        recs_add(&cat.selections, c);
-        sb_printf(&changes, "created%s%s", w ? " in " : "", w ? w : "");
-        free(w);
-    } else if (!c) {
-        die("no selection %s", code);
-    }
-    int items_before = count_field(c, "Item");
-    char *parent_before = rec_get(c, "Parent") ? xstrdup(rec_get(c, "Parent")) : NULL;
-    char *name_before = xstrdup(get_or(c, "Name", "None"));
-    if (!strcmp(action, "add") || !strcmp(action, "put")) {
-        for (size_t i = 0; i < items.n; i++) {
-            char *id, *p;
-            int is_folder = parse_item(items.v[i], &id, &p);
-            if (!archive_disc(&cat, id))
-                die("no disc %s in the catalogue (items are DISC-ID, DISC-ID:folder/ or DISC-ID:folder/file)", id);
-            strlist *paths = *p ? listing_paths(&h, id) : NULL;
-            if (*p && paths && !(is_folder ? any_prefix(paths, p) : strlist_has(paths, p))) {
-                char *as_folder = xprintf("%s/", p);
-                if (!is_folder && any_prefix(paths, as_folder)) {     /* a folder given without its slash */
-                    free(p);
-                    p = as_folder;
-                } else {
-                    fprintf(stderr, "Error: %s has no %s %s\n", id, is_folder ? "folder" : "file", p);
-                    exit(1);
-                }
-            }
-            char *item = *p ? xprintf("%s:%s", id, p) : xstrdup(id);
-            int have = 0;
-            for (size_t f = 0; f < c->nfields; f++) have |= !strcmp(c->fields[f].name, "Item") && !strcmp(c->fields[f].value, item);
-            if (!have) rec_add(c, "Item", item);
-            free(item);
-            free(id);
-            free(p);
-        }
-    } else if (!strcmp(action, "drop")) {
-        strlist gone = { 0 };
-        for (size_t i = 0; i < items.n; i++) {
-            char *id, *p;
-            parse_item(items.v[i], &id, &p);
-            char *item = *p ? xprintf("%s:%s", id, p) : xstrdup(id);
-            strlist_add(&gone, item);
-            free(item);
-            free(id);
-            free(p);
-        }
-        size_t out = 0;
-        for (size_t f = 0; f < c->nfields; f++) {
-            if (!strcmp(c->fields[f].name, "Item") && strlist_has(&gone, c->fields[f].value)) {
-                free(c->fields[f].name);
-                free(c->fields[f].value);
-            } else {
-                c->fields[out++] = c->fields[f];
-            }
-        }
-        c->nfields = out;
-    } else if (!strcmp(action, "move")) {
-        for (rec_record *x = within ? coll(&cat, within) : NULL; x; x = coll(&cat, rec_get(x, "Parent")))
-            if (rec_get(x, "Code") && !strcmp(rec_get(x, "Code"), code)) {
-                char *w = upper_trim_copy(within);
-                fprintf(stderr, "Error: %s is inside %s; that would make a loop\n", w, code);
-                exit(1);
-            }
-        drop_field(c, "Parent");
-        if (within) {
-            char *w = upper_trim_copy(within);
-            insert_at(c, 2, "Parent", w);
-            free(w);
-        }
-        if (name) rec_set(c, "Name", name);
-    }
-    int delta = count_field(c, "Item") - items_before;      /* counts only: paths could name sealed files */
-    if (delta > 0) sb_printf(&changes, "%s%d item%s added", changes.len ? "; " : "", delta, delta == 1 ? "" : "s");
-    else if (delta < 0) sb_printf(&changes, "%s%d item%s removed", changes.len ? "; " : "", -delta, delta == -1 ? "" : "s");
-    const char *fields[3];              /* items only add up; a place and a name are replaced */
-    int nf = 0;
-    if (!strcmp(action, "move")) {
-        const char *now = rec_get(c, "Parent");
-        if ((now == NULL) != (parent_before == NULL) || (now && strcmp(now, parent_before)))
-            sb_printf(&changes, "%smoved into %s", changes.len ? "; " : "", now ? now : "the top level"), fields[nf++] = "Parent";
-        if (strcmp(get_or(c, "Name", "None"), name_before))
-            sb_printf(&changes, "%srenamed %s -> %s", changes.len ? "; " : "", name_before, get_or(c, "Name", "None")), fields[nf++] = "Name";
-    }
-    fields[nf] = NULL;
-    if (changes.len) {
-        char *obj = xprintf("selection:%s", code);
-        change(&cat, NULL, obj, changes.s, fields);
-        free(obj);
-    }
-    archive_save(&cat, h.rec_path);
-    char *path = selection_path(&cat, code);
-    printf("%s: %s, %d items\n", code, path, count_field(c, "Item"));
-    free(path);
-    free(changes.s);
-    return 0;
-}
-
-/* ------------------------------------------------------------------ appraisals (src/arv/appraisal.py) */
+/* ------------------------------------------------------------------ appraisals */
 
 static int standing(const rec_record *a)
 {
@@ -647,7 +428,7 @@ int disc_importance(const archive *cat, const char *id, char **why)
 /* the target and everything above it, most specific first: file, folders, disc, set */
 static void chain(const archive *cat, const char *target, strlist *out)
 {
-    if (!strncmp(target, "set:", 4) || selection_target(target)) {
+    if (!strncmp(target, "set:", 4)) {
         strlist_add(out, target);
         return;
     }
@@ -687,10 +468,9 @@ static void chain(const archive *cat, const char *target, strlist *out)
 
 static void check_target(const arv_home *h, const archive *cat, const char *target)
 {
-    if (selection_target(target)) {
-        if (!coll(cat, selection_target(target))) die("no selection %s", selection_target(target));
-        return;
-    }
+    if (!strncmp(target, "selection:", 10))
+        die("%s", "selection appraisal targets are not supported (targets: DISC-ID, DISC-ID:folder/, "
+                   "DISC-ID:folder/file, set:CODE)");
     if (!strncmp(target, "set:", 4)) {
         const char *code = target + 4;
         for (size_t i = 0; i < cat->discs.n; i++)
@@ -706,8 +486,7 @@ static void check_target(const arv_home *h, const archive *cat, const char *targ
     char *id, *p;
     int is_folder = parse_item(target, &id, &p);
     if (!archive_disc(cat, id))
-        die("no disc %s in the catalogue (targets: DISC-ID, DISC-ID:folder/, DISC-ID:folder/file, set:CODE, "
-            "selection:CODE)", id);
+        die("no disc %s in the catalogue (targets: DISC-ID, DISC-ID:folder/, DISC-ID:folder/file, set:CODE)", id);
     strlist *paths = *p ? listing_paths(h, id) : NULL;
     if (paths && !(is_folder ? any_prefix(paths, p) : strlist_has(paths, p))) {
         char *as_folder = xprintf("%s/", p);
@@ -1068,14 +847,28 @@ int cmd_names(int argc, char **argv)
 int cmd_where(int argc, char **argv)
 {
     const char *given = NULL;
-    int here = 0;
+    int here = 0, as_json = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (!strcmp(argv[i], "--here")) here = 1;
+        else if (!strcmp(argv[i], "--json")) as_json = 1;
         else return 2;
     }
     arv_home h;
     home_find(&h, given, NULL);
+    if (as_json) {
+        sbuf b = { 0 };
+        sb_puts(&b, "{\"path\": "); json_str(&b, h.path);
+        sb_puts(&b, ", \"catalog\": "); json_str(&b, h.catalog_dir);
+        sb_puts(&b, ", \"config\": "); json_str(&b, h.config_dir);
+        sb_puts(&b, ", \"drafts\": "); json_str(&b, h.drafts_dir);
+        sb_puts(&b, ", \"cache\": "); json_str(&b, h.cache_dir);
+        sb_puts(&b, ", \"rec\": "); json_str(&b, h.rec_path);
+        sb_puts(&b, "}\n");
+        fputs(b.s, stdout);
+        free(b.s);
+        return 0;
+    }
     if (here)
         printf(home_here(h.path) ? "Recorded: this catalogue lives here too; changes may be written to it here.\n"
                                  : "Already recorded: this catalogue lives here.\n");
@@ -1151,20 +944,22 @@ static size_t letter_clashes(const archive *cat)
     for (size_t i = 0; i < cat->events.n; i++) {
         const rec_record *a = cat->events.v[i];
         const char *disc = get_or(a, "Disc", ""), *la;
-        if (strcmp(get_or(a, "Type", ""), "replication") || !strcmp(get_or(a, "Outcome", ""), "failure")
-            || !(la = copy_letter(cat, disc, a)))
+        if (!is_copy_event(a, disc) || !(la = copy_letter(cat, disc, a)))
             continue;
         for (size_t j = i + 1; j < cat->events.n; j++) {
             const rec_record *b = cat->events.v[j];
             const char *lb;
-            if (strcmp(get_or(b, "Type", ""), "replication") || !strcmp(get_or(b, "Outcome", ""), "failure")
-                || strcmp(disc, get_or(b, "Disc", "")) || !(lb = copy_letter(cat, disc, b)) || strcmp(la, lb)
+            if (!is_copy_event(b, disc) || strcmp(disc, get_or(b, "Disc", "")) || !(lb = copy_letter(cat, disc, b)) || strcmp(la, lb)
                 || copy_same_as(cat, disc, b) == a)             /* one disc recorded twice: identity_report says so */
                 continue;
+            const char *aloc = copy_location(cat, disc, a), *bloc = copy_location(cat, disc, b);
+            char *aat = aloc ? place_path(cat, aloc) : xstrdup("an unrecorded place");
+            char *bat = bloc ? place_path(cat, bloc) : xstrdup("an unrecorded place");
             fprintf(stderr, "Warning: %s has two copies lettered %s (kept at %s, and at %s), recorded in two catalogues.\n"
                             "  Give one another letter, and write it on its hub and case: arv relabel %s %s NEW --at %s\n",
-                    disc, la, get_or(a, "Location", "an unrecorded place"), get_or(b, "Location", "an unrecorded place"), disc, la,
-                    get_or(b, "Location", "PLACE"));
+                    disc, la, aat, bat, disc, la, bloc ? bloc : "PLACE");
+            free(aat);
+            free(bat);
             n++;
         }
     }
@@ -1324,8 +1119,13 @@ int cmd_audit(int argc, char **argv)
         const rec_record *e = cat.events.v[i];
         event_key(e, keys[i]);
         event_content_id(e, content[i]);
-        if (!rec_get(e, "EventId")) {
+        if (!rec_get(e, "EventId")) {           /* arv gives every event an id: this one was added by hand */
+            sbuf l = { 0 };
+            audit_label(e, &l);
+            printf("NO ID    %s  (written without an EventId: arv cannot name or merge it)\n", l.s);
+            free(l.s);
             unnamed++;
+            problems++;
         } else if (strcmp(keys[i], content[i])) {
             sbuf l = { 0 };
             audit_label(e, &l);
@@ -1334,8 +1134,8 @@ int cmd_audit(int argc, char **argv)
             problems++;
         }
     }
-    printf("%s: %zu event%s, %zu changed since written%s\n", h.path, n, n == 1 ? "" : "s", problems,
-           unnamed ? " (some written before event ids: the next change to the catalogue gives them one)" : "");
+    printf("%s: %zu event%s, %zu changed since written, %zu without an id\n", h.path, n, n == 1 ? "" : "s",
+           problems - unnamed, unnamed);
     problems += identity_report(&cat);                  /* copies: recorded twice, on two discs, two BCA serials */
     problems += field_conflicts(&cat);                  /* a field changed apart, in two catalogues */
     for (size_t r = 0; r < roots.n; r++) {

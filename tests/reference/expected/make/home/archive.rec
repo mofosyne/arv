@@ -27,7 +27,6 @@ Date: 2026-01-01
 %type: Bytes int
 %type: Access enum public private sealed
 %type: Retired date
-%type: Location rec Location
 
 Id: CODE-01_2020_0
 Uuid: UUID
@@ -40,7 +39,6 @@ Sequence: 1
 Coverage: 2020
 Date: 2026-01-01
 Creator: archivist
-Location: BOX1
 Access: private
 Files: 3
 Bytes: 30
@@ -57,7 +55,6 @@ Sequence: 2
 Coverage: 2001
 Date: 2026-01-01
 Creator: archivist
-Location: BOX1
 Access: private
 Files: 2
 Bytes: 25
@@ -140,8 +137,8 @@ Source: second
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
-+ Disc names the disc; a change to a location, a selection or a data object names it in Object
-+ (location:CODE, selection:CODE, object:UUID) instead.
++ Disc names the disc; a change to a location or a data object names it in Object
++ (location:CODE, object:UUID) instead.
 + Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion
@@ -152,8 +149,8 @@ Source: second
 + warm for a file or folder), Location (where this copy is kept), Path for a file or folder,
 + MediaType (the media's maker and type, as the drive reports it) and Identifier when known:
 + how this physical copy is recognised, as scheme:value (bca: its factory serial, barcode: a
-+ label stuck on and scanned, label: written or printed, hub: the maker's code in the clear
-+ ring), repeatable, and added later by any event that names the Copy. With ReadBack: identical
++ label stuck on and scanned, serial: a manufacturer's serial), repeatable, and added later by
++ any event that names the Copy. With ReadBack: identical
 + it is a copy read back against its image before it was recorded (known good), as is one a
 + later fixity check with its Copy passed. A disc's copies are its replications, counted as
 + physical discs: two that share a bca:, barcode: or serial: identifier are one disc recorded
@@ -220,8 +217,8 @@ Note: image CODE-02_2001_Y.noecc.iso, 882 sectors
 %doc: The archivist log: how much something matters, to whom, and why. Appended and
 + never edited; the newest appraisal of a target replaces earlier ones, and one a
 + person made or reviewed outranks a machine's. Target is DISC-ID, DISC-ID:folder/,
-+ DISC-ID:folder/file (relative to data/), set:CODE or selection:CODE; a target
-+ without an appraisal takes the nearest one above it (file, folder, disc, set).
++ DISC-ID:folder/file (relative to data/) or set:CODE; a target without an appraisal
++ takes the nearest one above it (file, folder, disc, set).
 + Importance is '<level> for <audience>', one per audience; levels, most first:
 + essential (must survive: 3 copies in 3 places), important (on disc: 2 in 2),
 + useful (on disc if there is room), incidental (everyday storage is enough).

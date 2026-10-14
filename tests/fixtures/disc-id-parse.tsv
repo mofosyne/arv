@@ -1,5 +1,5 @@
 # text	scheme	set	sequence	coverage	check	valid
-# scheme none: not an id of any scheme. Every single-character typo and neighbour
+# scheme none: not an id of the current scheme. Every single-character typo and neighbour
 # swap of the first id must be valid=no.
 PHOTOS-07_2015-2024_Q	set-seq-coverage/1	PHOTOS	7	2015-2024	Q	yes
 photos-07_2015-2024_q	set-seq-coverage/1	PHOTOS	7	2015-2024	Q	yes
@@ -32,8 +32,7 @@ PHOTOS-07_2051-2024_Q	set-seq-coverage/1	PHOTOS	7	2051-2024	Q	no
 PHOTOS-07_2015-0224_Q	set-seq-coverage/1	PHOTOS	7	2015-0224	Q	no
 PHOTOS-07_2015-2204_Q	set-seq-coverage/1	PHOTOS	7	2015-2204	Q	no
 PHOTOS-07_2015-2042_Q	set-seq-coverage/1	PHOTOS	7	2015-2042	Q	no
-2020-2025_PROJECTS_01	coverage-set-seq/0	PROJECTS	1	2020-2025		yes
-2019_TAXES_3	coverage-set-seq/0	TAXES	3	2019		yes
+
 not an id	none					no
 	none					no
 PHOTOS-7_2015_A	none					no
