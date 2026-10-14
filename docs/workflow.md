@@ -294,14 +294,15 @@ data objects) or `PHOTO-01_2019_4:Kyoto` (one folder, as it is called now). The 
 a copy the record knows as files: a stored folder (`arv stored ID FOLDER`), or a disc mounted and
 recorded the same way; for an image, unpack it first (`7z x -oFOLDER IMAGE`). As they are read, each
 is checked against the old disc's manifest, and a damaged one stops the make (repair the copy, or
-use another). The new disc keeps each file's time, tags and name now (moves in the record), and
+use another). The new disc keeps each file's time, and each object's tags and name now, and
 each data object stays the same version, now one more copy.
 
-**Renaming after burning.** A disc cannot change, but its record can: `arv rename DISC-ID
-"day1/IMG_0001.JPG" "Fushimi Inari/torii gates.jpg"` records the new name (a folder's moves all
-under it). `find` finds it by either name, `restore` puts it back under the new one
-(`--as-burned` for the disc's), and the next disc made from these files uses it. On a disc with a
-layout, re-filing is changing tags instead; renaming suits a name.
+**After burning: names and tags, not places.** A burned disc does not change, and its paths are
+facts about it. What changes is the record of each data object: `arv retag torii.jpg
+'event:osaka-trip, place:osaka, best'` gives it new tags, and `arv rename IMG_0002.JPG torii.jpg`
+a new name. Both follow the object, by its Uuid, to every disc it is on; `find` finds it by them,
+and the next disc made from it (a remake, below) files it by its tags and names it by its name.
+Re-filing a photo is changing its tags; there is no moving it.
 
 **Copies.** `arv plan show NAME --duplicates` lists byte-identical files on each disc (a folder
 copied twice, a card imported twice, an export that repeats photos in each album), and `plan make`

@@ -107,7 +107,7 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   data objects as an item, so each continues its lineage: the new disc holds another copy of the
   same versions. At `plan make` every file is checked against the old disc's manifest (a damaged
   copy stops the make), keeps its time from the old listing, its tags now (burned, and changed
-  since), and its name now (moves in the record). No staging copy is made.
+  since), and its name now. No staging copy is made.
 
 **A plan as a collection's next edition**
 - `arv plan new NAME --collection CODE` (or `--collection` given to any plan action): `plan make`
@@ -115,12 +115,15 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   make of the collection's folder would. The collection says what is kept; the plan, how this
   edition is arranged, so `diff` between editions shows the arrangement as moves.
 
-**Moves in the record**
-- `arv rename DISC-ID PATH NEWPATH`: a burned disc's file or folder is called NEWPATH now. The disc
-  stays as burned; the change is an event (`Moved: BURNED<TAB>NOW`, with `Sets` and `Replaces`, so
-  renames merge and conflict as any field). `find` finds by either name and shows the new one
-  ("burned as"); `objects` shows the new place; `restore` writes the new names, or the disc's
-  with `--as-burned`. `restore` now reads the home's record for this, when there is one.
+**A data object's name and tags after burning**
+- `arv rename OBJECT NEWNAME`: a data object's name on discs now (`Slug`), a name and never a
+  place; `arv retag OBJECT TAGS`: its tags now. Both are events about the object (`Object:
+  object:UUID`, with `Sets` and `Replaces`), so they follow it to every disc it is on and every
+  disc made from it, not a path on one disc. OBJECT is its Uuid or name; two of the same name are
+  refused, listed. The discs stay as burned.
+- `describe --apply` and `tag --apply` record a change to an object's own path as its tags, so
+  they follow it too. `find`, `tags`, `keywords` and `objects` read them; a remade disc places each
+  object by its tags now (a layout) and names it by its name now.
 
 **Byte-identical files reported**
 - `make` notes files whose bytes another file on the same disc has (each is written in full), and

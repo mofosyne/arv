@@ -482,9 +482,9 @@ int cmd_objects(int argc, char **argv)
         holding hd = { 0 };
         long last = newest(&cat, uuid, &top, &hd);
         const rec_record *o = top.v[0];
-        const char *name = get_or(o, "Name", "?");
+        const char *name = object_slug(&cat, o), *tags = object_field(&cat, uuid, "Tags");   /* its name and tags now */
         int file = !strcmp(get_or(o, "Kind", ""), "file");
-        if (want && strcmp(want, name) && strcmp(want, uuid)) {
+        if (want && strcmp(want, name) && strcmp(want, get_or(o, "Name", "")) && strcmp(want, uuid)) {
             free(top.v);
             continue;
         }
@@ -494,6 +494,8 @@ int cmd_objects(int argc, char **argv)
         printf("  %s%s  %s, %ld version%s; newest: %s\n", name, file ? "" : "/", get_or(o, "Kind", "?"), last, last == 1 ? "" : "s",
                line.s);
         free(line.s);
+        if (strcmp(name, get_or(o, "Name", "?"))) printf("    renamed: it was read as %s\n", get_or(o, "Name", "?"));
+        if (tags) printf("    tags now: %s\n", *tags ? tags : "none");
         about_text(o, want != NULL);
         strlist src = { 0 };
         char *root = home_root(&h);
@@ -507,16 +509,9 @@ int cmd_objects(int argc, char **argv)
                 const rec_record *x = cat.objects.v[k];
                 if (strcmp(get_or(x, "Uuid", ""), uuid) || version_of(x) != v) continue;
                 char *c = copies_text(&cat, get_or(x, "Disc", "?"));
-                strlist from, to;               /* as it is called now (moves in the record) */
-                disc_moves(&cat, get_or(x, "Disc", ""), &from, &to);
-                char *path = moved_path(&from, &to, get_or(x, "Path", "?"));
-                printf("    version %ld  %s  data/%s%s  %s", v, get_or(x, "Disc", "?"), strcmp(path, ".") ? path : "",
+                const char *path = get_or(x, "Path", "?");
+                printf("    version %ld  %s  data/%s%s  %s\n", v, get_or(x, "Disc", "?"), strcmp(path, ".") ? path : "",
                        file || !strcmp(path, ".") ? "" : "/", c);
-                if (strcmp(path, get_or(x, "Path", "?"))) printf("  (burned as data/%s)", get_or(x, "Path", "?"));
-                putchar('\n');
-                free(path);
-                strlist_free(&from);
-                strlist_free(&to);
                 free(c);
             }
         free(top.v);

@@ -233,8 +233,8 @@ ROOT/plan-moved: not a collection's workflow folder
   its bytes are the data object plan-copy/, version 1 (data/plan-copy on TRIP-04_2025_5), archived from elsewhere
 rc=0
 $ --home hp find photos
-OBJECT  2025/  version 1  TRIP-02_2025_9  data/photos/  [?]
-OBJECT  2025/  version 2  TRIP-03_2025_7  data/photos/  [?]
+OBJECT  photos/  version 1  TRIP-02_2025_9  data/photos/  [?]
+OBJECT  photos/  version 2  TRIP-03_2025_7  data/photos/  [?]
 TRIP-02_2025_9  [?]  data/photos/a.jpg
 TRIP-03_2025_7  [?]  data/photos/a.jpg
 TRIP-03_2025_7  [?]  data/photos/b.jpg
@@ -242,7 +242,8 @@ TRIP-03_2025_7  [?]  data/photos/c.jpg
 rc=0
 $ --home hp objects
 Data objects:
-  b.jpg  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
+  kyoto-b.jpg  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
+    renamed: it was read as b.jpg
     from ROOT/plan-nas/photos/2025/b.jpg (there now: arv status says if it changed)
     version 1  TRIP-01_2025_B  data/best/kyoto-b.jpg  no copy yet
   wedding.mkv  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
@@ -251,7 +252,8 @@ Data objects:
   notes.txt  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
     from ROOT/plan-pc/notes.txt (there now: arv status says if it changed)
     version 1  TRIP-02_2025_9  data/notes.txt  no copy yet
-  2025/  folder, 2 versions; newest: 0 copies on 1 disc, 0 cold, 0 read back
+  photos/  folder, 2 versions; newest: 0 copies on 1 disc, 0 cold, 0 read back
+    renamed: it was read as 2025
     from ROOT/plan-nas/photos/2025 (there now: arv status says if it changed)
     version 2  TRIP-03_2025_7  data/photos/  no copy yet
     version 1  TRIP-02_2025_9  data/photos/  no copy yet
@@ -274,7 +276,8 @@ TRIP-01_2025_B: copy A recorded (iso, warm, checked), 1 in all
 rc=0
 $ --home hp objects 2025
 Data objects:
-  2025/  folder, 2 versions; newest: 1 copy on 1 disc, 1 cold, 0 read back
+  photos/  folder, 2 versions; newest: 1 copy on 1 disc, 1 cold, 0 read back
+    renamed: it was read as 2025
     from ROOT/plan-nas/photos/2025 (there now: arv status says if it changed)
     version 2  TRIP-03_2025_7  data/photos/  A: disc cold at BOX1
     version 1  TRIP-02_2025_9  data/photos/  no copy yet
@@ -456,7 +459,8 @@ LOST  TRIP-02_2025_9  notes.txt  (retired with no other copy)
 rc=0
 $ --home hp objects 2025
 Data objects:
-  2025/  folder, 2 versions; newest: 1 copy on 1 disc, 1 cold, 0 read back
+  photos/  folder, 2 versions; newest: 1 copy on 1 disc, 1 cold, 0 read back
+    renamed: it was read as 2025
     from ROOT/plan-nas/photos/2025 (there now: arv status says if it changed)
     version 2  TRIP-03_2025_7  data/photos/  A: disc cold at BOX1
     version 1  TRIP-02_2025_9  data/photos/  retired

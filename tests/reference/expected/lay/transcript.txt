@@ -156,7 +156,8 @@ Data objects:
   IMG_0003.JPG  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
     from ROOT/lay/DCIM/IMG_0003.JPG (there now: arv status says if it changed)
     version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/IMG_0003.JPG  no copy yet
-  IMG_0001.JPG  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
+  IMG_0001-day2.JPG  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
+    renamed: it was read as IMG_0001.JPG
     from ROOT/lay/DCIM/day2/IMG_0001.JPG (there now: arv status says if it changed)
     version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/IMG_0001-day2.JPG  no copy yet
   notes.txt  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
@@ -178,7 +179,7 @@ OBJECT  IMG_0001.JPG  version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyot
 OBJECT  IMG_0002-copy.JPG  version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/IMG_0002-copy.JPG  [?]
 OBJECT  IMG_0002.JPG  version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/IMG_0002.JPG  [?]
 OBJECT  IMG_0003.JPG  version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/IMG_0003.JPG  [?]
-OBJECT  IMG_0001.JPG  version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/IMG_0001-day2.JPG  [?]
+OBJECT  IMG_0001-day2.JPG  version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/IMG_0001-day2.JPG  [?]
 OBJECT  notes.txt  version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/notes.txt  [?]
 TAG   PHOTO-01_1974-2021_F  [?]  data/year/2019/event/kyoto trip/IMG_0001-day2.JPG  (event:kyoto trip, place:kyoto)
 TAG   PHOTO-01_1974-2021_F  [?]  data/year/2019/event/kyoto trip/IMG_0001.JPG  (event:kyoto trip, place:kyoto)
@@ -193,62 +194,49 @@ PHOTO-01_1974-2021_F  [?]  data/year/2019/event/kyoto trip/IMG_0002.JPG
 PHOTO-01_1974-2021_F  [?]  data/year/2019/event/kyoto trip/IMG_0003.JPG
 PHOTO-01_1974-2021_F  [?]  data/year/2019/event/kyoto trip/notes.txt
 rc=0
-$ --home hy rename PHOTO-01_1974-2021_F year/2019/event/kyoto trip/IMG_0002.JPG year/2019/event/kyoto trip/torii.jpg
-PHOTO-01_1974-2021_F: year/2019/event/kyoto trip/IMG_0002.JPG is year/2019/event/kyoto trip/torii.jpg now, in the record (the disc is as burned: arv find shows both names; arv restore uses the new one)
+$ --home hy rename IMG_0002.JPG torii.jpg
+IMG_0002.JPG is torii.jpg now (UUID). The discs it is on stay as burned; the next disc made from it uses the name.
 rc=0
-$ --home hy rename PHOTO-01_1974-2021_F data/project/weather-station/station project/weather-station/station-v1
-PHOTO-01_1974-2021_F: project/weather-station/station/ is project/weather-station/station-v1/ now, in the record (the disc is as burned: arv find shows both names; arv restore uses the new one)
+$ --home hy rename IMG_0001.JPG x.jpg
+Error: IMG_0001.JPG names 2 data objects; give one by its Uuid:
+  UUID  IMG_0001.JPG (version 1 on PHOTO-01_1974-2021_F, data/year/2019/event/kyoto trip/IMG_0001.JPG)
+  UUID  IMG_0001-day2.JPG (version 1 on PHOTO-01_1974-2021_F, data/year/2019/event/kyoto trip/IMG_0001-day2.JPG)
+rc=1
+$ --home hy rename torii.jpg best/torii.jpg
+Error: best/torii.jpg cannot be a name (no / : a place is the tags' or the plan's; no tabs or line breaks)
+rc=1
+$ --home hy rename nothing x.jpg
+Error: nothing: no data object has that name or Uuid (arv objects lists them)
+rc=1
+$ --home hy retag torii.jpg event:osaka-trip, place:osaka, Best
+torii.jpg: event:osaka-trip, place:osaka, best (UUID). The next disc made from it is filed by them; arv find finds it by them now.
 rc=0
-$ --home hy rename PHOTO-01_1974-2021_F year/2019/event/kyoto trip/IMG_0002.JPG x.jpg
-Error: year/2019/event/kyoto trip/IMG_0002.JPG is called year/2019/event/kyoto trip/torii.jpg now (arv rename it by that name)
-rc=1
-$ --home hy rename PHOTO-01_1974-2021_F year/2019/event/kyoto trip/IMG_0003.JPG year/2019/event/kyoto trip/notes.txt
-Error: year/2019/event/kyoto trip/notes.txt: another file or folder is called year/2019/event/kyoto trip/notes.txt now (choose another name)
-rc=1
-$ --home hy rename PHOTO-01_1974-2021_F nope.jpg x.jpg
-Error: nope.jpg is not a file or folder of PHOTO-01_1974-2021_F (arv find lists what it holds)
-rc=1
-$ --home hy rename PHOTO-01_1974-2021_F decade/1970s/print1.tif ../x.tif
-Error: ../x.tif cannot be a path under data/ (relative, no . or .. parts, no tabs or line breaks)
-rc=1
-$ --home hy find torii
-PHOTO-01_1974-2021_F  [?]  data/year/2019/event/kyoto trip/torii.jpg  (burned as data/year/2019/event/kyoto trip/IMG_0002.JPG)
+$ --home hy retag torii.jpg event:osaka-trip, place:osaka, best
+torii.jpg has those tags already
 rc=0
-$ --home hy find main.c
-PHOTO-01_1974-2021_F  [?]  data/project/weather-station/station-v1/src/main.c  (burned as data/project/weather-station/station/src/main.c)
-rc=0
-$ --home hy objects station
+$ --home hy objects torii.jpg
 Data objects:
-  station/  folder, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
-    "Station"
-    from ROOT/lay/station (there now: arv status says if it changed)
-    version 1  PHOTO-01_1974-2021_F  data/project/weather-station/station-v1/  no copy yet  (burned as data/project/weather-station/station)
+  torii.jpg  file, 1 version; newest: 0 copies on 1 disc, 0 cold, 0 read back
+    renamed: it was read as IMG_0002.JPG
+    tags now: event:osaka-trip, place:osaka, best
+    from ROOT/lay/DCIM/IMG_0002.JPG (there now: arv status says if it changed)
+    version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/IMG_0002.JPG  no copy yet
+rc=0
+$ --home hy find osaka
+TAG   PHOTO-01_1974-2021_F  [?]  data/year/2019/event/kyoto trip/IMG_0002.JPG  (event:osaka-trip, place:osaka, best)
 rc=0
 $ --home hy restore lay-disc lay-restored
-PHOTO-01_1974-2021_F: 2 files or folders renamed in the record since burning: restored under the new names (--as-burned for the names on the disc)
 PHOTO-01_1974-2021_F: restored 9 files (121 bytes) and 0 links to lay-restored
 rc=0
 lay-restored/decade/1970s/print1.tif
-lay-restored/project/weather-station/station-v1/README.md
-lay-restored/project/weather-station/station-v1/src/main.c
+lay-restored/project/weather-station/station/README.md
+lay-restored/project/weather-station/station/src/main.c
 lay-restored/year/2019/event/kyoto trip/IMG_0001-day2.JPG
 lay-restored/year/2019/event/kyoto trip/IMG_0001.JPG
 lay-restored/year/2019/event/kyoto trip/IMG_0002-copy.JPG
+lay-restored/year/2019/event/kyoto trip/IMG_0002.JPG
 lay-restored/year/2019/event/kyoto trip/IMG_0003.JPG
 lay-restored/year/2019/event/kyoto trip/notes.txt
-lay-restored/year/2019/event/kyoto trip/torii.jpg
-$ --home hy restore lay-disc lay-restored-burned --as-burned
-PHOTO-01_1974-2021_F: restored 9 files (121 bytes) and 0 links to lay-restored-burned
-rc=0
-lay-restored-burned/decade/1970s/print1.tif
-lay-restored-burned/project/weather-station/station/README.md
-lay-restored-burned/project/weather-station/station/src/main.c
-lay-restored-burned/year/2019/event/kyoto trip/IMG_0001-day2.JPG
-lay-restored-burned/year/2019/event/kyoto trip/IMG_0001.JPG
-lay-restored-burned/year/2019/event/kyoto trip/IMG_0002-copy.JPG
-lay-restored-burned/year/2019/event/kyoto trip/IMG_0002.JPG
-lay-restored-burned/year/2019/event/kyoto trip/IMG_0003.JPG
-lay-restored-burned/year/2019/event/kyoto trip/notes.txt
 $ --home hy stored PHOTO-01_1974-2021_F lay-nas
 Checking ROOT/lay-nas (every file against the manifests) ...
 PHOTO-01_1974-2021_F: copy A recorded (folder, warm, checked), 1 in all
@@ -257,30 +245,42 @@ $ --home hy plan new remake --set PHOTO
 Plan remake: 1 empty disc (hy/drafts/plans/remake.rec). Next: arv plan add remake FILE-OR-FOLDER...
 rc=0
 $ --home hy plan add remake PHOTO-01_1974-2021_F:nope
-Error: nope is not a file or folder of PHOTO-01_1974-2021_F (as it is called now: arv find lists them)
+Error: nope is not a file or folder of PHOTO-01_1974-2021_F (arv find lists what it holds)
 rc=1
 $ --home hy plan add remake PHOTO-01_1974-2021_F
 PHOTO-01_1974-2021_F: 8 items (8 data objects) on disc 1
 rc=0
+$ --home hy plan layout remake year/event, project, decade
+Every disc laid out by year/event, project, decade: each item placed whole by its tags. Where: arv plan show remake
+rc=0
 $ --home hy plan show remake
 Plan remake  set PHOTO  BD-R 25GB: about 18.4 GiB a disc for files
 Disc 1  [#-------------------]    1%  121 B in 8 items
+  laid out by year/event, project, decade
   decade/1970s/print1.tif  8 B  ROOT/lay-nas/data/decade/1970s/print1.tif
       PHOTO-01_1974-2021_F:data/decade/1970s/print1.tif, checked against its manifest when made
-  project/weather-station/station-v1/  39 B, 2 files  ROOT/lay-nas/data/project/weather-station/station
+      -> data/decade/1970s/print1.tif
+  project/weather-station/station/  39 B, 2 files  ROOT/lay-nas/data/project/weather-station/station
       PHOTO-01_1974-2021_F:data/project/weather-station/station, checked against its manifest when made
+      -> data/project/weather-station/station/
   year/2019/event/kyoto trip/IMG_0001-day2.JPG  10 B  ROOT/lay-nas/data/year/2019/event/kyoto trip/IMG_0001-day2.JPG
       PHOTO-01_1974-2021_F:data/year/2019/event/kyoto trip/IMG_0001-day2.JPG, checked against its manifest when made
+      -> data/year/2019/event/kyoto trip/IMG_0001-day2.JPG
   year/2019/event/kyoto trip/IMG_0001.JPG  14 B  ROOT/lay-nas/data/year/2019/event/kyoto trip/IMG_0001.JPG
       PHOTO-01_1974-2021_F:data/year/2019/event/kyoto trip/IMG_0001.JPG, checked against its manifest when made
+      -> data/year/2019/event/kyoto trip/IMG_0001.JPG
   year/2019/event/kyoto trip/IMG_0002-copy.JPG  14 B  ROOT/lay-nas/data/year/2019/event/kyoto trip/IMG_0002-copy.JPG
       PHOTO-01_1974-2021_F:data/year/2019/event/kyoto trip/IMG_0002-copy.JPG, checked against its manifest when made
+      -> data/year/2019/event/kyoto trip/IMG_0002-copy.JPG
   year/2019/event/kyoto trip/IMG_0003.JPG  14 B  ROOT/lay-nas/data/year/2019/event/kyoto trip/IMG_0003.JPG
       PHOTO-01_1974-2021_F:data/year/2019/event/kyoto trip/IMG_0003.JPG, checked against its manifest when made
+      -> data/year/2019/event/kyoto trip/IMG_0003.JPG
   year/2019/event/kyoto trip/notes.txt  8 B  ROOT/lay-nas/data/year/2019/event/kyoto trip/notes.txt
       PHOTO-01_1974-2021_F:data/year/2019/event/kyoto trip/notes.txt, checked against its manifest when made
+      -> data/year/2019/event/kyoto trip/notes.txt
   year/2019/event/kyoto trip/torii.jpg  14 B  ROOT/lay-nas/data/year/2019/event/kyoto trip/IMG_0002.JPG
       PHOTO-01_1974-2021_F:data/year/2019/event/kyoto trip/IMG_0002.JPG, checked against its manifest when made
+      -> data/year/2019/event/osaka-trip/torii.jpg
 Next: arv plan make remake (one image a disc; arv make's options apply)
 Planned, not archived: keep the originals until the discs are burned and read back (arv todo says when).
 rc=0
@@ -294,46 +294,48 @@ $ --home hy plan make remake -y --no-ecc --no-formats --output-dir out-remake
 Note: decade/1970s/print1.tif changed since it was planned (ROOT/lay-nas/data/decade/1970s/print1.tif); the disc gets it as it is now
 Plan remake: scanning and hashing its 8 items ...
 Note: 1 file (14 B) is byte-identical to others on the same disc, and written in full (arv plan show remake --duplicates lists them):
-  disc 1: year/2019/event/kyoto trip/IMG_0002-copy.JPG = year/2019/event/kyoto trip/torii.jpg
+  disc 1: year/2019/event/kyoto trip/IMG_0002-copy.JPG = year/2019/event/osaka-trip/torii.jpg
 Categories from Match rules in hy/config/sets.rec: CODE (--category to choose, --no-rules to skip)
 Classified as: MEMORIES/PHOTO, PROJECTS/CODE
-Object print1.tif (data/decade/1970s/print1.tif on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
-Object station/ (data/project/weather-station/station-v1 on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
+Object print1.tif (data/decade/1970s/print1.tif, by the layout on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
+Object station/ (data/project/weather-station/station, by the layout on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
   about it: "Station"
-Object IMG_0001-day2.JPG (data/year/2019/event/kyoto trip/IMG_0001-day2.JPG on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
-Object IMG_0001.JPG (data/year/2019/event/kyoto trip/IMG_0001.JPG on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
-Object IMG_0002-copy.JPG (data/year/2019/event/kyoto trip/IMG_0002-copy.JPG on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
-Object IMG_0003.JPG (data/year/2019/event/kyoto trip/IMG_0003.JPG on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
-Object notes.txt (data/year/2019/event/kyoto trip/notes.txt on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
-Object IMG_0002.JPG (data/year/2019/event/kyoto trip/torii.jpg on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
+Object IMG_0001-day2.JPG (data/year/2019/event/kyoto trip/IMG_0001-day2.JPG, by the layout on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
+Object IMG_0001.JPG (data/year/2019/event/kyoto trip/IMG_0001.JPG, by the layout on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
+Object IMG_0002-copy.JPG (data/year/2019/event/kyoto trip/IMG_0002-copy.JPG, by the layout on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
+Object IMG_0003.JPG (data/year/2019/event/kyoto trip/IMG_0003.JPG, by the layout on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
+Object notes.txt (data/year/2019/event/kyoto trip/notes.txt, by the layout on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
+Object IMG_0002.JPG (data/year/2019/event/osaka-trip/torii.jpg, by the layout on PHOTO-02_1974-2021_D): the same as a version already archived (another copy of it)
 Building ROOT/out-remake/PHOTO-02_1974-2021_D.noecc.iso (1 of 1, 1.8 MiB) ...
 Hashing ROOT/out-remake/PHOTO-02_1974-2021_D.noecc.iso ...
 PHOTO-02_1974-2021_D	ROOT/out-remake/PHOTO-02_1974-2021_D.noecc.iso	Remake
 rc=0
 link target
 decade/1970s/print1.tif
-project/weather-station/station-v1/README.md
-project/weather-station/station-v1/src/main.c
+project/weather-station/station/README.md
+project/weather-station/station/src/main.c
 year/2019/event/kyoto trip/IMG_0001-day2.JPG
 year/2019/event/kyoto trip/IMG_0001.JPG
 year/2019/event/kyoto trip/IMG_0002-copy.JPG
 year/2019/event/kyoto trip/IMG_0003.JPG
 year/2019/event/kyoto trip/notes.txt
-year/2019/event/kyoto trip/torii.jpg
+year/2019/event/osaka-trip/torii.jpg
 # path (a folder or a file, relative to data/)	tags	caption (what sampled images show, if analysed)
 decade/1970s/print1.tif	date:1974~, person:ann
-project/weather-station/station-v1/README.md	project:weather-station
-project/weather-station/station-v1/src/main.c	project:weather-station
+project/weather-station/station/README.md	project:weather-station
+project/weather-station/station/src/main.c	project:weather-station
 year/2019/event/kyoto trip/IMG_0001-day2.JPG	event:kyoto trip, place:kyoto
 year/2019/event/kyoto trip/IMG_0001.JPG	event:kyoto trip, place:kyoto
 year/2019/event/kyoto trip/IMG_0002-copy.JPG	event:kyoto trip, place:kyoto
 year/2019/event/kyoto trip/IMG_0003.JPG	event:kyoto trip, place:kyoto
 year/2019/event/kyoto trip/notes.txt	event:kyoto trip, place:kyoto, date:2019-07
-year/2019/event/kyoto trip/torii.jpg	event:kyoto trip, place:kyoto
-$ --home hy objects IMG_0002.JPG
+year/2019/event/osaka-trip/torii.jpg	event:osaka-trip, place:osaka, best
+$ --home hy objects torii.jpg
 Data objects:
-  IMG_0002.JPG  file, 1 version; newest: 1 copy on 2 discs, 0 cold, 1 read back
+  torii.jpg  file, 1 version; newest: 1 copy on 2 discs, 0 cold, 1 read back
+    renamed: it was read as IMG_0002.JPG
+    tags now: event:osaka-trip, place:osaka, best
     from ROOT/lay/DCIM/IMG_0002.JPG (there now: arv status says if it changed)
-    version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/torii.jpg  A: folder warm (read back)  (burned as data/year/2019/event/kyoto trip/IMG_0002.JPG)
-    version 1  PHOTO-02_1974-2021_D  data/year/2019/event/kyoto trip/torii.jpg  no copy yet
+    version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/IMG_0002.JPG  A: folder warm (read back)
+    version 1  PHOTO-02_1974-2021_D  data/year/2019/event/osaka-trip/torii.jpg  no copy yet
 rc=0

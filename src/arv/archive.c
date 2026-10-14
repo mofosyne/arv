@@ -981,6 +981,20 @@ char *disc_tags_text(const archive *a, const char *disc_id, const char *burned)
         }
     }
     strlist_free(&done);
+    for (size_t i = 0; i < a->objects.n; i++) {        /* its data objects' tags now, at their places on it */
+        const rec_record *o = a->objects.v[i];
+        const char *d = rec_get(o, "Disc"), *path = rec_get(o, "Path"), *value;
+        if (!d || strcmp(d, disc_id) || !path || !rec_get(o, "Uuid") || !(value = object_field(a, rec_get(o, "Uuid"), "Tags")))
+            continue;
+        size_t at = 0;
+        while (at < n && strcmp(v[at].path, path)) at++;
+        if (at == n) {
+            v = xrealloc(v, (n + 1) * sizeof *v);
+            v[n++] = (tag_line){ xstrdup(path), xstrdup(""), xstrdup("") };
+        }
+        free(v[at].tags);
+        v[at].tags = xstrdup(value);
+    }
     if (n) qsort(v, n, sizeof *v, by_tag_path);
     sbuf out = { 0 };
     sb_puts(&out, "# path (a folder or a file, relative to data/)\ttags\tcaption (what sampled images show, if analysed)\n");
@@ -1002,62 +1016,56 @@ char *disc_tags_text(const archive *a, const char *disc_id, const char *burned)
     return out.s;
 }
 
-/* ------------------------------------------------------------------ moves in the record
- * A burned disc cannot change; renaming one of its files or folders is recorded instead: an event
- * about the disc with "Moved: BURNED<TAB>NOW" and "Sets: Moved:BURNED". The burned path is the
- * key, since it never changes; a later move of the same thing replaces the earlier. A move of a
- * folder moves all under it; a move of a path inside it wins over the folder's. */
+/* ------------------------------------------------------------------ a data object's tags and name now
+ * A data object's tags and its name on discs (Slug) change by events about it, "Object:
+ * object:UUID", with "Tags: a, b" or "Slug: NAME" and Sets and Replaces, so they follow the object
+ * to every disc it is on and every disc made from it, not a path on one disc. */
 
-static int by_len_desc(const void *x, const void *y)
+const char *object_field(const archive *a, const char *uuid, const char *field)
 {
-    size_t a = strlen(*(char *const *)x), b = strlen(*(char *const *)y);
-    return a < b ? 1 : a > b ? -1 : strcmp(*(char *const *)x, *(char *const *)y);
+    char *thing = xprintf("object:%s", uuid);
+    strlist heads;
+    field_heads(a, thing, field, &heads);
+    const char *value = NULL;               /* of two made apart (a conflict), the later */
+    for (size_t i = 0; heads.n && i < a->events.n; i++) {
+        char id[33];
+        event_key(a->events.v[i], id);
+        if (strlist_has(&heads, id) && rec_get(a->events.v[i], field)) value = rec_get(a->events.v[i], field);
+    }
+    strlist_free(&heads);
+    free(thing);
+    return value;
 }
 
-void disc_moves(const archive *a, const char *disc_id, strlist *from, strlist *to)
+rec_record *object_event_like(const rec_record *ev, const char *uuid)
 {
-    memset(from, 0, sizeof *from);
-    memset(to, 0, sizeof *to);
-    strlist keys = { 0 };
-    for (size_t i = 0; i < a->events.n; i++) {
-        const rec_record *e = a->events.v[i];
-        const char *d = rec_get(e, "Disc");
-        if (!d || strcmp(d, disc_id)) continue;
-        for (size_t f = 0; f < e->nfields; f++)
-            if (!strcmp(e->fields[f].name, "Sets") && !strncmp(e->fields[f].value, "Moved:", 6)
-                && !strlist_has(&keys, e->fields[f].value + 6))
-                strlist_add(&keys, e->fields[f].value + 6);
-    }
-    if (keys.n) qsort(keys.v, keys.n, sizeof *keys.v, by_len_desc);   /* the most specific first */
-    for (size_t k = 0; k < keys.n; k++) {
-        char *key = xprintf("Moved:%s", keys.v[k]);
-        strlist heads;
-        field_heads(a, disc_id, key, &heads);
-        const char *value = NULL;                   /* of two made apart (a conflict), the later */
-        for (size_t i = 0; i < a->events.n; i++) {
-            char id[33];
-            event_key(a->events.v[i], id);
-            if (strlist_has(&heads, id) && changed_value(a->events.v[i], "Moved", keys.v[k]))
-                value = changed_value(a->events.v[i], "Moved", keys.v[k]);
-        }
-        if (value && strcmp(value, keys.v[k])) {    /* moved back to its burned name: no move */
-            strlist_add(from, keys.v[k]);
-            strlist_add(to, value);
-        }
-        strlist_free(&heads);
-        free(key);
-    }
-    strlist_free(&keys);
+    rec_record *r = rec_alloc("Event");
+    char *thing = xprintf("object:%s", uuid);
+    rec_add(r, "Object", thing);
+    free(thing);
+    static const char *const kept[] = { "Type", "Date", "Outcome", "Authorship", "Agent", "Note", NULL };
+    for (size_t f = 0; f < ev->nfields; f++)
+        for (int k = 0; kept[k]; k++)
+            if (!strcmp(ev->fields[f].name, kept[k])) rec_add(r, kept[k], ev->fields[f].value);
+    rec_add(r, "PendingId", "yes");
+    return r;
 }
 
-char *moved_path(const strlist *from, const strlist *to, const char *burned)
+const rec_record *object_at(const archive *a, const char *disc_id, const char *path)
 {
-    for (size_t i = 0; i < from->n; i++) {      /* the most specific first */
-        size_t n = strlen(from->v[i]);
-        if (!strncmp(burned, from->v[i], n) && (!burned[n] || burned[n] == '/'))
-            return xprintf("%s%s", to->v[i], burned + n);
+    for (size_t i = 0; i < a->objects.n; i++) {
+        const rec_record *o = a->objects.v[i];
+        if (rec_get(o, "Disc") && !strcmp(rec_get(o, "Disc"), disc_id) && rec_get(o, "Path") && !strcmp(rec_get(o, "Path"), path)
+            && rec_get(o, "Uuid"))
+            return o;
     }
-    return xstrdup(burned);
+    return NULL;
+}
+
+const char *object_slug(const archive *a, const rec_record *o)
+{
+    const char *s = rec_get(o, "Uuid") ? object_field(a, rec_get(o, "Uuid"), "Slug") : NULL;
+    return s ? s : rec_get(o, "Slug") ? rec_get(o, "Slug") : rec_get(o, "Name") ? rec_get(o, "Name") : "?";
 }
 
 /* the disc's tags now, to read as its tags.tsv would be read; NULL when there are none */

@@ -662,12 +662,13 @@ over it. The other discs' `tags.tsv` in a later disc's `catalog/volumes/` are wr
 they are now, so a reader that does not read events still sees them; applying the events again
 changes nothing.
 
-Names change the same way. A burned disc cannot be renamed, so a file or folder given a new name
-afterwards (`arv rename`) is an `Event` about the disc with `Moved: BURNED<TAB>NOW` and `Sets:
-Moved:BURNED`. The burned path is the key, since it never changes, and tags and listings stay
-keyed by it; a later rename of the same thing replaces the earlier, and one back to the burned
-name undoes it. A folder's move moves all under it; a move of a path inside it wins. Readers show
-the name now (and the burned one), and a restore uses it.
+A data object's tags follow the object, not a path: a change to them is an `Event` about the
+object (`Object: object:UUID`, `Tags: a, b`, `Sets: Tags`), so it holds on every disc the object
+is on and every disc made from it. A disc's tags now lay each of its objects' tags now at the
+object's `Path`. Its name on discs changes the same way (`Slug: NAME`, `Sets: Slug`): a name, never
+a place, since where an object goes on a disc is its tags' (a layout) or a plan's. The discs it is
+on stay as burned; their paths are facts about those discs. An object whose name on a disc is not
+the one it was read as records `Slug` too.
 
 A tag is either a plain word or phrase (`travel`) or `namespace:value`
 (`person:alice`, `place:kyoto`, `event:wedding-2019`, `source:pixel-7`,

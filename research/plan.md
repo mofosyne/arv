@@ -1407,7 +1407,7 @@ work on it). Since checkpoints went (issue #42), a collection is exactly that li
 says what is kept; the plan says how this edition is arranged (the albums above). `diff` between
 editions then shows the renames as moves, by content, as `git log --follow` would.
 
-**Two kinds of move** (added 2026-10-14). A burned disc cannot change, and its files may no longer
+**Two kinds of move** (added 2026-10-14; the first kind was superseded the same day: see "after burning, an object's name and tags change, never its place"). A burned disc cannot change, and its files may no longer
 be on any drive, so a move is either:
 
 - **In the record only**, for files already on discs: "on disc D, `day1/IMG_0001.JPG` is now
@@ -1437,8 +1437,8 @@ them from the copies:
   than being copied onto the new disc. No copy to a staging folder.
 - With one drive and several source discs, `plan make` reads in disc order and asks for each disc
   once; a jukebox loads them from the same kind of worklist as `todo --tsv`.
-- The names on the new discs are the record's: moves in the record, then the plan's `--as` and
-  `rename`.
+- The names on the new discs are the record's: each object's name now, then the plan's `--as` and
+  `rename`. (Moves in the record were dropped: see the decision on names and tags after burning.)
 
 A disc that cannot be read or repaired cannot be remade; that is the old problem of two good
 copies, which `todo` already watches.
@@ -1515,7 +1515,7 @@ writer to read extents of another image; until then arv says to unpack it). What
   manifest; any that differ stop the make, listed, with what to do. Nothing damaged is copied on.
 - **Faithful**: each file's time from the old disc's listing (a copy's own times may be the day it
   was copied), its tags now (burned, with changes since) into the new disc's `tags.tsv`, and its
-  name now (moves in the record, a folder's files under a renamed folder too).
+  each object's tags and name now (by its Uuid).
 - The item records `From: DISC-ID:PATH`; a file split off such an item (`plan rename`) is read
   from the same disc.
 Not yet: reading images by their sectors, and one drive with several discs asked for in turn.
@@ -1530,16 +1530,23 @@ collection is what is kept, a lineage of editions, and the plan is how this one 
 `diff` shows the arrangement as moves, by content. Not yet: plans whose sources are discs (below),
 which is what makes remaking an old edition onto new media one step.
 
-## Done (2026-10-14): moves in the record
+## Decision (2026-10-14): after burning, an object's name and tags change, never its place
 
-`arv rename DISC-ID PATH NEWPATH`, as designed under "Two kinds of move" above: an event about the
-disc, `Moved: BURNED<TAB>NOW` with `Sets: Moved:BURNED`. Keyed by the burned path, not the name
-now: the burned path never changes, so a second rename replaces the first instead of chaining,
-tags and listings stay keyed as they are, and a rename back to the burned name is no move. PATH is
-given as called now (the burned name of something renamed is refused, naming the new one). `find`
-matches either name and shows both; `objects` shows the place now; `restore` writes the names now
-(it reads the home's record when one is found; `--as-burned` for the disc's). Not yet: the next
-disc made from these discs using the names (that is plans from discs, below).
+Built first as moves in the record (`arv rename DISC-ID PATH NEWPATH`, `Moved: BURNED<TAB>NOW`,
+honoured by `find`, `objects` and `restore`), following "Two kinds of move" above, which was written
+before an object's place became its tags'. The owner's point: it is just tags, not paths. So:
+- **A disc's paths are facts about that disc**, and stay. Nothing moves.
+- **Re-filing is a tag change**, and **renaming is the object's name** (its slug), both events
+  about the object by its Uuid (`Object: object:UUID`, `Tags:` or `Slug:`, `Sets`), so they follow
+  it to every copy and every remake, as Archivematica's identifiers do, rather than a path on one
+  disc. `arv retag OBJECT TAGS`, `arv rename OBJECT NEWNAME`.
+- **Tags by object**: `describe --apply` and `tag --apply` record a change to an object's own path
+  as the object's tags; path-keyed changes stay for files inside a folder object, which have no
+  identity of their own.
+- **`restore` restores the disc as burned.** Wanting today's arrangement is a remake, not a restore.
+- **A remake places by tags now and names by name now**: in the test, a photo re-tagged
+  `event:osaka-trip` and renamed `torii.jpg` goes to `year/2019/event/osaka-trip/torii.jpg`.
+The path moves, `--as-burned` and the name mapping in `find`, `objects` and `restore` were removed.
 
 ## Decision (2026-10-14): identity is the lineage, never the bytes
 

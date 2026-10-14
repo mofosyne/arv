@@ -1006,78 +1006,144 @@ void listing_names(const char *lst, strlist *files, strlist *folders)
     free(text);
 }
 
-/* arv rename DISC-ID PATH NEWPATH: a file or folder of a burned disc is called NEWPATH now. The disc
- * stays as burned; the record says so (Moved: BURNED<TAB>NEWPATH), and find, restore and the next
- * discs made from it use the new name. PATH is as it is called now. */
+static const char *get_or(const rec_record *r, const char *name, const char *dflt)
+{
+    const char *v = rec_get(r, name);
+    return v ? v : dflt;
+}
+
+/* the data object a word names: its Uuid (or its first 8 or more characters), or its name on discs
+ * now; refused when it names none, or more than one */
+static const char *object_named(const archive *cat, const char *text)
+{
+    strlist uuids = { 0 }, names = { 0 };
+    size_t n = strlen(text);
+    for (int pass = 0; pass < 2 && !uuids.n; pass++)
+        for (size_t i = 0; i < cat->objects.n; i++) {
+            const rec_record *o = cat->objects.v[i];
+            const char *u = rec_get(o, "Uuid");
+            if (!u || strlist_has(&uuids, u)) continue;
+            int hit = !pass ? n >= 8 && !strncmp(u, text, n) : !strcmp(object_slug(cat, o), text) || !strcmp(get_or(o, "Name", ""), text);
+            if (!hit) continue;
+            strlist_add(&uuids, u);
+            char *line = xprintf("  %s  %s (version %s on %s, data/%s)", u, object_slug(cat, o), get_or(o, "Version", "?"),
+                                 get_or(o, "Disc", "?"), get_or(o, "Path", "?"));
+            strlist_add(&names, line);
+            free(line);
+        }
+    if (!uuids.n) die("%s: no data object has that name or Uuid (arv objects lists them)", text);
+    if (uuids.n > 1) {
+        fprintf(stderr, "Error: %s names %zu data objects; give one by its Uuid:\n", text, uuids.n);
+        for (size_t i = 0; i < names.n; i++) fprintf(stderr, "%s\n", names.v[i]);
+        exit(1);
+    }
+    for (size_t i = 0; i < cat->objects.n; i++)
+        if (!strcmp(get_or(cat->objects.v[i], "Uuid", ""), uuids.v[0])) return rec_get(cat->objects.v[i], "Uuid");
+    return NULL;
+}
+
+/* a change to one of a data object's fields now (Tags, Slug): an event about it, Sets FIELD */
+static void object_change(archive *cat, const char *uuid, const char *field, const char *value, const char *note)
+{
+    char *who = person(), *thing = xprintf("object:%s", uuid);
+    rec_record *e = new_event(uuid, "metadata modification", "success", who, "human", note);
+    free(e->fields[0].name);                /* Object: object:UUID, not Disc */
+    free(e->fields[0].value);
+    e->fields[0].name = xstrdup("Object");
+    e->fields[0].value = xstrdup(thing);
+    rec_add(e, field, value);
+    sets_field(cat, e, thing, field);
+    recs_add(&cat->events, e);
+    free(who);
+    free(thing);
+}
+
+/* arv rename OBJECT NEWNAME: a data object's name on discs (its Slug) is NEWNAME now. A name, not a
+ * place: where it goes on a disc is its tags' (a layout), or the plan's. The discs it is on stay as
+ * burned; the next disc made from it uses the name. */
 int cmd_rename(int argc, char **argv)
 {
-    const char *given = NULL, *disc_id = NULL, *path = NULL, *to = NULL;
+    const char *given = NULL, *which = NULL, *to = NULL;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (argv[i][0] == '-') return 2;
-        else if (!disc_id) disc_id = argv[i];
-        else if (!path) path = argv[i];
+        else if (!which) which = argv[i];
         else if (!to) to = argv[i];
         else return 2;
     }
     if (!to) return 2;
-    if (!strncmp(path, "data/", 5)) path += 5;
-    if (!strncmp(to, "data/", 5)) to += 5;
-    opened o;
-    (void)open_disc_record(&o, given, disc_id);
-    int ok = *to && to[0] != '/' && to[strlen(to) - 1] != '/' && !strpbrk(to, "\t\r\n");
-    for (const char *s = to; ok && *s; s = strchr(s, '/') ? strchr(s, '/') + 1 : s + strlen(s)) {
-        size_t n = strcspn(s, "/");
-        ok = n && !(n == 1 && s[0] == '.') && !(n == 2 && s[0] == '.' && s[1] == '.');
-    }
-    if (!ok) die("%s cannot be a path under data/ (relative, no . or .. parts, no tabs or line breaks)", to);
-    char *lst = home_volume_file(&o.h, disc_id, "listing.tsv");
-    strlist files, folders, from, now;
-    listing_names(lst, &files, &folders);
-    if (!files.n) die2("%s has no listing at home (%s): arv rebuild it from the disc first", disc_id, lst);
-    disc_moves(&o.cat, disc_id, &from, &now);
-    const char *burned = NULL;              /* PATH, as burned */
-    int folder = 0;
-    const strlist *both[2] = { &files, &folders };
-    for (int k = 0; k < 2 && !burned; k++)
-        for (size_t i = 0; i < both[k]->n && !burned; i++) {
-            char *m = moved_path(&from, &now, both[k]->v[i]);
-            if (!strcmp(m, path)) burned = both[k]->v[i], folder = k;
-            free(m);
-        }
-    if (!burned) {
-        for (int k = 0; k < 2; k++)
-            if (strlist_has(both[k], path)) {
-                char *m = moved_path(&from, &now, path);
-                die2("%s is called %s now (arv rename it by that name)", path, m);
-            }
-        die2("%s is not a file or folder of %s (arv find lists what it holds)", path, disc_id);
-    }
-    if (!strcmp(path, to)) {
-        printf("%s: %s is called that already\n", disc_id, path);
+    if (!*to || strpbrk(to, "/\t\r\n") || !strcmp(to, ".") || !strcmp(to, ".."))
+        die("%s cannot be a name (no / : a place is the tags' or the plan's; no tabs or line breaks)", to);
+    arv_home h;
+    archive cat;
+    home_find(&h, given, NULL);
+    home_guard(h.path);
+    archive_load(&cat, h.rec_path);
+    const char *uuid = object_named(&cat, which);
+    const rec_record *o = NULL;
+    for (size_t i = 0; i < cat.objects.n; i++)
+        if (!strcmp(get_or(cat.objects.v[i], "Uuid", ""), uuid)) o = cat.objects.v[i];
+    char *was = xstrdup(object_slug(&cat, o));
+    if (!strcmp(was, to)) {
+        printf("%s is called %s already\n", uuid, to);
         return 0;
     }
-    for (int k = 0; k < 2; k++)            /* NEWPATH free: no other file or folder called that, or under it */
-        for (size_t i = 0; i < both[k]->n; i++) {
-            const char *b = both[k]->v[i];
-            size_t bn = strlen(burned);
-            if (!strncmp(b, burned, bn) && (!b[bn] || b[bn] == '/')) continue;     /* what is being moved */
-            char *m = moved_path(&from, &now, b);
-            size_t tn = strlen(to), mn = strlen(m);
-            int clash = !strcmp(m, to) || (!strncmp(m, to, tn) && m[tn] == '/') || (k == 0 && !strncmp(to, m, mn) && to[mn] == '/');
-            if (clash) die2("%s: another file or folder is called %s now (choose another name)", to, m);
-            free(m);
-        }
-    char *who = person(), *note = xprintf("renamed %s to %s in the record (the disc is as burned)", path, to);
-    rec_record *e = new_event(disc_id, "metadata modification", "success", who, "human", note);
-    tag_change(&o.cat, e, disc_id, "Moved", burned, to);
-    recs_add(&o.cat.events, e);
-    archive_save(&o.cat, o.h.rec_path);
-    printf("%s: %s%s is %s%s now, in the record (the disc is as burned: arv find shows both names; arv restore "
-           "uses the new one)\n", disc_id, path, folder ? "/" : "", to, folder ? "/" : "");
-    free(who);
+    char *note = xprintf("renamed %s to %s", was, to);
+    object_change(&cat, uuid, "Slug", to, note);
+    archive_save(&cat, h.rec_path);
+    printf("%s is %s now (%s). The discs it is on stay as burned; the next disc made from it uses the name.\n", was, to, uuid);
     free(note);
-    free(lst);
+    free(was);
+    return 0;
+}
+
+/* arv retag OBJECT TAGS: a data object's tags now ("" for none), replacing its tags; a layout files
+ * the next disc made from it by them */
+int cmd_retag(int argc, char **argv)
+{
+    const char *given = NULL, *which = NULL, *text = NULL;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (argv[i][0] == '-') return 2;
+        else if (!which) which = argv[i];
+        else if (!text) text = argv[i];
+        else return 2;
+    }
+    if (!text) return 2;
+    arv_home h;
+    archive cat;
+    home_find(&h, given, NULL);
+    home_guard(h.path);
+    archive_load(&cat, h.rec_path);
+    const char *uuid = object_named(&cat, which);
+    strlist tags = { 0 };
+    char *copy = xstrdup(text);
+    for (char *t = strtok(copy, ","); t; t = strtok(NULL, ",")) {
+        char *nt = tag_normalise(t);
+        if (*nt && !strlist_has(&tags, nt)) strlist_add(&tags, nt);
+        free(nt);
+    }
+    free(copy);
+    tags_canonical(&h, &tags);
+    sbuf b = { 0 };
+    sb_puts(&b, "");
+    for (size_t i = 0; i < tags.n; i++) sb_printf(&b, "%s%s", i ? ", " : "", tags.v[i]);
+    const rec_record *o = NULL;
+    for (size_t i = 0; i < cat.objects.n; i++)
+        if (!strcmp(get_or(cat.objects.v[i], "Uuid", ""), uuid)) o = cat.objects.v[i];
+    const char *now = object_field(&cat, uuid, "Tags");
+    if (now && !strcmp(now, b.s)) {
+        printf("%s has those tags already\n", object_slug(&cat, o));
+        return 0;
+    }
+    char *note = xprintf("tags of %s: %s", object_slug(&cat, o), *b.s ? b.s : "none");
+    object_change(&cat, uuid, "Tags", b.s, note);
+    archive_save(&cat, h.rec_path);
+    printf("%s: %s (%s). The next disc made from it is filed by them; arv find finds it by them now.\n", object_slug(&cat, o),
+           *b.s ? b.s : "no tags", uuid);
+    free(note);
+    free(b.s);
+    strlist_free(&tags);
     return 0;
 }
 

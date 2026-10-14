@@ -305,18 +305,10 @@ int cmd_find(int argc, char **argv)
             size_t cap = 0;
             ssize_t len;
             FILE *fp = fopen(path, "r");
-            strlist from, to;                   /* moves in the record: found by either name */
-            disc_moves(&c.records, rec_get(d, "Id"), &from, &to);
             while (fp && (len = getline(&line, &cap, fp)) >= 0) {
                 while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) line[--len] = 0;
                 char *rel = strstr(line, "  ");
-                if (!rel || strncmp(rel + 2, "data/", 5)) continue;
-                char *m = moved_path(&from, &to, rel + 7), *now = xprintf("data/%s", m);
-                free(m);
-                if (!matches(pat, glob, rel + 2) && !matches(pat, glob, now)) {
-                    free(now);
-                    continue;
-                }
+                if (!rel || !matches(pat, glob, rel + 2)) continue;
                 if (!limit || files < limit) {
                     char *place = where(&c, d);
                     sb_puts(&json_files, file_first ? "" : ", ");
@@ -324,18 +316,12 @@ int cmd_find(int argc, char **argv)
                     sb_puts(&json_files, "{\"disc\": "); json_str(&json_files, rec_get(d, "Id"));
                     sb_puts(&json_files, ", \"title\": "); json_str(&json_files, rec_get(d, "Title") ? rec_get(d, "Title") : "");
                     sb_puts(&json_files, ", \"location\": "); json_str(&json_files, place);
-                    sb_puts(&json_files, ", \"path\": "); json_str(&json_files, now);
-                    sb_puts(&json_files, ", \"burnedAs\": ");     /* its name on the disc, when renamed since */
-                    if (strcmp(now, rel + 2)) json_str(&json_files, rel + 2);
-                    else sb_puts(&json_files, "null");
+                    sb_puts(&json_files, ", \"path\": "); json_str(&json_files, rel + 2);
                     sb_puts(&json_files, "}");
                     free(place);
                 }
-                free(now);
                 files++;
             }
-            strlist_free(&from);
-            strlist_free(&to);
             if (fp) fclose(fp);
             free(line);
             free(path);
@@ -385,8 +371,9 @@ int cmd_find(int argc, char **argv)
     for (size_t i = 0; i < c.rec.nrecords; i++) {          /* data objects, by name, path, title or description */
         const rec_record *o = &c.rec.records[i];
         if (!is_type(o, "Object") || !rec_get(o, "Disc")) continue;
-        const char *name = rec_get(o, "Name") ? rec_get(o, "Name") : "", *path = rec_get(o, "Path") ? rec_get(o, "Path") : "";
-        int hit = matches(pat, glob, name) || matches(pat, glob, path);
+        const char *name = rec_get(o, "Uuid") ? object_slug(&c.records, o) : rec_get(o, "Name") ? rec_get(o, "Name") : "",
+                   *path = rec_get(o, "Path") ? rec_get(o, "Path") : "";
+        int hit = matches(pat, glob, name) || matches(pat, glob, path) || (rec_get(o, "Name") && matches(pat, glob, rec_get(o, "Name")));
         for (int k = 0; !hit && k < 2; k++)          /* and what it says about itself: Title, Description */
             hit = rec_get(o, ABOUT_FIELDS[k]) && matches(pat, glob, rec_get(o, ABOUT_FIELDS[k]));
         if (!hit) continue;
@@ -475,14 +462,8 @@ int cmd_find(int argc, char **argv)
             if (!hit) continue;
             char *w = found_at(&c, d), *lst = catalogue_volume(&c, rec_get(d, "Id"), "listing.tsv");
             int file = strcmp(cols[0], ".") && listing_has_file(lst, cols[0]);   /* a tag names a file or a folder */
-            strlist from, to;                   /* tags are kept by the burned path; shown as it is called now */
-            disc_moves(&c.records, rec_get(d, "Id"), &from, &to);
-            char *now = moved_path(&from, &to, cols[0]);
             if (!strcmp(cols[0], ".")) printf("TAG   %s  [%s]  data/  (%s)\n", rec_get(d, "Id"), *w ? w : "?", shown);
-            else printf("TAG   %s  [%s]  data/%s%s  (%s)\n", rec_get(d, "Id"), *w ? w : "?", now, file ? "" : "/", shown);
-            free(now);
-            strlist_free(&from);
-            strlist_free(&to);
+            else printf("TAG   %s  [%s]  data/%s%s  (%s)\n", rec_get(d, "Id"), *w ? w : "?", cols[0], file ? "" : "/", shown);
             free(w);
             free(lst);
             any = 1;
@@ -499,27 +480,14 @@ int cmd_find(int argc, char **argv)
         ssize_t len;
         FILE *fp = fopen(path, "r");
         char *w = found_at(&c, d);
-        strlist from, to;                       /* moves in the record: found by either name */
-        disc_moves(&c.records, rec_get(d, "Id"), &from, &to);
         while (fp && (len = getline(&line, &cap, fp)) >= 0) {
             while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) line[--len] = 0;
             char *rel = strstr(line, "  ");
-            if (!rel || strncmp(rel + 2, "data/", 5)) continue;
-            char *m = moved_path(&from, &to, rel + 7), *now = xprintf("data/%s", m);
-            free(m);
-            if (matches(pat, glob, rel + 2) || matches(pat, glob, now)) {
-                if (!limit || files < limit) {
-                    printf("%s  [%s]  %s", rec_get(d, "Id"), *w ? w : "?", now);
-                    if (strcmp(now, rel + 2)) printf("  (burned as %s)", rel + 2);
-                    putchar('\n');
-                }
-                files++;
-                any = 1;
-            }
-            free(now);
+            if (!rel || !matches(pat, glob, rel + 2)) continue;
+            if (!limit || files < limit) printf("%s  [%s]  %s\n", rec_get(d, "Id"), *w ? w : "?", rel + 2);
+            files++;
+            any = 1;
         }
-        strlist_free(&from);
-        strlist_free(&to);
         free(w);
         if (fp) fclose(fp);
         free(line);

@@ -378,7 +378,8 @@ Record: what exists, and where
          catalogues gave one letter to two copies: --at or --identifier says which)
   arv locate DISC-ID COPY PLACE   where a copy is kept now
   arv note DISC-ID TEXT   a note on a disc
-  arv rename DISC-ID PATH NEWPATH   a burned disc's file or folder called NEWPATH now, in the record
+  arv rename OBJECT NEWNAME   a data object's name on discs now (a name, not a place); the next disc uses it
+  arv retag OBJECT TAGS   a data object's tags now ("" for none): what a layout files it by, and find finds
   arv access DISC-ID public|private|sealed   what later discs' catalogues may show of it
   arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)
   arv find [-C CATALOG] [--limit N] PATTERN   discs, copies (by identifier or carrier), objects, tags

@@ -189,7 +189,8 @@ ImageSha256: SHA256
 + for each) names a file or folder of the source left out of the object because a disc plan
 + placed it elsewhere (a folder split): the object is the folder without them. Arranged, on a disc with
 + a Layout, is where it was arranged (its path in the disc plan) before the layout placed it
-+ at Path; Name keeps its name where it was read from. SameBytes (UUID VERSION) names an
++ at Path; Name keeps its name where it was read from, and Slug, when they differ, is its name
++ on this disc. SameBytes (UUID VERSION) names an
 + object of another lineage with the same Tree: identity is the lineage, never the bytes,
 + so the same bytes read from elsewhere are another object, and this says so.
 + Title, Description, Coverage (EDTF), Rights and Origin (where it was published, as host/path)
@@ -211,6 +212,7 @@ Kind: file
 Tree: e32501874d95ba18bba2662bd7f761f30aae2879c4a0bdc1e6498612b99e3449
 Disc: TRIP-01_2025_B
 Path: best/kyoto-b.jpg
+Slug: kyoto-b.jpg
 Files: 1
 Bytes: 7
 Date: 2026-01-01
@@ -247,6 +249,7 @@ Kind: folder
 Tree: e550671844b95a75f140e24e592ad394c1890bf9e4c1fbb7dd097a2d5cd45595
 Disc: TRIP-02_2025_9
 Path: photos
+Slug: photos
 Files: 1
 Bytes: 7
 Date: 2026-01-01
@@ -260,6 +263,7 @@ Kind: folder
 Tree: 4414f104c28c0469b6d531b81cca4b384e7f149a217c1d3c90915edf62f8aa8e
 Disc: TRIP-03_2025_7
 Path: photos
+Slug: photos
 Files: 3
 Bytes: 21
 Date: 2026-01-01
@@ -285,6 +289,7 @@ Kind: file
 Tree: 5f9f00f8c446e4bf63fcd2636fb71477c8e3766a0675f03e0912852078eb443e
 Disc: TRIP-05_2025_3
 Path: letter
+Slug: letter
 Files: 1
 Bytes: 7
 Date: 2026-01-01
@@ -317,8 +322,9 @@ Source: plan-docs/letter.txt
 + copy's replication EventId) and Copy (its letter then; the newest is its letter now). A change
 + to a field says Sets: FIELD and Replaces: the EventIds of the changes it follows (a path's
 + tags or caption after burning: Tags: PATH<TAB>TAGS or Caption: PATH<TAB>TEXT, with Sets:
-+ Tags:PATH or Caption:PATH; the disc's tags.tsv stays as burned; a file or folder renamed
-+ after burning: Moved: BURNED<TAB>NOW, with Sets: Moved:BURNED); two that
++ Tags:PATH or Caption:PATH; the disc's tags.tsv stays as burned; a data object's tags or
++ name now: an event about it, Object: object:UUID, with Tags: TAGS or Slug: NAME, Sets: Tags
++ or Slug); two that
 + replace the same one were made apart, a conflict to settle by setting the field again. Deaccession retires a disc (its Disc record gets
 + Retired).
 %mandatory: Type Date Outcome

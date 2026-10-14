@@ -158,7 +158,7 @@ static char *joined_tags(const ftags *f, const char *path, const char **caption)
 
 /* each path whose tags or caption differ between before and after, as Tags:/Caption: on the event
  * (tag_change); how many paths changed */
-size_t record_tag_changes(const archive *cat, rec_record *ev, const char *disc_id, const ftags *before, const ftags *after)
+size_t record_tag_changes(archive *cat, rec_record *ev, const char *disc_id, const ftags *before, const ftags *after)
 {
     size_t n = 0;
     for (size_t i = 0; i < after->n; i++) {
@@ -169,7 +169,17 @@ size_t record_tag_changes(const archive *cat, rec_record *ev, const char *disc_i
         char *tb = joined_tags(before, path, &cb), *ta = joined_tags(after, path, &ca);
         int changed = 0;
         if (strcmp(tb, ta)) {
-            if (ev) tag_change(cat, ev, disc_id, "Tags", path, ta);
+            const rec_record *o = object_at(cat, disc_id, path);
+            if (ev && o) {                  /* a data object's own path: its tags, on every disc it is on */
+                char *thing = xprintf("object:%s", rec_get(o, "Uuid"));
+                rec_record *oe = object_event_like(ev, rec_get(o, "Uuid"));
+                rec_add(oe, "Tags", ta);
+                sets_field(cat, oe, thing, "Tags");
+                recs_add(&cat->events, oe);
+                free(thing);
+            } else if (ev) {
+                tag_change(cat, ev, disc_id, "Tags", path, ta);
+            }
             changed = 1;
         }
         if (strcmp(cb, ca)) {

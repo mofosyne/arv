@@ -582,28 +582,26 @@ log lay.out --home hy plan make album -y --no-ecc --no-formats --keep-stage --ou
 log lay.out --home hy objects
 log lay.out --home hy objects --json
 log lay.out --home hy find kyoto
-# moves in the record: the disc stays as burned
+# after burning: an object's name and tags change in the record (by its Uuid), never its place
 lid=PHOTO-01_1974-2021_F
-log lay.out --home hy rename $lid "year/2019/event/kyoto trip/IMG_0002.JPG" "year/2019/event/kyoto trip/torii.jpg"
-log lay.out --home hy rename $lid "data/project/weather-station/station" "project/weather-station/station-v1"   # a folder
-log lay.out --home hy rename $lid "year/2019/event/kyoto trip/IMG_0002.JPG" x.jpg     # called torii.jpg now
-log lay.out --home hy rename $lid "year/2019/event/kyoto trip/IMG_0003.JPG" "year/2019/event/kyoto trip/notes.txt"
-log lay.out --home hy rename $lid nope.jpg x.jpg
-log lay.out --home hy rename $lid "decade/1970s/print1.tif" "../x.tif"
-log lay.out --home hy find torii
-log lay.out --home hy find main.c
-log lay.out --home hy objects station
+log lay.out --home hy rename IMG_0002.JPG torii.jpg
+log lay.out --home hy rename IMG_0001.JPG x.jpg                    # two objects read as IMG_0001.JPG
+log lay.out --home hy rename torii.jpg "best/torii.jpg"             # a name, not a place
+log lay.out --home hy rename nothing x.jpg
+log lay.out --home hy retag torii.jpg "event:osaka-trip, place:osaka, Best"
+log lay.out --home hy retag torii.jpg "event:osaka-trip, place:osaka, best"
+log lay.out --home hy objects torii.jpg
+log lay.out --home hy find osaka
 7z x -olay-disc out-lay/$lid.noecc.iso >/dev/null
-log lay.out --home hy restore lay-disc lay-restored
+log lay.out --home hy restore lay-disc lay-restored                 # as burned
 find lay-restored -type f | sort >> lay.out
-log lay.out --home hy restore lay-disc lay-restored-burned --as-burned
-find lay-restored-burned -type f | sort >> lay.out
 # a plan from discs: remade from a copy the record knows as files, checked as read, named as now
 cp -R lay-disc lay-nas
 log lay.out --home hy stored $lid lay-nas
 log lay.out --home hy plan new remake --set PHOTO
 log lay.out --home hy plan add remake "$lid:nope"
 log lay.out --home hy plan add remake $lid
+log lay.out --home hy plan layout remake "year/event, project, decade"
 log lay.out --home hy plan show remake
 echo damage >> lay-nas/data/decade/1970s/print1.tif
 log lay.out --home hy plan make remake -y --no-ecc --no-formats --output-dir out-remake
@@ -611,7 +609,7 @@ cp -p lay-disc/data/decade/1970s/print1.tif lay-nas/data/decade/1970s/print1.tif
 log lay.out --home hy plan make remake -y --no-ecc --no-formats --output-dir out-remake
 cut -f5 hy/catalog/volumes/PHOTO-02_*/listing.tsv >> lay.out
 cat hy/catalog/volumes/PHOTO-02_*/tags.tsv >> lay.out
-log lay.out --home hy objects IMG_0002.JPG
+log lay.out --home hy objects torii.jpg
 keep lay.out lay/transcript.txt
 keep hy/drafts/plans/album.rec lay/album.rec
 keep_stages out-lay lay/discs

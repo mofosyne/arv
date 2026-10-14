@@ -117,7 +117,7 @@ int assist_tag(int argc, char **argv);
 char *ask(const char *prompt);                          /* a line from the terminal; "" at the end */
 void read_tags_file(const char *path, ftags *out);      /* catalog.read_tag_info */
 void read_tags_now(const archive *cat, const char *disc_id, const char *burned, ftags *out);   /* as burned, and since */
-size_t record_tag_changes(const archive *cat, rec_record *ev, const char *disc_id, const ftags *before, const ftags *after);
+size_t record_tag_changes(archive *cat, rec_record *ev, const char *disc_id, const ftags *before, const ftags *after);
 void save_json(const char *path, const jv *doc);
 
 #endif

@@ -76,6 +76,7 @@ int cmd_check(int argc, char **argv);
 int cmd_burned(int argc, char **argv);
 int cmd_note(int argc, char **argv);
 int cmd_rename(int argc, char **argv);
+int cmd_retag(int argc, char **argv);
 int cmd_locate(int argc, char **argv);
 int cmd_access(int argc, char **argv);
 int cmd_location(int argc, char **argv);
@@ -162,10 +163,12 @@ void sets_field(const archive *a, rec_record *e, const char *thing, const char *
 void tag_change(const archive *a, rec_record *ev, const char *disc_id, const char *field, const char *path, const char *value);
 char *disc_tags_text(const archive *a, const char *disc_id, const char *burned);
 FILE *disc_tags_open(const archive *a, const char *disc_id, const char *burned);
-/* moves recorded after burning (arv rename): each burned path, most specific first, and what it
- * is called now; a burned path as it is called now (malloc'd) */
-void disc_moves(const archive *a, const char *disc_id, strlist *from, strlist *to);
-char *moved_path(const strlist *from, const strlist *to, const char *burned);
+/* a data object's field now (Tags, Slug), from events about it (Object: object:UUID), or NULL; its name
+ * on discs now (Slug, else its Name) */
+const char *object_field(const archive *a, const char *uuid, const char *field);
+const char *object_slug(const archive *a, const rec_record *o);
+rec_record *object_event_like(const rec_record *ev, const char *uuid);   /* an event about it, as ev is */
+const rec_record *object_at(const archive *a, const char *disc_id, const char *path);   /* the object at path on a disc */
 /* the paths a disc's listing names, and the folders above them, as burned (record.c) */
 void listing_names(const char *lst, strlist *files, strlist *folders);
 size_t field_conflicts(const archive *a);    /* a field changed apart in two catalogues: printed, counted */    /* recorded twice, on two discs, two BCAs: printed, counted */
