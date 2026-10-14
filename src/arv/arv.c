@@ -91,6 +91,7 @@ static const char USAGE_RECORD[] =
           "  arv note DISC-ID TEXT   a note on a disc\n"
           "  arv rename OBJECT NEWNAME   a data object's name on discs now (a name, not a place); the next disc uses it\n"
           "  arv retag OBJECT TAGS   a data object's tags now (\"\" for none): what a layout files it by, and find finds\n"
+          "  arv same OBJECT OTHER   two data objects recorded apart are one (the same bytes, and the same thing)\n"
           "  arv access DISC-ID public|private|sealed   what later discs' catalogues may show of it\n"
           "  arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)\n"
           "  arv find [-C CATALOG] [--limit N] PATTERN   discs, copies (by identifier or carrier), objects, tags\n"
@@ -465,7 +466,7 @@ static const char MANUAL_NOTES[] =
     "\n"
     "These change the record, each leaving an event that says who and when: `init`, `make`, `plan make`,\n"
     "`collection init|keep`, `link`, `burned`, `stored`, `identify`,\n"
-    "`relabel`, `note`, `rename`, `retag`, `locate`, `access`, `location add|move`, `appraise`,\n"
+    "`relabel`, `note`, `rename`, `retag`, `same`, `locate`, `access`, `location add|move`, `appraise`,\n"
     "`retire --yes`, `rebuild`, `check` and `drives --check` (a check is logged), `describe` and `tag`\n"
     "(when a draft is applied). `where --here` changes only where the catalogue may be written.\n"
     "arv never deletes a file, an image or a disc.\n"
@@ -680,7 +681,7 @@ int main(int argc, char **argv)
     } cmds[] = { { "info", cmd_info }, { "restore", cmd_restore },
                  { "find", cmd_find }, { "list", cmd_list },
                  { "init", cmd_init }, { "make", cmd_make }, { "check", cmd_check },
-                 { "burned", cmd_burned }, { "note", cmd_note }, { "rename", cmd_rename }, { "retag", cmd_retag }, { "locate", cmd_locate },
+                 { "burned", cmd_burned }, { "note", cmd_note }, { "rename", cmd_rename }, { "retag", cmd_retag }, { "same", cmd_same }, { "locate", cmd_locate },
                  { "access", cmd_access }, { "location", cmd_location }, { "collection", cmd_collection },
                  { "status", cmd_status }, { "log", cmd_log }, { "diff", cmd_diff },
                  { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },

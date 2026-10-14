@@ -311,7 +311,8 @@ Re-filing a photo is changing its tags; there is no moving it.
 **Copies.** `arv plan show NAME --duplicates` lists byte-identical files on each disc (a folder
 copied twice, a card imported twice, an export that repeats photos in each album), and `plan make`
 notes them. Each is written in full, and each stays an object of its own (the same bytes can be
-two things); drop the copies you do not want.
+two things); drop the copies you do not want. Two objects you know are one (a copy you made, kept
+on two discs) can be joined afterwards: `arv same COPY ORIGINAL`.
 
 **Splitting a folder.** A file (or folder) inside a planned folder can be added on its own, or
 renamed in place (`plan rename`), under another name or on another disc: it goes where that item puts it, and the folder goes without it.

@@ -80,6 +80,60 @@ void archive_load(archive *a, const char *path)
         recs *g = r->descriptor || !r->type ? NULL : group(a, r->type);
         if (g) recs_add(g, r);
     }
+    archive_same_objects(a);
+}
+
+/* Two data objects said to be one (arv same: an event about A, "SameAs: object:B"): A's records are
+ * read as B's, each the version of B with its Tree (a copy of it), however they were recorded (on
+ * discs, and in snapshots, they keep A's Uuid). Applied on every load, so a merge from another
+ * catalogue or a disc is read the same way; records then alike (Uuid, Version, Disc, Path) are one. */
+void archive_same_objects(archive *a)
+{
+    for (int pass = 0; pass < 8; pass++) {          /* A to B, B to C ... */
+        int changed = 0;
+        for (size_t i = 0; i < a->events.n; i++) {
+            const rec_record *e = a->events.v[i];
+            const char *of = rec_get(e, "Object"), *to = rec_get(e, "SameAs");
+            if (!of || !to || strncmp(of, "object:", 7) || strncmp(to, "object:", 7)) continue;
+            const char *from_u = of + 7, *to_u = to + 7;
+            for (size_t k = 0; k < a->objects.n; k++) {
+                rec_record *o = a->objects.v[k];
+                if (!rec_get(o, "Uuid") || strcmp(rec_get(o, "Uuid"), from_u) || !rec_get(o, "Tree")) continue;
+                const rec_record *match = NULL;
+                for (size_t j = 0; j < a->objects.n && !match; j++) {
+                    const rec_record *x = a->objects.v[j];
+                    if (x != o && rec_get(x, "Uuid") && !strcmp(rec_get(x, "Uuid"), to_u) && rec_get(x, "Tree")
+                        && !strcmp(rec_get(x, "Tree"), rec_get(o, "Tree")))
+                        match = x;
+                }
+                if (!match) continue;               /* bytes B never had: left as it is (arv same refuses it) */
+                char *version = xstrdup(rec_get(match, "Version") ? rec_get(match, "Version") : "1");
+                rec_set(o, "Uuid", to_u);
+                rec_set(o, "Version", version);
+                free(version);
+                size_t kept = 0;                    /* no longer another object */
+                for (size_t f = 0; f < o->nfields; f++)
+                    if (strcmp(o->fields[f].name, "SameBytes")) o->fields[kept++] = o->fields[f];
+                o->nfields = kept;
+                changed = 1;
+            }
+        }
+        if (!changed) break;
+    }
+    size_t kept = 0;                                /* one version on one disc once */
+    for (size_t k = 0; k < a->objects.n; k++) {
+        const rec_record *o = a->objects.v[k];
+        int dup = 0;
+        for (size_t j = 0; j < kept && !dup; j++) {
+            const rec_record *x = a->objects.v[j];
+            static const char *const key[] = { "Uuid", "Version", "Disc", "Path" };
+            dup = 1;
+            for (int f = 0; f < 4 && dup; f++)
+                dup = rec_get(o, key[f]) && rec_get(x, key[f]) && !strcmp(rec_get(o, key[f]), rec_get(x, key[f]));
+        }
+        if (!dup) a->objects.v[kept++] = a->objects.v[k];
+    }
+    a->objects.n = kept;
 }
 
 /* every record in file order: each type's descriptor, then its records (as Catalog.records) */
@@ -1021,7 +1075,23 @@ char *disc_tags_text(const archive *a, const char *disc_id, const char *burned)
  * object:UUID", with "Tags: a, b" or "Slug: NAME" and Sets and Replaces, so they follow the object
  * to every disc it is on and every disc made from it, not a path on one disc. */
 
+static const char *object_field_own(const archive *a, const char *uuid, const char *field);
+
 const char *object_field(const archive *a, const char *uuid, const char *field)
+{
+    const char *own = object_field_own(a, uuid, field);
+    if (own) return own;
+    for (size_t i = 0; i < a->events.n; i++) {     /* one said to be this one (arv same): its value */
+        const char *of = rec_get(a->events.v[i], "Object"), *to = rec_get(a->events.v[i], "SameAs");
+        if (of && to && !strncmp(of, "object:", 7) && !strncmp(to, "object:", 7) && !strcmp(to + 7, uuid)) {
+            const char *v = object_field_own(a, of + 7, field);
+            if (v) return v;
+        }
+    }
+    return NULL;
+}
+
+static const char *object_field_own(const archive *a, const char *uuid, const char *field)
 {
     char *thing = xprintf("object:%s", uuid);
     strlist heads;

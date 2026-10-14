@@ -1588,8 +1588,12 @@ identity, but has no lineage of a file across ingests.
 arv had it half right: an object's `Uuid` and `Version` are a lineage, but any matching `Tree`
 was taken as the same version, wherever it came from. Now the lineage decides (the object
 archived from the same `Source`); the same `Tree` elsewhere is a new object with `SameBytes`,
-noted and shown (`make`, `status`, `retire`), not merged. A way for a person to say "these are
-one" (merging two lineages, an event) is not built yet. Files are still found by hash (`status`
+noted and shown (`make`, `status`, `retire`), not merged. A person who knows says "these are one":
+`arv same A B` (done 2026-10-14), an event about A (`SameAs: object:B`); every load reads A's
+records as B's versions with the same `Tree`, so a merge or rebuild that brings A's records back
+from discs reads them the same way, and the records on discs need not change. Only when each of A's
+versions has bytes B had: A with a history of its own (other bytes) stays apart, as joining two
+histories would need a person to order them. For a source not yet archived, `plan add --of`. Files are still found by hash (`status`
 reports moves, `retire` counts files on discs that stay): that is fixity and finding, not identity.
 
 Considered, not built: sharing identical bytes on one disc (UDF lets two names point to one File

@@ -192,7 +192,9 @@ ImageSha256: SHA256
 + at Path; Name keeps its name where it was read from, and Slug, when they differ, is its name
 + on this disc. SameBytes (UUID VERSION) names an
 + object of another lineage with the same Tree: identity is the lineage, never the bytes,
-+ so the same bytes read from elsewhere are another object, and this says so.
++ so the same bytes read from elsewhere are another object, and this says so; a person who
++ knows they are one says so with an event (Object: object:THIS, SameAs: object:OTHER), and
++ readers then read its records as the other's versions with the same Tree.
 + Title, Description, Coverage (EDTF), Rights and Origin (where it was published, as host/path)
 + say what it is: read from its own files when it is archived (its README, package manifest,
 + licence, a repository's commits and origin remote), or written by a person or a model

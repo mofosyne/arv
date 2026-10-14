@@ -149,6 +149,10 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   says so when it is made, and `status` says "its bytes are the data object ...". Before, any
   matching `Tree` merged two objects, though identical bytes can be two things with two
   provenances. `retire` names the same bytes on a disc that stays.
+- `arv same OBJECT OTHER`: a person says two objects recorded apart are one (a copy made of it).
+  An event about OBJECT, `SameAs: object:OTHER`; from then on OBJECT's records are read as copies
+  of OTHER's versions with the same bytes, on every load, so merges and rebuilds agree. Refused
+  for an object with bytes the other never had: a history of its own.
 
 **Declared namespaces**
 - The tag vocabulary (`config/tags.rec`) declares namespaces: `Namespace` records with

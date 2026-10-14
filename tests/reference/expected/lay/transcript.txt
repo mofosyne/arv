@@ -130,7 +130,7 @@ Classified as: MEMORIES/PHOTO, PROJECTS/CODE
 Object IMG_0001.JPG (data/year/2019/event/kyoto trip/IMG_0001.JPG, by the layout on PHOTO-01_1974-2021_F): new
 Object IMG_0002-copy.JPG (data/year/2019/event/kyoto trip/IMG_0002-copy.JPG, by the layout on PHOTO-01_1974-2021_F): new
 Object IMG_0002.JPG (data/year/2019/event/kyoto trip/IMG_0002.JPG, by the layout on PHOTO-01_1974-2021_F): new
-  the same bytes as IMG_0002-copy.JPG version 1 on PHOTO-01_1974-2021_F, archived from elsewhere: recorded as another object (SameBytes), since the bytes cannot say whether it is the same thing (a copy you made of it is: plan it with plan add --of)
+  the same bytes as IMG_0002-copy.JPG version 1 on PHOTO-01_1974-2021_F, archived from elsewhere: recorded as another object (SameBytes), since the bytes cannot say whether it is the same thing (if it is: arv same, or plan add --of next time)
 Object IMG_0003.JPG (data/year/2019/event/kyoto trip/IMG_0003.JPG, by the layout on PHOTO-01_1974-2021_F): new
 Object IMG_0001.JPG (data/year/2019/event/kyoto trip/IMG_0001-day2.JPG, by the layout on PHOTO-01_1974-2021_F): new
 Object notes.txt (data/year/2019/event/kyoto trip/notes.txt, by the layout on PHOTO-01_1974-2021_F): new
@@ -225,6 +225,26 @@ rc=0
 $ --home hy find osaka
 TAG   PHOTO-01_1974-2021_F  [?]  data/year/2019/event/kyoto trip/IMG_0002.JPG  (event:osaka-trip, place:osaka, best)
 rc=0
+$ --home hy same notes.txt torii.jpg
+Error: notes.txt has bytes torii.jpg never had, a history of its own; arv keeps the two apart:
+  version 1 on PHOTO-01_1974-2021_F
+rc=1
+$ --home hy same IMG_0002-copy.JPG torii.jpg
+IMG_0002-copy.JPG is torii.jpg now (UUID): its record is read as a copy of its version.
+rc=0
+$ --home hy objects torii.jpg
+Data objects:
+  torii.jpg  file, 1 version; newest: 0 copies on 2 discs, 0 cold, 0 read back
+    renamed: it was read as IMG_0002-copy.JPG
+    tags now: event:osaka-trip, place:osaka, best
+    from ROOT/lay/DCIM/IMG_0002-copy.JPG (there now: arv status says if it changed)
+    and ROOT/lay/DCIM/IMG_0002.JPG (there now: arv status says if it changed)
+    version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/IMG_0002-copy.JPG  no copy yet
+    version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/IMG_0002.JPG  no copy yet
+rc=0
+$ --home hy same IMG_0002-copy.JPG torii.jpg
+Error: IMG_0002-copy.JPG and the other are one object already
+rc=1
 $ --home hy plan new again --set PHOTO
 Plan again: 1 empty disc (hy/drafts/plans/again.rec). Next: arv plan add again FILE-OR-FOLDER...
 rc=0
@@ -308,11 +328,13 @@ project/weather-station/station/src/main.c
 year/2019/event/osaka-trip/torii.jpg
 $ --home hy objects torii.jpg
 Data objects:
-  torii.jpg  file, 1 version; newest: 0 copies on 2 discs, 0 cold, 0 read back
-    renamed: it was read as IMG_0002.JPG
+  torii.jpg  file, 1 version; newest: 0 copies on 3 discs, 0 cold, 0 read back
+    renamed: it was read as IMG_0002-copy.JPG
     tags now: event:osaka-trip, place:osaka, best
-    from ROOT/lay/DCIM/IMG_0002.JPG (there now: arv status says if it changed)
+    from ROOT/lay/DCIM/IMG_0002-copy.JPG (there now: arv status says if it changed)
+    and ROOT/lay/DCIM/IMG_0002.JPG (there now: arv status says if it changed)
     and ROOT/lay-restored/year/2019/event/kyoto trip/IMG_0002.JPG (there now: arv status says if it changed)
+    version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/IMG_0002-copy.JPG  no copy yet
     version 1  PHOTO-01_1974-2021_F  data/year/2019/event/kyoto trip/IMG_0002.JPG  no copy yet
     version 1  PHOTO-02_1974-2021_D  data/year/2019/event/osaka-trip/torii.jpg  no copy yet
 rc=0

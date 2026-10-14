@@ -592,6 +592,10 @@ log lay.out --home hy retag torii.jpg "event:osaka-trip, place:osaka, Best"
 log lay.out --home hy retag torii.jpg "event:osaka-trip, place:osaka, best"
 log lay.out --home hy objects torii.jpg
 log lay.out --home hy find osaka
+log lay.out --home hy same notes.txt torii.jpg                     # other bytes: two objects, kept apart
+log lay.out --home hy same IMG_0002-copy.JPG torii.jpg             # the same bytes, and (a person says) the same thing
+log lay.out --home hy objects torii.jpg
+log lay.out --home hy same IMG_0002-copy.JPG torii.jpg
 log lay.out --home hy plan new again --set PHOTO                     # the photo planned again, from the drive:
 log lay.out --home hy plan add again lay/DCIM/IMG_0002.JPG          # placed by its tags now, named by its name now
 log lay.out --home hy plan layout again "year/event"

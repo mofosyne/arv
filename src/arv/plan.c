@@ -2089,8 +2089,8 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
                 : from ? "a new version of what was archived from there before" : "new");
         if (!same && twin)
             fprintf(stderr, "  the same bytes as %s%s version %s on %s, archived from elsewhere: recorded as another object "
-                            "(SameBytes), since the bytes cannot say whether it is the same thing (a copy you made of it "
-                            "is: plan it with plan add --of)\n",
+                            "(SameBytes), since the bytes cannot say whether it is the same thing (if it is: arv same, or "
+                            "plan add --of next time)\n",
                     get_or(twin, "Name", "?"), strcmp(get_or(twin, "Kind", ""), "file") ? "/" : "", get_or(twin, "Version", "?"),
                     get_or(twin, "Disc", "?"));
         free(where);

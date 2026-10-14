@@ -481,7 +481,11 @@ when it is archived: from the same place, the same content as a version of it is
 and changed content the next version; from a place not archived before, a new `Uuid`. Identity is
 the lineage, never the bytes: two identical files can be two things (a copy you made, or the same
 photo sent by two people, with two provenances), and only a person can tell. So the same `Tree`
-in another lineage is another object, and records `SameBytes: UUID VERSION` naming that one. The home catalogue adds `Source` (the path it was read
+in another lineage is another object, and records `SameBytes: UUID VERSION` naming that one.
+A person who knows they are one says so (`arv same`): an `Event` about the first, `Object:
+object:A`, `SameAs: object:B`, and from then on readers read A's records as B's, each the version
+of B with its `Tree` (A's records on discs keep A's `Uuid`; the event is what joins them). Only an
+object whose every version has bytes B has had can be joined; one with a history of its own stays. The home catalogue adds `Source` (the path it was read
 from, relative to the folder holding the home when inside it) and keeps each manifest in `catalog/objects/<Tree>.sha256`; neither goes on a disc.
 `Except`* names a file or folder of the source, relative to it, that a disc plan placed elsewhere
 (a folder split: the more specific of two plan items that hold a file places it); the object is

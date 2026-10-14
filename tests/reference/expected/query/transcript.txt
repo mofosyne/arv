@@ -380,6 +380,7 @@ Record: what exists, and where
   arv note DISC-ID TEXT   a note on a disc
   arv rename OBJECT NEWNAME   a data object's name on discs now (a name, not a place); the next disc uses it
   arv retag OBJECT TAGS   a data object's tags now ("" for none): what a layout files it by, and find finds
+  arv same OBJECT OTHER   two data objects recorded apart are one (the same bytes, and the same thing)
   arv access DISC-ID public|private|sealed   what later discs' catalogues may show of it
   arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)
   arv find [-C CATALOG] [--limit N] PATTERN   discs, copies (by identifier or carrier), objects, tags
