@@ -8,9 +8,18 @@ ARV      = $(filter-out ../arv/arv.c, $(wildcard ../arv/*.c)) ../bagit/bagit.c .
 
 all: $(BUILD)/arv-gui
 
-$(BUILD)/arv-gui: arv-gui.c $(ARV) ../arv/*.h
+# the page built in (a fallback: a gui.html beside it or in share/arv is read first); generated
+# at each build, never committed
+$(BUILD)/embed: ../../dev-tools/embed.c
 	@mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) $(WARN) -D_POSIX_C_SOURCE=200809L $(LDFLAGS) -pthread -o $@ arv-gui.c $(ARV) -lm
+	$(CC) $(CFLAGS) $(WARN) -o $@ ../../dev-tools/embed.c
+
+$(BUILD)/page.c: gui.html $(BUILD)/embed
+	$(BUILD)/embed $@ GUI_PAGE=gui.html
+
+$(BUILD)/arv-gui: arv-gui.c $(BUILD)/page.c $(ARV) ../arv/*.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(WARN) -D_POSIX_C_SOURCE=200809L -DARV_GUI_EMBEDDED -I../arv $(LDFLAGS) -pthread -o $@ arv-gui.c $(BUILD)/page.c $(ARV) -lm
 
 clean:
 	rm -rf $(BUILD)

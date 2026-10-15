@@ -59,9 +59,9 @@ class GuiTest(unittest.TestCase):
         self.fake = None
         self.server = None
 
-    def start(self, llm_url=None):
+    def start(self, llm_url=None, program=GUI):
         """arv-gui, as arv gui starts it, on any free port: its first line says where"""
-        argv = [GUI, "--no-browser", "--port", "0"] + (["--home", self.home] if self.home else [])
+        argv = [program, "--no-browser", "--port", "0"] + (["--home", self.home] if self.home else [])
         self.jobs_tmp = os.path.join(self.tmp, "gui-tmp")       # where it keeps its jobs' output
         os.makedirs(self.jobs_tmp, exist_ok=True)
         self.server = subprocess.Popen(argv + (["--llm-url", llm_url] if llm_url else []), stdout=subprocess.PIPE, text=True,
@@ -140,6 +140,29 @@ class GuiTest(unittest.TestCase):
         status, page = self.request("/?t=" + self.token, token=False)
         self.assertEqual(status, 200)
         self.assertIn(self.token, page)
+
+    def test_page_built_in_or_from_its_file(self):
+        """On its own, arv-gui serves the page built into it; a gui.html it can find is read first,
+        so the page can be changed without building anything."""
+        alone = os.path.join(self.tmp, "bin", "arv-gui")
+        os.makedirs(os.path.dirname(alone))
+        shutil.copy(GUI, alone)                                 # no gui.html beside it or in share/arv
+        self.start(program=alone)
+        status, page = self.request("/?t=" + self.token, token=False)
+        self.assertEqual(status, 200)
+        self.assertIn("<title>arv</title>", page)
+        self.assertIn(self.token, page)
+        self.server.terminate()
+        self.server.wait()
+        self.server.stdout.close()
+        changed = os.path.join(self.tmp, "my.html")
+        write(changed, "<p>mine __TOKEN__</p>")
+        os.environ["ARV_GUI_PAGE"] = changed
+        try:
+            self.start(program=alone)
+            self.assertEqual(self.request("/?t=" + self.token, token=False)[1], "<p>mine %s</p>" % self.token)
+        finally:
+            del os.environ["ARV_GUI_PAGE"]
 
     def test_bad_requests(self):
         """Only a command word comes first, never an option or arv gui; and only arv and arv-assist run."""

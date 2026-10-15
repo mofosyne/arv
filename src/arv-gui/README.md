@@ -47,10 +47,12 @@ arv-gui --home PATH [--port N] [--no-browser] [--llm-url URL] [--llm-model NAME]
 ```
 
 It finds arv and arv-assist in `$ARV` and `$ARV_ASSIST` (arv sets both when it runs arv-gui), beside
-itself (an installed `bin/`), in this checkout's `src/*/build/`, then on `PATH`. It reads the page at
-each load, not built in: `$ARV_GUI_PAGE`, else `../gui.html` from where it is (a checkout's
-`src/arv-gui/build/`), else `../share/arv/src/arv-gui/gui.html` (installed). So no generated file is
-committed, and the page can be changed without building anything.
+itself (an installed `bin/`), in this checkout's `src/*/build/`, then on `PATH`. The page is read at
+each load from `$ARV_GUI_PAGE`, else `../gui.html` from where it is (a checkout's
+`src/arv-gui/build/`), else `../share/arv/src/arv-gui/gui.html` (installed), so it can be changed
+without building anything. With none of those (`arv-gui` copied on its own), it serves the copy
+built into it: `make` writes `build/page.c` from `gui.html` with `dev-tools/embed.c`, never
+committed. Built by hand without that file, it has no copy and needs the page beside it.
 
 **How it serves:** plain HTTP/1.0 on 127.0.0.1 only. There is no TLS: the traffic never leaves the
 machine. Each connection is served by a process of its own, so a slow command (`plan show --archived`

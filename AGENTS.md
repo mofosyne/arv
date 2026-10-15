@@ -37,6 +37,7 @@ a recfile catalogue, its own source in `tools/`), and keeps the record of what e
 make                    # everything
 make check              # every check, the reference scenarios and the GUI's tests (a few minutes)
 make -C src/arv check   # the CLI's checks only
+make -C src/arv check-tcc   # the same checks, arv built by TinyCC: arv stays C99 (research/plan.md)
 ```
 
 `make check` must pass before a commit. Things that are easy to miss:

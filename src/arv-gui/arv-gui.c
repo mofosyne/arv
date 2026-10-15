@@ -28,6 +28,20 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#ifdef ARV_GUI_EMBEDDED
+extern const char GUI_PAGE[];            /* build/page.c: gui.html as built in, by dev-tools/embed.c */
+#endif
+
+/* the page built in, or NULL when arv-gui was built by hand without build/page.c */
+static const char *built_in_page(void)
+{
+#ifdef ARV_GUI_EMBEDDED
+    return GUI_PAGE;
+#else
+    return NULL;
+#endif
+}
+
 #define MAX_HEAD (64 * 1024)
 #define MAX_BODY (64L * 1024 * 1024)     /* a draft on standard input, or a pasted library listing */
 
@@ -471,10 +485,13 @@ static char *start_job(char **av, const char *in)
 
 /* ------------------------------------------------------------------ the routes */
 
+/* the page: its file when there is one (so it can be changed without building anything), else the
+ * copy built in (so arv-gui on its own still has one) */
 static void route_page(void)
 {
     sbuf page = { 0 };
-    if (read_file(page_file, &page)) {
+    if ((!page_file || read_file(page_file, &page)) && built_in_page()) sb_puts(&page, built_in_page());
+    if (!page.s) {
         respond_error(500, "the page gui.html cannot be read");
         return;
     }
@@ -758,7 +775,8 @@ int main(int argc, char **argv)
     if (!prog_arv) prog_arv = "arv";                                   /* on PATH */
     if (!prog_assist) prog_assist = "arv-assist";
     page_file = found_file("ARV_GUI_PAGE", page_at, 0);
-    if (!page_file) die("%s", "arv-gui: its page, gui.html, was not found beside it or in share/arv (or set ARV_GUI_PAGE)");
+    if (!page_file && !built_in_page())
+        die("%s", "arv-gui: its page, gui.html, was not found beside it or in share/arv (or set ARV_GUI_PAGE)");
     make_token();
 
     const char *tmp = getenv("TMPDIR") && *getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp";

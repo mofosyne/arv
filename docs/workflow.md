@@ -626,7 +626,8 @@ The layers, from most to least durable:
 
 - **Tests:** `make check` runs bagit (against bagit.py when python3 is there), RS03 (the test
   vectors, and dvdisaster Light when on PATH), arv (`make -C src/arv check`: the reference
-  outputs, a real disc, Siegfried when on PATH; `check-ape` with arv.com), arv-assist (against a
+  outputs, a real disc, Siegfried when on PATH; `check-ape` with arv.com, `check-tcc` with arv
+  built by TinyCC), arv-assist (against a
   fake model server), then arv-gui (`python3 -m unittest discover -s tests`, over HTTP).
 - **Reference outputs:** `make -C src/arv check` holds arv to
   [tests/reference/expected](../tests/reference/); after an intended change,
