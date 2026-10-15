@@ -17,6 +17,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,6 +27,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 
 #ifdef ARV_GUI_EMBEDDED
@@ -50,6 +52,7 @@ static int port, listen_fd = -1, conn_fd = -1;
 static char *home_given, *start_dir, *workdir, *page_file, *prog_arv, *prog_assist;
 static strlist llm_options;              /* --llm-url URL ..., given to arv-assist */
 static volatile sig_atomic_t stopping;
+static long idle_minutes;               /* --idle: stop after this long unused, with no job running (0: never) */
 
 /* ------------------------------------------------------------------ small helpers */
 
@@ -571,6 +574,23 @@ static void route_job(const request *r)
     free(since);
 }
 
+/* whether a job is still running: one with no exit status yet */
+static int jobs_running(void)
+{
+    char *dir = xprintf("%s/jobs", workdir);
+    DIR *d = opendir(dir);
+    int running = 0;
+    for (struct dirent *e; d && !running && (e = readdir(d));)
+        if (job_id_ok(e->d_name)) {
+            char *rc = job_file(e->d_name, "rc");
+            running = access(rc, F_OK) != 0;
+            free(rc);
+        }
+    if (d) closedir(d);
+    free(dir);
+    return running;
+}
+
 static int by_number(const void *a, const void *b)
 {
     return atoi(*(char *const *)a) - atoi(*(char *const *)b);
@@ -739,9 +759,10 @@ static void open_browser(const char *url)
 
 static int usage(FILE *to)
 {
-    fputs("usage: arv-gui [--home HOME] [--port N] [--no-browser] [--llm-url URL] [--llm-model NAME]\n"
+    fputs("usage: arv-gui [--home HOME] [--port N] [--no-browser] [--idle MINUTES] [--llm-url URL] [--llm-model NAME]\n"
           "               [--llm-allow-remote] [--vision-url URL] [--vision-model NAME]\n"
-          "arv's interface in your web browser, on 127.0.0.1; arv gui runs it with the home it finds.\n", to);
+          "arv's interface in your web browser, on 127.0.0.1; arv gui runs it with the home it finds.\n"
+          "--idle: stop once the page has been closed that long and no job is running (started from a menu)\n", to);
     return to == stdout ? 0 : 2;
 }
 
@@ -757,6 +778,7 @@ int main(int argc, char **argv)
         else if (!strcmp(a, "--vision")) continue;                     /* accepted, as before; the page asks */
         else if (i + 1 < argc && !strcmp(a, "--home")) home_given = argv[++i];
         else if (i + 1 < argc && !strcmp(a, "--port")) port = atoi(argv[++i]);
+        else if (i + 1 < argc && !strcmp(a, "--idle")) idle_minutes = atol(argv[++i]);
         else if (i + 1 < argc && (!strcmp(a, "--llm-url") || !strcmp(a, "--llm-model") || !strcmp(a, "--vision-url")
                                   || !strcmp(a, "--vision-model"))) {
             strlist_add(&llm_options, a);
@@ -813,9 +835,20 @@ int main(int argc, char **argv)
     printf("arv's interface is running at %s  (Ctrl+C to stop)\n", url);
     fflush(stdout);
     if (browser) open_browser(url);
+    time_t last = time(NULL);                               /* the page asks every minute while it is open */
     while (!stopping) {
+        if (idle_minutes > 0) {
+            struct pollfd pf = { listen_fd, POLLIN, 0 };
+            int ready = poll(&pf, 1, 30000);
+            if (!ready && time(NULL) - last >= idle_minutes * 60 && !jobs_running()) {
+                printf("Unused for %ld minute%s, with no job running: stopped.\n", idle_minutes, idle_minutes == 1 ? "" : "s");
+                break;
+            }
+            if (ready <= 0) continue;
+        }
         conn_fd = accept(listen_fd, NULL, NULL);
         if (conn_fd < 0) continue;
+        last = time(NULL);
         fcntl(conn_fd, F_SETFD, FD_CLOEXEC);
         if (fork() == 0) {
             signal(SIGCHLD, SIG_DFL);                        /* it waits for the commands it runs */

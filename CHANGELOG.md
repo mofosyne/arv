@@ -21,6 +21,30 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**The room on a disc, in the spec**
+- The disc format spec gives each medium's sectors and how much image fits at 10, 20, 30 and 50%
+  RS03 (18.7 GiB on a BD-R 25 at the default 20%), and how it follows from RS03's 255 layers.
+
+**arv in the desktop's menu**
+- `make install` (and the Debian and Arch packages) puts `arv.desktop` and arv's mark as its icon
+  where desktops look. It runs `arv gui --idle 15`: started from a menu there is no terminal to stop
+  it in, so it stops by itself once its page has been closed for 15 minutes and no job is running.
+
+**Nearly everything without the command line**
+- `arv gui`: Places (the tree and its temperatures: add, rename, move), What changed (`arv status`
+  for any folder), a folder made a collection, who may see a disc (`arv access`), a data object
+  renamed or retagged, and in Mastering an item's new place, its tags and a disc's layout. Owed is
+  read from `arv todo --json`.
+- `arv objects --json` gives each object's `name` now (after `arv rename`), `readAs` and `tags`;
+  `arv plan show --json` each item's own `tags`.
+
+**Every read has --json** (issue #31)
+- `todo --json` (each finding with its `kind`, what it is about and the line a person reads;
+  questions apart), `status --json` (what changed, every path), `info --json` (a disc, an image or
+  a disc id) and `help --json` (every command, its usage and summary). The manual lists every JSON
+  output.
+- Exit codes stay 0, 1 and 2, and many things in a row are a shell loop: research/plan.md says why.
+
 **The interface in C** (issue #48)
 - `arv-gui` is a small C program: HTTP/1.0 on 127.0.0.1 with the same token and checks, the same
   five routes, a process for each connection, and jobs' output in files under `$TMPDIR`, removed

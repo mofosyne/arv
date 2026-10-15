@@ -1080,6 +1080,11 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
                 json_str(&b, p->v[i].path);
                 sb_puts(&b, ", \"source\": ");
                 json_str(&b, p->v[i].source);
+                const char *own = "";              /* its own tags (arv plan tag), not its folders' */
+                for (size_t t = 0; t < p->tag_src.n; t++)
+                    if (!strcmp(p->tag_src.v[t], p->v[i].source)) own = p->tag_val.v[t];
+                sb_puts(&b, ", \"tags\": ");
+                json_str(&b, own);
                 sb_puts(&b, ", \"placed\": ");     /* where the disc's layout puts it; null: at path */
                 if (at[i]) json_str(&b, at[i]);
                 else sb_puts(&b, "null");

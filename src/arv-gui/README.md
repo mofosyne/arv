@@ -3,20 +3,25 @@
 `arv gui`: the interface, in your web browser. Optional, in C99 and POSIX (a program of its own,
 so arv does not grow); everything it does can be done with arv in a terminal.
 
-Its three tabs follow the name: **Archive** (From a folder, `arv make`; Mastering: discs by hand,
-`arv plan`), **Record** (Objects: everything kept, what each object says it is, and where every copy is, `arv objects --json`;
-Collections: each collection's editions, safe, replaced, kept or retired, with Keep and Retire, which
-show `arv retire`'s preview before anything is recorded; Discs, where a disc's copies are listed by
-letter, `arv objects DISC-ID --json`, recorded (`arv burned`, `arv stored`), known by a barcode a
-scanner types in or a serial (`arv identify`), given a new letter when two catalogues gave out one
-twice (`arv relabel`) or checked (`arv check --copy`); Search, which finds a copy by its barcode too)
-and **Verify** (Owed: `arv todo`, also counted above the tabs, where the questions waiting for an
-answer are listed but not counted; Check; Inventory: what a library's `mtx status` or a scanned
-shelf read, against the copies recorded there, `arv inventory`; Audit: every event as written, copies
-recorded twice and fields two catalogues changed apart, `arv audit`; Restore, and rebuild from a
-disc or merge another catalogue). Jobs, the commands it ran, open from the header. File lists show a small
-icon for the kind of file (image, video, audio, document, spreadsheet, archive, disc image, code),
-guessed from the extension as a hint only: the disc's `formats.csv` (Siegfried) is the record.
+Its three tabs follow the name.
+
+- **Archive:** From a folder (`arv make`); Mastering, discs by hand (`arv plan`: add, move, drop, an
+  item's new place and its tags, a disc's layout, make, again); What changed (`arv status`: a
+  collection's folder against its last edition, or any folder against every disc).
+- **Record:** Objects (everything kept, what each says it is, where every copy is; renamed and
+  retagged there, `arv rename`, `arv retag`); Collections (editions, keep and retire, and a folder
+  made a collection, `arv collection init`); Discs (a disc's copies by letter, recorded with
+  `arv burned` or `arv stored`, known by a barcode a scanner types in, `arv identify`, given a new
+  letter when two catalogues gave out one twice, `arv relabel`, checked, `arv check --copy`, and who
+  may see it, `arv access`); Places (the tree of places and their temperature, `arv location`);
+  Search (files, discs, and a copy by its barcode).
+- **Verify:** Owed (`arv todo --json`, also counted above the tabs; the questions waiting for an
+  answer are listed but not counted); Check; Inventory (`arv inventory`: a library's
+  `mtx status` or a scanned shelf against the copies recorded there); Audit (`arv audit`); Restore,
+  and rebuild from a disc or merge another catalogue.
+
+Jobs, the commands it ran, open from the header. File lists show a small icon for the kind of
+file, guessed from the extension as a hint only: the disc's `formats.csv` (Siegfried) is the record.
 
 With no archive here or above and no default (a first run), it opens on **Make an archive**: a
 folder (where it was started, or browsed to), an optional name, and whether to use it from
@@ -41,9 +46,13 @@ The page and every request carry a per-session token, and the Host header must b
 address, so other web pages and other local users cannot drive it. Commands run without a shell,
 and the first word (after `--home PATH`) must be a command, never an option or `gui`.
 
+Installed, it is also **arv** in the desktop's menu (`arv.desktop`, with arv's mark as its icon),
+which runs `arv gui --idle 15`: with no terminal to stop it in, it stops by itself once its page
+has been closed for 15 minutes and no job is running (the page says it is open once a minute).
+
 ```sh
 arv gui                       # the home arv finds from here
-arv-gui --home PATH [--port N] [--no-browser] [--llm-url URL] [--llm-model NAME]
+arv-gui --home PATH [--port N] [--no-browser] [--idle MINUTES] [--llm-url URL] [--llm-model NAME]
 ```
 
 It finds arv and arv-assist in `$ARV` and `$ARV_ASSIST` (arv sets both when it runs arv-gui), beside
@@ -66,6 +75,7 @@ It links arv's modules (src/arv, all but `arv.c`) for their JSON reader and stri
 | `arv-gui.c` | the server (`make` builds `build/arv-gui`) |
 | `gui.html` | the page: every view, and every command it builds |
 | `Makefile` | builds it |
+| `arv.desktop` | the menu entry `make install` puts in `share/applications` |
 
 Tests: `python3 -m unittest discover -s tests` (`tests/test_gui.py`; `make check` runs it). They
 speak HTTP to `build/arv-gui`, as the page does.

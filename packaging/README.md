@@ -9,6 +9,7 @@ distribution, so the package manager can remove it again and say what it install
 | `arv`, `arv-assist`, `arv-gui`, `udfwrite`, `bagit` | `/usr/bin` |
 | arv's source, the tree every disc carries in `tools/` (with `arv gui`'s page, `src/arv-gui/gui.html`) | `/usr/share/arv` |
 | the manual (`arv help --man`, the same text as `arv help --all`) | `/usr/share/man/man1/arv.1` |
+| arv in the desktop's menu (`arv gui --idle 15`), and its icon | `/usr/share/applications/arv.desktop`, `/usr/share/icons/hicolor/scalable/apps/arv.svg` |
 | tab completion (it asks arv itself: `src/arv/completion/`) | bash: `/usr/share/bash-completion/completions/arv`; zsh: `site-functions/_arv` (Arch), `vendor-completions/_arv` (Debian) |
 
 ## Debian and Ubuntu

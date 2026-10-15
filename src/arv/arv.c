@@ -65,7 +65,7 @@ static const char USAGE_ARCHIVE[] =
           "  arv collection init [FOLDER] --code CODE --title TITLE [--set CODE] [--access LEVEL] | list | show CODE\n"
           "         a folder kept over time, its states made into editions of discs (show: its editions)\n"
           "  arv collection keep CODE N   keep edition N: never offered for retiring\n"
-          "  arv status [-v] [--deep] [FOLDER]   what changed in a folder since it was archived, or what of it is\n"
+          "  arv status [-v] [--deep] [--json] [FOLDER]   what changed in a folder since it was archived, or what of it is\n"
           "         on discs (--deep: read every file again, not trusting sizes and times)\n"
           "  arv link FOLDER COLLECTION|DISC-ID [--past]   say what a folder is: a collection's workflow folder,\n"
           "         or a disc's source (--past: an older state, kept for reference); logged, nothing written in it\n"
@@ -99,7 +99,7 @@ static const char USAGE_RECORD[] =
           "  arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]\n"
           "           [--unchecked-since AGE|DATE] [--one-place] [--json]   the discs, one a line (--in: a set or\n"
           "         category; --at: a place and the places in it; --covers: an EDTF date; AGE: 5y, 18m, 90d)\n"
-          "  arv info [-C CATALOG] DISC|IMAGE|DISC-ID [--files]   a disc (--files: its listing), an image\n"
+          "  arv info [-C CATALOG] DISC|IMAGE|DISC-ID [--files] [--json]   a disc (--files: its listing), an image\n"
           "         (which disc and copy), or a disc id (its parts, its check character, the disc it names)\n"
           "  arv location list [-v | --json] | add CODE [NAME] [--in PARENT] [--description TEXT] [--temperature T]\n"
           "               | move CODE [NAME] [--in PARENT] [--temperature T]\n"
@@ -119,7 +119,7 @@ static const char USAGE_RECORD[] =
           "\n";
 static const char USAGE_REST[] =
           "Verify: still good, and can be got back\n"
-          "  arv todo [--overdue AGE] [--tsv]   what is owed: copies, read-backs, cold copies, places, checks\n"
+          "  arv todo [--overdue AGE] [--tsv | --json]   what is owed: copies, read-backs, cold copies, places, checks\n"
           "         (--overdue: checks older than AGE, default 5y; --tsv: one copy a line, for scripts)\n"
           "  arv check [--repair | --drive] [--copy X] [--identifier ID | --barcode CODE]... [--note TEXT] [-v] SOURCE [DISC-ID]\n"
           "         a copy, against what arv made: SOURCE is a drive (every sector), an image file (--repair:\n"
@@ -138,7 +138,7 @@ static const char USAGE_REST[] =
           "         for arv --archive NAME; --default: the one used when no other is found)\n"
           "  arv where [--here]   which home arv uses, and why (--here: this copy of it may be written here too)\n"
           "  arv gui   the interface, in your web browser (*)\n"
-          "  arv help [--all | --man | COMMAND]   --all: the whole manual (markdown), for people and agents alike\n"
+          "  arv help [--all | --man | --json | COMMAND]   --all: the whole manual (markdown), for people and agents alike\n"
           "\n"
           "(*) when installed: arv-assist (the local AI helpers), arv-gui (the interface)\n"
           "DISC: the root of a mounted arv disc or an extracted image (the folder with catalog.rec)\n"
@@ -547,7 +547,12 @@ static const char *const MANUAL_NOTES[] = {      /* in parts: C99 strings may be
     "  events it made, `{\"format\": ..., \"command\": ..., \"events\": [...]}`, each with its `EventId` and\n"
     "  fields as `list --json` gives a disc's events; what it says to a person goes to standard error.\n"
     "  After a failure, the events written before it (usually none), and the exit status says so.\n"
-    "- `arv objects --json`, `arv objects DISC-ID --json`: what is kept and every copy of it.\n"
+    "- `--json` on the commands that read: `list` (`discs`), `find` (`discs`, `copies`, `files`),\n"
+    "  `objects` and `objects DISC-ID` (what is kept, and every copy), `todo` (`owed`: each with its\n"
+    "  `kind`, what it is about, `text` and `heading`; `questions` apart), `status` (`is`, then\n"
+    "  `changes`, or `onDiscs` and `onNone`; `notes`), `info` (`is`: `disc`, `image` or `id`), `where`,\n"
+    "  `plan list|show`, `collection list`, `location list`, and `help` (every command: `name`,\n"
+    "  `usage`, `summary`).\n"
     "- `arv todo --tsv`: what is owed, one copy a line, with a header line.\n"
     "- `arv keywords --format tsv|exiftool DISC-ID`: a disc's folder tags.\n"
     "- Lines that start with a fixed word: `find` (`DISC`, `OBJECT`, `COPY`, `GIT`, `TAG`, `LOST`, or a\n"
@@ -717,6 +722,64 @@ static void manual_man(FILE *to)
 }
 
 /* arv help [--all | --man | COMMAND] */
+/* arv help --json: the commands, group by group, from the usage text (as --all is): each with its
+ * name, its usage (up to the gap before the description) and its summary (the rest, and the
+ * lines indented under it), for a program to discover them */
+static void help_json(void)
+{
+    sbuf b = { 0 };
+    sb_puts(&b, "{" JSON_FORMAT ", \"version\": ");
+    json_str(&b, VERSION);
+    sb_puts(&b, ", \"groups\": [");
+    for (size_t g = 0; g < sizeof GROUPS / sizeof *GROUPS; g++) {
+        sbuf lines = { 0 }, summary = { 0 };
+        group_lines(GROUPS[g].header, NULL, &lines);
+        sb_printf(&b, "%s{\"name\": \"%s\", \"commands\": [", g ? ", " : "", GROUPS[g].name);
+        int first = 1, open = 0;
+        for (char *line = lines.s, *end; line && *line; line = end + 1) {
+            end = strchr(line, '\n');
+            *end = 0;
+            if (!strncmp(line, "  arv ", 6)) {               /* a command: usage, a gap, its summary */
+                if (open) {
+                    json_str(&b, summary.s ? summary.s : "");
+                    sb_puts(&b, "}");
+                }
+                summary.len = 0;
+                if (summary.s) summary.s[0] = 0;
+                char *gap = strstr(line + 6, "   "), *name_end = line + 6 + strcspn(line + 6, " ");
+                sb_puts(&b, first ? "{\"name\": " : ", {\"name\": ");
+                first = 0;
+                char *name = xprintf("%.*s", (int)(name_end - (line + 6)), line + 6);
+                json_str(&b, name);
+                free(name);
+                char *use = gap ? xprintf("%.*s", (int)(gap - (line + 2)), line + 2) : xstrdup(line + 2);
+                sb_puts(&b, ", \"usage\": ");
+                json_str(&b, use);
+                free(use);
+                sb_puts(&b, ", \"summary\": ");
+                const char *rest = gap ? gap : "";
+                while (*rest == ' ') rest++;
+                sb_puts(&summary, rest);
+                open = 1;
+            } else if (open && line[0] == ' ' && line[1] == ' ' && line[2] == ' ') {   /* a line indented under it */
+                const char *rest = line;
+                while (*rest == ' ') rest++;
+                sb_printf(&summary, "%s%s", summary.len ? " " : "", rest);
+            }
+        }
+        if (open) {
+            json_str(&b, summary.s ? summary.s : "");
+            sb_puts(&b, "}");
+        }
+        sb_puts(&b, "]}");
+        free(lines.s);
+        free(summary.s);
+    }
+    sb_puts(&b, "]}\n");
+    fputs(b.s, stdout);
+    free(b.s);
+}
+
 static int cmd_help(int argc, char **argv)
 {
     if (argc == 0) {
@@ -732,6 +795,10 @@ static int cmd_help(int argc, char **argv)
     }
     if (argc == 1 && !strcmp(argv[0], "--man")) {
         manual_man(stdout);
+        return 0;
+    }
+    if (argc == 1 && !strcmp(argv[0], "--json")) {
+        help_json();
         return 0;
     }
     if (argc == 1 && argv[0][0] != '-') {
@@ -852,7 +919,7 @@ int main(int argc, char **argv)
     }
     if (argc >= 2 && !strcmp(argv[1], "help")) {
         int rc = cmd_help(argc - 2, argv + 2);
-        if (rc == 2) fputs("usage: arv help [--all | --man | COMMAND]\n", stderr);
+        if (rc == 2) fputs("usage: arv help [--all | --man | --json | COMMAND]\n", stderr);
         return rc;
     }
     /* an unknown command: say which, and the nearest ones */

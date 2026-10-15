@@ -107,6 +107,16 @@ fi
 
 "$tool" --home fresh-home location add HOME "Home" >/dev/null && [ -s fresh-home/catalog/archive.rec ] \
     && ok "a catalogue command on a home that does not exist yet creates it" || no "location add on a new home"
+"$tool" --home fresh-home todo --json | grep -qx '{"format": "arv-json 1", "overdueBefore": "[0-9-]*", "discs": 0, "owed": \[\], "questions": \[\]}' \
+    || no "todo --json with nothing owed"
+"$tool" help --json | grep -q '{"name": "todo", "usage": "arv todo \[--overdue AGE\] \[--tsv | --json\]", "summary": "what is owed' \
+    || no "help --json"
+mkdir -p loose && echo x > loose/f.txt
+"$tool" --home fresh-home status --json loose 2>/dev/null \
+    | grep -q '"is": "folder", "files": 1, "onDiscs": 0, "mostLike": \[\], "onNone": \["f.txt"\], "notes": \[\]}$' || no "status --json"
+"$tool" --home fresh-home info PHOTO-01_2001_G --json \
+    | grep -qx '{"format": "arv-json 1", "is": "id", "id": "PHOTO-01_2001_G", "scheme": "set-seq-coverage/1", "set": "PHOTO", "sequence": 1, "coverage": "2001", "check": "G", "checkCorrect": false, "disc": null, "didYouMean": \[\]}' \
+    && ok "--json on todo, help, status and info: each the same as the text, for a script" || no "info --json"
 "$tool" --home fresh-home location list --json | grep -q '^{"format": "arv-json 1", "locations": \[{"code": "HOME", "name": "Home", "parent": ""' \
     || no "location list --json"
 "$tool" --home fresh-home location add BOX "A box" --in HOME --json 2> json.err \
@@ -193,7 +203,7 @@ grep -qx '    "Tool": Tool turns sensor logs into plots. It is small.' ab/object
 grep -qx 'Title: Tool' ab/disc/catalog.rec && grep -qx 'Origin: example.invalid/tools/tool' ab/disc/catalog.rec \
     && [ "$(grep -c '^Title: ' ab/disc/catalog.rec)" -eq 2 ] \
     && "$tool" find -C ab/home 'sensor logs' | grep -q '^OBJECT  tool/' \
-    && "$tool" objects -C ab/home --json | grep -q '"name": "bare", "kind": "folder", "title": "",' \
+    && "$tool" objects -C ab/home --json | grep -q '"name": "bare", "readAs": "bare", "kind": "folder", "tags": "", "title": "",' \
     && ok "objects: the disc carries what they say (a folder with no README says nothing); arv find searches it" \
     || no "objects: on the disc, find or --json"
 "$tool" todo -C ab/home > ab/todo.txt
@@ -201,7 +211,8 @@ grep -q "1 question kept for later" ab/make.txt && grep -q "^Questions waiting f
     && grep -qx "  nodoc/  1 question (data object)" ab/todo.txt && [ "$(tail -1 ab/todo.txt)" = "  nodoc/  1 question (data object)" ] \
     && grep -qx "Text: What is nodoc for? It has no README to say." ab/home/drafts/questions.rec \
     && ! grep -q "Question\|nodoc for" ab/disc/catalog.rec \
-    && ok "questions: a repository that says nothing about itself gets one, from arv; arv todo lists it last; never on a disc" \
+    && "$tool" todo -C ab/home --json | grep -q '"questions": \[{"about": "object:[0-9a-f-]*", "name": "nodoc/", "open": 1}\]}$' \
+    && ok "questions: a repository that says nothing about itself gets one, from arv; arv todo lists it last (and in --json apart from what is owed); never on a disc" \
     || { cat ab/make.txt ab/todo.txt; no "questions: kept, and listed by todo"; }
 # ------------------------------------------------------------------ what depends on the machine
 # RS03, added and tested by arv itself (src/rs03); no dvdisaster needed. A small stand-in for
@@ -441,6 +452,8 @@ grep -q "^./nas/i1.iso  $v1 \"T1\" copy B (stored here" info.out && grep -q "^./
     && grep -q "^./empty.iso  not a disc image" info.out || { cat info.out; no "arv info IMAGE, with find"; }
 mkdir -p drv/nas2 && mv drv/nas/i1.iso drv/nas2/
 "$tool" -C drv/.arv todo | grep -q "^  $v1  copy B  .*/drv/nas/i1.iso" || no "todo: a stored copy not where recorded"
+"$tool" -C drv/.arv todo --json | grep -q "{\"kind\": \"missing\", \"disc\": \"$v1\", \"copy\": \"B\", \"path\": \"[^\"]*/drv/nas/i1.iso\", \"text\": " \
+    || no "todo --json: the same, as an item of its kind"
 "$tool" -C drv/.arv stored "$v1" drv/nas2/i1.iso --copy B >/dev/null 2>&1 || no "stored --copy: a moved copy"
 ! "$tool" -C drv/.arv todo | grep -q "Stored copies not found" && "$tool" -C drv/.arv objects "$v1" | grep -q ": 2 copies$" \
     && ok "arv drives names the disc and copy in each drive (and --check checks them); arv info knows an image file (find -exec); todo finds a stored copy gone from its path, and stored --copy records the move" \

@@ -35,7 +35,7 @@ header button.link.clear { border-color:var(--ok); color:var(--ok); }
 .owed h3 { font-size:15px; margin:16px 0 4px; }
 #disc-detail h3 { font-size:15px; margin:14px 0 4px; }
 .owed li { font-family:ui-monospace, monospace; font-size:13px; overflow-wrap:anywhere; }
-.owed li button.link, td button.link { font:inherit; background:none; border:none; padding:0; color:var(--accent); text-decoration:underline; cursor:pointer; }
+main button.link { font:inherit; background:none; border:none; padding:0; color:var(--accent); text-decoration:underline; cursor:pointer; }
 main { max-width:1100px; margin:0 auto; padding:16px 16px 64px; }
 section[hidden] { display:none; }
 h2 { font-size:1.05rem; margin:24px 0 8px; }
@@ -142,11 +142,13 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 <nav class="sub" data-group="archive" hidden>
   <button data-tab="make">From a folder</button>
   <button data-tab="master">Mastering: discs by hand</button>
+  <button data-tab="status">What changed</button>
 </nav>
 <nav class="sub" data-group="record" hidden>
   <button data-tab="objects">Objects</button>
   <button data-tab="collections">Collections</button>
   <button data-tab="discs">Discs</button>
+  <button data-tab="places">Places</button>
   <button data-tab="search">Search</button>
 </nav>
 <nav class="sub" data-group="verify" hidden>
@@ -206,6 +208,70 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     identical; a newer safe edition <b>replaces</b> older ones, unless they are kept. Retiring records nothing until you
     confirm, and arv deletes nothing: the discs stay yours to keep or destroy.</p>
   <div id="c-list"></div>
+  <div class="card">
+    <h3>Make a folder a collection</h3>
+    <p class="muted">A folder you keep sorting: each time you make discs of it, they are its next edition. arv writes a small
+      <span class="mono">.arv</span> marker in it, and nothing else.</p>
+    <form id="ci-form">
+      <label for="ci-folder">Folder</label><input type="text" id="ci-folder" required>
+      <div class="row">
+        <div><label for="ci-code">Code (capitals, digits, - _)</label><input type="text" id="ci-code" required placeholder="e.g. FAMILY"></div>
+        <div><label for="ci-title">Title</label><input type="text" id="ci-title" required placeholder="e.g. Family photos"></div>
+        <div><label for="ci-set">Set (optional)</label><input type="text" id="ci-set" placeholder="e.g. PHOTO"></div>
+        <div><label for="ci-access">Who may see it</label><select id="ci-access"><option value="">(the archive's default)</option>
+          <option value="public">public</option><option value="private">private</option><option value="sealed">sealed</option></select></div>
+      </div>
+      <button class="primary" type="submit">Make it a collection</button>
+    </form>
+    <pre class="log" id="ci-out" hidden></pre>
+  </div>
+</section>
+
+<section id="tab-places" hidden>
+  <p class="muted">Where copies are kept: a tree (a box in a room in a house), each place hot, warm or cold. A copy's
+    place says how safe it is: <span class="mono">arv todo</span> wants a cold copy, and copies in two places.</p>
+  <div id="pl-list"></div>
+  <div class="card">
+    <h3>Add a place</h3>
+    <form id="pl-add">
+      <div class="row">
+        <div><label for="pl-code">Code (capitals, digits, - _)</label><input type="text" id="pl-code" required placeholder="e.g. ATTIC"></div>
+        <div><label for="pl-name">Name</label><input type="text" id="pl-name" placeholder="e.g. The attic"></div>
+        <div><label for="pl-in">Inside</label><select id="pl-in"></select></div>
+        <div><label for="pl-temp">Temperature</label><select id="pl-temp"><option value="">(as the place it is in)</option>
+          <option value="cold">cold: offline</option><option value="warm">warm: online, left alone</option><option value="hot">hot: in use</option></select></div>
+      </div>
+      <label for="pl-desc">Description (optional)</label><input type="text" id="pl-desc">
+      <button class="primary" type="submit">Add the place</button>
+    </form>
+  </div>
+  <div class="card">
+    <h3>Change a place</h3>
+    <form id="pl-move">
+      <div class="row">
+        <div><label for="pm-code">Place</label><select id="pm-code"></select></div>
+        <div><label for="pm-name">New name (empty: as it is)</label><input type="text" id="pm-name"></div>
+        <div><label for="pm-in">Move inside (empty: where it is)</label><select id="pm-in"></select></div>
+        <div><label for="pm-temp">Temperature</label><select id="pm-temp"><option value="">(as it is)</option>
+          <option value="cold">cold</option><option value="warm">warm</option><option value="hot">hot</option></select></div>
+      </div>
+      <button class="plain" type="submit">Change it</button>
+    </form>
+  </div>
+  <pre class="log" id="pl-out" hidden></pre>
+</section>
+
+<section id="tab-status" hidden>
+  <p class="muted">What changed in a folder since it was archived: a collection's workflow folder against its last edition, or
+    any folder against every disc (which of its files are on discs, and which on none). Every file is read, through the hash
+    cache, so a large folder takes a while the first time.</p>
+  <form id="st-form">
+    <label for="st-folder">Folder</label>
+    <div class="inline"><input type="text" id="st-folder" required><button class="plain" type="button" id="st-browse">Browse…</button>
+      <button class="primary" type="submit">Look</button></div>
+    <div class="browser" id="st-browser" hidden></div>
+  </form>
+  <div id="st-out"></div>
 </section>
 
 <section id="tab-search" hidden>
@@ -438,7 +504,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 
   // ---------------------------------------------------------------- tabs
   // Archive, Record, Verify: each view belongs to one of the three
-  var GROUP = { master: "archive", make: "archive", objects: "record", collections: "record", discs: "record", search: "record",
+  var GROUP = { master: "archive", make: "archive", status: "archive", objects: "record", collections: "record", discs: "record",
+                places: "record", search: "record",
                 owed: "verify", tools: "verify", inventory: "verify", audit: "verify", restore: "verify" };
   var lastView = { archive: "make", record: "objects", verify: "owed" };
   function showTab(name) {
@@ -456,6 +523,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (name === "objects") loadObjects();
     if (name === "collections") loadCollections();
     if (name === "inventory") loadPlaces();
+    if (name === "places") loadPlacesView();
   }
   document.querySelectorAll("nav.sub button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
   document.querySelectorAll("nav.groups button").forEach(function (b) { b.onclick = function () { showTab(lastView[b.dataset.group]); }; });
@@ -463,36 +531,43 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   $("owed-line").onclick = function () { showTab("owed"); };
 
   // ---------------------------------------------------------------- verify: what is owed (arv todo)
-  function owedLine(text) {     // the questions waiting for an answer come last, and are not owed
-    var items = text.split(/\nQuestions waiting/)[0].split("\n").filter(function (l) { return /^  \S/.test(l); }).length,
-        b = $("owed-line");
+  function owedLine(res) {      // the questions waiting for an answer are listed, not counted: never owed
+    var items = res.owed.length, b = $("owed-line");
     b.textContent = items ? items + (items === 1 ? " thing owed" : " things owed") : "Nothing owed";
     b.className = "link " + (items ? "owed" : "clear");
   }
-  function loadOwed() {     // the discs first, so a disc's name in the list can open it
-    return (discs.length ? Promise.resolve() : loadDiscs()).then(function () { return arvText(["todo"]); }).then(function (r) {
-      if (r.returncode) throw new Error(r.output);
-      var res = { text: r.output };
-      owedLine(res.text);
+  function discLink(id, rest) {  // a disc's id that opens it in Record › Discs, then the rest of the line
+    if (!discs.some(function (d) { return d.Id === id; })) return [document.createTextNode(id + rest)];
+    var open = el("button", { class: "link", type: "button", text: id, title: "Open " + id + " in Record › Discs" });
+    open.onclick = function () { selected = id; showTab("discs"); };
+    return [open, document.createTextNode(rest)];
+  }
+  function loadOwed() {     // arv todo --json; the discs first, so a disc's name in the list can open it
+    return (discs.length ? Promise.resolve() : loadDiscs()).then(function () { return arvJson(["todo", "--json"]); }).then(function (res) {
+      owedLine(res);
       var box = $("owed"); box.textContent = "";
-      var list = null;
-      res.text.split("\n").forEach(function (line) {
-        if (!line.trim()) return;
-        if (/^  /.test(line)) {
-          if (!list) { list = el("ul"); box.appendChild(list); }
-          var item = line.trim(), id = item.split(/\s+/)[0], known = discs.some(function (d) { return d.Id === id; });
-          if (!known) { list.appendChild(el("li", { text: item })); return; }
-          var open = el("button", { class: "link", type: "button", text: id, title: "Open " + id + " in Record › Discs" });
-          open.onclick = function () { selected = id; showTab("discs"); };
-          list.appendChild(el("li", {}, [open, document.createTextNode(item.slice(id.length))]));
-        } else {
-          var fine = /^(Nothing owed|No discs yet)/.test(line);
-          if (/^No discs yet/.test(line)) line = "No discs yet, so nothing is owed. Start in Archive: From a folder makes " +
-            "discs of one folder (a collection's, or any), Mastering composes them by hand.";
-          box.appendChild(el(fine ? "p" : "h3", { class: fine ? "ok" : "", text: line }));
-          list = null;
+      if (!res.owed.length) box.appendChild(el("p", { class: "ok", text: res.discs ?
+        "Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and " +
+        "checked since " + res.overdueBefore + "." : "No discs yet, so nothing is owed. Start in Archive: From a folder " +
+        "makes discs of one folder (a collection's, or any), Mastering composes them by hand." }));
+      var list = null, head = null;
+      res.owed.forEach(function (o) {    // in todo's order, under its headings
+        if (o.heading !== head) {
+          head = o.heading;
+          box.appendChild(el("h3", { text: head }));
+          list = el("ul"); box.appendChild(list);
         }
+        list.appendChild(el("li", {}, o.disc && o.text.indexOf(o.disc) === 0 ? discLink(o.disc, o.text.slice(o.disc.length)) :
+                                       [document.createTextNode(o.text)]));
       });
+      if (res.questions.length) {
+        box.appendChild(el("h3", { text: "Questions waiting for an answer, never urgent (arv describe DISC-ID|OBJECT --answer):" }));
+        var q = el("ul"); box.appendChild(q);
+        res.questions.forEach(function (x) {
+          var rest = "  " + x.open + (x.open === 1 ? " question" : " questions") + (/^object:/.test(x.about) ? " (data object)" : "");
+          q.appendChild(el("li", {}, /^object:/.test(x.about) ? [document.createTextNode(x.name + rest)] : discLink(x.about, rest)));
+        });
+      }
     }).catch(function (e) { $("owed").textContent = "Error: " + e.message; });
   }
   $("owed-refresh").onclick = loadOwed;
@@ -655,6 +730,13 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     rows.forEach(function (r) { if (r[1]) t.appendChild(el("tr", {}, [el("th", { text: r[0] }), el("td", { text: r[1] })])); });
     box.appendChild(t);
     if (d.Description) box.appendChild(el("p", { text: d.Description }));
+    // who may see it: what later discs' catalogues show of it (arv access)
+    var level = el("select", { "aria-label": "Who may see it" }, ["public", "private", "sealed"].map(function (v) {
+      var o = el("option", { value: v, text: v }); if ((d.Access || "private") === v) o.selected = true; return o; }));
+    var setLevel = el("button", { class: "plain", type: "button", text: "Set" });
+    setLevel.onclick = function () { if (level.value !== (d.Access || "private")) act(["access", d.Id, level.value], null, loadDiscs); };
+    box.appendChild(el("div", { class: "inline" }, [field("Who may see it (later discs' catalogues show public ones in full, " +
+      "private ones as a line, sealed ones not at all)", level), setLevel]));
     box.appendChild(el("h2", { text: "Notes" }));
     [].concat(d.Note || []).forEach(function (n) { box.appendChild(el("div", { class: "note", text: n })); });
 
@@ -720,19 +802,20 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   };
 
   // ---------------------------------------------------------------- make
-  function browse(path) {
-    api("/api/browse?path=" + encodeURIComponent(path || "")).then(function (res) {
-      var box = $("m-browser"); box.hidden = false; box.textContent = "";
-      $("m-source").value = res.path;
-      var up = el("div", { text: "⬑ " + res.parent }); up.onclick = function () { browse(res.parent); }; box.appendChild(up);
+  // a folder chosen by browsing: each click goes into a folder and fills the field with it
+  function pickFolder(input, box, path) {
+    api("/api/browse?path=" + encodeURIComponent(path || input.value || "")).then(function (res) {
+      box.hidden = false; box.textContent = "";
+      input.value = res.path;
+      var up = el("div", { text: "⬑ " + res.parent }); up.onclick = function () { pickFolder(input, box, res.parent); }; box.appendChild(up);
       res.dirs.forEach(function (name) {
         var row = el("div", { text: "📁 " + name });
-        row.onclick = function () { browse(res.path.replace(/\/$/, "") + "/" + name); };
+        row.onclick = function () { pickFolder(input, box, res.path.replace(/\/$/, "") + "/" + name); };
         box.appendChild(row);
       });
     });
   }
-  $("m-browse").onclick = function () { browse($("m-source").value); };
+  $("m-browse").onclick = function () { pickFolder($("m-source"), $("m-browser")); };
   $("make-form").onsubmit = function (ev) {
     ev.preventDefault();
     var split = function (v) { return v.split(",").map(function (s) { return s.trim(); }).filter(Boolean); };
@@ -1009,6 +1092,18 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       if (about) card.appendChild(el("div", { class: "muted", text: about }));
       (o.notes || []).forEach(function (n) { card.appendChild(el("div", { class: "muted", text: "Note: " + n })); });
       o.todo.forEach(function (t) { card.appendChild(el("div", { class: "todo", text: t })); });
+      if (o.tags) card.appendChild(el("div", { class: "muted", text: "Tags: " + o.tags }));
+      // its name and tags now: the next disc made from it uses them (arv rename, arv retag)
+      var rename = el("button", { class: "plain", type: "button", text: "Rename…" }), retag = el("button", { class: "plain", type: "button", text: "Tags…" });
+      rename.onclick = function () {
+        var name = prompt("A new name for " + o.name + " (on the next disc made from it)", o.name);
+        if (name && name.trim() && name.trim() !== o.name) act(["rename", o.uuid, name.trim()], null, loadObjects);
+      };
+      retag.onclick = function () {
+        var tags = prompt("Tags for " + o.name + ", comma separated (event:trip, year:2019, best; empty for none)", o.tags || "");
+        if (tags !== null && tags.trim() !== (o.tags || "")) act(["retag", o.uuid, tags.trim()], null, loadObjects);
+      };
+      card.appendChild(el("div", { class: "inline" }, [rename, retag]));
       o.sources.forEach(function (s, i) {
         card.appendChild(el("div", { class: "src" }, [document.createTextNode((i ? "and " : "from ") + s.path + " "),
           el("span", { class: s.there ? "here" : "gone", text: s.there ? "(there now)" : "(not there now)" })]));
@@ -1049,11 +1144,14 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   function say(text, bad) {
     var s = $("p-status"); s.hidden = !text; s.textContent = text || ""; s.className = "banner" + (bad ? " bad" : "");
   }
-  function planArgv(body) {    // arv plan add|move|drop|disc NAME ...
+  function planArgv(body) {    // arv plan add|move|drop|disc|rename|tag|layout NAME ...
     var argv = ["plan", body.action, body.name || planName()];
     var paths = (body.paths || []).filter(function (p) { return p && p[0] !== "-"; });
     if (body.action === "add") return opt(argv.concat(body.sources, ["--disc", String(body.disc || "auto")]), "--as", body.as);
     if (body.action === "disc") return argv.concat(body.op === "add" ? ["add"] : ["drop", String(body.disc)]);
+    if (body.action === "rename") return argv.concat([body.path, body.to]);
+    if (body.action === "tag") return argv.concat([body.source, body.tags]);
+    if (body.action === "layout") return argv.concat([body.layout, "--disc", String(body.disc)]);
     argv = opt(argv.concat(paths), "--from", body.from);
     return body.action === "move" ? argv.concat(["--disc", String(body.disc)]) : argv;
   }
@@ -1126,7 +1224,16 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         dropDisc.onclick = function () { planDo({ action: "disc", op: "drop", disc: d.disc }); };
         head.appendChild(dropDisc);
       }
+      if (!plan.made) {               // a disc's tree made from its items' tags (arv plan layout)
+        var lay = el("button", { type: "button", text: "Layout…", title: d.layout ? "laid out by " + d.layout : "files its items by their tags" });
+        lay.onclick = function () {
+          var spec = prompt("Disc " + d.disc + ": folders from the items' tags, e.g. year/event, year (empty: as planned)", d.layout || "");
+          if (spec !== null && spec.trim() && spec.trim() !== (d.layout || "")) planDo({ action: "layout", layout: spec.trim(), disc: d.disc });
+        };
+        head.appendChild(lay);
+      }
       card.appendChild(head);
+      if (d.layout) card.appendChild(el("div", { class: "capnote", text: "laid out by " + d.layout }));
       var bar = el("div", { class: "cap" + (pct > 100 ? " bad" : pct > 90 ? " warn" : "") }, [el("div", {})]);
       bar.firstChild.style.width = Math.min(pct, 100) + "%";
       card.appendChild(bar);
@@ -1158,7 +1265,17 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
           move.onchange = function () { if (move.value) planDo({ action: "move", paths: [it.path], from: d.disc, disc: move.value }); };
           var drop = el("button", { type: "button", text: "✕", title: "Take off the disc (the file stays where it is)" });
           drop.onclick = function () { planDo({ action: "drop", paths: [it.path], from: d.disc }); };
-          row.appendChild(el("span", { class: "ctl" }, [move, drop]));
+          var ren = el("button", { type: "button", text: "Rename", title: "A new place on the disc, or a part of a planned folder split off" });
+          ren.onclick = function () {
+            var to = prompt("A new place on the disc for " + it.path, it.path);
+            if (to && to.trim() && to.trim() !== it.path) planDo({ action: "rename", path: it.path, to: to.trim() });
+          };
+          var tag = el("button", { type: "button", text: "Tags", title: it.tags ? "tags: " + it.tags : "tag it before it is on a disc" });
+          tag.onclick = function () {
+            var tags = prompt("Tags for " + it.path + ", comma separated (event:trip, year:2019, best; empty for none)", it.tags || "");
+            if (tags !== null && tags.trim() !== (it.tags || "")) planDo({ action: "tag", source: it.source, tags: tags.trim() });
+          };
+          row.appendChild(el("span", { class: "ctl" }, [move, ren, tag, drop]));
         }
         row.ondragstart = function (ev) { ev.dataTransfer.setData("application/x-arv", JSON.stringify({ path: it.path, from: d.disc })); };
         card.appendChild(row);
@@ -1251,6 +1368,110 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if ($("rs-path").value.trim() && $("rs-dest").value.trim()) run(["restore", $("rs-path").value.trim(), $("rs-dest").value.trim()]);
   };
 
+  // ---------------------------------------------------------------- places (arv location)
+  function placeOptions(select, places, first) {    // the places as a tree, for choosing one
+    select.textContent = "";
+    if (first !== null) select.appendChild(el("option", { value: "", text: first }));
+    (function under(parent, depth) {
+      places.filter(function (l) { return l.parent === parent; }).forEach(function (l) {
+        select.appendChild(el("option", { value: l.code, text: "  ".repeat(depth) + l.code + " — " + l.name }));
+        under(l.code, depth + 1);
+      });
+    })("", 0);
+  }
+  function loadPlacesView() {
+    return arvJson(["location", "list", "--json"]).then(function (res) {
+      var box = $("pl-list"); box.textContent = "";
+      if (!res.locations.length) box.appendChild(el("p", { class: "muted", text: "No places yet: add the first below (your home, a friend's house, the NAS)." }));
+      var t = el("table");
+      t.appendChild(el("tr", {}, ["Code", "Name", "Temperature", "Description"].map(function (h) { return el("th", { text: h }); })));
+      (function under(parent, depth) {
+        res.locations.filter(function (l) { return l.parent === parent; }).forEach(function (l) {
+          t.appendChild(el("tr", {}, [el("td", { class: "mono", text: "  ".repeat(depth) + l.code }), el("td", { text: l.name }),
+            el("td", {}, [l.temperature ? el("span", { class: "chip " + l.temperature, text: l.temperature }) : el("span", { class: "muted", text: "as above" })]),
+            el("td", { class: "muted", text: l.description })]));
+          under(l.code, depth + 1);
+        });
+      })("", 0);
+      if (res.locations.length) box.appendChild(el("div", { class: "scroll" }, [t]));
+      placeOptions($("pl-in"), res.locations, "(the top level)");
+      placeOptions($("pm-code"), res.locations, null);
+      placeOptions($("pm-in"), res.locations, "");
+      $("inv-place").textContent = "";        // the inventory's list is read again when next shown
+    }).catch(function (e) { $("pl-list").textContent = "Error: " + e.message; });
+  }
+  $("pl-add").onsubmit = function (ev) {
+    ev.preventDefault();
+    var argv = ["location", "add", $("pl-code").value.trim().toUpperCase()];
+    if ($("pl-name").value.trim()) argv.push($("pl-name").value.trim());
+    opt(opt(opt(argv, "--in", $("pl-in").value), "--temperature", $("pl-temp").value), "--description", $("pl-desc").value);
+    act(argv, $("pl-out"), function () { $("pl-add").reset(); loadPlacesView(); });
+  };
+  $("pl-move").onsubmit = function (ev) {
+    ev.preventDefault();
+    if (!$("pm-code").value) return;
+    var argv = ["location", "move", $("pm-code").value];
+    if ($("pm-name").value.trim()) argv.push($("pm-name").value.trim());
+    opt(opt(argv, "--in", $("pm-in").value), "--temperature", $("pm-temp").value);
+    act(argv, $("pl-out"), function () { $("pl-move").reset(); loadPlacesView(); });
+  };
+
+  // ---------------------------------------------------------------- what changed in a folder (arv status)
+  function pathList(title, paths, cls) {   // a list that opens when there is something in it
+    var d = el("details", paths.length && paths.length <= 20 ? { open: "" } : {});
+    d.appendChild(el("summary", { class: cls || "", text: title + " (" + paths.length + ")" }));
+    var ul = el("ul", { class: "mono" });
+    paths.forEach(function (p) { ul.appendChild(el("li", {}, [icon(p), document.createTextNode(p)])); });
+    d.appendChild(ul);
+    return d;
+  }
+  $("st-browse").onclick = function () { pickFolder($("st-folder"), $("st-browser")); };
+  $("st-form").onsubmit = function (ev) {
+    ev.preventDefault();
+    var out = $("st-out"); out.textContent = "Reading every file (through the hash cache)…";
+    arvJson(["status", "--json", $("st-folder").value.trim()]).then(function (r) {
+      out.textContent = "";
+      var what = { collection: "the workflow folder of " + r.collection + " (" + r.title + "), by its " + r.how,
+                   past: "kept for reference: an older state of " + r.of, source: "the source of disc " + r.of,
+                   folder: "not a collection's workflow folder" }[r.is];
+      out.appendChild(el("h2", { class: "mono", text: r.folder }));
+      out.appendChild(el("p", { text: "It is " + what + "." }));
+      if (r.is === "collection") {
+        if (!r.since) out.appendChild(el("p", { text: r.files + " files, no edition yet: making discs of it makes its first." }));
+        else if (r.changes) {
+          var c = r.changes, n = c.added.length + c.changed.length + c.removed.length + c.moved.length;
+          out.appendChild(el("p", { class: n ? "warn" : "ok", text: n ? "Since " + r.since + ": " + c.added.length + " new, " + c.changed.length +
+            " changed, " + c.removed.length + " removed, " + c.moved.length + " moved. Making discs of it makes its next edition." :
+            "Nothing changed since " + r.since + "." }));
+          [["New", c.added], ["Changed", c.changed], ["Removed", c.removed], ["Moved", c.moved]].forEach(function (x) {
+            if (x[1].length) out.appendChild(pathList(x[0], x[1]));
+          });
+        }
+      } else {
+        out.appendChild(el("p", { class: r.onNone.length ? "warn" : "ok", text: r.onDiscs + " of its " + r.files + " files are on discs; " +
+          r.onNone.length + " on none." }));
+        r.mostLike.forEach(function (m, i) {
+          out.appendChild(el("p", {}, [document.createTextNode(i ? "Also like " : "Most like ")].concat(
+            discLink(m.disc, ": " + m.here + " of its " + m.of + " files are here."))));
+        });
+        if (r.onNone.length) out.appendChild(pathList("On no disc", r.onNone, "warn"));
+      }
+      if (r.notes.length) {
+        var ul = el("ul"); r.notes.forEach(function (n) { ul.appendChild(el("li", { text: n })); });
+        out.appendChild(el("h3", { text: "Also" })); out.appendChild(ul);
+      }
+    }).catch(function (e) { out.textContent = "Error: " + e.message; });
+  };
+
+  // ---------------------------------------------------------------- a folder made a collection
+  $("ci-form").onsubmit = function (ev) {
+    ev.preventDefault();
+    var argv = ["collection", "init", $("ci-folder").value.trim(), "--code", $("ci-code").value.trim().toUpperCase(),
+                "--title", $("ci-title").value.trim()];
+    opt(opt(argv, "--set", $("ci-set").value.toUpperCase()), "--access", $("ci-access").value);
+    act(argv, $("ci-out"), function () { $("ci-form").reset(); loadCollections(); });
+  };
+
   // ---------------------------------------------------------------- inventory and audit: findings, each
   // a line that starts with a fixed word, and what to do about it
   var FINDING = {
@@ -1316,6 +1537,16 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   };
 
   // ---------------------------------------------------------------- jobs
+  // a quick command that changes the record: what it printed in out (or an alert), then the view again
+  function act(argv, out, reload) {
+    return arvText(argv).then(function (r) {
+      if (out) { out.hidden = false; out.textContent = r.output; out.className = "log" + (r.returncode ? " bad" : ""); }
+      else if (r.returncode) alert(r.output);
+      if (!r.returncode && reload) reload();
+      return r;
+    }).catch(function (e) { alert("Error: " + e.message); });
+  }
+
   // a command that may take a while, as a job: shown in Jobs, or (quiet) followed here and the
   // record reloaded when it is done
   function run(argv, quiet, stdin) {
@@ -1356,24 +1587,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   }
 
   // ---------------------------------------------------------------- the first run: no archive yet
-  function setupBrowse(path) {
-    api("/api/browse?path=" + encodeURIComponent(path || "")).then(function (res) {
-      var box = $("s-browser"); box.hidden = false; box.textContent = "";
-      $("s-folder").value = res.path;
-      var up = el("div", { text: "⬑ " + res.parent }); up.onclick = function () { setupBrowse(res.parent); }; box.appendChild(up);
-      res.dirs.forEach(function (name) {
-        var row = el("div", { text: "📁 " + name });
-        row.onclick = function () { setupBrowse(res.path.replace(/\/$/, "") + "/" + name); };
-        box.appendChild(row);
-      });
-    });
-  }
   function showSetup(st) {
     document.querySelectorAll("nav, header .link").forEach(function (n) { n.hidden = true; });
     document.querySelectorAll("main > section").forEach(function (sec) { sec.hidden = sec.id !== "tab-setup"; });
     $("home").textContent = "No archive yet";
     $("s-folder").value = st.cwd;
-    $("s-browse").onclick = function () { setupBrowse($("s-folder").value); };
+    $("s-browse").onclick = function () { pickFolder($("s-folder"), $("s-browser")); };
     $("setup-form").onsubmit = function (ev) {
       ev.preventDefault();
       var out = $("s-status");
@@ -1403,6 +1622,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       .then(function () {           // a view named in the address (#discs, #master...), else Verify's Owed
         var want = location.hash.slice(1);
         setupMakeLLM(); loadDiscs(); loadOwed(); showTab(GROUP[want] ? want : "owed");
+        // while the page is open it says so, once a minute: started from a menu (--idle), the server
+        // stops some time after the page is closed
+        setInterval(function () { api("/api/setup").catch(function () {}); }, 60000);
       });
   }
   // the archive: the one arv gui was given, else the one arv finds from where it was started (arv

@@ -1806,3 +1806,67 @@ copy is also built in, for `arv-gui` copied on its own: `make` writes `build/pag
 needed (not `xxd`, and not `objcopy`, whose output is tied to one CPU's object format), and
 nothing generated is committed. Built by hand without it, arv-gui needs the page beside it.
 
+## Done (2026-10-15, issue #31): every read has --json, and two questions settled
+
+`todo`, `status`, `info` and `help` now have `--json`, so every command that reads gives a script
+the same answer as a person, and every command that writes gives the events it made. Each is
+rendered from one walk of the record, so the text and the JSON cannot drift: `todo` passes each
+finding through one function that prints its line or adds its item (a stable `kind`: `no-copy`,
+`read-back`, `edition-not-safe`, `replaced`, `one-carrier`, `missing`, `no-cold-copy`,
+`fewer-places`, `below-appraisal`, `overdue`, `object-no-cold-copy`, `object-gone`), and the
+reference scenarios show the text unchanged. `status` gives what the folder is and every change
+(the text shows twenty); what its other helpers say (data objects, repositories, layouts) comes as
+`notes`, lines for a person, since a script would rarely act on them. `help --json` reads the same
+usage text as the manual, so a program can find the commands without parsing `--help`.
+
+**Exit codes stay 0, 1, 2.** sysexits' 64 to 78 tell a usage error from bad data from a missing
+file. A script calling arv needs to know: done; something needs a person (and stderr or the JSON
+says what); not used as meant. Finer codes would be a second vocabulary for what the messages say
+better, and few scripts branch on them. Documented in the manual's "Exit status".
+
+**No general batch input.** Most commands act on one thing, and many things in a row are a shell
+loop (`for d in ...; do arv burned "$d" --copies 1 --location SHELF; done`): each is its own
+event, and one failing stops nothing else. Input in bulk is for where all or none matters, and
+arv has it there already: `plan add --list` and `plan tag --list` take lines and apply all or
+none, and a draft goes in on standard input. Recording a stack of burned discs is a loop.
+
+What #31 still holds for 1.0: freezing the fields as the interface (the manual lists every output
+and its main keys), the spec's "For other software" section, and the home catalogue's parts in one
+place.
+
+## Done (2026-10-15): arv in the desktop's menu
+
+`make install` puts `arv.desktop` in `share/applications` and arv's mark (`docs/img/logo-mark.svg`)
+as its icon, so the packages carry them too; `desktop-file-validate` passes it. It runs
+`arv gui --idle 15`. Started from a menu there is no terminal and no Ctrl+C, and each launch would
+leave a server running, so the server stops by itself: the page says it is open once a minute,
+and with `--idle` the server stops when no request has come for that long and no job is running
+(a job outlives a closed page: it stops after). Started in a terminal it runs until stopped, as
+before. With that, a person can set up an archive, make and record discs, keep places and
+collections, and check and restore without a terminal; installing is still `make install` or a
+package.
+
+## Note (2026-10-15): room left for files once RS03 is added
+
+How much of a disc is left for files, at each disc size and error correction level. The fixed part
+(each medium's sectors, and the most image each takes at each redundancy) is in the spec, "The room
+on a disc"; this adds what `arv plan` leaves for files. GiB of 2^30
+bytes; "image" is everything on the disc before RS03 (files, `tools/`, the catalogue, the bag's
+tag files), "files" what `arv plan show` offers after it sets aside about 128 MiB for `tools/`,
+0.5% and up to 2 MiB more (the catalogue snapshot, which grows with the archive, comes off too).
+
+| Medium (formatted, with defect management) | 10% | 20% (default) | 30% | 50% |
+|---|---|---|---|---|
+| BD-R 25 GB (22.6 GiB) | 20.3 / 20.1 | 18.7 / 18.4 | 17.2 / 17.0 | 14.9 / 14.7 |
+| BD-R DL 50 GB (45.1 GiB) | 40.7 / 40.4 | 37.3 / 37.0 | 34.5 / 34.2 | 29.9 / 29.6 |
+| BD-R XL 100 GB (90.2 GiB) | 81.4 / 80.8 | 74.7 / 74.2 | 69.0 / 68.5 | 59.8 / 59.4 |
+| BD-R XL 128 GB (115.2 GiB) | 103.9 / 103.3 | 95.3 / 94.7 | 88.1 / 87.5 | 76.4 / 75.8 |
+
+(image / files, GiB.) How it is worked out (`data_budget` in make.c, `room` in plan.c): RS03 cuts
+the medium into 255 layers, and each codeword takes one sector from every layer; with redundancy r
+at least, at most floor(255 / (1 + r)) - 1 layers hold data (never more than 246), so 20% gives 211
+data layers and 44 of error correction: 20.9% in fact, the next whole layer up. RS03 then fills
+the rest of the disc, so a disc that is not full gets more than asked for: the minimum is what is
+promised. Burning without defect management (`--no-defect-management`) gives back the spare area,
+about 3% (19.3 GiB of image on a BD-R 25 at 20%), for discs that are read back and checked anyway.
+

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=arv
+GenericName=Archive, Record, Verify
+Comment=Your archive: what is on which disc, where every copy is, and what is owed
+Exec=arv gui --idle 15
+Icon=arv
+Terminal=false
+Categories=Utility;Archiving;
+Keywords=archive;disc;Blu-ray;catalogue;backup;

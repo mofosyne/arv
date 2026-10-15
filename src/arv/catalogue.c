@@ -519,19 +519,38 @@ const rec_record *find_disc(const catalogue *c, const char *id)
 int cmd_id(int argc, char **argv)
 {
     const char *given = NULL, *text = NULL;
+    int as_json = 0;
     for (int i = 0; i < argc; i++) {
         if (!strcmp(argv[i], "-C") && i + 1 < argc) given = argv[++i];
+        else if (!strcmp(argv[i], "--json")) as_json = 1;
         else if (!text) text = argv[i];
         else return 2;
     }
     if (!text) return 2;
     discid_parts p;
+    sbuf j = { 0 };
+    if (as_json) {
+        sb_puts(&j, "{" JSON_FORMAT ", \"is\": \"id\", \"id\": ");
+        json_str(&j, text);
+    }
     if (!discid_parse(text, &p)) {
-        printf("%s: not a disc id of a known scheme\n", text);
+        if (as_json) printf("%s, \"scheme\": null}\n", j.s);
+        else printf("%s: not a disc id of a known scheme\n", text);
+        free(j.s);
         return 1;
     }
-    printf("scheme:    %s\nset:       %s\nsequence:  %ld\ncoverage:  %s\n", p.scheme, p.set, p.sequence, p.coverage);
-    if (p.check) printf("check:     %c (%s)\n", p.check, p.valid ? "correct" : "WRONG: probably a typo");
+    if (as_json) {
+        sb_puts(&j, ", \"scheme\": ");
+        json_str(&j, p.scheme);
+        sb_puts(&j, ", \"set\": ");
+        json_str(&j, p.set);
+        sb_printf(&j, ", \"sequence\": %ld, \"coverage\": ", p.sequence);
+        json_str(&j, p.coverage);
+        if (p.check) sb_printf(&j, ", \"check\": \"%c\", \"checkCorrect\": %s", p.check, p.valid ? "true" : "false");
+    } else {
+        printf("scheme:    %s\nset:       %s\nsequence:  %ld\ncoverage:  %s\n", p.scheme, p.set, p.sequence, p.coverage);
+        if (p.check) printf("check:     %c (%s)\n", p.check, p.valid ? "correct" : "WRONG: probably a typo");
+    }
     catalogue c;
     find_catalogue(given, &c, 0);
     const char *t;
@@ -547,13 +566,21 @@ int cmd_id(int argc, char **argv)
     if (!d) d = find_disc(&c, exact);
     if (d) {
         char *w = where(&c, d);
-        printf("disc:      %s [%s]\n", rec_get(d, "Title") ? rec_get(d, "Title") : "None", *w ? w : "location not recorded");
+        if (as_json) {
+            sb_puts(&j, ", \"disc\": ");
+            json_str(&j, rec_get(d, "Id"));
+            sb_puts(&j, ", \"title\": ");
+            json_str(&j, rec_get(d, "Title") ? rec_get(d, "Title") : "");
+            sb_puts(&j, ", \"where\": ");
+            json_str(&j, w);
+        } else printf("disc:      %s [%s]\n", rec_get(d, "Title") ? rec_get(d, "Title") : "None", *w ? w : "location not recorded");
         free(w);
         const char *scheme = rec_get(d, "IdScheme"), *seq = rec_get(d, "Sequence");
         char again[64];
         if (scheme && !strcmp(scheme, DISCID_SCHEME) && seq
             && !discid_compose(rec_get(d, "Set"), atol(seq), rec_get(d, "Coverage"), again, sizeof again)) {
-            if (!strcmp(again, rec_get(d, "Id"))) printf("fields:    the id matches the disc's set, sequence and coverage\n");
+            if (as_json) sb_printf(&j, ", \"fieldsMatch\": %s", strcmp(again, rec_get(d, "Id")) ? "false" : "true");
+            else if (!strcmp(again, rec_get(d, "Id"))) printf("fields:    the id matches the disc's set, sequence and coverage\n");
             else printf("fields:    they make %s: the record and the id disagree\n", again);
         }
     } else {
@@ -565,7 +592,7 @@ int cmd_id(int argc, char **argv)
             const char *k = is_type(r, "Disc") ? rec_get(r, "Id") : NULL;
             if (!k || strlen(k) != len) continue;
             int diff = 0;
-            for (size_t j = 0; j < len; j++) diff += toupper((unsigned char)k[j]) != (unsigned char)up[j];
+            for (size_t q = 0; q < len; q++) diff += toupper((unsigned char)k[q]) != (unsigned char)up[q];
             if (diff > 2) continue;
             int at = n++;
             while (at > 0 && (diffs[at - 1] > diff || (diffs[at - 1] == diff && strcmp(best[at - 1], k) > 0))) {
@@ -576,10 +603,21 @@ int cmd_id(int argc, char **argv)
             best[at] = k;
             diffs[at] = diff;
         }
-        printf("disc:      not in the catalogue");
-        for (int i = 0; i < n; i++) printf("%s%s", i ? ", " : " - did you mean ", best[i]);
-        printf("%s\n", n ? "?" : "");
+        if (as_json) {
+            sb_puts(&j, ", \"disc\": null, \"didYouMean\": [");
+            for (int i = 0; i < n; i++) {
+                if (i) sb_puts(&j, ", ");
+                json_str(&j, best[i]);
+            }
+            sb_puts(&j, "]");
+        } else {
+            printf("disc:      not in the catalogue");
+            for (int i = 0; i < n; i++) printf("%s%s", i ? ", " : " - did you mean ", best[i]);
+            printf("%s\n", n ? "?" : "");
+        }
     }
+    if (as_json) printf("%s}\n", j.s);
+    free(j.s);
     free(exact);
     free(up);
     return p.valid ? 0 : 1;

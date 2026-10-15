@@ -1206,15 +1206,32 @@ int cmd_locate(int argc, char **argv)
 /* One line on what path holds: the disc (by its volume label), and which of its copies (by an
  * identifier the drive reads, or a stored copy's recorded path). Returns the disc's id when the
  * catalogue knows it (a static copy), else NULL; *letter gets the copy's letter, or NULL. */
-static const char *say_what(const char *path, int drive, const archive *cat, const char **letter)
+/* with json: members instead of the line (state: disc, unknown-disc, not-arv, not-an-image,
+ * unreadable, no-disc; then disc, title, copy, how, checked) */
+static void what_state(sbuf *json, const char *state, const char *detail)
+{
+    sb_puts(json, ", \"state\": ");
+    json_str(json, state);
+    if (detail) {
+        sb_puts(json, ", \"detail\": ");
+        json_str(json, detail);
+    }
+}
+
+static const char *say_what(const char *path, int drive, const archive *cat, const char **letter, sbuf *json)
 {
     static char found[128];
     *letter = NULL;
     errno = 0;
     char *label = read_volume_label(path);
     if (!label) {
-        if (drive && (errno == ENOMEDIUM || errno == ENXIO)) printf("%s  no disc\n", path);
-        else if (errno && errno != EINVAL) printf("%s  cannot be read (%s)\n", path, strerror(errno));
+        if (drive && (errno == ENOMEDIUM || errno == ENXIO)) {
+            if (json) what_state(json, "no-disc", NULL);
+            else printf("%s  no disc\n", path);
+        } else if (errno && errno != EINVAL) {
+            if (json) what_state(json, "unreadable", strerror(errno));
+            else printf("%s  cannot be read (%s)\n", path, strerror(errno));
+        } else if (json) what_state(json, drive ? "not-arv" : "not-an-image", NULL);
         else printf("%s  %s\n", path, drive ? "a disc with no volume label: not an arv disc" : "not a disc image");
         return NULL;
     }
@@ -1222,7 +1239,12 @@ static const char *say_what(const char *path, int drive, const archive *cat, con
     const rec_record *d = cat && word ? archive_disc(cat, word) : NULL;
     if (!d) {
         discid_parts parts;
-        if (word && discid_parse(word, &parts) && parts.valid)
+        int arv_disc = word && discid_parse(word, &parts) && parts.valid;
+        if (json) {
+            what_state(json, arv_disc ? "unknown-disc" : "not-arv", NULL);
+            sb_puts(json, ", \"label\": ");
+            json_str(json, word ? word : "");
+        } else if (arv_disc)
             printf("%s  %s: an arv disc this catalogue does not know (another archive's, or newer than it: arv rebuild merges"
                    " its catalogue)\n", path, word);
         else printf("%s  not an arv disc (label \"%s\")\n", path, word ? word : "");
@@ -1259,13 +1281,30 @@ static const char *say_what(const char *path, int drive, const archive *cat, con
         }
         if (burned == 1 && copy_letter(cat, found, only)) copy = only, how = "its only burned copy";
     }
-    printf("%s  %s%s%s%s", path, found, title ? " \"" : "", title ? title : "", title ? "\"" : "");
+    if (json) {
+        what_state(json, "disc", NULL);
+        sb_puts(json, ", \"disc\": ");
+        json_str(json, found);
+        sb_puts(json, ", \"title\": ");
+        json_str(json, title ? title : "");
+    } else printf("%s  %s%s%s%s", path, found, title ? " \"" : "", title ? title : "", title ? "\"" : "");
     if (copy) {
         const char *checked = copy_last_check(cat, found, copy);
         *letter = copy_letter(cat, found, copy);
-        printf(" copy %s (%s; %s%s)\n", *letter ? *letter : "?", how,
-               checked ? "last checked " : copy_read_back(cat, found, copy) ? "read back when recorded" : "never checked",
-               checked ? checked : "");
+        if (json) {
+            sb_puts(json, ", \"copy\": ");
+            json_str(json, *letter ? *letter : "");
+            sb_puts(json, ", \"how\": ");
+            json_str(json, how);
+            sb_puts(json, ", \"checked\": ");
+            json_str(json, checked ? checked : "");
+            sb_printf(json, ", \"readBack\": %s", copy_read_back(cat, found, copy) ? "true" : "false");
+        } else
+            printf(" copy %s (%s; %s%s)\n", *letter ? *letter : "?", how,
+                   checked ? "last checked " : copy_read_back(cat, found, copy) ? "read back when recorded" : "never checked",
+                   checked ? checked : "");
+    } else if (json) {
+        sb_puts(json, ", \"copy\": null");
     } else if (drive) {
         printf(": which copy is not known (arv check %s --copy X names it)\n", path);
     } else {
@@ -1295,7 +1334,7 @@ int cmd_drives(int argc, char **argv)
     int failed = 0;
     for (size_t i = 0; i < drives.n; i++) {
         const char *letter;
-        const char *id = say_what(drives.v[i], 1, have ? &cat : NULL, &letter);
+        const char *id = say_what(drives.v[i], 1, have ? &cat : NULL, &letter, NULL);
         if (!check || !id) continue;
         fflush(stdout);
         char disc[128];
@@ -1319,12 +1358,22 @@ int cmd_drives(int argc, char **argv)
 }
 
 /* arv info IMAGE: which disc an image file is, and whether it is a recorded copy */
-int info_image(const char *path, const char *given)
+int info_image(const char *path, const char *given, int as_json)
 {
     arv_home h;
     archive cat;
     int have = !home_try(&h, given, NULL);
     if (have) archive_load(&cat, h.rec_path);
     const char *letter;
-    return say_what(path, 0, have ? &cat : NULL, &letter) ? 0 : 1;
+    sbuf json = { 0 };
+    if (as_json) {
+        sb_puts(&json, "{" JSON_FORMAT ", \"is\": \"image\", \"path\": ");
+        json_str(&json, path);
+    }
+    int rc = say_what(path, 0, have ? &cat : NULL, &letter, as_json ? &json : NULL) ? 0 : 1;
+    if (as_json) {
+        printf("%s}\n", json.s);
+        free(json.s);
+    }
+    return rc;
 }

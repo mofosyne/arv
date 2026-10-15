@@ -347,7 +347,7 @@ arv --help lists every command.
 rc=2
 $ --home q todo --bogus
 arv todo: unexpected or missing arguments: --bogus
-  arv todo [--overdue AGE] [--tsv]   what is owed: copies, read-backs, cold copies, places, checks
+  arv todo [--overdue AGE] [--tsv | --json]   what is owed: copies, read-backs, cold copies, places, checks
          (--overdue: checks older than AGE, default 5y; --tsv: one copy a line, for scripts)
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2
@@ -388,7 +388,7 @@ Record: what exists, and where
   arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]
            [--unchecked-since AGE|DATE] [--one-place] [--json]   the discs, one a line (--in: a set or
          category; --at: a place and the places in it; --covers: an EDTF date; AGE: 5y, 18m, 90d)
-  arv info [-C CATALOG] DISC|IMAGE|DISC-ID [--files]   a disc (--files: its listing), an image
+  arv info [-C CATALOG] DISC|IMAGE|DISC-ID [--files] [--json]   a disc (--files: its listing), an image
          (which disc and copy), or a disc id (its parts, its check character, the disc it names)
   arv location list [-v | --json] | add CODE [NAME] [--in PARENT] [--description TEXT] [--temperature T]
                | move CODE [NAME] [--in PARENT] [--temperature T]
