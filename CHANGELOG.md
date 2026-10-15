@@ -24,7 +24,8 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 **The UDF standards by reference** (issue #32)
 - The zip of UDF and ECMA standards (70 MB) is out of the repository: its terms were never written
   down. The UDF profile (`docs/spec/archival-udf.md`) links to ECMA-167 at Ecma and to UDF 2.50
-  at the Internet Archive, OSTA's website having closed.
+  at the Internet Archive, OSTA's website having closed, and to Wikipedia's UDF article, which links
+  the same collection the zip held.
 
 **Copies, libraries and two catalogues in the interface** (issue #38)
 - `arv gui`: a disc's copies can be given a barcode (a scanner types it in), a serial or a carrier

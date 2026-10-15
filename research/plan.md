@@ -1088,7 +1088,8 @@ about 430 bytes per file in the archive. Up to about a million files that is und
   licence and origin not written down) stays in the repository but off the discs and out of the
   package; discs carry our profile (`archival-udf.md`). *Settled 2026-10-15:* the profile points
   to the published standards (Ecma's own copy of ECMA-167; OSTA's UDF 2.50 through the Internet
-  Archive, its site having closed), and the zip leaves the repository too: its terms were never
+  Archive, its site having closed; and Wikipedia's UDF article, which links the same collection the
+  zip held, with a saved copy), and the zip leaves the repository too: its terms were never
   written down (a Wikipedia user's preservation of OSTA's and Ecma's PDFs), and arv needs only the
   two documents the profile names.
 - **Editions under a distributed collection** (2026-10-06). The archive is the union of the

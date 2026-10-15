@@ -12,6 +12,9 @@ The goal is a disc that is **written once, whole and closed**, readable by any U
 Standards: [ECMA-167, 3rd edition](https://ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf)
 (Ecma publishes it free) and OSTA UDF 2.50, `udf250.pdf` (OSTA's website has closed; the Internet
 Archive keeps [its copies](https://web.archive.org/web/*/http://www.osta.org/specs/pdf/udf250.pdf)).
+Wikipedia's [Universal Disk Format](https://en.wikipedia.org/wiki/Universal_Disk_Format) article
+links every version, and an archive of them all with the ECMA documents they cite
+([a saved copy](https://web.archive.org/web/20250703074632/https://pomf2.lain.la/f/mikhvg67.tar)).
 Discs carry this profile, not the standards themselves (issue #32). This profile only narrows them; anything not mentioned follows
 UDF 2.50 as a read-only volume.
 
