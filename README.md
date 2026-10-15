@@ -177,7 +177,8 @@ which builds with one `cc` line.
 `make install` copies the last commit (exactly the tree every disc carries in `tools/`: what
 [`disc-tools.txt`](disc-tools.txt) lists, about 5 MB, so not the UDF and ECMA standards) to
 `PREFIX/share/arv` (with `arv.com` when it was built), puts `arv`, `arv-assist`, `arv-gui`,
-`udfwrite` and `bagit` in `PREFIX/bin`, and the completion where bash and zsh look for it.
+`udfwrite` and `bagit` in `PREFIX/bin`, the completion where bash and zsh look for it, and **arv** in
+the desktop's menu (`arv gui`, which stops by itself 15 minutes after its page is closed).
 
 **`arv` does everything itself** ([src/arv/README.md](src/arv/README.md)) except four optional
 commands: `arv describe` and `arv tag` run arv-assist

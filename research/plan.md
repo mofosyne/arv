@@ -1834,3 +1834,15 @@ What #31 still holds for 1.0: freezing the fields as the interface (the manual l
 and its main keys), the spec's "For other software" section, and the home catalogue's parts in one
 place.
 
+## Done (2026-10-15): arv in the desktop's menu
+
+`make install` puts `arv.desktop` in `share/applications` and arv's mark (`docs/img/logo-mark.svg`)
+as its icon, so the packages carry them too; `desktop-file-validate` passes it. It runs
+`arv gui --idle 15`. Started from a menu there is no terminal and no Ctrl+C, and each launch would
+leave a server running, so the server stops by itself: the page says it is open once a minute,
+and with `--idle` the server stops when no request has come for that long and no job is running
+(a job outlives a closed page: it stops after). Started in a terminal it runs until stopped, as
+before. With that, a person can set up an archive, make and record discs, keep places and
+collections, and check and restore without a terminal; installing is still `make install` or a
+package.
+

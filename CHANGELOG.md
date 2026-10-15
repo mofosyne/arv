@@ -21,6 +21,11 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**arv in the desktop's menu**
+- `make install` (and the Debian and Arch packages) puts `arv.desktop` and arv's mark as its icon
+  where desktops look. It runs `arv gui --idle 15`: started from a menu there is no terminal to stop
+  it in, so it stops by itself once its page has been closed for 15 minutes and no job is running.
+
 **Nearly everything without the command line**
 - `arv gui`: Places (the tree and its temperatures: add, rename, move), What changed (`arv status`
   for any folder), a folder made a collection, who may see a disc (`arv access`), a data object

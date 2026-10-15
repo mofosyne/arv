@@ -46,9 +46,13 @@ The page and every request carry a per-session token, and the Host header must b
 address, so other web pages and other local users cannot drive it. Commands run without a shell,
 and the first word (after `--home PATH`) must be a command, never an option or `gui`.
 
+Installed, it is also **arv** in the desktop's menu (`arv.desktop`, with arv's mark as its icon),
+which runs `arv gui --idle 15`: with no terminal to stop it in, it stops by itself once its page
+has been closed for 15 minutes and no job is running (the page says it is open once a minute).
+
 ```sh
 arv gui                       # the home arv finds from here
-arv-gui --home PATH [--port N] [--no-browser] [--llm-url URL] [--llm-model NAME]
+arv-gui --home PATH [--port N] [--no-browser] [--idle MINUTES] [--llm-url URL] [--llm-model NAME]
 ```
 
 It finds arv and arv-assist in `$ARV` and `$ARV_ASSIST` (arv sets both when it runs arv-gui), beside
@@ -71,6 +75,7 @@ It links arv's modules (src/arv, all but `arv.c`) for their JSON reader and stri
 | `arv-gui.c` | the server (`make` builds `build/arv-gui`) |
 | `gui.html` | the page: every view, and every command it builds |
 | `Makefile` | builds it |
+| `arv.desktop` | the menu entry `make install` puts in `share/applications` |
 
 Tests: `python3 -m unittest discover -s tests` (`tests/test_gui.py`; `make check` runs it). They
 speak HTTP to `build/arv-gui`, as the page does.

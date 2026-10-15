@@ -1622,6 +1622,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       .then(function () {           // a view named in the address (#discs, #master...), else Verify's Owed
         var want = location.hash.slice(1);
         setupMakeLLM(); loadDiscs(); loadOwed(); showTab(GROUP[want] ? want : "owed");
+        // while the page is open it says so, once a minute: started from a menu (--idle), the server
+        // stops some time after the page is closed
+        setInterval(function () { api("/api/setup").catch(function () {}); }, 60000);
       });
   }
   // the archive: the one arv gui was given, else the one arv finds from where it was started (arv
