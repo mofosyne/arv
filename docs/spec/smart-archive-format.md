@@ -810,6 +810,30 @@ MediumSectors: 12219392
 | `MediumSectors` | The medium size RS03 was computed for, in 2048-byte sectors: what dvdisaster's `-n` needs to find the layers when the error correction's own record of its layout is damaged |
 | `ImageSectors`, `ImageSha256` | The finished image as it is to be burned (with RS03): its size in 2048-byte sectors and its SHA-256. The first sectors of a burned disc, read back whole, give the same hash, so a copy can be proven to hold exactly these bits. Only in the home catalogue and later discs' snapshots: an image cannot hold its own hash |
 
+### The room on a disc: media and RS03
+
+An `rs03` Binding fills its whole medium: the image first, then RS03 to the end. How much image a
+medium can take is fixed by the medium and the least redundancy asked for, so it is known before a
+disc is made. RS03 cuts the medium into 255 layers of `MediumSectors / 255` sectors (rounded
+down); each codeword takes one sector from every layer. With redundancy *r* at least, at most
+`floor(255 / (1 + r)) - 1` layers hold the image, and never more than 246; the image may be up to
+that many layers, less 2 sectors. At 20% that is 211 layers of image and 44 of error correction
+(20.9%: the next whole layer up). A smaller image leaves more layers to RS03, so a disc that is not
+full has more than the minimum.
+
+| Medium (`--medium`) | `MediumSectors` with defect management (GiB) | without (GiB) | Image at 10% | at 20% (default) | at 30% | at 50% |
+|---|---|---|---|---|---|---|
+| BD-R 25 GB (`bd25`) | 11826176 (22.6) | 12219392 (23.3) | 20.3 | 18.7 | 17.2 | 14.9 |
+| BD-R DL 50 GB (`bd50`) | 23652352 (45.1) | 24438784 (46.6) | 40.7 | 37.3 | 34.5 | 29.9 |
+| BD-R XL 100 GB (`bd100`) | 47305728 (90.2) | 48878592 (93.2) | 81.4 | 74.7 | 69.0 | 59.8 |
+| BD-R XL 128 GB (`bd128`) | 60403712 (115.2) | 62500864 (119.2) | 103.9 | 95.3 | 88.1 | 76.4 |
+
+Sizes in GiB (2^30 bytes); the image columns are for media burned with defect management, the
+usual case (without it, about 3% more: 19.3 GiB on a BD-R 25 at 20%). At 20% the image holds at
+most 9785545, 19571092, 39143030 and 49981045 sectors. The image is more than the files: the bag's
+tag files, the catalogue snapshot (which grows with the archive) and `tools/` (about 128 MiB) come
+out of it, so `arv plan show` offers about 18.4, 37.0, 74.2 and 94.7 GiB for files at 20%.
+
 ### Extents: reading a volume without a UDF reader
 
 `catalog/volumes/<id>/extents.tsv` is each volume's map: a header line

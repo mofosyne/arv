@@ -1848,7 +1848,9 @@ package.
 
 ## Note (2026-10-15): room left for files once RS03 is added
 
-How much of a disc is left for files, at each disc size and error correction level. GiB of 2^30
+How much of a disc is left for files, at each disc size and error correction level. The fixed part
+(each medium's sectors, and the most image each takes at each redundancy) is in the spec, "The room
+on a disc"; this adds what `arv plan` leaves for files. GiB of 2^30
 bytes; "image" is everything on the disc before RS03 (files, `tools/`, the catalogue, the bag's
 tag files), "files" what `arv plan show` offers after it sets aside about 128 MiB for `tools/`,
 0.5% and up to 2 MiB more (the catalogue snapshot, which grows with the archive, comes off too).
