@@ -211,7 +211,7 @@ grep -q "1 question kept for later" ab/make.txt && grep -q "^Questions waiting f
     && grep -qx "  nodoc/  1 question (data object)" ab/todo.txt && [ "$(tail -1 ab/todo.txt)" = "  nodoc/  1 question (data object)" ] \
     && grep -qx "Text: What is nodoc for? It has no README to say." ab/home/drafts/questions.rec \
     && ! grep -q "Question\|nodoc for" ab/disc/catalog.rec \
-    && "$tool" todo -C ab/home --json | grep -q '"questions": \[{"about": "object:[0-9a-f-]*", "name": "nodoc", "open": 1}\]}$' \
+    && "$tool" todo -C ab/home --json | grep -q '"questions": \[{"about": "object:[0-9a-f-]*", "name": "nodoc/", "open": 1}\]}$' \
     && ok "questions: a repository that says nothing about itself gets one, from arv; arv todo lists it last (and in --json apart from what is owed); never on a disc" \
     || { cat ab/make.txt ab/todo.txt; no "questions: kept, and listed by todo"; }
 # ------------------------------------------------------------------ what depends on the machine
