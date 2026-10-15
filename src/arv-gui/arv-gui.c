@@ -101,6 +101,8 @@ static void json_bytes(sbuf *b, const char *s, size_t n)
             continue;
         }
         if (c == '"' || c == '\\') sb_printf(b, "\\%c", (int)c);
+        else if (c == '\n') sb_puts(b, "\\n");
+        else if (c == '\t') sb_puts(b, "\\t");
         else if (c < 0x20) sb_printf(b, "\\u%04x", c);
         else sb_add(b, (const char *)p, len);
         p += len;
