@@ -392,6 +392,14 @@ class GuiTest(unittest.TestCase):
                          [("photos", "folder", 1), ("wedding.mkv", "file", 1)])
         self.assertEqual({o["name"]: [s["there"] for s in o["sources"]] for o in kept["objects"]},
                          {"photos": [True], "wedding.mkv": [True]})
+        # packing, as the page asks for it: an item's own, and a disc's together
+        self.ok("plan", "pack", "trip2", "photos", "tar+gzip")
+        self.ok("plan", "pack", "trip2", "--disc", "1", "tar+gzip", "--together")
+        shown = self.ok("plan", "show", "trip2", "--json")
+        items = {i["path"]: i for d in shown["discs"] for i in d["items"]}
+        self.assertEqual((items["photos"]["packing"], items["photos"]["pack"], items["photos"]["ownPacking"]),
+                         ("tar+gzip", "photos.tar.gz", "tar+gzip"))
+        self.assertEqual(shown["discs"][0]["packing"], "tar+gzip together")
 
 
 if __name__ == "__main__":

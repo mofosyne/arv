@@ -209,6 +209,10 @@ typedef struct {
     int via_folder;         /* reached through a copied folder link */
     int bin;                /* arv make --plan: which disc of the plan (0 = the first) */
     char *origin;           /* arv make --plan: where a laid-out file would be by hand (NULL: at path) */
+    char *pack;             /* arv make --plan: the pack it goes into, under data/ (NULL: on the disc as it is) */
+    const char *packing;    /* and how (pack.c) */
+    char *member;           /* its name in the pack */
+    int is_pack;            /* a pack itself, made from the members above */
     char sha256[65], sha512[129];
 } entry;
 typedef struct {
@@ -224,6 +228,7 @@ typedef struct {
     char *seen;             /* "FILES BYTES STAMP" when planned (names, sizes, dates), or NULL */
     char *placed;           /* plan_scan: where the disc's layout put it, whole; NULL: at path */
     char *of;               /* the data object (Uuid) it continues, as said with plan add --of; or NULL */
+    char *packing;          /* as said with plan pack: tar+zstd, zip, ... or none; NULL: its disc's */
 } plan_item;
 typedef struct {
     char *file, *name;
@@ -244,6 +249,16 @@ size_t duplicates_report(const entries *files, int by_bin, size_t limit, FILE *o
 void plan_scan(const arv_home *h, disc_plan *p, const char *links, entries *files, entries *noted, size_t *left_out,
                strlist *tagged, strlist *clashes);
 void plan_made(const char *file, const strlist *disc_ids, const char *date);
+const char *plan_packing(const disc_plan *p, const plan_item *it, int *together);   /* NULL: not packed */
+
+/* pack.c: data objects packed into one file (a tar, compressed or not, or a zip) */
+const char *packing_problem(const char *name, int for_folder);   /* NULL: a packing arv writes */
+const char *packing_ext(const char *name);          /* ".tar.zst" */
+const char *packing_word(const char *name);         /* the name, kept for good (NULL: not one) */
+const char *packing_tool(const char *name);         /* the program it needs, or NULL */
+const char *packing_found(const char *path);        /* what a file is packed as, by name and bytes, or NULL */
+void pack_write(const char *out, const char *packing, const entry *const *members, char *const *names, size_t n,
+                const char *workdir);
 void text_sha256(const char *text, char hex[65]);
 void json_str(sbuf *b, const char *s);     /* a JSON string, quoted */
 /* every JSON output starts {"format": "arv-json 1", ...}: whose and which shape (fields are only

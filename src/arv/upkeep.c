@@ -351,6 +351,12 @@ static void objects_json(const arv_home *h, const archive *cat, const char *root
                 sb_puts(&b, ", \"arranged\": ");     /* its path as arranged, before a layout placed it */
                 if (rec_get(x, "Arranged")) json_str(&b, rec_get(x, "Arranged"));
                 else sb_puts(&b, "null");
+                sb_puts(&b, ", \"packing\": ");    /* how it is kept: null as its files */
+                if (rec_get(x, "Packing")) json_str(&b, rec_get(x, "Packing"));
+                else sb_puts(&b, "null");
+                sb_puts(&b, ", \"pack\": ");       /* the file holding it, when arv packed it */
+                if (rec_get(x, "Pack")) json_str(&b, rec_get(x, "Pack"));
+                else sb_puts(&b, "null");
                 sb_puts(&b, ", \"files\": ");
                 sb_puts(&b, get_or(x, "Files", "0"));
                 sb_puts(&b, ", \"bytes\": ");
@@ -527,8 +533,12 @@ int cmd_objects(int argc, char **argv)
                 if (version_of(x) != v) continue;
                 char *c = copies_text(&cat, get_or(x, "Disc", "?"));
                 const char *path = get_or(x, "Path", "?");
-                printf("    version %ld  %s  data/%s%s  %s\n", v, get_or(x, "Disc", "?"), strcmp(path, ".") ? path : "",
-                       file || !strcmp(path, ".") ? "" : "/", c);
+                if (rec_get(x, "Pack"))     /* kept as one file: where it is, and as what */
+                    printf("    version %ld  %s  data/%s (%s, unpacked: data/%s%s)  %s\n", v, get_or(x, "Disc", "?"),
+                           rec_get(x, "Pack"), get_or(x, "Packing", "?"), path, file ? "" : "/", c);
+                else
+                    printf("    version %ld  %s  data/%s%s  %s\n", v, get_or(x, "Disc", "?"), strcmp(path, ".") ? path : "",
+                           file || !strcmp(path, ".") ? "" : "/", c);
                 free(c);
             }
         free(top.v);

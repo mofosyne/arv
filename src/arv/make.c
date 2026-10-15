@@ -874,6 +874,7 @@ static char *pick_code(const vocab *v, const char *text)
 
 typedef struct {
     entries files, noted;           /* this disc's share of the folder */
+    entries described;              /* and its files as the catalogue describes them: in packs too (tags, formats, objects) */
     char disc_id[64], uuid[37];
     long sequence;
     int part, parts;
@@ -892,6 +893,7 @@ typedef struct {
     const char *src, *title, *creator, *set_code, *medium_label;
     char *source, *software, *review, *workdir;
     entries *files, *noted;
+    entries members;                /* --plan: the files that went into packs, each in its pack (entry.pack) */
     strlist *categories, *paths;
     char coverage[64], today[11];
     long capacity, budget;
@@ -1199,6 +1201,12 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
         plan *p = &mk->plans[i];
         sub_entries(&p->files, mk->files->v + offset, counts[i]);
         offset += counts[i];
+        sub_entries(&p->described, p->files.v, p->files.n);
+        for (size_t k = 0; k < mk->members.n; k++)
+            if (mk->members.v[k].bin == (int)i) {
+                p->described.v = xrealloc(p->described.v, (p->described.n + 1) * sizeof *p->described.v);
+                p->described.v[p->described.n++] = mk->members.v[k];
+            }
         links_for(mk, counts, nbins, i, &p->noted);
         p->part = (int)i + 1;
         p->parts = (int)nbins;
@@ -1242,8 +1250,8 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
             recs_add(&p->events, e);
         }
         if (mk->have_formats) {
-            size_t unknown = formats_unknown(&mk->fmt, &p->files);
-            char *agent = formats_agent(&mk->fmt), *fnote = xprintf("PRONOM ids for %zu files, %zu unidentified", p->files.n, unknown);
+            size_t unknown = formats_unknown(&mk->fmt, &p->described);
+            char *agent = formats_agent(&mk->fmt), *fnote = xprintf("PRONOM ids for %zu files, %zu unidentified", p->described.n, unknown);
             recs_add(&p->events, new_event(p->disc_id, "format identification", unknown ? "warning" : "success", agent,
                                            "automatic", fnote));
             free(agent);
@@ -1264,7 +1272,7 @@ static void assign(maker *mk, const size_t *counts, size_t nbins)
         recs made_now = { 0 };
         for (size_t k = 0; k < i; k++)
             for (size_t j = 0; j < mk->plans[k].objects.n; j++) recs_add(&made_now, mk->plans[k].objects.v[j]);
-        plan_objects(mk->dplan, (int)i + 1, &mk->plans[i].files, mk->cat, &made_now, mk->plans[i].disc_id, mk->today,
+        plan_objects(mk->dplan, (int)i + 1, &mk->plans[i].described, mk->cat, &made_now, mk->plans[i].disc_id, mk->today,
                      &mk->plans[i].objects, &mk->plans[i].object_manifests);
         free(made_now.v);
     }
@@ -1331,13 +1339,13 @@ static void batch_files(maker *mk)
         p->b_tags = NULL;
         if (mk->tags) {
             char *t = xprintf("%s/%s.tags", batch, p->disc_id);
-            if (write_plan_tags(t, mk->tags, &p->files)) p->b_tags = t;
+            if (write_plan_tags(t, mk->tags, &p->described)) p->b_tags = t;
             else free(t);
         }
         p->b_formats = NULL;
         if (mk->have_formats) {
             p->b_formats = xprintf("%s/%s.csv", batch, p->disc_id);
-            formats_write(p->b_formats, &mk->fmt, &p->files);
+            formats_write(p->b_formats, &mk->fmt, &p->described);
         }
     }
     free(batch);
@@ -1622,6 +1630,7 @@ static void free_plans(maker *mk)
         if (p->extents) unlink(p->extents);
         free(p->files.v);
         free(p->noted.v);
+        free(p->described.v);
     }
     free(mk->plans);
     mk->plans = NULL;
@@ -1694,6 +1703,68 @@ static void fit(maker *mk)
     die("could not fit the files onto discs after %s attempts", "several");
 }
 
+static int by_pack(const void *a, const void *b)
+{
+    const entry *x = *(const entry *const *)a, *y = *(const entry *const *)b;
+    int c = x->bin != y->bin ? (x->bin < y->bin ? -1 : 1) : strcmp(x->pack, y->pack);
+    return c ? c : strcmp(x->member, y->member);
+}
+
+/* --plan: the files a plan packs go into their packs, made in the work folder; the disc gets the
+ * packs and the catalogue keeps the files (mk->members): what each object is, and where it is */
+static void pack_members(maker *mk)
+{
+    entries *f = mk->files;
+    size_t n = 0, kept = 0;
+    for (size_t i = 0; i < f->n; i++) n += f->v[i].pack != NULL;
+    if (!n) return;
+    mk->members.v = xmalloc(n * sizeof *mk->members.v);
+    for (size_t i = 0; i < f->n; i++) {
+        if (f->v[i].pack) mk->members.v[mk->members.n++] = f->v[i];
+        else f->v[kept++] = f->v[i];
+    }
+    f->n = kept;
+    const entry **by = xmalloc(n * sizeof *by);
+    for (size_t i = 0; i < n; i++) by[i] = &mk->members.v[i];
+    qsort(by, n, sizeof *by, by_pack);
+    for (size_t i = 0; i < n;) {
+        size_t j = i;
+        while (j < n && by[j]->bin == by[i]->bin && !strcmp(by[j]->pack, by[i]->pack)) j++;
+        const entry *first = by[i];
+        for (size_t k = 0; k < f->n; k++)
+            if (f->v[k].bin == first->bin && !strcmp(f->v[k].path, first->pack))
+                die("the plan has a file at data/%s, where a pack goes: rename one (arv plan rename)", first->pack);
+        char *dir = xprintf("%s/packs/%d", mk->workdir, first->bin + 1), *out = join(dir, first->pack), *slash = strrchr(out, '/');
+        *slash = 0;
+        if (mkdirs(out)) die("cannot create %s", out);
+        *slash = '/';
+        char **names = xmalloc((j - i) * sizeof *names);
+        uint64_t bytes = 0;
+        for (size_t k = i; k < j; k++) {
+            names[k - i] = by[k]->member;
+            bytes += by[k]->size;
+        }
+        fprintf(stderr, "Packing data/%s (%s): %zu file%s ...\n", first->pack, first->packing, j - i, j - i == 1 ? "" : "s");
+        pack_write(out, first->packing, by + i, names, j - i, mk->workdir);
+        entry e;
+        scan_file(out, first->pack, &e);
+        e.bin = first->bin;
+        e.is_pack = 1;
+        e.packing = first->packing;
+        char was[32], now[32];
+        human_size(bytes, was);
+        human_size(e.size, now);
+        fprintf(stderr, "  %s as files, %s packed (%.0f%%)\n", was, now, bytes ? 100.0 * (double)e.size / (double)bytes : 100.0);
+        f->v = xrealloc(f->v, (f->n + 1) * sizeof *f->v);
+        f->v[f->n++] = e;
+        free(names);
+        free(dir);
+        free(out);
+        i = j;
+    }
+    free(by);
+}
+
 static int make_discs(maker *mk)
 {
     const options *o = mk->o;
@@ -1714,6 +1785,7 @@ static int make_discs(maker *mk)
     mk->workdir = xprintf("%s/.archive-make-XXXXXX", out_dir);
     if (!mkdtemp(mk->workdir)) die("cannot create a work folder in %s", out_dir);
     if (!o->keep_stage) work_to_remove = mk->workdir;
+    pack_members(mk);
     git_prepare(mk->src, mk->workdir, mk->files, &mk->git);   /* .git: compacted copies */
     for (size_t k = 0; k < mk->git.n; k++) mk->left_out += mk->git.v[k].tsv != NULL;
     if (!o->no_formats && on_path("sf")) {
@@ -1998,9 +2070,11 @@ int cmd_make(int argc, char **argv)
     }
     {
         char **paths = xmalloc((files.n + 1) * sizeof *paths);
-        for (size_t i = 0; i < files.n; i++) paths[i] = files.v[i].path;
+        size_t npaths = 0;
+        for (size_t i = 0; i < files.n; i++)            /* a pack's members are named in it, not on the disc */
+            if (!files.v[i].pack) paths[npaths++] = files.v[i].path;
         name_issues issues = { 0 };
-        names_check(paths, files.n, &issues);
+        names_check(paths, npaths, &issues);
         size_t errors = 0;
         for (size_t i = 0; i < issues.n; i++) errors += issues.v[i].error;
         if (errors) {
@@ -2100,7 +2174,7 @@ int cmd_make(int argc, char **argv)
         }
         if (vocab_load(&v, sets_path, NULL, err, sizeof err)) die("%s", err);
         strlist rules = { 0 };
-        if (!o.no_rules) vocab_rule_suggestions(&v, paths, files.n, &rules);
+        if (!o.no_rules) vocab_rule_suggestions(&v, paths, npaths, &rules);
         char *default_set, *default_title = folder_default_title(o.plan ? dp.name : src, &default_set);
         const char *guessed = vocab_guess(&v, default_set);
         const char *set_default = guessed ? guessed : rules.n ? rules.v[0] : default_set;

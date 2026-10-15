@@ -195,6 +195,11 @@ ImageSha256: SHA256
 + so the same bytes read from elsewhere are another object, and this says so; a person who
 + knows they are one says so with an event (Object: object:THIS, SameAs: object:OTHER), and
 + readers then read its records as the other's versions with the same Tree.
++ Packed, it is one file on the disc: Pack names that file under data/ (the object's own, next to
++ its Path, or the disc's data/pack.*), and Packing says what it is (tar, tar+zstd, tar+xz,
++ tar+gzip, tar+lzip, tar+bzip2, zip; for a file also zstd, xz, gzip, lzip, bzip2). Unpacked where
++ it is, a pack puts each object it holds at its Path; Tree, Files and Bytes are those of its files.
++ Without Pack, Packing says the file is itself an archive (7z too), as it was given.
 + Title, Description, Coverage (EDTF), Rights and Origin (where it was published, as host/path)
 + say what it is: read from its own files when it is archived (its README, package manifest,
 + licence, a repository's commits and origin remote), or written by a person or a model

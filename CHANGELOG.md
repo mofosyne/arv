@@ -21,6 +21,19 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Packed objects: a plan can keep an object as one file**
+- `arv plan pack NAME PATH tar+zstd` keeps that object on its disc as one file
+  (`data/PATH.tar.zst`); `--disc N PACKING` packs each object of a disc, and `--together` puts a
+  disc's packed objects in one `data/pack.*`; `none` keeps one as its files. Packings: `tar`,
+  `tar+zstd`, `tar+xz`, `tar+gzip`, `tar+lzip`, `tar+bzip2`, `zip`, and for a file a compressor
+  alone. arv writes the tar (the same files, the same bytes; each checked against its hash as it
+  goes in); the compressor or `zip` is the system's.
+- Format: `Object` gains `Packing` and `Pack`. `Path` is where the object unpacks to; `Tree`,
+  `Files` and `Bytes` are its files', so the same files are the same version packed or not. A
+  file added as it is that is an archive (`.zip`, `.tar.gz`, `.7z` ...) gets `Packing` alone.
+- `plan show` (and `--json`) says how each item is packed and into what; `objects` names the pack;
+  `status` counts files inside packs as on discs; `objects --json` gives `packing` and `pack`.
+
 **The room on a disc, in the spec**
 - The disc format spec gives each medium's sectors and how much image fits at 10, 20, 30 and 50%
   RS03 (18.7 GiB on a BD-R 25 at the default 20%), and how it follows from RS03's 255 layers.
