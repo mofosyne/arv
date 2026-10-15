@@ -373,6 +373,33 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; });
     });
   }
+  // Everything goes through arv: the page builds each command, the server only runs it. HOME is
+  // the archive's catalogue (arv where --json), given to every command.
+  var HOME = null;
+  function withHome(argv) { return HOME ? ["--home", HOME].concat(argv) : argv; }
+  function arvRun(argv, stdin, program) {     // run to its end: {returncode, out, err}
+    return api("/api/run", { argv: withHome(argv), stdin: stdin, program: program || "arv" });
+  }
+  function arvText(argv, stdin) {             // {returncode, output}: what it printed, as a terminal shows it
+    return arvRun(argv, stdin).then(function (r) { return { returncode: r.returncode, output: (r.out + r.err).trim() }; });
+  }
+  function arvJson(argv, stdin) {             // its JSON, or the error it gave
+    return arvRun(argv, stdin).then(function (r) {
+      if (r.returncode) throw new Error((r.err + r.out).trim() || "arv " + argv[0] + " failed");
+      return JSON.parse(r.out);
+    });
+  }
+  function assistJson(argv, request) {        // arv-assist (the local model): its JSON answer, or {error}
+    return arvRun(argv, request === undefined ? undefined : JSON.stringify(request), "arv-assist").then(function (r) {
+      try { return JSON.parse(r.out); } catch (e) { return { error: "arv-assist did not answer (" + ((r.err || "").trim() || e.message) + ")" }; }
+    });
+  }
+  function opt(argv, flag, value) {           // --flag VALUE, when there is a value
+    value = value === undefined || value === null ? "" : String(value).trim();
+    if (value) argv.push(flag, value);
+    return argv;
+  }
+  function shown(argv) { return argv[0] === "--home" ? argv.slice(2) : argv; }
   function el(tag, attrs, children) {
     var e = document.createElement(tag);
     Object.keys(attrs || {}).forEach(function (k) {
@@ -443,7 +470,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     b.className = "link " + (items ? "owed" : "clear");
   }
   function loadOwed() {     // the discs first, so a disc's name in the list can open it
-    return (discs.length ? Promise.resolve() : loadDiscs()).then(function () { return api("/api/todo"); }).then(function (res) {
+    return (discs.length ? Promise.resolve() : loadDiscs()).then(function () { return arvText(["todo"]); }).then(function (r) {
+      if (r.returncode) throw new Error(r.output);
+      var res = { text: r.output };
       owedLine(res.text);
       var box = $("owed"); box.textContent = "";
       var list = null;
@@ -474,10 +503,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     return checks.length ? checks[checks.length - 1] : null;
   }
   function loadDiscs() {
-    return api("/api/discs").then(function (res) {
-      var parts = res.home.split("/");     // a long path: its last folders, the whole of it on hover
-      $("home").textContent = "Catalogue: " + (res.home.length > 40 && parts.length > 3 ? "…/" + parts.slice(-2).join("/") : res.home);
-      $("home").title = res.home;
+    return arvJson(["list", "--json"]).then(function (res) {
+      var parts = HOME.split("/");     // a long path: its last folders, the whole of it on hover
+      $("home").textContent = "Catalogue: " + (HOME.length > 40 && parts.length > 3 ? "…/" + parts.slice(-2).join("/") : HOME);
+      $("home").title = HOME;
       discs = res.discs;
       var body = $("disc-table").querySelector("tbody"); body.textContent = "";
       $("disc-empty").hidden = discs.length > 0;
@@ -508,9 +537,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var idLetter = el("select", { "aria-label": "Copy known by it" }), clash = el("div");
     var move = el("button", { class: "plain", text: "Update place" });
     move.onclick = function () {
-      if (moveLetter.value && movePlace.value.trim()) run({ command: "locate", disc_id: d.Id, copy: moveLetter.value, location: movePlace.value.trim() }, true);
+      if (moveLetter.value && movePlace.value.trim()) run(["locate", d.Id, moveLetter.value, movePlace.value.trim()], true);
     };
-    api("/api/copies?disc=" + encodeURIComponent(d.Id)).then(function (res) {
+    arvJson(["objects", d.Id, "--json"]).then(function (res) {
       list.textContent = "";
       list.className = "";
       if (res.retired) { list.appendChild(el("p", { class: "muted", text: "Retired: its copies have left every place." })); return; }
@@ -539,8 +568,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var drive = el("input", { type: "text", placeholder: "optional: /dev/sr0" }), letter = el("input", { type: "text", size: "3", placeholder: "next" });
     var burned = el("button", { class: "plain", text: "Record burned copies" });
     burned.onclick = function () {
-      var body = { command: "burned", disc_id: d.Id, copies: n.value, location: place.value, device: drive.value.trim(), copy: letter.value };
-      run(body, !body.device);          // reading back takes a while: shown in Jobs
+      var argv = ["burned", d.Id], device = drive.value.trim();
+      if (device) argv.push("--device", device); else argv.push("--copies", String(parseInt(n.value, 10) || 1));
+      opt(opt(argv, "--copy", letter.value), "--location", place.value);
+      run(argv, !device);               // reading back takes a while: shown in Jobs
     };
     wrap.appendChild(clash);
 
@@ -552,8 +583,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var known = el("button", { class: "plain", text: "Record" });
     known.onclick = function () {
       if (!idLetter.value || !(code.value.trim() || other.value.trim() || carrier.value.trim())) return;
-      run({ command: "identify", disc_id: d.Id, copy: idLetter.value, barcode: code.value,
-            identifiers: other.value.trim() ? [other.value.trim()] : [], carrier: carrier.value }, true);
+      var argv = opt(["identify", d.Id, idLetter.value], "--barcode", code.value);
+      if (other.value.trim()) argv.push(other.value.trim());
+      run(opt(argv, "--carrier", carrier.value), true);
     };
     code.onkeydown = function (ev) { if (ev.key === "Enter") { ev.preventDefault(); known.onclick(); } };
     wrap.appendChild(el("h3", { text: "What a copy is known by" }));
@@ -568,7 +600,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     // a copy on a drive or NAS: the .iso, or the disc's files as a folder
     var path = el("input", { type: "text", placeholder: "/mnt/nas/" + d.Id + ".iso" }), where = el("input", { type: "text", placeholder: "a location code, or text" });
     var stored = el("button", { class: "plain", text: "Check and record" });
-    stored.onclick = function () { run({ command: "stored", disc_id: d.Id, path: path.value, location: where.value }); };
+    stored.onclick = function () { if (path.value.trim()) run(opt(["stored", d.Id, path.value.trim()], "--location", where.value)); };
     wrap.appendChild(el("h3", { text: "Record a copy on a drive or NAS" }));
     wrap.appendChild(el("div", { class: "inline" }, [field("Image or folder", path), field("Kept at", where), stored]));
     wrap.appendChild(el("h3", { text: "Update a known copy's place" }));
@@ -580,7 +612,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var repair = el("input", { type: "checkbox" }), check = el("button", { class: "plain", text: "Check" });
     check.onclick = function () {
       var source = cdrive.value.trim() || cimage.value.trim();
-      if (source) run({ disc_id: d.Id, source: source, copy: letters.value, repair: repair.checked }, false, "/api/check");
+      if (source) run(opt(["check"].concat(repair.checked ? ["--repair"] : []), "--copy", letters.value).concat([source, d.Id]));
     };
     wrap.appendChild(el("h3", { text: "Check a copy" }));
     wrap.appendChild(el("div", { class: "inline" }, [field("Drive", cdrive), field("…or image", cimage), field("Copy", letters),
@@ -604,7 +636,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         var to = el("input", { type: "text", size: "3", value: next, "aria-label": "New letter" });
         var go = el("button", { class: "plain", text: "Give it this letter" });
         go.onclick = function () {
-          if (to.value.trim()) run(Object.assign({ command: "relabel", disc_id: d.Id, copy: l, new: to.value.trim().toUpperCase() }, by), true);
+          if (to.value.trim()) run(["relabel", d.Id, l, to.value.trim().toUpperCase()].concat(by.at ? ["--at", by.at] : ["--identifier", by.identifier]), true);
         };
         card.appendChild(el("div", { class: "inline" }, [el("span", { text: label }), to, go]));
       });
@@ -628,7 +660,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 
     var note = el("textarea", { "aria-label": "New note" });
     var addNote = el("button", { class: "plain", text: "Add note" });
-    addNote.onclick = function () { if (note.value.trim()) run({ command: "note", disc_id: d.Id, text: note.value.trim() }, true); };
+    addNote.onclick = function () { if (note.value.trim()) run(["note", d.Id, note.value.trim()], true); };
     box.appendChild(note); box.appendChild(addNote);
 
     box.appendChild(el("h2", { text: "Copies" }));
@@ -654,7 +686,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   $("search-form").onsubmit = function (ev) {
     ev.preventDefault();
     var out = $("search-results"); out.textContent = "Searching…";
-    api("/api/find?q=" + encodeURIComponent($("q").value)).then(function (res) {
+    var q = $("q").value.trim();
+    if (!q) { out.textContent = ""; return; }
+    arvJson(["find", "--json", "--limit", "500", q]).then(function (res) {
       out.textContent = "";
       if ((res.copies || []).length) {      // a scanned case: which disc and copy it is
         out.appendChild(el("h2", { text: "Copies" }));
@@ -702,21 +736,37 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   $("make-form").onsubmit = function (ev) {
     ev.preventDefault();
     var split = function (v) { return v.split(",").map(function (s) { return s.trim(); }).filter(Boolean); };
-    run({
-      source: $("m-source").value, set: $("m-set").value, title: $("m-title").value, creator: $("m-creator").value,
-      description: $("m-description").value, rights: $("m-rights").value,
-      subject: split($("m-subject").value), note: $("m-note").value ? [$("m-note").value] : [],
-      medium: $("m-medium").value, min_redundancy: $("m-redundancy").value, snapshot: $("m-snapshot").value,
-      output_dir: $("m-outdir").value, split: $("m-split").checked,
-      no_defect_management: $("m-nodm").checked,
-      draft: (makeLLM.agent || $("m-tags").value.trim()) ? {
-        notes: qaNotes(makeLLM), tags: textToTags($("m-tags").value), captions: makeLLM.captions || {},
-        agent: makeLLM.agent || "owner" } : null
-    }, false, "/api/make");
+    if (!$("m-source").value.trim()) return;
+    var argv = ["make", "-y", $("m-source").value.trim()], draft = null;
+    [["--set", "m-set"], ["--title", "m-title"], ["--description", "m-description"], ["--creator", "m-creator"],
+     ["--rights", "m-rights"], ["--medium", "m-medium"], ["--min-redundancy", "m-redundancy"], ["--snapshot", "m-snapshot"],
+     ["--output-dir", "m-outdir"]].forEach(function (f) { opt(argv, f[0], $(f[1]).value); });
+    split($("m-subject").value).forEach(function (x) { argv.push("--subject", x); });
+    opt(argv, "--note", $("m-note").value);
+    if ($("m-split").checked) argv.push("--split");
+    if ($("m-nodm").checked) argv.push("--no-defect-management");
+    if (makeLLM.agent || $("m-tags").value.trim()) {     // the model's answers and the tags, as a draft on standard input
+      draft = draftJson({ notes: qaNotes(makeLLM), tags: textToTags($("m-tags").value), captions: makeLLM.captions || {},
+                          agent: makeLLM.agent || "owner" });
+      argv.push("--draft", "-");
+    }
+    run(argv, false, draft);
   };
 
   // ---------------------------------------------------------------- local LLM (optional)
-  var llmStatus = null;
+  var llmStatus = null, lastSuggestion = null;
+  var DRAFT_FIELDS = ["title", "description", "subjects", "tags"];
+  // a draft as arv describe --save writes them: accepted when the model's last suggestion comes back
+  // unchanged, edited when a person changed it, human when no model was asked
+  function draftJson(d) {
+    var model = /(^|[^a-z])(llm|embeddings|vision):/.test(d.agent || "llm"), same = !!lastSuggestion;
+    DRAFT_FIELDS.forEach(function (k) {
+      if (same && JSON.stringify(d[k] || null) !== JSON.stringify(lastSuggestion[k] || null)) same = false;
+    });
+    return JSON.stringify({ title: d.title || null, description: d.description || null, subjects: d.subjects || [],
+      notes: d.notes || [], tags: d.tags || {}, captions: d.captions || {},
+      authorship: !model ? "human" : same ? "accepted" : "edited", agent: d.agent || "llm" }, null, 2) + "\n";
+  }
   function tagsToText(tags) {
     return Object.keys(tags || {}).sort().map(function (f) { return f + ": " + tags[f].join(", "); }).join("\n");
   }
@@ -756,7 +806,15 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       var body = Object.assign({ answers: answers || [], previous: state.previous,
                                  vision: visionBox.checked, seen: state.seen }, target());
       if (visionBox.checked && !state.seen) status.textContent = "Looking at sample images, then asking " + llmStatus.model + "\u2026 (can take several minutes)";
-      api("/api/llm/suggest", body).then(function (res) {
+      Object.keys(body).forEach(function (k) {
+        var v = body[k];
+        if (!v || (Array.isArray(v) && !v.length)) delete body[k];
+      });
+      assistJson(["suggest"], body).then(function (res) {
+        if (!res.error) {
+          lastSuggestion = {};
+          DRAFT_FIELDS.forEach(function (k) { lastSuggestion[k] = res[k]; });
+        }
         go.disabled = false;
         if (res.error) { status.textContent = "LLM error: " + res.error; return; }
         state.previous = { title: res.title, description: res.description, subjects: res.subjects,
@@ -824,10 +882,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       fields.appendChild(el("label", { text: p[0] })); fields.appendChild(p[1]);
     });
     apply.onclick = function () {
-      run({ command: "apply_draft", disc_id: d.Id, draft: {
+      run(["describe", d.Id, "--apply", "-"], true, draftJson({
         title: title.value, description: desc.value, agent: state.agent,
         subjects: subj.value.split(",").map(function (x) { return x.trim().toLowerCase(); }).filter(Boolean),
-        notes: qaNotes(state), tags: textToTags(tags.value), captions: state.captions } }, true);
+        notes: qaNotes(state), tags: textToTags(tags.value), captions: state.captions }));
     };
     fields.appendChild(apply);
     box.appendChild(fields);
@@ -862,7 +920,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // ---------------------------------------------------------------- collections
   function loadCollections() {
     var list = $("c-list");
-    return api("/api/collections").then(function (res) {
+    return arvJson(["collection", "list", "--json"]).then(function (res) {
       list.textContent = "";
       if (!res.collections.length) list.appendChild(el("p", { class: "muted",
         text: "No collection yet: arv collection init FOLDER --code CODE --title TITLE makes a folder one." }));
@@ -870,7 +928,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     }).catch(function (e) { list.textContent = "Error: " + e.message; });
   }
   function collectionDo(body, out) {
-    return api("/api/collection", body).then(function (r) {
+    var argv = body.action === "keep" ? ["collection", "keep", body.code, String(body.edition)]
+             : ["retire", body.code].concat(body.yes ? ["--yes"] : [], body.accept_loss ? ["--accept-loss"] : []);
+    return arvText(argv).then(function (r) {
       out.hidden = false; out.textContent = r.output; out.className = "log" + (r.returncode ? " bad" : "");
       return r;
     }).catch(function (e) { out.hidden = false; out.textContent = "Error: " + e.message; out.className = "log bad"; });
@@ -978,7 +1038,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       "Nothing matches." : "Nothing kept as a data object or collection yet: make discs from a plan (Mastering), or a collection." }));
   }
   function loadObjects() {
-    return api("/api/objects").then(function (res) { kept = res; renderObjects(); })
+    return arvJson(["objects", "--json"]).then(function (res) { kept = res; renderObjects(); })
       .catch(function (e) { $("o-list").textContent = "Error: " + e.message; });
   }
   $("o-filter").oninput = renderObjects;
@@ -989,15 +1049,22 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   function say(text, bad) {
     var s = $("p-status"); s.hidden = !text; s.textContent = text || ""; s.className = "banner" + (bad ? " bad" : "");
   }
+  function planArgv(body) {    // arv plan add|move|drop|disc NAME ...
+    var argv = ["plan", body.action, body.name || planName()];
+    var paths = (body.paths || []).filter(function (p) { return p && p[0] !== "-"; });
+    if (body.action === "add") return opt(argv.concat(body.sources, ["--disc", String(body.disc || "auto")]), "--as", body.as);
+    if (body.action === "disc") return argv.concat(body.op === "add" ? ["add"] : ["drop", String(body.disc)]);
+    argv = opt(argv.concat(paths), "--from", body.from);
+    return body.action === "move" ? argv.concat(["--disc", String(body.disc)]) : argv;
+  }
   function planDo(body) {      // arv plan ACTION NAME ..., then the plan again
-    body.name = body.name || planName();
-    return api("/api/plan", body).then(function (res) {
+    return arvText(planArgv(body)).then(function (res) {
       say(res.output, res.returncode !== 0);
       return loadPlan();
     }).catch(function (e) { say("Error: " + e.message, true); });
   }
   function loadPlans(choose) {
-    return api("/api/plans").then(function (res) {
+    return arvJson(["plan", "list", "--all", "--json"]).then(function (res) {
       var pick = $("p-pick"), keep = choose || pick.value;
       pick.textContent = "";
       var open = res.plans.filter(function (p) { return !p.made; }), made = res.plans.filter(function (p) { return p.made; });
@@ -1019,12 +1086,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   $("p-archived").onclick = function () {
     if (!planName()) return;
     say("Hashing the plan's items …");
-    api("/api/plan?archived=1&name=" + encodeURIComponent(planName())).then(function (p) { plan = p; renderPlan(); say(""); })
+    arvJson(["plan", "show", planName(), "--json", "--archived"]).then(function (p) { plan = p; renderPlan(); say(""); })
       .catch(function (e) { say("Error: " + e.message, true); });
   };
   function loadPlan() {
     if (!planName()) { plan = null; renderPlan(); return Promise.resolve(); }
-    return api("/api/plan?name=" + encodeURIComponent(planName())).then(function (p) { plan = p; renderPlan(); })
+    return arvJson(["plan", "show", planName(), "--json"]).then(function (p) { plan = p; renderPlan(); })
       .catch(function (e) { plan = null; renderPlan(); say("Error: " + e.message, true); });
   }
   function dropTarget(node, disc) {   // a disc takes files from the browser, and items from other discs
@@ -1151,7 +1218,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   $("p-new").onsubmit = function (ev) {
     ev.preventDefault();
     var name = $("p-name").value.trim();
-    api("/api/plan", { action: "new", name: name, title: $("p-title").value, set: $("p-set").value, medium: $("p-medium").value })
+    arvText(opt(opt(opt(["plan", "new", name], "--title", $("p-title").value), "--set", $("p-set").value), "--medium", $("p-medium").value))
       .then(function (res) { say(res.output, res.returncode !== 0); if (res.returncode === 0) loadPlans(name); })
       .catch(function (e) { say("Error: " + e.message, true); });
   };
@@ -1159,28 +1226,29 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (!plan) return;
     var name = prompt("Name for the new plan (letters, digits, - _ .)", plan.name + "-again");
     if (!name) return;
-    api("/api/plan", { action: "again", name: plan.name, new: name.trim() })
+    arvText(["plan", "again", plan.name, name.trim()])
       .then(function (res) { say(res.output, res.returncode !== 0); if (res.returncode === 0) loadPlans(name.trim()); })
       .catch(function (e) { say("Error: " + e.message, true); });
   };
   $("p-delete").onclick = function () {
     if (!plan || !confirm("Delete the plan " + plan.name + "? The files it points to are not touched.")) return;
-    api("/api/plan", { action: "delete", name: plan.name }).then(function (res) { say(res.output, res.returncode !== 0); loadPlans(); });
+    arvText(["plan", "delete", plan.name]).then(function (res) { say(res.output, res.returncode !== 0); loadPlans(); });
   };
   $("p-make-btn").onclick = function () {
     if (!plan) return;
-    run({ action: "make", name: plan.name, output_dir: $("p-outdir").value, no_ecc: $("p-noecc").checked }, false, "/api/plan");
+    run(opt(["plan", "make", plan.name, "-y"], "--output-dir", $("p-outdir").value).concat($("p-noecc").checked ? ["--no-ecc"] : []));
   };
 
   // ---------------------------------------------------------------- tools
   $("check-form").onsubmit = function (ev) {
     ev.preventDefault();
-    run({ source: $("c-source").value.trim(), copy: $("c-copy").value.trim(),
-          repair: $("c-repair").checked }, false, "/api/check");
+    if ($("c-source").value.trim())
+      run(opt(["check"].concat($("c-repair").checked ? ["--repair"] : []), "--copy", $("c-copy").value).concat([$("c-source").value.trim()]));
   };
-  $("rebuild-form").onsubmit = function (ev) { ev.preventDefault(); run({ command: "rebuild", path: $("r-path").value }); };
+  $("rebuild-form").onsubmit = function (ev) { ev.preventDefault(); if ($("r-path").value.trim()) run(["rebuild", $("r-path").value.trim()]); };
   $("restore-form").onsubmit = function (ev) {
-    ev.preventDefault(); run({ command: "restore", path: $("rs-path").value, dest: $("rs-dest").value });
+    ev.preventDefault();
+    if ($("rs-path").value.trim() && $("rs-dest").value.trim()) run(["restore", $("rs-path").value.trim(), $("rs-dest").value.trim()]);
   };
 
   // ---------------------------------------------------------------- inventory and audit: findings, each
@@ -1219,10 +1287,14 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   function loadPlaces() {
     var pick = $("inv-place");
     if (pick.options.length) return;
-    api("/api/locations").then(function (res) {
-      res.locations.forEach(function (l) {
-        pick.appendChild(el("option", { value: l.code, text: "\u00a0\u00a0".repeat(l.depth) + l.code + " \u2014 " + l.name }));
-      });
+    arvJson(["location", "list", "--json"]).then(function (res) {
+      function under(parent, depth) {         // the places as a tree: a box in a room in a house
+        res.locations.filter(function (l) { return l.parent === parent; }).forEach(function (l) {
+          pick.appendChild(el("option", { value: l.code, text: "\u00a0\u00a0".repeat(depth) + l.code + " \u2014 " + l.name }));
+          under(l.code, depth + 1);
+        });
+      }
+      under("", 0);
       if (!res.locations.length) pick.appendChild(el("option", { value: "", text: "(no places yet: arv location add CODE NAME)" }));
     }).catch(function (e) { $("inv-out").textContent = "Error: " + e.message; });
   }
@@ -1230,21 +1302,24 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     ev.preventDefault();
     var out = $("inv-out"); out.textContent = "Comparing…";
     if (!$("inv-place").value) { out.textContent = "Choose a place first."; return; }
-    api("/api/inventory", { place: $("inv-place").value, text: $("inv-text").value, verbose: $("inv-all").checked }).then(function (r) {
+    arvText(["inventory"].concat($("inv-all").checked ? ["-v"] : [], [$("inv-place").value]), $("inv-text").value).then(function (r) {
       out.textContent = ""; findings(r.output, out);
     }).catch(function (e) { out.textContent = "Error: " + e.message; });
   };
   $("audit-form").onsubmit = function (ev) {
     ev.preventDefault();
     var out = $("audit-out"); out.textContent = "Reading every event…";
-    api("/api/audit?discs=" + encodeURIComponent($("audit-discs").value)).then(function (r) {
-      out.textContent = ""; findings(r.text, out);
+    var discs = $("audit-discs").value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean);
+    arvText(["audit"].concat(discs)).then(function (r) {
+      out.textContent = ""; findings(r.output, out);
     }).catch(function (e) { out.textContent = "Error: " + e.message; });
   };
 
   // ---------------------------------------------------------------- jobs
-  function run(body, quiet, path) {
-    return api(path || "/api/command", body).then(function (job) {
+  // a command that may take a while, as a job: shown in Jobs, or (quiet) followed here and the
+  // record reloaded when it is done
+  function run(argv, quiet, stdin) {
+    return api("/api/run", { argv: withHome(argv), stdin: stdin, job: true }).then(function (job) {
       if (quiet) {
         poll(job.id, 0, null, function (j) {
           if (j.returncode !== 0) alert(j.lines.join("\n"));
@@ -1274,7 +1349,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         var status = el("span", { class: j.done ? (j.returncode === 0 ? "ok" : "bad") : "warn",
           text: j.done ? (j.returncode === 0 ? "finished" : "failed (exit " + j.returncode + ")") : "running…" });
         var pre = el("pre", { class: "log" });
-        box.appendChild(el("div", { class: "card" }, [el("div", { class: "mono", text: "arv " + j.argv.join(" ") }), status, pre]));
+        box.appendChild(el("div", { class: "card" }, [el("div", { class: "mono", text: "arv " + shown(j.argv).join(" ") }), status, pre]));
         poll(j.id, 0, pre, null);
       });
     });
@@ -1302,23 +1377,47 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     $("setup-form").onsubmit = function (ev) {
       ev.preventDefault();
       var out = $("s-status");
-      api("/api/init", { folder: $("s-folder").value, name: $("s-name").value, default: $("s-default").checked })
+      var folder = $("s-folder").value.trim().replace(/\/+$/, "") || "/", name = $("s-name").value.trim();
+      if ($("s-default").checked && !name) {
+        out.hidden = false; out.className = "banner bad"; out.textContent = "A name is needed to use it from anywhere.";
+        return;
+      }
+      HOME = null;
+      arvText(opt(["init", folder], "--name", name).concat($("s-default").checked ? ["--default"] : []))
         .then(function (res) {
           out.hidden = false; out.textContent = res.output;
           out.className = "banner" + (res.returncode ? " bad" : "");
-          if (!res.returncode) location.reload();
+          if (res.returncode) return;
+          HOME = folder + "/.arv";                // the new archive: the interface opens on it
+          return findHome().then(function (found) {
+            if (!found) return;
+            document.querySelectorAll("nav.groups, header .link").forEach(function (n) { n.hidden = false; });
+            out.hidden = true;
+            start();
+          });
         }).catch(function (e) { out.hidden = false; out.className = "banner bad"; out.textContent = "Error: " + e.message; });
     };
   }
   function start() {
-    api("/api/llm/status").then(function (st) { llmStatus = st; }).catch(function () { llmStatus = null; })
+    assistJson(["llm-status"]).then(function (st) { llmStatus = st; }).catch(function () { llmStatus = null; })
       .then(function () {           // a view named in the address (#discs, #master...), else Verify's Owed
         var want = location.hash.slice(1);
         setupMakeLLM(); loadDiscs(); loadOwed(); showTab(GROUP[want] ? want : "owed");
       });
   }
-  api("/api/setup").then(function (st) { if (st.needed) showSetup(st); else start(); })
-    .catch(function () { start(); });
+  // the archive: the one arv gui was given, else the one arv finds from where it was started (arv
+  // where --json); with none, a first run, which offers to make one
+  function findHome() {
+    return arvRun(["where", "--json"]).then(function (r) {
+      if (r.returncode) return false;
+      HOME = JSON.parse(r.out).path;
+      return true;
+    });
+  }
+  api("/api/setup").then(function (st) {
+    HOME = st.home;
+    return findHome().then(function (found) { if (found) start(); else showSetup(st); });
+  }).catch(function (e) { $("home").textContent = "Error: " + e.message; });
 })();
 </script>
 </body></html>

@@ -21,6 +21,13 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**The interface runs arv, and only arv**
+- `arv gui`'s server no longer knows any feature: the page builds every command and the server
+  runs it (`POST /api/run`), as a quick call or a job, and lists folders. A new feature is a
+  change to the page alone, and the server is small enough to be rewritten in C (issue #48).
+  Drafts reach `arv make` and `arv describe` on standard input (`--draft -`, `--apply -`).
+- `arv location list --json`: the places, for the interface's inventory.
+
 **The UDF standards by reference** (issue #32)
 - The zip of UDF and ECMA standards (70 MB) is out of the repository: its terms were never written
   down. The UDF profile (`docs/spec/archival-udf.md`) links to ECMA-167 at Ecma and to UDF 2.50

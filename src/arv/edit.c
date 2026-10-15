@@ -205,10 +205,11 @@ int cmd_location(int argc, char **argv)
 {
     const char *given = NULL, *action = NULL, *code_arg = NULL, *name = NULL, *within = NULL, *description = NULL,
                *temperature = NULL;
-    int verbose = 0;
+    int verbose = 0, as_json = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) verbose = 1;
+        else if (!strcmp(argv[i], "--json")) as_json = 1;
         else if (i + 1 < argc && !strcmp(argv[i], "--temperature")) temperature = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--in")) within = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--description")) description = argv[++i];
@@ -221,6 +222,25 @@ int cmd_location(int argc, char **argv)
     arv_home h;
     archive cat;
     open_home(given, &h, &cat);
+    if (!strcmp(action, "list") && as_json) {         /* each place as recorded, for arv gui */
+        sbuf b = { 0 };
+        sb_puts(&b, "{\"locations\": [");
+        for (size_t i = 0; i < cat.locations.n; i++) {
+            const rec_record *l = cat.locations.v[i];
+            static const char *const fields[] = { "Code", "Name", "Parent", "Temperature", "Description", NULL };
+            static const char *const keys[] = { "code", "name", "parent", "temperature", "description" };
+            sb_puts(&b, i ? ", {" : "{");
+            for (int f = 0; fields[f]; f++) {
+                sb_printf(&b, "%s\"%s\": ", f ? ", " : "", keys[f]);
+                json_str(&b, get_or(l, fields[f], ""));
+            }
+            sb_puts(&b, "}");
+        }
+        sb_puts(&b, "]}\n");
+        fputs(b.s, stdout);
+        free(b.s);
+        return 0;
+    }
     if (!strcmp(action, "list")) {
         strlist seen = { 0 }, loose = { 0 };
         for (size_t i = 0; i < cat.locations.n; i++)

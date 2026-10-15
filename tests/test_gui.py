@@ -54,6 +54,8 @@ class IconTest(unittest.TestCase):
 
 
 class GuiTest(unittest.TestCase):
+    """The server only runs arv (and arv-assist) for the page: these drive it as the page does."""
+
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
         self.home = os.path.join(self.tmp, "home")
@@ -89,22 +91,62 @@ class GuiTest(unittest.TestCase):
         except urllib.error.HTTPError as e:
             return e.code, e.read().decode()
 
-    def wait(self, job):
+    def run_arv(self, *argv, stdin=None, program="arv", home=True):
+        """/api/run, as the page calls it: {returncode, out, err}"""
+        body = {"argv": (["--home", self.home] if home else []) + list(argv), "program": program}
+        if stdin is not None:
+            body["stdin"] = stdin
+        status, text = self.request("/api/run", body)
+        self.assertEqual(status, 200, text)
+        return json.loads(text)
+
+    def ok(self, *argv, stdin=None):
+        """arv run through the server, which must succeed: what it printed (its JSON when it is JSON)"""
+        r = self.run_arv(*argv, stdin=stdin)
+        self.assertEqual(r["returncode"], 0, r["out"] + r["err"])
+        return json.loads(r["out"]) if "--json" in argv else r["out"] + r["err"]
+
+    def job(self, *argv, stdin=None):
+        """a job (make, check, burned ...), followed to its end"""
+        body = {"argv": ["--home", self.home] + list(argv), "job": True}
+        if stdin is not None:
+            body["stdin"] = stdin
+        status, text = self.request("/api/run", body)
+        self.assertEqual(status, 200, text)
+        job = json.loads(text)
         for _ in range(600):
             j = json.loads(self.request("/api/job?id=%s" % job["id"])[1])
             if j["done"]:
+                self.assertEqual(j["returncode"], 0, "\n".join(j["lines"]))
                 return j
             time.sleep(0.2)
         self.fail("job did not finish")
 
+    def make_disc(self, name="Trip", **extra):
+        src, out = os.path.join(self.tmp, name), os.path.join(self.tmp, "out-" + name)
+        write(os.path.join(src, "a.txt"), "a", 2019)
+        self.job("make", "-y", src, "--set", "PHOTOS", "--medium", "auto", "--no-ecc", "--output-dir", out)
+        disc = self.ok("list", "--json")["discs"][-1]["Id"]
+        return disc, os.path.join(out, [f for f in os.listdir(out) if f.endswith(".iso")][0])
+
     def test_access_control(self):
         self.start()
-        self.assertEqual(self.request("/api/discs", token=False)[0], 403)
+        self.assertEqual(self.request("/api/setup", token=False)[0], 403)
         self.assertEqual(self.request("/?t=wrong", token=False)[0], 403)
-        self.assertEqual(self.request("/api/discs", host="evil.example:80")[0], 403)
+        self.assertEqual(self.request("/api/setup", host="evil.example:80")[0], 403)
         status, page = self.request("/?t=" + self.token, token=False)
         self.assertEqual(status, 200)
         self.assertIn(self.token, page)
+
+    def test_bad_requests(self):
+        """Only a command word comes first, never an option or arv gui; and only arv and arv-assist run."""
+        self.start()
+        for body in ({"argv": ["--yes"]}, {"argv": ["--home", self.home, "-v"]}, {"argv": ["gui"]},
+                     {"argv": []}, {"argv": "list"}, {"argv": ["list", 3]}, {"argv": ["list"], "program": "sh"},
+                     {"argv": ["list"], "stdin": 5}, ["list"]):
+            self.assertEqual(self.request("/api/run", body)[0], 400, body)
+        self.assertEqual(self.request("/api/job?id=999")[0], 404)
+        self.assertEqual(self.request("/api/discs")[0], 404)       # the server has no features of its own
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
     def test_start_does_not_touch_legacy_files(self):
@@ -115,8 +157,9 @@ class GuiTest(unittest.TestCase):
         with open(legacy, encoding="utf-8") as f:
             self.assertEqual(f.read(), "preserve this file")
 
+    @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
     def test_first_run_makes_an_archive(self):
-        """No archive here or above and no default: the page offers to make one, and nothing else answers."""
+        """No archive here or above and no default: arv where finds none, and the page makes one with arv init."""
         where = os.path.join(self.tmp, "nas")
         os.makedirs(where)
         old = os.getcwd(), {k: os.environ.get(k) for k in ("HOME", "XDG_CONFIG_HOME", "ARV_HOME")}
@@ -126,15 +169,13 @@ class GuiTest(unittest.TestCase):
         try:
             self.home = None
             self.start()
-            setup = json.loads(self.request("/api/setup")[1])
-            self.assertTrue(setup["needed"])
-            self.assertEqual(self.request("/api/discs")[0], 409)
-            self.assertEqual(self.request("/api/init", {"folder": where, "default": True})[0], 400)  # a default needs a name
-            res = json.loads(self.request("/api/init", {"folder": where, "name": "family", "default": True})[1])
-            self.assertEqual(res["returncode"], 0, res["output"])
+            self.assertEqual(json.loads(self.request("/api/setup")[1]), {"home": None, "cwd": where})
+            self.assertNotEqual(self.run_arv("where", "--json", home=False)["returncode"], 0)
+            made = self.run_arv("init", "~/nas", "--name", "family", "--default", home=False)   # ~ as in a shell
+            self.assertEqual(made["returncode"], 0, made["out"] + made["err"])
             self.assertTrue(os.path.isdir(os.path.join(where, ".arv")))
-            self.assertFalse(json.loads(self.request("/api/setup")[1])["needed"])
-            self.assertEqual(self.request("/api/discs")[0], 200)
+            found = self.run_arv("where", "--json", home=False)
+            self.assertEqual(json.loads(found["out"])["path"], os.path.join(where, ".arv"))
         finally:
             os.chdir(old[0])
             for k, v in old[1].items():
@@ -148,107 +189,79 @@ class GuiTest(unittest.TestCase):
         self.start()
         fam, out = os.path.join(self.tmp, "fam"), os.path.join(self.tmp, "out")
         write(os.path.join(fam, "a.txt"), "a", 2019)
-        arv = lambda *a: subprocess.run([ARV, "--home", self.home] + list(a), capture_output=True, text=True)
-        self.assertEqual(arv("collection", "init", fam, "--code", "FAM", "--title", "Family", "--set", "PHOTO").returncode, 0)
+        self.ok("collection", "init", fam, "--code", "FAM", "--title", "Family", "--set", "PHOTO")
         for n in (1, 2):
             if n == 2:
                 write(os.path.join(fam, "b.txt"), "b", 2019)
-            made = arv("make", fam, "-y", "--no-ecc", "--no-formats", "--output-dir", os.path.join(out, str(n)))
-            self.assertEqual(made.returncode, 0, made.stderr)
+            self.job("make", fam, "-y", "--no-ecc", "--no-formats", "--output-dir", os.path.join(out, str(n)))
             image = [f for f in os.listdir(os.path.join(out, str(n))) if f.endswith(".iso")][0]
-            burned = arv("burned", "--device", os.path.join(out, str(n), image))
-            self.assertEqual(burned.returncode, 0, burned.stdout + burned.stderr)
-        c = json.loads(self.request("/api/collections")[1])["collections"][0]
+            self.job("burned", "--device", os.path.join(out, str(n), image))
+        c = self.ok("collection", "list", "--json")["collections"][0]
         self.assertEqual((c["code"], [(e["edition"], e["safe"], e["replaced"], e["retired"]) for e in c["editions"]]),
                          ("FAM", [(1, True, True, False), (2, True, False, False)]))
-        post = lambda body: json.loads(self.request("/api/collection", body)[1])
-        preview = post({"action": "retire", "code": "FAM"})
-        self.assertEqual(preview["returncode"], 0, preview["output"])
-        self.assertIn("Nothing recorded", preview["output"])
-        self.assertTrue(json.loads(self.request("/api/collections")[1])["collections"][0]["editions"][0]["replaced"])
-        done = post({"action": "retire", "code": "FAM", "yes": True})
-        self.assertEqual(done["returncode"], 0, done["output"])
-        c = json.loads(self.request("/api/collections")[1])["collections"][0]
+        self.assertIn("Nothing recorded", self.ok("retire", "FAM"))       # the preview
+        self.assertTrue(self.ok("collection", "list", "--json")["collections"][0]["editions"][0]["replaced"])
+        self.ok("retire", "FAM", "--yes")
+        c = self.ok("collection", "list", "--json")["collections"][0]
         self.assertEqual([(e["edition"], e["retired"]) for e in c["editions"]], [(1, True), (2, False)])
-        self.assertEqual(post({"action": "keep", "code": "FAM", "edition": 2})["returncode"], 0)
-        self.assertTrue(json.loads(self.request("/api/collections")[1])["collections"][0]["editions"][1]["kept"])
-        self.assertEqual(self.request("/api/collection", {"action": "retire", "code": "fam; rm"})[0], 400)
+        self.ok("collection", "keep", "FAM", "2")
+        self.assertTrue(self.ok("collection", "list", "--json")["collections"][0]["editions"][1]["kept"])
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
-    def test_make_note_find(self):
+    def test_make_note_find_describe(self):
+        """A disc made with a draft on standard input, a note, found again, and described from a draft."""
         self.start()
         src = os.path.join(self.tmp, "Photos")
         write(os.path.join(src, "IMG_0001.JPG"), "jpeg", 2023)
-        status, body = self.request("/api/make", {"source": src, "set": "PHOTOS", "medium": "auto", "no_ecc": True,
-                                                  "output_dir": os.path.join(self.tmp, "out"), "note": ["hello"]})
-        self.assertEqual(status, 200, body)
-        result = self.wait(json.loads(body))
-        self.assertEqual(result["returncode"], 0, "\n".join(result["lines"]))
-        disc = json.loads(self.request("/api/discs")[1])["discs"][0]
+        draft = json.dumps({"tags": {"IMG_0001.JPG": ["best"]}, "authorship": "human", "agent": "owner"})
+        self.job("make", "-y", src, "--set", "PHOTOS", "--medium", "auto", "--no-ecc",
+                 "--output-dir", os.path.join(self.tmp, "out"), "--note", "hello", "--draft", "-", stdin=draft)
+        disc = self.ok("list", "--json")["discs"][0]
         self.assertEqual(disc["Note"], ["hello"])
-        job = json.loads(self.request("/api/command", {"command": "note", "disc_id": disc["Id"], "text": "second"})[1])
-        self.assertEqual(self.wait(job)["returncode"], 0)
-        owed = json.loads(self.request("/api/todo")[1])["text"]
-        self.assertIn("No copy yet", owed)          # made, not burned: Verify says so
-        found = json.loads(self.request("/api/find?q=img_0001")[1])
-        self.assertEqual(found["total"], 1)
-        self.assertEqual(json.loads(self.request("/api/discs")[1])["discs"][0]["Note"], ["hello", "second"])
+        self.job("note", disc["Id"], "second")
+        self.assertIn("No copy yet", self.ok("todo"))                  # made, not burned: Verify says so
+        self.assertEqual(self.ok("find", "--json", "--limit", "500", "img_0001")["total"], 1)
+        self.assertEqual(self.ok("list", "--json")["discs"][0]["Note"], ["hello", "second"])
+        self.assertIn("best", self.ok("tags"))                         # the draft's tags reached the disc
+        self.job("describe", disc["Id"], "--apply", "-",
+                 stdin=json.dumps({"title": "Spring photos", "authorship": "human", "agent": "owner"}))
+        self.assertEqual(self.ok("list", "--json")["discs"][0]["Title"], "Spring photos")
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
     def test_copies(self):
         """A disc's copies by letter: burned with a drive (read back), burned without, stored, then one checked."""
         self.start()
-        src, out = os.path.join(self.tmp, "Trip"), os.path.join(self.tmp, "out")
-        write(os.path.join(src, "a.txt"), "a", 2019)
-        made = self.wait(json.loads(self.request("/api/make", {"source": src, "set": "PHOTOS", "medium": "auto",
-                                                               "no_ecc": True, "output_dir": out})[1]))
-        self.assertEqual(made["returncode"], 0, "\n".join(made["lines"]))
-        disc = json.loads(self.request("/api/discs")[1])["discs"][0]["Id"]
-        image = os.path.join(out, [f for f in os.listdir(out) if f.endswith(".iso")][0])
-        for body in ({"command": "burned", "disc_id": disc, "device": image, "location": "Shelf"},
-                     {"command": "burned", "disc_id": disc, "copies": 1, "location": "Attic"},
-                     {"command": "stored", "disc_id": disc, "path": image, "location": "NAS"}):
-            done = self.wait(json.loads(self.request("/api/command", body)[1]))
-            self.assertEqual(done["returncode"], 0, "\n".join(done["lines"]))
-        check = self.wait(json.loads(self.request("/api/check", {"disc_id": disc, "source": image, "copy": "B"})[1]))
-        self.assertEqual(check["returncode"], 0, "\n".join(check["lines"]))
-        copies = json.loads(self.request("/api/copies?disc=" + disc)[1])["copies"]
+        disc, image = self.make_disc()
+        self.job("burned", disc, "--device", image, "--location", "Shelf")
+        self.job("burned", disc, "--copies", "1", "--location", "Attic")
+        self.job("stored", disc, image, "--location", "NAS")
+        self.job("check", "--copy", "B", image, disc)
+        copies = self.ok("objects", disc, "--json")["copies"]
         self.assertEqual([(c["copy"], c["form"], c["at"], c["readBack"]) for c in copies],
                          [("A", "disc", "Shelf", True), ("B", "disc", "Attic", True), ("C", "iso", "NAS", True)])
         self.assertTrue(copies[1]["checked"])        # B: read back only by the check that named it
         self.assertFalse(copies[0]["checked"])       # A: read back when burned, not checked since
-        self.assertEqual(self.request("/api/copies?disc=NOPE")[0], 404)
+        self.assertNotEqual(self.run_arv("objects", "NOPE", "--json")["returncode"], 0)
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
     def test_identify_inventory_audit(self):
         """A copy known by a scanned barcode, found by it, and checked against a shelf; then a letter two
         catalogues gave out twice, relabelled, and a field they changed apart, which Audit shows."""
         self.start()
-        src, out = os.path.join(self.tmp, "Trip"), os.path.join(self.tmp, "out")
-        write(os.path.join(src, "a.txt"), "a", 2019)
-        made = self.wait(json.loads(self.request("/api/make", {"source": src, "set": "PHOTOS", "medium": "auto",
-                                                               "no_ecc": True, "output_dir": out})[1]))
-        self.assertEqual(made["returncode"], 0, "\n".join(made["lines"]))
-        disc = json.loads(self.request("/api/discs")[1])["discs"][0]["Id"]
-        image = os.path.join(out, [f for f in os.listdir(out) if f.endswith(".iso")][0])
+        disc, image = self.make_disc()
         arv = lambda home, *a: subprocess.run([ARV, "--home", home] + list(a), capture_output=True, text=True)
-        self.assertEqual(arv(self.home, "location", "add", "SHELF", "Shelf").returncode, 0)
-        self.assertEqual(self.wait(json.loads(self.request("/api/command", {"command": "burned", "disc_id": disc, "copies": 1,
-                                                                            "location": "SHELF"})[1]))["returncode"], 0)
-        self.assertEqual(self.request("/api/command", {"command": "identify", "disc_id": disc, "copy": "A"})[0], 400)
-        job = self.wait(json.loads(self.request("/api/command", {"command": "identify", "disc_id": disc, "copy": "A",
-                                                                 "barcode": " CASE-77 "})[1]))
-        self.assertEqual(job["returncode"], 0, "\n".join(job["lines"]))
-        found = json.loads(self.request("/api/find?q=case-77")[1])["copies"]
+        self.ok("location", "add", "SHELF", "Shelf")
+        self.job("burned", disc, "--copies", "1", "--location", "SHELF")
+        self.job("identify", disc, "A", "--barcode", " CASE-77 ")
+        found = self.ok("find", "--json", "--limit", "500", "case-77")["copies"]
         self.assertEqual([(c["disc"], c["copy"], c["identifier"], c["at"]) for c in found], [(disc, "A", "barcode:CASE-77", "Shelf")])
-        self.assertIn({"code": "SHELF", "name": "Shelf", "depth": 0}, json.loads(self.request("/api/locations")[1])["locations"])
-        inv = json.loads(self.request("/api/inventory", {"place": "SHELF", "text": "CASE-77\nNOPE9\n"})[1])
-        self.assertEqual(inv["returncode"], 0, inv["output"])     # only a copy missing is exit 1
-        self.assertIn("UNKNOWN    NOPE9", inv["output"])
-        self.assertNotIn("MISSING", inv["output"])
-        self.assertEqual(self.request("/api/inventory", {"place": "--help"})[0], 400)
-        check = self.wait(json.loads(self.request("/api/check", {"disc_id": disc, "image": image, "copy": "A"})[1]))
-        self.assertEqual(check["returncode"], 0, "\n".join(check["lines"]))     # the disc's form sends a drive or an image
+        self.assertIn({"code": "SHELF", "name": "Shelf", "parent": "", "temperature": "", "description": ""},
+                      self.ok("location", "list", "--json")["locations"])
+        inv = self.run_arv("inventory", "SHELF", stdin="CASE-77\nNOPE9\n")
+        self.assertEqual(inv["returncode"], 0, inv["out"])         # only a copy missing is exit 1
+        self.assertIn("UNKNOWN    NOPE9", inv["out"])
+        self.assertNotIn("MISSING", inv["out"])
+        self.job("check", "--copy", "A", image, disc)
         # a second catalogue of the archive: each gives out letter B, and each sets the disc's access
         other = os.path.join(self.tmp, "other")
         shutil.copytree(self.home, other)
@@ -256,16 +269,16 @@ class GuiTest(unittest.TestCase):
         for home, place, access in ((self.home, "SHELF", "public"), (other, "ATTIC", "sealed")):
             self.assertEqual(arv(home, "burned", disc, "--copies", "1", "--location", place).returncode, 0)
             self.assertEqual(arv(home, "access", disc, access).returncode, 0)
-        merged = self.wait(json.loads(self.request("/api/command", {"command": "rebuild", "path": other})[1]))
+        merged = self.job("rebuild", other)
         self.assertIn("arv relabel %s B NEW --at ATTIC" % disc, "\n".join(merged["lines"]))
-        audit = json.loads(self.request("/api/audit")[1])
+        audit = self.run_arv("audit")
         self.assertEqual(audit["returncode"], 1)
-        self.assertIn("CONFLICT  %s Access" % disc, audit["text"])
-        job = self.wait(json.loads(self.request("/api/command", {"command": "relabel", "disc_id": disc, "copy": "B", "new": "C",
-                                                                 "at": "ATTIC"})[1]))
-        self.assertEqual(job["returncode"], 0, "\n".join(job["lines"]))
-        copies = json.loads(self.request("/api/copies?disc=" + disc)[1])["copies"]
+        self.assertIn("CONFLICT  %s Access" % disc, audit["out"])
+        self.job("relabel", disc, "B", "C", "--at", "ATTIC")
+        copies = self.ok("objects", disc, "--json")["copies"]
         self.assertEqual(sorted((c["copy"], c["at"]) for c in copies), [("A", "Shelf"), ("B", "Shelf"), ("C", "ATTIC")])
+        jobs = json.loads(self.request("/api/jobs")[1])["jobs"]
+        self.assertEqual(jobs[-1]["argv"], ["--home", self.home, "relabel", disc, "B", "C", "--at", "ATTIC"])
 
     @unittest.skipUnless(os.path.exists(FAKE_LLM), "make -C src/arv-assist check builds the fake model server")
     def test_llm_suggestions_through_arv_assist(self):
@@ -281,11 +294,12 @@ class GuiTest(unittest.TestCase):
             time.sleep(0.1)
         url = "http://127.0.0.1:%s/v1" % open(port).read().strip()
         self.start({"url": url})
-        status = json.loads(self.request("/api/llm/status")[1])
+        status = json.loads(self.run_arv("llm-status", program="arv-assist")["out"])
         self.assertEqual((status["available"], status["model"]), (True, "fake-model"))
         src = os.path.join(self.tmp, "Trip")
         write(os.path.join(src, "a.txt"), "x", 2019)
-        got = json.loads(self.request("/api/llm/suggest", {"source": src, "answers": [["Where?", "Kyoto"]]})[1])
+        got = json.loads(self.run_arv("suggest", program="arv-assist",
+                                      stdin=json.dumps({"source": src, "answers": [["Where?", "Kyoto"]]}))["out"])
         self.assertEqual((got["title"], got["subjects"], got["agent"]), ("Holiday photos", ["travel"], "llm:fake-model"))
         with open(os.path.join(self.tmp, "log")) as f:
             self.assertIn("Kyoto", f.read())
@@ -298,51 +312,38 @@ class GuiTest(unittest.TestCase):
         write(os.path.join(photos, "a.jpg"), "jpeg", 2025)
         listing = json.loads(self.request("/api/browse?files=1&path=" + os.path.join(self.tmp, "pc"))[1])
         self.assertEqual(listing["files"], [{"name": "wedding.mkv", "bytes": 4}])
-        post = lambda body: json.loads(self.request("/api/plan", body)[1])
-        self.assertEqual(post({"action": "new", "name": "trip", "title": "Trip", "set": "TRIP", "medium": "bd25"})["returncode"], 0)
-        self.assertEqual(json.loads(self.request("/api/plans")[1]), {"plans": [{"name": "trip", "discs": 1, "items": 0, "made": None}]})
-        self.assertEqual(post({"action": "add", "name": "trip", "sources": [video, photos], "disc": "auto"})["returncode"], 0)
-        self.assertEqual(post({"action": "move", "name": "trip", "paths": ["photos"], "from": 1, "disc": "new"})["returncode"], 0)
-        shown = json.loads(self.request("/api/plan?name=trip")[1])
+        self.ok("plan", "new", "trip", "--title", "Trip", "--set", "TRIP", "--medium", "bd25")
+        self.assertEqual(self.ok("plan", "list", "--all", "--json"), {"plans": [{"name": "trip", "discs": 1, "items": 0, "made": None}]})
+        self.ok("plan", "add", "trip", video, photos, "--disc", "auto")
+        self.ok("plan", "move", "trip", "photos", "--from", "1", "--disc", "new")
+        shown = self.ok("plan", "show", "trip", "--json")
         self.assertEqual([[i["path"] for i in d["items"]] for d in shown["discs"]], [["wedding.mkv"], ["photos"]])
         self.assertEqual(shown["discs"][1]["items"][0]["files"], 1)
-        refused = post({"action": "add", "name": "trip", "sources": [video], "disc": "1"})
+        refused = self.run_arv("plan", "add", "trip", video, "--disc", "1")
         self.assertNotEqual(refused["returncode"], 0)
-        self.assertIn("in the plan already", refused["output"])
-        job = post({"action": "make", "name": "trip", "no_ecc": True, "output_dir": os.path.join(self.tmp, "out")})
-        result = self.wait(job)
-        self.assertEqual(result["returncode"], 0, "\n".join(result["lines"]))
-        self.assertEqual(len(json.loads(self.request("/api/plan?name=trip")[1])["volumes"]), 2)
-        self.assertIsNotNone(json.loads(self.request("/api/plans")[1])["plans"][0]["made"])
-        again = post({"action": "again", "name": "trip", "new": "trip2"})
-        self.assertEqual(again["returncode"], 0, again["output"])
-        copy = json.loads(self.request("/api/plan?name=trip2")[1])
+        self.assertIn("in the plan already", refused["out"] + refused["err"])
+        self.job("plan", "make", "trip", "-y", "--output-dir", os.path.join(self.tmp, "out"), "--no-ecc")
+        self.assertEqual(len(self.ok("plan", "show", "trip", "--json")["volumes"]), 2)
+        self.assertIsNotNone(self.ok("plan", "list", "--all", "--json")["plans"][0]["made"])
+        self.ok("plan", "again", "trip", "trip2")
+        copy = self.ok("plan", "show", "trip2", "--json")
         self.assertEqual((copy["made"], copy["from"], [[i["path"] for i in d["items"]] for d in copy["discs"]]),
                          (None, "trip", [["wedding.mkv"], ["photos"]]))
         self.assertEqual([i["archived"] for d in copy["discs"] for i in d["items"]], [None, None])   # only when asked
-        checked = json.loads(self.request("/api/plan?archived=1&name=trip2")[1])
+        checked = self.ok("plan", "show", "trip2", "--json", "--archived")
         self.assertEqual([(i["archived"]["object"], i["archived"]["version"], i["archived"]["onDiscs"] == i["archived"]["files"])
                           for d in checked["discs"] for i in d["items"]], [("wedding.mkv", 1, True), ("photos", 1, True)])
         card = os.path.join(self.tmp, "card", "IMG_0001.JPG")
         write(card, "raw", 2025)
-        added = post({"action": "add", "name": "trip2", "sources": [card], "disc": "1"})
-        self.assertEqual(added["returncode"], 0, added["output"])
-        item = [i for d in json.loads(self.request("/api/plan?name=trip2")[1])["discs"] for i in d["items"]
-                if i["path"] == "IMG_0001.JPG"][0]
+        self.ok("plan", "add", "trip2", card, "--disc", "1")
+        item = [i for d in self.ok("plan", "show", "trip2", "--json")["discs"] for i in d["items"] if i["path"] == "IMG_0001.JPG"][0]
         self.assertEqual(item["source"], card)
-        self.assertEqual(len(json.loads(self.request("/api/discs")[1])["discs"]), 2)
-        kept = json.loads(self.request("/api/objects")[1])
+        self.assertEqual(len(self.ok("list", "--json")["discs"]), 2)
+        kept = self.ok("objects", "--json")
         self.assertEqual(sorted((o["name"], o["kind"], o["versions"]) for o in kept["objects"]),
                          [("photos", "folder", 1), ("wedding.mkv", "file", 1)])
         self.assertEqual({o["name"]: [s["there"] for s in o["sources"]] for o in kept["objects"]},
                          {"photos": [True], "wedding.mkv": [True]})
-        self.assertEqual(self.request("/api/plan", {"action": "new", "name": "../x"})[0], 400)
-        self.assertEqual(self.request("/api/plan?name=nope")[0], 404)
-
-    def test_bad_requests(self):
-        self.start()
-        self.assertEqual(self.request("/api/command", {"command": "rm -rf"})[0], 400)
-        self.assertEqual(self.request("/api/job?id=999")[0], 404)
 
 
 if __name__ == "__main__":

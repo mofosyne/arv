@@ -22,10 +22,24 @@ With no archive here or above and no default (a first run), it opens on **Make a
 folder (where it was started, or browsed to), an optional name, and whether to use it from
 anywhere; that runs `arv init`, and the interface opens on the new archive.
 
-It serves one page on 127.0.0.1 and opens it. Every action runs arv itself (and arv-assist for
-the local model's suggestions), so it adds no behaviour of its own; it only reads the catalogue
-to show it. The page and every request carry a per-session token, and the Host header must be
-the loopback address, so other web pages and other local users cannot drive it.
+It serves one page on 127.0.0.1 and opens it. **The page does everything through arv**: it builds
+each command (`arv list --json`, `arv burned ID --copies 1 ...`) and shows what arv printed. The
+server knows no features. It runs what the page asks, arv or arv-assist (the local model's
+suggestions), to its end or as a job whose output the page follows, and lists folders for the
+file pickers. So a new feature is a change to `gui.html` alone, and the server can be rewritten in
+any language against the same four routes:
+
+| Route | What |
+|---|---|
+| `GET /` | the page |
+| `POST /api/run` | `{"argv": [...], "stdin": "...", "program": "arv" or "arv-assist", "job": false}`: the exit status and what it printed (`out`, `err`); with `"job": true`, a job |
+| `GET /api/job?id=N&since=K`, `GET /api/jobs` | a job's output from line K, and whether it is done; every job |
+| `GET /api/browse?path=P&files=1` | a folder's folders (and files, with sizes) |
+| `GET /api/setup` | the home it was given and where it was started; the page asks `arv where --json` for the rest |
+
+The page and every request carry a per-session token, and the Host header must be the loopback
+address, so other web pages and other local users cannot drive it. Commands run without a shell,
+and the first word (after `--home PATH`) must be a command, never an option or `gui`.
 
 ```sh
 arv gui                       # the home arv finds from here

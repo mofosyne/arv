@@ -107,6 +107,8 @@ fi
 
 "$tool" --home fresh-home location add HOME "Home" >/dev/null && [ -s fresh-home/catalog/archive.rec ] \
     && ok "a catalogue command on a home that does not exist yet creates it" || no "location add on a new home"
+"$tool" --home fresh-home location list --json | grep -q '^{"locations": \[{"code": "HOME", "name": "Home", "parent": ""' \
+    || no "location list --json"
 
 "$tool" init init-missing/nested/archive >/dev/null && mkdir -p init-missing/nested/archive/source \
     && echo init > init-missing/nested/archive/source/file.txt \

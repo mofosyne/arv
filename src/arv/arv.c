@@ -101,7 +101,7 @@ static const char USAGE_RECORD[] =
           "         category; --at: a place and the places in it; --covers: an EDTF date; AGE: 5y, 18m, 90d)\n"
           "  arv info [-C CATALOG] DISC|IMAGE|DISC-ID [--files]   a disc (--files: its listing), an image\n"
           "         (which disc and copy), or a disc id (its parts, its check character, the disc it names)\n"
-          "  arv location list [-v] | add CODE [NAME] [--in PARENT] [--description TEXT] [--temperature T]\n"
+          "  arv location list [-v | --json] | add CODE [NAME] [--in PARENT] [--description TEXT] [--temperature T]\n"
           "               | move CODE [NAME] [--in PARENT] [--temperature T]\n"
           "         the places copies are kept: a tree (a box in a room in a house)\n"
           "  arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]\n"

@@ -1710,3 +1710,27 @@ Not in the interface: `arv drives` (a drive is local hardware; the command line 
 a library loop (a script's job: `docs/examples/library-check.sh`). The demo is not re-recorded: it
 already shows copies by letter, and the rest is for archives past their first few discs.
 
+## Decision (2026-10-15): the interface's server knows no features; later, in C
+
+`arv gui` stays a web page in the browser, not a native window. The browser is on every machine
+and brings what a toolkit would have to: text input in every script, scaling, dark mode, screen
+readers. It works on a NAS with no display, through `ssh -L`. And HTML is already the format of
+every disc's `index.html`. Native toolkits were weighed: raylib, Nuklear and Dear ImGui are made for
+games and are weakest at forms, long names and text input; GTK, Qt and FLTK are heavy and packaged
+per platform; libui-ng is still alpha; a webview window is still HTML, with WebKitGTK on Linux.
+Each would be a library linked into arv, which builds with none.
+
+Step 1, built: the server runs commands and nothing else. The page builds every command and
+reads arv's output, so a feature is a change to `gui.html` alone. The server is four routes:
+run arv or arv-assist (to its end, or as a job), follow a job, list a folder, and the page.
+Drafts go to `arv make --draft -` and `arv describe --apply -` on standard input, so the server
+writes no files. `arv location list --json` was added rather than parse its text. The first run
+asks `arv where --json`, and after `arv init` opens on the new archive without a reload.
+
+Step 2, issue #48: the same API in C, a separate program as now, so `arv` does not grow. HTTP/1.0
+on 127.0.0.1 only: TLS protects traffic between machines, and this never leaves one. llama.cpp's
+server is large for other reasons (a general HTTP library with TLS, and a SvelteKit page compiled
+in); ours needs neither. The page is read at run time from `share/arv`, not embedded, so no
+generated file is committed and `data.c` stays as it is. The tests stay in Python: they speak
+HTTP, so they test either server.
+

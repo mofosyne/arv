@@ -1,11 +1,13 @@
 """arv-gui (`arv gui`): a local web interface over the arv command (Python, standard library only).
 
-Serves a single page on 127.0.0.1 and opens it in the default browser. Every
-action runs the same arv commands as the terminal (and arv-assist for the local
-LLM's suggestions). arv owns home discovery and archive state; the GUI only renders
-structured command output. The page URL and every API request must carry a
-per-session token, and the Host header must be the loopback address, so other
-web pages and other local users cannot drive it.
+Serves a single page on 127.0.0.1 and opens it in the default browser. The page does everything
+through arv: it builds each command, and this server only runs it (arv, or arv-assist for the local
+model's suggestions) and passes back what it printed. So the server knows no features: a new one is
+a change to gui.html alone. Besides running commands it lists folders, for the page's file pickers.
+
+The page URL and every API request must carry a per-session token, and the Host header must be the
+loopback address, so other web pages and other local users cannot drive it. Commands are run
+without a shell, and the first word must be a command (not an option), so nothing can be injected.
 """
 
 import json
@@ -19,16 +21,9 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-DRAFT_FIELDS = ("title", "description", "subjects", "tags")
-PLAN_NAME = re.compile(r"^[A-Za-z0-9_-][A-Za-z0-9._-]{0,63}$")   # as arv plan takes them
-
-
-def is_model(agent):
-    return any(prefix in (agent or "") for prefix in ("llm:", "embeddings:", "vision:"))
-
-
 HERE = os.path.dirname(os.path.abspath(__file__))
 MAX_OUTPUT_LINES = 5000
+COMMAND = re.compile(r"^[a-z][a-z-]*$")
 
 
 def program(name, built):
@@ -41,17 +36,44 @@ def program(name, built):
     return name
 
 
-ARV = program("arv", ("arv", "build", "arv"))
-ASSIST = program("arv-assist", ("arv-assist", "build", "arv-assist"))
+PROGRAMS = {"arv": program("arv", ("arv", "build", "arv")),
+            "arv-assist": program("arv-assist", ("arv-assist", "build", "arv-assist"))}
+
+
+def command_line(name, argv, llm_options):
+    """The program and its arguments, checked: after the home (--home PATH or -C PATH), a command
+    word; never `arv gui` itself. A leading ~ is the user's home folder, as in a shell."""
+    if name not in PROGRAMS:
+        raise ValueError("unknown program %r" % name)
+    if not isinstance(argv, list) or not all(isinstance(a, str) for a in argv):
+        raise ValueError("argv: a list of strings")
+    i = 2 if argv[:1] in (["--home"], ["-C"]) else 0
+    if len(argv) <= i or not COMMAND.match(argv[i]) or (name == "arv" and argv[i] == "gui"):
+        raise ValueError("not a command: %r" % (argv[i] if len(argv) > i else ""))
+    argv = [os.path.expanduser(a) if a == "~" or a.startswith("~/") else a for a in argv]
+    if name == "arv-assist":                    # the model server arv gui was started with
+        o = llm_options or {}
+        for key, flag in (("url", "--llm-url"), ("model", "--llm-model"), ("vision_url", "--vision-url"),
+                          ("vision_model", "--vision-model")):
+            if o.get(key):
+                argv += [flag, o[key]]
+        if o.get("allow_remote"):
+            argv.append("--llm-allow-remote")
+    return [PROGRAMS[name]] + argv
 
 
 class Job:
-    def __init__(self, job_id, argv):
+    """A command that takes a while (make, check, burned with a drive ...): its output as it comes."""
+
+    def __init__(self, job_id, argv, stdin=None):
         self.id, self.argv = job_id, argv
         self.lines, self.returncode, self.done = [], None, False
         self.proc = subprocess.Popen(
-            [ARV] + argv, stdin=subprocess.DEVNULL,
+            argv, stdin=subprocess.PIPE if stdin is not None else subprocess.DEVNULL,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+        if stdin is not None:
+            self.proc.stdin.write(stdin)
+            self.proc.stdin.close()
         threading.Thread(target=self._pump, daemon=True).start()
 
     def _pump(self):
@@ -63,70 +85,50 @@ class Job:
         self.done = True
 
     def as_dict(self, since=0):
-        return {"id": self.id, "argv": self.argv, "done": self.done, "returncode": self.returncode,
+        return {"id": self.id, "argv": self.argv[1:], "done": self.done, "returncode": self.returncode,
                 "lines": self.lines[since:], "next": len(self.lines)}
 
 
 class App:
-    def __init__(self, home, llm_options=None):
-        self.home = self.find_home(home)
+    def __init__(self, home=None, llm_options=None):
+        self.home = os.path.abspath(home) if home else None     # as arv gui was given it; the page finds the rest
         self.llm_options = llm_options or {}
         self.token = secrets.token_urlsafe(24)
         self.jobs = {}
         self.lock = threading.Lock()
 
-    def find_home(self, home=None):
-        argv = [ARV]
-        if home:
-            argv += ["--home", home]
-        argv += ["where", "--json"]
-        try:
-            proc = subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=30)
-            if proc.returncode == 0:
-                return json.loads(proc.stdout)
-        except (OSError, ValueError, subprocess.TimeoutExpired):
-            pass
-        return None
+    def setup(self, _params):
+        """Where arv gui was started, and the home it was given: the page asks arv where --json."""
+        return {"home": self.home, "cwd": os.getcwd()}
 
-    def start_job(self, argv):
-        with self.lock:
-            job_id = str(len(self.jobs) + 1)
-            self.jobs[job_id] = Job(job_id, ["--home", self.home["path"]] + argv)
-        return self.jobs[job_id]
+    def run(self, body):
+        """{program, argv, stdin, job}: arv (or arv-assist) run to its end, its exit status and what it
+        printed, or, with job, started, to be followed through /api/job."""
+        argv = command_line(body.get("program") or "arv", body.get("argv"), self.llm_options)
+        stdin = body.get("stdin")
+        if stdin is not None and not isinstance(stdin, str):
+            raise ValueError("stdin: a string")
+        if body.get("job"):
+            with self.lock:
+                job_id = str(len(self.jobs) + 1)
+                self.jobs[job_id] = Job(job_id, argv, stdin)
+            return self.jobs[job_id].as_dict()
+        proc = subprocess.run(argv, capture_output=True, text=True,
+                              **({"input": stdin} if stdin is not None else {"stdin": subprocess.DEVNULL}))
+        return {"returncode": proc.returncode, "out": proc.stdout, "err": proc.stderr}
 
-    # ------------------------------------------------------------ API
+    def job(self, params):
+        job = self.jobs.get(params.get("id", ""))
+        if not job:
+            raise LookupError("no such job")
+        return job.as_dict(int(params.get("since", 0)))
 
-    def discs(self, _params):
-        result = self.arv_json(["list", "--json"])
-        result["home"] = self.home["path"]
-        return result
-
-    def find(self, params):
-        pattern = params.get("q", "").strip()
-        if not pattern:
-            return {"discs": [], "files": [], "total": 0}
-        return self.arv_json(["find", "--json", "--limit", "500", pattern])
-
-    # ------------------------------------------------------------ the first run: no archive yet
-
-    def setup(self, params):
-        return {"needed": self.home is None, "cwd": os.getcwd(), "home": self.home["path"] if self.home else None}
-
-    def post_init(self, body):
-        """arv init FOLDER [--name NAME [--default]]: an archive where the person chooses, then this one."""
-        folder = os.path.abspath(os.path.expanduser(body.get("folder") or ""))
-        name = (body.get("name") or "").strip()
-
-        if body.get("default") and not name:
-            raise ValueError("a name is needed to use it from anywhere")
-        argv = [ARV, "init", folder] + (["--name", name] if name else []) + (["--default"] if body.get("default") else [])
-        proc = subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=60)
-        if proc.returncode == 0:
-            self.home = self.find_home(os.path.join(folder, ".arv"))
-        return {"returncode": proc.returncode, "output": (proc.stdout + proc.stderr).strip(),
-                "home": self.home["path"] if self.home else None}
+    def jobs_list(self, _params):
+        return {"jobs": [{"id": j.id, "argv": j.argv[1:], "done": j.done, "returncode": j.returncode}
+                         for j in self.jobs.values()]}
 
     def browse(self, params):
+        """A folder's folders (and with files=1, its files and their sizes), for the file pickers."""
         path = os.path.abspath(os.path.expanduser(params.get("path") or "~"))
         if not os.path.isdir(path):
             path = os.path.dirname(path)
@@ -136,7 +138,7 @@ class App:
             return {"path": path, "parent": os.path.dirname(path), "dirs": [], "files": [], "error": str(err)}
         names = [n for n in all_names if os.path.isdir(os.path.join(path, n))]
         out = {"path": path, "parent": os.path.dirname(path), "dirs": names}
-        if params.get("files"):             # the mastering window: files too, with their sizes
+        if params.get("files"):
             files = []
             for n in all_names:
                 full = os.path.join(path, n)
@@ -145,311 +147,10 @@ class App:
             out["files"] = files
         return out
 
-    # ------------------------------------------------------------ disc plans (the mastering window)
-
-    def arv_now(self, argv, given=None):
-        """arv run to its end (quick commands): its exit status and what it printed. given: its standard input."""
-        proc = subprocess.run([ARV, "--home", self.home["path"]] + argv, capture_output=True, text=True,
-                              **({"input": given} if given is not None else {"stdin": subprocess.DEVNULL}))
-        return proc.returncode, (proc.stdout + proc.stderr).strip()
-
-    def arv_json(self, argv):
-        code, text = self.arv_now(argv)
-        if code:
-            raise LookupError(text)
-        try:
-            return json.loads(text)
-        except ValueError as err:
-            raise LookupError("arv %s did not return JSON: %s" % (argv[0], err))
-
-    def todo(self, _params):
-        """arv todo: what is owed (the Verify tab, and the line above the tabs)."""
-        code, text = self.arv_now(["todo"])
-        if code:
-            raise LookupError(text)
-        return {"text": text}
-
-    def objects(self, _params):
-        """arv objects --json: what is kept, and where every copy of it is (the Objects tab)."""
-        code, text = self.arv_now(["objects", "--json"])
-        if code:
-            raise LookupError(text)
-        return json.loads(text)
-
-    def copies(self, params):
-        """arv objects DISC-ID --json: a disc's copies, each with its letter, place and last check."""
-        code, text = self.arv_now(["objects", params.get("disc", ""), "--json"])
-        if code:
-            raise LookupError(text)
-        return json.loads(text)
-
-    def audit(self, params):
-        """arv audit [DISC...]: every event as written, and with discs, the home against them. Findings
-        (CHANGED, CONFLICT, TWICE ...) exit 1: they are the answer, not an error."""
-        discs = [os.path.abspath(os.path.expanduser(d)) for d in params.get("discs", "").split("\n") if d.strip()]
-        code, text = self.arv_now(["audit"] + discs)
-        return {"returncode": code, "text": text}
-
-    def locations(self, _params):
-        """The archive's places (arv location list): code and name, for choosing one."""
-        code, text = self.arv_now(["location", "list"])
-        if code:
-            raise LookupError(text)
-        places = []
-        for line in text.split("\n"):
-            m = re.match(r"^(\s*)(\S+)\s{2,}(.*?)\s{2,}", line + "  ")
-            if m and re.match(r"^[A-Z0-9][A-Z0-9_-]*$", m.group(2)):
-                places.append({"code": m.group(2), "name": m.group(3), "depth": len(m.group(1)) // 2})
-        return {"locations": places}
-
-    def post_inventory(self, body):
-        """arv inventory PLACE, given what a library or a scanner read (mtx status, or one barcode a line)."""
-        place = str(body["place"]).strip()
-        if not place or place.startswith("-"):
-            raise ValueError("no place")
-        code, text = self.arv_now(["inventory"] + (["-v"] if body.get("verbose") else []) + [place], str(body.get("text") or ""))
-        return {"returncode": code, "output": text}
-
-    def collections(self, _params):
-        """Each collection and its editions (the Collections tab): the discs of each, their copies,
-        and whether the edition is safe (every disc read back), kept, replaced, retired."""
-        return self.arv_json(["collection", "list", "--json"])
-
-    def post_collection(self, body):
-        """arv collection keep CODE N, or arv retire CODE (a preview; --yes, and --accept-loss only
-        when asked): answered at once, with what arv printed."""
-        code = str(body["code"])
-        if not re.match(r"^[A-Z0-9][A-Z0-9_-]*$", code):
-            raise ValueError("not a collection code: %r" % code)
-        if body["action"] == "keep":
-            argv = ["collection", "keep", code, str(int(body["edition"]))]
-        elif body["action"] == "retire":
-            argv = ["retire", code] + (["--yes"] if body.get("yes") else []) + (["--accept-loss"] if body.get("accept_loss") else [])
-        else:
-            raise ValueError("unknown action %r" % body["action"])
-        code_, text = self.arv_now(argv)
-        return {"returncode": code_, "output": text}
-
-    def plans(self, _params):
-        return self.arv_json(["plan", "list", "--all", "--json"])
-
-    def plan(self, params):
-        name = params.get("name", "")
-        if not PLAN_NAME.match(name):
-            raise LookupError("no such plan")
-        argv = ["plan", "show", name, "--json"]
-        if params.get("archived") == "1":     # hashes every item (through the hash cache): asked for, not automatic
-            argv.append("--archived")
-        code, text = self.arv_now(argv)
-        if code:
-            raise LookupError(text)
-        return json.loads(text)
-
-    def post_plan(self, body):
-        """arv plan new / add / move / drop / disc / delete (answered at once), or make (a job)."""
-        action, name = body["action"], body["name"]
-        if not PLAN_NAME.match(name):
-            raise ValueError("not a plan name: %r" % name)
-        argv = ["plan", action, name]
-        if action == "new":
-            for key in ("title", "set", "medium", "description"):
-                if str(body.get(key) or "").strip():
-                    argv += ["--" + key, str(body[key]).strip()]
-        elif action == "add":
-            sources = [os.path.abspath(os.path.expanduser(s)) for s in body["sources"]]
-            if not sources:
-                raise ValueError("nothing to add")
-            argv += sources + ["--disc", str(body.get("disc") or "auto")]
-            if body.get("as"):
-                argv += ["--as", body["as"]]
-
-        elif action in ("move", "drop"):
-            paths = [p for p in body["paths"] if p and not p.startswith("-")]
-            if not paths:
-                raise ValueError("no paths")
-            argv += paths
-            if body.get("from"):
-                argv += ["--from", str(int(body["from"]))]
-            if action == "move":
-                argv += ["--disc", str(body["disc"]) if str(body["disc"]) == "new" else str(int(body["disc"]))]
-        elif action == "disc":
-            argv += ["add"] if body.get("op") == "add" else ["drop", str(int(body["disc"]))]
-
-        elif action == "again":
-            if not PLAN_NAME.match(body["new"]):
-                raise ValueError("not a plan name: %r" % body["new"])
-            argv += [body["new"]]
-        elif action == "make":
-            argv += ["-y"]
-            for key in ("output_dir", "min_redundancy", "snapshot"):
-                value = str(body.get(key) or "").strip()
-                if value:
-                    argv += ["--" + key.replace("_", "-"), value]
-            for flag in ("no_ecc", "no_defect_management"):
-                if body.get(flag):
-                    argv.append("--" + flag.replace("_", "-"))
-            return self.start_job(argv).as_dict()
-        elif action != "delete":
-            raise LookupError("unknown plan action %r" % action)
-        code, text = self.arv_now(argv)
-        return {"returncode": code, "output": text}
-
-    def job(self, params):
-        job = self.jobs.get(params.get("id", ""))
-        if not job:
-            raise LookupError("no such job")
-        return job.as_dict(int(params.get("since", 0)))
-
-    def jobs_list(self, _params):
-        return {"jobs": [{"id": j.id, "argv": j.argv[2:], "done": j.done, "returncode": j.returncode}
-                         for j in self.jobs.values()]}
-
-    # ------------------------------------------------------------ local LLM (optional)
-
-    def assist(self, argv, request=None):
-        """arv-assist's JSON answer to one of the GUI's calls (llm-status, suggest)."""
-        o = self.llm_options
-        opts = []
-        for key, flag in (("url", "--llm-url"), ("model", "--llm-model"), ("vision_url", "--vision-url"),
-                          ("vision_model", "--vision-model")):
-            if o.get(key):
-                opts += [flag, o[key]]
-        if o.get("allow_remote"):
-            opts.append("--llm-allow-remote")
-        try:
-            proc = subprocess.run([ASSIST, "--home", self.home["path"]] + argv + opts, capture_output=True, text=True,
-                                  input=json.dumps(request) if request is not None else "")
-            return json.loads(proc.stdout)
-        except (OSError, ValueError) as err:
-            return {"error": "arv-assist did not answer (%s)" % err}
-
-    def llm_status(self, _params):
-        return self.assist(["llm-status"])
-
-    def post_llm_suggest(self, body):
-        """One suggestion round for a folder (source) or a disc (disc_id); may take a minute."""
-        if not body.get("disc_id") and not os.path.isdir(os.path.abspath(os.path.expanduser(body["source"]))):
-            raise ValueError("not a folder: %s" % body["source"])
-        request = {k: body.get(k) for k in ("disc_id", "answers", "previous", "seen", "vision") if body.get(k)}
-        if not body.get("disc_id"):
-            request["source"] = os.path.abspath(os.path.expanduser(body["source"]))
-        result = self.assist(["suggest"], request)
-        if "error" not in result:
-            self.last_suggestion = {k: result.get(k) for k in DRAFT_FIELDS}
-        return result
-
-    def draft_authorship(self, draft):
-        """accepted when the person sent back the model's last suggestion unchanged, else edited."""
-        if not is_model(draft.get("agent") or "llm"):
-            return "human"
-        last = getattr(self, "last_suggestion", None)
-        sent = {k: draft.get(k) for k in DRAFT_FIELDS}
-        norm = lambda d: {k: v or None for k, v in d.items()}
-        return "accepted" if last is not None and norm(last) == norm(sent) else "edited"
-
-    def write_draft(self, draft):
-        folder = self.home["drafts"]
-        os.makedirs(folder, exist_ok=True)
-        path = os.path.join(folder, "draft-%s.json" % secrets.token_hex(4))
-        data = {"title": draft.get("title"), "description": draft.get("description"),
-                "subjects": draft.get("subjects") or [], "notes": draft.get("notes") or [],
-                "tags": draft.get("tags") or {},
-                "captions": draft.get("captions") or {},
-                "authorship": self.draft_authorship(draft), "agent": draft.get("agent") or "llm"}
-        with open(path, "w", encoding="utf-8") as f:    # a draft, as arv describe --save writes them
-            json.dump(data, f, ensure_ascii=False, indent=2)
-            f.write("\n")
-        return path
-
-    def post_make(self, body):
-        argv = ["make", "-y", body["source"]]
-        if body.get("draft"):
-            argv += ["--draft", self.write_draft(body["draft"])]
-        for key in ("set", "title", "description", "creator", "rights", "medium",
-                    "min_redundancy", "snapshot", "output_dir"):
-            value = str(body.get(key) or "").strip()
-            if value:
-                argv += ["--" + key.replace("_", "-"), value]
-        for key in ("subject", "note"):
-            for value in body.get(key) or []:
-                if value.strip():
-                    argv += ["--" + key, value.strip()]
-        for flag in ("split", "no_defect_management", "no_ecc"):
-            if body.get(flag):
-                argv.append("--" + flag.replace("_", "-"))
-        return self.start_job(argv).as_dict()
-
-    def post_check(self, body):
-        source = (body.get("source") or body.get("device") or body.get("image") or "").strip()
-        if not source:
-            raise ValueError("a drive, an image file or a disc's files to check")
-        argv = ["check"]
-        if body.get("repair"):
-            argv.append("--repair")
-        if body.get("copy"):
-            argv += ["--copy", body["copy"]]
-        if (body.get("note") or "").strip():
-            argv += ["--note", body["note"].strip()]
-        argv.append(source)                         # a drive, an image file, or a disc's files
-        if body.get("disc_id"):
-            argv.append(body["disc_id"])
-        return self.start_job(argv).as_dict()
-
-    def post_simple(self, body):
-        """note / locate / burned / stored / rebuild / restore, run as jobs so errors show like the CLI's."""
-        command = body["command"]
-        if command == "note":
-            argv = ["note", body["disc_id"], body["text"]]
-        elif command == "locate":
-            argv = ["locate", body["disc_id"], body["copy"], body["location"].strip()]
-        elif command == "burned":
-            argv = ["burned", body["disc_id"]]      # with a drive: one copy, read back first
-            argv += ["--device", body["device"]] if body.get("device") else ["--copies", str(int(body.get("copies") or 1))]
-            for key in ("copy", "location", "media_type", "identifier"):
-                if (body.get(key) or "").strip():
-                    argv += ["--" + key.replace("_", "-"), body[key].strip()]
-        elif command == "identify":                 # what a copy is known by (a scanned barcode ...), or is on
-            argv = ["identify", body["disc_id"], body["copy"]]
-            if (body.get("barcode") or "").strip():
-                argv += ["--barcode", body["barcode"].strip()]
-            argv += [i.strip() for i in body.get("identifiers") or [] if i.strip() and not i.strip().startswith("-")]
-            if (body.get("carrier") or "").strip():
-                argv += ["--carrier", body["carrier"].strip()]
-            if len(argv) == 3:
-                raise ValueError("nothing to record: a barcode, an identifier or a carrier")
-        elif command == "relabel":                  # a copy's new letter; --at or --identifier says which copy
-            argv = ["relabel", body["disc_id"], body["copy"], body["new"].strip()]
-            if body.get("at"):
-                argv += ["--at", body["at"]]
-            elif body.get("identifier"):
-                argv += ["--identifier", body["identifier"]]
-        elif command == "stored":
-            argv = ["stored", body["disc_id"], body["path"]]
-            if (body.get("location") or "").strip():
-                argv += ["--location", body["location"].strip()]
-        elif command == "rebuild":
-            argv = ["rebuild", body["path"]]
-        elif command == "restore":
-            argv = ["restore", body["path"], body["dest"]]
-        elif command == "apply_draft":
-            argv = ["describe", body["disc_id"], "--apply", self.write_draft(body["draft"])]
-        else:
-            raise LookupError("unknown command %r" % command)
-        return self.start_job(argv).as_dict()
-
 
 def make_handler(app, port_holder):
-    get_routes = {"/api/discs": app.discs, "/api/find": app.find, "/api/browse": app.browse,
-                  "/api/job": app.job, "/api/jobs": app.jobs_list, "/api/llm/status": app.llm_status,
-                  "/api/plans": app.plans, "/api/plan": app.plan, "/api/objects": app.objects, "/api/todo": app.todo,
-                  "/api/copies": app.copies,
-                  "/api/collections": app.collections, "/api/setup": app.setup,
-                  "/api/audit": app.audit, "/api/locations": app.locations}
-    post_routes = {"/api/make": app.post_make, "/api/check": app.post_check, "/api/command": app.post_simple,
-                   "/api/plan": app.post_plan, "/api/collection": app.post_collection,
-                   "/api/llm/suggest": app.post_llm_suggest, "/api/init": app.post_init,
-                   "/api/inventory": app.post_inventory}
-    no_archive_ok = ("/api/setup", "/api/init", "/api/browse")     # before the first archive is made
+    get_routes = {"/api/setup": app.setup, "/api/job": app.job, "/api/jobs": app.jobs_list, "/api/browse": app.browse}
+    post_routes = {"/api/run": app.run}
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -487,28 +188,24 @@ def make_handler(app, port_holder):
             handler = get_routes.get(url.path)
             if not handler:
                 return self._send(404, {"error": "not found"})
-            if app.home is None and url.path not in no_archive_ok:
-                return self._send(409, {"error": "no archive yet"})
-            params = {k: v[0] for k, v in parse_qs(url.query).items()}
             try:
-                self._send(200, handler(params))
+                self._send(200, handler({k: v[0] for k, v in parse_qs(url.query).items()}))
             except LookupError as err:
                 self._send(404, {"error": str(err)})
 
         def do_POST(self):
             if not self._allowed():
                 return self._send(403, {"error": "forbidden"})
-            path = urlparse(self.path).path
-            handler = post_routes.get(path)
+            handler = post_routes.get(urlparse(self.path).path)
             if not handler:
                 return self._send(404, {"error": "not found"})
-            if app.home is None and path not in no_archive_ok:
-                return self._send(409, {"error": "no archive yet"})
             try:
                 length = int(self.headers.get("Content-Length", 0))
                 body = json.loads(self.rfile.read(length) or b"{}")
+                if not isinstance(body, dict):
+                    raise ValueError("a JSON object")
                 self._send(200, handler(body))
-            except (KeyError, ValueError, LookupError) as err:
+            except (KeyError, ValueError, OSError) as err:
                 self._send(400, {"error": "bad request: %s" % err})
 
     return Handler
