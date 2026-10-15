@@ -1846,3 +1846,25 @@ before. With that, a person can set up an archive, make and record discs, keep p
 collections, and check and restore without a terminal; installing is still `make install` or a
 package.
 
+## Note (2026-10-15): room left for files once RS03 is added
+
+How much of a disc is left for files, at each disc size and error correction level. GiB of 2^30
+bytes; "image" is everything on the disc before RS03 (files, `tools/`, the catalogue, the bag's
+tag files), "files" what `arv plan show` offers after it sets aside about 128 MiB for `tools/`,
+0.5% and up to 2 MiB more (the catalogue snapshot, which grows with the archive, comes off too).
+
+| Medium (formatted, with defect management) | 10% | 20% (default) | 30% | 50% |
+|---|---|---|---|---|
+| BD-R 25 GB (22.6 GiB) | 20.3 / 20.1 | 18.7 / 18.4 | 17.2 / 17.0 | 14.9 / 14.7 |
+| BD-R DL 50 GB (45.1 GiB) | 40.7 / 40.4 | 37.3 / 37.0 | 34.5 / 34.2 | 29.9 / 29.6 |
+| BD-R XL 100 GB (90.2 GiB) | 81.4 / 80.8 | 74.7 / 74.2 | 69.0 / 68.5 | 59.8 / 59.4 |
+| BD-R XL 128 GB (115.2 GiB) | 103.9 / 103.3 | 95.3 / 94.7 | 88.1 / 87.5 | 76.4 / 75.8 |
+
+(image / files, GiB.) How it is worked out (`data_budget` in make.c, `room` in plan.c): RS03 cuts
+the medium into 255 layers, and each codeword takes one sector from every layer; with redundancy r
+at least, at most floor(255 / (1 + r)) - 1 layers hold data (never more than 246), so 20% gives 211
+data layers and 44 of error correction: 20.9% in fact, the next whole layer up. RS03 then fills
+the rest of the disc, so a disc that is not full gets more than asked for: the minimum is what is
+promised. Burning without defect management (`--no-defect-management`) gives back the spare area,
+about 3% (19.3 GiB of image on a BD-R 25 at 20%), for discs that are read back and checked anyway.
+
