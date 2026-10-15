@@ -99,7 +99,7 @@ Each layer does its own job:
 | `src/rs03/` | dvdisaster's RS03 error correction: add, test, repair (library, built into arv, and a program): [docs/spec/rs03-format.md](docs/spec/rs03-format.md) |
 | `src/bagit/` | BagIt (RFC 8493) checking and the digests (library, built into arv, and a `bagit` program for any bag) |
 | `src/arv-assist/` | **arv-assist**, optional, in C: the AI helpers (`arv describe`, `arv tag`) for OpenAI-compatible local services |
-| `src/arv-gui/` | **arv-gui**, optional, in Python (standard library only): `arv gui`, the interface in your web browser; it runs arv for every action |
+| `src/arv-gui/` | **arv-gui**, optional, in C: `arv gui`, the interface in your web browser; a small local server that runs arv for every action |
 | `arv` | runs `src/arv/build/arv` in a checkout (and `tools/arv/arv` on a disc), building it with `make` first if needed |
 | `docs/` | For users: concepts, workflow, burning, shelving, architecture, philosophy, and the website |
 | `docs/spec/` | For implementers, and on every disc: the disc format, the UDF profile, the RS03 error correction |
@@ -137,8 +137,8 @@ and how BagIt and recfiles split the work.
 
 `arv` (Archive, Record, Verify; also Norwegian for "inheritance") is a C program: C99 and POSIX,
 no libraries, built from any disc's `tools/` with one `cc` line. Two optional programs sit beside
-it: arv-assist (C) has the local AI helpers, and arv-gui (Python, standard library only) the
-interface in your web browser; arv runs them for `describe`, `tag`, `models` and `gui`. arv adds dvdisaster's RS03
+it: arv-assist (C) has the local AI helpers, and arv-gui (C) the interface in your web
+browser; arv runs them for `describe`, `tag`, `models` and `gui`. arv adds dvdisaster's RS03
 error correction itself ([src/rs03](src/rs03/): byte for byte what dvdisaster writes), and
 tests and repairs it, so making, checking and repairing discs needs nothing else. Reading a
 damaged disc into an image is for GNU ddrescue or
@@ -148,7 +148,7 @@ damaged disc into an image is for GNU ddrescue or
 ### Install (Linux)
 
 ```sh
-sudo apt install build-essential p7zip-full   # Debian/Ubuntu (python3 too, for arv gui)
+sudo apt install build-essential p7zip-full   # Debian/Ubuntu (python3 too, for make check)
 # for reading damaged discs: gddrescue, or dvdisaster Light (https://github.com/teaching-droid/dvdisaster-light)
 make install PREFIX=~/.local     # or: sudo make install   (/usr/local)
 arv                              # where you are, and the commands to start with
@@ -197,7 +197,7 @@ which it finds on `PATH`:
 | Program | Needed for | Where it comes from |
 |---|---|---|
 | `git`, `tar` | copying arv's last commit into each disc's `tools/` (in a checkout; an installed arv copies `PREFIX/share/arv`) | your distribution |
-| `python3` | only `arv gui` (arv-gui) | your distribution |
+| `python3` | only `make check` (the tests) | your distribution |
 | `dvdisaster` or `ddrescue` | only reading a damaged disc into an image (see its `README.txt`); arv adds, tests and repairs RS03 itself, and checks a burned disc against its image hash | **not bundled:** build [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the [speed47 fork](https://github.com/speed47/dvdisaster)); any version can repair arv's discs |
 | `sf` (Siegfried), `ffmpeg`, a local LLM | optional extras (format ids, video frames, descriptions) | install if you want them |
 
@@ -377,7 +377,7 @@ in its snapshot.
   repository's history are not included.
 - Tests: `make check`: bagit and RS03 (each with its referee when installed), arv against the
   reference outputs, a real disc and Siegfried when installed (`make -C src/arv check`),
-  arv-assist against a fake model server, then arv-gui's tests (python3).
+  arv-assist against a fake model server, then arv-gui's tests (python3, over HTTP).
 
 ## Optional: folder-tag suggestions (`arv tag`)
 

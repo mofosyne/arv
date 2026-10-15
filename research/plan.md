@@ -1761,3 +1761,22 @@ Still to do for 1.0, under #31: write down each output's fields as the interface
 the next such case); perhaps `arv help --json`, the commands and their options, for a program to
 discover them (the C server of #48 could use it for its list of commands).
 
+## Done (2026-10-15, issue #48): the interface's server in C
+
+Step 2 of the 2026-10-15 decision: `src/arv-gui/arv-gui.c`, about 750 lines, against the API
+step 1 settled, so the page did not change and the tests (Python, over HTTP) passed against it
+as they were. How it is built, and why:
+
+- **A process for each connection** (fork), not threads: no shared state to lock, and a slow
+  command holds up nothing else. That needs the jobs out of memory: each is a folder under the
+  server's own temporary folder (its command, input, output, and exit status once done, written
+  by a process that outlives the connection). Removed when it stops; never anything of the
+  archive's.
+- **HTTP/1.0, read and answered, then closed.** No keep-alive, chunks or TLS: one machine.
+- **arv's own modules, linked** as arv-assist links them, for the JSON reader and strings: no
+  second JSON parser. Output is cleaned to UTF-8 before it is quoted, since JSON must be.
+- **The page is a file, read at each load**: from `share/arv` when installed, beside the program
+  in a checkout. Nothing generated is committed; `data.c` stays arv's.
+- Python is now only the tests' language. The Debian package recommends `xdg-utils` (to open the
+  browser) instead of `python3`.
+

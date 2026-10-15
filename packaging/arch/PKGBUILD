@@ -10,7 +10,7 @@ license=('GPL-3.0-only')
 depends=('glibc')
 makedepends=('git')
 checkdepends=('python' '7zip')
-optdepends=('python: arv gui, the interface in your web browser'
+optdepends=('xdg-utils: arv gui opens the interface in your web browser'
             '7zip: reading disc images in checks'
             'xorriso: burning images'
             'ddrescue: reading damaged discs into images')

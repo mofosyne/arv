@@ -11,7 +11,7 @@
 # Installs:
 #   $(PREFIX)/bin/arv          arv: every command (C99 and POSIX, no libraries)
 #   $(PREFIX)/bin/arv-assist   arv describe, tag, models: the optional local-AI helpers (C)
-#   $(PREFIX)/bin/arv-gui      arv gui: the optional web interface (needs python3)
+#   $(PREFIX)/bin/arv-gui      arv gui: the optional interface in your web browser (C)
 #   $(PREFIX)/bin/udfwrite     arv's UDF 2.50 writer as a program of its own (arv has it built in)
 #   $(PREFIX)/bin/bagit        a BagIt (RFC 8493) validator for any bag (arv check uses the same code)
 #   $(PREFIX)/share/arv/       the source, exactly the tree every disc carries in tools/: what
@@ -20,8 +20,8 @@
 #   $(BASHCOMPDIR)/arv, $(ZSHCOMPDIR)/_arv   tab completion, which asks arv (src/arv/completion/)
 #   $(MANDIR)/man1/arv.1       the manual, from arv help --man (the same text as arv help --all)
 #
-# Needs at run time: nothing beyond the C library to make, check and repair discs; python3 only for
-# arv gui; a local model server or llama.cpp only for the AI helpers. upstream/ and dev-tools/ are
+# Needs at run time: nothing beyond the C library to make, check and repair discs (and a web browser
+# for arv gui); a local model server or llama.cpp only for the AI helpers. upstream/ and dev-tools/ are
 # not built or installed.
 
 PREFIX  ?= /usr/local
@@ -39,6 +39,7 @@ all:
 	$(MAKE) -C src/udfwrite
 	$(MAKE) -C src/arv
 	$(MAKE) -C src/arv-assist
+	$(MAKE) -C src/arv-gui
 
 check: all
 	$(MAKE) -C src/bagit check
@@ -66,8 +67,7 @@ install: all
 	if [ -f src/arv/build/arv.com ]; then install -m 755 src/arv/build/arv.com "$(DESTDIR)$(SHARE)/arv.com"; fi
 	install -m 755 src/arv/build/arv "$(DESTDIR)$(BIN)/arv"
 	install -m 755 src/arv-assist/build/arv-assist "$(DESTDIR)$(BIN)/arv-assist"
-	printf '#!/bin/sh\nexec python3 "%s/src/arv-gui/arv-gui" "$$@"\n' "$(SHARE)" > "$(DESTDIR)$(BIN)/arv-gui"
-	chmod 755 "$(DESTDIR)$(BIN)/arv-gui"
+	install -m 755 src/arv-gui/build/arv-gui "$(DESTDIR)$(BIN)/arv-gui"     # its page: share/arv/src/arv-gui/gui.html
 	install -m 755 src/udfwrite/build/udfwrite "$(DESTDIR)$(BIN)/udfwrite"
 	install -m 755 src/bagit/build/bagit "$(DESTDIR)$(BIN)/bagit"
 	install -D -m 644 src/arv/completion/arv.bash "$(DESTDIR)$(BASHCOMPDIR)/arv"
@@ -83,6 +83,6 @@ uninstall:
 	      "$(DESTDIR)$(BASHCOMPDIR)/arv" "$(DESTDIR)$(ZSHCOMPDIR)/_arv" "$(DESTDIR)$(MANDIR)/man1/arv.1"
 
 clean:
-	rm -rf src/bagit/build src/rs03/build src/udfwrite/build src/arv/build src/arv-assist/build
+	rm -rf src/bagit/build src/rs03/build src/udfwrite/build src/arv/build src/arv-assist/build src/arv-gui/build
 
 .PHONY: all check ape install uninstall clean

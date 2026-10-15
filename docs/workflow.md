@@ -87,7 +87,7 @@ projects, records ...): see "Laying the folder out" in step 1.
 | `arv` | everything below | `make install PREFIX=~/.local` (or `just install`) in this repository, or a package (`just deb`, `just arch`: [packaging/](../packaging/README.md)), or run `./arv` from it; tab completion comes with it. `make uninstall PREFIX=~/.local` (`just uninstall`) removes it and leaves your archives alone |
 | `7z`, `git` | reading images in checks; arv's source in each disc's `tools/` | your distribution |
 | a burning program | burning images (arv never burns) | `xorriso`, or your system's own: see [burning.md](burning.md) |
-| optional | reading damaged discs; format ids; AI help; the interface | GNU ddrescue or [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light); Siegfried (`sf`); arv-assist (`arv describe`, `arv tag`); Python 3 for `arv gui` |
+| optional | reading damaged discs; format ids; AI help; the interface | GNU ddrescue or [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light); Siegfried (`sf`); arv-assist (`arv describe`, `arv tag`); a web browser for `arv gui` |
 
 Make the **archive** (its home catalogue) at the root of the tree it describes, for example the
 NAS share above your photos and projects:
@@ -602,7 +602,7 @@ src/arv/                  arv: the C program (C99 and POSIX, no libraries)
   archive.c  home.c  rec.c  json.c  vocab.c  discid.c  edtf.c   the catalogue and its rules
   data/                   descriptors.rec  readme.txt  index.css  default_sets.rec  default_tags.rec
 src/arv-assist/           optional, C: the local AI helpers (describe, tag); they write drafts
-src/arv-gui/              optional, Python standard library only: the local web interface
+src/arv-gui/              optional, C: the local web interface (a small server, and its page gui.html)
 src/bagit/  src/rs03/  src/udfwrite/   BagIt checking, RS03, the UDF 2.50 writer (built into arv; also programs)
 arv                       runs src/arv/build/arv in a checkout (make first if needed)
 samples/                  six small sample discs and their catalogue; the scripts that make them
@@ -627,7 +627,7 @@ The layers, from most to least durable:
 - **Tests:** `make check` runs bagit (against bagit.py when python3 is there), RS03 (the test
   vectors, and dvdisaster Light when on PATH), arv (`make -C src/arv check`: the reference
   outputs, a real disc, Siegfried when on PATH; `check-ape` with arv.com), arv-assist (against a
-  fake model server), then arv-gui (`python3 -m unittest discover -s tests`).
+  fake model server), then arv-gui (`python3 -m unittest discover -s tests`, over HTTP).
 - **Reference outputs:** `make -C src/arv check` holds arv to
   [tests/reference/expected](../tests/reference/); after an intended change,
   `sh tests/reference/generate.sh` (or `just bless`), then read `git diff tests/reference/expected`.

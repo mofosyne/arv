@@ -478,7 +478,7 @@ static void run_helper(int argc, char **argv, const char *word)
 {
     int gui = !strcmp(word, "gui");
     char *assist = helper("ARV_ASSIST", "arv-assist", "arv-assist/build/arv-assist");
-    char *program = gui ? helper("ARV_GUI", "arv-gui", "arv-gui/arv-gui") : assist;
+    char *program = gui ? helper("ARV_GUI", "arv-gui", "arv-gui/build/arv-gui") : assist;
     char *self = exe_dir(), *me = self ? join(self, strrchr(argv[0], '/') ? strrchr(argv[0], '/') + 1 : argv[0]) : NULL;
     if (me && !access(me, X_OK)) setenv("ARV", me, 1);          /* arv-gui runs this arv */
     if (assist) setenv("ARV_ASSIST", assist, 1);
@@ -506,7 +506,7 @@ static void run_helper(int argc, char **argv, const char *word)
     execvp(args[0], args);
     fprintf(stderr, "Error: arv %s needs %s (%s), which was not found next to arv, in this checkout, or on PATH: "
                     "build and install it with make install%s\n", word, name,
-            gui ? "arv's interface, in Python" : "arv's local AI helpers", gui ? " (and python3)" : "");
+            gui ? "arv's interface" : "arv's local AI helpers", "");
     exit(1);
 }
 

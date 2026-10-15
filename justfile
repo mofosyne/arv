@@ -13,7 +13,7 @@ arv *args:
 build:
     make
 
-# Run the tests: bagit, rs03, arv against the reference outputs, arv-assist, then arv-gui (python3)
+# Run the tests: bagit, rs03, arv against the reference outputs, arv-assist, then arv-gui (over HTTP, in python3)
 test:
     make check
 
