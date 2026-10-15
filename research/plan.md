@@ -1763,7 +1763,7 @@ discover them (the C server of #48 could use it for its list of commands).
 
 ## Done (2026-10-15, issue #48): the interface's server in C
 
-Step 2 of the 2026-10-15 decision: `src/arv-gui/arv-gui.c`, about 750 lines, against the API
+Step 2 of the 2026-10-15 decision: `src/arv-gui/arv-gui.c`, about 800 lines, against the API
 step 1 settled, so the page did not change and the tests (Python, over HTTP) passed against it
 as they were. How it is built, and why:
 
