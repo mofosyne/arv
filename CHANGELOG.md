@@ -21,6 +21,13 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Every read has --json** (issue #31)
+- `todo --json` (each finding with its `kind`, what it is about and the line a person reads;
+  questions apart), `status --json` (what changed, every path), `info --json` (a disc, an image or
+  a disc id) and `help --json` (every command, its usage and summary). The manual lists every JSON
+  output.
+- Exit codes stay 0, 1 and 2, and many things in a row are a shell loop: research/plan.md says why.
+
 **The interface in C** (issue #48)
 - `arv-gui` is a small C program: HTTP/1.0 on 127.0.0.1 with the same token and checks, the same
   five routes, a process for each connection, and jobs' output in files under `$TMPDIR`, removed

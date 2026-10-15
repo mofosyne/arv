@@ -1806,3 +1806,31 @@ copy is also built in, for `arv-gui` copied on its own: `make` writes `build/pag
 needed (not `xxd`, and not `objcopy`, whose output is tied to one CPU's object format), and
 nothing generated is committed. Built by hand without it, arv-gui needs the page beside it.
 
+## Done (2026-10-15, issue #31): every read has --json, and two questions settled
+
+`todo`, `status`, `info` and `help` now have `--json`, so every command that reads gives a script
+the same answer as a person, and every command that writes gives the events it made. Each is
+rendered from one walk of the record, so the text and the JSON cannot drift: `todo` passes each
+finding through one function that prints its line or adds its item (a stable `kind`: `no-copy`,
+`read-back`, `edition-not-safe`, `replaced`, `one-carrier`, `missing`, `no-cold-copy`,
+`fewer-places`, `below-appraisal`, `overdue`, `object-no-cold-copy`, `object-gone`), and the
+reference scenarios show the text unchanged. `status` gives what the folder is and every change
+(the text shows twenty); what its other helpers say (data objects, repositories, layouts) comes as
+`notes`, lines for a person, since a script would rarely act on them. `help --json` reads the same
+usage text as the manual, so a program can find the commands without parsing `--help`.
+
+**Exit codes stay 0, 1, 2.** sysexits' 64 to 78 tell a usage error from bad data from a missing
+file. A script calling arv needs to know: done; something needs a person (and stderr or the JSON
+says what); not used as meant. Finer codes would be a second vocabulary for what the messages say
+better, and few scripts branch on them. Documented in the manual's "Exit status".
+
+**No general batch input.** Most commands act on one thing, and many things in a row are a shell
+loop (`for d in ...; do arv burned "$d" --copies 1 --location SHELF; done`): each is its own
+event, and one failing stops nothing else. Input in bulk is for where all or none matters, and
+arv has it there already: `plan add --list` and `plan tag --list` take lines and apply all or
+none, and a draft goes in on standard input. Recording a stack of burned discs is a loop.
+
+What #31 still holds for 1.0: freezing the fields as the interface (the manual lists every output
+and its main keys), the spec's "For other software" section, and the home catalogue's parts in one
+place.
+
