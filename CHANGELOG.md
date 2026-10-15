@@ -21,6 +21,13 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Fast on a large catalogue** (issue #37)
+- Every command reads the catalogue once and indexes it: a thing's events, a disc by its id, an
+  object's records. At 10,000 discs (30,000 copies), `list`, `objects`, `todo` and `audit` take
+  under a second, where at 2,000 they took from 9 seconds to over 5 minutes. `rebuild` merges by
+  id instead of comparing every pair. Output is unchanged.
+- `dev-tools/bigcat.py` makes a large synthetic home to measure on.
+
 **Less to learn: a clarity round** (issue #42)
 - Removed, each the work of another tool or unused: `make --ro-crate`, `--tools-history`,
   `--git-since`, `--ignore-names`, `--no-verify`, `--media`, `--sf-home`, `--extra-tools`,

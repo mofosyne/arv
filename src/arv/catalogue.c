@@ -177,8 +177,9 @@ static void json_disc(sbuf *b, const catalogue *c, const rec_record *d)
     free(place);
     sb_puts(b, ", \"Events\": [");
     int event_first = 1;
-    for (size_t i = 0; id && i < c->records.events.n; i++) {
-        const rec_record *event = c->records.events.v[i];
+    recs ev = disc_events(&c->records, id);   /* only its events */
+    for (size_t i = 0; id && i < ev.n; i++) {
+        const rec_record *event = ev.v[i];
         if (!rec_get(event, "Disc") || strcmp(rec_get(event, "Disc"), id)) continue;
         if (!event_first) sb_puts(b, ", ");
         event_first = 0;

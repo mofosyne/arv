@@ -115,7 +115,12 @@ rec_record *descriptor(const char *type);
 void archive_load(archive *a, const char *path);
 void archive_records(const archive *a, recs *out);
 void archive_save(archive *a, const char *path);
-void archive_same_objects(archive *a);     /* objects said to be one (arv same) read as one; on every load */
+void archive_same_objects(archive *a);
+/* a disc's events, in the catalogue's order (indexed once a list; do not keep it across an append) */
+recs disc_events(const archive *a, const char *disc_id);
+/* a lineage's object records (one Uuid), in the catalogue's order (indexed; not kept across a change) */
+recs object_records(const archive *a, const char *uuid);
+recs disc_objects(const archive *a, const char *disc_id);     /* a disc's object records, likewise */     /* objects said to be one (arv same) read as one; on every load */
 const char *archive_home_uuid(archive *a);           /* this home's identity, made on first use */
 void write_records(const char *path, const recs *r);
 rec_record *archive_disc(const archive *a, const char *id);

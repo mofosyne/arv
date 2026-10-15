@@ -179,6 +179,7 @@ void uuid4(char out[37])
 
 int mkdirs(const char *path)
 {
+    if (!mkdir(path, 0755) || errno == EEXIST) return 0;   /* the usual case: its parent is there */
     char *p = xstrdup(path);
     for (char *s = p + 1; *s; s++) {
         if (*s != '/') continue;
