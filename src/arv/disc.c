@@ -263,29 +263,87 @@ static void print_listing(ondisc *d)
     free(path);
 }
 
+/* arv info --json for a disc's root: its record, bindings, appraisals and how many events it
+ * carries; with --files, its listing */
+static int info_json(ondisc *d, int files)
+{
+    sbuf b = { 0 };
+    sb_puts(&b, "{" JSON_FORMAT ", \"is\": \"disc\", \"disc\": {");
+    int first = 1;
+    json_record_fields(&b, d->disc, &first, NULL);
+    sb_puts(&b, "}");
+    if (files) {
+        listing l;
+        char *path = volume_file(d, "listing.tsv");
+        if (read_listing(path, &l)) die("no listing at %s", path);
+        sb_puts(&b, ", \"files\": [");
+        for (size_t i = 0; i < l.n; i++) {
+            lrow *r = &l.r[i];
+            sb_puts(&b, i ? ", {\"path\": " : "{\"path\": ");
+            json_str(&b, r->path);
+            sb_puts(&b, ", \"kind\": ");
+            json_str(&b, r->kind);
+            if (r->size >= 0) sb_printf(&b, ", \"bytes\": %lld", r->size);
+            if (*r->link) {
+                sb_puts(&b, ", \"link\": ");
+                json_str(&b, r->link);
+            }
+            sb_puts(&b, "}");
+        }
+        sb_puts(&b, "]");
+        free_listing(&l);
+        free(path);
+    } else {
+        const char *const kinds[] = { "Binding", "Appraisal" }, *const keys[] = { "bindings", "appraisals" };
+        for (int k = 0; k < 2; k++) {
+            sb_printf(&b, ", \"%s\": [", keys[k]);
+            int any = 0;
+            for (size_t i = 0; i < d->cat.nrecords; i++) {
+                const rec_record *r = &d->cat.records[i];
+                if (r->descriptor || !r->type || strcmp(r->type, kinds[k])) continue;
+                sb_puts(&b, any++ ? ", {" : "{");
+                int f = 1;
+                json_record_fields(&b, r, &f, NULL);
+                sb_puts(&b, "}");
+            }
+            sb_puts(&b, "]");
+        }
+        size_t events = 0;
+        for (size_t i = 0; i < d->cat.nrecords; i++)
+            if (!d->cat.records[i].descriptor && d->cat.records[i].type && !strcmp(d->cat.records[i].type, "Event")) events++;
+        sb_printf(&b, ", \"events\": %zu", events);
+    }
+    sb_puts(&b, "}\n");
+    fputs(b.s, stdout);
+    free(b.s);
+    return 0;
+}
+
 /* arv info [-C HOME] DISC|IMAGE|DISC-ID [--files]: a disc's root (its record; --files: its files),
  * an image file (which disc and copy it is), or a disc id (its parts, and the disc it names) */
 int cmd_info(int argc, char **argv)
 {
     ondisc d;
     const char *given = NULL, *target = NULL;
-    int files = 0;
+    int files = 0, as_json = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (!strcmp(argv[i], "--files")) files = 1;
+        else if (!strcmp(argv[i], "--json")) as_json = 1;
         else if (argv[i][0] != '-' && !target) target = argv[i];
         else return 2;
     }
     if (!target) return 2;
     struct stat st;
     int found = !stat(target, &st);
-    if (found && S_ISREG(st.st_mode) && !files) return info_image(target, given);   /* an image file */
+    if (found && S_ISREG(st.st_mode) && !files) return info_image(target, given, as_json);   /* an image file */
     if (!found || !S_ISDIR(st.st_mode)) {                                           /* a disc id */
         if (files) die("%s", "--files lists a disc's own files: give the root of the mounted disc");
-        char *args[] = { "-C", (char *)given, (char *)target, NULL };
-        return given ? cmd_id(3, args) : cmd_id(1, args + 2);
+        char *args[] = { "-C", (char *)given, (char *)target, as_json ? "--json" : NULL, NULL };
+        return given ? cmd_id(3 + as_json, args) : cmd_id(1 + as_json, args + 2);
     }
     open_disc(target, &d);
+    if (as_json) return info_json(&d, files);
     if (files) {
         print_listing(&d);
         return 0;

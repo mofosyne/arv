@@ -188,7 +188,7 @@ int drive_bca(const char *device, char out[33]);
 void drive_list(strlist *out);          /* the optical drives (Linux: /dev/sr0 ...); none found elsewhere */
 char *read_volume_label(const char *path);   /* an image's or drive's volume label, or NULL */
 int cmd_drives(int argc, char **argv);
-int info_image(const char *path, const char *given);   /* arv info IMAGE.iso: which disc, which copy */
+int info_image(const char *path, const char *given, int as_json);   /* arv info IMAGE.iso: which disc, which copy */
 int bca_normal(const char *text, char out[33]);     /* a BCA serial as given: its first 16 bytes, in hex */
 /* hot, warm or cold: the place's Temperature, or the nearest place above it that has one; NULL */
 const char *place_temperature(const archive *a, const char *code);

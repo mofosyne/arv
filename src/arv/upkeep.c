@@ -575,6 +575,45 @@ static void heading(int *shown, const char *text)
     *shown = 1;
 }
 
+/* what arv todo finds, one at a time: a line under its heading for a person, or with --json an
+ * item (its kind, the disc or collection or object it is about, its own fields, and the same line
+ * and heading), so the two cannot say different things */
+typedef struct {
+    int json;
+    sbuf items;
+} owed;
+
+static void owe(owed *o, int *shown, const char *head, const char *kind, const char *disc, const char *fields, char *line)
+{
+    if (!o->json) {
+        heading(shown, head);
+        printf("  %s\n", line);
+    } else {
+        sb_puts(&o->items, o->items.len ? ", {\"kind\": " : "{\"kind\": ");
+        json_str(&o->items, kind);
+        if (disc) {
+            sb_puts(&o->items, ", \"disc\": ");
+            json_str(&o->items, disc);
+        }
+        if (fields && *fields) sb_printf(&o->items, ", %s", fields);
+        sb_puts(&o->items, ", \"text\": ");
+        json_str(&o->items, line);
+        sb_puts(&o->items, ", \"heading\": ");
+        json_str(&o->items, head);
+        sb_puts(&o->items, "}");
+    }
+    free(line);
+}
+
+/* a JSON member, "key": "value", for owe's fields (freed by the caller) */
+static char *jfield(const char *key, const char *value)
+{
+    sbuf b = { 0 };
+    sb_printf(&b, "\"%s\": ", key);
+    json_str(&b, value ? value : "");
+    return b.s;
+}
+
 
 static void tsv_field(const char *s)
 {
@@ -633,10 +672,12 @@ int cmd_todo(int argc, char **argv)
 {
     const char *given = NULL, *overdue = "5y";
     int tsv = 0;
+    owed o = { 0 };
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--overdue")) overdue = argv[++i];
         else if (!strcmp(argv[i], "--tsv")) tsv = 1;
+        else if (!strcmp(argv[i], "--json")) o.json = 1;
         else return 2;
     }
     arv_home h;
@@ -651,14 +692,16 @@ int cmd_todo(int argc, char **argv)
     for (size_t i = 0; i < cat.discs.n; i++) {                  /* images made, never burned */
         const char *id = get_or(cat.discs.v[i], "Id", "");
         if (retired(&cat, id) || burned_at_all(&cat, id)) continue;
-        heading(&s1, "No copy yet (burn the image and arv burned ID --device DRIVE, or keep it: arv stored ID PATH):");
-        printf("  %s  made %s\n", id, get_or(cat.discs.v[i], "Date", ""));
+        char *f = jfield("made", get_or(cat.discs.v[i], "Date", ""));
+        owe(&o, &s1, "No copy yet (burn the image and arv burned ID --device DRIVE, or keep it: arv stored ID PATH):", "no-copy", id,
+            f, xprintf("%s  made %s", id, get_or(cat.discs.v[i], "Date", "")));
+        free(f);
         items++;
     }
     for (size_t i = 0; i < cat.discs.n; i++) {                  /* burned copies never read back */
         const char *id = get_or(cat.discs.v[i], "Id", "");
         if (retired(&cat, id) || !burned_at_all(&cat, id)) continue;
-        sbuf which = { 0 };
+        sbuf which = { 0 }, letters = { 0 };
         recs dev8 = disc_events(&cat, id);   /* only its events */
         for (size_t k = 0; k < dev8.n; k++) {
             const rec_record *e = dev8.v[k];
@@ -667,29 +710,42 @@ int cmd_todo(int argc, char **argv)
                 || strcmp(get_or(e, "Form", "disc"), "disc") || copy_read_back(&cat, id, e) || copy_same_as(&cat, id, e))
                 continue;
             sb_printf(&which, "%s%s", which.len ? ", " : "", letter);
+            sb_puts(&letters, letters.len ? ", " : "\"copies\": [");
+            json_str(&letters, letter);
         }
         if (which.len) {
-            heading(&s2, "Burned, never read back (arv check DRIVE --copy X ID):");
-            printf("  %s  cop%s %s\n", id, strchr(which.s, ',') ? "ies" : "y", which.s);
+            sb_puts(&letters, "]");
+            owe(&o, &s2, "Burned, never read back (arv check DRIVE --copy X ID):", "read-back", id, letters.s,
+                xprintf("%s  cop%s %s", id, strchr(which.s, ',') ? "ies" : "y", which.s));
             items++;
         }
         free(which.s);
+        free(letters.s);
     }
     for (size_t k = 0; k < cat.collections.n; k++) {            /* editions: not safe yet; replaced */
         const rec_record *c = cat.collections.v[k];
         recs eds = { 0 }, old = { 0 };
         editions(&cat, c, &eds);
         if (eds.n && !edition_safe(&cat, eds.v[eds.n - 1]) && !edition_retired(&cat, eds.v[eds.n - 1])) {
-            heading(&s3, "Editions not safe yet (every disc burned and read back):");
-            printf("  %s/%s\n", get_or(c, "Code", ""), get_or(eds.v[eds.n - 1], "Edition", ""));
+            char *f = xprintf("\"collection\": \"%s\", \"edition\": %s", get_or(c, "Code", ""), get_or(eds.v[eds.n - 1], "Edition", "0"));
+            owe(&o, &s3, "Editions not safe yet (every disc burned and read back):", "edition-not-safe", NULL, f,
+                xprintf("%s/%s", get_or(c, "Code", ""), get_or(eds.v[eds.n - 1], "Edition", "")));
+            free(f);
             items++;
         }
         const rec_record *by = replaced(&cat, c, &old);
         if (old.n) {
-            heading(&s4, "Replaced by a safe edition, ready to retire (arv retire CODE):");
-            printf("  %s: edition", get_or(c, "Code", ""));
-            for (size_t i = 0; i < old.n; i++) printf("%s %s", i ? "," : "", get_or(old.v[i], "Edition", ""));
-            printf(" (replaced by edition %s)\n", get_or(by, "Edition", ""));
+            sbuf line = { 0 }, f = { 0 };
+            sb_printf(&line, "%s: edition", get_or(c, "Code", ""));
+            sb_printf(&f, "\"collection\": \"%s\", \"editions\": [", get_or(c, "Code", ""));
+            for (size_t i = 0; i < old.n; i++) {
+                sb_printf(&line, "%s %s", i ? "," : "", get_or(old.v[i], "Edition", ""));
+                sb_printf(&f, "%s%s", i ? ", " : "", get_or(old.v[i], "Edition", "0"));
+            }
+            sb_printf(&line, " (replaced by edition %s)", get_or(by, "Edition", ""));
+            sb_printf(&f, "], \"replacedBy\": %s", get_or(by, "Edition", "0"));
+            owe(&o, &s4, "Replaced by a safe edition, ready to retire (arv retire CODE):", "replaced", NULL, f.s, line.s);
+            free(f.s);
             items++;
         }
         free(eds.v);
@@ -703,8 +759,16 @@ int cmd_todo(int argc, char **argv)
         for (size_t k = 0; k < dev9.n; k++) {
             const rec_record *e = dev9.v[k], *with = is_copy_event(e, id) ? copy_shares_carrier(&cat, id, e) : NULL;
             if (!with) continue;
-            heading(&s_one, "Copies on one carrier, lost together and counted once (keep one on another tape or drive):");
-            printf("  %s  copies %s and %s on %s\n", id, letter_of(&cat, with), letter_of(&cat, e), copy_carrier(&cat, id, e));
+            sbuf f = { 0 };
+            sb_puts(&f, "\"copies\": [");
+            json_str(&f, letter_of(&cat, with));
+            sb_puts(&f, ", ");
+            json_str(&f, letter_of(&cat, e));
+            sb_puts(&f, "], \"carrier\": ");
+            json_str(&f, copy_carrier(&cat, id, e));
+            owe(&o, &s_one, "Copies on one carrier, lost together and counted once (keep one on another tape or drive):", "one-carrier",
+                id, f.s, xprintf("%s  copies %s and %s on %s", id, letter_of(&cat, with), letter_of(&cat, e), copy_carrier(&cat, id, e)));
+            free(f.s);
             items++;
         }
     }
@@ -717,8 +781,12 @@ int cmd_todo(int argc, char **argv)
             const rec_record *e = dev10.v[k];
             const char *at = is_copy_event(e, id) ? copy_path(&cat, id, e) : NULL;
             if (!at || !strcmp(get_or(e, "Outcome", ""), "failure") || !access(at, F_OK)) continue;
-            heading(&s_gone, "Stored copies not found where recorded (a drive not mounted? moved: arv stored ID NEWPATH --copy X):");
-            printf("  %s  copy %s  %s\n", id, letter_of(&cat, e), at);
+            char *f1 = jfield("copy", letter_of(&cat, e)), *f2 = jfield("path", at), *f = xprintf("%s, %s", f1, f2);
+            owe(&o, &s_gone, "Stored copies not found where recorded (a drive not mounted? moved: arv stored ID NEWPATH --copy X):",
+                "missing", id, f, xprintf("%s  copy %s  %s", id, letter_of(&cat, e), at));
+            free(f1);
+            free(f2);
+            free(f);
             items++;
         }
     }
@@ -731,8 +799,7 @@ int cmd_todo(int argc, char **argv)
         for (size_t k = 0; k < ev.n; k++)
             cold |= is_copy_event(ev.v[k], id) && !strcmp(get_or(ev.v[k], "Temperature", ""), "cold");
         if (cold) continue;
-        heading(&s7, "No cold copy, every copy is online or in use (burn one for the shelf):");
-        printf("  %s\n", id);
+        owe(&o, &s7, "No cold copy, every copy is online or in use (burn one for the shelf):", "no-cold-copy", id, NULL, xstrdup(id));
         items++;
     }
     int s6 = 0, s10 = 0;
@@ -748,8 +815,10 @@ int cmd_todo(int argc, char **argv)
         int level = disc_importance(&cat, id, &why);
         if (level < 0) {                                        /* not appraised: two places */
             if (place_count >= 2) continue;
-            heading(&s5, "Kept in fewer than two places (arv burned/stored ... --location PLACE, or arv locate ID COPY PLACE):");
-            printf("  %s  %s\n", id, place_count ? "one place" : "no place recorded");
+            char *f = xprintf("\"places\": %zu", place_count);
+            owe(&o, &s5, "Kept in fewer than two places (arv burned/stored ... --location PLACE, or arv locate ID COPY PLACE):",
+                "fewer-places", id, f, xprintf("%s  %s", id, place_count ? "one place" : "no place recorded"));
+            free(f);
             items++;
             continue;
         }
@@ -757,10 +826,13 @@ int cmd_todo(int argc, char **argv)
         holding hd = { 0 };
         hold(&cat, id, &hd);
         if (hd.copies < need[level] || place_count < need[level]) {
-            heading(&s10, "Fewer copies or places than its appraisal asks for (essential: 3 copies in 3 places; "
-                          "important: 2 in 2; useful: 1):");
-            printf("  %s  %s: %zu cop%s in %zu place%s\n", id, why, hd.copies, hd.copies == 1 ? "y" : "ies", place_count,
-                   place_count == 1 ? "" : "s");
+            char *a = jfield("appraisal", why), *f = xprintf("%s, \"copies\": %zu, \"places\": %zu", a, hd.copies, place_count);
+            owe(&o, &s10, "Fewer copies or places than its appraisal asks for (essential: 3 copies in 3 places; "
+                          "important: 2 in 2; useful: 1):", "below-appraisal", id, f,
+                xprintf("%s  %s: %zu cop%s in %zu place%s", id, why, hd.copies, hd.copies == 1 ? "y" : "ies", place_count,
+                        place_count == 1 ? "" : "s"));
+            free(a);
+            free(f);
             items++;
         }
         free(why);
@@ -771,8 +843,9 @@ int cmd_todo(int argc, char **argv)
         if (retired(&cat, id) || !*last || strcmp(last, cutoff) >= 0) continue;
         char head[160];
         snprintf(head, sizeof head, "Not checked since %s (arv check DRIVE ID, or the copy's image or folder):", cutoff);
-        heading(&s6, head);
-        printf("  %s  last %s\n", id, last);
+        char *f = jfield("lastChecked", last);
+        owe(&o, &s6, head, "overdue", id, f, xprintf("%s  last %s", id, last));
+        free(f);
         items++;
     }
     int s8 = 0, s9 = 0;
@@ -785,33 +858,45 @@ int cmd_todo(int argc, char **argv)
         recs top = { 0 };
         holding hd = { 0 };
         long v = newest(&cat, uuid, &top, &hd);
-        const rec_record *o = top.v[0];
+        const rec_record *ob = top.v[0];
         strlist src = { 0 };
         char *root = home_root(&h);
         size_t there = object_sources(root, &top, &src);
         free(root);
-        int file = !strcmp(get_or(o, "Kind", ""), "file");
+        int file = !strcmp(get_or(ob, "Kind", ""), "file");
+        char *named = jfield("object", get_or(ob, "Name", "?")), *id = jfield("uuid", uuid);
         if (hd.discs && hd.copies && !hd.cold) {
-            heading(&s8, "Data objects with no cold copy of their newest version (burn one for the shelf):");
-            printf("  %s%s  version %ld\n", get_or(o, "Name", "?"), file ? "" : "/", v);
+            char *f = xprintf("%s, %s, \"version\": %ld", named, id, v);
+            owe(&o, &s8, "Data objects with no cold copy of their newest version (burn one for the shelf):", "object-no-cold-copy", NULL,
+                f, xprintf("%s%s  version %ld", get_or(ob, "Name", "?"), file ? "" : "/", v));
+            free(f);
             items++;
         }
         if (hd.discs && hd.copies < 2 && !there) {
-            heading(&s9, "Data objects no longer where they came from, with fewer than two copies of their newest version:");
-            printf("  %s%s  version %ld: %zu cop%s%s%s\n", get_or(o, "Name", "?"), file ? "" : "/", v, hd.copies,
-                   hd.copies == 1 ? "y" : "ies", src.n ? "; was at " : "", src.n ? src.v[0] : "");
+            char *was = jfield("wasAt", src.n ? src.v[0] : ""), *f = xprintf("%s, %s, \"version\": %ld, \"copies\": %zu, %s", named, id, v,
+                                                                           hd.copies, was);
+            owe(&o, &s9, "Data objects no longer where they came from, with fewer than two copies of their newest version:", "object-gone",
+                NULL, f, xprintf("%s%s  version %ld: %zu cop%s%s%s", get_or(ob, "Name", "?"), file ? "" : "/", v, hd.copies,
+                                 hd.copies == 1 ? "y" : "ies", src.n ? "; was at " : "", src.n ? src.v[0] : ""));
+            free(was);
+            free(f);
             items++;
         }
+        free(named);
+        free(id);
         strlist_free(&src);
         free(top.v);
     }
     strlist_free(&seen);
-    if (!items && !cat.discs.n)
+    if (o.json) {
+        /* nothing owed is an empty list: the page or the script says so in its own words */
+    } else if (!items && !cat.discs.n)
         puts("No discs yet, so nothing is owed. Start with arv collection init FOLDER (or arv make FOLDER for a one-off disc).");
     else if (!items) printf("Nothing owed: every disc copied, read back, with a cold copy, kept in two places (or as its appraisal asks) and checked since %s.\n", cutoff);
     question_list q;                /* last, and not owed: a missing description is never as urgent as a missing copy */
     questions_load(&h, &q);
     strlist asked = { 0 };
+    sbuf questions = { 0 };
     int s11 = 0;
     for (size_t i = 0; i < q.n; i++) {
         const char *about = q.v[i].about;
@@ -822,12 +907,25 @@ int cmd_todo(int argc, char **argv)
         else
             for (size_t k = 0; k < cat.objects.n && !known; k++) known = !strcmp(get_or(cat.objects.v[k], "Uuid", ""), about + 7);
         if (!known) continue;
-        heading(&s11, "Questions waiting for an answer, never urgent (arv describe DISC-ID|OBJECT --answer):");
         size_t n = questions_open(&q, about);
         char *name = question_about_name(&cat, about);
-        printf("  %s  %zu question%s%s\n", name, n, n == 1 ? "" : "s", strncmp(about, "object:", 7) ? "" : " (data object)");
+        if (o.json) {
+            sb_puts(&questions, questions.len ? ", {\"about\": " : "{\"about\": ");
+            json_str(&questions, about);
+            sb_puts(&questions, ", \"name\": ");
+            json_str(&questions, name);
+            sb_printf(&questions, ", \"open\": %zu}", n);
+        } else {
+            heading(&s11, "Questions waiting for an answer, never urgent (arv describe DISC-ID|OBJECT --answer):");
+            printf("  %s  %zu question%s%s\n", name, n, n == 1 ? "" : "s", strncmp(about, "object:", 7) ? "" : " (data object)");
+        }
         free(name);
     }
+    if (o.json)                     /* what is owed, and apart from it the questions (never owed) */
+        printf("{" JSON_FORMAT ", \"overdueBefore\": \"%s\", \"discs\": %zu, \"owed\": [%s], \"questions\": [%s]}\n", cutoff,
+               cat.discs.n, o.items.s ? o.items.s : "", questions.s ? questions.s : "");
+    free(o.items.s);
+    free(questions.s);
     strlist_free(&asked);
     questions_free(&q);
     return 0;

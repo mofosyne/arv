@@ -421,16 +421,16 @@ char *manifest_changes(const char *before, const char *after)
     return out;
 }
 
-static void diff_print(const mdiff *d, int verbose)
+static void diff_print(FILE *out, const mdiff *d, int verbose)
 {
-    printf("  +%zu new, ~%zu changed, -%zu removed, >%zu moved\n", d->added.n, d->changed.n, d->removed.n, d->moved.n);
+    fprintf(out, "  +%zu new, ~%zu changed, -%zu removed, >%zu moved\n", d->added.n, d->changed.n, d->removed.n, d->moved.n);
     const strlist *l[] = { &d->added, &d->changed, &d->removed, &d->moved };
     const char *mark[] = { "+", "~", "-", ">" };
     size_t shown = 0, limit = verbose ? (size_t)-1 : 20, total = 0;
     for (int k = 0; k < 4; k++) total += l[k]->n;
     for (int k = 0; k < 4; k++)
-        for (size_t i = 0; i < l[k]->n && shown < limit; i++, shown++) printf("  %s %s\n", mark[k], l[k]->v[i]);
-    if (shown < total) printf("  ... %zu more (-v for all)\n", total - shown);
+        for (size_t i = 0; i < l[k]->n && shown < limit; i++, shown++) fprintf(out, "  %s %s\n", mark[k], l[k]->v[i]);
+    if (shown < total) fprintf(out, "  ... %zu more (-v for all)\n", total - shown);
 }
 
 static void diff_free(mdiff *d)
@@ -543,7 +543,8 @@ static char *folder_arg(const char *given)
 }
 
 /* a folder no collection claims: which of its files are on discs, and which discs it resembles */
-static void tracked_status(const arv_home *h, const archive *cat, const scan *s, int verbose, int hint)
+/* with json, its members instead: files, onDiscs, onNone (every one), mostLike */
+static void tracked_status(const arv_home *h, const archive *cat, const scan *s, int verbose, int hint, sbuf *json)
 {
     mlist all = { 0 };          /* every disc's manifest: hash, then the disc id in path */
     size_t *disc_total = xmalloc((cat->discs.n + 1) * sizeof *disc_total), *disc_here = xmalloc((cat->discs.n + 1) * sizeof *disc_here);
@@ -584,22 +585,36 @@ static void tracked_status(const arv_home *h, const archive *cat, const scan *s,
         if (any) archived++;
         else strlist_add(&missing, s->files.v[f].path);
     }
-    printf("  %zu of its %zu file%s %s on discs; %zu on none\n", archived, s->files.n, s->files.n == 1 ? "" : "s",
-           archived == 1 ? "is" : "are", missing.n);
+    if (json) sb_printf(json, ", \"files\": %zu, \"onDiscs\": %zu, \"mostLike\": [", s->files.n, archived);
+    else printf("  %zu of its %zu file%s %s on discs; %zu on none\n", archived, s->files.n, s->files.n == 1 ? "" : "s",
+                archived == 1 ? "is" : "are", missing.n);
     for (int shown = 0; shown < 3; shown++) {          /* the discs it most resembles */
         size_t best = (size_t)-1;
         for (size_t i = 0; i < cat->discs.n; i++)
             if (disc_here[i] && (best == (size_t)-1 || disc_here[i] > disc_here[best])) best = i;
         if (best == (size_t)-1) break;
         size_t pct = disc_total[best] ? disc_here[best] * 100 / disc_total[best] : 0;
-        printf("  %s %s: %zu%% of its files are here (%zu of %zu)\n", shown ? "also" : "most like", get_or(cat->discs.v[best], "Id", ""),
-               pct, disc_here[best], disc_total[best]);
+        if (json) {
+            sb_puts(json, shown ? ", {\"disc\": " : "{\"disc\": ");
+            json_str(json, get_or(cat->discs.v[best], "Id", ""));
+            sb_printf(json, ", \"here\": %zu, \"of\": %zu}", disc_here[best], disc_total[best]);
+        } else
+            printf("  %s %s: %zu%% of its files are here (%zu of %zu)\n", shown ? "also" : "most like", get_or(cat->discs.v[best], "Id", ""),
+                   pct, disc_here[best], disc_total[best]);
         disc_here[best] = 0;
     }
-    size_t limit = verbose ? missing.n : missing.n < 20 ? missing.n : 20;
+    if (json) {
+        sb_puts(json, "], \"onNone\": [");
+        for (size_t i = 0; i < missing.n; i++) {
+            if (i) sb_puts(json, ", ");
+            json_str(json, missing.v[i]);
+        }
+        sb_puts(json, "]");
+    }
+    size_t limit = json ? 0 : verbose ? missing.n : missing.n < 20 ? missing.n : 20;
     for (size_t i = 0; i < limit; i++) printf("  + %s\n", missing.v[i]);
-    if (limit < missing.n) printf("  ... %zu more on no disc (-v for all)\n", missing.n - limit);
-    if (missing.n && hint) puts("  (arv link FOLDER COLLECTION|DISC-ID says what it is; arv collection init makes it a collection)");
+    if (!json && limit < missing.n) printf("  ... %zu more on no disc (-v for all)\n", missing.n - limit);
+    if (!json && missing.n && hint) puts("  (arv link FOLDER COLLECTION|DISC-ID says what it is; arv collection init makes it a collection)");
     strlist_free(&missing);
     ml_free(&all);
     free(disc_total);
@@ -615,7 +630,7 @@ static int ml_line_by_path(const void *a, const void *b)
 
 /* the data objects a disc plan archived from this folder or below it (their Source, at home):
  * each one's newest version against what is here now, by its Tree */
-static void objects_status(const arv_home *h, const archive *cat, const char *abs, const scan *s, int verbose)
+static void objects_status(FILE *out, const arv_home *h, const archive *cat, const char *abs, const scan *s, int verbose)
 {
     strlist seen = { 0 };
     int heading = 0;
@@ -678,26 +693,26 @@ static void objects_status(const arv_home *h, const archive *cat, const char *ab
             text_sha256(text.s, tree);
         }
         if (!heading) {
-            puts("  data objects archived from here:");
+            fprintf(out, "%s\n", "  data objects archived from here:");
             heading = 1;
         }
-        printf("  %s%s%s%s%s: version %s on %s", get_or(latest, "Name", "?"), is_file ? "" : "/", *rel ? " (" : "", rel,
+        fprintf(out, "  %s%s%s%s%s: version %s on %s", get_or(latest, "Name", "?"), is_file ? "" : "/", *rel ? " (" : "", rel,
                *rel ? ")" : "", get_or(latest, "Version", "?"), discs.s);
-        if (!lines.n) printf("; not here any more\n");
-        else if (!strcmp(tree, get_or(latest, "Tree", ""))) printf("; unchanged\n");
+        if (!lines.n) fprintf(out, "; not here any more\n");
+        else if (!strcmp(tree, get_or(latest, "Tree", ""))) fprintf(out, "; unchanged\n");
         else {
             char *f = xprintf("%s/objects/%s.sha256", h->catalog_dir, get_or(latest, "Tree", "")), *before = access(f, F_OK) ? NULL : read_text(f);
-            if (is_file || !before) printf("; changed since (archived again, it is version %ld)\n", atol(get_or(latest, "Version", "0")) + 1);
+            if (is_file || !before) fprintf(out, "; changed since (archived again, it is version %ld)\n", atol(get_or(latest, "Version", "0")) + 1);
             else {
                 char *c = manifest_changes(before, text.s);
-                printf("; changed since: %s (archived again, it is version %ld)\n", c, atol(get_or(latest, "Version", "0")) + 1);
+                fprintf(out, "; changed since: %s (archived again, it is version %ld)\n", c, atol(get_or(latest, "Version", "0")) + 1);
                 if (verbose) {
                     mlist b = { 0 }, a = { 0 };
                     ml_parse(&b, before);
                     ml_parse(&a, text.s);
                     mdiff d;
                     diff_manifests(&b, &a, &d);
-                    diff_print(&d, 1);
+                    diff_print(out, &d, 1);
                     diff_free(&d);
                     ml_free(&b);
                     ml_free(&a);
@@ -731,7 +746,7 @@ static void objects_status(const arv_home *h, const archive *cat, const char *ab
         const rec_record *o = cat->objects.v[i];
         if (strcmp(get_or(o, "Tree", ""), tree) || strlist_has(&seen, get_or(o, "Uuid", ""))) continue;
         strlist_add(&seen, get_or(o, "Uuid", ""));
-        printf("  its bytes are the data object %s/, version %s (data/%s on %s), archived from elsewhere\n",
+        fprintf(out, "  its bytes are the data object %s/, version %s (data/%s on %s), archived from elsewhere\n",
                get_or(o, "Name", "?"), get_or(o, "Version", "?"), get_or(o, "Path", "?"), get_or(o, "Disc", "?"));
     }
     free(text.s);
@@ -810,11 +825,11 @@ static char *git_out(char **argv)
     return out;
 }
 
-static void git_report(const arv_home *h, const archive *cat, const char *root, const strlist *repos)
+static void git_report(FILE *to, const arv_home *h, const archive *cat, const char *root, const strlist *repos)
 {
     if (!repos->n) return;
     if (!on_path("git")) {
-        printf("  (%zu git repositor%s not compared: git is not on PATH)\n", repos->n, repos->n == 1 ? "y" : "ies");
+        fprintf(to, "  (%zu git repositor%s not compared: git is not on PATH)\n", repos->n, repos->n == 1 ? "y" : "ies");
         return;
     }
     grow *rows;
@@ -883,7 +898,7 @@ static void git_report(const arv_home *h, const archive *cat, const char *root, 
             }
         }
         if (changed) sb_puts(&line, "; uncommitted changes");
-        puts(line.s);
+        fprintf(to, "%s\n", line.s);
         free(line.s);
         free(head);
         free(abs);
@@ -975,14 +990,26 @@ void layout_notes(const arv_home *h, const char *abs, FILE *out, const char *pre
     vocab_free(&v);
 }
 
+/* a list of strings, as JSON */
+static void json_list(sbuf *b, const strlist *l)
+{
+    sb_puts(b, "[");
+    for (size_t i = 0; i < l->n; i++) {
+        if (i) sb_puts(b, ", ");
+        json_str(b, l->v[i]);
+    }
+    sb_puts(b, "]");
+}
+
 int cmd_status(int argc, char **argv)
 {
     const char *given = NULL, *folder = NULL;
-    int verbose = 0, deep = 0;
+    int verbose = 0, deep = 0, as_json = 0;
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (!strcmp(argv[i], "-v")) verbose = 1;
         else if (!strcmp(argv[i], "--deep")) deep = 1;
+        else if (!strcmp(argv[i], "--json")) as_json = 1;
         else if (argv[i][0] != '-' && !folder) folder = argv[i];
         else return 2;
     }
@@ -997,48 +1024,108 @@ int cmd_status(int argc, char **argv)
     if (!coll && marker_collection(abs)) die("%s", "this folder's .arv marker names a collection that is not in the home catalogue");
     scan s;
     scan_folder(abs, &h, deep, &s);
+    /* with --json: what the folder is and what changed, as members; what the rest says (data objects,
+     * repositories, layouts), as notes */
+    sbuf j = { 0 };
+    char *notes_text = NULL;
+    size_t notes_len = 0;
+    FILE *notes = as_json ? open_memstream(&notes_text, &notes_len) : stdout;
+    if (!notes) die("%s", "cannot collect the notes");
+    sbuf *json = as_json ? &j : NULL;
+    if (json) {
+        sb_puts(json, "{" JSON_FORMAT ", \"folder\": ");
+        json_str(json, abs);
+    }
     if (coll) {
-        printf("%s (%s): workflow folder %s (%s)\n", rec_get(coll, "Code"), get_or(coll, "Title", ""), abs, how);
+        if (json) {
+            sb_puts(json, ", \"is\": \"collection\", \"collection\": ");
+            json_str(json, rec_get(coll, "Code"));
+            sb_puts(json, ", \"title\": ");
+            json_str(json, get_or(coll, "Title", ""));
+            sb_puts(json, ", \"how\": ");
+            json_str(json, how);
+        } else printf("%s (%s): workflow folder %s (%s)\n", rec_get(coll, "Code"), get_or(coll, "Title", ""), abs, how);
         const rec_record *head = collection_head(&cat, rec_get(coll, "Uuid"));
         if (!head) {
-            printf("  no revision yet: %zu file%s (arv make for its first edition)\n", s.files.n,
-                   s.files.n == 1 ? "" : "s");
+            if (json) sb_printf(json, ", \"since\": null, \"files\": %zu", s.files.n);
+            else printf("  no revision yet: %zu file%s (arv make for its first edition)\n", s.files.n, s.files.n == 1 ? "" : "s");
         } else {
             sbuf what = { 0 };
             describe_revision(head, &what);
-            printf("  since %s:\n", what.s);
+            if (json) {
+                sb_puts(json, ", \"since\": ");
+                json_str(json, what.s);
+                sb_printf(json, ", \"files\": %zu", s.files.n);
+            } else printf("  since %s:\n", what.s);
             free(what.s);
             mlist before;
             char *text = read_revision(&h, head, &before);
-            if (!text) printf("  (its manifest is not in %s/revisions: nothing to compare with)\n", h.catalog_dir);
+            if (!text) fprintf(notes, "  (its manifest is not in %s/revisions: nothing to compare with)\n", h.catalog_dir);
             else {
                 mdiff d;
                 diff_manifests(&before, &s.files, &d);
-                if (!d.added.n && !d.changed.n && !d.removed.n && !d.moved.n) puts("  nothing changed");
-                else diff_print(&d, verbose);
+                if (json) {
+                    sb_puts(json, ", \"changes\": {\"added\": ");
+                    json_list(json, &d.added);
+                    sb_puts(json, ", \"changed\": ");
+                    json_list(json, &d.changed);
+                    sb_puts(json, ", \"removed\": ");
+                    json_list(json, &d.removed);
+                    sb_puts(json, ", \"moved\": ");
+                    json_list(json, &d.moved);
+                    sb_puts(json, "}");
+                } else if (!d.added.n && !d.changed.n && !d.removed.n && !d.moved.n) puts("  nothing changed");
+                else diff_print(stdout, &d, verbose);
                 diff_free(&d);
             }
             ml_free(&before);
             free(text);
         }
     } else if (link && !strcmp(get_or(link, "State", ""), "past")) {
-        printf("%s: kept for reference, an older state of %s (linked %s)\n", abs,
-               get_or(link, "Object", get_or(link, "Disc", "?")), get_or(link, "Date", ""));
-        tracked_status(&h, &cat, &s, verbose, 0);
+        const char *of = get_or(link, "Object", get_or(link, "Disc", "?"));
+        if (json) {
+            sb_puts(json, ", \"is\": \"past\", \"of\": ");
+            json_str(json, of);
+        } else printf("%s: kept for reference, an older state of %s (linked %s)\n", abs, of, get_or(link, "Date", ""));
+        tracked_status(&h, &cat, &s, verbose, 0, json);
     } else if (link && rec_get(link, "Disc")) {
-        printf("%s: the source of disc %s (declared %s)\n", abs, rec_get(link, "Disc"), get_or(link, "Date", ""));
-        tracked_status(&h, &cat, &s, verbose, 0);
+        if (json) {
+            sb_puts(json, ", \"is\": \"source\", \"of\": ");
+            json_str(json, rec_get(link, "Disc"));
+        } else printf("%s: the source of disc %s (declared %s)\n", abs, rec_get(link, "Disc"), get_or(link, "Date", ""));
+        tracked_status(&h, &cat, &s, verbose, 0, json);
     } else {
-        printf("%s: not a collection's workflow folder\n", abs);
-        tracked_status(&h, &cat, &s, verbose, 1);
+        if (json) sb_puts(json, ", \"is\": \"folder\"");
+        else printf("%s: not a collection's workflow folder\n", abs);
+        tracked_status(&h, &cat, &s, verbose, 1, json);
     }
-    if (!coll) objects_status(&h, &cat, abs, &s, verbose);
-    git_report(&h, &cat, abs, &s.repos);
-    layout_notes(&h, abs, stdout, "  layout: ");
-    if (s.links || s.unreadable) printf("  (%zu symbolic links not compared, %zu unreadable)\n", s.links, s.unreadable);
+    if (!coll) objects_status(notes, &h, &cat, abs, &s, verbose || as_json);
+    git_report(notes, &h, &cat, abs, &s.repos);
+    layout_notes(&h, abs, notes, "  layout: ");
+    if (s.links || s.unreadable) fprintf(notes, "  (%zu symbolic links not compared, %zu unreadable)\n", s.links, s.unreadable);
     for (size_t i = 0; i < s.silent_paths.n; i++)
-        printf("  ! %s: content changed but its modified time did not (bit rot, or a tool that keeps times)\n",
-               s.silent_paths.v[i]);
+        fprintf(notes, "  ! %s: content changed but its modified time did not (bit rot, or a tool that keeps times)\n",
+                s.silent_paths.v[i]);
+    if (json) {
+        fclose(notes);
+        sb_puts(json, ", \"notes\": [");
+        int first = 1;
+        for (char *line = notes_text; line && *line;) {
+            char *nl = strchr(line, '\n');
+            if (nl) *nl = 0;
+            while (*line == ' ') line++;
+            if (*line) {
+                sb_puts(json, first ? "" : ", ");
+                json_str(json, line);
+                first = 0;
+            }
+            line = nl ? nl + 1 : line + strlen(line);
+        }
+        sb_puts(json, "]}\n");
+        fputs(json->s, stdout);
+        free(json->s);
+        free(notes_text);
+    }
     ml_free(&s.files);
     strlist_free(&s.silent_paths);
     strlist_free(&s.repos);
@@ -1130,7 +1217,7 @@ int cmd_diff(int argc, char **argv)
     puts(head.s);
     mdiff d;
     diff_manifests(&before, &after, &d);
-    diff_print(&d, verbose);
+    diff_print(stdout, &d, verbose);
     diff_free(&d);
     ml_free(&before);
     ml_free(&after);
