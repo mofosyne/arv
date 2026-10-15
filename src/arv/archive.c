@@ -1166,6 +1166,7 @@ size_t identity_report(const archive *a)
             if (bca && strcmp(bca, ids[i].v[k])) {
                 printf("TWO BCA  %s copy %s: %s and %s (one disc has one serial: a mix-up, the wrong disc in the drive?)\n",
                        disc, letter_of(a, copies[i]), bca, ids[i].v[k]);
+                printf("  Put the disc in a drive: arv drives says which disc and copy it is.\n");
                 n++;
             }
             bca = ids[i].v[k];
@@ -1174,10 +1175,11 @@ size_t identity_report(const archive *a)
             if (q && pairs[q].i == pairs[q - 1].i && pairs[q].j == pairs[q - 1].j) continue;   /* its first identifier */
             size_t j = pairs[q].j;
             const char *other = rec_get(copies[j], "Disc"), *id = ids[i].v[pairs[q].k];
-            if (strcmp(disc, other))
+            if (strcmp(disc, other)) {
                 printf("TWO DISCS  %s is on copy %s of %s and copy %s of %s: one physical disc cannot be both\n",
                        id, letter_of(a, copies[i]), disc, letter_of(a, copies[j]), other);
-            else
+                printf("  Put the disc in a drive: arv drives says which disc and copy it is.\n");
+            } else
                 printf("TWICE  %s copies %s and %s are one disc (%s): recorded twice, counted once\n", disc,
                        letter_of(a, copies[i]), letter_of(a, copies[j]), id);
             n++;

@@ -1693,3 +1693,16 @@ Not done: a cache on disk. The catalogue is a text file read whole each run (a f
 10,000 discs), and it stays the one source of truth; a second file would have to be kept in step.
 Not worth it until a catalogue is many times this size.
 
+## Done (2026-10-15, issue #38): the interface catches up with copies
+
+What #34 gave the command line, in `arv gui` where a person does it by hand: a barcode for a copy
+(the field takes a scanner's Enter), a new letter for one of two copies lettered alike (offered
+only then, naming each copy by its place, or by an identifier when both share one), an inventory
+of a shelf or library, and the audit. Each runs the command and shows what it printed; the
+interface adds no behaviour of its own. Findings are shown by their fixed first word, with one
+line on what each means.
+
+Not in the interface: `arv drives` (a drive is local hardware; the command line is the place), and
+a library loop (a script's job: `docs/examples/library-check.sh`). The demo is not re-recorded: it
+already shows copies by letter, and the rest is for archives past their first few discs.
+

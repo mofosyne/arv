@@ -35,7 +35,7 @@ header button.link.clear { border-color:var(--ok); color:var(--ok); }
 .owed h3 { font-size:15px; margin:16px 0 4px; }
 #disc-detail h3 { font-size:15px; margin:14px 0 4px; }
 .owed li { font-family:ui-monospace, monospace; font-size:13px; overflow-wrap:anywhere; }
-.owed li button.link { font:inherit; background:none; border:none; padding:0; color:var(--accent); text-decoration:underline; cursor:pointer; }
+.owed li button.link, td button.link { font:inherit; background:none; border:none; padding:0; color:var(--accent); text-decoration:underline; cursor:pointer; }
 main { max-width:1100px; margin:0 auto; padding:16px 16px 64px; }
 section[hidden] { display:none; }
 h2 { font-size:1.05rem; margin:24px 0 8px; }
@@ -152,6 +152,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 <nav class="sub" data-group="verify" hidden>
   <button data-tab="owed">Owed</button>
   <button data-tab="tools">Check</button>
+  <button data-tab="inventory">Inventory</button>
+  <button data-tab="audit">Audit</button>
   <button data-tab="restore">Restore</button>
 </nav>
 <main>
@@ -208,7 +210,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 
 <section id="tab-search" hidden>
   <form id="search-form" class="inline">
-    <div><label for="q">File name, words in a path, or a glob like *.jpg</label><input type="text" id="q"></div>
+    <div><label for="q">File name, words in a path, a glob like *.jpg, or a scanned barcode</label><input type="text" id="q"></div>
     <button class="primary" type="submit">Search</button>
   </form>
   <div id="search-results"></div>
@@ -308,6 +310,31 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   </form>
 </section>
 
+<section id="tab-inventory" hidden>
+  <p class="muted">What a jukebox, a tape library or a shelf holds, against the copies recorded there: paste what
+    <span class="mono">mtx status</span> printed, or scan each case's barcode into the box (one a line). Nothing is recorded.</p>
+  <form id="inv-form">
+    <div class="row">
+      <div><label for="inv-place">Place</label><select id="inv-place"></select></div>
+    </div>
+    <label for="inv-text">Barcodes read there</label><textarea id="inv-text" rows="8" placeholder="ARV-000123&#10;ARV-000124"></textarea>
+    <div class="checks"><label><input type="checkbox" id="inv-all"> Also list what was found as recorded</label></div>
+    <button class="primary" type="submit">Compare</button>
+  </form>
+  <div id="inv-out"></div>
+</section>
+
+<section id="tab-audit" hidden>
+  <p class="muted">Every event as it was written (an event edited by hand no longer matches its id), copies recorded
+    twice, and fields two catalogues changed apart. With discs, the home against the catalogue each carries.</p>
+  <form id="audit-form">
+    <label for="audit-discs">Discs to compare with (optional: a mounted disc or an extracted image, one a line)</label>
+    <textarea id="audit-discs" rows="2" placeholder="/media/disc"></textarea>
+    <button class="primary" type="submit">Audit</button>
+  </form>
+  <div id="audit-out"></div>
+</section>
+
 <section id="tab-restore" hidden>
   <h2>Restore files from a disc</h2>
   <form id="restore-form" class="inline">
@@ -315,10 +342,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     <div><label for="rs-dest">Copy them to (a new or empty folder)</label><input type="text" id="rs-dest"></div>
     <button class="primary" type="submit">Restore</button>
   </form>
-  <h2>Rebuild the catalogue from a disc</h2>
-  <p class="muted">Every disc carries the catalogue as it was when the disc was made.</p>
+  <h2>Rebuild the catalogue from a disc, or merge another</h2>
+  <p class="muted">Every disc carries the catalogue as it was when the disc was made. Another catalogue of this archive
+    (its <span class="mono">.arv</span> folder, copied from another machine) merges by event id; what both changed apart
+    is reported, and Audit lists it again.</p>
   <form id="rebuild-form" class="inline">
-    <div><label for="r-path">Mounted disc folder</label><input type="text" id="r-path" placeholder="/media/disc"></div>
+    <div><label for="r-path">Mounted disc folder, or another catalogue</label><input type="text" id="r-path" placeholder="/media/disc or /mnt/laptop/.arv"></div>
     <button class="primary" type="submit">Rebuild</button>
   </form>
 </section>
@@ -383,7 +412,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // ---------------------------------------------------------------- tabs
   // Archive, Record, Verify: each view belongs to one of the three
   var GROUP = { master: "archive", make: "archive", objects: "record", collections: "record", discs: "record", search: "record",
-                owed: "verify", tools: "verify", restore: "verify" };
+                owed: "verify", tools: "verify", inventory: "verify", audit: "verify", restore: "verify" };
   var lastView = { archive: "make", record: "objects", verify: "owed" };
   function showTab(name) {
     var group = GROUP[name];
@@ -399,6 +428,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (name === "master") loadPlans();
     if (name === "objects") loadObjects();
     if (name === "collections") loadCollections();
+    if (name === "inventory") loadPlaces();
   }
   document.querySelectorAll("nav.sub button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
   document.querySelectorAll("nav.groups button").forEach(function (b) { b.onclick = function () { showTab(lastView[b.dataset.group]); }; });
@@ -475,6 +505,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var letters = el("select", { "aria-label": "Which copy" }, [el("option", { value: "", text: "any (by its identifier)" })]);
     var moveLetter = el("select", { "aria-label": "Copy to move" });
     var movePlace = el("input", { type: "text", placeholder: "a location code, or text" });
+    var idLetter = el("select", { "aria-label": "Copy known by it" }), clash = el("div");
     var move = el("button", { class: "plain", text: "Update place" });
     move.onclick = function () {
       if (moveLetter.value && movePlace.value.trim()) run({ command: "locate", disc_id: d.Id, copy: moveLetter.value, location: movePlace.value.trim() }, true);
@@ -492,11 +523,13 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
           el("td", { text: c.form + (c.temperature ? ", " + c.temperature : "") }),
           el("td", { text: c.at || "not recorded" }), el("td", { text: c.made }),
           el("td", { class: c.readBack ? "ok" : "warn", text: checked }), el("td", { class: "mono muted", text: (c.identifiers || []).join(", ") + (c.sameAs ? " (the same disc as copy " + c.sameAs + ")" : "") })]));
-        if (c.copy) {
+        if (c.copy && !moveLetter.querySelector('option[value="' + c.copy + '"]')) {
           letters.appendChild(el("option", { value: c.copy, text: "copy " + c.copy }));
           moveLetter.appendChild(el("option", { value: c.copy, text: "copy " + c.copy }));
+          idLetter.appendChild(el("option", { value: c.copy, text: "copy " + c.copy + (c.form === "disc" ? "" : " (" + c.form + ")") }));
         }
       });
+      letterClashes(d, res.copies, clash);
       list.appendChild(el("div", { class: "scroll" }, [t]));
       list.appendChild(el("p", { class: "muted", text: "Each copy's letter is written on its hub and case, after the id: " + d.Id + " " + (res.copies[0].copy || "A") + "." }));
     }).catch(function (e) { list.textContent = "Error: " + e.message; });
@@ -509,6 +542,25 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       var body = { command: "burned", disc_id: d.Id, copies: n.value, location: place.value, device: drive.value.trim(), copy: letter.value };
       run(body, !body.device);          // reading back takes a while: shown in Jobs
     };
+    wrap.appendChild(clash);
+
+    // what a copy is known by: a barcode on its case (a scanner types it here, then Enter), its BCA
+    // serial; and for an image on a tape or drive, that carrier
+    var code = el("input", { type: "text", placeholder: "scan or type the barcode", autocomplete: "off" });
+    var other = el("input", { type: "text", placeholder: "bca:SERIAL or serial:SERIAL" });
+    var carrier = el("input", { type: "text", placeholder: "for an image: barcode:TAPE01L8" });
+    var known = el("button", { class: "plain", text: "Record" });
+    known.onclick = function () {
+      if (!idLetter.value || !(code.value.trim() || other.value.trim() || carrier.value.trim())) return;
+      run({ command: "identify", disc_id: d.Id, copy: idLetter.value, barcode: code.value,
+            identifiers: other.value.trim() ? [other.value.trim()] : [], carrier: carrier.value }, true);
+    };
+    code.onkeydown = function (ev) { if (ev.key === "Enter") { ev.preventDefault(); known.onclick(); } };
+    wrap.appendChild(el("h3", { text: "What a copy is known by" }));
+    wrap.appendChild(el("p", { class: "muted", text: "A barcode on its case finds it again (Search, and a library's inventory); a drive that reads its BCA serial knows which copy is in it. A copy kept as an image on a tape or drive names that carrier." }));
+    wrap.appendChild(el("div", { class: "inline" }, [field("Copy", idLetter), field("Barcode", code), field("…or identifier", other),
+      field("On a carrier", carrier), known]));
+
     wrap.appendChild(el("h3", { text: "Record a burned copy" }));
     wrap.appendChild(el("p", { class: "muted", text: "With the drive named, arv reads the copy back against its image first and records it only if identical (one copy; on Linux with its BCA serial). Without it, the copies are recorded as not read back." }));
     wrap.appendChild(el("div", { class: "inline" }, [field("How many", n), field("Kept at", place), field("Drive", drive), field("Letter", letter), burned]));
@@ -527,12 +579,37 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var cdrive = el("input", { type: "text", placeholder: "/dev/sr0" }), cimage = el("input", { type: "text", placeholder: "or an image file" });
     var repair = el("input", { type: "checkbox" }), check = el("button", { class: "plain", text: "Check" });
     check.onclick = function () {
-      run({ disc_id: d.Id, device: cdrive.value.trim(), image: cimage.value.trim(), copy: letters.value, repair: repair.checked }, false, "/api/check");
+      var source = cdrive.value.trim() || cimage.value.trim();
+      if (source) run({ disc_id: d.Id, source: source, copy: letters.value, repair: repair.checked }, false, "/api/check");
     };
     wrap.appendChild(el("h3", { text: "Check a copy" }));
     wrap.appendChild(el("div", { class: "inline" }, [field("Drive", cdrive), field("…or image", cimage), field("Copy", letters),
       el("label", {}, [repair, document.createTextNode(" repair the image")]), check]));
     return wrap;
+  }
+  // two copies with one letter (two catalogues each gave out "the next"): offer arv relabel for each,
+  // named by its place, or by an identifier when both are kept at one place
+  function letterClashes(d, copies, box) {
+    var used = copies.map(function (c) { return c.copy; });
+    var next = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(function (l) { return used.indexOf(l) < 0; })[0] || "";
+    used.filter(function (l, i) { return l && used.indexOf(l) !== i && used.indexOf(l, i + 1) < 0; }).forEach(function (l) {
+      var same = copies.filter(function (c) { return c.copy === l; });
+      var card = el("div", { class: "banner" }, [el("p", { class: "warn", text: same.length + " copies are lettered " + l +
+        ", recorded in two catalogues. Give one another letter, and write it on its hub and case." })]);
+      same.forEach(function (c) {
+        var byPlace = c.location && same.filter(function (o) { return o.location === c.location; }).length === 1;
+        var by = byPlace ? { at: c.location } : c.identifiers && c.identifiers.length ? { identifier: c.identifiers[0] } : null;
+        var label = "copy " + l + " " + (byPlace ? "at " + (c.at || c.location) : by ? "known by " + by.identifier : "(no place or identifier to tell it by)");
+        if (!by) { card.appendChild(el("div", { class: "muted", text: label })); return; }
+        var to = el("input", { type: "text", size: "3", value: next, "aria-label": "New letter" });
+        var go = el("button", { class: "plain", text: "Give it this letter" });
+        go.onclick = function () {
+          if (to.value.trim()) run(Object.assign({ command: "relabel", disc_id: d.Id, copy: l, new: to.value.trim().toUpperCase() }, by), true);
+        };
+        card.appendChild(el("div", { class: "inline" }, [el("span", { text: label }), to, go]));
+      });
+      box.appendChild(card);
+    });
   }
   function renderDetail() {
     var box = $("disc-detail"), d = discs.filter(function (x) { return x.Id === selected; })[0];
@@ -579,10 +656,25 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var out = $("search-results"); out.textContent = "Searching…";
     api("/api/find?q=" + encodeURIComponent($("q").value)).then(function (res) {
       out.textContent = "";
+      if ((res.copies || []).length) {      // a scanned case: which disc and copy it is
+        out.appendChild(el("h2", { text: "Copies" }));
+        var ct = el("table");
+        ct.appendChild(el("tr", {}, ["Disc", "Copy", "Known by", "Kept at", "Checked"].map(function (h) { return el("th", { text: h }); })));
+        res.copies.forEach(function (c) {
+          var open = el("button", { class: "link", type: "button", text: c.disc, title: "Open " + c.disc + " in Record › Discs" });
+          open.onclick = function () { selected = c.disc; showTab("discs"); };
+          ct.appendChild(el("tr", {}, [el("td", { class: "mono" }, [open]), el("td", { class: "mono", text: c.copy }),
+            el("td", { class: "mono", text: c.identifier + (c.onCarrier ? " (the tape or drive it is on)" : "") }),
+            el("td", { text: (c.at || "place not recorded") + (c.retired ? " (the disc is retired)" : "") }),
+            el("td", { class: c.checked || c.readBack ? "ok" : "warn", text: c.checked ? "last " + c.checked : c.readBack ? "read back" : "never checked" })]));
+        });
+        out.appendChild(el("div", { class: "scroll" }, [ct]));
+      }
       if (res.discs.length) {
         out.appendChild(el("h2", { text: "Discs" }));
         res.discs.forEach(function (d) { out.appendChild(el("div", { class: "note", text: d.Id + " — " + (d.Title || "") + (d.Where ? " — " + d.Where : "") })); });
       }
+      if (!res.total && (res.copies || []).length) return;     // a barcode: the copy is the answer
       out.appendChild(el("h2", { text: "Files (" + res.total + (res.total > res.files.length ? ", showing " + res.files.length : "") + ")" }));
       var t = el("table");
       t.appendChild(el("tr", {}, ["Disc", "Location", "Path"].map(function (h) { return el("th", { text: h }); })));
@@ -1089,6 +1181,65 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   $("rebuild-form").onsubmit = function (ev) { ev.preventDefault(); run({ command: "rebuild", path: $("r-path").value }); };
   $("restore-form").onsubmit = function (ev) {
     ev.preventDefault(); run({ command: "restore", path: $("rs-path").value, dest: $("rs-dest").value });
+  };
+
+  // ---------------------------------------------------------------- inventory and audit: findings, each
+  // a line that starts with a fixed word, and what to do about it
+  var FINDING = {
+    MISSING: "recorded here (or carried by the disc), not found",
+    UNKNOWN: "not this archive's, or not recorded yet",
+    ELSEWHERE: "recorded at another place",
+    UNMARKED: "recorded here, with no barcode to find it by",
+    CHANGED: "not what was written: edited by hand? Change the record only through arv",
+    DIFFERS: "the home's event is not what the disc carries",
+    TWICE: "one disc recorded twice: counted once, nothing to do",
+    "TWO DISCS": "one identifier on two discs: a mix-up",
+    "TWO BCA": "one copy with two serials: a mix-up",
+    CONFLICT: "changed apart in two catalogues: this home's value stands until it is set again"
+  };
+  function findings(text, box) {
+    var list = el("div"), n = 0, last = null;
+    text.split("\n").forEach(function (line) {
+      if (!line.trim()) return;
+      var m = /^(TWO DISCS|TWO BCA|[A-Z]+)\s+(.*)$/.exec(line);
+      if (m && FINDING[m[1]]) {
+        n++;
+        last = el("div", { class: "card" }, [el("div", {}, [el("span", { class: "chip " + (m[1] === "TWICE" ? "none" : "hot"), text: m[1] }),
+          el("span", { class: "muted", text: FINDING[m[1]] })]), el("div", { class: "mono", text: m[2] })]);
+        list.appendChild(last);
+      } else if (/^  /.test(line) && last) {
+        last.appendChild(el("div", { class: "mono muted", text: line.trim() }));
+      } else {
+        box.appendChild(el("p", { text: line }));
+      }
+    });
+    if (!n) box.appendChild(el("p", { class: "ok", text: "Nothing found wrong." }));
+    box.appendChild(list);
+  }
+  function loadPlaces() {
+    var pick = $("inv-place");
+    if (pick.options.length) return;
+    api("/api/locations").then(function (res) {
+      res.locations.forEach(function (l) {
+        pick.appendChild(el("option", { value: l.code, text: "\u00a0\u00a0".repeat(l.depth) + l.code + " \u2014 " + l.name }));
+      });
+      if (!res.locations.length) pick.appendChild(el("option", { value: "", text: "(no places yet: arv location add CODE NAME)" }));
+    }).catch(function (e) { $("inv-out").textContent = "Error: " + e.message; });
+  }
+  $("inv-form").onsubmit = function (ev) {
+    ev.preventDefault();
+    var out = $("inv-out"); out.textContent = "Comparing…";
+    if (!$("inv-place").value) { out.textContent = "Choose a place first."; return; }
+    api("/api/inventory", { place: $("inv-place").value, text: $("inv-text").value, verbose: $("inv-all").checked }).then(function (r) {
+      out.textContent = ""; findings(r.output, out);
+    }).catch(function (e) { out.textContent = "Error: " + e.message; });
+  };
+  $("audit-form").onsubmit = function (ev) {
+    ev.preventDefault();
+    var out = $("audit-out"); out.textContent = "Reading every event…";
+    api("/api/audit?discs=" + encodeURIComponent($("audit-discs").value)).then(function (r) {
+      out.textContent = ""; findings(r.text, out);
+    }).catch(function (e) { out.textContent = "Error: " + e.message; });
   };
 
   // ---------------------------------------------------------------- jobs

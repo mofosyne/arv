@@ -101,6 +101,46 @@ same way.</p>
   <a href="https://github.com/mofosyne/arv/blob/main/docs/architecture.md">More on the layers</a>.</figcaption>
 </figure>
 
+<h2 id="copies">Copies</h2>
+<p>Every copy of a disc gets a letter, A, B, C, written on its hub and case after the disc's id
+(<code>FAMILY-04_2001-2025_X B</code>). The letter is how a check, a move or a missing copy names it;
+the copies are the same image, so nothing else tells them apart.</p>
+<ul>
+  <li><strong>Known by what is on it.</strong> A Blu-ray's factory serial (its BCA, which a drive
+  reads on Linux) and a barcode on its case can be recorded with the copy
+  (<code>arv identify ID B --barcode ARV-000123</code>). Scanning the case then finds it
+  (<code>arv find ARV-000123</code>), and a drive that reads the serial knows which copy is in it.
+  Two records with one serial or barcode are one physical disc, counted once.</li>
+  <li><strong>Carriers.</strong> A copy kept as an image on an LTO tape or a hard drive names that
+  carrier (its barcode or serial). Two copies on one tape are lost together, so they count as one.</li>
+  <li><strong>Places and temperature.</strong> Each copy is kept somewhere (a box, a friend's house,
+  the NAS), cold, warm or hot. <code>arv todo</code> says what is owed: a copy to make, one to read
+  back, a check overdue, no cold copy.</li>
+</ul>
+
+<h2 id="two-machines">Two machines</h2>
+<p>The catalogue is a folder (<code>.arv</code>), written in one place: a copy of it refuses
+changes, so the record cannot drift into two.</p>
+<ul>
+  <li>Move it or keep a copy elsewhere with rsync or any sync tool. If it moved, or a share mounts
+  it at another path, <code>arv where --here</code> says this is the place now.</li>
+  <li>If the other machine did take changes, <code>arv rebuild OTHER/.arv</code> merges them by
+  event id. A disc id both gave out is not merged, two copies with one letter are named
+  (<code>arv relabel</code> gives one a new letter), and a field both changed is a conflict until
+  it is set again.</li>
+  <li><code>arv audit</code> checks every event is as written, and with discs, that the home
+  agrees with the catalogue each disc carries.</li>
+</ul>
+
+<h2 id="libraries">Jukeboxes and tape libraries</h2>
+<p>arv keeps the record; the changer moves the media. <code>arv todo --tsv</code> lists what is
+owed, one copy a line with its barcode or its tape's, for a script to load and check each one.
+<code>arv inventory PLACE</code> takes what <code>mtx status</code> reads (or a scanner, one barcode
+a line) and says which recorded copies are missing, which barcodes are unknown, and which copies
+are recorded elsewhere. An example loop:
+<a href="https://github.com/mofosyne/arv/blob/main/docs/examples/library-check.sh">library-check.sh</a>,
+not yet tried on a real library.</p>
+
 <h2 id="see-it">See it</h2>
 <p>A typical session, run for real (about a minute and a half): a disc composed from a video and a
 camera card, its copies recorded by letter on the shelf and the NAS, then checked. <a href="demo/arv.cast">The recording</a>

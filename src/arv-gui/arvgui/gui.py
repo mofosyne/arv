@@ -147,10 +147,10 @@ class App:
 
     # ------------------------------------------------------------ disc plans (the mastering window)
 
-    def arv_now(self, argv):
-        """arv run to its end (quick commands): its exit status and what it printed."""
-        proc = subprocess.run([ARV, "--home", self.home["path"]] + argv, stdin=subprocess.DEVNULL,
-                              capture_output=True, text=True)
+    def arv_now(self, argv, given=None):
+        """arv run to its end (quick commands): its exit status and what it printed. given: its standard input."""
+        proc = subprocess.run([ARV, "--home", self.home["path"]] + argv, capture_output=True, text=True,
+                              **({"input": given} if given is not None else {"stdin": subprocess.DEVNULL}))
         return proc.returncode, (proc.stdout + proc.stderr).strip()
 
     def arv_json(self, argv):
@@ -182,6 +182,33 @@ class App:
         if code:
             raise LookupError(text)
         return json.loads(text)
+
+    def audit(self, params):
+        """arv audit [DISC...]: every event as written, and with discs, the home against them. Findings
+        (CHANGED, CONFLICT, TWICE ...) exit 1: they are the answer, not an error."""
+        discs = [os.path.abspath(os.path.expanduser(d)) for d in params.get("discs", "").split("\n") if d.strip()]
+        code, text = self.arv_now(["audit"] + discs)
+        return {"returncode": code, "text": text}
+
+    def locations(self, _params):
+        """The archive's places (arv location list): code and name, for choosing one."""
+        code, text = self.arv_now(["location", "list"])
+        if code:
+            raise LookupError(text)
+        places = []
+        for line in text.split("\n"):
+            m = re.match(r"^(\s*)(\S+)\s{2,}(.*?)\s{2,}", line + "  ")
+            if m and re.match(r"^[A-Z0-9][A-Z0-9_-]*$", m.group(2)):
+                places.append({"code": m.group(2), "name": m.group(3), "depth": len(m.group(1)) // 2})
+        return {"locations": places}
+
+    def post_inventory(self, body):
+        """arv inventory PLACE, given what a library or a scanner read (mtx status, or one barcode a line)."""
+        place = str(body["place"]).strip()
+        if not place or place.startswith("-"):
+            raise ValueError("no place")
+        code, text = self.arv_now(["inventory"] + (["-v"] if body.get("verbose") else []) + [place], str(body.get("text") or ""))
+        return {"returncode": code, "output": text}
 
     def collections(self, _params):
         """Each collection and its editions (the Collections tab): the discs of each, their copies,
@@ -353,6 +380,9 @@ class App:
         return self.start_job(argv).as_dict()
 
     def post_check(self, body):
+        source = (body.get("source") or body.get("device") or body.get("image") or "").strip()
+        if not source:
+            raise ValueError("a drive, an image file or a disc's files to check")
         argv = ["check"]
         if body.get("repair"):
             argv.append("--repair")
@@ -360,7 +390,7 @@ class App:
             argv += ["--copy", body["copy"]]
         if (body.get("note") or "").strip():
             argv += ["--note", body["note"].strip()]
-        argv.append(body["source"])                 # a drive, an image file, or a disc's files
+        argv.append(source)                         # a drive, an image file, or a disc's files
         if body.get("disc_id"):
             argv.append(body["disc_id"])
         return self.start_job(argv).as_dict()
@@ -378,6 +408,21 @@ class App:
             for key in ("copy", "location", "media_type", "identifier"):
                 if (body.get(key) or "").strip():
                     argv += ["--" + key.replace("_", "-"), body[key].strip()]
+        elif command == "identify":                 # what a copy is known by (a scanned barcode ...), or is on
+            argv = ["identify", body["disc_id"], body["copy"]]
+            if (body.get("barcode") or "").strip():
+                argv += ["--barcode", body["barcode"].strip()]
+            argv += [i.strip() for i in body.get("identifiers") or [] if i.strip() and not i.strip().startswith("-")]
+            if (body.get("carrier") or "").strip():
+                argv += ["--carrier", body["carrier"].strip()]
+            if len(argv) == 3:
+                raise ValueError("nothing to record: a barcode, an identifier or a carrier")
+        elif command == "relabel":                  # a copy's new letter; --at or --identifier says which copy
+            argv = ["relabel", body["disc_id"], body["copy"], body["new"].strip()]
+            if body.get("at"):
+                argv += ["--at", body["at"]]
+            elif body.get("identifier"):
+                argv += ["--identifier", body["identifier"]]
         elif command == "stored":
             argv = ["stored", body["disc_id"], body["path"]]
             if (body.get("location") or "").strip():
@@ -398,10 +443,12 @@ def make_handler(app, port_holder):
                   "/api/job": app.job, "/api/jobs": app.jobs_list, "/api/llm/status": app.llm_status,
                   "/api/plans": app.plans, "/api/plan": app.plan, "/api/objects": app.objects, "/api/todo": app.todo,
                   "/api/copies": app.copies,
-                  "/api/collections": app.collections, "/api/setup": app.setup}
+                  "/api/collections": app.collections, "/api/setup": app.setup,
+                  "/api/audit": app.audit, "/api/locations": app.locations}
     post_routes = {"/api/make": app.post_make, "/api/check": app.post_check, "/api/command": app.post_simple,
                    "/api/plan": app.post_plan, "/api/collection": app.post_collection,
-                   "/api/llm/suggest": app.post_llm_suggest, "/api/init": app.post_init}
+                   "/api/llm/suggest": app.post_llm_suggest, "/api/init": app.post_init,
+                   "/api/inventory": app.post_inventory}
     no_archive_ok = ("/api/setup", "/api/init", "/api/browse")     # before the first archive is made
 
     class Handler(BaseHTTPRequestHandler):

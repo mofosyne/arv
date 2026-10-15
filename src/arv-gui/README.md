@@ -7,9 +7,14 @@ Its three tabs follow the name: **Archive** (From a folder, `arv make`; Masterin
 `arv plan`), **Record** (Objects: everything kept, what each object says it is, and where every copy is, `arv objects --json`;
 Collections: each collection's editions, safe, replaced, kept or retired, with Keep and Retire, which
 show `arv retire`'s preview before anything is recorded; Discs, where a disc's copies are listed by
-letter, `arv objects DISC-ID --json`, and recorded (`arv burned`, `arv stored`) or checked (`arv check
---copy`); Search) and **Verify** (Owed: `arv todo`, also counted above the tabs, where the questions waiting for an answer are listed but not counted; Check; Restore,
-verify and rebuild). Jobs, the commands it ran, open from the header. File lists show a small
+letter, `arv objects DISC-ID --json`, recorded (`arv burned`, `arv stored`), known by a barcode a
+scanner types in or a serial (`arv identify`), given a new letter when two catalogues gave out one
+twice (`arv relabel`) or checked (`arv check --copy`); Search, which finds a copy by its barcode too)
+and **Verify** (Owed: `arv todo`, also counted above the tabs, where the questions waiting for an
+answer are listed but not counted; Check; Inventory: what a library's `mtx status` or a scanned
+shelf read, against the copies recorded there, `arv inventory`; Audit: every event as written, copies
+recorded twice and fields two catalogues changed apart, `arv audit`; Restore, and rebuild from a
+disc or merge another catalogue). Jobs, the commands it ran, open from the header. File lists show a small
 icon for the kind of file (image, video, audio, document, spreadsheet, archive, disc image, code),
 guessed from the extension as a hint only: the disc's `formats.csv` (Siegfried) is the record.
 
@@ -34,6 +39,5 @@ this checkout's `src/*/build/`, then on `PATH`.
 |---|---|
 | `arv-gui` | the program |
 | `arvgui/gui.py`, `arvgui/gui.html` | the server and the page |
-| `arvgui/catalog.py`, `arvgui/recfile.py`, `arvgui/homes.py` | reading the catalogue (recfiles), and the list of homes |
 
 Tests: `python3 -m unittest discover -s tests` (`tests/test_gui.py`; `make check` runs it).

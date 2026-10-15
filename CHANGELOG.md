@@ -21,6 +21,18 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Copies, libraries and two catalogues in the interface** (issue #38)
+- `arv gui`: a disc's copies can be given a barcode (a scanner types it in), a serial or a carrier
+  (`arv identify`), and a new letter when two catalogues gave out one twice (`arv relabel`, offered
+  for each). Search finds a copy by its barcode. Verify has Inventory (`arv inventory`: paste
+  `mtx status` or scan a shelf) and Audit (`arv audit`: each finding with what it means). Rebuild
+  takes another catalogue too. The disc's own Check form works again (it sent the drive as the
+  wrong field).
+- `arv find --json` lists the copies found by an identifier or carrier (`copies`), as the text does.
+- `TWO DISCS` and `TWO BCA` say what to do: put the disc in a drive, and `arv drives` says which it is.
+- The website says what copies are known by, how to use the archive on two machines, and how
+  jukeboxes and tape libraries fit.
+
 **Fast on a large catalogue** (issue #37)
 - Every command reads the catalogue once and indexes it: a thing's events, a disc by its id, an
   object's records. At 10,000 discs (30,000 copies), `list`, `objects`, `todo` and `audit` take
