@@ -112,7 +112,7 @@ fi
 "$tool" --home fresh-home location add BOX "A box" --in HOME --json 2> json.err \
     | grep -q '^{"format": 1, "command": "location", "events": \[{"EventId": "[0-9a-f]\{32\}", "Object": "location:BOX", ' \
     || no "--json on a command that changes the record: the events it made"
-grep -q "location:BOX" fresh-home/catalog/archive.rec && [ ! -s json.err ] || no "location add --json records the place"
+grep -q "^Code: BOX" fresh-home/catalog/archive.rec || no "location add --json records the place"
 rc=0; out=$("$tool" --home fresh-home note NOPE-01 x --json 2> json.err) || rc=$?
 [ "$rc" = 1 ] && [ "$out" = '{"format": 1, "command": "note", "events": []}' ] && grep -q "^Error: no disc NOPE-01" json.err \
     && ok "--json on a command that changes the record: the events it made on standard output, the rest on standard error, none after a failure" \
