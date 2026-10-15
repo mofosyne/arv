@@ -4,7 +4,7 @@
 #   docs/screenshots/disc.png   the index.html every disc carries (from samples/discs/TRIP-01_2019_4.iso)
 #
 #   sh dev-tools/screenshots.sh
-# Needs python3, a Chromium or Chrome ($CHROMIUM, else chromium, chromium-browser or
+# Needs a Chromium or Chrome ($CHROMIUM, else chromium, chromium-browser or
 # google-chrome on PATH), and for disc.png 7z and the sample images (samples/fetch-discs.sh). docs/screenshots/ is
 # export-ignore: it stays out of the tools/ copy on every disc.
 set -eu
@@ -13,7 +13,7 @@ out=$repo/docs/screenshots
 iso=$repo/samples/discs/TRIP-01_2019_4.iso
 browser=${CHROMIUM:-$(command -v chromium || command -v chromium-browser || command -v google-chrome || true)}
 [ -n "$browser" ] || { echo "screenshots.sh: no Chromium or Chrome found (set CHROMIUM)" >&2; exit 1; }
-[ -x "$repo/src/arv/build/arv" ] || make -s -C "$repo" >&2
+[ -x "$repo/src/arv/build/arv" ] && [ -x "$repo/src/arv-gui/build/arv-gui" ] || make -s -C "$repo" >&2
 tmp=$(mktemp -d)
 gui=
 trap '[ -n "$gui" ] && kill "$gui" 2>/dev/null; rm -rf "${tmp:?}"' EXIT
@@ -36,7 +36,7 @@ fi
 # arv gui, on a copy of the sample catalogue (the header shows its path: keep it short)
 cp -r "$repo/samples/home" "$tmp/home"
 cd "$tmp"
-python3 "$repo/src/arv-gui/arv-gui" --home home --no-browser --port 0 > gui.out 2>&1 &
+"$repo/src/arv-gui/build/arv-gui" --home home --no-browser --port 0 > gui.out 2>&1 &
 gui=$!
 i=0
 until url=$(grep -o 'http://[^ ]*' gui.out); do

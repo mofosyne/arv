@@ -21,6 +21,15 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**The interface in C** (issue #48)
+- `arv-gui` is a small C program: HTTP/1.0 on 127.0.0.1 with the same token and checks, the same
+  five routes, a process for each connection, and jobs' output in files under `$TMPDIR`, removed
+  when it stops. The page is read from `share/arv` (or beside it in a checkout) at each load, so
+  it can be changed without building; a copy is also built in (`dev-tools/embed.c`, generated at
+  build time, never committed) for `arv-gui` on its own. Python is now needed only for the tests.
+- arv stays C99, now tested: `make -C src/arv check-tcc` builds it with TinyCC from the line every
+  disc's README.txt gives, and the same checks pass (so do arv-assist and arv-gui).
+
 **Output for scripts, versioned** (toward issue #31)
 - Every JSON output starts with `"format": "arv-json 1"`: whose it is, and the version of its shape
   (within 1, fields are only added).

@@ -22,7 +22,7 @@ a recfile catalogue, its own source in `tools/`), and keeps the record of what e
 |---|---|
 | `src/arv/` | the CLI, C99 and POSIX, no libraries; `arv.c` holds the usage text and the command table |
 | `src/arv-assist/` | the local-AI helpers (`describe`, `tag`, `models`), C |
-| `src/arv-gui/` | the browser interface, Python standard library only |
+| `src/arv-gui/` | the browser interface: a small local server (C) and its page, `gui.html` |
 | `src/udfwrite/`, `src/bagit/`, `src/rs03/` | the image writer, BagIt, the error correction: programs of their own |
 | `tests/reference/` | scenarios run by `make check`, and their expected output |
 | `tests/test_gui.py` | the GUI's tests |
@@ -37,6 +37,7 @@ a recfile catalogue, its own source in `tools/`), and keeps the record of what e
 make                    # everything
 make check              # every check, the reference scenarios and the GUI's tests (a few minutes)
 make -C src/arv check   # the CLI's checks only
+make -C src/arv check-tcc   # the same checks, arv built by TinyCC: arv stays C99 (research/plan.md)
 ```
 
 `make check` must pass before a commit. Things that are easy to miss:

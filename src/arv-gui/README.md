@@ -1,7 +1,7 @@
 # arv-gui
 
-`arv gui`: the interface, in your web browser. Optional, in Python 3 (standard library only);
-everything it does can be done with arv in a terminal.
+`arv gui`: the interface, in your web browser. Optional, in C99 and POSIX (a program of its own,
+so arv does not grow); everything it does can be done with arv in a terminal.
 
 Its three tabs follow the name: **Archive** (From a folder, `arv make`; Mastering: discs by hand,
 `arv plan`), **Record** (Objects: everything kept, what each object says it is, and where every copy is, `arv objects --json`;
@@ -46,12 +46,26 @@ arv gui                       # the home arv finds from here
 arv-gui --home PATH [--port N] [--no-browser] [--llm-url URL] [--llm-model NAME]
 ```
 
-It finds arv and arv-assist in `$ARV` and `$ARV_ASSIST` (arv sets both when it runs arv-gui), in
-this checkout's `src/*/build/`, then on `PATH`.
+It finds arv and arv-assist in `$ARV` and `$ARV_ASSIST` (arv sets both when it runs arv-gui), beside
+itself (an installed `bin/`), in this checkout's `src/*/build/`, then on `PATH`. The page is read at
+each load from `$ARV_GUI_PAGE`, else `../gui.html` from where it is (a checkout's
+`src/arv-gui/build/`), else `../share/arv/src/arv-gui/gui.html` (installed), so it can be changed
+without building anything. With none of those (`arv-gui` copied on its own), it serves the copy
+built into it: `make` writes `build/page.c` from `gui.html` with `dev-tools/embed.c`, never
+committed. Built by hand without that file, it has no copy and needs the page beside it.
+
+**How it serves:** plain HTTP/1.0 on 127.0.0.1 only. There is no TLS: the traffic never leaves the
+machine. Each connection is served by a process of its own, so a slow command (`plan show --archived`
+hashes every item) holds up nothing else. A job's command, output and exit status are files in a
+folder of its own under `$TMPDIR` (`arv-gui-XXXXXX/jobs/N/`), removed when it stops (Ctrl+C). What a
+command printed reaches the page as JSON even when it is not UTF-8 (a stray byte becomes U+FFFD).
+It links arv's modules (src/arv, all but `arv.c`) for their JSON reader and strings, as arv-assist does.
 
 | File | What |
 |---|---|
-| `arv-gui` | the program |
-| `arvgui/gui.py`, `arvgui/gui.html` | the server and the page |
+| `arv-gui.c` | the server (`make` builds `build/arv-gui`) |
+| `gui.html` | the page: every view, and every command it builds |
+| `Makefile` | builds it |
 
-Tests: `python3 -m unittest discover -s tests` (`tests/test_gui.py`; `make check` runs it).
+Tests: `python3 -m unittest discover -s tests` (`tests/test_gui.py`; `make check` runs it). They
+speak HTTP to `build/arv-gui`, as the page does.

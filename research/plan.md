@@ -1761,3 +1761,48 @@ Still to do for 1.0, under #31: write down each output's fields as the interface
 the next such case); perhaps `arv help --json`, the commands and their options, for a program to
 discover them (the C server of #48 could use it for its list of commands).
 
+## Done (2026-10-15, issue #48): the interface's server in C
+
+Step 2 of the 2026-10-15 decision: `src/arv-gui/arv-gui.c`, about 800 lines, against the API
+step 1 settled, so the page did not change and the tests (Python, over HTTP) passed against it
+as they were. How it is built, and why:
+
+- **A process for each connection** (fork), not threads: no shared state to lock, and a slow
+  command holds up nothing else. That needs the jobs out of memory: each is a folder under the
+  server's own temporary folder (its command, input, output, and exit status once done, written
+  by a process that outlives the connection). Removed when it stops; never anything of the
+  archive's.
+- **HTTP/1.0, read and answered, then closed.** No keep-alive, chunks or TLS: one machine.
+- **arv's own modules, linked** as arv-assist links them, for the JSON reader and strings: no
+  second JSON parser. Output is cleaned to UTF-8 before it is quoted, since JSON must be.
+- **The page is a file, read at each load**: from `share/arv` when installed, beside the program
+  in a checkout. Nothing generated is committed; `data.c` stays arv's.
+- Python is now only the tests' language. The Debian package recommends `xdg-utils` (to open the
+  browser) instead of `python3`.
+
+## Decision (2026-10-15): arv stays C99, and TinyCC proves it
+
+C99 came from the port to C, not from a choice made on its own; asked whether a newer standard
+would do, the owner chose to keep it. The audience for the source on a disc is someone decades
+from now, with whatever compiler they have: an old one, a small one (TinyCC, cproc, chibicc), or
+one written to bootstrap a machine. Every C compiler of the last twenty years takes C99; C11 is
+near universal in the large compilers but only partly in the small; C23 (GCC 14 and 15, Clang 18
+and 19) is in almost none. What the newer standards add is convenience (`_Static_assert`,
+`_Generic`, `bool`, `typeof`, `constexpr`); the one feature that would change anything here is
+C23's `#embed`, and arv-gui's page does not need it (below). So the floor stays where the most
+compilers are.
+
+The bet was untested until now. TinyCC 0.9.27 builds arv with the very line each disc's README.txt
+gives (`cc` replaced by `tcc`), with no warning, and the binary passes every check, the reference
+scenarios included. arv-assist and arv-gui build with it too, and the GUI's tests pass against
+the TinyCC-built server. `make -C src/arv check-tcc` repeats it (about a minute); not part of
+`make check`, which would double its time, so run it before a release and after anything that
+might reach past C99.
+
+**arv-gui's page, built in as well as read** (the same day). The page stays a file read at each
+load (`share/arv`, or beside the program in a checkout), so it can be changed without building. A
+copy is also built in, for `arv-gui` copied on its own: `make` writes `build/page.c` with
+`dev-tools/embed.c`, which arv's `data.c` already uses, so no tool beyond a C compiler is
+needed (not `xxd`, and not `objcopy`, whose output is tied to one CPU's object format), and
+nothing generated is committed. Built by hand without it, arv-gui needs the page beside it.
+

@@ -1,10 +1,11 @@
 /*
- * Writes data.c: the files arv shares between its Python and C versions, as C arrays.
+ * Writes files as C arrays (each a NUL-terminated string), with no tool beyond a C compiler.
  *
  *   embed OUT.c NAME=FILE...
  *
- * data.c is generated but committed, so arv builds with one cc line from a disc's tools/;
- * make check fails if it is out of date.
+ * arv's data.c (its README.txt template, vocabularies, CSS) is generated but committed, so arv
+ * builds with one cc line from a disc's tools/; make check fails if it is out of date. arv-gui's
+ * build/page.c (its page) is generated at each build and never committed.
  */
 #include <stdio.h>
 #include <string.h>

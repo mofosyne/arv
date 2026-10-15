@@ -12,7 +12,7 @@ Rules-Requires-Root: no
 Package: arv
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Recommends: python3, 7zip | p7zip-full, git, xorriso
+Recommends: 7zip | p7zip-full, git, xorriso, xdg-utils
 Suggests: gddrescue
 Description: Archive, Record, Verify: long-term personal archiving on discs
  arv keeps a personal archive's record over decades: collections with their
@@ -24,6 +24,7 @@ Description: Archive, Record, Verify: long-term personal archiving on discs
  Experimental: the disc format is a draft (0.5). Keep your data where it is
  and treat discs made with this as an extra copy while you test it.
  .
- Recommends python3 for the browser interface (arv gui), 7zip for reading
- images in checks, git for the tool source on each disc, and xorriso for
- burning; gddrescue reads damaged discs into images.
+ Recommends 7zip for reading images in checks, git for the tool source on
+ each disc, xorriso for burning, and xdg-utils for arv gui to open your web
+ browser; gddrescue reads damaged discs into images. python3 is needed only to
+ build and run the tests.

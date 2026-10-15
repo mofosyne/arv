@@ -22,7 +22,7 @@ exists carries it as `tools/arv.com` (found as `$ARV_APE`, `arv.com` in the inst
 
 Four optional commands are programs of their own, which arv runs: `describe`, `tag` and `models`
 run arv-assist ([../arv-assist](../arv-assist/), C), and `gui` runs arv-gui
-([../arv-gui](../arv-gui/), Python), with the home arv found. arv looks for them in `$ARV_ASSIST`
+([../arv-gui](../arv-gui/), C), with the home arv found. arv looks for them in `$ARV_ASSIST`
 and `$ARV_GUI`, next to itself (an installed `bin/`), in the checkout it was built in, then on
 `PATH`, and says how to get them when they are missing. `make check` holds arv to
 [tests/reference/](../../tests/reference/).

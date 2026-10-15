@@ -1,28 +1,25 @@
-"""Tests for arv-gui (src/arv-gui), the web API that runs arv (and arv-assist) for every action.
+"""Tests for arv-gui (src/arv-gui), the web server that runs arv (and arv-assist) for the page.
 
-Run: python3 -m unittest discover -s tests (make check runs it after the C checks, which build what
-it needs: src/arv/build/arv, src/arv-assist/build/arv-assist and its fake model server).
+They speak HTTP to the program itself (src/arv-gui/build/arv-gui), as the page does. Run:
+python3 -m unittest discover -s tests (make check runs it after the C checks, which build what it
+needs: src/arv/build/arv, src/arv-gui/build/arv-gui, src/arv-assist/build/arv-assist and its fake
+model server).
 """
 
 import json
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
-import threading
 import time
 import unittest
 import urllib.error
 import urllib.request
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(REPO, "src", "arv-gui"))
-
-from arvgui import gui  # noqa: E402
-
 os.environ["ARV_APE"] = "none"   # the small test media have no room for tools/arv.com
 ARV = os.path.join(REPO, "src", "arv", "build", "arv")
+GUI = os.path.join(REPO, "src", "arv-gui", "build", "arv-gui")
 FAKE_LLM = os.path.join(REPO, "src", "arv-assist", "build", "fake-llm")
 HAVE_ARV = os.path.exists(ARV) and shutil.which("7z") is not None
 
@@ -40,7 +37,7 @@ def write(path, text, year=None):
 class IconTest(unittest.TestCase):
     def test_each_extension_has_one_family(self):
         import re
-        with open(os.path.join(REPO, "src", "arv-gui", "arvgui", "gui.html"), encoding="utf-8") as f:
+        with open(os.path.join(REPO, "src", "arv-gui", "gui.html"), encoding="utf-8") as f:
             page = f.read()
         table = re.search(r"var FAMILIES = \[(.*?)\n  \];", page, re.S).group(1)
         rows = re.findall(r'\["([^"]+)", "([^"]+)", "([^"]+)"\]', table)
@@ -62,16 +59,22 @@ class GuiTest(unittest.TestCase):
         self.fake = None
         self.server = None
 
-    def start(self, llm_options=None):
-        self.server, self.url = gui.serve(self.home, 0, open_browser=False, llm_options=llm_options)
-        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+    def start(self, llm_url=None, program=GUI):
+        """arv-gui, as arv gui starts it, on any free port: its first line says where"""
+        argv = [program, "--no-browser", "--port", "0"] + (["--home", self.home] if self.home else [])
+        self.jobs_tmp = os.path.join(self.tmp, "gui-tmp")       # where it keeps its jobs' output
+        os.makedirs(self.jobs_tmp, exist_ok=True)
+        self.server = subprocess.Popen(argv + (["--llm-url", llm_url] if llm_url else []), stdout=subprocess.PIPE, text=True,
+                                       env=dict(os.environ, TMPDIR=self.jobs_tmp))
+        self.url = self.server.stdout.readline().split(" at ")[1].split()[0]
         self.base = self.url.split("?")[0].rstrip("/")
-        self.token = self.server.app.token
+        self.token = self.url.split("t=")[1]
 
     def tearDown(self):
         if self.server:
-            self.server.shutdown()
-            self.server.server_close()
+            self.server.terminate()
+            self.server.wait()
+            self.server.stdout.close()
         if self.fake:
             self.fake.kill()
             self.fake.wait()
@@ -138,6 +141,29 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn(self.token, page)
 
+    def test_page_built_in_or_from_its_file(self):
+        """On its own, arv-gui serves the page built into it; a gui.html it can find is read first,
+        so the page can be changed without building anything."""
+        alone = os.path.join(self.tmp, "bin", "arv-gui")
+        os.makedirs(os.path.dirname(alone))
+        shutil.copy(GUI, alone)                                 # no gui.html beside it or in share/arv
+        self.start(program=alone)
+        status, page = self.request("/?t=" + self.token, token=False)
+        self.assertEqual(status, 200)
+        self.assertIn("<title>arv</title>", page)
+        self.assertIn(self.token, page)
+        self.server.terminate()
+        self.server.wait()
+        self.server.stdout.close()
+        changed = os.path.join(self.tmp, "my.html")
+        write(changed, "<p>mine __TOKEN__</p>")
+        os.environ["ARV_GUI_PAGE"] = changed
+        try:
+            self.start(program=alone)
+            self.assertEqual(self.request("/?t=" + self.token, token=False)[1], "<p>mine %s</p>" % self.token)
+        finally:
+            del os.environ["ARV_GUI_PAGE"]
+
     def test_bad_requests(self):
         """Only a command word comes first, never an option or arv gui; and only arv and arv-assist run."""
         self.start()
@@ -147,6 +173,26 @@ class GuiTest(unittest.TestCase):
             self.assertEqual(self.request("/api/run", body)[0], 400, body)
         self.assertEqual(self.request("/api/job?id=999")[0], 404)
         self.assertEqual(self.request("/api/discs")[0], 404)       # the server has no features of its own
+        self.assertEqual(self.request("/api/job?id=../../etc")[0], 404)
+        self.assertEqual(self.request("/api/run", {"argv": ["list"]}, host="localhost:%s" % self.base.rsplit(":", 1)[1])[0], 200)
+
+    @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
+    def test_jobs_and_stopping(self):
+        """A job's output comes in lines; non-UTF-8 output stays valid JSON; stopping leaves nothing behind."""
+        self.start()
+        weird = os.path.join(self.tmp, "folder")
+        os.makedirs(weird)
+        with open(os.path.join(weird.encode(), b"caf\xe9.txt"), "w") as f:      # a Latin-1 name, not UTF-8
+            f.write("x")
+        listing = json.loads(self.request("/api/browse?files=1&path=" + weird)[1])
+        self.assertEqual(listing["files"], [{"name": "caf\ufffd.txt", "bytes": 1}])
+        job = self.job("where", "--json")
+        self.assertEqual(json.loads("\n".join(job["lines"]))["path"], self.home)
+        self.assertEqual(json.loads(self.request("/api/job?id=%s&since=1" % job["id"])[1])["lines"], job["lines"][1:])
+        self.assertTrue(os.listdir(self.jobs_tmp))
+        self.server.terminate()
+        self.server.wait()
+        self.assertEqual(os.listdir(self.jobs_tmp), [])
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
     def test_start_does_not_touch_legacy_files(self):
@@ -289,11 +335,13 @@ class GuiTest(unittest.TestCase):
         port = os.path.join(self.tmp, "port")
         self.fake = subprocess.Popen([FAKE_LLM, port, os.path.join(self.tmp, "log"), replies, replies])
         for _ in range(50):
-            if os.path.exists(port) and open(port).read().strip():
-                break
+            with open(port) if os.path.exists(port) else open(os.devnull) as f:
+                if f.read().strip():
+                    break
             time.sleep(0.1)
-        url = "http://127.0.0.1:%s/v1" % open(port).read().strip()
-        self.start({"url": url})
+        with open(port) as f:
+            url = "http://127.0.0.1:%s/v1" % f.read().strip()
+        self.start(url)
         status = json.loads(self.run_arv("llm-status", program="arv-assist")["out"])
         self.assertEqual((status["available"], status["model"]), (True, "fake-model"))
         src = os.path.join(self.tmp, "Trip")

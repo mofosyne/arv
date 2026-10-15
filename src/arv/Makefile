@@ -65,11 +65,18 @@ $(BUILD)/%.o: %.c arv.h rec.h ../bagit/bagit.h edtf.h discid.h data.h vocab.h
 check-ape: $(BUILD)/arv.com $(BUILD)/fixtures $(BUILD)/ptyrun
 	sh check.sh $(BUILD)/arv.com
 
+# the C99 bet, tested: arv built by TinyCC with the line every disc's README.txt gives (cc replaced)
+# passes the same checks (research/plan.md, 2026-10-15)
+check-tcc: $(BUILD)/fixtures $(BUILD)/ptyrun
+	@mkdir -p build-tcc
+	tcc -O2 -pthread -o build-tcc/arv *.c ../bagit/bagit.c ../udfwrite/udfwrite.c ../rs03/rs03.c
+	sh check.sh build-tcc/arv
+
 check: all data-check
 	$(BUILD)/fixtures ../../tests/fixtures
 	sh check.sh $(BUILD)/arv
 
 clean:
-	rm -rf $(BUILD)
+	rm -rf $(BUILD) build-tcc
 
-.PHONY: all ape check check-ape clean data data-check
+.PHONY: all ape check check-ape check-tcc clean data data-check
