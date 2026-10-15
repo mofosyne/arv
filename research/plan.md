@@ -1086,8 +1086,12 @@ about 430 bytes per file in the archive. Up to about a million files that is und
 - **What every disc, and the package, carry in `tools/`** (2026-10-10, issue #32). Decided: a
   whitelist, `disc-tools.txt`. The UDF and ECMA standards' zip (69.6 MB, 97% of the old tree, its
   licence and origin not written down) stays in the repository but off the discs and out of the
-  package; discs carry our profile (`archival-udf.md`). Open: whether to point to the published
-  standards from the profile, and what the zip's terms are.
+  package; discs carry our profile (`archival-udf.md`). *Settled 2026-10-15:* the profile points
+  to the published standards (Ecma's own copy of ECMA-167; OSTA's UDF 2.50 through the Internet
+  Archive, its site having closed; and Wikipedia's UDF article, which links the same collection the
+  zip held, with a saved copy), and the zip leaves the repository too: its terms were never
+  written down (a Wikipedia user's preservation of OSTA's and Ecma's PDFs), and arv needs only the
+  two documents the profile names.
 - **Editions under a distributed collection** (2026-10-06). The archive is the union of the
   workflow folder, warm images and cold discs; a disc holds a selection plus a catalogue copy
   ([concepts.md](../docs/concepts.md)). But "a newer safe edition replaces older ones" still
@@ -1705,4 +1709,55 @@ line on what each means.
 Not in the interface: `arv drives` (a drive is local hardware; the command line is the place), and
 a library loop (a script's job: `docs/examples/library-check.sh`). The demo is not re-recorded: it
 already shows copies by letter, and the rest is for archives past their first few discs.
+
+## Decision (2026-10-15): the interface's server knows no features; later, in C
+
+`arv gui` stays a web page in the browser, not a native window. The browser is on every machine
+and brings what a toolkit would have to: text input in every script, scaling, dark mode, screen
+readers. It works on a NAS with no display, through `ssh -L`. And HTML is already the format of
+every disc's `index.html`. Native toolkits were weighed: raylib, Nuklear and Dear ImGui are made for
+games and are weakest at forms, long names and text input; GTK, Qt and FLTK are heavy and packaged
+per platform; libui-ng is still alpha; a webview window is still HTML, with WebKitGTK on Linux.
+Each would be a library linked into arv, which builds with none.
+
+Step 1, built: the server runs commands and nothing else. The page builds every command and
+reads arv's output, so a feature is a change to `gui.html` alone. The server is four routes:
+run arv or arv-assist (to its end, or as a job), follow a job, list a folder, and the page.
+Drafts go to `arv make --draft -` and `arv describe --apply -` on standard input, so the server
+writes no files. `arv location list --json` was added rather than parse its text. The first run
+asks `arv where --json`, and after `arv init` opens on the new archive without a reload.
+
+Step 2, issue #48: the same API in C, a separate program as now, so `arv` does not grow. HTTP/1.0
+on 127.0.0.1 only: TLS protects traffic between machines, and this never leaves one. llama.cpp's
+server is large for other reasons (a general HTTP library with TLS, and a SvelteKit page compiled
+in); ours needs neither. The page is read at run time from `share/arv`, not embedded, so no
+generated file is committed and `data.c` stays as it is. The tests stay in Python: they speak
+HTTP, so they test either server.
+
+## Decision (2026-10-15): a stable interface is arguments in, JSON out
+
+Asked: would JSON input give arv a stable interface for other software? No. The arguments are
+already a structured input (a list of strings, no shell), and the interface showed it: its page
+builds every command as one. A second way in, a JSON request for each command, would be a second
+parser to keep in step with the first, and two ways in can disagree. What makes an interface
+stable is that its commands, options and outputs stop changing: a promise, kept from 1.0 (#31).
+
+What was missing, and is built:
+
+- **The version of each output's shape.** The TSV outputs had one (`# arv todo 1`); the JSON did
+  not. Each now starts `"format": "arv-json 1"`, the form the 2026-10-10 note agreed. A reader
+  checks it; a new field does not change it, a renamed or removed one does.
+- **A result from the commands that write.** Reads had `--json`; writes printed only sentences, so a
+  script learned a new copy's letter by parsing "Write its letter on the hub ...". Now `--json` on
+  any command that changes the record prints the events it made, as `list --json` shows events.
+  It is done once, not per command: the record is its events, so "what this did" is the events
+  this run added, which `archive_save` already knows (they are the ones still waiting for an id).
+  What a command says to a person goes to standard error; after a failure, the events written
+  before it, and the exit status.
+
+Still to do for 1.0, under #31: write down each output's fields as the interface (the manual's
+"Output for scripts"); structured input only where many things go in at once, per command, as
+`plan add --list` and drafts on standard input already do (recording a stack of burned discs is
+the next such case); perhaps `arv help --json`, the commands and their options, for a program to
+discover them (the C server of #48 could use it for its list of commands).
 

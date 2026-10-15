@@ -432,8 +432,15 @@ const char *archive_home_uuid(archive *a)
     return rec_get(a->homes.v[0], "Uuid");
 }
 
+int json_events_wanted;
+sbuf json_events;               /* the events this run made, as JSON objects: for --json */
+static strlist json_event_ids;
+
 void archive_save(archive *a, const char *path)
 {
+    recs made = { 0 };          /* new events get their ids as they are written: note which they are */
+    for (size_t i = 0; json_events_wanted && i < a->events.n; i++)
+        if (rec_get(a->events.v[i], "PendingId") && !rec_get(a->events.v[i], "EventId")) recs_add(&made, a->events.v[i]);
     static const char tail[] = "/catalog/archive.rec";    /* a home's catalogue: not where a copy of it is */
     size_t n = strlen(path);
     if (n > sizeof tail - 1 && !strcmp(path + n - (sizeof tail - 1), tail)) {
@@ -452,6 +459,17 @@ void archive_save(archive *a, const char *path)
     archive_records(a, &all);
     write_records(path, &all);
     free(all.v);
+    for (size_t i = 0; i < made.n; i++) {
+        char id[33];
+        event_key(made.v[i], id);
+        if (strlist_has(&json_event_ids, id)) continue;     /* a second save of the same events */
+        strlist_add(&json_event_ids, id);
+        int first = 1;
+        sb_puts(&json_events, json_events.len ? ", {" : "{");
+        json_record_fields(&json_events, made.v[i], &first, NULL);
+        sb_puts(&json_events, "}");
+    }
+    free(made.v);
 }
 
 static char *norm_code(const char *code)

@@ -21,6 +21,26 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Output for scripts, versioned** (toward issue #31)
+- Every JSON output starts with `"format": "arv-json 1"`: whose it is, and the version of its shape
+  (within 1, fields are only added).
+- `--json` on a command that changes the record (`burned`, `note`, `make`, `location add` ...)
+  prints the events it made, each with its `EventId`; what it says to a person goes to standard
+  error. A script learns a new copy's letter from the event, not from a sentence.
+
+**The interface runs arv, and only arv**
+- `arv gui`'s server no longer knows any feature: the page builds every command and the server
+  runs it (`POST /api/run`), as a quick call or a job, and lists folders. A new feature is a
+  change to the page alone, and the server is small enough to be rewritten in C (issue #48).
+  Drafts reach `arv make` and `arv describe` on standard input (`--draft -`, `--apply -`).
+- `arv location list --json`: the places, for the interface's inventory.
+
+**The UDF standards by reference** (issue #32)
+- The zip of UDF and ECMA standards (70 MB) is out of the repository: its terms were never written
+  down. The UDF profile (`docs/spec/archival-udf.md`) links to ECMA-167 at Ecma and to UDF 2.50
+  at the Internet Archive, OSTA's website having closed, and to Wikipedia's UDF article, which links
+  the same collection the zip held.
+
 **Copies, libraries and two catalogues in the interface** (issue #38)
 - `arv gui`: a disc's copies can be given a barcode (a scanner types it in), a serial or a carrier
   (`arv identify`), and a new letter when two catalogues gave out one twice (`arv relabel`, offered

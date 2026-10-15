@@ -1046,7 +1046,7 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
     const char *fields[] = { "Title", "Set", "Medium", "Description", "Access", "From", "Collection", NULL };
     if (as_json) {
         sbuf b = { 0 };
-        sb_puts(&b, "{\"name\": ");
+        sb_puts(&b, "{" JSON_FORMAT ", \"name\": ");
         json_str(&b, p->name);
         for (int k = 0; fields[k]; k++) {
             sb_printf(&b, ", \"%c%s\": ", tolower((unsigned char)fields[k][0]), fields[k] + 1);
@@ -1530,7 +1530,7 @@ int cmd_plan(int argc, char **argv)
         if (!names.n && !as_json) printf("No plans (arv plan new NAME)\n");
         sbuf json = { 0 };
         int first_json = 1;
-        if (as_json) sb_puts(&json, "{\"plans\": [");
+        if (as_json) sb_puts(&json, "{" JSON_FORMAT ", \"plans\": [");
         size_t hidden = 0;
         for (size_t k = 0; k < names.n; k++)          /* in name order */
             for (size_t j = k + 1; j < names.n; j++)
