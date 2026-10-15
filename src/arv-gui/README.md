@@ -3,20 +3,25 @@
 `arv gui`: the interface, in your web browser. Optional, in C99 and POSIX (a program of its own,
 so arv does not grow); everything it does can be done with arv in a terminal.
 
-Its three tabs follow the name: **Archive** (From a folder, `arv make`; Mastering: discs by hand,
-`arv plan`), **Record** (Objects: everything kept, what each object says it is, and where every copy is, `arv objects --json`;
-Collections: each collection's editions, safe, replaced, kept or retired, with Keep and Retire, which
-show `arv retire`'s preview before anything is recorded; Discs, where a disc's copies are listed by
-letter, `arv objects DISC-ID --json`, recorded (`arv burned`, `arv stored`), known by a barcode a
-scanner types in or a serial (`arv identify`), given a new letter when two catalogues gave out one
-twice (`arv relabel`) or checked (`arv check --copy`); Search, which finds a copy by its barcode too)
-and **Verify** (Owed: `arv todo`, also counted above the tabs, where the questions waiting for an
-answer are listed but not counted; Check; Inventory: what a library's `mtx status` or a scanned
-shelf read, against the copies recorded there, `arv inventory`; Audit: every event as written, copies
-recorded twice and fields two catalogues changed apart, `arv audit`; Restore, and rebuild from a
-disc or merge another catalogue). Jobs, the commands it ran, open from the header. File lists show a small
-icon for the kind of file (image, video, audio, document, spreadsheet, archive, disc image, code),
-guessed from the extension as a hint only: the disc's `formats.csv` (Siegfried) is the record.
+Its three tabs follow the name.
+
+- **Archive:** From a folder (`arv make`); Mastering, discs by hand (`arv plan`: add, move, drop, an
+  item's new place and its tags, a disc's layout, make, again); What changed (`arv status`: a
+  collection's folder against its last edition, or any folder against every disc).
+- **Record:** Objects (everything kept, what each says it is, where every copy is; renamed and
+  retagged there, `arv rename`, `arv retag`); Collections (editions, keep and retire, and a folder
+  made a collection, `arv collection init`); Discs (a disc's copies by letter, recorded with
+  `arv burned` or `arv stored`, known by a barcode a scanner types in, `arv identify`, given a new
+  letter when two catalogues gave out one twice, `arv relabel`, checked, `arv check --copy`, and who
+  may see it, `arv access`); Places (the tree of places and their temperature, `arv location`);
+  Search (files, discs, and a copy by its barcode).
+- **Verify:** Owed (`arv todo --json`, also counted above the tabs; the questions waiting for an
+  answer are listed but not counted); Check; Inventory (`arv inventory`: a library's
+  `mtx status` or a scanned shelf against the copies recorded there); Audit (`arv audit`); Restore,
+  and rebuild from a disc or merge another catalogue.
+
+Jobs, the commands it ran, open from the header. File lists show a small icon for the kind of
+file, guessed from the extension as a hint only: the disc's `formats.csv` (Siegfried) is the record.
 
 With no archive here or above and no default (a first run), it opens on **Make an archive**: a
 folder (where it was started, or browsed to), an optional name, and whether to use it from

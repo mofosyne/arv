@@ -288,7 +288,7 @@ static void holding_json(const holding *h, sbuf *b)
 }
 
 /* arv objects --json: the same as the text, for arv gui's Objects tab */
-static void objects_json(const archive *cat, const char *root)
+static void objects_json(const arv_home *h, const archive *cat, const char *root)
 {
     sbuf b = { 0 };
     strlist seen = { 0 };
@@ -306,10 +306,16 @@ static void objects_json(const archive *cat, const char *root)
         size_t there = object_sources(root, &top, &src);
         sb_puts(&b, seen.n > 1 ? ", {\"uuid\": " : "{\"uuid\": ");
         json_str(&b, uuid);
-        sb_puts(&b, ", \"name\": ");
+        sb_puts(&b, ", \"name\": ");            /* its name now (arv rename), as the text shows it */
+        json_str(&b, object_slug(cat, o));
+        sb_puts(&b, ", \"readAs\": ");
         json_str(&b, get_or(o, "Name", "?"));
         sb_puts(&b, ", \"kind\": ");
         json_str(&b, get_or(o, "Kind", "?"));
+        char *tags = object_tags_now(h, cat, o);             /* as arv retag set them, else as filed */
+        sb_puts(&b, ", \"tags\": ");
+        json_str(&b, tags);
+        free(tags);
         static const char *const keys[] = { "title", "description", "coverage", "rights", "origin" };
         for (int k = 0; ABOUT_FIELDS[k]; k++) {        /* what it says about itself: "" when not known */
             sb_printf(&b, ", \"%s\": ", keys[k]);
@@ -477,7 +483,7 @@ int cmd_objects(int argc, char **argv)
     if (as_json) {
         if (want) return 2;
         char *root = home_root(&h);
-        objects_json(&cat, root);
+        objects_json(&h, &cat, root);
         free(root);
         return 0;
     }

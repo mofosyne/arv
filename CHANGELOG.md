@@ -21,6 +21,14 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Nearly everything without the command line**
+- `arv gui`: Places (the tree and its temperatures: add, rename, move), What changed (`arv status`
+  for any folder), a folder made a collection, who may see a disc (`arv access`), a data object
+  renamed or retagged, and in Mastering an item's new place, its tags and a disc's layout. Owed is
+  read from `arv todo --json`.
+- `arv objects --json` gives each object's `name` now (after `arv rename`), `readAs` and `tags`;
+  `arv plan show --json` each item's own `tags`.
+
 **Every read has --json** (issue #31)
 - `todo --json` (each finding with its `kind`, what it is about and the line a person reads;
   questions apart), `status --json` (what changed, every path), `info --json` (a disc, an image or
