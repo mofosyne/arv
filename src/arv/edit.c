@@ -224,7 +224,7 @@ int cmd_location(int argc, char **argv)
     open_home(given, &h, &cat);
     if (!strcmp(action, "list") && as_json) {         /* each place as recorded, for arv gui */
         sbuf b = { 0 };
-        sb_puts(&b, "{\"locations\": [");
+        sb_puts(&b, "{" JSON_FORMAT ", \"locations\": [");
         for (size_t i = 0; i < cat.locations.n; i++) {
             const rec_record *l = cat.locations.v[i];
             static const char *const fields[] = { "Code", "Name", "Parent", "Temperature", "Description", NULL };
@@ -878,7 +878,7 @@ int cmd_where(int argc, char **argv)
     home_find(&h, given, NULL);
     if (as_json) {
         sbuf b = { 0 };
-        sb_puts(&b, "{\"path\": "); json_str(&b, h.path);
+        sb_puts(&b, "{" JSON_FORMAT ", \"path\": "); json_str(&b, h.path);
         sb_puts(&b, ", \"catalog\": "); json_str(&b, h.catalog_dir);
         sb_puts(&b, ", \"config\": "); json_str(&b, h.config_dir);
         sb_puts(&b, ", \"drafts\": "); json_str(&b, h.drafts_dir);

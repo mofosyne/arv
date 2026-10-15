@@ -201,7 +201,7 @@ static void json_optional(sbuf *b, const char *value)
 static void collection_json(const archive *cat)
 {
     sbuf b = { 0 };
-    sb_puts(&b, "{\"collections\": [");
+    sb_puts(&b, "{" JSON_FORMAT ", \"collections\": [");
     for (size_t i = 0; i < cat->collections.n; i++) {
         const rec_record *c = cat->collections.v[i];
         const char *uuid = get_or(c, "Uuid", "");

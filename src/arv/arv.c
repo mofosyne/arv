@@ -147,6 +147,65 @@ static const char USAGE_REST[] =
 static const char *const USAGE[] = { USAGE_ARCHIVE, USAGE_RECORD, USAGE_REST, NULL };
 
 /* arv alone: where you are, the commands to start with, and how to find the rest */
+/* --json on a command that changes the record: the events it made, as JSON on standard output, and
+ * what it says to a person on standard error. The commands that read have --json of their own. */
+static const char *json_command;
+static int json_fd = -1;
+
+static int has_arg(int argc, char **argv, const char *word)
+{
+    for (int k = 2; k < argc; k++)
+        if (!strcmp(argv[k], word)) return 1;
+    return 0;
+}
+
+static int records_events(const char *cmd, int argc, char **argv)
+{
+    static const char *const always[] = { "init", "make", "check", "burned", "note", "rename", "retag", "same", "locate",
+                                          "access", "link", "stored", "appraise", "rebuild", "relabel", "identify",
+                                          "retire", "drives", NULL };
+    for (int k = 0; always[k]; k++)
+        if (!strcmp(cmd, always[k])) return 1;
+    const char *sub = argc > 2 ? argv[2] : "";
+    return (!strcmp(cmd, "location") && (!strcmp(sub, "add") || !strcmp(sub, "move")))
+        || (!strcmp(cmd, "collection") && (!strcmp(sub, "init") || !strcmp(sub, "keep")))
+        || (!strcmp(cmd, "plan") && !strcmp(sub, "make"));
+}
+
+static void print_events_json(void)
+{
+    fflush(stdout);
+    FILE *out = fdopen(json_fd, "w");
+    if (!out) return;
+    sbuf b = { 0 };
+    sb_puts(&b, "{" JSON_FORMAT ", \"command\": ");
+    json_str(&b, json_command);
+    sb_printf(&b, ", \"events\": [%s]}\n", json_events.s ? json_events.s : "");
+    fputs(b.s, out);
+    fclose(out);
+    free(b.s);
+}
+
+/* takes --json off a command that changes the record, and sends standard output to standard error,
+ * keeping the real one for the events printed at exit (after a failure too: what was written) */
+static int events_json_setup(const char *cmd, int *argc, char **argv)
+{
+    if (!records_events(cmd, *argc, argv) || !has_arg(*argc, argv, "--json")) return 0;
+    for (int k = 2; k < *argc; k++)
+        if (!strcmp(argv[k], "--json")) {
+            for (int j = k; j + 1 < *argc; j++) argv[j] = argv[j + 1];
+            argv[--*argc] = NULL;
+            break;
+        }
+    fflush(stdout);
+    json_fd = dup(STDOUT_FILENO);
+    if (json_fd < 0 || dup2(STDERR_FILENO, STDOUT_FILENO) < 0) die("%s", "--json: cannot set up the output");
+    json_command = cmd;
+    json_events_wanted = 1;
+    atexit(print_events_json);
+    return 1;
+}
+
 static int orientation(void)
 {
     arv_home h;
@@ -455,7 +514,7 @@ static void run_helper(int argc, char **argv, const char *word)
 
 /* What the usage lines do not say: for a person setting arv up, and for a script or an agent using
  * it. Markdown; arv help --man turns it, with the commands, into a man page. */
-static const char MANUAL_NOTES[] =
+static const char *const MANUAL_NOTES[] = {      /* in parts: C99 strings may be 4095 characters */
     "## Reading and changing the record\n"
     "\n"
     "These only read: `list`, `find`, `objects`, `todo`, `status`, `log`, `diff`,\n"
@@ -478,8 +537,15 @@ static const char MANUAL_NOTES[] =
     "  that failed, `audit` findings, a copy `inventory` did not find, a disc id `rebuild` would not merge.\n"
     "- 2: the command was not used as it is meant to be; its usage follows on standard error.\n"
     "\n"
+    ,
     "## Output for scripts\n"
     "\n"
+    "- Every JSON output starts with `\"format\": 1`: the version of its shape, as the TSV outputs'\n"
+    "  first line (`# arv todo 1`) is theirs.\n"
+    "- `--json` on a command that changes the record (`burned`, `note`, `make`, `location add` ...): the\n"
+    "  events it made, `{\"format\": 1, \"command\": ..., \"events\": [...]}`, each with its `EventId` and\n"
+    "  fields as `list --json` gives a disc's events; what it says to a person goes to standard error.\n"
+    "  After a failure, the events written before it (usually none), and the exit status says so.\n"
     "- `arv objects --json`, `arv objects DISC-ID --json`: what is kept and every copy of it.\n"
     "- `arv todo --tsv`: what is owed, one copy a line, with a header line.\n"
     "- `arv keywords --format tsv|exiftool DISC-ID`: a disc's folder tags.\n"
@@ -520,7 +586,9 @@ static const char MANUAL_NOTES[] =
     "## See also\n"
     "\n"
     "README.md, docs/workflow.md (the whole workflow), docs/concepts.md, docs/philosophy.md, and\n"
-    "docs/spec/smart-archive-format.md (the disc format); on every disc, under `tools/`.\n";
+    "docs/spec/smart-archive-format.md (the disc format); on every disc, under `tools/`.\n",
+    NULL
+};
 
 /* the commands, group by group, from the usage text --help prints: one source for both */
 static void manual_md(sbuf *out)
@@ -580,7 +648,7 @@ static void manual_md(sbuf *out)
     sb_puts(out, "\n### arv make in full\n\n```\n");
     sb_puts(out, MAKE_HELP);
     sb_puts(out, "```\n\n");
-    sb_puts(out, MANUAL_NOTES);
+    for (int i = 0; MANUAL_NOTES[i]; i++) sb_puts(out, MANUAL_NOTES[i]);
     free(all.s);
 }
 
@@ -758,6 +826,7 @@ int main(int argc, char **argv)
                         command_usage(stdout, cmds[i].name);
                         return 0;
                     }
+            events_json_setup(cmds[i].name, &argc, argv);
             char **args = argv + 2;
             int n = argc - 2;
             if (home) {                     /* the command reads -C HOME first */

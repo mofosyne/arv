@@ -292,7 +292,7 @@ static void objects_json(const archive *cat, const char *root)
 {
     sbuf b = { 0 };
     strlist seen = { 0 };
-    sb_puts(&b, "{\"objects\": [");
+    sb_puts(&b, "{" JSON_FORMAT ", \"objects\": [");
     for (size_t i = 0; i < cat->objects.n; i++) {
         const char *uuid = get_or(cat->objects.v[i], "Uuid", "");
         recs lineage = object_records(cat, uuid);   /* each lineage once: at its first record */
@@ -409,7 +409,7 @@ static int disc_copies_shown(const archive *cat, const char *id, int as_json)
     if (as_json) {
         sbuf b = { 0 };
         disc_json(cat, id, &b);
-        puts(b.s);
+        printf("{" JSON_FORMAT ", %s\n", b.s + 1);     /* the disc on its own: the format first */
         free(b.s);
         return 0;
     }

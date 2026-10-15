@@ -234,3 +234,39 @@ jv *json_get(const jv *o, const char *key)
         if (!strcmp(o->keys[i], key)) return o->vals[i];
     return NULL;
 }
+
+/* fields a record may give more than once: always a list in JSON, so a script need not check */
+static int repeatable(const char *name)
+{
+    static const char *const names[] = { "Note", "Subject", "Category", "Path", "Agent", "Identifier", "Replaces", NULL };
+    for (size_t k = 0; names[k]; k++)
+        if (!strcmp(names[k], name)) return 1;
+    return 0;
+}
+
+/* a record's fields as JSON members (a repeated or repeatable field as a list), skipping those skip has */
+void json_record_fields(sbuf *b, const rec_record *r, int *first, const rec_record *skip)
+{
+    for (size_t i = 0; i < r->nfields; i++) {
+        const char *name = r->fields[i].name;
+        if ((skip && rec_get(skip, name)) || (i && !strcmp(r->fields[i - 1].name, name))) continue;
+        int earlier = 0;
+        for (size_t j = 0; j < i; j++) earlier |= !strcmp(r->fields[j].name, name);
+        if (earlier) continue;
+        size_t count = 0;
+        for (size_t j = i; j < r->nfields; j++) count += !strcmp(r->fields[j].name, name);
+        sb_puts(b, *first ? "" : ", ");
+        *first = 0;
+        json_str(b, name);
+        sb_puts(b, ": ");
+        int list = count > 1 || repeatable(name);
+        if (list) sb_puts(b, "[");
+        size_t emitted = 0;
+        for (size_t j = i; j < r->nfields; j++)
+            if (!strcmp(r->fields[j].name, name)) {
+                if (emitted++) sb_puts(b, ", ");
+                json_str(b, r->fields[j].value);
+            }
+        if (list) sb_puts(b, "]");
+    }
+}
