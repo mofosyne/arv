@@ -203,7 +203,7 @@ grep -qx '    "Tool": Tool turns sensor logs into plots. It is small.' ab/object
 grep -qx 'Title: Tool' ab/disc/catalog.rec && grep -qx 'Origin: example.invalid/tools/tool' ab/disc/catalog.rec \
     && [ "$(grep -c '^Title: ' ab/disc/catalog.rec)" -eq 2 ] \
     && "$tool" find -C ab/home 'sensor logs' | grep -q '^OBJECT  tool/' \
-    && "$tool" objects -C ab/home --json | grep -q '"name": "bare", "kind": "folder", "title": "",' \
+    && "$tool" objects -C ab/home --json | grep -q '"name": "bare", "readAs": "bare", "kind": "folder", "tags": "", "title": "",' \
     && ok "objects: the disc carries what they say (a folder with no README says nothing); arv find searches it" \
     || no "objects: on the disc, find or --json"
 "$tool" todo -C ab/home > ab/todo.txt
