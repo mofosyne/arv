@@ -1250,8 +1250,9 @@ static const char *say_what(const char *path, int drive, const archive *cat, con
     if (!copy && drive) {                       /* one burned copy: a drive holds that one */
         const rec_record *only = NULL;
         size_t burned = 0;
-        for (size_t i = 0; i < cat->events.n; i++) {
-            const rec_record *e = cat->events.v[i];
+        recs dev1 = disc_events(cat, found);   /* only its events */
+        for (size_t i = 0; i < dev1.n; i++) {
+            const rec_record *e = dev1.v[i];
             if (is_copy_event(e, found) && (!rec_get(e, "Form") || !strcmp(rec_get(e, "Form"), "disc"))
                 && !copy_same_as(cat, found, e))
                 only = e, burned++;

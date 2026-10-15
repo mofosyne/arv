@@ -35,8 +35,9 @@ static const char *get_or(const rec_record *r, const char *name, const char *dfl
 const char *disc_read_back(const archive *cat, const char *id)
 {
     const char *date = NULL;
-    for (size_t i = 0; i < cat->events.n; i++) {
-        const rec_record *e = cat->events.v[i];
+    recs dev1 = disc_events(cat, id);   /* only its events */
+    for (size_t i = 0; i < dev1.n; i++) {
+        const rec_record *e = dev1.v[i];
         if (is_copy_event(e, id) && copy_read_back(cat, id, e)) date = rec_get(e, "Date");
     }
     return date;
@@ -44,8 +45,9 @@ const char *disc_read_back(const archive *cat, const char *id)
 
 static int burned_at_all(const archive *cat, const char *id)
 {
-    for (size_t i = 0; i < cat->events.n; i++)
-        if (is_copy_event(cat->events.v[i], id)) return 1;
+    recs ev = disc_events(cat, id);         /* only its events */
+    for (size_t i = 0; i < ev.n; i++)
+        if (is_copy_event(ev.v[i], id)) return 1;
     return 0;
 }
 
@@ -117,8 +119,9 @@ static void hold(const archive *cat, const char *id, holding *h)
 {
     if (retired(cat, id)) return;
     h->discs++;
-    for (size_t i = 0; i < cat->events.n; i++) {
-        const rec_record *e = cat->events.v[i];
+    recs dev2 = disc_events(cat, id);   /* only its events */
+    for (size_t i = 0; i < dev2.n; i++) {
+        const rec_record *e = dev2.v[i];
         if (!is_copy_event(e, id) || !strcmp(get_or(e, "Outcome", ""), "failure")
             || copy_same_as(cat, id, e) || copy_shares_carrier(cat, id, e))   /* one disc twice, one tape: once */
             continue;
@@ -146,16 +149,18 @@ static char *copies_text(const archive *cat, const char *id)
 {
     if (retired(cat, id)) return xstrdup("retired");
     int placed = 0;                 /* some copy says where it is kept */
-    for (size_t i = 0; i < cat->events.n; i++) {
-        const rec_record *e = cat->events.v[i];
+    recs dev3 = disc_events(cat, id);   /* only its events */
+    for (size_t i = 0; i < dev3.n; i++) {
+        const rec_record *e = dev3.v[i];
         if (is_copy_event(e, id) && strcmp(get_or(e, "Outcome", "failure"), "failure"))
             placed |= copy_location(cat, id, e) != NULL;
     }
     sbuf b = { 0 };
     sb_puts(&b, "");
 
-    for (size_t i = 0; i < cat->events.n; i++) {
-        const rec_record *e = cat->events.v[i];
+    recs dev4 = disc_events(cat, id);   /* only its events */
+    for (size_t i = 0; i < dev4.n; i++) {
+        const rec_record *e = dev4.v[i];
         if (!is_copy_event(e, id) || !strcmp(get_or(e, "Outcome", ""), "failure")) continue;
         sb_printf(&b, "%s%s%s%s %s%s", b.len ? ", " : "", copy_letter(cat, id, e) ? copy_letter(cat, id, e) : "",
                   copy_letter(cat, id, e) ? ": " : "", get_or(e, "Form", "disc"), get_or(e, "Temperature", "?"),
@@ -184,13 +189,13 @@ static long version_of(const rec_record *o)
 static long newest(const archive *cat, const char *uuid, recs *out, holding *h)
 {
     long top = 0;
-    for (size_t i = 0; i < cat->objects.n; i++)
-        if (!strcmp(get_or(cat->objects.v[i], "Uuid", ""), uuid) && version_of(cat->objects.v[i]) > top)
-            top = version_of(cat->objects.v[i]);
-    for (size_t i = 0; i < cat->objects.n; i++) {
-        const rec_record *o = cat->objects.v[i];
-        if (strcmp(get_or(o, "Uuid", ""), uuid) || version_of(o) != top) continue;
-        if (out) recs_add(out, cat->objects.v[i]);
+    recs mine = object_records(cat, uuid);  /* only its lineage's records */
+    for (size_t i = 0; i < mine.n; i++)
+        if (version_of(mine.v[i]) > top) top = version_of(mine.v[i]);
+    for (size_t i = 0; i < mine.n; i++) {
+        const rec_record *o = mine.v[i];
+        if (version_of(o) != top) continue;
+        if (out) recs_add(out, mine.v[i]);
         if (h) hold(cat, get_or(o, "Disc", ""), h);
     }
     return top;
@@ -231,8 +236,9 @@ static void disc_json(const archive *cat, const char *id, sbuf *b)
     json_str(b, where);
     sb_puts(b, ", \"copies\": [");
     int first = 1;
-    for (size_t i = 0; i < cat->events.n; i++) {
-        const rec_record *e = cat->events.v[i];
+    recs dev5 = disc_events(cat, id);   /* only its events */
+    for (size_t i = 0; i < dev5.n; i++) {
+        const rec_record *e = dev5.v[i];
         if (!is_copy_event(e, id) || !strcmp(get_or(e, "Outcome", ""), "failure")) continue;
         sb_puts(b, first ? "{\"copy\": " : ", {\"copy\": ");
         json_str(b, copy_letter(cat, id, e) ? copy_letter(cat, id, e) : "");
@@ -289,7 +295,8 @@ static void objects_json(const archive *cat, const char *root)
     sb_puts(&b, "{\"objects\": [");
     for (size_t i = 0; i < cat->objects.n; i++) {
         const char *uuid = get_or(cat->objects.v[i], "Uuid", "");
-        if (strlist_has(&seen, uuid)) continue;
+        recs lineage = object_records(cat, uuid);   /* each lineage once: at its first record */
+        if (lineage.n ? lineage.v[0] != cat->objects.v[i] : strlist_has(&seen, uuid)) continue;
         strlist_add(&seen, uuid);
         recs top = { 0 };
         holding hd = { 0 };
@@ -328,10 +335,11 @@ static void objects_json(const archive *cat, const char *root)
                   hd.discs && hd.copies && !hd.cold && hd.discs && hd.copies < 2 && !there ? ", " : "",
                   hd.discs && hd.copies < 2 && !there ? "\"no longer where it came from, fewer than two copies\"" : "");
         int first = 1;
+        recs mine = object_records(cat, uuid);
         for (long v = last; v >= 1; v--)
-            for (size_t k = 0; k < cat->objects.n; k++) {
-                const rec_record *x = cat->objects.v[k];
-                if (strcmp(get_or(x, "Uuid", ""), uuid) || version_of(x) != v) continue;
+            for (size_t k = 0; k < mine.n; k++) {
+                const rec_record *x = mine.v[k];
+                if (version_of(x) != v) continue;
                 sb_printf(&b, "%s{\"version\": %ld, \"path\": ", first ? "" : ", ", v);
                 json_str(&b, get_or(x, "Path", ""));
                 sb_puts(&b, ", \"arranged\": ");     /* its path as arranged, before a layout placed it */
@@ -409,8 +417,9 @@ static int disc_copies_shown(const archive *cat, const char *id, int as_json)
     if (retired(cat, id)) printf("%s: retired\n", id);
     else if (!n) printf("%s: no copy yet (arv burned, arv stored)\n", id);
     else printf("%s: %zu cop%s\n", id, n, n == 1 ? "y" : "ies");
-    for (size_t i = 0; i < cat->events.n; i++) {
-        const rec_record *e = cat->events.v[i];
+    recs dev6 = disc_events(cat, id);   /* only its events */
+    for (size_t i = 0; i < dev6.n; i++) {
+        const rec_record *e = dev6.v[i];
         if (!is_copy_event(e, id) || !strcmp(get_or(e, "Outcome", ""), "failure")) continue;
         char *at = copy_place(cat, e);
         const char *checked = copy_last_check(cat, id, e);
@@ -476,8 +485,9 @@ int cmd_objects(int argc, char **argv)
     strlist seen = { 0 };
     for (size_t i = 0; i < cat.objects.n; i++) {          /* data objects, each lineage once */
         const char *uuid = get_or(cat.objects.v[i], "Uuid", "");
-        if (strlist_has(&seen, uuid)) continue;
-        strlist_add(&seen, uuid);
+        recs lineage = object_records(&cat, uuid);   /* each lineage once: at its first record */
+        if (lineage.n ? lineage.v[0] != cat.objects.v[i] : strlist_has(&seen, uuid)) continue;
+        if (!lineage.n) strlist_add(&seen, uuid);
         recs top = { 0 };
         holding hd = { 0 };
         long last = newest(&cat, uuid, &top, &hd);
@@ -504,10 +514,11 @@ int cmd_objects(int argc, char **argv)
         for (size_t k = 0; k < src.n; k++)
             printf("    %s %s (%s)\n", k ? "and" : "from", src.v[k], access(src.v[k], F_OK) ? "not there now" : "there now: arv status says if it changed");
         strlist_free(&src);
+        recs mine = object_records(&cat, uuid);
         for (long v = last; v >= 1; v--)
-            for (size_t k = 0; k < cat.objects.n; k++) {
-                const rec_record *x = cat.objects.v[k];
-                if (strcmp(get_or(x, "Uuid", ""), uuid) || version_of(x) != v) continue;
+            for (size_t k = 0; k < mine.n; k++) {
+                const rec_record *x = mine.v[k];
+                if (version_of(x) != v) continue;
                 char *c = copies_text(&cat, get_or(x, "Disc", "?"));
                 const char *path = get_or(x, "Path", "?");
                 printf("    version %ld  %s  data/%s%s  %s\n", v, get_or(x, "Disc", "?"), strcmp(path, ".") ? path : "",
@@ -583,8 +594,9 @@ static int todo_tsv(const archive *cat, const char *cutoff)
             printf("no-copy\t%s\t\t\t\t\t\t\t\n", id);
             continue;
         }
-        for (size_t k = 0; k < cat->events.n; k++) {
-            const rec_record *e = cat->events.v[k];
+        recs dev7 = disc_events(cat, id);   /* only its events */
+        for (size_t k = 0; k < dev7.n; k++) {
+            const rec_record *e = dev7.v[k];
             if (!is_copy_event(e, id) || !strcmp(get_or(e, "Outcome", ""), "failure") || copy_same_as(cat, id, e))
                 continue;
             const char *checked = copy_last_check(cat, id, e), *path = copy_path(cat, id, e);
@@ -647,8 +659,9 @@ int cmd_todo(int argc, char **argv)
         const char *id = get_or(cat.discs.v[i], "Id", "");
         if (retired(&cat, id) || !burned_at_all(&cat, id)) continue;
         sbuf which = { 0 };
-        for (size_t k = 0; k < cat.events.n; k++) {
-            const rec_record *e = cat.events.v[k];
+        recs dev8 = disc_events(&cat, id);   /* only its events */
+        for (size_t k = 0; k < dev8.n; k++) {
+            const rec_record *e = dev8.v[k];
             const char *letter = copy_letter(&cat, id, e);
             if (!is_copy_event(e, id) || !letter || !strcmp(get_or(e, "Outcome", ""), "failure")
                 || strcmp(get_or(e, "Form", "disc"), "disc") || copy_read_back(&cat, id, e) || copy_same_as(&cat, id, e))
@@ -686,8 +699,9 @@ int cmd_todo(int argc, char **argv)
     for (size_t i = 0; i < cat.discs.n; i++) {                  /* copies on one carrier: lost together */
         const char *id = get_or(cat.discs.v[i], "Id", "");
         if (retired(&cat, id)) continue;
-        for (size_t k = 0; k < cat.events.n; k++) {
-            const rec_record *e = cat.events.v[k], *with = is_copy_event(e, id) ? copy_shares_carrier(&cat, id, e) : NULL;
+        recs dev9 = disc_events(&cat, id);   /* only its events */
+        for (size_t k = 0; k < dev9.n; k++) {
+            const rec_record *e = dev9.v[k], *with = is_copy_event(e, id) ? copy_shares_carrier(&cat, id, e) : NULL;
             if (!with) continue;
             heading(&s_one, "Copies on one carrier, lost together and counted once (keep one on another tape or drive):");
             printf("  %s  copies %s and %s on %s\n", id, letter_of(&cat, with), letter_of(&cat, e), copy_carrier(&cat, id, e));
@@ -698,8 +712,9 @@ int cmd_todo(int argc, char **argv)
     for (size_t i = 0; i < cat.discs.n; i++) {                  /* stored copies not where they were recorded */
         const char *id = get_or(cat.discs.v[i], "Id", "");
         if (retired(&cat, id)) continue;
-        for (size_t k = 0; k < cat.events.n; k++) {
-            const rec_record *e = cat.events.v[k];
+        recs dev10 = disc_events(&cat, id);   /* only its events */
+        for (size_t k = 0; k < dev10.n; k++) {
+            const rec_record *e = dev10.v[k];
             const char *at = is_copy_event(e, id) ? copy_path(&cat, id, e) : NULL;
             if (!at || !strcmp(get_or(e, "Outcome", ""), "failure") || !access(at, F_OK)) continue;
             heading(&s_gone, "Stored copies not found where recorded (a drive not mounted? moved: arv stored ID NEWPATH --copy X):");
@@ -712,8 +727,9 @@ int cmd_todo(int argc, char **argv)
         const char *id = get_or(cat.discs.v[i], "Id", "");
         if (retired(&cat, id) || !burned_at_all(&cat, id)) continue;
         int cold = 0;
-        for (size_t k = 0; k < cat.events.n; k++)
-            cold |= is_copy_event(cat.events.v[k], id) && !strcmp(get_or(cat.events.v[k], "Temperature", ""), "cold");
+        recs ev = disc_events(&cat, id);    /* only its events */
+        for (size_t k = 0; k < ev.n; k++)
+            cold |= is_copy_event(ev.v[k], id) && !strcmp(get_or(ev.v[k], "Temperature", ""), "cold");
         if (cold) continue;
         heading(&s7, "No cold copy, every copy is online or in use (burn one for the shelf):");
         printf("  %s\n", id);
@@ -763,8 +779,9 @@ int cmd_todo(int argc, char **argv)
     strlist seen = { 0 };
     for (size_t i = 0; i < cat.objects.n; i++) {               /* data objects: their newest version */
         const char *uuid = get_or(cat.objects.v[i], "Uuid", "");
-        if (strlist_has(&seen, uuid)) continue;
-        strlist_add(&seen, uuid);
+        recs lineage = object_records(&cat, uuid);   /* each lineage once: at its first record */
+        if (lineage.n ? lineage.v[0] != cat.objects.v[i] : strlist_has(&seen, uuid)) continue;
+        if (!lineage.n) strlist_add(&seen, uuid);
         recs top = { 0 };
         holding hd = { 0 };
         long v = newest(&cat, uuid, &top, &hd);
@@ -1223,8 +1240,9 @@ int cmd_inventory(int argc, char **argv)
     for (size_t i = 0; i < cat.discs.n; i++) {           /* each copy recorded here: is it in the library? */
         const char *disc = get_or(cat.discs.v[i], "Id", "");
         if (retired(&cat, disc)) continue;
-        for (size_t k = 0; k < cat.events.n; k++) {
-            const rec_record *e = cat.events.v[k];
+        recs dev12 = disc_events(&cat, disc);   /* only its events */
+        for (size_t k = 0; k < dev12.n; k++) {
+            const rec_record *e = dev12.v[k];
             const char *loc = is_copy_event(e, disc)
                                   ? copy_location(&cat, rec_get(e, "Disc"), e) : NULL;
             if (!loc || strcmp(loc, code)) continue;

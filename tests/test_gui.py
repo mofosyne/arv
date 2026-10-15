@@ -219,6 +219,54 @@ class GuiTest(unittest.TestCase):
         self.assertFalse(copies[0]["checked"])       # A: read back when burned, not checked since
         self.assertEqual(self.request("/api/copies?disc=NOPE")[0], 404)
 
+    @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
+    def test_identify_inventory_audit(self):
+        """A copy known by a scanned barcode, found by it, and checked against a shelf; then a letter two
+        catalogues gave out twice, relabelled, and a field they changed apart, which Audit shows."""
+        self.start()
+        src, out = os.path.join(self.tmp, "Trip"), os.path.join(self.tmp, "out")
+        write(os.path.join(src, "a.txt"), "a", 2019)
+        made = self.wait(json.loads(self.request("/api/make", {"source": src, "set": "PHOTOS", "medium": "auto",
+                                                               "no_ecc": True, "output_dir": out})[1]))
+        self.assertEqual(made["returncode"], 0, "\n".join(made["lines"]))
+        disc = json.loads(self.request("/api/discs")[1])["discs"][0]["Id"]
+        image = os.path.join(out, [f for f in os.listdir(out) if f.endswith(".iso")][0])
+        arv = lambda home, *a: subprocess.run([ARV, "--home", home] + list(a), capture_output=True, text=True)
+        self.assertEqual(arv(self.home, "location", "add", "SHELF", "Shelf").returncode, 0)
+        self.assertEqual(self.wait(json.loads(self.request("/api/command", {"command": "burned", "disc_id": disc, "copies": 1,
+                                                                            "location": "SHELF"})[1]))["returncode"], 0)
+        self.assertEqual(self.request("/api/command", {"command": "identify", "disc_id": disc, "copy": "A"})[0], 400)
+        job = self.wait(json.loads(self.request("/api/command", {"command": "identify", "disc_id": disc, "copy": "A",
+                                                                 "barcode": " CASE-77 "})[1]))
+        self.assertEqual(job["returncode"], 0, "\n".join(job["lines"]))
+        found = json.loads(self.request("/api/find?q=case-77")[1])["copies"]
+        self.assertEqual([(c["disc"], c["copy"], c["identifier"], c["at"]) for c in found], [(disc, "A", "barcode:CASE-77", "Shelf")])
+        self.assertIn({"code": "SHELF", "name": "Shelf", "depth": 0}, json.loads(self.request("/api/locations")[1])["locations"])
+        inv = json.loads(self.request("/api/inventory", {"place": "SHELF", "text": "CASE-77\nNOPE9\n"})[1])
+        self.assertEqual(inv["returncode"], 0, inv["output"])     # only a copy missing is exit 1
+        self.assertIn("UNKNOWN    NOPE9", inv["output"])
+        self.assertNotIn("MISSING", inv["output"])
+        self.assertEqual(self.request("/api/inventory", {"place": "--help"})[0], 400)
+        check = self.wait(json.loads(self.request("/api/check", {"disc_id": disc, "image": image, "copy": "A"})[1]))
+        self.assertEqual(check["returncode"], 0, "\n".join(check["lines"]))     # the disc's form sends a drive or an image
+        # a second catalogue of the archive: each gives out letter B, and each sets the disc's access
+        other = os.path.join(self.tmp, "other")
+        shutil.copytree(self.home, other)
+        self.assertEqual(arv(other, "where", "--here").returncode, 0)
+        for home, place, access in ((self.home, "SHELF", "public"), (other, "ATTIC", "sealed")):
+            self.assertEqual(arv(home, "burned", disc, "--copies", "1", "--location", place).returncode, 0)
+            self.assertEqual(arv(home, "access", disc, access).returncode, 0)
+        merged = self.wait(json.loads(self.request("/api/command", {"command": "rebuild", "path": other})[1]))
+        self.assertIn("arv relabel %s B NEW --at ATTIC" % disc, "\n".join(merged["lines"]))
+        audit = json.loads(self.request("/api/audit")[1])
+        self.assertEqual(audit["returncode"], 1)
+        self.assertIn("CONFLICT  %s Access" % disc, audit["text"])
+        job = self.wait(json.loads(self.request("/api/command", {"command": "relabel", "disc_id": disc, "copy": "B", "new": "C",
+                                                                 "at": "ATTIC"})[1]))
+        self.assertEqual(job["returncode"], 0, "\n".join(job["lines"]))
+        copies = json.loads(self.request("/api/copies?disc=" + disc)[1])["copies"]
+        self.assertEqual(sorted((c["copy"], c["at"]) for c in copies), [("A", "Shelf"), ("B", "Shelf"), ("C", "ATTIC")])
+
     @unittest.skipUnless(os.path.exists(FAKE_LLM), "make -C src/arv-assist check builds the fake model server")
     def test_llm_suggestions_through_arv_assist(self):
         replies = os.path.join(self.tmp, "text.reply")

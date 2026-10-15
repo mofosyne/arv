@@ -946,8 +946,11 @@ static size_t letter_clashes(const archive *cat)
         const char *disc = get_or(a, "Disc", ""), *la;
         if (!is_copy_event(a, disc) || !(la = copy_letter(cat, disc, a)))
             continue;
-        for (size_t j = i + 1; j < cat->events.n; j++) {
-            const rec_record *b = cat->events.v[j];
+        recs ev = disc_events(cat, disc);   /* the disc's later events: its copies after this one */
+        size_t from = 0;
+        while (from < ev.n && ev.v[from] != a) from++;
+        for (size_t j = from + 1; j < ev.n; j++) {
+            const rec_record *b = ev.v[j];
             const char *lb;
             if (!is_copy_event(b, disc) || strcmp(disc, get_or(b, "Disc", "")) || !(lb = copy_letter(cat, disc, b)) || strcmp(la, lb)
                 || copy_same_as(cat, disc, b) == a)             /* one disc recorded twice: identity_report says so */

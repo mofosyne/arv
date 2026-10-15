@@ -489,6 +489,8 @@ chmod +x lib/bin/mtx
 "$tool" -C lib/.arv find DISC01 > scan.out && grep -q "^COPY  $l1 copy A  barcode:DISC01  \[Tape library; " scan.out \
     || { cat scan.out; no "find by a scanned barcode"; }
 "$tool" -C lib/.arv find TAPE01L8 | grep -q "^COPY  $l2 copy A  barcode:TAPE01L8 (the tape or drive it is on)" || no "find by a tape's barcode"
+"$tool" -C lib/.arv find --json TAPE01L8 | grep -q "\"copies\": \[{\"disc\": \"$l2\", \"copy\": \"A\", \"identifier\": \"barcode:TAPE01L8\", \"onCarrier\": true" \
+    || no "find --json lists the copies found"
 "$tool" -C lib/.arv identify "$l3" A --barcode " CASE07 " >/dev/null || no "identify --barcode"
 "$tool" -C lib/.arv find case07 | grep -q "^COPY  $l3 copy A  barcode:CASE07" || no "--barcode, trimmed and found again"
 printf 'DISC01\nCASE07\nNOPE9\n' | "$tool" -C lib/.arv inventory LIB1 > scan.out || true

@@ -177,8 +177,9 @@ static void json_disc(sbuf *b, const catalogue *c, const rec_record *d)
     free(place);
     sb_puts(b, ", \"Events\": [");
     int event_first = 1;
-    for (size_t i = 0; id && i < c->records.events.n; i++) {
-        const rec_record *event = c->records.events.v[i];
+    recs ev = disc_events(&c->records, id);   /* only its events */
+    for (size_t i = 0; id && i < ev.n; i++) {
+        const rec_record *event = ev.v[i];
         if (!rec_get(event, "Disc") || strcmp(rec_get(event, "Disc"), id)) continue;
         if (!event_first) sb_puts(b, ", ");
         event_first = 0;
@@ -295,6 +296,54 @@ int cmd_find(int argc, char **argv)
             any = 1;
         }
     }
+    sbuf json_copies = { 0 };
+    {                                                       /* copies, by what they are known by: a scanned barcode */
+        char *ap = join(c.dir, "archive.rec");
+        archive a;
+        memset(&a, 0, sizeof a);
+        if (!access(ap, F_OK)) archive_load(&a, ap);
+        for (size_t i = 0; i < a.events.n; i++) {
+            const rec_record *e = a.events.v[i];
+            const char *disc = rec_get(e, "Disc");
+            if (!disc || !is_copy_event(e, disc)) continue;
+            strlist ids;
+            copy_identifiers(&a, disc, e, &ids);
+            const char *carrier = copy_carrier(&a, disc, e), *hit = NULL;
+            int on_carrier = 0;
+            for (size_t k = 0; k < ids.n && !hit; k++)
+                if (matches(pat, glob, ids.v[k]) || matches(pat, glob, strchr(ids.v[k], ':') + 1)) hit = ids.v[k];
+            if (!hit && carrier && (matches(pat, glob, carrier) || matches(pat, glob, strchr(carrier, ':') + 1)))
+                hit = carrier, on_carrier = 1;
+            if (hit) {
+                const rec_record *d = archive_disc(&a, disc);
+                const char *checked = copy_last_check(&a, disc, e), *loc = copy_location(&a, disc, e);
+                rec_record probe = { 0 };
+                probe.type = "Disc";
+                if (loc) rec_add(&probe, "Location", loc);
+                char *w = loc ? archive_where(&a, &probe) : xstrdup("place not recorded");
+                rec_clear(&probe);
+                if (as_json) {
+                    sb_puts(&json_copies, json_copies.len ? ", {\"disc\": " : "{\"disc\": ");
+                    json_str(&json_copies, disc);
+                    sb_puts(&json_copies, ", \"copy\": "); json_str(&json_copies, letter_of(&a, e));
+                    sb_puts(&json_copies, ", \"identifier\": "); json_str(&json_copies, hit);
+                    sb_printf(&json_copies, ", \"onCarrier\": %s, \"at\": ", on_carrier ? "true" : "false");
+                    json_str(&json_copies, loc ? w : "");
+                    sb_puts(&json_copies, ", \"checked\": "); json_str(&json_copies, checked ? checked : "");
+                    sb_printf(&json_copies, ", \"readBack\": %s, \"retired\": %s}", copy_read_back(&a, disc, e) ? "true" : "false",
+                              d && rec_get(d, "Retired") ? "true" : "false");
+                } else {
+                    printf("COPY  %s copy %s  %s%s  [%s; %s%s]\n", disc, letter_of(&a, e), hit, on_carrier ? " (the tape or drive it is on)" : "",
+                           w, checked ? "last checked " : copy_read_back(&a, disc, e) ? "read back" : "never checked", checked ? checked : "");
+                    if (d && rec_get(d, "Retired")) printf("      (the disc is retired)\n");
+                }
+                free(w);
+                any = 1;
+            }
+            strlist_free(&ids);
+        }
+        free(ap);
+    }
     if (as_json) {
         sbuf json_files = { 0 };
         int file_first = 1;
@@ -326,47 +375,13 @@ int cmd_find(int argc, char **argv)
             free(line);
             free(path);
         }
-        printf("{\"discs\": [%s], \"files\": [%s], \"total\": %ld}\n",
-               json_discs.s ? json_discs.s : "", json_files.s ? json_files.s : "", files);
+        printf("{\"discs\": [%s], \"copies\": [%s], \"files\": [%s], \"total\": %ld}\n",
+               json_discs.s ? json_discs.s : "", json_copies.s ? json_copies.s : "", json_files.s ? json_files.s : "", files);
+        free(json_copies.s);
         free(json_discs.s);
         free(json_files.s);
         free(pat);
         return 0;
-    }
-    {                                                       /* copies, by what they are known by: a scanned barcode */
-        char *ap = join(c.dir, "archive.rec");
-        archive a;
-        memset(&a, 0, sizeof a);
-        if (!access(ap, F_OK)) archive_load(&a, ap);
-        for (size_t i = 0; i < a.events.n; i++) {
-            const rec_record *e = a.events.v[i];
-            const char *disc = rec_get(e, "Disc");
-            if (!disc || !is_copy_event(e, disc)) continue;
-            strlist ids;
-            copy_identifiers(&a, disc, e, &ids);
-            const char *carrier = copy_carrier(&a, disc, e), *hit = NULL;
-            int on_carrier = 0;
-            for (size_t k = 0; k < ids.n && !hit; k++)
-                if (matches(pat, glob, ids.v[k]) || matches(pat, glob, strchr(ids.v[k], ':') + 1)) hit = ids.v[k];
-            if (!hit && carrier && (matches(pat, glob, carrier) || matches(pat, glob, strchr(carrier, ':') + 1)))
-                hit = carrier, on_carrier = 1;
-            if (hit) {
-                const rec_record *d = archive_disc(&a, disc);
-                const char *checked = copy_last_check(&a, disc, e), *loc = copy_location(&a, disc, e);
-                rec_record probe = { 0 };
-                probe.type = "Disc";
-                if (loc) rec_add(&probe, "Location", loc);
-                char *w = loc ? archive_where(&a, &probe) : xstrdup("place not recorded");
-                rec_clear(&probe);
-                printf("COPY  %s copy %s  %s%s  [%s; %s%s]\n", disc, letter_of(&a, e), hit, on_carrier ? " (the tape or drive it is on)" : "",
-                       w, checked ? "last checked " : copy_read_back(&a, disc, e) ? "read back" : "never checked", checked ? checked : "");
-                if (d && rec_get(d, "Retired")) printf("      (the disc is retired)\n");
-                free(w);
-                any = 1;
-            }
-            strlist_free(&ids);
-        }
-        free(ap);
     }
     for (size_t i = 0; i < c.rec.nrecords; i++) {          /* data objects, by name, path, title or description */
         const rec_record *o = &c.rec.records[i];

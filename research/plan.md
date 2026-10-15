@@ -1663,3 +1663,46 @@ Order: the folder split first (it fixes the silent duplicate), then `rename` and
 the original name (format), then moves in the record, then plans as editions and plans from discs,
 which build on all of them. Tags after burning as events come before layouts (a layout needs every
 file's tags to be in the record).
+
+## Done (2026-10-15, issue #37): fast on a large catalogue
+
+Measured on a synthetic home (`dev-tools/bigcat.py`): each disc with three copies (two discs on
+shelves, an image on a NAS), a fixity check of each copy, a move of every third disc's copy, one
+data object, 200 files. Seconds, on a cloud container:
+
+| Command | 2,000 discs, before | 2,000 discs, after | 10,000 discs, after |
+|---|---|---|---|
+| `list` | 17.8 | 0.05 | 0.23 |
+| `objects` | 85 | 0.11 | 0.71 |
+| `objects --json` (the GUI) | 107 | 0.13 | 0.76 |
+| `todo` | over 300 | 0.11 | 0.65 |
+| `todo --tsv` | 50 | 0.08 | 0.42 |
+| `audit` | 8.8 | 0.08 | 0.43 |
+| `find` | 44 | 0.26 | 2.2 (reads every listing) |
+| `rebuild` into a home that has it all | 5.4 | 0.14 | 1.9 |
+
+The cause was the same everywhere: a question about one disc (its copies, a copy's place or last
+check, its tags) went through every event in the catalogue, and was asked once a disc, so a
+command took the square of the catalogue's size. Now the events are indexed once a run by what
+they are about (`disc_events`), as are discs by id (`archive_disc`) and objects by Uuid and by disc
+(`records_by`); an index is rebuilt when the list it indexes grows. `rebuild`'s merge looks events,
+discs and object versions up in a hash set. Comparing identifiers across copies sorts them, and
+the pass that joins objects made the same (`arv same`) is skipped when there are none.
+
+Not done: a cache on disk. The catalogue is a text file read whole each run (a fraction of a second at
+10,000 discs), and it stays the one source of truth; a second file would have to be kept in step.
+Not worth it until a catalogue is many times this size.
+
+## Done (2026-10-15, issue #38): the interface catches up with copies
+
+What #34 gave the command line, in `arv gui` where a person does it by hand: a barcode for a copy
+(the field takes a scanner's Enter), a new letter for one of two copies lettered alike (offered
+only then, naming each copy by its place, or by an identifier when both share one), an inventory
+of a shelf or library, and the audit. Each runs the command and shows what it printed; the
+interface adds no behaviour of its own. Findings are shown by their fixed first word, with one
+line on what each means.
+
+Not in the interface: `arv drives` (a drive is local hardware; the command line is the place), and
+a library loop (a script's job: `docs/examples/library-check.sh`). The demo is not re-recorded: it
+already shows copies by letter, and the rest is for archives past their first few discs.
+

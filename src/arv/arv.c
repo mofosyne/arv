@@ -475,7 +475,7 @@ static const char MANUAL_NOTES[] =
     "\n"
     "- 0: done, and nothing found wrong.\n"
     "- 1: an error (`Error: ...` on standard error), or something found that needs a person: a check\n"
-    "  that failed, `audit` or `inventory` findings, a disc id `rebuild` would not merge.\n"
+    "  that failed, `audit` findings, a copy `inventory` did not find, a disc id `rebuild` would not merge.\n"
     "- 2: the command was not used as it is meant to be; its usage follows on standard error.\n"
     "\n"
     "## Output for scripts\n"
