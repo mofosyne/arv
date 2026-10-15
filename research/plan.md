@@ -1734,3 +1734,30 @@ in); ours needs neither. The page is read at run time from `share/arv`, not embe
 generated file is committed and `data.c` stays as it is. The tests stay in Python: they speak
 HTTP, so they test either server.
 
+## Decision (2026-10-15): a stable interface is arguments in, JSON out
+
+Asked: would JSON input give arv a stable interface for other software? No. The arguments are
+already a structured input (a list of strings, no shell), and the interface showed it: its page
+builds every command as one. A second way in, a JSON request for each command, would be a second
+parser to keep in step with the first, and two ways in can disagree. What makes an interface
+stable is that its commands, options and outputs stop changing: a promise, kept from 1.0 (#31).
+
+What was missing, and is built:
+
+- **The version of each output's shape.** The TSV outputs had one (`# arv todo 1`); the JSON did
+  not. Each now starts `"format": 1`. A reader checks it; a new field does not change it, a
+  renamed or removed one does.
+- **A result from the commands that write.** Reads had `--json`; writes printed only sentences, so a
+  script learned a new copy's letter by parsing "Write its letter on the hub ...". Now `--json` on
+  any command that changes the record prints the events it made, as `list --json` shows events.
+  It is done once, not per command: the record is its events, so "what this did" is the events
+  this run added, which `archive_save` already knows (they are the ones still waiting for an id).
+  What a command says to a person goes to standard error; after a failure, the events written
+  before it, and the exit status.
+
+Still to do for 1.0, under #31: write down each output's fields as the interface (the manual's
+"Output for scripts"); structured input only where many things go in at once, per command, as
+`plan add --list` and drafts on standard input already do (recording a stack of burned discs is
+the next such case); perhaps `arv help --json`, the commands and their options, for a program to
+discover them (the C server of #48 could use it for its list of commands).
+

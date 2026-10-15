@@ -21,6 +21,12 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Output for scripts, versioned** (toward issue #31)
+- Every JSON output starts with `"format": 1`, the version of its shape.
+- `--json` on a command that changes the record (`burned`, `note`, `make`, `location add` ...)
+  prints the events it made, each with its `EventId`; what it says to a person goes to standard
+  error. A script learns a new copy's letter from the event, not from a sentence.
+
 **The interface runs arv, and only arv**
 - `arv gui`'s server no longer knows any feature: the page builds every command and the server
   runs it (`POST /api/run`), as a quick call or a job, and lists folders. A new feature is a
