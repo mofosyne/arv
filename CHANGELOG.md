@@ -21,6 +21,10 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**The room on a disc, in the spec**
+- The disc format spec gives each medium's sectors and how much image fits at 10, 20, 30 and 50%
+  RS03 (18.7 GiB on a BD-R 25 at the default 20%), and how it follows from RS03's 255 layers.
+
 **arv in the desktop's menu**
 - `make install` (and the Debian and Arch packages) puts `arv.desktop` and arv's mark as its icon
   where desktops look. It runs `arv gui --idle 15`: started from a menu there is no terminal to stop
