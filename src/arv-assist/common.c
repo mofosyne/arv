@@ -125,44 +125,80 @@ void ftags_free(ftags *f)
     memset(f, 0, sizeof *f);
 }
 
-/* catalog.write_tags: folder <TAB> comma-separated tags [<TAB> caption], folders sorted */
-void write_tags_file(const char *path, const ftags *f)
-{
-    strlist keys = { 0 };
-    for (size_t i = 0; i < f->n; i++)
-        if ((f->tags[i].n || f->caption[i]) && !strlist_has(&keys, f->folder[i])) strlist_add(&keys, f->folder[i]);
-    if (keys.n) qsort(keys.v, keys.n, sizeof *keys.v, by_name);
-    sbuf b = { 0 };
-    sb_puts(&b, "# folder (relative to data/)\ttags\tcaption (what sampled images show, if analysed)\n");
-    for (size_t k = 0; k < keys.n; k++)
-        for (size_t i = 0; i < f->n; i++) {
-            if (strcmp(f->folder[i], keys.v[k])) continue;
-            sb_printf(&b, "%s\t", f->folder[i]);
-            for (size_t t = 0; t < f->tags[i].n; t++) sb_printf(&b, "%s%s", t ? ", " : "", f->tags[i].v[t]);
-            if (f->caption[i]) {
-                sb_puts(&b, "\t");
-                for (const char *c = f->caption[i]; *c; c++) sb_add(&b, *c == '\t' || *c == '\n' ? " " : c, 1);
-            }
-            sb_puts(&b, "\n");
-            break;
-        }
-    char *slash = strrchr(path, '/');
-    if (slash) {
-        char *dir = xprintf("%.*s", (int)(slash - path), path);
-        if (mkdirs(dir)) die("cannot create %s", dir);
-        free(dir);
-    }
-    write_text(path, b.s);
-    free(b.s);
-    strlist_free(&keys);
-}
+static void parse_tags(char *text, ftags *out);
 
-/* catalog.read_tag_info */
+/* a tags.tsv file as it is */
 void read_tags_file(const char *path, ftags *out)
 {
     memset(out, 0, sizeof *out);
     char *text = read_text(path);
-    if (!text) return;
+    if (text) parse_tags(text, out);
+}
+
+/* a disc's tags now: its tags.tsv as burned, with the changes recorded since (disc_tags_text) */
+void read_tags_now(const archive *cat, const char *disc_id, const char *burned, ftags *out)
+{
+    memset(out, 0, sizeof *out);
+    char *text = disc_tags_text(cat, disc_id, burned);
+    if (text) parse_tags(text, out);
+}
+
+static char *joined_tags(const ftags *f, const char *path, const char **caption)
+{
+    sbuf b = { 0 };
+    sb_puts(&b, "");
+    *caption = "";
+    for (size_t i = 0; i < f->n; i++)
+        if (!strcmp(f->folder[i], path)) {
+            for (size_t t = 0; t < f->tags[i].n; t++) sb_printf(&b, "%s%s", t ? ", " : "", f->tags[i].v[t]);
+            if (f->caption[i]) *caption = f->caption[i];
+        }
+    return b.s;
+}
+
+/* each path whose tags or caption differ between before and after, as Tags:/Caption: on the event
+ * (tag_change); how many paths changed */
+size_t record_tag_changes(archive *cat, rec_record *ev, const char *disc_id, const ftags *before, const ftags *after)
+{
+    size_t n = 0;
+    for (size_t i = 0; i < after->n; i++) {
+        const char *path = after->folder[i], *cb, *ca;
+        int again = 0;
+        for (size_t j = 0; j < i && !again; j++) again = !strcmp(after->folder[j], path);
+        if (again) continue;
+        char *tb = joined_tags(before, path, &cb), *ta = joined_tags(after, path, &ca);
+        int changed = 0;
+        if (strcmp(tb, ta)) {
+            const rec_record *o = object_at(cat, disc_id, path);
+            if (ev && o) {                  /* a data object's own path: its tags, on every disc it is on */
+                char *thing = xprintf("object:%s", rec_get(o, "Uuid"));
+                rec_record *oe = object_event_like(ev, rec_get(o, "Uuid"));
+                rec_add(oe, "Tags", ta);
+                sets_field(cat, oe, thing, "Tags");
+                recs_add(&cat->events, oe);
+                free(thing);
+            } else if (ev) {
+                tag_change(cat, ev, disc_id, "Tags", path, ta);
+            }
+            changed = 1;
+        }
+        if (strcmp(cb, ca)) {
+            char *flat = xstrdup(ca);
+            for (char *c = flat; *c; c++)
+                if (*c == '\t' || *c == '\n') *c = ' ';
+            if (ev) tag_change(cat, ev, disc_id, "Caption", path, flat);
+            free(flat);
+            changed = 1;
+        }
+        n += changed;
+        free(tb);
+        free(ta);
+    }
+    return n;
+}
+
+static void parse_tags(char *text, ftags *out)
+{
     for (char *line = strtok(text, "\n"); line; line = strtok(NULL, "\n")) {
         char *tab = strchr(line, '\t');
         if (*line == '#' || !tab) continue;

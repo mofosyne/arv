@@ -657,7 +657,15 @@ static void objects_status(const arv_home *h, const archive *cat, const char *ab
                 snprintf(tree, sizeof tree, "%s", s->files.v[f].hash);
                 strlist_add(&lines, p);
             } else if (!rl || (!strncmp(p, rel, rl) && p[rl] == '/')) {
-                char *line = xprintf("%s  %s", s->files.v[f].hash, rl ? p + rl + 1 : p);
+                const char *in = rl ? p + rl + 1 : p;
+                int left_out = 0;               /* placed elsewhere when it was archived (Except) */
+                for (size_t x = 0; x < latest->nfields && !left_out; x++) {
+                    if (strcmp(latest->fields[x].name, "Except")) continue;
+                    size_t el = strlen(latest->fields[x].value);
+                    left_out = !strncmp(in, latest->fields[x].value, el) && (!in[el] || in[el] == '/');
+                }
+                if (left_out) continue;
+                char *line = xprintf("%s  %s", s->files.v[f].hash, in);
                 strlist_add(&lines, line);
                 free(line);
             }
@@ -723,8 +731,8 @@ static void objects_status(const arv_home *h, const archive *cat, const char *ab
         const rec_record *o = cat->objects.v[i];
         if (strcmp(get_or(o, "Tree", ""), tree) || strlist_has(&seen, get_or(o, "Uuid", ""))) continue;
         strlist_add(&seen, get_or(o, "Uuid", ""));
-        printf("  this folder is the data object %s/, version %s (data/%s on %s), unchanged\n", get_or(o, "Name", "?"),
-               get_or(o, "Version", "?"), get_or(o, "Path", "?"), get_or(o, "Disc", "?"));
+        printf("  its bytes are the data object %s/, version %s (data/%s on %s), archived from elsewhere\n",
+               get_or(o, "Name", "?"), get_or(o, "Version", "?"), get_or(o, "Path", "?"), get_or(o, "Disc", "?"));
     }
     free(text.s);
     strlist_free(&all);

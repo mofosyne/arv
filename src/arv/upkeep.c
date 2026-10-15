@@ -334,6 +334,9 @@ static void objects_json(const archive *cat, const char *root)
                 if (strcmp(get_or(x, "Uuid", ""), uuid) || version_of(x) != v) continue;
                 sb_printf(&b, "%s{\"version\": %ld, \"path\": ", first ? "" : ", ", v);
                 json_str(&b, get_or(x, "Path", ""));
+                sb_puts(&b, ", \"arranged\": ");     /* its path as arranged, before a layout placed it */
+                if (rec_get(x, "Arranged")) json_str(&b, rec_get(x, "Arranged"));
+                else sb_puts(&b, "null");
                 sb_puts(&b, ", \"files\": ");
                 sb_puts(&b, get_or(x, "Files", "0"));
                 sb_puts(&b, ", \"bytes\": ");
@@ -479,9 +482,9 @@ int cmd_objects(int argc, char **argv)
         holding hd = { 0 };
         long last = newest(&cat, uuid, &top, &hd);
         const rec_record *o = top.v[0];
-        const char *name = get_or(o, "Name", "?");
+        const char *name = object_slug(&cat, o), *tags = object_field(&cat, uuid, "Tags");   /* its name and tags now */
         int file = !strcmp(get_or(o, "Kind", ""), "file");
-        if (want && strcmp(want, name) && strcmp(want, uuid)) {
+        if (want && strcmp(want, name) && strcmp(want, get_or(o, "Name", "")) && strcmp(want, uuid)) {
             free(top.v);
             continue;
         }
@@ -491,6 +494,8 @@ int cmd_objects(int argc, char **argv)
         printf("  %s%s  %s, %ld version%s; newest: %s\n", name, file ? "" : "/", get_or(o, "Kind", "?"), last, last == 1 ? "" : "s",
                line.s);
         free(line.s);
+        if (strcmp(name, get_or(o, "Name", "?"))) printf("    renamed: it was read as %s\n", get_or(o, "Name", "?"));
+        if (tags) printf("    tags now: %s\n", *tags ? tags : "none");
         about_text(o, want != NULL);
         strlist src = { 0 };
         char *root = home_root(&h);
@@ -915,8 +920,19 @@ static int retire_one(const arv_home *h, archive *cat, rec_record *d, int yes, i
         long top = newest(cat, get_or(o, "Uuid", ""), NULL, NULL);
         int file = !strcmp(get_or(o, "Kind", ""), "file");
         printf("  %s%s version %ld", get_or(o, "Name", "?"), file ? "" : "/", version_of(o));
+        const rec_record *twin = NULL;      /* the same bytes as another object, on a disc that stays */
+        for (size_t k = 0; k < cat->objects.n && !elsewhere && !twin; k++) {
+            const rec_record *x = cat->objects.v[k];
+            if (x != o && strcmp(get_or(x, "Disc", ""), id) && !retired(cat, get_or(x, "Disc", ""))
+                && strcmp(get_or(x, "Uuid", ""), get_or(o, "Uuid", "-")) && !strcmp(get_or(x, "Tree", ""), get_or(o, "Tree", "-")))
+                twin = x;
+        }
         if (elsewhere) printf(": also on %s\n", elsewhere);
         else if (version_of(o) < top) printf(": only here; replaced by version %ld\n", top);
+        else if (twin)
+            printf(": the newest version, only here as this object; the same bytes are %s%s version %ld on %s\n",
+                   get_or(twin, "Name", "?"), strcmp(get_or(twin, "Kind", ""), "file") ? "/" : "", version_of(twin),
+                   get_or(twin, "Disc", "?"));
         else {
             printf(": the newest version, and its only copy is here\n");
             newest_lost++;

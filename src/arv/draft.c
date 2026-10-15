@@ -43,7 +43,7 @@ void draft_load(const char *path, draft *d, int accept)
     d->description = jtext(json_get(doc, "description"));
     jlist(json_get(doc, "subjects"), &d->subjects);
     jlist(json_get(doc, "notes"), &d->notes);
-    const jv *ft = json_get(doc, "folder_tags"), *caps = json_get(doc, "folder_captions");
+    const jv *ft = json_get(doc, "tags"), *caps = json_get(doc, "captions");
     for (size_t i = 0; ft && ft->kind == 'o' && i < ft->n; i++) {
         d->ft_folder = xrealloc(d->ft_folder, (d->nft + 1) * sizeof *d->ft_folder);
         d->ft_tags = xrealloc(d->ft_tags, (d->nft + 1) * sizeof *d->ft_tags);

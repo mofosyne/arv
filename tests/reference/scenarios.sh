@@ -194,12 +194,13 @@ keep_home hb rebuild/home
 cat > draft-model.json <<'JSON'
 {"title": "Letters and scans", "description": "Old letters.", "subjects": ["letters", "family"],
  "notes": ["Drafted by a model."], "agent": "llm:qwen2.5 (local)", "authorship": "suggested",
- "folder_tags": {".": ["Holiday", "kids", "place: Kyoto"], "letters": ["letters", "relatives"], "elsewhere": ["x"]},
- "folder_captions": {"letters": "two pages,\tone scan\nand a stamp", "missing": "not on this disc"}}
+ "tags": {".": ["Holiday", "kids", "place: Kyoto"], "letters": ["letters", "relatives"], "elsewhere": ["x"],
+                 "letters/2001-05-01.txt": ["best"]},
+ "captions": {"letters": "two pages,\tone scan\nand a stamp", "missing": "not on this disc"}}
 JSON
 cat > draft-human.json <<'JSON'
 {"title": "Hand-written été 😀", "subjects": [], "agent": "sample script (hand-written)",
- "folder_tags": {"letters": ["letters"]}}
+ "tags": {"letters": ["letters"]}}
 JSON
 printf '{"description": "No agent, no title"}\n' > draft-bare.json
 log draft.out --home hd make -y --no-ecc --no-formats --set CODE --draft draft-model.json --title "My own title" \
@@ -207,11 +208,13 @@ log draft.out --home hd make -y --no-ecc --no-formats --set CODE --draft draft-m
 log draft.out --home hd make -y --no-ecc --no-formats --set CODE --draft draft-human.json --keep-stage --output-dir out-d2 src
 log draft.out --home hd make -y --no-ecc --no-formats --set CODE --draft draft-bare.json --title T --keep-stage \
     --output-dir out-d3 hist-src
-printf '{"agent": "embeddings:bge-small", "folder_tags": {"letters": ["letters"], ".": ["scan"]}}\n' > draft-split.json
+printf '{"agent": "embeddings:bge-small", "tags": {"letters": ["letters"], ".": ["scan"]}}\n' > draft-split.json
 log draft.out --home hd make -y --no-ecc --no-formats --set SCAN --split --medium-sectors 4800 --draft draft-split.json \
     --keep-stage --output-dir out-d4 big
 printf 'not json' > draft-broken.json
 log draft.out --home hd make -y --no-ecc --no-formats --set CODE --draft draft-broken.json --output-dir out-d5 src
+log draft.out --home hd find best            # a tag on one file: found as the file
+log draft.out --home hd tags
 keep draft.out draft/transcript.txt
 for k in 1 2 3 4; do keep_stages out-d$k draft/d$k; done
 keep_home hd draft/home
@@ -304,6 +307,16 @@ log coll.out --home hc status lay
 log coll.out --home hc list
 log coll.out --home hc objects
 log coll.out --home hc objects FAM
+# a plan as the collection's next edition: the collection says what is kept, the plan how it is arranged
+log coll.out --home hc plan new famsort --collection NOPE
+log coll.out --home hc plan new famsort --collection fam --title "Family photos, sorted"
+log coll.out --home hc plan add famsort coll/fam/b.txt --as letters/b.txt
+log coll.out --home hc plan add famsort coll/fam/c2.txt --as letters/c.txt
+log coll.out --home hc plan add famsort coll/fam/e.txt
+log coll.out --home hc plan show famsort
+log coll.out --home hc plan make famsort -y --no-ecc --no-formats --message "sorted into letters" --output-dir out-c4
+log coll.out --home hc diff FAM/2 FAM/3
+log coll.out --home hc collection show FAM
 keep coll.out coll/transcript.txt
 keep coll/fam/.arv coll/marker
 for k in 1 2; do keep_stages out-c$k coll/c$k; done
@@ -370,10 +383,14 @@ keep init/c/sub/.arv init/pointer-sub
 cp -r "$here/home" tags
 rm -f tags/config/tags.rec
 printf '.\tHoliday, Zzz, person:\303\205lice, place:kyoto\nsub dir\tkids,  travel ,\n' >> tags/catalog/volumes/TRIP-01_2019_4/tags.tsv
+# a place for sub dir/a as well as the disc's (places are many); for 2019/x.jpg, events that replace
+# its folder's, two of them, and a date that is not EDTF; a range; a namespace not declared
+printf 'sub dir/a\tplace:osaka, mood:calm\n2019\tevent:trip, date:2019-07\n2019/x.jpg\tevent:wedding, event:party, date:soon\n2019/y.jpg\tdate:1995/2008\n' >> tags/catalog/volumes/TRIP-01_2019_4/tags.tsv
 log tags.out --home tags tags
 log tags.out --home tags tags --namespace place
 log tags.out --home tags tags --namespace ""
 log tags.out --home tags tags --namespace nope
+log tags.out --home tags tags --namespace date
 
 for d in $(a --home tags list | cut -f1) NOPE-01_2000_X; do
     for k in exiftool; do log tags.out --home tags keywords "$d" --format $k; done
@@ -429,6 +446,17 @@ log plan.out --home hp plan disc trip add
 log plan.out --home hp plan disc trip drop 1
 log plan.out --home hp plan disc trip drop 3
 log plan.out --home hp plan move trip notes.txt --disc 2
+log plan.out --home hp plan add trip plan-nas/photos/2025/b.jpg --as best/b.jpg --disc 1   # split: b leaves photos/
+log plan.out --home hp plan rename trip best/b.jpg best/kyoto-b.jpg            # an item's new place
+log plan.out --home hp plan rename trip photos/a.jpg best/kyoto-a.jpg          # inside photos/: split off
+log plan.out --home hp plan rename trip best/kyoto-a.jpg photos               # taken on its disc
+log plan.out --home hp plan rename trip photos/nope.jpg x.jpg                  # not there
+printf 'plan-pc/gone.txt\tg.txt\nplan-pc/nope.txt\tn.txt\n' > plan-list-bad.tsv
+log plan.out --home hp plan add trip --list plan-list-bad.tsv                   # a bad line: none added
+printf 'plan-pc/gone.txt\tnotes/gone.txt\t2\n' > plan-list.tsv
+log plan.out --home hp plan add trip --list plan-list.tsv
+log plan.out --home hp plan drop trip notes/gone.txt
+log plan.out --home hp plan drop trip best/kyoto-a.jpg                         # back into photos/
 log plan.out --home hp plan show trip
 log plan.out --home hp plan show trip --json
 log plan.out --home hp plan list
@@ -508,5 +536,87 @@ keep hp/drafts/plans/trip.rec plan/trip.rec
 keep hp/drafts/plans/card-2.rec plan/card-2.rec
 keep_stages out-plan plan/discs
 keep_home hp plan/home
+
+# ------------------------------------------------------------------ layouts: a disc's tree made from its objects' tags
+mkdir -p lay/DCIM/day2 lay/scans lay/station/src
+for f in IMG_0001 IMG_0002 IMG_0003; do echo "jpeg $f" > lay/DCIM/$f.JPG; done
+echo "jpeg day2" > lay/DCIM/day2/IMG_0001.JPG
+cp lay/DCIM/IMG_0002.JPG lay/DCIM/IMG_0002-copy.JPG                          # byte-identical: noted, written in full
+echo "no date" > lay/DCIM/notes.txt
+echo "a print" > lay/scans/print1.tif
+echo "int main(void) { return 0; }" > lay/station/src/main.c
+echo "# Station" > lay/station/README.md
+for f in lay/DCIM/*.JPG lay/DCIM/day2/IMG_0001.JPG; do stamp 1562025600 "$f"; done    # 2019-07-02
+for f in lay/scans/print1.tif lay/DCIM/notes.txt; do stamp 1700000000 "$f"; done     # 2023: scanned, or written
+stamp 1600000000 lay/station/src/main.c && stamp 1610000000 lay/station/README.md       # 2020 and 2021
+log lay.out --home hy plan new album --set PHOTO
+log lay.out --home hy plan add album lay/DCIM --each                          # each photo a data object of its own
+log lay.out --home hy plan add album lay/scans/print1.tif --as scans/print1.tif
+log lay.out --home hy plan add album lay/station                             # a project: one object, kept whole
+log lay.out --home hy plan add album lay/nope --each
+log lay.out --home hy plan tag album lay/DCIM "Event: Kyoto trip, place:kyoto"
+log lay.out --home hy plan tag album lay/scans/print1.tif "date:1974~, person:ann"
+log lay.out --home hy plan tag album lay/station "project:weather-station"
+log lay.out --home hy plan tag album lay/DCIM "date:2019, date:2020"          # two values of a one-valued namespace
+log lay.out --home hy plan tag album lay/DCIM "date:soon"                     # not EDTF
+log lay.out --home hy plan tag album lay/elsewhere "x"                        # not there
+echo "elsewhere" > lay-outside.txt
+log lay.out --home hy plan tag album lay-outside.txt "x"                      # not in the plan
+log lay.out --home hy plan layout album "person"                              # many-valued: refused
+log lay.out --home hy plan layout album "year/, year"                         # an empty level
+log lay.out --home hy plan layout album "year" --disc 2                       # no disc 2
+log lay.out --home hy plan layout album "decade" --disc 1
+log lay.out --home hy plan layout album "year/event, project, decade"         # every disc: replaces disc 1's too
+log lay.out --home hy plan show album                                         # day2/IMG_0001.JPG: two at one path
+log lay.out --home hy plan make album -y --no-ecc --no-formats --output-dir out-lay
+log lay.out --home hy plan rename album DCIM/day2/IMG_0001.JPG DCIM/day2/IMG_0001-day2.JPG   # another name, laid out still
+printf 'lay/DCIM/notes.txt\tdate:2019-07\n# a comment\nlay/DCIM/IMG_0003.JPG\tevent:other\n' > lay-tags.tsv
+log lay.out --home hy plan tag album --list lay-tags.tsv
+printf 'lay/DCIM/IMG_0002.JPG\tbest\nlay/nope.JPG\tbest\n' > lay-tags-bad.tsv
+log lay.out --home hy plan tag album --list lay-tags-bad.tsv                  # a bad line: none changed
+log lay.out --home hy plan tag album lay/DCIM/IMG_0003.JPG ""                  # its own tags gone: the folder's again
+log lay.out --home hy plan show album
+log lay.out --home hy plan show album --json
+log lay.out --home hy plan show album --duplicates
+log lay.out --home hy plan make album -y --no-ecc --no-formats --keep-stage --output-dir out-lay
+log lay.out --home hy objects
+log lay.out --home hy objects --json
+log lay.out --home hy find kyoto
+# after burning: an object's name and tags change in the record (by its Uuid), never its place
+lid=PHOTO-01_1974-2021_F
+log lay.out --home hy rename IMG_0002.JPG torii.jpg
+log lay.out --home hy rename IMG_0001.JPG x.jpg                    # two objects read as IMG_0001.JPG
+log lay.out --home hy rename torii.jpg "best/torii.jpg"             # a name, not a place
+log lay.out --home hy rename nothing x.jpg
+log lay.out --home hy retag torii.jpg "event:osaka-trip, place:osaka, Best"
+log lay.out --home hy retag torii.jpg "event:osaka-trip, place:osaka, best"
+log lay.out --home hy objects torii.jpg
+log lay.out --home hy find osaka
+log lay.out --home hy same notes.txt torii.jpg                     # other bytes: two objects, kept apart
+log lay.out --home hy same IMG_0002-copy.JPG torii.jpg             # the same bytes, and (a person says) the same thing
+log lay.out --home hy objects torii.jpg
+log lay.out --home hy same IMG_0002-copy.JPG torii.jpg
+log lay.out --home hy plan new again --set PHOTO                     # the photo planned again, from the drive:
+log lay.out --home hy plan add again lay/DCIM/IMG_0002.JPG          # placed by its tags now, named by its name now
+log lay.out --home hy plan layout again "year/event"
+log lay.out --home hy plan show again
+7z x -olay-disc out-lay/$lid.noecc.iso >/dev/null
+log lay.out --home hy restore lay-disc lay-restored                 # as burned, and recorded where
+find lay-restored -type f | sort >> lay.out
+# a remake is a new plan: the restored files are the same objects (the record says where they were
+# restored); a copy made by hand is the same object only when said (--of)
+cp -p "lay-restored/decade/1970s/print1.tif" lay-print-copy.tif
+log lay.out --home hy plan new remake --set PHOTO
+log lay.out --home hy plan add remake "lay-restored/year/2019/event/kyoto trip/IMG_0002.JPG" lay-restored/project/weather-station/station
+log lay.out --home hy plan add remake lay-print-copy.tif --of print1.tif
+log lay.out --home hy plan add remake lay-restored/decade --of nothing
+log lay.out --home hy plan layout remake "year/event, project, decade"
+log lay.out --home hy plan show remake
+log lay.out --home hy plan make remake -y --no-ecc --no-formats --output-dir out-remake
+cut -f5 hy/catalog/volumes/PHOTO-02_*/listing.tsv >> lay.out
+log lay.out --home hy objects torii.jpg
+keep lay.out lay/transcript.txt
+keep hy/drafts/plans/album.rec lay/album.rec
+keep_stages out-lay lay/discs
 
 echo "scenarios: $(find "$out" -type f | wc -l) files in $out"

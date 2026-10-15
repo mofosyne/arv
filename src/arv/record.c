@@ -983,6 +983,176 @@ int cmd_note(int argc, char **argv)
     return 0;
 }
 
+static const char *get_or(const rec_record *r, const char *name, const char *dflt)
+{
+    const char *v = rec_get(r, name);
+    return v ? v : dflt;
+}
+
+/* a change to one of a data object's fields now (Tags, Slug): an event about it, Sets FIELD */
+static void object_change(archive *cat, const char *uuid, const char *field, const char *value, const char *note)
+{
+    char *who = person(), *thing = xprintf("object:%s", uuid);
+    rec_record *e = new_event(uuid, "metadata modification", "success", who, "human", note);
+    free(e->fields[0].name);                /* Object: object:UUID, not Disc */
+    free(e->fields[0].value);
+    e->fields[0].name = xstrdup("Object");
+    e->fields[0].value = xstrdup(thing);
+    rec_add(e, field, value);
+    sets_field(cat, e, thing, field);
+    recs_add(&cat->events, e);
+    free(who);
+    free(thing);
+}
+
+/* arv same OBJECT OTHER: two data objects recorded apart are one (a copy made of it, the same photo
+ * kept twice): OBJECT's records are read as OTHER's, each the version with its bytes. Only when
+ * every version of OBJECT has bytes OTHER has had: else it has a history of its own to keep. */
+int cmd_same(int argc, char **argv)
+{
+    const char *given = NULL, *a_word = NULL, *b_word = NULL;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (argv[i][0] == '-') return 2;
+        else if (!a_word) a_word = argv[i];
+        else if (!b_word) b_word = argv[i];
+        else return 2;
+    }
+    if (!b_word) return 2;
+    arv_home h;
+    archive cat;
+    home_find(&h, given, NULL);
+    home_guard(h.path);
+    archive_load(&cat, h.rec_path);
+    char *a = xstrdup(object_by_word(&cat, a_word)), *b = xstrdup(object_by_word(&cat, b_word));
+    if (!strcmp(a, b)) die("%s and the other are one object already", a_word);
+    size_t versions = 0;
+    strlist own = { 0 };                    /* versions of A with bytes B never had */
+    for (size_t i = 0; i < cat.objects.n; i++) {
+        const rec_record *o = cat.objects.v[i];
+        if (strcmp(get_or(o, "Uuid", ""), a)) continue;
+        versions++;
+        int found = 0;
+        for (size_t j = 0; j < cat.objects.n && !found; j++)
+            found = !strcmp(get_or(cat.objects.v[j], "Uuid", ""), b) && !strcmp(get_or(cat.objects.v[j], "Tree", "-"), get_or(o, "Tree", "+"));
+        if (!found) {
+            char *line = xprintf("  version %s on %s", get_or(o, "Version", "?"), get_or(o, "Disc", "?"));
+            if (!strlist_has(&own, line)) strlist_add(&own, line);
+            free(line);
+        }
+    }
+    if (own.n) {
+        fprintf(stderr, "Error: %s has bytes %s never had, a history of its own; arv keeps the two apart:\n",
+                object_slug(&cat, object_at_uuid(&cat, a)), object_slug(&cat, object_at_uuid(&cat, b)));
+        for (size_t i = 0; i < own.n; i++) fprintf(stderr, "%s\n", own.v[i]);
+        exit(1);
+    }
+    const rec_record *ao = object_at_uuid(&cat, a), *bo = object_at_uuid(&cat, b);
+    char *an = xstrdup(object_slug(&cat, ao)), *bn = xstrdup(object_slug(&cat, bo)), *to = xprintf("object:%s", b);
+    char *note = xprintf("%s is %s (said by a person: the same bytes, and the same thing)", an, bn);
+    object_change(&cat, a, "SameAs", to, note);
+    archive_same_objects(&cat);
+    archive_save(&cat, h.rec_path);
+    printf("%s is %s now (%s): %s record%s read as %s of its version%s.\n", an, bn, b, versions == 1 ? "its" : "all its",
+           versions == 1 ? " is" : "s are", versions == 1 ? "a copy" : "copies", versions == 1 ? "" : "s");
+    free(note);
+    free(to);
+    free(an);
+    free(bn);
+    free(a);
+    free(b);
+    return 0;
+}
+
+/* arv rename OBJECT NEWNAME: a data object's name on discs (its Slug) is NEWNAME now. A name, not a
+ * place: where it goes on a disc is its tags' (a layout), or the plan's. The discs it is on stay as
+ * burned; the next disc made from it uses the name. */
+int cmd_rename(int argc, char **argv)
+{
+    const char *given = NULL, *which = NULL, *to = NULL;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (argv[i][0] == '-') return 2;
+        else if (!which) which = argv[i];
+        else if (!to) to = argv[i];
+        else return 2;
+    }
+    if (!to) return 2;
+    if (!*to || strpbrk(to, "/\t\r\n") || !strcmp(to, ".") || !strcmp(to, ".."))
+        die("%s cannot be a name (no / : a place is the tags' or the plan's; no tabs or line breaks)", to);
+    arv_home h;
+    archive cat;
+    home_find(&h, given, NULL);
+    home_guard(h.path);
+    archive_load(&cat, h.rec_path);
+    const char *uuid = object_by_word(&cat, which);
+    const rec_record *o = NULL;
+    for (size_t i = 0; i < cat.objects.n; i++)
+        if (!strcmp(get_or(cat.objects.v[i], "Uuid", ""), uuid)) o = cat.objects.v[i];
+    char *was = xstrdup(object_slug(&cat, o));
+    if (!strcmp(was, to)) {
+        printf("%s is called %s already\n", uuid, to);
+        return 0;
+    }
+    char *note = xprintf("renamed %s to %s", was, to);
+    object_change(&cat, uuid, "Slug", to, note);
+    archive_save(&cat, h.rec_path);
+    printf("%s is %s now (%s). The discs it is on stay as burned; the next disc made from it uses the name.\n", was, to, uuid);
+    free(note);
+    free(was);
+    return 0;
+}
+
+/* arv retag OBJECT TAGS: a data object's tags now ("" for none), replacing its tags; a layout files
+ * the next disc made from it by them */
+int cmd_retag(int argc, char **argv)
+{
+    const char *given = NULL, *which = NULL, *text = NULL;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (argv[i][0] == '-') return 2;
+        else if (!which) which = argv[i];
+        else if (!text) text = argv[i];
+        else return 2;
+    }
+    if (!text) return 2;
+    arv_home h;
+    archive cat;
+    home_find(&h, given, NULL);
+    home_guard(h.path);
+    archive_load(&cat, h.rec_path);
+    const char *uuid = object_by_word(&cat, which);
+    strlist tags = { 0 };
+    char *copy = xstrdup(text);
+    for (char *t = strtok(copy, ","); t; t = strtok(NULL, ",")) {
+        char *nt = tag_normalise(t);
+        if (*nt && !strlist_has(&tags, nt)) strlist_add(&tags, nt);
+        free(nt);
+    }
+    free(copy);
+    tags_canonical(&h, &tags);
+    sbuf b = { 0 };
+    sb_puts(&b, "");
+    for (size_t i = 0; i < tags.n; i++) sb_printf(&b, "%s%s", i ? ", " : "", tags.v[i]);
+    const rec_record *o = NULL;
+    for (size_t i = 0; i < cat.objects.n; i++)
+        if (!strcmp(get_or(cat.objects.v[i], "Uuid", ""), uuid)) o = cat.objects.v[i];
+    const char *now = object_field(&cat, uuid, "Tags");
+    if (now && !strcmp(now, b.s)) {
+        printf("%s has those tags already\n", object_slug(&cat, o));
+        return 0;
+    }
+    char *note = xprintf("tags of %s: %s", object_slug(&cat, o), *b.s ? b.s : "none");
+    object_change(&cat, uuid, "Tags", b.s, note);
+    archive_save(&cat, h.rec_path);
+    printf("%s: %s (%s). The next disc made from it is filed by them; arv find finds it by them now.\n", object_slug(&cat, o),
+           *b.s ? b.s : "no tags", uuid);
+    free(note);
+    free(b.s);
+    strlist_free(&tags);
+    return 0;
+}
+
 int cmd_locate(int argc, char **argv)
 {
     const char *given = NULL, *disc_id = NULL, *letter = NULL, *where = NULL;

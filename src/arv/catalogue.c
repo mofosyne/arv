@@ -371,8 +371,9 @@ int cmd_find(int argc, char **argv)
     for (size_t i = 0; i < c.rec.nrecords; i++) {          /* data objects, by name, path, title or description */
         const rec_record *o = &c.rec.records[i];
         if (!is_type(o, "Object") || !rec_get(o, "Disc")) continue;
-        const char *name = rec_get(o, "Name") ? rec_get(o, "Name") : "", *path = rec_get(o, "Path") ? rec_get(o, "Path") : "";
-        int hit = matches(pat, glob, name) || matches(pat, glob, path);
+        const char *name = rec_get(o, "Uuid") ? object_slug(&c.records, o) : rec_get(o, "Name") ? rec_get(o, "Name") : "",
+                   *path = rec_get(o, "Path") ? rec_get(o, "Path") : "";
+        int hit = matches(pat, glob, name) || matches(pat, glob, path) || (rec_get(o, "Name") && matches(pat, glob, rec_get(o, "Name")));
         for (int k = 0; !hit && k < 2; k++)          /* and what it says about itself: Title, Description */
             hit = rec_get(o, ABOUT_FIELDS[k]) && matches(pat, glob, rec_get(o, ABOUT_FIELDS[k]));
         if (!hit) continue;
@@ -435,7 +436,7 @@ int cmd_find(int argc, char **argv)
         char *path = catalogue_volume(&c, rec_get(d, "Id"), "tags.tsv"), *line = NULL;
         size_t cap = 0;
         ssize_t len;
-        FILE *fp = fopen(path, "r");
+        FILE *fp = disc_tags_open(&c.records, rec_get(d, "Id"), path);   /* as burned, and changed since */
         while (fp && (len = getline(&line, &cap, fp)) >= 0) {
             while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) line[--len] = 0;
             char *cols[3] = { line, NULL, NULL };
@@ -459,10 +460,12 @@ int cmd_find(int argc, char **argv)
             }
             free(tags);
             if (!hit) continue;
-            char *w = found_at(&c, d);
+            char *w = found_at(&c, d), *lst = catalogue_volume(&c, rec_get(d, "Id"), "listing.tsv");
+            int file = strcmp(cols[0], ".") && listing_has_file(lst, cols[0]);   /* a tag names a file or a folder */
             if (!strcmp(cols[0], ".")) printf("TAG   %s  [%s]  data/  (%s)\n", rec_get(d, "Id"), *w ? w : "?", shown);
-            else printf("TAG   %s  [%s]  data/%s/  (%s)\n", rec_get(d, "Id"), *w ? w : "?", cols[0], shown);
+            else printf("TAG   %s  [%s]  data/%s%s  (%s)\n", rec_get(d, "Id"), *w ? w : "?", cols[0], file ? "" : "/", shown);
             free(w);
+            free(lst);
             any = 1;
         }
         if (fp) fclose(fp);

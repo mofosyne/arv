@@ -22,6 +22,8 @@ Payload: data/
 + (copies burned from one image share it); Id is for people and is
 + derived from Set, Sequence and Coverage (EDTF) under IdScheme, so it
 + can always be regenerated and checked (see docs/spec/smart-archive-format.md).
++ Layout, when given, is how its tree was made from its objects' tags: levels split by
++ /, alternatives by , (year/event, year); each object placed whole.
 %key: Id
 %mandatory: Id Title Date
 %type: Uuid uuid
@@ -131,7 +133,11 @@ Changes: +2 ~0 -0 >0 files
 + Every event has an EventId: the first 32 hex digits of the SHA-256 of its other fields as
 + written (a Nonce keeps two alike apart). An event about one copy names it by Replication (that
 + copy's replication EventId) and Copy (its letter then; the newest is its letter now). A change
-+ to a field says Sets: FIELD and Replaces: the EventIds of the changes it follows; two that
++ to a field says Sets: FIELD and Replaces: the EventIds of the changes it follows (a path's
++ tags or caption after burning: Tags: PATH<TAB>TAGS or Caption: PATH<TAB>TEXT, with Sets:
++ Tags:PATH or Caption:PATH; the disc's tags.tsv stays as burned; a data object's tags or
++ name now: an event about it, Object: object:UUID, with Tags: TAGS or Slug: NAME, Sets: Tags
++ or Slug); two that
 + replace the same one were made apart, a conflict to settle by setting the field again. Deaccession retires a disc (its Disc record gets
 + Retired).
 %mandatory: Type Date Outcome

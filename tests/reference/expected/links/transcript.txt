@@ -2,6 +2,8 @@ $ --home hl make -y --no-ecc --no-formats --set CODE --links copy --label  --acc
 Scanning and hashing ROOT/src ...
 Warning: broken link dead -> missing.txt (recorded in the listing, not archived)
 Links: 2 copied, 1 broken (policy: copy)
+Note: 2 files (12 B) are byte-identical to others in the folder, and written in full:
+  README.md = docs/guide.md = latest/guide.md
 Classified as: PROJECTS/CODE
 Object src/ (data/ on CODE-01_2020_0): new
 Building ROOT/out-links/CODE-01_2020_0.noecc.iso (1 of 1, 1.7 MiB) ...
@@ -13,6 +15,8 @@ $ --home hl make -y --no-ecc --no-formats --set CODE --links record --title Reco
 Scanning and hashing ROOT/src ...
 Warning: broken link dead -> missing.txt (recorded in the listing, not archived)
 Links: 1 copied, 1 recorded, 1 broken (policy: record)
+Note: 1 file (6 B) is byte-identical to others in the folder, and written in full:
+  README.md = docs/guide.md
 Classified as: PROJECTS/CODE
 Object src/ (data/ on CODE-02_2020_Y): a new version of what was archived from there before
 Building ROOT/out-links2/CODE-02_2020_Y.noecc.iso (1 of 1, 1.7 MiB) ...

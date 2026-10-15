@@ -176,11 +176,11 @@ static int by_cstr(const void *a, const void *b)
     return strcmp(*(char *const *)a, *(char *const *)b);
 }
 
-/* the folder tags and captions for the folders on one disc ("." and every folder above a file), as
- * tags.tsv (catalog.write_tags); 0 when there are none */
+/* the tags and captions for the paths on one disc ("." and every folder above a file, and every
+ * file: a file has its folders' tags and its own), as tags.tsv; 0 when there are none */
 static int write_plan_tags(const char *path, const draft *d, const entries *files)
 {
-    strlist folders = { 0 };
+    strlist folders = { 0 };        /* the folders a tag may name; or it names a file */
     strlist_add(&folders, ".");
     for (size_t i = 0; i < files->n; i++)
         for (const char *s = strchr(files->v[i].path, '/'); s; s = strchr(s + 1, '/')) {
@@ -188,6 +188,11 @@ static int write_plan_tags(const char *path, const draft *d, const entries *file
             if (!strlist_has(&folders, f)) strlist_add(&folders, f);
             free(f);
         }
+    for (size_t i = 0; i < d->nft + d->ncap; i++) {    /* a draft's paths that are files on this disc */
+        const char *p = i < d->nft ? d->ft_folder[i] : d->cap_folder[i - d->nft];
+        for (size_t k = 0; k < files->n && !strlist_has(&folders, p); k++)
+            if (!strcmp(files->v[k].path, p)) strlist_add(&folders, p);
+    }
     strlist keys = { 0 };
     for (size_t i = 0; i < d->nft; i++)
         if (strlist_has(&folders, d->ft_folder[i]) && !strlist_has(&keys, d->ft_folder[i])) strlist_add(&keys, d->ft_folder[i]);
@@ -197,7 +202,7 @@ static int write_plan_tags(const char *path, const draft *d, const entries *file
     if (!keys.n) return 0;
     qsort(keys.v, keys.n, sizeof *keys.v, by_cstr);
     sbuf b = { 0 };
-    sb_puts(&b, "# folder (relative to data/)\ttags\tcaption (what sampled images show, if analysed)\n");
+    sb_puts(&b, "# path (a folder or a file, relative to data/)\ttags\tcaption (what sampled images show, if analysed)\n");
     for (size_t k = 0; k < keys.n; k++) {
         sb_puts(&b, keys.v[k]);
         sb_puts(&b, "\t");
@@ -220,6 +225,27 @@ static int write_plan_tags(const char *path, const draft *d, const entries *file
     free(b.s);
     strlist_free(&keys);
     return 1;
+}
+
+/* the date: tag a file has (its own, else its nearest folder's, from a draft or a plan), as its first
+ * and last day; 0 when it has none with a known start */
+static int tagged_date(const draft *d, const char *path, long *first, long *last)
+{
+    size_t best = 0;
+    const char *value = NULL;
+    for (size_t i = 0; i < d->nft; i++) {
+        const char *f = d->ft_folder[i];
+        size_t l = strlen(f);
+        int above = !strcmp(f, ".") || !strcmp(f, path) || (!strncmp(path, f, l) && path[l] == '/');
+        if (!above || (value && strlen(f) < best)) continue;
+        for (size_t t = 0; t < d->ft_tags[i].n; t++)
+            if (!strncmp(d->ft_tags[i].v[t], "date:", 5)) {
+                value = d->ft_tags[i].v[t] + 5;
+                best = !strcmp(f, ".") ? 0 : l;
+            }
+    }
+    while (value && *value == ' ') value++;
+    return value && edtf_span(value, first, last) == 1 && *first > EDTF_MIN;
 }
 
 /* ------------------------------------------------------------------ questions (cli.ask) */
@@ -872,6 +898,7 @@ typedef struct {
     int is_git, links_chosen, have_formats;
     formats fmt;
     const draft *draft;         /* --draft, or NULL */
+    const draft *tags;          /* the draft's tags and the plan's (tags.tsv), or NULL */
     rec_record *collection;     /* the workflow folder's collection, or NULL */
     const char *id_prefix;      /* the collection's code, else the set code */
     char *tree_text;            /* the collection's revision manifest */
@@ -1072,6 +1099,8 @@ static rec_record *disc_record(const maker *mk, const plan *p)
     rec_add(d, "Sequence", seq);
     free(seq);
     rec_add(d, "Coverage", mk->coverage);
+    if (mk->dplan && plan_layout(mk->dplan, (int)(p - mk->plans) + 1))   /* its tree, made from its objects' tags */
+        rec_add(d, "Layout", plan_layout(mk->dplan, (int)(p - mk->plans) + 1));
     rec_add(d, "Date", mk->today);
     if (p->parts > 1) {
         char *part = xprintf("%d of %d", p->part, p->parts);
@@ -1300,9 +1329,9 @@ static void batch_files(maker *mk)
         write_listing(p->b_listing, &sorted, &p->noted);
         free(sorted.v);
         p->b_tags = NULL;
-        if (mk->draft) {
+        if (mk->tags) {
             char *t = xprintf("%s/%s.tags", batch, p->disc_id);
-            if (write_plan_tags(t, mk->draft, &p->files)) p->b_tags = t;
+            if (write_plan_tags(t, mk->tags, &p->files)) p->b_tags = t;
             else free(t);
         }
         p->b_formats = NULL;
@@ -1436,13 +1465,17 @@ static void stage_plan(maker *mk, size_t idx)
         if (!d || !strcmp(disc_access(d), "sealed")) continue;
         for (int k = 0; KINDS[k]; k++) {
             char *from = home_volume_file(mk->h, prior.v[i], KINDS[k]);
-            if (!access(from, F_OK)) {
+            int tags = !strcmp(KINDS[k], "tags.tsv");
+            char *now = tags ? disc_tags_text(cat, prior.v[i], access(from, F_OK) ? NULL : from) : NULL;
+            if (now || (!tags && !access(from, F_OK))) {
                 char *dir = xprintf("%s/%s", vol_dir, prior.v[i]), *to = join(dir, KINDS[k]);
                 if (mkdirs(dir)) die("cannot create %s", dir);
-                copy_file(from, to);
+                if (now) write_text(to, now);        /* its tags now: as burned, and changed since */
+                else copy_file(from, to);
                 free(dir);
                 free(to);
             }
+            free(now);
             free(from);
         }
     }
@@ -1902,7 +1935,14 @@ int cmd_make(int argc, char **argv)
 
     /* a collection's workflow folder: the collection gives what the options leave open */
     char *coll_uuid = o.plan ? NULL : marker_collection(src);
-    rec_record *coll = o.plan ? NULL : folder_collection(&cat, src, NULL);   /* its marker, or a declaration (arv link) */
+    rec_record *coll = NULL;            /* a plan's collection (its next edition), or a folder's marker or declaration */
+    if (o.plan && rec_get(rec_first(&dp.rec, "Plan"), "Collection")) {
+        coll = archive_collection(&cat, rec_get(rec_first(&dp.rec, "Plan"), "Collection"));
+        if (!coll) die2("plan %s names collection %s, which is not in the home catalogue", dp.name,
+                        rec_get(rec_first(&dp.rec, "Plan"), "Collection"));
+    } else if (!o.plan) {
+        coll = folder_collection(&cat, src, NULL);
+    }
     if (coll_uuid && !coll) die("this folder's .arv marker names collection %s, which is not in the home catalogue", coll_uuid);
     if (coll) {
         if (!o.title || !*o.title) o.title = rec_get(coll, "Title");
@@ -1919,9 +1959,17 @@ int cmd_make(int argc, char **argv)
 
     size_t left_out = 0;
     entries files, noted;
+    strlist plan_tagged = { 0 };        /* "PATH\tTAGS": the tags the plan gives its files */
     if (o.plan) {
         fprintf(stderr, "Plan %s: scanning and hashing its %zu items ...\n", dp.name, dp.n);
-        plan_scan(&dp, o.links, &files, &noted, &left_out);
+        strlist clashes = { 0 };
+        plan_scan(&h, &dp, o.links, &files, &noted, &left_out, &plan_tagged, &clashes);
+        if (clashes.n) {
+            fprintf(stderr, "Error: the layout puts two things at one path. Give one another name (the layout keeps "
+                            "placing it): arv plan rename %s PATH NEWPATH; arv plan show %s lists them\n", dp.name, dp.name);
+            for (size_t i = 0; i < clashes.n; i++) fprintf(stderr, "  %s\n", clashes.v[i]);
+            exit(1);
+        }
     } else {
         fprintf(stderr, "Scanning and hashing %s ...\n", src);
         scan_payload(src, o.links, &files, &noted);
@@ -1935,6 +1983,19 @@ int cmd_make(int argc, char **argv)
     }
     char *summary = link_summary(&files, &noted, o.links);
     if (summary) fprintf(stderr, "Links: %s\n", summary + strlen("links: "));
+    {                                   /* byte-identical files: each is written in full; the person decides */
+        uint64_t dup_bytes;
+        size_t dups = duplicates_report(&files, o.plan != NULL, 0, NULL, &dup_bytes);
+        if (dups) {
+            char sz[32];
+            human_size(dup_bytes, sz);
+            fprintf(stderr, "Note: %zu file%s (%s) %s byte-identical to others %s, and written in full", dups,
+                    dups == 1 ? "" : "s", sz, dups == 1 ? "is" : "are", o.plan ? "on the same disc" : "in the folder");
+            if (o.plan) fprintf(stderr, " (arv plan show %s --duplicates lists them):\n", dp.name);
+            else fputs(":\n", stderr);
+            duplicates_report(&files, o.plan != NULL, 5, stderr, &dup_bytes);
+        }
+    }
     {
         char **paths = xmalloc((files.n + 1) * sizeof *paths);
         for (size_t i = 0; i < files.n; i++) paths[i] = files.v[i].path;
@@ -1981,6 +2042,23 @@ int cmd_make(int argc, char **argv)
             for (size_t i = 0; i < dr.notes.n; i++) strlist_add(&o.notes, dr.notes.v[i]);
             for (size_t i = 0; i < dr.nft; i++) tags_canonical(&h, &dr.ft_tags[i]);   /* aliases become names */
         }
+        for (size_t i = 0; i < plan_tagged.n; i++) {     /* the plan's, for the paths the draft leaves */
+            char *path = plan_tagged.v[i], *tab = strchr(path, '\t');
+            *tab = 0;
+            int have = 0;
+            for (size_t k = 0; k < dr.nft && !have; k++) have = !strcmp(dr.ft_folder[k], path);
+            if (have) continue;
+            dr.ft_folder = xrealloc(dr.ft_folder, (dr.nft + 1) * sizeof *dr.ft_folder);
+            dr.ft_tags = xrealloc(dr.ft_tags, (dr.nft + 1) * sizeof *dr.ft_tags);
+            dr.ft_folder[dr.nft] = xstrdup(path);
+            memset(&dr.ft_tags[dr.nft], 0, sizeof *dr.ft_tags);
+            for (char *t = strtok(tab + 1, ","); t; t = strtok(NULL, ",")) {
+                while (*t == ' ') t++;
+                if (*t) strlist_add(&dr.ft_tags[dr.nft], t);
+            }
+            dr.nft++;
+        }
+        strlist_free(&plan_tagged);
 
         /* coverage: the files' years, or --coverage */
         char coverage[64];
@@ -1990,10 +2068,18 @@ int cmd_make(int argc, char **argv)
         } else {
             int lo = 9999, hi = 0;
             for (size_t i = 0; i < files.n; i++) {
-                struct tm tm;
-                localtime_r(&files.v[i].mtime, &tm);
-                if (tm.tm_year + 1900 < lo) lo = tm.tm_year + 1900;
-                if (tm.tm_year + 1900 > hi) hi = tm.tm_year + 1900;
+                long first, last;
+                int y0, y1;
+                if (tagged_date(&dr, files.v[i].path, &first, &last)) {   /* the date of its content */
+                    y0 = (int)(first / 10000);
+                    y1 = last < EDTF_MAX ? (int)(last / 10000) : y0;
+                } else {                                                 /* else the file's own */
+                    struct tm tm;
+                    localtime_r(&files.v[i].mtime, &tm);
+                    y0 = y1 = tm.tm_year + 1900;
+                }
+                if (y0 < lo) lo = y0;
+                if (y1 > hi) hi = y1;
             }
             if (!files.n) {
                 struct tm tm;
@@ -2106,6 +2192,7 @@ int cmd_make(int argc, char **argv)
         mk.files = &files;
         mk.noted = &noted;
         mk.draft = o.draft ? &dr : NULL;
+        mk.tags = o.draft || dr.nft ? &dr : NULL;
         mk.title = o.title ? o.title : default_title;
         mk.creator = o.creator ? o.creator : getenv("USER");
         mk.set_code = set_code;

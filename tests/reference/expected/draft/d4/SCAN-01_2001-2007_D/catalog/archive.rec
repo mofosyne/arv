@@ -26,6 +26,8 @@ Date: 2026-01-01
 + (copies burned from one image share it); Id is for people and is
 + derived from Set, Sequence and Coverage (EDTF) under IdScheme, so it
 + can always be regenerated and checked (see docs/spec/smart-archive-format.md).
++ Layout, when given, is how its tree was made from its objects' tags: levels split by
++ /, alternatives by , (year/event, year); each object placed whole.
 %key: Id
 %mandatory: Id Title Date
 %type: Uuid uuid
@@ -104,8 +106,8 @@ Date: 2026-01-01
 Part: 1 of 2
 Creator: archivist
 Access: private
-Files: 54
-Bytes: 5400000
+Files: 53
+Bytes: 5300000
 Software: SW
 
 Id: SCAN-02_2001-2007_B
@@ -122,8 +124,8 @@ Date: 2026-01-01
 Part: 2 of 2
 Creator: archivist
 Access: private
-Files: 16
-Bytes: 1600000
+Files: 17
+Bytes: 1700000
 Software: SW
 
 %rec: Binding
@@ -186,7 +188,16 @@ Ecc: none
 + sorted; a repository's .git aside, as git.tsv describes it); Version counts its versions,
 + and the same Tree on another disc is the same version. Disc and Path say where it is
 + (Path under data/; "." for the whole of data/). Source is where it was read from: it is
-+ kept in the home catalogue only, and discs carry their objects without it.
++ kept in the home catalogue only, and discs carry their objects without it. Except (one
++ for each) names a file or folder of the source left out of the object because a disc plan
++ placed it elsewhere (a folder split): the object is the folder without them. Arranged, on a disc with
++ a Layout, is where it was arranged (its path in the disc plan) before the layout placed it
++ at Path; Name keeps its name where it was read from, and Slug, when they differ, is its name
++ on this disc. SameBytes (UUID VERSION) names an
++ object of another lineage with the same Tree: identity is the lineage, never the bytes,
++ so the same bytes read from elsewhere are another object, and this says so; a person who
++ knows they are one says so with an event (Object: object:THIS, SameAs: object:OTHER), and
++ readers then read its records as the other's versions with the same Tree.
 + Title, Description, Coverage (EDTF), Rights and Origin (where it was published, as host/path)
 + say what it is: read from its own files when it is archived (its README, package manifest,
 + licence, a repository's commits and origin remote), or written by a person or a model
@@ -257,7 +268,11 @@ Date: 2026-01-01
 + Every event has an EventId: the first 32 hex digits of the SHA-256 of its other fields as
 + written (a Nonce keeps two alike apart). An event about one copy names it by Replication (that
 + copy's replication EventId) and Copy (its letter then; the newest is its letter now). A change
-+ to a field says Sets: FIELD and Replaces: the EventIds of the changes it follows; two that
++ to a field says Sets: FIELD and Replaces: the EventIds of the changes it follows (a path's
++ tags or caption after burning: Tags: PATH<TAB>TAGS or Caption: PATH<TAB>TEXT, with Sets:
++ Tags:PATH or Caption:PATH; the disc's tags.tsv stays as burned; a data object's tags or
++ name now: an event about it, Object: object:UUID, with Tags: TAGS or Slug: NAME, Sets: Tags
++ or Slug); two that
 + replace the same one were made apart, a conflict to settle by setting the field again. Deaccession retires a disc (its Disc record gets
 + Retired).
 %mandatory: Type Date Outcome
@@ -364,7 +379,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: sha256 and sha512 manifests of 54 files
+Note: sha256 and sha512 manifests of 53 files
 
 EventId: ID
 Disc: SCAN-01_2001-2007_D
@@ -383,7 +398,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: sha256 and sha512 manifests of 16 files
+Note: sha256 and sha512 manifests of 17 files
 
 EventId: ID
 Disc: SCAN-02_2001-2007_B

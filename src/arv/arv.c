@@ -50,11 +50,17 @@ static const char USAGE_ARCHIVE[] =
           "Archive: what goes on discs\n"
           "  arv make [--set CODE] [--title T] [--split] [--no-ecc] [--output-dir DIR] ... FOLDER\n"
           "         disc images of a folder, recorded in the home (arv make --help lists every option)\n"
-          "  arv plan new|list|show|add|move|drop|disc|make|again|delete NAME ...\n"
+          "  arv plan new|list|show|add|rename|tag|layout|move|drop|disc|make|again|delete NAME ...\n"
           "         discs composed by hand from files and folders anywhere; the sources stay where they are:\n"
-          "         add NAME SOURCE... [--disc N|new|auto] [--as PATH] puts them on a disc, under PATH;\n"
+          "         new NAME [--collection CODE] (its discs that collection's next edition, arranged as planned);\n"
+          "         add NAME SOURCE... [--disc N|new|auto] [--as PATH] [--each] puts them on a disc, under PATH\n"
+          "         (--each: each file in a folder an object of its own; --of OBJECT: SOURCE continues that object);\n"
+          "         add NAME --list FILE|- takes SOURCE<tab>PATH[<tab>DISC] lines, all or none;\n"
+          "         rename NAME PATH NEWPATH gives an item a new place, or splits one off a planned folder;\n"
+          "         tag NAME SOURCE TAGS (or --list FILE|-: SOURCE<tab>TAGS lines) tags files before they are on discs;\n"
+          "         layout NAME 'year/event, year' [--disc N] makes a disc's tree from its objects' tags;\n"
           "         move NAME PATH... --disc N|new moves them; drop NAME PATH... takes them off; disc NAME add|drop N;\n"
-          "         show NAME;"
+          "         show NAME [--duplicates];"
           " make NAME makes the images; again NAME NEW starts the same plan anew; delete NAME\n"
           "  arv collection init [FOLDER] --code CODE --title TITLE [--set CODE] [--access LEVEL] | list | show CODE\n"
           "         a folder kept over time, its states made into editions of discs (show: its editions)\n"
@@ -83,6 +89,9 @@ static const char USAGE_RECORD[] =
           "         catalogues gave one letter to two copies: --at or --identifier says which)\n"
           "  arv locate DISC-ID COPY PLACE   where a copy is kept now\n"
           "  arv note DISC-ID TEXT   a note on a disc\n"
+          "  arv rename OBJECT NEWNAME   a data object's name on discs now (a name, not a place); the next disc uses it\n"
+          "  arv retag OBJECT TAGS   a data object's tags now (\"\" for none): what a layout files it by, and find finds\n"
+          "  arv same OBJECT OTHER   two data objects recorded apart are one (the same bytes, and the same thing)\n"
           "  arv access DISC-ID public|private|sealed   what later discs' catalogues may show of it\n"
           "  arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)\n"
           "  arv find [-C CATALOG] [--limit N] PATTERN   discs, copies (by identifier or carrier), objects, tags\n"
@@ -104,7 +113,8 @@ static const char USAGE_RECORD[] =
           "  arv retire CODE|DISC-ID [--yes [--accept-loss]]   retire the editions a newer safe one replaces (not kept\n"
           "         ones), or one disc of no edition; refused while a file is on no disc that stays\n"
           "  arv sets [-v]   the set codes and categories, as a tree\n"
-          "  arv tags [--namespace NS]   the folder tags in use, and on how many folders and discs\n"
+          "  arv tags [--namespace NS]   the tags in use, by namespace, on how many paths and discs; and the\n"
+          "         paths to correct: two values of a one-valued namespace, a date that is not EDTF\n"
           "  arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files\n"
           "\n";
 static const char USAGE_REST[] =
@@ -118,7 +128,8 @@ static const char USAGE_REST[] =
           "  arv drives [--check] [DRIVE...]   what is in each optical drive: which disc, which copy\n"
           "  arv inventory [-v] PLACE [FILE]   a library's barcodes (mtx status, or a list) against the copies\n"
           "         recorded at PLACE: missing, unknown, recorded elsewhere\n"
-          "  arv restore DISC DEST   copy a disc's files to DEST, checking each; dates, execute bits and links back\n"
+          "  arv restore DISC DEST   copy a disc's files to DEST, checking each; dates, execute bits and links back;\n"
+          "         recorded, when the home knows the disc, so a plan of them continues its data objects\n"
           "  arv rebuild [--prefer-disc] [--any-archive] DISC|CATALOG   merge a disc's, or another .arv's, catalogue\n"
           "  arv audit [DISC...]   every event as written; with discs, the home against what they carry\n"
           "\n"
@@ -451,11 +462,11 @@ static const char MANUAL_NOTES[] =
     "`sets`, `tags`, `keywords`, `info`, `audit`, `inventory`, `drives` (without\n"
     "`--check`), `where` (without `--here`), `names`, `plan list|show`, `collection list|show`, `location\n"
     "list`, `appraise --due`, and `retire` without `--yes` (a preview). `restore`\n"
-    "writes only the files it restores, where it is told.\n"
+    "writes only the files it restores, where it is told, and records where (when the home knows the disc).\n"
     "\n"
     "These change the record, each leaving an event that says who and when: `init`, `make`, `plan make`,\n"
     "`collection init|keep`, `link`, `burned`, `stored`, `identify`,\n"
-    "`relabel`, `note`, `locate`, `access`, `location add|move`, `appraise`,\n"
+    "`relabel`, `note`, `rename`, `retag`, `same`, `locate`, `access`, `location add|move`, `appraise`,\n"
     "`retire --yes`, `rebuild`, `check` and `drives --check` (a check is logged), `describe` and `tag`\n"
     "(when a draft is applied). `where --here` changes only where the catalogue may be written.\n"
     "arv never deletes a file, an image or a disc.\n"
@@ -670,7 +681,7 @@ int main(int argc, char **argv)
     } cmds[] = { { "info", cmd_info }, { "restore", cmd_restore },
                  { "find", cmd_find }, { "list", cmd_list },
                  { "init", cmd_init }, { "make", cmd_make }, { "check", cmd_check },
-                 { "burned", cmd_burned }, { "note", cmd_note }, { "locate", cmd_locate },
+                 { "burned", cmd_burned }, { "note", cmd_note }, { "rename", cmd_rename }, { "retag", cmd_retag }, { "same", cmd_same }, { "locate", cmd_locate },
                  { "access", cmd_access }, { "location", cmd_location }, { "collection", cmd_collection },
                  { "status", cmd_status }, { "log", cmd_log }, { "diff", cmd_diff },
                  { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },
@@ -749,8 +760,7 @@ int main(int argc, char **argv)
                     }
             char **args = argv + 2;
             int n = argc - 2;
-            int reads_disc = !strcmp(cmds[i].name, "restore");
-            if (home && !reads_disc) {      /* the command reads -C HOME first (a disc's own commands need no home) */
+            if (home) {                     /* the command reads -C HOME first */
                 args = xmalloc(((size_t)n + 3) * sizeof *args);
                 args[0] = "-C";
                 args[1] = (char *)home;

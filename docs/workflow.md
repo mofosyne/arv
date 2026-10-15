@@ -241,11 +241,88 @@ nothing, and the sources are read where they are when the images are made.
 arv plan new family --title "Family 2025" --set FAMILY [--medium bd25]
 arv plan add family ~/Videos/wedding.mkv                    # --disc auto: the first disc with room
 arv plan add family /nas/photos/2025 --as photos --disc new # a folder, as data/photos/, on a new disc
+arv plan add family /nas/photos/2025/IMG_0042.JPG --as best/kyoto.jpg   # one of them, placed elsewhere
+arv plan rename family photos/IMG_0043.JPG best/temple.jpg  # the same, by its place in the plan
+arv plan rename family photos photos-2025                   # an item's new place (a folder: all of it)
+exiftool -q -r -d %Y/%m-%d_%H%M%S -p '$Directory/$FileName	by-date/$DateTimeOriginal.$FileTypeExtension' /nas/photos/2025 \
+    | arv plan add family --list -                          # many at once: SOURCE<tab>PATH[<tab>DISC]
 arv plan move family photos --disc 1                        # by its path under data/
 arv plan drop family photos                                 # off the disc; the source is untouched
 arv plan show family                                        # each disc's fill, its items and sources
 arv plan make family [--output-dir DIR] [arv make's options]
 ```
+
+**A disc's tree from its tags: layouts.** For photos, scans and recordings, whose structure is
+what they show and when, tag what is in the plan and let the disc's layout place it, rather than
+placing each by hand:
+
+```sh
+arv plan add family /nas/photos/2025 --each                 # each photo an object of its own
+arv plan tag family /nas/photos/2025/kyoto 'event:kyoto-trip, place:kyoto'   # a folder: all in it
+arv plan tag family /nas/scans/print-07.tif 'date:1974~, person:ann'         # one file
+exiftool -q -r -d %Y-%m-%d -p '$Directory/$FileName	date:$DateTimeOriginal' /nas/photos/2025 \
+    | arv plan tag family --list -                          # many at once: SOURCE<tab>TAGS
+arv plan layout family 'year/event, project, year'          # every disc; --disc N for one
+arv plan show family                                        # where each item goes
+```
+
+A layout's folders name their namespace, so the disc describes itself:
+`year/2019/event/kyoto-trip/IMG_0001.JPG`. `/` nests and `,` falls back: a photo with an event goes
+under it, one without under its year only, and one with none of the alternatives keeps the place
+it was given in the plan. Each item, a data object, is placed whole: a project tagged
+`project:weather-station` goes to `project/weather-station/station/` with its own tree, and a
+folder added without `--each` stays one folder, wherever its tags put it. Only namespaces with one
+value can be levels (`event`, `project`, and `year` or `decade`, made from `date`); `arv tags`
+lists them. A date is filed by its start, and with no `date:` tag by the item's earliest file's
+time (the vocabulary's `From: file-date`), which is right for a camera's photo and wrong for a
+scan of an old print: tag those. Of a one-valued namespace, a file's own value replaces its
+folder's. Two items given one path (two cameras' `IMG_0001.JPG`) stop `plan make`: give one another
+name with `plan rename`, and the layout keeps placing it, under that name. The disc records its
+`Layout`; each object records where it was arranged (`Arranged`) and its original `Name`; the tags
+go into the disc's `tags.tsv` and the dates into its coverage. Re-filing a photo later is changing
+its tags; the next disc made puts it there.
+
+**A plan as a collection's edition.** `arv plan new family-2026 --collection FAM` makes the plan's
+discs the collection's next edition when it is made: the same revision, edition number and
+history as `arv make` of the collection's folder, but arranged as the plan says (sorted into
+albums, laid out by tags, gathered from several places). `arv diff FAM/2 FAM/3` then shows the
+re-arrangement as moves, by content.
+
+**New media for old discs.** Before a disc's media gets old, or its drives scarce, copy it as it
+is: burn the same image again (`arv burned DISC --device ...` records copy B of the same disc), or
+keep the images on newer storage (`arv stored DISC IMAGE`, with `--carrier` for a tape or drive
+holding several). The bits stay the same and the check is the same, so nothing needs remaking;
+the copying is the burner's, `dd`'s or `rsync`'s work.
+
+A disc made anew from old discs (re-arranged, gathered, laid out by today's tags) is a new plan:
+`arv restore` the discs to folders, then plan them as anything else. `restore` records where it
+put each disc's files, so the plan knows they are the same data objects: each is
+another copy of its version (or its next version, if edited since), filed by its tags now and
+named by its name now. For a copy you made yourself, say so: `arv plan add NAME COPY --of
+OBJECT`.
+
+**After burning: names and tags, not places.** A burned disc does not change, and its paths are
+facts about it. What changes is the record of each data object: `arv retag torii.jpg
+'event:osaka-trip, place:osaka, best'` gives it new tags, and `arv rename IMG_0002.JPG torii.jpg`
+a new name. Both follow the object, by its Uuid, to every disc it is on; `find` finds it by them,
+and a plan of the same file again (from the drive) files it by its tags and names it by its name.
+Re-filing a photo is changing its tags; there is no moving it.
+
+**Copies.** `arv plan show NAME --duplicates` lists byte-identical files on each disc (a folder
+copied twice, a card imported twice, an export that repeats photos in each album), and `plan make`
+notes them. Each is written in full, and each stays an object of its own (the same bytes can be
+two things); drop the copies you do not want. Two objects you know are one (a copy you made, kept
+on two discs) can be joined afterwards: `arv same COPY ORIGINAL`.
+
+**Splitting a folder.** A file (or folder) inside a planned folder can be added on its own, or
+renamed in place (`plan rename`), under another name or on another disc: it goes where that item puts it, and the folder goes without it.
+Of two items holding a file, the more specific one places it, so each file is on the discs once;
+`plan show` lists what each folder leaves to other items, and dropping the specific item puts the
+file back in its folder. Nothing on the drive moves. For many files, let the tool that knows them
+sort them (exiftool by date, a spreadsheet, a script, a model looking at the photos) and give arv
+the result: `plan add --list` reads one `SOURCE<tab>PATH[<tab>DISC]` a line, and adds them all or,
+if any line is wrong, none. The folder's data object records what was
+left out (`Except:`), so `arv status` does not later take it for a change.
 
 `arv plan show` measures the sources each time, against about what a disc has for files once
 `tools/` and the catalogue are on it, and says which discs are over and which sources are gone.

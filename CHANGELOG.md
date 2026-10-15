@@ -73,6 +73,118 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   reference outputs and `data.c`, committing a new `disc-tools.txt` path first). Both go on
   every disc with the source.
 
+**Tags after burning are events**
+- `describe --apply` and `tag --apply` no longer rewrite a disc's `tags.tsv` at home: the disc's
+  file stays as burned, and the change is the event's (`Tags: PATH<tab>TAGS`, `Caption:`, with
+  `Sets` and `Replaces`, one event an apply, only the paths that changed). So tag changes are
+  appended, merge with another catalogue by event id, and two made apart are a conflict
+  (`arv audit`, `arv rebuild`). `find`, `tags` and `keywords` read the tags now: as burned, with
+  each path's newest change. A later disc's catalogue carries the other discs' tags as they are
+  now, for readers that do not read events.
+
+**Layouts: a disc's tree made from its objects' tags**
+- `arv plan tag NAME SOURCE TAGS`, and `--list FILE|-` (`SOURCE<tab>TAGS` lines, all or none, as
+  exiftool writes them): tags for files still on a drive, kept in the plan, checked against the
+  vocabulary (one value of a one-valued namespace, a `date:` in EDTF). A file or folder has the
+  tags of the folders above it and its own; of a one-valued namespace its own value replaces its
+  folder's.
+- `arv plan layout NAME LAYOUT [--disc N]`: a disc's tree from its items' tags, each item (a data
+  object) placed whole in namespace folders: `year/2019/event/kyoto-trip/IMG_0001.JPG`,
+  `project/weather-station/station/`. `/` nests, `,` falls back; an item with none of the
+  alternatives keeps its arranged place. A date is filed by its start, and with no `date:` tag by
+  its earliest file's time (`From: file-date`). Recorded on the disc (`Layout`); each object
+  placed records where it was arranged (`Arranged`). `plan show` says where each item goes; two
+  at one path stop `plan make` (`plan rename` gives one another name).
+- `arv plan add NAME FOLDER --each`: each file in the folder an item, and so a data object, of its
+  own, to be placed on its own (a photo is an archive's item; a folder of them added whole is one).
+- The plan's tags go into the disc's `tags.tsv` (a folder object's once, on its folder); a `date:`
+  tag counts for the disc's coverage instead of the file's time.
+
+**A plan as a collection's next edition**
+- `arv plan new NAME --collection CODE` (or `--collection` given to any plan action): `plan make`
+  makes the plan's discs the collection's next edition, with its revision and manifest, as a
+  make of the collection's folder would. The collection says what is kept; the plan, how this
+  edition is arranged, so `diff` between editions shows the arrangement as moves.
+
+**A data object's name and tags after burning**
+- `arv rename OBJECT NEWNAME`: a data object's name on discs now (`Slug`), a name and never a
+  place; `arv retag OBJECT TAGS`: its tags now. Both are events about the object (`Object:
+  object:UUID`, with `Sets` and `Replaces`), so they follow it to every disc it is on and every
+  disc made from it, not a path on one disc. OBJECT is its Uuid or name; two of the same name are
+  refused, listed. The discs stay as burned.
+- `describe --apply` and `tag --apply` record a change to an object's own path as its tags, so
+  they follow it too. `find`, `tags`, `keywords` and `objects` read them, and a plan of the same
+  source places it by its tags now (a layout), names it by its name now, and writes them into the
+  new disc's `tags.tsv`.
+
+**The disc's README for readers without English, and two more checks** (issue #41)
+- A short note near the top of every disc's `README.txt` in ten languages (Chinese, Spanish,
+  Hindi, Arabic, French, Russian, Portuguese, Japanese, German, Bengali): this is an archive disc,
+  its files in `data/` are ordinary files, the instructions are in English and a translation tool
+  or AI assistant can translate them, and the commands work as written. Drafts until a native
+  speaker checks each (`research/plan.md`).
+- VERIFY gains `shasum -a 256 -c manifest-sha256.txt` for macOS, and a line that counts the
+  payload's bytes and files with `find`, `wc` and `awk`, to compare with `Payload-Oxum`: a missing
+  or extra file, which `sha256sum -c` does not notice.
+- `dev-tools/embed.c` writes bytes above 127 so that `data.c` compiles cleanly with UTF-8 data.
+
+**A remake is a new plan, of the same objects**
+- `arv restore` records where it restored a disc to (a `dissemination` event, in the home that
+  knows the disc; the folder holds exactly the disc's files). A disc plan of a file or folder there
+  continues the data object at the same path on the disc: the same bytes are another copy of its
+  version, changed ones its next version, and a layout files it by its tags now (set on it, or its
+  disc's at its path) and names it by its name now. Provenance, not bytes.
+- `arv plan add NAME SOURCE --of OBJECT`: SOURCE continues that object (a copy you made of it,
+  which arv cannot tell from its bytes); `plan show` says what each item continues.
+
+**Byte-identical files reported**
+- `make` notes files whose bytes another file on the same disc has (each is written in full), and
+  `arv plan show NAME --duplicates` lists them, as arranged, before anything is made: dropping a
+  copy is the person's choice. Sharing the bytes on the disc (UDF hard links) waits for this
+  report to show it is worth a format feature, and for the first burns.
+
+**Identity is the lineage, not the bytes**
+- A data object is the same version as another only within its lineage (where it was read from).
+  The same bytes read from elsewhere are a new object that records `SameBytes: UUID VERSION`; arv
+  says so when it is made, and `status` says "its bytes are the data object ...". Before, any
+  matching `Tree` merged two objects, though identical bytes can be two things with two
+  provenances. `retire` names the same bytes on a disc that stays.
+- `arv same OBJECT OTHER`: a person says two objects recorded apart are one (a copy made of it).
+  An event about OBJECT, `SameAs: object:OTHER`; from then on OBJECT's records are read as copies
+  of OTHER's versions with the same bytes, on every load, so merges and rebuilds agree. Refused
+  for an object with bytes the other never had: a history of its own.
+
+**Declared namespaces**
+- The tag vocabulary (`config/tags.rec`) declares namespaces: `Namespace` records with
+  `Description`, `Values: one|many` and `From: file-date` (where a value may be suggested).
+  `date`, `event` and `project` take one value a file, its own replacing its folder's; `person`,
+  `place` (places nest) and `source` take many. Vocabulary readers take only `Tag` records.
+- `arv tags` says under each namespace what it holds and how many values, marks one that is not
+  declared, and lists the paths to correct: two values of a one-valued namespace on one path, and
+  a `date:` that is not EDTF (`date:2019-07`, `date:1995/2008`).
+
+**Renaming in a plan, and lists**
+- `arv plan rename NAME PATH NEWPATH`: an item's new place on its disc (a folder, all of it); a
+  file or folder inside a planned folder is split off under the new name, as `git mv` would.
+- `arv plan add NAME --list FILE|-`: `SOURCE<tab>PATH[<tab>DISC]` a line, as exiftool, a
+  spreadsheet or a script sorted them; all are added, or none if any line is wrong.
+
+**Splitting a folder in a disc plan**
+- A file or folder inside a planned folder can be added on its own, under another name or on
+  another disc. It used to go on the discs twice, silently; now the more specific of two items
+  holding a file places it, and the folder goes without it. `plan show` lists what each folder
+  leaves to other items; sizes count each file once; dropping the specific item puts the file
+  back. The folder's data object records what it left out (`Except:`, format 0.5), so `arv
+  status` compares the folder with the object without them.
+
+**Tags on files** (format 0.5)
+- A line of a disc's `tags.tsv` names a folder or a file, and a file has its folders' tags and its
+  own, so a few files across folders can share a tag (`best`, `person:alice`). Drafts take a
+  file's path (`make --draft`, `describe --apply`); `find` shows the file, `tags` counts files
+  apart from folders, and `keywords` writes one file's keywords. "Best of" is a tag.
+- A draft's tags and captions are `tags` and `captions` (were `folder_tags` and `folder_captions`):
+  each maps a folder or a file to its tags, or its caption.
+
 **Read without arv: notes on BagIt and recutils** (format 0.5)
 - `docs/notes/bagit.md`: checking a disc with the Library of Congress's validator, which every
   disc carries (`tools/arv/upstream/bagit-python/bagit.py --validate .`), what the full and fast

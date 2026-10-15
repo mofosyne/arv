@@ -1378,15 +1378,19 @@ What a plan does today (tried 2026-10-13): `plan add SOURCE --as PATH` names and
 a disc, a file or a folder, and `plan move` moves items between discs; nothing on the drive
 changes. What is missing:
 
-- **A folder split.** A file added again from inside a planned folder ends up on the disc twice,
-  silently (tried: `plan add trip DCIM --as Unsorted`, then one of its photos `--as
-  Kinkaku-ji/pond.jpg`). Instead, the folder item gets `Except: PATH` for it: whatever is not
-  placed elsewhere stays where the folder put it. A file wanted twice is asked for on purpose.
-- **`arv plan rename NAME PATH NEWPATH`**: rename or move an item on its disc, a folder with all
-  under it (the `git mv` of a plan). Today it is drop and add again.
-- **`arv plan add NAME --list FILE`**: a TSV of source and path on the disc, one a line, so the
-  sorting is done by what is good at it (exiftool for dates, a spreadsheet, a script, a model
-  looking at the photos) and arv records the result (principle 7).
+- **A folder split** (done 2026-10-14). A file added again from inside a planned folder ended up on
+  the disc twice, silently (tried: `plan add trip DCIM --as Unsorted`, then one of its photos `--as
+  Kinkaku-ji/pond.jpg`). Built as a rule rather than a stored `Except:` on the plan item: of two
+  items holding a file, the more specific places it (nothing to go stale; dropping the specific
+  item puts the file back). `plan show` says what each folder leaves to others. What is stored is
+  on the archived data object, a fact about what was archived: `Except: PATH`, so `status` does
+  not take a split folder for a changed one and invite a version that duplicates the file.
+- **`arv plan rename NAME PATH NEWPATH`** (done 2026-10-14): an item's new place on its disc, a
+  folder with all under it (the `git mv` of a plan); PATH inside a planned folder splits that file
+  or folder off, under the new name.
+- **`arv plan add NAME --list FILE|-`** (done 2026-10-14): `SOURCE<tab>PATH[<tab>DISC]` a line, so
+  the sorting is done by what is good at it (exiftool for dates, a spreadsheet, a script, a model
+  looking at the photos) and arv records the result (principle 7); all or none.
 - **The original name kept** (a format question: decide before 1.0). `git mv` keeps a file's
   identity through a rename because the content is the same; arv already matches files by hash
   (`status` reports moves, `>`), so a renamed photo is found again by its content. What is lost is
@@ -1403,7 +1407,7 @@ work on it). Since checkpoints went (issue #42), a collection is exactly that li
 says what is kept; the plan says how this edition is arranged (the albums above). `diff` between
 editions then shows the renames as moves, by content, as `git log --follow` would.
 
-**Two kinds of move** (added 2026-10-14). A burned disc cannot change, and its files may no longer
+**Two kinds of move** (added 2026-10-14; the first kind was superseded the same day: see "after burning, an object's name and tags change, never its place"). A burned disc cannot change, and its files may no longer
 be on any drive, so a move is either:
 
 - **In the record only**, for files already on discs: "on disc D, `day1/IMG_0001.JPG` is now
@@ -1433,8 +1437,8 @@ them from the copies:
   than being copied onto the new disc. No copy to a staging folder.
 - With one drive and several source discs, `plan make` reads in disc order and asks for each disc
   once; a jukebox loads them from the same kind of worklist as `todo --tsv`.
-- The names on the new discs are the record's: moves in the record, then the plan's `--as` and
-  `rename`.
+- The names on the new discs are the record's: each object's name now, then the plan's `--as` and
+  `rename`. (Moves in the record were dropped: see the decision on names and tags after burning.)
 
 A disc that cannot be read or repaired cannot be remade; that is the old problem of two good
 copies, which `todo` already watches.
@@ -1443,6 +1447,219 @@ copies, which `todo` already watches.
 photos, or a "best of" across many discs, would be the cross-disc virtual folders removed in issue
 #42 (`arv selection`, given to Katalog): wanted or not is the owner's call.
 
+**Folders, tags, and "best of"** (decided 2026-10-14). A folder is a tag a file has only one of (a
+move changes it); a tag is a grouping a file may have any number of (`best`, `person:alice`). So
+"best of" across discs is a tag, not a cross-disc virtual folder: `arv find best` lists it,
+`arv keywords` writes it into the files for photo software, Katalog shows it. The one thing tags
+do not give is order (a slideshow's sequence): that is names (`01 torii gates.jpg`), by a move or
+`--as`. Selections stay removed.
+
+- **Done (2026-10-14): tags on files.** A line of `tags.tsv` names a folder or a file; a file has
+  its folders' tags and its own. `make --draft` and `describe --apply` take a file's path,
+  `find` shows it as the file, `tags` counts files apart from folders, `keywords` writes one
+  file's keywords. A path is a file when the disc's listing names it (folders are not listed).
+- **Done (2026-10-14): tags added after burning are events.** One event an apply, a `Tags:
+  PATH<tab>TAGS` (or `Caption:`) field for each path that changed, with `Sets: Tags:PATH` and
+  `Replaces`, so field histories, merges and conflicts work as for any field. The disc's
+  `tags.tsv` stays as burned; readers lay the newest change of each path over it
+  (`disc_tags_text`). A later disc's snapshot writes the other discs' tags as they are now, so
+  readers without event support see them (applying the events again changes nothing). Not yet: a
+  command in arv itself to set tags by hand (today it is `arv-assist`'s `describe --apply` with a
+  draft, or `tag --apply`).
+- **Done (2026-10-14): declared namespaces.** `Namespace` records in the tag vocabulary (`Name`,
+  `Description`, `Values: one|many`, `From: file-date`); `arv tags` shows them, marks undeclared
+  ones, and lists a path given two values of a one-valued namespace and a `date:` that is not EDTF.
+  Two corrections, found by the reference scenario's own data (a disc tagged `place:kyoto` with
+  folders `place:fushimi-inari`, `place:arashiyama`): **places nest**, so `place` takes many values
+  (a layout cannot file by it until places have parents, as set codes do); and for a one-valued
+  namespace **a path's own value replaces its folder's**, the rule the folder split uses (the more
+  specific wins). A folder `date:2019` with one scan inside `date:1974` is not a conflict; two
+  dates on one path is. Not yet: `From` is declared but nothing suggests from it.
+- **Done (2026-10-14): layouts in disc plans.** `plan tag` (and `--list`) gives files tags before
+  they are on a disc, kept in the plan as `Tags` records by source; `plan layout` gives a disc
+  its layout. What was decided on the way:
+  - **A layout is the disc's, and places objects whole** (corrected the same day, the owner's
+    point: an object has tags, not a path; a disc has a tree). First built per item, placing each
+    file of a folder by its own tags: that split data objects across folders, which this design
+    says never to do, and needed per-item layouts only so a project would not be scattered by its
+    files' dates. Placing objects whole needs neither: a project tagged `project:weather-station`
+    goes to `project/weather-station/station/` with its tree, and a photo is placed on its own
+    only when it is its own object.
+  - **`plan add --each`**: a folder's every file an item, and so a data object, of its own. Both
+    levels are normal, as in archival description (ISAD(G): a file, or an item): a folder of 500
+    photos added whole is described and placed as one, by choice (the "More Product, Less
+    Process" approach); `--each` when each photo deserves its own tags and name.
+  - **Original order kept**: an object placed by a layout records `Arranged` (its path in the plan,
+    before the layout), and `Name` keeps its name where it was read from (PREMIS `originalName`).
+  - **Year from the files' time** when there is no `date:` tag, as `From: file-date` declares
+    (for a folder, its earliest file). `plan show` says where each item goes before anything is
+    made, which is where a scan dated by its scanning shows up.
+  - **Two at one path** (two cameras' `IMG_0001.JPG`) are refused, not renamed: a silent
+    `IMG_0001-2.JPG` would be a name nobody chose. `plan rename` gives one another name, and the
+    layout keeps placing it, under that name (the slug of the design above).
+  - **The object is the source, not the layout**: its manifest and `Tree` are its files' paths
+    within it, so the same object placed two ways is the same version.
+  Not yet: titles, and a layout for `arv make` of a folder that is not a plan.
+
+## Done (2026-10-14, issue #41): the README for readers without English
+
+A short note (two to four lines each) near the top of every disc's `README.txt`, after the facts
+and before the description, in Chinese, Spanish, Hindi, Arabic, French, Russian, Portuguese,
+Japanese, German and Bengali: an archive disc; ordinary files in `data/` any computer opens; the
+instructions below are in English, a translation tool or AI assistant can translate them, and the
+commands work as written. Not full translations, as the issue says: each would be another copy to
+keep in step, and a wrong translated repair step is costly.
+
+**The translations are drafts, not reviewed by native speakers.** Before the first real burns,
+each wants a native speaker's check (wording, and in Arabic the right-to-left rendering of the
+`data/` name). Later, perhaps: the owner's language added through the config.
+
+Two fallback checks in VERIFY, for a person with only a shell: `shasum -a 256 -c` (macOS has no
+`sha256sum`), and a count of the payload's bytes and files (`find data -type f -exec wc -c {} + |
+awk ...`, which prints `BYTES.FILES`) to compare with `Payload-Oxum`, since `sha256sum -c` does not
+notice a missing or extra file. Tried on a disc: it matches, and is one file and its bytes short
+after one is removed. `wc -c` takes a file's size from the file system, so this is quick.
+
+## Decision (2026-10-14): no remaking discs from discs
+
+Built the same day (`arv plan add NAME DISC-ID[:PATH]`, read from a copy the record knows as files,
+each file checked against the old disc's manifest, each object continuing its lineage, times,
+tags and names carried) and removed: the owner asked whether it was important, and it is not.
+What preservation needs over the years is refreshment and replication (OAIS): the same image on
+new media (`arv burned`, another copy of the same disc), or the images kept on newer storage
+(`arv stored`, a `Carrier` for a tape or drive holding several). The bits stay identical, the
+check stays trivial, and the copying is other tools' work (principle 7). Remaking adds only
+re-arranged or gathered discs from discs whose originals are gone, which is rare (arranging is
+done before burning, from the originals, which plans do), and it cost about 250 lines, and wanted
+reading images by their sectors to be right. The design above stays, for if the need turns up.
+What it taught stays too: an object's tags and name follow its Uuid, and a plan of a source
+archived before places it by its tags now and names it by its name now.
+
+So a remake is a new plan, not a clone (the owner's words): restore the discs to folders, plan
+them. What was missing for that was knowing the restored files are the same objects. They are
+(the owner's point), and arv can know it from provenance rather than bytes, because it wrote them:
+`arv restore` records where it put a disc's files (a `dissemination` event with `Path`, in the
+home that knows the disc), and a plan of a file or folder under it continues the object at the
+same path on that disc. (First built as a `.arv` file left in the folder; a check caught that a
+restored git repository was then not exactly its commit, and the manual says restore writes only
+what it restores, so the record keeps it instead.) For copies
+arv did not make, `plan add --of OBJECT` says the same; `SameBytes` suggests it. An object's tags
+now are its own (set on it), else what its disc gives its path (its folders' too), so a burned
+`date:1974~` still files a scan under `decade/1970s/` on the remade disc.
+
+## Done (2026-10-14): a plan as a collection's next edition
+
+`arv plan new NAME --collection CODE` (a plan setting, like `--set`, kept as `Collection`): `plan
+make` makes the plan's discs the collection's next edition, through the same path as a make of
+the collection's folder (its title and set as defaults, the id prefix, the `Revision` with its
+manifest and changes, `--keep` and `--message`). The plan's items are still data objects. So the
+collection is what is kept, a lineage of editions, and the plan is how this one is arranged:
+`diff` shows the arrangement as moves, by content.
+
+## Decision (2026-10-14): after burning, an object's name and tags change, never its place
+
+Built first as moves in the record (`arv rename DISC-ID PATH NEWPATH`, `Moved: BURNED<TAB>NOW`,
+honoured by `find`, `objects` and `restore`), following "Two kinds of move" above, which was written
+before an object's place became its tags'. The owner's point: it is just tags, not paths. So:
+- **A disc's paths are facts about that disc**, and stay. Nothing moves.
+- **Re-filing is a tag change**, and **renaming is the object's name** (its slug), both events
+  about the object by its Uuid (`Object: object:UUID`, `Tags:` or `Slug:`, `Sets`), so they follow
+  it to every copy and every disc made from it, as Archivematica's identifiers do, rather than a path on one
+  disc. `arv retag OBJECT TAGS`, `arv rename OBJECT NEWNAME`.
+- **Tags by object**: `describe --apply` and `tag --apply` record a change to an object's own path
+  as the object's tags; path-keyed changes stay for files inside a folder object, which have no
+  identity of their own.
+- **`restore` restores the disc as burned.** Today's arrangement is a new disc, not a restore.
+- **A plan of the same source places by its tags now and names by its name now**: in the test, a
+  photo re-tagged `event:osaka-trip` and renamed `torii.jpg`, planned again from the drive, goes to
+  `year/2019/event/osaka-trip/torii.jpg`.
+The path moves, `--as-burned` and the name mapping in `find`, `objects` and `restore` were removed.
+
+## Decision (2026-10-14): identity is the lineage, never the bytes
+
+The owner's point: the same bytes can be different data objects (the colour of the bits, after
+Skala's *What Colour are your bits?*; in legal terms, provenance: the same PDF from a solicitor
+and from a download), and one object changes bytes from edition to edition, with an identity
+joining them. That is OCFL's model (an object id, versions mapping paths to digests, bytes shared
+only within an object) and PREMIS's (an Intellectual Entity above its representations and files).
+Archivematica gives every package and every file a UUID and keeps checksums for fixity, not
+identity, but has no lineage of a file across ingests.
+
+arv had it half right: an object's `Uuid` and `Version` are a lineage, but any matching `Tree`
+was taken as the same version, wherever it came from. Now the lineage decides (the object
+archived from the same `Source`); the same `Tree` elsewhere is a new object with `SameBytes`,
+noted and shown (`make`, `status`, `retire`), not merged. A person who knows says "these are one":
+`arv same A B` (done 2026-10-14), an event about A (`SameAs: object:B`); every load reads A's
+records as B's versions with the same `Tree`, so a merge or rebuild that brings A's records back
+from discs reads them the same way, and the records on discs need not change. Only when each of A's
+versions has bytes B had: A with a history of its own (other bytes) stays apart, as joining two
+histories would need a person to order them. For a source not yet archived, `plan add --of`. Files are still found by hash (`status`
+reports moves, `retire` counts files on discs that stay): that is fixity and finding, not identity.
+
+Considered, not built: sharing identical bytes on one disc (UDF lets two names point to one File
+Entry, with a link count, which FAT cannot). It is a format feature to test on real readers, for a
+saving nobody has measured: first a report of byte-identical files, then hard links only if the
+report shows them worth it, after the first burns.
+
+**A layout is a view of tags** (planned; corrected 2026-10-14). First written the other way round
+(a declared folder layout from which tags are derived), but the owner's experience is that the
+order changes between discs: year first on one, event first on another, as each is handier. So the
+tags are the facts about a file (`year:2019`, `event:kyoto-trip`, `best`, `person:alice`), kept with
+it, and a disc's folders are one view of them, chosen when the disc is made:
+
+- **The folders name their namespace**, so the tree describes itself (the owner's idea): a layout
+  level is a namespace folder holding a folder for each value, `event/kyoto-trip/IMG_0001.JPG`.
+  Anyone browsing the disc decades on reads `event/kyoto-trip/` without arv, and turning the tree
+  back into tags is reading the path. (The compact form, `event=kyoto-trip/`, is what Hive and Spark
+  use; plain nested folders are kinder in a file manager, so they are the default.)
+- **A plan or make takes a layout**, chosen a disc at a time and recorded on it (a `Layout` field,
+  for tools; people need not read it): `/` nests, `,` falls back.
+  - `--layout 'year/event, year'` (`year` and `decade` are levels made from `date`): a photo with an
+    event goes to `year/2019/event/kyoto-trip/`, one without to `year/2019/`. Year first never needs its fallback (every photo has a date),
+    but an event across New Year is filed by its start, and a photo of its second day may be dated
+    in the new year: tag the photos with the event, and they stay together under `event/`.
+  - `--layout 'event/year, year'`: events whole (`event/kyoto-trip/year/2019/`), and the photos
+    with no event by year. Which comes first is the disc's purpose (browsing by time or by
+    occasion), and it changes between discs, which is why it is chosen a disc at a time.
+  - Each file appears once, under the first alternative it has every tag for; the tags a layout
+    does not use stay tags (`find 2019` finds a photo filed under `event/` by its date). A file with
+    none of the alternatives goes to the layout's last resort (its plain folder from the source),
+    and is listed. So there is no `unsorted/` folder in the usual case.
+- **Only namespaces with one value a file make folders.** The vocabulary declares them:
+  `Namespace` records in `config/tags.rec` (`Name`, `Description`, `Values: one|many`, and `From`
+  for where a value may be suggested). `date`, `event` and `project` are `one` (`place` was, until
+  places were seen to nest: see "declared namespaces" above); `person`, `place`,
+  `source` and plain tags (`best`) are `many`, and a layout refuses them (a photo of two people
+  cannot be in two folders). `arv tags` lists a file with two values of a `one` namespace, before it
+  reaches a disc. (Not "categories": a disc's categories are already the set vocabulary's.)
+- **Dates are EDTF, and may be ranges** (corrected 2026-10-14: an object can span years). A project
+  folder of 2020 to 2023, letters of 1995 to 2008, a trip over New Year: one object, many years. So
+  the namespace is `date`, not `year`, holding one EDTF value (`2019-07`, `1995/2008`, `197X`,
+  `1995~`), as a disc's `Coverage` does. It is the date of the content: the file's own date (EXIF,
+  its time) is only a suggestion (`From: file-date`), right for a camera photo, wrong for a scan of
+  a 1970s print made in 2019. A layout files a range by its start (`year/1995/` for the letters,
+  whole), or by `decade` (`decade/1990s/`, kind to long ranges and approximate dates); the range
+  stays in the record (`list --covers`, `find`). A data object is never split across folders.
+- **Tags come from where they can**: `year` from the file's own date (EXIF, or its time) with no
+  one tagging it; the rest from a person, a model (`arv describe`, `arv tag`) or a folder the
+  files came in (an existing `Kyoto trip/` gives `event:kyoto-trip` once, when the file is first
+  archived). After that the tag, not the folder, is the record.
+- **Moves become tag changes**: re-filing a photo under another event is changing its `event` tag;
+  the next disc made with a layout puts it there. There is no "move" in a layout plan: a place is
+  worked out, not chosen (the owner's point, 2026-10-14). `plan rename` and `--as` stay for plans
+  placed by hand, and for what a layout does not apply to (a project keeps the tree it came with).
+- **Names: a title and a slug.** The title is for people ("Torii gates at Fushimi Inari"), in the
+  record and searched, as data objects' `Title` already is. The slug is the file's name on the disc
+  (`torii-gates.jpg`): short, safe on every system, the last part of the path a layout builds. The
+  slug is the original name (`IMG_0001.JPG`) unless one is given, which settles keeping the
+  original name: nothing is lost unless a slug is chosen, and the record keeps both. So "splitting
+  a file off and renaming it" in a layout plan is giving it a title, a slug or tags: a metadata
+  change, an event like a tag change, not a placement.
+- **Limits:** files with no structure to speak of (a software project, a document folder) keep the
+  tree they came with: a layout is for collections whose structure is their tags (photos, scans,
+  recordings).
+
 Order: the folder split first (it fixes the silent duplicate), then `rename` and `--list`, then
 the original name (format), then moves in the record, then plans as editions and plans from discs,
-which build on all of them.
+which build on all of them. Tags after burning as events come before layouts (a layout needs every
+file's tags to be in the record).

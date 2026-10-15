@@ -66,6 +66,7 @@ char *path_abs(const char *root, const char *stored);   /* back to absolute */
 int cmd_init(int argc, char **argv);
 int cmd_tags(int argc, char **argv);
 void tags_canonical(const arv_home *h, strlist *tags);
+int tag_namespaces(const arv_home *h, strlist *one, strlist *declared, int *date_from_file);
 int cmd_keywords(int argc, char **argv);
 int cmd_make(int argc, char **argv);
 long medium_budget(const char *medium, const char **label);
@@ -74,6 +75,9 @@ long file_sectors(uint64_t size, const char *path);
 int cmd_check(int argc, char **argv);
 int cmd_burned(int argc, char **argv);
 int cmd_note(int argc, char **argv);
+int cmd_rename(int argc, char **argv);
+int cmd_retag(int argc, char **argv);
+int cmd_same(int argc, char **argv);
 int cmd_locate(int argc, char **argv);
 int cmd_access(int argc, char **argv);
 int cmd_location(int argc, char **argv);
@@ -111,6 +115,7 @@ rec_record *descriptor(const char *type);
 void archive_load(archive *a, const char *path);
 void archive_records(const archive *a, recs *out);
 void archive_save(archive *a, const char *path);
+void archive_same_objects(archive *a);     /* objects said to be one (arv same) read as one; on every load */
 const char *archive_home_uuid(archive *a);           /* this home's identity, made on first use */
 void write_records(const char *path, const recs *r);
 rec_record *archive_disc(const archive *a, const char *id);
@@ -155,6 +160,23 @@ const rec_record *copy_same_as(const archive *a, const char *disc_id, const rec_
 size_t identity_report(const archive *a);
 void field_heads(const archive *a, const char *thing, const char *field, strlist *heads);
 void sets_field(const archive *a, rec_record *e, const char *thing, const char *field);   /* Sets, Replaces */
+/* a path's tags or caption changed after burning (field "Tags" or "Caption"), on an event about the
+ * disc; and the disc's tags.tsv now (burned: the file as burned, or NULL), NULL when there are none */
+void tag_change(const archive *a, rec_record *ev, const char *disc_id, const char *field, const char *path, const char *value);
+char *disc_tags_text(const archive *a, const char *disc_id, const char *burned);
+FILE *disc_tags_open(const archive *a, const char *disc_id, const char *burned);
+/* a data object's field now (Tags, Slug), from events about it (Object: object:UUID), or NULL; its name
+ * on discs now (Slug, else its Name) */
+const char *object_field(const archive *a, const char *uuid, const char *field);
+const char *object_slug(const archive *a, const rec_record *o);
+const rec_record *object_at_uuid(const archive *a, const char *uuid);    /* its newest record, or NULL */
+/* its tags now: set on it (retag, an apply), else what its disc gives its path (its folders' too) */
+char *object_tags_now(const arv_home *h, const archive *a, const rec_record *o);
+rec_record *object_event_like(const rec_record *ev, const char *uuid);   /* an event about it, as ev is */
+const rec_record *object_at(const archive *a, const char *disc_id, const char *path);   /* the object at path on a disc */
+/* the Uuid of the data object a word names (its Uuid or 8+ characters of it, or its name); dies
+ * when it names none or several (listed) */
+const char *object_by_word(const archive *a, const char *text);
 size_t field_conflicts(const archive *a);    /* a field changed apart in two catalogues: printed, counted */    /* recorded twice, on two discs, two BCAs: printed, counted */
 /* the BCA serial of the disc in a drive (Linux): 32 hex digits; -1 when there is none (drive.c) */
 int drive_bca(const char *device, char out[33]);
@@ -181,6 +203,7 @@ typedef struct {
     time_t mtime;
     int via_folder;         /* reached through a copied folder link */
     int bin;                /* arv make --plan: which disc of the plan (0 = the first) */
+    char *origin;           /* arv make --plan: where a laid-out file would be by hand (NULL: at path) */
     char sha256[65], sha512[129];
 } entry;
 typedef struct {
@@ -194,6 +217,8 @@ typedef struct {
     char *source;           /* absolute: a file or folder, read when the discs are made */
     char *path;             /* where it goes under data/ ("." : a folder's contents at the top) */
     char *seen;             /* "FILES BYTES STAMP" when planned (names, sizes, dates), or NULL */
+    char *placed;           /* plan_scan: where the disc's layout put it, whole; NULL: at path */
+    char *of;               /* the data object (Uuid) it continues, as said with plan add --of; or NULL */
 } plan_item;
 typedef struct {
     char *file, *name;
@@ -202,10 +227,17 @@ typedef struct {
     plan_item *v;
     size_t n;
     rec_file rec;           /* the plan as read: the Plan record gives make's defaults */
+    strlist tag_src, tag_val;   /* tags given in the plan: a source file or folder (absolute), its tags */
 } disc_plan;
 int cmd_plan(int argc, char **argv);
 void plan_load(const char *file, disc_plan *out);
-void plan_scan(const disc_plan *p, const char *links, entries *files, entries *noted, size_t *left_out);
+/* the files of a plan, each where it goes (on a disc with a layout, each item placed whole by its
+ * tags: it->placed, and each file's origin says where it was arranged); tagged: "PATH\tTAGS" for
+ * each file the plan gives tags to; clashes: two files given one path by a layout */
+const char *plan_layout(const disc_plan *p, int disc);
+size_t duplicates_report(const entries *files, int by_bin, size_t limit, FILE *out, uint64_t *bytes);
+void plan_scan(const arv_home *h, disc_plan *p, const char *links, entries *files, entries *noted, size_t *left_out,
+               strlist *tagged, strlist *clashes);
 void plan_made(const char *file, const strlist *disc_ids, const char *date);
 void text_sha256(const char *text, char hex[65]);
 void json_str(sbuf *b, const char *s);     /* a JSON string, quoted */
@@ -411,6 +443,7 @@ char *volume_file(const ondisc *d, const char *name);
 int split_tabs(char *line, char **cols, int want);
 int read_listing(const char *file, listing *l);
 void free_listing(listing *l);
+int listing_has_file(const char *listing_file, const char *rel);
 int has_word(const char *kind, const char *word);
 long long parse_utc(const char *s);
 void print_record(const rec_record *r);

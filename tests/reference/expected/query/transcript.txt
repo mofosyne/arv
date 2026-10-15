@@ -378,6 +378,9 @@ Record: what exists, and where
          catalogues gave one letter to two copies: --at or --identifier says which)
   arv locate DISC-ID COPY PLACE   where a copy is kept now
   arv note DISC-ID TEXT   a note on a disc
+  arv rename OBJECT NEWNAME   a data object's name on discs now (a name, not a place); the next disc uses it
+  arv retag OBJECT TAGS   a data object's tags now ("" for none): what a layout files it by, and find finds
+  arv same OBJECT OTHER   two data objects recorded apart are one (the same bytes, and the same thing)
   arv access DISC-ID public|private|sealed   what later discs' catalogues may show of it
   arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)
   arv find [-C CATALOG] [--limit N] PATTERN   discs, copies (by identifier or carrier), objects, tags
@@ -399,7 +402,8 @@ Record: what exists, and where
   arv retire CODE|DISC-ID [--yes [--accept-loss]]   retire the editions a newer safe one replaces (not kept
          ones), or one disc of no edition; refused while a file is on no disc that stays
   arv sets [-v]   the set codes and categories, as a tree
-  arv tags [--namespace NS]   the folder tags in use, and on how many folders and discs
+  arv tags [--namespace NS]   the tags in use, by namespace, on how many paths and discs; and the
+         paths to correct: two values of a one-valued namespace, a date that is not EDTF
   arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files
 (arv record COMMAND or arv COMMAND; arv COMMAND --help says more; arv --help lists every group)
 rc=0

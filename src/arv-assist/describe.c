@@ -138,7 +138,7 @@ static void notes_of(const strlist *answers, strlist *notes)
 static jv *draft_json(const suggestion *s, const strlist *notes, const char *authorship, const char *agent, int with_questions)
 {
     jv *d = suggestion_json(s, with_questions);
-    if (!json_get(d, "folder_captions")) jput(d, "folder_captions", jobj());
+    if (!json_get(d, "captions")) jput(d, "captions", jobj());
     jput(d, "notes", jstrings(notes));
     jput(d, "authorship", jstr(authorship));
     if (agent) jput(d, "agent", jstr(agent));
@@ -216,6 +216,7 @@ static const char *draft_note(const char *how)
 }
 
 /* a folder of the disc (its listing has a file under it), or "." for the whole of data/ */
+/* whether the disc has this folder, or this file (a tag may name either) */
 static int disc_has_folder(const arv_home *h, const char *id, const char *folder)
 {
     if (!strcmp(folder, ".")) return 1;
@@ -228,7 +229,7 @@ static int disc_has_folder(const arv_home *h, const char *id, const char *folder
         if (*line == '#') continue;
         char *p = strrchr(line, '\t');           /* the path is the last column */
         p = p ? p + 1 : line;
-        found = !strncmp(p, folder, n) && p[n] == '/';
+        found = !strncmp(p, folder, n) && (p[n] == '/' || !p[n]);
     }
     free(text);
     return found;
@@ -312,6 +313,7 @@ static void apply_to_disc(const arv_home *h, archive *cat, rec_record *disc, con
 {
     memset(changed, 0, sizeof *changed);
     char *id = xstrdup(rec_get(disc, "Id"));      /* a copy: the record's fields are rebuilt below */
+    ftags before = { 0 }, f = { 0 };              /* the disc's tags now, and as the draft leaves them */
     if (d->title && (!rec_get(disc, "Title") || strcmp(d->title, rec_get(disc, "Title")))) {
         rec_set(disc, "Title", d->title);
         strlist_add(changed, "Title");
@@ -351,12 +353,12 @@ static void apply_to_disc(const arv_home *h, archive *cat, rec_record *disc, con
     if (d->notes.n) strlist_add(changed, "Note");
     if (d->nft || d->ncap) {
         char *path = home_volume_file(h, id, "tags.tsv");
-        ftags f;
-        read_tags_file(path, &f);
+        read_tags_now(cat, id, path, &before);
+        read_tags_now(cat, id, path, &f);
         size_t skipped = 0;
         for (size_t i = 0; i < d->nft; i++) {
             if (!disc_has_folder(h, id, d->ft_folder[i])) {
-                fprintf(stderr, "%s has no folder %s: its tags are skipped\n", id, d->ft_folder[i]);
+                fprintf(stderr, "%s has no folder or file %s: its tags are skipped\n", id, d->ft_folder[i]);
                 skipped++;
                 continue;
             }
@@ -366,18 +368,14 @@ static void apply_to_disc(const arv_home *h, archive *cat, rec_record *disc, con
         }
         for (size_t i = 0; i < d->ncap; i++) {
             if (!disc_has_folder(h, id, d->cap_folder[i])) {
-                fprintf(stderr, "%s has no folder %s: its caption is skipped\n", id, d->cap_folder[i]);
+                fprintf(stderr, "%s has no folder or file %s: its caption is skipped\n", id, d->cap_folder[i]);
                 skipped++;
                 continue;
             }
             ftags_set_caption(&f, d->cap_folder[i], d->cap_text[i]);
         }
-        if (skipped < d->nft + d->ncap) {
-            write_tags_file(path, &f);
-            strlist_add(changed, "folder tags");
-        }
+        if (record_tag_changes(cat, NULL, id, &before, &f)) strlist_add(changed, "tags");   /* recorded on the event */
         free(path);
-        ftags_free(&f);
     }
     const char *how = d->authorship ? d->authorship : is_model(agent) ? "suggested" : "human";
     int objects = 0;
@@ -409,8 +407,9 @@ static void apply_to_disc(const arv_home *h, archive *cat, rec_record *disc, con
             char *what = joined(&mine), *note = xprintf("updated %s (%s)", what, draft_note(how));
             rec_record *ev = reviewed_event(id, agent, how, note);
             static const char *const replaced[] = { "Title", "Description", "Subject", NULL };   /* notes and tags add up */
-            for (int f = 0; replaced[f]; f++)
-                if (strlist_has(&mine, replaced[f])) sets_field(cat, ev, id, replaced[f]);
+            for (int k = 0; replaced[k]; k++)
+                if (strlist_has(&mine, replaced[k])) sets_field(cat, ev, id, replaced[k]);
+            record_tag_changes(cat, ev, id, &before, &f);  /* each path's new tags: Tags:, Caption: */
             recs_add(&cat->events, ev);
             free(what);
             free(note);
@@ -418,6 +417,8 @@ static void apply_to_disc(const arv_home *h, archive *cat, rec_record *disc, con
         }
         archive_save(cat, h->rec_path);
     }
+    ftags_free(&before);
+    ftags_free(&f);
     free(id);
 }
 

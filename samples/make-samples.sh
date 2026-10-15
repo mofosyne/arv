@@ -51,7 +51,7 @@ a make $common --set trip --access public \
       "description": "Three days in Kyoto: shrines, temples and the bamboo grove.",
       "subjects": ["travel", "Japan"], "agent": "sample script (hand-written)",
       "notes": ["Sample disc made by samples/make-samples.sh; the photos are generated."],
-      "folder_tags": {".": ["travel", "place:kyoto", "event:kyoto-2019"],
+      "tags": {".": ["travel", "place:kyoto", "event:kyoto-2019"],
                       "day1 Fushimi Inari": ["place:fushimi-inari"], "day2 Kinkaku-ji": ["place:kinkaku-ji"],
                       "day2 Arashiyama": ["place:arashiyama", "nature"], "day3 Kiyomizu-dera": ["place:kiyomizu-dera"]}}')" \
     "$src/2019-07_Kyoto_trip"
@@ -61,7 +61,7 @@ a make $common --set project \
     --draft "$(draft proj '{"title": "Weather station project",
       "description": "ESP32 weather station: firmware, KiCad board, gerbers and the git repository.",
       "agent": "sample script (hand-written)",
-      "folder_tags": {"firmware": ["code", "project:weather-station"],
+      "tags": {"firmware": ["code", "project:weather-station"],
                       "hardware": ["electronics", "project:weather-station"]}}')" \
     "$src/Projects_weather_station"
 
@@ -81,13 +81,13 @@ a collection init "$fam" --code FAMILY --title "Family photos" --set family \
     --description "Birthdays, the garden, the beach and Christmas."
 a make $common --message "2020 sorted" \
     --draft "$(draft family1 '{"agent": "sample script (hand-written)",
-      "folder_tags": {"2020 Birthday": ["family", "event:birthday-2020"], "2020 Garden": ["home", "nature"]}}')" \
+      "tags": {"2020 Birthday": ["family", "event:birthday-2020"], "2020 Garden": ["home", "nature"]}}')" \
     "$fam"
 cp -Rp "$src/Family_photos_2020-2021/2021 "* "$fam/"
 a status "$fam"
 a make $common --message "2021 added" \
     --draft "$(draft family2 '{"agent": "sample script (hand-written)",
-      "folder_tags": {"2020 Birthday": ["family", "event:birthday-2020"], "2020 Garden": ["home", "nature"],
+      "tags": {"2020 Birthday": ["family", "event:birthday-2020"], "2020 Garden": ["home", "nature"],
                       "2021 Beach": ["travel", "place:beach"], "2021 Christmas": ["celebration"]}}')" \
     "$fam"
 

@@ -1,0 +1,66 @@
+%rec: Plan
+
+Name: album
+Created: 2026-01-01
+Medium: bd25
+Set: PHOTO
+Discs: 1
+Layout: year/event, project, decade
+Made: 2026-01-01
+Volume: PHOTO-01_1974-2021_F
+
+%rec: Item
+
+Disc: 1
+Source: lay/DCIM/IMG_0001.JPG
+Path: DCIM/IMG_0001.JPG
+Seen: 1 14 780dff7fec17f147
+
+Disc: 1
+Source: lay/DCIM/IMG_0002-copy.JPG
+Path: DCIM/IMG_0002-copy.JPG
+Seen: 1 14 780dff7fec17f147
+
+Disc: 1
+Source: lay/DCIM/IMG_0002.JPG
+Path: DCIM/IMG_0002.JPG
+Seen: 1 14 780dff7fec17f147
+
+Disc: 1
+Source: lay/DCIM/IMG_0003.JPG
+Path: DCIM/IMG_0003.JPG
+Seen: 1 14 780dff7fec17f147
+
+Disc: 1
+Source: lay/DCIM/day2/IMG_0001.JPG
+Path: DCIM/day2/IMG_0001-day2.JPG
+Seen: 1 10 a22eb8b27c314312
+
+Disc: 1
+Source: lay/DCIM/notes.txt
+Path: DCIM/notes.txt
+Seen: 1 8 fc9553e3dc75166d
+
+Disc: 1
+Source: lay/scans/print1.tif
+Path: scans/print1.tif
+Seen: 1 8 fc9553e3dc75166d
+
+Disc: 1
+Source: lay/station
+Path: station
+Seen: 2 39 cd96fe968d59e2ac
+
+%rec: Tags
+
+Source: lay/DCIM
+Tags: event:kyoto trip, place:kyoto
+
+Source: lay/scans/print1.tif
+Tags: date:1974~, person:ann
+
+Source: lay/station
+Tags: project:weather-station
+
+Source: lay/DCIM/notes.txt
+Tags: date:2019-07

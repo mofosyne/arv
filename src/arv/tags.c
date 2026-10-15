@@ -6,6 +6,7 @@
 #define _XOPEN_SOURCE 700
 #include "arv.h"
 #include "data.h"
+#include "edtf.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -77,19 +78,19 @@ static char *hierarchical(const char *tag)
 typedef struct {
     char *folder;
     strlist tags;
-} folder_tags;
+} path_tags;
 
 typedef struct {
-    folder_tags *v;
+    path_tags *v;
     size_t n;
 } tag_file;
 
-/* catalog.read_tags: folder <TAB> comma-separated tags [<TAB> caption]; a folder listed twice
- * keeps its last line, in the place of its first */
-static void read_tags(const char *path, tag_file *out)
+/* a disc's tags now (its tags.tsv as burned, and the changes since): path <TAB> comma-separated
+ * tags [<TAB> caption]; a path listed twice keeps its last line, in the place of its first */
+static void read_tags(const archive *cat, const char *disc_id, const char *path, tag_file *out)
 {
     memset(out, 0, sizeof *out);
-    FILE *fp = fopen(path, "r");
+    FILE *fp = disc_tags_open(cat, disc_id, path);
     char *line = NULL;
     size_t cap = 0;
     ssize_t len;
@@ -100,7 +101,7 @@ static void read_tags(const char *path, tag_file *out)
         *tab = 0;
         char *rest = tab + 1, *tab2 = strchr(rest, '\t');
         if (tab2) *tab2 = 0;
-        folder_tags *ft = NULL;
+        path_tags *ft = NULL;
         for (size_t i = 0; i < out->n && !ft; i++)
             if (!strcmp(out->v[i].folder, line)) ft = &out->v[i];
         if (ft) {
@@ -134,6 +135,8 @@ static void tag_file_free(tag_file *f)
 /* the tag vocabulary: names and their aliases (tagger.TagVocab) */
 typedef struct {
     strlist names, alias_from, alias_to;
+    strlist ns_names, ns_desc, ns_one;       /* declared namespaces; ns_one holds the one-valued */
+    strlist ns_file_date;                   /* and those whose values may come from a file's date */
     char *path;
 } tag_vocab;
 
@@ -148,6 +151,18 @@ static int load_tag_vocab(tag_vocab *tv, const arv_home *h)
     for (size_t i = 0; i < f.nrecords; i++) {
         const rec_record *r = &f.records[i];
         if (r->descriptor || !rec_get(r, "Name")) continue;
+        if (r->type && !strcmp(r->type, "Namespace")) {
+            const char *ns = rec_get(r, "Name"), *d = rec_get(r, "Description"), *v = rec_get(r, "Values");
+            if (strlist_has(&tv->ns_names, ns)) continue;
+            strlist_add(&tv->ns_names, ns);
+            strlist_add(&tv->ns_desc, d ? d : "");
+            if (v && !strcmp(v, "one")) strlist_add(&tv->ns_one, ns);
+            for (size_t j = 0; j < r->nfields; j++)
+                if (!strcmp(r->fields[j].name, "From") && !strcmp(r->fields[j].value, "file-date"))
+                    strlist_add(&tv->ns_file_date, ns);
+            continue;
+        }
+        if (r->type && strcmp(r->type, "Tag")) continue;
         char *name = tag_normalise(rec_get(r, "Name"));
         strlist_add(&tv->names, name);
         for (size_t j = 0; j < r->nfields; j++)
@@ -161,6 +176,19 @@ static int load_tag_vocab(tag_vocab *tv, const arv_home *h)
     }
     rec_free(&f);
     return tv->names.n ? 0 : -1;
+}
+
+/* the home's declared namespaces that take one value a file (into one), and whether date's values
+ * may come from a file's own date (From: file-date); -1 when there is no vocabulary */
+int tag_namespaces(const arv_home *h, strlist *one, strlist *declared, int *date_from_file)
+{
+    tag_vocab tv;
+    if (load_tag_vocab(&tv, h)) return -1;
+    for (size_t i = 0; i < tv.ns_one.n; i++) strlist_add(one, tv.ns_one.v[i]);
+    if (declared)
+        for (size_t i = 0; i < tv.ns_names.n; i++) strlist_add(declared, tv.ns_names.v[i]);
+    if (date_from_file) *date_from_file = strlist_has(&tv.ns_file_date, "date");
+    return 0;
 }
 
 /* the vocabulary's names for tags, without repeats or blanks (tagger.TagVocab.canonical_list); the
@@ -198,12 +226,54 @@ static void print_padded(const char *s, size_t width)
 
 typedef struct {
     char *tag;
-    strlist folders, discs;     /* "disc\tfolder" pairs; disc ids */
+    strlist folders, files, discs;  /* "disc\tpath" pairs, for folders and for files; disc ids */
 } usage;
 
 static int by_tag(const void *a, const void *b)
 {
     return strcmp((*(usage *const *)a)->tag, (*(usage *const *)b)->tag);
+}
+
+/* a disc's tags against the declared namespaces: a path given two values of a one-valued namespace
+ * (its own value replaces its folder's, so only its own count), and a date that is not EDTF */
+static void check_namespaces(const tag_vocab *tv, const char *id, const tag_file *tf, const char *only,
+                             strlist *out)
+{
+    for (size_t k = 0; k < tf->n; k++) {
+        const char *path = tf->v[k].folder;
+        for (size_t s = 0; s < tv->ns_one.n; s++) {
+            const char *ns = tv->ns_one.v[s];
+            size_t l = strlen(ns);
+            if (only && strcmp(only, ns)) continue;
+            sbuf vals = { 0 };
+            size_t n = 0;
+            for (size_t t = 0; t < tf->v[k].tags.n; t++) {
+                const char *tag = tf->v[k].tags.v[t];
+                if (ns_len(tag) != l || strncmp(tag, ns, l)) continue;
+                const char *v = tag + l + 1;
+                while (*v == ' ') v++;
+                sb_printf(&vals, "%s%s", n++ ? ", " : "", v);
+            }
+            if (n > 1) {
+                char *line = xprintf("  TWO VALUES  %s  %s  %s: %s", id, path, ns, vals.s);
+                strlist_add(out, line);
+                free(line);
+            }
+            free(vals.s);
+        }
+        if (only && strcmp(only, "date")) continue;
+        for (size_t t = 0; t < tf->v[k].tags.n; t++) {
+            const char *tag = tf->v[k].tags.v[t];
+            if (ns_len(tag) != 4 || strncmp(tag, "date", 4)) continue;
+            const char *v = tag + 5;
+            while (*v == ' ') v++;
+            long a, b;
+            if (edtf_span(v, &a, &b) == 1) continue;
+            char *line = xprintf("  BAD DATE    %s  %s  %s", id, path, tag);
+            strlist_add(out, line);
+            free(line);
+        }
+    }
 }
 
 /* arv tags [--namespace NS] */
@@ -222,13 +292,16 @@ int cmd_tags(int argc, char **argv)
     int have_vocab = !load_tag_vocab(&tv, &h);
     usage *u = NULL;
     size_t nu = 0;
+    strlist problems = { 0 };
     for (size_t i = 0; i < cat.discs.n; i++) {
         const char *id = rec_get(cat.discs.v[i], "Id");
         if (!id) continue;
-        char *path = home_volume_file(&h, id, "tags.tsv");
+        char *path = home_volume_file(&h, id, "tags.tsv"), *lst = home_volume_file(&h, id, "listing.tsv");
         tag_file tf;
-        read_tags(path, &tf);
-        for (size_t k = 0; k < tf.n; k++)
+        read_tags(&cat, id, path, &tf);
+        if (have_vocab) check_namespaces(&tv, id, &tf, only, &problems);
+        for (size_t k = 0; k < tf.n; k++) {
+            int file = strcmp(tf.v[k].folder, ".") && listing_has_file(lst, tf.v[k].folder);
             for (size_t t = 0; t < tf.v[k].tags.n; t++) {
                 const char *tag = tf.v[k].tags.v[t];
                 usage *x = NULL;
@@ -241,12 +314,15 @@ int cmd_tags(int argc, char **argv)
                     x->tag = xstrdup(tag);
                 }
                 char *pair = xprintf("%s\t%s", id, tf.v[k].folder);
-                if (!strlist_has(&x->folders, pair)) strlist_add(&x->folders, pair);
+                strlist *into = file ? &x->files : &x->folders;
+                if (!strlist_has(into, pair)) strlist_add(into, pair);
                 free(pair);
                 if (!strlist_has(&x->discs, id)) strlist_add(&x->discs, id);
             }
+        }
         tag_file_free(&tf);
         free(path);
+        free(lst);
     }
     strlist spaces = { 0 };                        /* the namespaces in use, sorted */
     for (size_t j = 0; j < nu; j++) {
@@ -261,8 +337,18 @@ int cmd_tags(int argc, char **argv)
     if (spaces.n) qsort(spaces.v, spaces.n, sizeof *spaces.v, by_str);
     for (size_t s = 0; s < spaces.n; s++) {
         const char *ns = spaces.v[s];
-        if (*ns) printf("%s:\n", ns);
-        else puts("(no namespace)");
+        if (!*ns) puts("(no namespace)");
+        else if (!have_vocab) printf("%s:\n", ns);
+        else {
+            size_t d = 0;
+            while (d < tv.ns_names.n && strcmp(tv.ns_names.v[d], ns)) d++;
+            if (d == tv.ns_names.n) printf("%s:   (not declared in %s)\n", ns, tv.path);
+            else {
+                printf("%s:   %s", ns, strlist_has(&tv.ns_one, ns) ? "one value" : "many values");
+                if (*tv.ns_desc.v[d]) printf(": %s", tv.ns_desc.v[d]);
+                putchar('\n');
+            }
+        }
         usage **mine = xmalloc((nu + 1) * sizeof *mine);
         size_t n = 0;
         for (size_t j = 0; j < nu; j++) {
@@ -274,8 +360,9 @@ int cmd_tags(int argc, char **argv)
             const usage *x = mine[k];
             fputs("  ", stdout);
             print_padded(*ns ? x->tag + strlen(ns) + 1 : x->tag, 28);
-            printf(" %zu folder%s on %zu disc%s", x->folders.n, x->folders.n == 1 ? "" : "s", x->discs.n,
-                   x->discs.n == 1 ? "" : "s");
+            if (x->folders.n) printf(" %zu folder%s", x->folders.n, x->folders.n == 1 ? "" : "s");
+            if (x->files.n) printf("%s %zu file%s", x->folders.n ? "," : "", x->files.n, x->files.n == 1 ? "" : "s");
+            printf(" on %zu disc%s", x->discs.n, x->discs.n == 1 ? "" : "s");
             if (have_vocab && !*ns && !strlist_has(&tv.names, x->tag)) {
                 char *norm = tag_normalise(x->tag);
                 const char *canon = norm;
@@ -288,6 +375,12 @@ int cmd_tags(int argc, char **argv)
             putchar('\n');
         }
         free(mine);
+    }
+    if (problems.n) {
+        printf("\n%zu to correct (a one-valued namespace has one value a file, and a date is EDTF: 2019-07, 1995/2008):\n",
+               problems.n);
+        for (size_t i = 0; i < problems.n; i++) puts(problems.v[i]);
+        puts("Change the tags with arv-assist describe --apply or tag --apply; arv tags then checks again.");
     }
     return 0;
 }
@@ -327,9 +420,9 @@ int cmd_keywords(int argc, char **argv)
     if (!kw.v[0].tags.n) strlist_add(&kw.v[0].tags, rec_get(d, "Set") ? rec_get(d, "Set") : "None");
     char *path = home_volume_file(&h, disc_id, "tags.tsv");
     tag_file tf;
-    read_tags(path, &tf);
+    read_tags(&cat, disc_id, path, &tf);
     for (size_t k = 0; k < tf.n; k++) {
-        folder_tags *ft = NULL;
+        path_tags *ft = NULL;
         for (size_t i = 0; i < kw.n && !ft; i++)
             if (!strcmp(kw.v[i].folder, tf.v[k].folder)) ft = &kw.v[i];
         if (!ft) {
@@ -348,7 +441,7 @@ int cmd_keywords(int argc, char **argv)
     free(path);
     printf("# exiftool argument file for disc %s: from the root of a restored copy, run\n", rec_get(d, "Id"));
     puts("#   exiftool -@ this-file");
-    puts("# Each section adds the keywords to every file under one folder (-r). Removing each value");
+    puts("# Each section adds the keywords to one file, or to every file under one folder (-r). Removing each value");
     puts("# before adding it keeps a second run from adding it twice.");
     for (size_t i = 0; i < kw.n; i++) {
         puts("-r");

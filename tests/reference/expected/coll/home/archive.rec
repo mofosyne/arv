@@ -18,6 +18,8 @@ Date: 2026-01-01
 + (copies burned from one image share it); Id is for people and is
 + derived from Set, Sequence and Coverage (EDTF) under IdScheme, so it
 + can always be regenerated and checked (see docs/spec/smart-archive-format.md).
++ Layout, when given, is how its tree was made from its objects' tags: levels split by
++ /, alternatives by , (year/event, year); each object placed whole.
 %key: Id
 %mandatory: Id Title Date
 %type: Uuid uuid
@@ -63,6 +65,23 @@ Files: 2
 Bytes: 4
 Software: SW
 
+Id: FAM-03_2019-2020_S
+Uuid: UUID
+IdScheme: set-seq-coverage/1
+Label: FAM-03_2019-2020_S Family photos sorted
+Title: Family photos, sorted
+Collection: FAM
+Set: CODE
+Path: PROJECTS/CODE
+Sequence: 3
+Coverage: 2019/2020
+Date: 2026-01-01
+Creator: archivist
+Access: public
+Files: 3
+Bytes: 6
+Software: SW
+
 %rec: Binding
 %doc: How one volume is stored on its medium: the container (filesystem) and the
 + protection (error correction) it was made with. These change with the medium;
@@ -80,10 +99,19 @@ Protection: none
 Media: M-DISC BD-R 25GB
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 850
+ImageSectors: 882
 ImageSha256: SHA256
 
 Volume: FAM-02_2019_Y
+Container: udf-2.50
+Protection: none
+Media: M-DISC BD-R 25GB
+Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
+Ecc: none
+ImageSectors: 882
+ImageSha256: SHA256
+
+Volume: FAM-03_2019-2020_S
 Container: udf-2.50
 Protection: none
 Media: M-DISC BD-R 25GB
@@ -159,6 +187,83 @@ Changes: +1 ~1 -1 >0 files
 Message: the 2019 sort
 Keep: yes
 
+Node: 8f89f1bace037d384f15f7e56e4b83b1a53de30f524b197be273fdd382219b15
+Collection: UUID
+Tree: c26b24025ebed6f4b32c3556262885811b1a78854df17a1228d2d35fdb8548b0
+Parent: 95a366ff6ab057524819f4269e38c7d31178aefdd18888fdd07fc629a4554183
+Date: 2026-01-01
+Edition: 3
+Volume: FAM-03_2019-2020_S
+Changes: +2 ~0 -1 >1 files
+Message: sorted into letters
+
+%rec: Object
+%doc: A data object: one file or folder put on a disc as a whole (a disc plan's item, or a
++ folder arv make puts on one disc), with no .arv marker of its own. Uuid is its lineage:
++ every version of the same object shares it.
++ Tree is the SHA-256 of its manifest (each file's SHA-256 and path within the object,
++ sorted; a repository's .git aside, as git.tsv describes it); Version counts its versions,
++ and the same Tree on another disc is the same version. Disc and Path say where it is
++ (Path under data/; "." for the whole of data/). Source is where it was read from: it is
++ kept in the home catalogue only, and discs carry their objects without it. Except (one
++ for each) names a file or folder of the source left out of the object because a disc plan
++ placed it elsewhere (a folder split): the object is the folder without them. Arranged, on a disc with
++ a Layout, is where it was arranged (its path in the disc plan) before the layout placed it
++ at Path; Name keeps its name where it was read from, and Slug, when they differ, is its name
++ on this disc. SameBytes (UUID VERSION) names an
++ object of another lineage with the same Tree: identity is the lineage, never the bytes,
++ so the same bytes read from elsewhere are another object, and this says so; a person who
++ knows they are one says so with an event (Object: object:THIS, SameAs: object:OTHER), and
++ readers then read its records as the other's versions with the same Tree.
++ Title, Description, Coverage (EDTF), Rights and Origin (where it was published, as host/path)
++ say what it is: read from its own files when it is archived (its README, package manifest,
++ licence, a repository's commits and origin remote), or written by a person or a model
++ (arv describe NAME), with Notes.
+%mandatory: Uuid Version Tree Disc Path Kind Date
+%type: Uuid uuid
+%type: Version int
+%type: Files int
+%type: Bytes int
+%type: Date date
+%type: Kind enum file folder git
+
+Uuid: UUID
+Version: 1
+Name: e.txt
+Kind: file
+Tree: a2bbdb2de53523b8099b37013f251546f3d65dbe7a0774fa41af0a4176992fd4
+Disc: FAM-03_2019-2020_S
+Path: e.txt
+Files: 1
+Bytes: 2
+Date: 2026-01-01
+Source: coll/fam/e.txt
+
+Uuid: UUID
+Version: 1
+Name: b.txt
+Kind: file
+Tree: 7058299627365fc7a3dd7840fd3d56f29306cd30c0f2c13cb500fe79617290ff
+Disc: FAM-03_2019-2020_S
+Path: letters/b.txt
+Files: 1
+Bytes: 2
+Date: 2026-01-01
+Source: coll/fam/b.txt
+
+Uuid: UUID
+Version: 1
+Name: c2.txt
+Kind: file
+Tree: a3a5e715f0cc574a73c3f9bebb6bc24f32ffd5b67b387244c2c909da779a1478
+Disc: FAM-03_2019-2020_S
+Path: letters/c.txt
+Slug: c.txt
+Files: 1
+Bytes: 2
+Date: 2026-01-01
+Source: coll/fam/c2.txt
+
 %rec: Event
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
@@ -184,7 +289,11 @@ Keep: yes
 + Every event has an EventId: the first 32 hex digits of the SHA-256 of its other fields as
 + written (a Nonce keeps two alike apart). An event about one copy names it by Replication (that
 + copy's replication EventId) and Copy (its letter then; the newest is its letter now). A change
-+ to a field says Sets: FIELD and Replaces: the EventIds of the changes it follows; two that
++ to a field says Sets: FIELD and Replaces: the EventIds of the changes it follows (a path's
++ tags or caption after burning: Tags: PATH<TAB>TAGS or Caption: PATH<TAB>TEXT, with Sets:
++ Tags:PATH or Caption:PATH; the disc's tags.tsv stays as burned; a data object's tags or
++ name now: an event about it, Object: object:UUID, with Tags: TAGS or Slug: NAME, Sets: Tags
++ or Slug); two that
 + replace the same one were made apart, a conflict to settle by setting the field again. Deaccession retires a disc (its Disc record gets
 + Retired).
 %mandatory: Type Date Outcome
@@ -221,7 +330,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image FAM-01_2019_0.noecc.iso, 850 sectors
+Note: image FAM-01_2019_0.noecc.iso, 882 sectors
 
 EventId: ID
 Disc: FAM-02_2019_Y
@@ -433,6 +542,24 @@ Form: folder
 Temperature: warm
 Location: NAS
 Path: ROOT/nas/FAM-02-files
+
+EventId: ID
+Disc: FAM-03_2019-2020_S
+Type: message digest calculation
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: SW
+Note: sha256 and sha512 manifests of 3 files
+
+EventId: ID
+Disc: FAM-03_2019-2020_S
+Type: creation
+Date: 2026-01-01
+Outcome: success
+Authorship: automatic
+Agent: SW
+Note: image FAM-03_2019-2020_S.noecc.iso, 882 sectors
 
 %rec: Appraisal
 %doc: The archivist log: how much something matters, to whom, and why. Appended and

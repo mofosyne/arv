@@ -231,7 +231,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       <div><label for="m-rights">Rights / licence</label><input type="text" id="m-rights"></div>
     </div>
     <label for="m-note">Note</label><textarea id="m-note"></textarea>
-    <label for="m-tags">Folder tags (one per line: folder: tag, tag)</label><textarea id="m-tags" rows="5" placeholder="photos/2019 trip: travel, family"></textarea>
+    <label for="m-tags">Tags (one per line: a folder or a file, then its tags)</label><textarea id="m-tags" rows="5" placeholder="photos/2019 trip: travel, family&#10;photos/2019 trip/IMG_0042.JPG: best"></textarea>
     <div class="row">
       <div><label for="m-medium">Target disc</label><select id="m-medium">
         <option value="bd25">BD-R 25 GB</option><option value="bd50">BD-R DL 50 GB</option>
@@ -618,7 +618,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       output_dir: $("m-outdir").value, split: $("m-split").checked,
       no_defect_management: $("m-nodm").checked,
       draft: (makeLLM.agent || $("m-tags").value.trim()) ? {
-        notes: qaNotes(makeLLM), folder_tags: textToTags($("m-tags").value), folder_captions: makeLLM.captions || {},
+        notes: qaNotes(makeLLM), tags: textToTags($("m-tags").value), captions: makeLLM.captions || {},
         agent: makeLLM.agent || "owner" } : null
     }, false, "/api/make");
   };
@@ -668,10 +668,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         go.disabled = false;
         if (res.error) { status.textContent = "LLM error: " + res.error; return; }
         state.previous = { title: res.title, description: res.description, subjects: res.subjects,
-                           folder_tags: res.folder_tags, questions: res.questions };
+                           tags: res.tags, questions: res.questions };
         state.agent = res.agent;
         state.seen = res.seen && Object.keys(res.seen).length ? res.seen : state.seen;
-        state.captions = res.folder_captions || {};
+        state.captions = res.captions || {};
         status.textContent = "Suggested by " + llmStatus.model + ". Edit anything below; answers are kept as notes.";
         fill(res);
         qbox.textContent = "";
@@ -710,7 +710,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   function setupMakeLLM() {
     makeLLM = llmPanel($("m-llm"), function () { return { source: $("m-source").value }; }, function (r) {
       $("m-title").value = r.title; $("m-description").value = r.description;
-      $("m-subject").value = r.subjects.join(", "); $("m-tags").value = tagsToText(r.folder_tags);
+      $("m-subject").value = r.subjects.join(", "); $("m-tags").value = tagsToText(r.tags);
     }, { vision: true });
   }
 
@@ -723,7 +723,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var apply = el("button", { class: "primary", type: "button", text: "Apply to catalogue" });
     var state = llmPanel(box, function () { return { disc_id: d.Id }; }, function (r) {
       title.value = r.title; desc.value = r.description; subj.value = r.subjects.join(", ");
-      tags.value = tagsToText(r.folder_tags);
+      tags.value = tagsToText(r.tags);
       fields.hidden = false;
     });
     fields.hidden = true;
@@ -735,7 +735,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       run({ command: "apply_draft", disc_id: d.Id, draft: {
         title: title.value, description: desc.value, agent: state.agent,
         subjects: subj.value.split(",").map(function (x) { return x.trim().toLowerCase(); }).filter(Boolean),
-        notes: qaNotes(state), folder_tags: textToTags(tags.value), folder_captions: state.captions } }, true);
+        notes: qaNotes(state), tags: textToTags(tags.value), captions: state.captions } }, true);
     };
     fields.appendChild(apply);
     box.appendChild(fields);

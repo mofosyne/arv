@@ -104,7 +104,7 @@ catalogue rebuilt from a disc takes the disc's archive identity.
 | `bagit.txt`, `bag-info.txt` | BagIt | Bag declaration; `External-Identifier` = disc Id, `External-Description` = title and description, `Bag-Group-Identifier` = the disc's collection code, else its set (or the range of a multi-disc set, with `Bag-Count`), `Payload-Oxum`, and `Bag-Software-Agent` = `arv@<commit> <https://github.com/mofosyne/arv>` |
 | `manifest-sha256.txt`, `manifest-sha512.txt` | BagIt manifest | `<hash>  data/<path>`, one per payload file (`sha256sum -c` compatible) |
 | `catalog/volumes/<id>/listing.tsv` | TSV | Size, modification time and path of every payload file |
-| `catalog/volumes/<id>/tags.tsv` | TSV | Folder tags and optional image captions |
+| `catalog/volumes/<id>/tags.tsv` | TSV | Tags of folders and files, and optional image captions |
 | `catalog/volumes/<id>/git.tsv` | TSV | For each git repository on the disc: its root commits, heads, shallow boundary and every commit it holds (see [Git repositories](#git-repositories)) |
 | `catalog/volumes/<id>/formats.csv` | CSV | PRONOM format identification per file (optional) |
 | `catalog/volumes/<id>/manifest.sha256` | BagIt manifest | Copy of the disc's `manifest-sha256.txt` |
@@ -134,6 +134,7 @@ Version 0.1 (samples only, never burned) kept these files by kind instead: `cata
 | `Path`* | Vocabulary paths of the set and categories | e.g. `MEMORIES/PHOTO/TRIP`; recorded at burn time |
 | `Title`, `Description`, `Creator`, `Subject`*, `Coverage`, `Rights` | Dublin Core description | `Subject` repeats; `Coverage` is [EDTF](#coverage-edtf) |
 | `Date` | Date the image was made | `YYYY-MM-DD` |
+| `Layout` | How its tree was made from its objects' tags | Levels split by `/`, alternatives by `,` (`year/event, year`); see [Object records](#object-records-data-objects-format-05); absent when placed by hand |
 | `Set`, `Part` | Set name and `n of N` for multi-disc sets | |
 | `Access` | `public`, `private` (default) or `sealed` | What *other* discs' snapshots may show of this one, see [Access](#access) |
 | `Withheld` | What was left out of this record | Only on the cut-down copy of a sealed disc in another disc's snapshot |
@@ -401,6 +402,13 @@ folders): `Object: collection:CODE` (or `Disc: ID`), `Folder:` the folder's abso
 catalogue, as any `.arv` pointer file) and `Collection:` (the collection's `Uuid`). It is arv's
 own and never goes on a disc (nor does any `.arv` at the root of a folder being archived).
 
+**A restore** is recorded by the home that knows the disc, as an `Event` about it with `Type:
+dissemination` (PREMIS's word for giving out a copy) and `Path:` the folder restored to; the
+folder holds exactly the disc's files, nothing of arv's. It is provenance, not a guess from bytes:
+a disc plan of a file or folder under that folder continues the data object at the same path on
+the disc (the same bytes another copy of its version, changed ones its next version), as `plan add
+--of OBJECT` says of a copy made by hand.
+
 ### Access
 
 `Access` decides what other discs' catalogue snapshots may carry of a disc (the
@@ -468,10 +476,26 @@ Note: Q: What is Tool for?                              any number
 
 The manifest is each file's SHA-256 and its path within the object, sorted by path, in
 `manifest-sha256.txt` form, without a repository's `.git` (`git.tsv` describes that). The same
-`Tree` on several discs is the same version, copied. Each version is recorded when it is archived:
-the same content as an earlier version is that version; from the same place but changed, the
-next version; else a new `Uuid`. The home catalogue adds `Source` (the path it was read
+`Tree` on several discs is the same version, copied, within one lineage. Each version is recorded
+when it is archived: from the same place, the same content as a version of it is that version,
+and changed content the next version; from a place not archived before, a new `Uuid`. Identity is
+the lineage, never the bytes: two identical files can be two things (a copy you made, or the same
+photo sent by two people, with two provenances), and only a person can tell. So the same `Tree`
+in another lineage is another object, and records `SameBytes: UUID VERSION` naming that one.
+A person who knows they are one says so (`arv same`): an `Event` about the first, `Object:
+object:A`, `SameAs: object:B`, and from then on readers read A's records as B's, each the version
+of B with its `Tree` (A's records on discs keep A's `Uuid`; the event is what joins them). Only an
+object whose every version has bytes B has had can be joined; one with a history of its own stays. The home catalogue adds `Source` (the path it was read
 from, relative to the folder holding the home when inside it) and keeps each manifest in `catalog/objects/<Tree>.sha256`; neither goes on a disc.
+`Except`* names a file or folder of the source, relative to it, that a disc plan placed elsewhere
+(a folder split: the more specific of two plan items that hold a file places it); the object is
+the folder without them, so comparing it with the folder later leaves them out.
+On a disc with a `Layout`, each object is placed whole by its tags: each level is a namespace
+folder holding a folder for its value, then the object's name (`year/2019/event/kyoto-trip/IMG_0001.JPG`,
+`project/weather-station/station/`; `year` and `decade` are made from `date`, by its start), so the
+tree reads back as tags. An object is never split across folders. `Path` is where it is;
+`Arranged`, where it was arranged before the layout placed it (its path in the plan); `Name` keeps
+its name where it was read from. An object with none of the alternatives is at its arranged path.
 Readers merge objects by `Uuid`, `Version` and `Disc`.
 
 **What an object is** (added in format 0.5; all optional): `Title`, `Description`, `Coverage`
@@ -627,18 +651,46 @@ sockets and pipes are refused. To restore a link, read its row: `ln -s <target> 
 ### Tags TSV
 
 ```
-# folder (relative to data/)	tags	caption (what sampled images show, if analysed)
+# path (a folder or a file, relative to data/)	tags	caption (what sampled images show, if analysed)
 photos/2019 trip	travel, japan	People at a temple gate in autumn.
+photos/2019 trip/IMG_0042.JPG	best
 ```
 
-Folder paths use `/`, relative to `data/`; `.` is the payload root. Tags are
-comma-separated and lower case. The caption column is optional.
+Each line names a folder or a file (format 0.5): paths use `/`, relative to `data/`; `.` is the
+payload root. A path is a file when the listing names it, else a folder (the listing names files
+only). A file has the tags of every folder above it, and its own: so a tag that belongs to a few
+files across folders (`best`, `person:alice`) is given to each file, and one that belongs to a
+whole folder is given once. Tags are comma-separated and lower case. The caption column is
+optional.
+
+A disc's own `tags.tsv` is as it was burned. A later change is an `Event` about the disc, one
+for each time tags are applied, with a field for each path it changes: `Tags: PATH<TAB>a, b`
+(the path's tags now; empty for none) and `Caption: PATH<TAB>text`, each with `Sets: Tags:PATH`
+(or `Caption:PATH`) and `Replaces:` the change it follows, as any field that changes. So changes
+are appended, merge by event id, and two made apart in two catalogues are a conflict to settle by
+setting the path again. A disc's tags now are its `tags.tsv` with each path's newest change laid
+over it. The other discs' `tags.tsv` in a later disc's `catalog/volumes/` are written that way, as
+they are now, so a reader that does not read events still sees them; applying the events again
+changes nothing.
+
+A data object's tags follow the object, not a path: a change to them is an `Event` about the
+object (`Object: object:UUID`, `Tags: a, b`, `Sets: Tags`), so it holds on every disc the object
+is on and every disc made from it. A disc's tags now lay each of its objects' tags now at the
+object's `Path`. Its name on discs changes the same way (`Slug: NAME`, `Sets: Slug`): a name, never
+a place, since where an object goes on a disc is its tags' (a layout) or a plan's. The discs it is
+on stay as burned; their paths are facts about those discs. An object whose name on a disc is not
+the one it was read as records `Slug` too.
 
 A tag is either a plain word or phrase (`travel`) or `namespace:value`
 (`person:alice`, `place:kyoto`, `event:wedding-2019`, `source:pixel-7`,
 `project:weather-station`), as in Hydrus. Namespaces keep facets apart: who,
-where, which occasion, which device. Suggested namespaces are `person`,
-`place`, `event`, `source` and `project`; any single word works. The
+where, which occasion, which device. Any single word works; the tag vocabulary
+(`catalog/config/tags.rec`) declares the usual ones as `Namespace` records: `Name`,
+`Description`, `Values` (`one` or `many`) and `From` (where a value may be suggested:
+`file-date`, the file's own date). A one-valued namespace has one value a path, and a path's
+own value replaces the one it has from its folder: `date` (the date of the content, one EDTF
+date or range, as `Coverage`), `event` and `project`. `person`, `place` (places nest: `kyoto`
+and `fushimi-inari`) and `source` take many. The
 hierarchical keyword form used by XMP `lr:hierarchicalSubject` (Lightroom,
 digiKam) replaces the colon with `|`: `place|kyoto`; set paths become
 `MEMORIES|PHOTO|TRIP`.
