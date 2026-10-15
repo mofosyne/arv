@@ -313,7 +313,7 @@ class GuiTest(unittest.TestCase):
         listing = json.loads(self.request("/api/browse?files=1&path=" + os.path.join(self.tmp, "pc"))[1])
         self.assertEqual(listing["files"], [{"name": "wedding.mkv", "bytes": 4}])
         self.ok("plan", "new", "trip", "--title", "Trip", "--set", "TRIP", "--medium", "bd25")
-        self.assertEqual(self.ok("plan", "list", "--all", "--json"), {"format": 1, "plans": [{"name": "trip", "discs": 1, "items": 0, "made": None}]})
+        self.assertEqual(self.ok("plan", "list", "--all", "--json"), {"format": "arv-json 1", "plans": [{"name": "trip", "discs": 1, "items": 0, "made": None}]})
         self.ok("plan", "add", "trip", video, photos, "--disc", "auto")
         self.ok("plan", "move", "trip", "photos", "--from", "1", "--disc", "new")
         shown = self.ok("plan", "show", "trip", "--json")

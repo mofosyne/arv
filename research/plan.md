@@ -1745,8 +1745,8 @@ stable is that its commands, options and outputs stop changing: a promise, kept 
 What was missing, and is built:
 
 - **The version of each output's shape.** The TSV outputs had one (`# arv todo 1`); the JSON did
-  not. Each now starts `"format": 1`. A reader checks it; a new field does not change it, a
-  renamed or removed one does.
+  not. Each now starts `"format": "arv-json 1"`, the form the 2026-10-10 note agreed. A reader
+  checks it; a new field does not change it, a renamed or removed one does.
 - **A result from the commands that write.** Reads had `--json`; writes printed only sentences, so a
   script learned a new copy's letter by parsing "Write its letter on the hub ...". Now `--json` on
   any command that changes the record prints the events it made, as `list --json` shows events.

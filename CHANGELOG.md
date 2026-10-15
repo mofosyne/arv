@@ -22,7 +22,8 @@ only add fields.
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
 **Output for scripts, versioned** (toward issue #31)
-- Every JSON output starts with `"format": 1`, the version of its shape.
+- Every JSON output starts with `"format": "arv-json 1"`: whose it is, and the version of its shape
+  (within 1, fields are only added).
 - `--json` on a command that changes the record (`burned`, `note`, `make`, `location add` ...)
   prints the events it made, each with its `EventId`; what it says to a person goes to standard
   error. A script learns a new copy's letter from the event, not from a sentence.

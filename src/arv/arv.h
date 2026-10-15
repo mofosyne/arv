@@ -246,8 +246,9 @@ void plan_scan(const arv_home *h, disc_plan *p, const char *links, entries *file
 void plan_made(const char *file, const strlist *disc_ids, const char *date);
 void text_sha256(const char *text, char hex[65]);
 void json_str(sbuf *b, const char *s);     /* a JSON string, quoted */
-/* every JSON output starts {"format": 1, ...}: the shape's version, as the TSV outputs' "# arv ... 1" */
-#define JSON_FORMAT "\"format\": 1"
+/* every JSON output starts {"format": "arv-json 1", ...}: whose and which shape (fields are only
+ * added within 1), as the TSV outputs' first line "# arv todo 1" (research/plan.md, issue #31) */
+#define JSON_FORMAT "\"format\": \"arv-json 1\""
 void json_record_fields(sbuf *b, const rec_record *r, int *first, const rec_record *skip);
 /* a command that changes the record, given --json: the events it made, collected as it saves them */
 extern int json_events_wanted;
