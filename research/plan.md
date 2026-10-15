@@ -1086,8 +1086,11 @@ about 430 bytes per file in the archive. Up to about a million files that is und
 - **What every disc, and the package, carry in `tools/`** (2026-10-10, issue #32). Decided: a
   whitelist, `disc-tools.txt`. The UDF and ECMA standards' zip (69.6 MB, 97% of the old tree, its
   licence and origin not written down) stays in the repository but off the discs and out of the
-  package; discs carry our profile (`archival-udf.md`). Open: whether to point to the published
-  standards from the profile, and what the zip's terms are.
+  package; discs carry our profile (`archival-udf.md`). *Settled 2026-10-15:* the profile points
+  to the published standards (Ecma's own copy of ECMA-167; OSTA's UDF 2.50 through the Internet
+  Archive, its site having closed), and the zip leaves the repository too: its terms were never
+  written down (a Wikipedia user's preservation of OSTA's and Ecma's PDFs), and arv needs only the
+  two documents the profile names.
 - **Editions under a distributed collection** (2026-10-06). The archive is the union of the
   workflow folder, warm images and cold discs; a disc holds a selection plus a catalogue copy
   ([concepts.md](../docs/concepts.md)). But "a newer safe edition replaces older ones" still
