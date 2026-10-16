@@ -564,6 +564,22 @@ static void tracked_status(const arv_home *h, const archive *cat, const scan *s,
         ml_free(&one);
         free(text);
         free(p);
+        for (size_t k = 0; k < cat->objects.n; k++) {   /* objects packed on it: their files, from their manifests */
+            const rec_record *o = cat->objects.v[k];
+            if (!rec_get(o, "Pack") || !rec_get(o, "Tree") || strcmp(get_or(o, "Disc", ""), id)) continue;
+            char *dir = join(h->catalog_dir, "objects"), *f = xprintf("%s/%s.sha256", dir, rec_get(o, "Tree"));
+            char *mt = access(f, F_OK) ? NULL : read_text(f);
+            mlist in = { 0 };
+            ml_parse(&in, mt);
+            for (size_t m = 0; m < in.n; m++) {
+                ml_add(&all, id, in.v[m].hash);
+                disc_total[i]++;
+            }
+            ml_free(&in);
+            free(mt);
+            free(f);
+            free(dir);
+        }
     }
     sort_(all.v, all.n, sizeof *all.v, ml_by_hash);
     size_t archived = 0;

@@ -328,6 +328,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     <button class="plain" type="button" id="p-again" hidden>Make it again as a new plan…</button>
     <button class="plain" type="button" id="p-delete">Delete plan</button>
     <button class="plain" type="button" id="p-archived" title="Hashes each item (quick when it was hashed before) and marks what is on discs already">What is on discs already?</button>
+    <button class="plain" type="button" id="p-packed" title="Packs what the plan packs, in a temporary folder, to measure it">Packed sizes</button>
   </div>
   <form id="p-new" class="card" hidden>
     <div class="row">
@@ -1144,7 +1145,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   function say(text, bad) {
     var s = $("p-status"); s.hidden = !text; s.textContent = text || ""; s.className = "banner" + (bad ? " bad" : "");
   }
-  function planArgv(body) {    // arv plan add|move|drop|disc|rename|tag|layout NAME ...
+  function planArgv(body) {    // arv plan add|move|drop|disc|rename|tag|layout|pack NAME ...
     var argv = ["plan", body.action, body.name || planName()];
     var paths = (body.paths || []).filter(function (p) { return p && p[0] !== "-"; });
     if (body.action === "add") return opt(argv.concat(body.sources, ["--disc", String(body.disc || "auto")]), "--as", body.as);
@@ -1152,6 +1153,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (body.action === "rename") return argv.concat([body.path, body.to]);
     if (body.action === "tag") return argv.concat([body.source, body.tags]);
     if (body.action === "layout") return argv.concat([body.layout, "--disc", String(body.disc)]);
+    if (body.action === "pack" && body.path) return argv.concat([body.path, body.packing]);
+    if (body.action === "pack") return argv.concat(["--disc", String(body.disc), body.packing], body.together ? ["--together"] : []);
     argv = opt(argv.concat(paths), "--from", body.from);
     return body.action === "move" ? argv.concat(["--disc", String(body.disc)]) : argv;
   }
@@ -1181,6 +1184,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       return loadPlan();
     });
   }
+  $("p-packed").onclick = function () {
+    if (!planName()) return;
+    say("Packing what the plan packs, to measure it …");
+    arvJson(["plan", "show", planName(), "--json", "--packed"]).then(function (p) { plan = p; renderPlan(); say(""); })
+      .catch(function (e) { say("Error: " + e.message, true); });
+  };
   $("p-archived").onclick = function () {
     if (!planName()) return;
     say("Hashing the plan's items …");
@@ -1231,9 +1240,23 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
           if (spec !== null && spec.trim() && spec.trim() !== (d.layout || "")) planDo({ action: "layout", layout: spec.trim(), disc: d.disc });
         };
         head.appendChild(lay);
+        var dpack = el("select", { "aria-label": "Disc " + d.disc + " packing", title: "how its objects are kept: as files, or each (or all together) as one file" });
+        [["none", "as files"], ["tar+zstd", "each packed: tar+zstd"], ["tar+zstd together", "all in one pack: tar+zstd"],
+         ["zip", "each packed: zip"], ["tar+xz", "each packed: tar+xz"]].forEach(function (o) {
+          dpack.appendChild(el("option", { value: o[0], text: o[1] }));
+        });
+        dpack.value = d.packing || "none";
+        if (dpack.value !== (d.packing || "none")) dpack.appendChild(el("option", { value: d.packing, text: d.packing })), dpack.value = d.packing;
+        dpack.onchange = function () {
+          var w = dpack.value.split(" ");
+          planDo({ action: "pack", disc: d.disc, packing: w[0], together: w[1] === "together" });
+        };
+        head.appendChild(dpack);
       }
       card.appendChild(head);
       if (d.layout) card.appendChild(el("div", { class: "capnote", text: "laid out by " + d.layout }));
+      if (d.packing) card.appendChild(el("div", { class: "capnote", text: "packed: " + d.packing + (d.packs ? "" : " (sizes as files: Packed sizes measures them)") }));
+      (d.packs || []).forEach(function (pk) { card.appendChild(el("div", { class: "capnote", text: "data/" + pk.pack + ": " + human(pk.bytes) + " packed" })); });
       var bar = el("div", { class: "cap" + (pct > 100 ? " bad" : pct > 90 ? " warn" : "") }, [el("div", {})]);
       bar.firstChild.style.width = Math.min(pct, 100) + "%";
       card.appendChild(bar);
@@ -1251,6 +1274,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
           title: "not as one data object: the files are on discs, from elsewhere" }));
         else if (a && a.onDiscs) name.appendChild(el("span", { class: "flag some", text: a.onDiscs + " of " + a.files + " files on discs" }));
         else if (a && a.files) name.appendChild(el("span", { class: "flag", text: "on no disc yet" }));
+        if (it.pack) name.appendChild(el("span", { class: "flag", text: "packed: " + it.packing,
+          title: "kept as one file, data/" + it.pack + "; unpacked there, it is at data/" + (it.placed || it.path) }));
         if (it.changed) name.appendChild(el("span", { class: "flag changed", text: "changed since planned",
           title: "the disc gets it as it is now" }));
         var row = el("div", { class: "item" + (it.kind === "missing" ? " missing" : ""), draggable: plan.made ? "false" : "true" }, [
@@ -1275,7 +1300,13 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
             var tags = prompt("Tags for " + it.path + ", comma separated (event:trip, year:2019, best; empty for none)", it.tags || "");
             if (tags !== null && tags.trim() !== (it.tags || "")) planDo({ action: "tag", source: it.source, tags: tags.trim() });
           };
-          row.appendChild(el("span", { class: "ctl" }, [move, ren, tag, drop]));
+          var pk = el("select", { "aria-label": "Packing of " + it.path, title: "kept as its files, or as one file" });
+          [["default", "pack: as the disc"], ["none", "as files"], ["tar+zstd", "tar+zstd"], ["zip", "zip"], ["tar+xz", "tar+xz"]]
+            .forEach(function (o) { pk.appendChild(el("option", { value: o[0], text: o[1] })); });
+          pk.value = it.ownPacking || "default";
+          if (pk.value !== (it.ownPacking || "default")) pk.appendChild(el("option", { value: it.ownPacking, text: it.ownPacking })), pk.value = it.ownPacking;
+          pk.onchange = function () { planDo({ action: "pack", path: it.path, packing: pk.value }); };
+          row.appendChild(el("span", { class: "ctl" }, [move, ren, tag, pk, drop]));
         }
         row.ondragstart = function (ev) { ev.dataTransfer.setData("application/x-arv", JSON.stringify({ path: it.path, from: d.disc })); };
         card.appendChild(row);

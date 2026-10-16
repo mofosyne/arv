@@ -82,6 +82,7 @@ Manifest: manifest-sha256.txt
 Listing: catalog/volumes/2020-2025_PROJECTS_01/listing.tsv
 Tags: catalog/volumes/2020-2025_PROJECTS_01/tags.tsv
 Formats: catalog/volumes/2020-2025_PROJECTS_01/formats.csv
+Packed: catalog/volumes/2020-2025_PROJECTS_01/packed.tsv    only when the disc has packs
 Snapshot: catalog/archive.rec
 Viewer: index.html
 Payload: data/
@@ -107,13 +108,14 @@ catalogue rebuilt from a disc takes the disc's archive identity.
 | `catalog/volumes/<id>/tags.tsv` | TSV | Tags of folders and files, and optional image captions |
 | `catalog/volumes/<id>/git.tsv` | TSV | For each git repository on the disc: its root commits, heads, shallow boundary and every commit it holds (see [Git repositories](#git-repositories)) |
 | `catalog/volumes/<id>/formats.csv` | CSV | PRONOM format identification per file (optional) |
+| `catalog/volumes/<id>/packed.tsv` | TSV | Every file inside the disc's packs: its SHA-256, its path under `data/` as unpacked, its pack and how it is packed (see [Packed objects](#object-records-data-objects-format-05)); only when the disc has packs |
 | `catalog/volumes/<id>/manifest.sha256` | BagIt manifest | Copy of the disc's `manifest-sha256.txt` |
 | `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Binding`, `Location`, `Collection`, `Revision`, `Event` and `Appraisal` records (limited by [Access](#access)) |
 | `catalog/config/sets.rec`, `catalog/config/tags.rec` | recfile | The archive's vocabularies at burn time: the set codes (`Set`, `Category`) and the tag words its records use, with their names, parents and aliases. Full snapshots only; optional (format 0.5) |
 | `catalog/volumes/<other-id>/` | as above | The same per-volume index files for the other discs in the snapshot: one folder per volume, as LTFS keeps one index per tape |
 | `index.html` | HTML | Offline viewer (for people; readers can ignore) |
 | `README.txt` | text | How to browse, search, verify, restore and repair the disc, for people |
-| `tools/arv/` | files | The source of the software that made the disc (C; its optional web interface in Python), with this spec |
+| `tools/arv/` | files | The source of the software that made the disc (C, its web interface too), with this spec |
 | `tools/arv.com` | program | That software as one Actually Portable Executable (Cosmopolitan): runs as is on Linux, macOS, Windows and the BSDs, x86-64 and ARM64. Optional: present when it was built where the disc was made |
 | `data/` | files | The payload, untouched |
 
@@ -461,9 +463,11 @@ Name: 2025               its name where it was read from
 Kind: folder             file, folder, or git (a folder holding a repository)
 Tree: 36ea...            SHA-256 of its manifest (below); for a file, the file's SHA-256
 Disc: TRIP-03_2025_7
-Path: photos             where it is under data/ ("." for the whole of data/)
+Path: photos             where it is under data/ ("." for the whole of data/); packed: where it unpacks to
 Files: 3
 Bytes: 21
+Packing: tar+zstd        absent: as its files (below)
+Pack: photos.tar.zst     the file holding it, under data/, when arv packed it
 Date: 2026-01-01
 Title: Tool              what it is (all five optional, as on a Disc): from its own files, or
 Description: Tool turns sensor logs into plots.        written by a person or a model
@@ -497,6 +501,43 @@ tree reads back as tags. An object is never split across folders. `Path` is wher
 `Arranged`, where it was arranged before the layout placed it (its path in the plan); `Name` keeps
 its name where it was read from. An object with none of the alternatives is at its arranged path.
 Readers merge objects by `Uuid`, `Version` and `Disc`.
+
+**Packed objects** (added in format 0.5). An object may be kept on a disc as one file instead of
+as its files: `Pack` names that file under `data/`, and `Packing` says what it is. A pack's
+member paths are relative to the folder the pack is in, so unpacking a pack where it is puts each
+object it holds at its `Path` (`tar -xf photos.tar.zst` in `data/` gives `data/photos/`). A pack
+holds one object (`data/photos.tar.zst`, next to where the object would be), or all the packed
+objects of one disc (`data/pack.tar.zst`, its members named from `data/`, so unpacked there it
+lays them over the disc's other objects). `Tree`, `Files` and `Bytes` are those of the object's
+files, as unpacked, so the same files are the same version whether packed or not, and its
+manifest lists them; the bag's manifests, the listing and `extents.tsv` list the pack, a file like
+any other. `tags.tsv` and `formats.csv` name the files at their paths as unpacked, and
+`packed.tsv` lists each with its SHA-256, so a reader can check what it unpacks without the home:
+
+```
+# arv packed 1	sha256	path (relative to data/, as unpacked)	pack (relative to data/)	packing
+5b3c...	docs/sub/a.txt	docs.tar.gz	tar+gzip
+```
+
+arv reads each pack back as soon as it is made, so an image that is the very image made has
+packs that unpack as recorded. `arv check` of a disc's files reads inside each pack against
+`packed.tsv`, and `arv restore` unpacks each where it is (a damaged pack is restored as it is).
+
+| `Packing` | What the file is | Unpacked with |
+|---|---|---|
+| `tar` | POSIX tar (ustar, pax for long names and sizes) | `tar -xf` |
+| `tar+zstd`, `tar+xz`, `tar+gzip`, `tar+lzip`, `tar+bzip2` | a tar, then compressed as one stream (zstd: RFC 8878; gzip: RFC 1952) | `tar -xf` (or the compressor, then `tar`); 7-Zip |
+| `zip` | zip, each file deflated on its own (ISO/IEC 21320-1) | any file manager; `unzip` |
+| `zstd`, `xz`, `gzip`, `lzip`, `bzip2` | one file, compressed (a file object only) | the compressor, `-d` |
+| `7z` | a 7-Zip archive (found, never written by arv) | 7-Zip |
+
+arv writes the tar itself (members by path, mode 0644 or 0755, owner 0, the file's modification
+time), so the same files give the same pack, and the compressors run with options that give the
+same bytes for the same input; zip is the zip program's (`zip -X`). A tar compressed as one stream
+packs best, the files compressing together; damage in it loses the stream from there on, which
+RS03 below it guards. Zip compresses each file alone and loses only a damaged one. Without `Pack`,
+`Packing` says a file object is itself packed, as it was given (a `.zip` or `.tar.gz` someone
+made): its name says what, and its first bytes agree. Its `Tree` is then the file's own SHA-256.
 
 **What an object is** (added in format 0.5; all optional): `Title`, `Description`, `Coverage`
 (EDTF), `Rights`, `Origin` and `Note`*. When it is archived, arv reads them by rules from the

@@ -379,6 +379,45 @@ static void verify_line(void *ctx, enum bagit_event what, const char *path, cons
 /* every file of a bag (a disc's root, or its files copied to a folder) against its manifests, and
  * the tag files, and Payload-Oxum; problems are printed as found (every file too, when verbose).
  * The summary line goes to out. */
+/* the files inside a disc's packs, each read out and against its hash (packed.tsv); 1 when all match */
+static int packs_check(const char *root, sbuf *out)
+{
+    char *cr = join(root, "catalog.rec");
+    rec_file f;
+    int bad = 0, ok = 1;
+    const rec_record *arc = access(cr, F_OK) || rec_read(cr, &f, &bad) ? NULL : rec_first(&f, "Archive");
+    free(cr);
+    if (!arc || !rec_get(arc, "Disc")) return 1;
+    char *pt = xprintf("%s/catalog/volumes/%s/packed.tsv", root, rec_get(arc, "Disc"));
+    packed_row *pr;
+    size_t n = packed_rows(pt, &pr), files = 0, packs = 0;
+    free(pt);
+    strlist done = { 0 };
+    for (size_t i = 0; i < n; i++) {
+        if (strlist_has(&done, pr[i].pack)) continue;
+        strlist_add(&done, pr[i].pack);
+        const char *tool = packing_tool(pr[i].packing);
+        if (tool && !on_path(tool)) {
+            sb_printf(out, "data/%s not read inside: %s is not on PATH (its own checksum is checked)\n", pr[i].pack, tool);
+            continue;
+        }
+        fprintf(stderr, "Reading inside data/%s ...\n", pr[i].pack);
+        char *file = xprintf("%s/data/%s", root, pr[i].pack);
+        size_t same = 0, differ = 0, gone = 0;
+        const char *wrong = pack_compare(file, pr, n, pr[i].pack, NULL, &same, &differ, &gone, NULL, out);
+        if (wrong) sb_printf(out, "data/%s: %s\n", pr[i].pack, wrong);
+        if (wrong || differ || gone) ok = 0;
+        files += same;
+        packs++;
+        free(file);
+    }
+    if (packs && ok) sb_printf(out, "inside its %zu pack%s, all %zu files match their checksums\n", packs, packs == 1 ? "" : "s", files);
+    for (size_t i = 0; i < n; i++) free(pr[i].sha256), free(pr[i].path), free(pr[i].pack), free(pr[i].packing);
+    free(pr);
+    strlist_free(&done);
+    return ok;
+}
+
 int bag_check(const char *root, int verbose, sbuf *out)
 {
     bagit_report r;
@@ -389,6 +428,7 @@ int bag_check(const char *root, int verbose, sbuf *out)
         if (r.invalid) sb_printf(out, ", %zu other problems", r.invalid);
         sb_puts(out, "\n");
     }
+    if (ok) ok = packs_check(root, out);  /* a damaged pack is found above; this reads what is inside */
     return ok;
 }
 
@@ -524,10 +564,35 @@ int cmd_restore(int argc, char **argv)
         die("cannot create %s", dest);
     }
 
-    size_t restored = 0, damaged = 0, missing = 0, made_links = 0, kept = 0, skipped = 0;
+    size_t restored = 0, damaged = 0, missing = 0, made_links = 0, kept = 0, skipped = 0, unpacked = 0;
     uint64_t total = 0;
+    packed_row *pr;                         /* packed objects: unpacked to where they belong */
+    char *ppath = volume_file(&d, "packed.tsv");
+    size_t npr = packed_rows(ppath, &pr);
+    free(ppath);
+    strlist packs = { 0 };
+    for (size_t i = 0; i < npr; i++) {
+        const char *tool = packing_tool(pr[i].packing);
+        if (strlist_has(&packs, pr[i].pack)) continue;
+        if (tool && !on_path(tool)) {
+            printf("NOTE     data/%s restored as it is: %s is not on PATH (unpack it there later)\n", pr[i].pack, tool);
+            continue;
+        }
+        strlist_add(&packs, pr[i].pack);
+    }
     for (size_t i = 0; i < m.n; i++) {
         const char *rel = m.e[i].path;
+        if (!strncmp(rel, "data/", 5) && strlist_has(&packs, rel + 5)) {    /* a pack: unpacked, below */
+            char *src = join(d.root, rel), hex[65];
+            if (hash_file(src, hex, -1, NULL) || strcmp(hex, m.e[i].hex)) {    /* damaged: copied as it is, below */
+                for (size_t k = 0; k < packs.n; k++)
+                    if (!strcmp(packs.v[k], rel + 5)) packs.v[k][0] = 0;
+            } else {
+                free(src);
+                continue;
+            }
+            free(src);
+        }
         if (strncmp(rel, "data/", 5) || !safe_rel(rel + 5)) {
             printf("SKIPPED  %s (not a safe path under data/)\n", rel);
             skipped++;
@@ -564,6 +629,28 @@ int cmd_restore(int argc, char **argv)
         free(dst);
     }
 
+    for (size_t k = 0; k < packs.n; k++) {  /* each pack read into where it is: its objects at their paths */
+        if (!*packs.v[k]) continue;
+        char *src = xprintf("%s/data/%s", d.root, packs.v[k]), *folder = xstrdup(packs.v[k]), *slash = strrchr(folder, '/');
+        if (slash) *slash = 0;
+        else *folder = 0;
+        char *out = *folder ? join(dest, folder) : xstrdup(dest);
+        size_t same = 0, differ = 0, gone = 0;
+        sbuf msgs = { 0 };
+        if (*folder && make_parents(dest, packs.v[k])) printf("FAILED   %s (cannot create its folder)\n", folder);
+        const char *wrong = pack_compare(src, pr, npr, packs.v[k], out, &same, &differ, &gone, &total, &msgs);
+        if (msgs.s) fputs(msgs.s, stdout);
+        if (wrong) printf("FAILED   data/%s: %s\n", packs.v[k], wrong);
+        else printf("UNPACKED data/%s: %zu file%s\n", packs.v[k], same, same == 1 ? "" : "s");
+        restored += same;
+        unpacked += same;
+        damaged += differ;
+        missing += gone + (wrong && !same && !differ && !gone);
+        free(msgs.s);
+        free(src);
+        free(folder);
+        free(out);
+    }
     char *lpath = volume_file(&d, "listing.tsv");
     if (read_listing(lpath, &l)) printf("Note: no listing (%s): times, execute bits and links not restored\n", lpath);
     free(lpath);
@@ -619,11 +706,15 @@ int cmd_restore(int argc, char **argv)
 
     printf("%s: restored %zu file%s (%llu bytes) and %zu link%s to %s", d.id, restored, restored == 1 ? "" : "s",
            (unsigned long long)total, made_links, made_links == 1 ? "" : "s", dest);
+    if (unpacked) printf(" (%zu of them unpacked)", unpacked);
     if (kept) printf("; %zu links kept as copies", kept);
     if (skipped) printf("; %zu skipped", skipped);
     putchar('\n');
     free_listing(&l);
     free_manifest(&m);
+    for (size_t i = 0; i < npr; i++) free(pr[i].sha256), free(pr[i].path), free(pr[i].pack), free(pr[i].packing);
+    free(pr);
+    strlist_free(&packs);
     if (!damaged && !missing) restore_recorded(given, d.id, dest);
     if (damaged || missing) {
         printf("%zu DAMAGED, %zu MISSING. Repair the image with its RS03 error correction first "

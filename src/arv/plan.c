@@ -3,7 +3,8 @@
  *   arv plan new NAME [--medium M] [--set CODE] [--title TEXT] [--description TEXT] [--access LEVEL] [--discs N]
  *                    [--collection CODE]   (--collection: its discs are that collection's next edition)
  *   arv plan list [--all]           open plans (--all: made ones too)
- *   arv plan show NAME [--json] [--archived] [--duplicates]   (--duplicates: byte-identical files on a
+ *   arv plan show NAME [--json] [--archived] [--duplicates] [--packed]   (--packed: what it packs, packed
+ *                                  and measured; --duplicates: byte-identical files on a
  *                                  disc; --archived: hashes each item, through the hash
  *                                  cache, and says what of it is on discs already)
  *   arv plan add NAME SOURCE [--of OBJECT]   SOURCE continues that data object (a copy of it you made); files
@@ -17,6 +18,11 @@
  *   arv plan tag NAME --list FILE|-   SOURCE<TAB>TAGS lines, all or none
  *   arv plan layout NAME LAYOUT [--disc N]   a disc's tree made from its items' tags, each item placed
  *                                  whole: '/' nests, ',' falls back ('year/event, year'); '' by hand
+ *   arv plan pack NAME PATH... PACKING [--from N]   an item kept as one file: tar, tar+zstd, tar+xz, tar+gzip,
+ *                                  tar+lzip, tar+bzip2 or zip (a file also zstd, xz, gzip, lzip, bzip2); none: as
+ *                                  its files; default: as its disc
+ *   arv plan pack NAME [--disc N] PACKING [--together]   a disc's (or every disc's) items packed, each on its
+ *                                  own or (--together) all in one pack at the top of data/
  *   arv plan move NAME PATH... --disc N|new [--from N]
  *   arv plan drop NAME PATH... [--from N]
  *   arv plan disc NAME add | drop N
@@ -30,7 +36,7 @@
  * The sources are read where they are when the discs are made (arv make --plan). It is kept in the
  * home's drafts/plans/NAME.rec, a recfile: a Plan record (its name, discs and the defaults make
  * takes, and Layout: a disc's tree from its items' tags, "N LAYOUT" for disc N), then an Item
- * record for each thing on a disc (Disc, Source, Path), then a Tags record for each source given
+ * record for each thing on a disc (Disc, Source, Path, Packing), then a Tags record for each source given
  * tags. Sizes are measured
  * when shown, never stored, so a plan always shows its sources as they are now.
  */
@@ -145,6 +151,7 @@ void plan_load(const char *file, disc_plan *out)
         it->path = xstrdup(rec_get(r, "Path") ? rec_get(r, "Path") : "");
         it->seen = rec_get(r, "Seen") ? xstrdup(rec_get(r, "Seen")) : NULL;
         it->of = rec_get(r, "Of") ? xstrdup(rec_get(r, "Of")) : NULL;
+        it->packing = rec_get(r, "Packing") ? xstrdup(rec_get(r, "Packing")) : NULL;
         if (it->disc < 1 || it->disc > out->discs || !*it->source || !*it->path)
             die("%s: an Item needs a Disc between 1 and the plan's Discs, a Source and a Path", file);
     }
@@ -179,6 +186,7 @@ static void plan_save(disc_plan *p)
         free(src);
         if (p->v[i].seen) sb_printf(&b, "Seen: %s\n", p->v[i].seen);
         if (p->v[i].of) sb_printf(&b, "Of: %s\n", p->v[i].of);
+        if (p->v[i].packing) sb_printf(&b, "Packing: %s\n", p->v[i].packing);
     }
     for (size_t i = 0; i < p->tag_src.n; i++) {
         if (!i) sb_puts(&b, "\n%rec: Tags\n");
@@ -360,14 +368,15 @@ static char *laid_out(const char *layout, const strlist *tags, time_t mtime, int
 
 /* the layout of a disc of the plan: its own (Layout: N LAYOUT), else the plan's (Layout: LAYOUT); NULL
  * when its items are placed by hand */
-const char *plan_layout(const disc_plan *p, int disc)
+/* a Plan field given per disc ("N VALUE") or for every disc ("VALUE"): disc N's */
+static const char *plan_field(const disc_plan *p, const char *name, int disc)
 {
     const char *all = NULL, *mine = NULL;
     for (size_t i = 0; i < p->rec.nrecords; i++) {
         const rec_record *r = &p->rec.records[i];
         if (r->descriptor || !r->type || strcmp(r->type, "Plan")) continue;
         for (size_t f = 0; f < r->nfields; f++) {
-            if (strcmp(r->fields[f].name, "Layout")) continue;
+            if (strcmp(r->fields[f].name, name)) continue;
             const char *v = r->fields[f].value;
             char *end;
             long n = strtol(v, &end, 10);
@@ -379,6 +388,42 @@ const char *plan_layout(const disc_plan *p, int disc)
         }
     }
     return mine ? mine : all;
+}
+
+const char *plan_layout(const disc_plan *p, int disc)
+{
+    return plan_field(p, "Layout", disc);
+}
+
+/* how an item is packed on its disc: its own word (plan pack NAME PATH ...), else its disc's, else
+ * every disc's (Packing in the Plan record: "[N ]PACKING[ together]"); NULL: as its files. together:
+ * into the disc's one pack, with the other items packed that way */
+const char *plan_packing(const disc_plan *p, const plan_item *it, int *together)
+{
+    *together = 0;
+    if (it->packing) return strcmp(it->packing, "none") ? it->packing : NULL;
+    static char word[64];
+    const char *v = plan_field(p, "Packing", it->disc);
+    if (!v) return NULL;
+    snprintf(word, sizeof word, "%s", v);
+    char *sp = strchr(word, ' ');
+    if (sp) {
+        *together = !strcmp(sp + 1, "together");
+        *sp = 0;
+    }
+    if (!strcmp(word, "none")) return NULL;
+    struct stat st;
+    int folder = stat(it->source, &st) || S_ISDIR(st.st_mode);
+    if (packing_problem(word, folder)) return NULL;     /* a compressor alone: for files only */
+    if (!*together && !strcmp(it->path, ".")) return NULL;   /* data/ itself: only into the disc's pack */
+    return word;
+}
+
+/* the pack an item goes into, under data/: its own next to where it would be, or the disc's at the top */
+static char *pack_path(const plan_item *it, const char *packing, int together)
+{
+    if (together) return xprintf("pack%s", packing_ext(packing));
+    return xprintf("%s%s", it->placed ? it->placed : it->path, packing_ext(packing));
 }
 
 static int plan_uses_tags(const disc_plan *p)
@@ -558,6 +603,9 @@ void plan_scan(const arv_home *h, disc_plan *p, const char *links, entries *file
             }
             it->placed = item_place(h, p, it, layout, &one, date_from_file, first, h ? &cat : NULL);
         }
+        int together;
+        const char *packing = plan_packing(p, it, &together);
+        char *pack = packing ? pack_path(it, packing, together) : NULL;
         char *was_tags = h ? lineage_tags(h, p, it, &cat) : NULL;   /* its tags now, if archived from here before */
         char *folder_tags = NULL;           /* a folder item's tags: once, on its folder */
         if (S_ISDIR(st.st_mode) && tagged && (p->tag_src.n || was_tags)) {
@@ -605,6 +653,13 @@ void plan_scan(const arv_home *h, disc_plan *p, const char *links, entries *file
                 free(e.path);
                 e.path = dest;
                 e.bin = it->disc - 1;
+                if (packing && !k) {                /* into a pack: named in it as from the pack's folder */
+                    e.pack = xstrdup(pack);
+                    e.packing = packing_word(packing);
+                    const char *at = it->placed ? it->placed : it->path, *slash = strrchr(at, '/');
+                    size_t cut = together ? 0 : slash ? (size_t)(slash - at) + 1 : 0;
+                    e.member = xstrdup(dest + cut);
+                }
                 entries *to = k ? noted : files;
                 size_t *cap = k ? &ncap : &fcap;
                 if (to->n == *cap) {
@@ -617,6 +672,7 @@ void plan_scan(const arv_home *h, disc_plan *p, const char *links, entries *file
         free(n.v);
         free(folder_tags);
         free(was_tags);
+        free(pack);
     }
     if (clashes && files->n > 1) {          /* two files one path: only a layout can do that */
         entry **by = xmalloc(files->n * sizeof *by);
@@ -1014,7 +1070,60 @@ static char **show_places(const arv_home *h, const disc_plan *p)
     return at;
 }
 
-static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived)
+typedef struct {
+    int disc;
+    char *pack;
+    uint64_t bytes;
+} packed_size;
+
+static int by_pack_member(const void *a, const void *b)
+{
+    const entry *x = *(const entry *const *)a, *y = *(const entry *const *)b;
+    int c = x->bin != y->bin ? (x->bin < y->bin ? -1 : 1) : strcmp(x->pack, y->pack);
+    return c ? c : strcmp(x->member, y->member);
+}
+
+/* plan show --packed: each pack made for real, in a folder of its own that is removed after, and
+ * measured (a guess would be wrong for what is compressed already) */
+static size_t measure_packs(const arv_home *h, disc_plan *p, packed_size **out)
+{
+    *out = NULL;
+    entries files, noted;
+    size_t left_out = 0;
+    fprintf(stderr, "Packing what the plan packs, to measure it ...\n");
+    plan_scan(h, p, "default", &files, &noted, &left_out, NULL, NULL);
+    size_t n = 0, np = 0;
+    const entry **by = xmalloc((files.n + 1) * sizeof *by);
+    for (size_t i = 0; i < files.n; i++)
+        if (files.v[i].pack) by[n++] = &files.v[i];
+    qsort(by, n, sizeof *by, by_pack_member);
+    char *tmp = xprintf("%s/arv-pack-XXXXXX", getenv("TMPDIR") && *getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp");
+    if (n && !mkdtemp(tmp)) die("cannot create %s", tmp);
+    for (size_t i = 0; i < n;) {
+        size_t j = i;
+        while (j < n && by[j]->bin == by[i]->bin && !strcmp(by[j]->pack, by[i]->pack)) j++;
+        char **names = xmalloc((j - i) * sizeof *names);
+        for (size_t k = i; k < j; k++) names[k - i] = by[k]->member;
+        char *file = xprintf("%s/pack-%zu", tmp, np);
+        pack_write(file, by[i]->packing, by + i, names, j - i, tmp);
+        struct stat st;
+        *out = xrealloc(*out, (np + 1) * sizeof **out);
+        (*out)[np].disc = by[i]->bin + 1;
+        (*out)[np].pack = xstrdup(by[i]->pack);
+        (*out)[np].bytes = stat(file, &st) ? 0 : (uint64_t)st.st_size;
+        np++;
+        unlink(file);
+        free(file);
+        free(names);
+        i = j;
+    }
+    if (n) remove_tree(tmp);
+    free(tmp);
+    free(by);
+    return np;
+}
+
+static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived, int want_packed)
 {
     rec_record *hd = head(p);
     const char *label;
@@ -1043,6 +1152,13 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
         used[p->v[i].disc] += m[i].sectors;
         bytes[p->v[i].disc] += m[i].bytes;
     }
+    packed_size *ps = NULL;                 /* --packed: each pack's size, and each disc's fill with them */
+    size_t nps = want_packed && !made ? measure_packs(h, p, &ps) : 0;
+    for (size_t i = 0; nps && i < p->n; i++) {
+        int tog;
+        if (plan_packing(p, &p->v[i], &tog)) used[p->v[i].disc] -= m[i].sectors;
+    }
+    for (size_t k = 0; k < nps; k++) used[ps[k].disc] += (long)((ps[k].bytes + SECTOR - 1) / SECTOR) + 1;
     const char *fields[] = { "Title", "Set", "Medium", "Description", "Access", "From", "Collection", NULL };
     if (as_json) {
         sbuf b = { 0 };
@@ -1072,6 +1188,21 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
                       (unsigned long long)bytes[d], (long long)used[d] * SECTOR);
             if (plan_layout(p, d)) json_str(&b, plan_layout(p, d));
             else sb_puts(&b, "null");
+            sb_puts(&b, ", \"packing\": ");      /* the disc's: "PACKING" or "PACKING together"; null: as files */
+            if (plan_field(p, "Packing", d) && strncmp(plan_field(p, "Packing", d), "none", 4))
+                json_str(&b, plan_field(p, "Packing", d));
+            else sb_puts(&b, "null");
+            if (want_packed) {                  /* --packed: each pack made and measured */
+                sb_puts(&b, ", \"packs\": [");
+                int pk = 0;
+                for (size_t k = 0; k < nps; k++)
+                    if (ps[k].disc == d) {
+                        sb_puts(&b, pk++ ? ", {\"pack\": " : "{\"pack\": ");
+                        json_str(&b, ps[k].pack);
+                        sb_printf(&b, ", \"bytes\": %llu}", (unsigned long long)ps[k].bytes);
+                    }
+                sb_puts(&b, "]");
+            }
             sb_puts(&b, ", \"items\": [");
             int any = 0;
             for (size_t i = 0; i < p->n; i++) {
@@ -1088,6 +1219,24 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
                 sb_puts(&b, ", \"placed\": ");     /* where the disc's layout puts it; null: at path */
                 if (at[i]) json_str(&b, at[i]);
                 else sb_puts(&b, "null");
+                {                                   /* how it is packed (its own, else its disc's) and into what */
+                    int tog;
+                    const char *pk = plan_packing(p, &p->v[i], &tog);
+                    char *was = p->v[i].placed;
+                    p->v[i].placed = at[i];
+                    char *pp = pk ? pack_path(&p->v[i], pk, tog) : NULL;
+                    p->v[i].placed = was;
+                    sb_puts(&b, ", \"packing\": ");
+                    if (pk) json_str(&b, pk);
+                    else sb_puts(&b, "null");
+                    sb_puts(&b, ", \"pack\": ");
+                    if (pp) json_str(&b, pp);
+                    else sb_puts(&b, "null");
+                    sb_puts(&b, ", \"ownPacking\": ");   /* as said for it with plan pack: null, its disc's */
+                    if (p->v[i].packing) json_str(&b, p->v[i].packing);
+                    else sb_puts(&b, "null");
+                    free(pp);
+                }
 
                 sb_printf(&b, ", \"changed\": %s, \"kind\": \"%s\", \"bytes\": %llu, \"files\": %ld, \"archived\": ", chg[i] ? "true" : "false",
                           m[i].missing ? "missing" : m[i].folder ? "folder" : "file", (unsigned long long)m[i].bytes, m[i].files);
@@ -1132,6 +1281,17 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
                                  items == 1 ? "" : "s", used[d] > cap ? "  OVER: move something (arv plan move)" : "");
             else printf("Disc %d  %s in %zu item%s\n", d, size, items, items == 1 ? "" : "s");
             if (plan_layout(p, d)) printf("  laid out by %s\n", plan_layout(p, d));
+            if (plan_field(p, "Packing", d) && strncmp(plan_field(p, "Packing", d), "none", 4))
+                printf("  packed: %s%s\n", plan_field(p, "Packing", d),
+                       nps ? "" : " (sizes are as files: arv plan show NAME --packed measures them packed)");
+            const char *dp = plan_field(p, "Packing", d);
+            int disc_together = dp && strstr(dp, " together") != NULL;
+            for (size_t k = 0; disc_together && k < nps; k++)   /* the disc's pack; an item's own is shown with it */
+                if (ps[k].disc == d && !strncmp(ps[k].pack, "pack.", 5) && !strchr(ps[k].pack, '/')) {
+                    char sz[32];
+                    human_size(ps[k].bytes, sz);
+                    printf("  data/%s  %s packed\n", ps[k].pack, sz);
+                }
             for (size_t i = 0; i < p->n; i++) {
                 if (p->v[i].disc != d) continue;
                 char sz[32];
@@ -1163,6 +1323,25 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
                     }
                     if (at[i]) printf("      -> data/%s%s\n", at[i], m[i].folder ? "/" : "");
                     else if (plan_layout(p, d)) printf("      by hand: it has a value for no alternative of the layout\n");
+                    {
+                        int tog;
+                        const char *pk = plan_packing(p, &p->v[i], &tog);
+                        char *was = p->v[i].placed;
+                        p->v[i].placed = at[i];
+                        char *pp = pk ? pack_path(&p->v[i], pk, tog) : NULL;
+                        p->v[i].placed = was;
+                        const char *psize = "";
+                        char pbuf[48];
+                        for (size_t k = 0; pp && !tog && k < nps; k++)
+                            if (ps[k].disc == d && !strcmp(ps[k].pack, pp)) {
+                                char hs[32];
+                                human_size(ps[k].bytes, hs);
+                                snprintf(pbuf, sizeof pbuf, ", %s", hs);
+                                psize = pbuf;
+                            }
+                        if (pp) printf("      packed as %s: in data/%s%s%s\n", pk, pp, psize, tog ? ", with the disc's others" : "");
+                        free(pp);
+                    }
                     for (size_t j = 0; j < i; j++)  /* two items at one place: only a layout can do that */
                         if (p->v[j].disc == d && !strcmp(at[j] ? at[j] : p->v[j].path, at[i] ? at[i] : p->v[i].path))
                             printf("      TWO ITEMS at data/%s (with %s): give one another name: arv plan rename %s %s NEWPATH\n",
@@ -1295,7 +1474,7 @@ static void add_item(const arv_home *h, disc_plan *p, const char *given, const c
     const char *path = as && *as ? as : *base ? base : NULL;
     if (!path || !path_ok(path, S_ISDIR(st.st_mode)))
         die("%s cannot be a path under data/ (relative, no . or .. parts; . only for a folder's contents)", path ? path : "/");
-    plan_item it = { 0, src, xstrdup(path), NULL, NULL, NULL };
+    plan_item it = { 0, src, xstrdup(path), NULL, NULL, NULL, NULL };
     int d = pick_disc(h, p, disc, item_size(p, &it).sectors);
     check_free(p, path, d);
     if (d > p->discs) p->discs = d;
@@ -1469,7 +1648,7 @@ static int set_tags(const arv_home *h, disc_plan *p, const char *given, const ch
 int cmd_plan(int argc, char **argv)
 {
     const char *given = NULL, *action = NULL, *name = NULL, *disc = NULL, *as = NULL, *from_s = NULL, *list = NULL, *of = NULL;
-    int as_json = 0, all = 0, on_discs = 0, each = 0, dups = 0;
+    int as_json = 0, all = 0, on_discs = 0, each = 0, dups = 0, together = 0, packed = 0;
     strlist args = { 0 }, defaults = { 0 }, rest = { 0 };
     static const char *const SETTINGS[][2] = { { "--medium", "Medium" }, { "--set", "Set" }, { "--title", "Title" },
                                                { "--description", "Description" }, { "--access", "Access" },
@@ -1482,6 +1661,8 @@ int cmd_plan(int argc, char **argv)
         else if (!strcmp(argv[i], "--archived")) on_discs = 1;
         else if (!strcmp(argv[i], "--each")) each = 1;
         else if (!strcmp(argv[i], "--duplicates")) dups = 1;
+        else if (!strcmp(argv[i], "--packed")) packed = 1;
+        else if (!strcmp(argv[i], "--together")) together = 1;
         else if (!action) action = argv[i];
         else if (!name) {
             name = argv[i];
@@ -1670,7 +1851,7 @@ int cmd_plan(int argc, char **argv)
     if (!strcmp(action, "show")) {
         if (args.n) return 2;
         if (dups) show_duplicates(&h, &p);
-        else show(&h, &p, as_json, on_discs);
+        else show(&h, &p, as_json, on_discs, packed);
         return 0;
     }
     if (!strcmp(action, "add")) {
@@ -1773,6 +1954,78 @@ int cmd_plan(int argc, char **argv)
                             on ? "Disc " : "", which, layout, name);
         else printf("%s%s placed by hand again%s\n", on ? "Disc " : "", which,
                     on && plan_layout(&p, on) ? " (the plan's layout still applies to it)" : "");
+        return 0;
+    }
+    if (!strcmp(action, "pack")) {          /* an object as one file on its disc: a tar, compressed or not, or a zip */
+        static const char *const how =
+            "arv plan pack NAME PATH... PACKING [--from N] | NAME [--disc N] PACKING [--together]: PACKING is tar, "
+            "tar+zstd, tar+xz, tar+gzip, tar+lzip, tar+bzip2 or zip (a file also zstd, xz, gzip, lzip or bzip2), none, "
+            "or default (an item: as its disc)";
+        if (!args.n || (disc && args.n != 1)) die("%s", how);
+        const char *word = args.v[args.n - 1];
+        int on = disc ? atoi(disc) : 0;
+        if (disc && (on < 1 || on > p.discs)) die("--disc %s: the plan's discs are 1 to its last (arv plan show)", disc);
+        if (args.n == 1) {                  /* a disc's packing, or every disc's */
+            if (!strcmp(word, "default")) word = "none";
+            const char *problem = strcmp(word, "none") ? packing_problem(word, 1) : NULL;
+            if (problem) die2("%s: %s", word, problem);
+            if (together && !strcmp(word, "none")) die("%s", "--together packs into one file: give a packing for it");
+            size_t kept = 0;
+            for (size_t f = 0; f < hd->nfields; f++) {
+                rec_field *x = &hd->fields[f];
+                char *end;
+                long n = strtol(x->value, &end, 10);
+                int per_disc = end != x->value && *end == ' ';
+                if (!strcmp(x->name, "Packing") && (!on || (per_disc && n == on))) {
+                    free(x->name);
+                    free(x->value);
+                    continue;
+                }
+                hd->fields[kept++] = *x;
+            }
+            hd->nfields = kept;
+            if (strcmp(word, "none") || on) {   /* a disc as its files, when every disc is packed */
+                char *v = on ? xprintf("%d %s%s", on, word, together ? " together" : "") : xprintf("%s%s", word,
+                                                                                                    together ? " together" : "");
+                rec_add(hd, "Packing", v);
+                free(v);
+            }
+            plan_save(&p);
+            const char *which = on ? disc : "Every disc";
+            if (!strcmp(word, "none")) printf("%s%s: its objects as their files\n", on ? "Disc " : "", which);
+            else if (together)
+                printf("%s%s: its objects packed together as %s, in data/pack%s (unpacked there, each is at its "
+                       "place); an item's own: arv plan pack %s PATH PACKING\n", on ? "Disc " : "", which, word,
+                       packing_ext(word), name);
+            else
+                printf("%s%s: each of its objects packed as %s, next to where it would be\n", on ? "Disc " : "", which, word);
+        } else {
+            if (together) die("%s", "--together is for a disc: arv plan pack NAME --disc N PACKING --together");
+            int from = from_s ? atoi(from_s) : 0;
+            for (size_t k = 0; k + 1 < args.n; k++) {
+                plan_item *it = find_item(&p, args.v[k], from);
+                struct stat st;
+                int folder = !stat(it->source, &st) && S_ISDIR(st.st_mode);
+                if (strcmp(word, "none") && strcmp(word, "default")) {
+                    const char *problem = packing_problem(word, folder);
+                    if (problem) die2("%s: %s", word, problem);
+                    if (!strcmp(it->path, "."))
+                        die("%s", "the top of data/ packs only into its disc's pack: arv plan pack NAME --disc N PACKING "
+                                  "--together");
+                }
+                free(it->packing);
+                it->packing = strcmp(word, "default") ? xstrdup(word) : NULL;
+                int tog;
+                const char *now = plan_packing(&p, it, &tog);
+                if (!now) printf("%s: as its files on disc %d\n", it->path, it->disc);
+                else if (tog) printf("%s: in disc %d's pack, as %s\n", it->path, it->disc, now);
+                else printf("%s: packed as %s on disc %d (data/%s%s)\n", it->path, now, it->disc, it->path, packing_ext(now));
+            }
+            plan_save(&p);
+        }
+        const char *tool = strcmp(word, "none") && strcmp(word, "default") ? packing_tool(word) : NULL;
+        if (tool && !on_path(tool))
+            printf("Note: %s needs %s, which is not on PATH here: install it before arv plan make %s\n", word, tool, name);
         return 0;
     }
     if (!strcmp(action, "rename")) {        /* a new place on its disc; inside a planned folder: split off */
@@ -1979,6 +2232,7 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
         uint64_t bytes = 0;
         int git = 0;
         for (size_t i = 0; i < files->n; i++) {
+            if (files->v[i].is_pack) continue;  /* a pack: its members are the objects' files */
             const char *p = files->v[i].origin ? files->v[i].origin : files->v[i].path, *rel;
             if (top) {
                 int other = 0;
@@ -2076,6 +2330,15 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
         if (it->placed) rec_add(r, "Arranged", it->path);     /* its path as arranged, before the layout placed it */
         rec_add(r, "Files", n_files);
         rec_add(r, "Bytes", n_bytes);
+        int together;
+        const char *packing = plan_packing(dp, it, &together);
+        char *pack = packing ? pack_path(it, packing, together) : NULL;
+        if (packing) {                      /* kept as one file: Pack, which unpacked there puts it at Path */
+            rec_add(r, "Packing", packing);
+            rec_add(r, "Pack", pack);
+        } else if (is_file && packing_found(it->source)) {   /* a file that is itself packed (a .zip someone made) */
+            rec_add(r, "Packing", packing_found(it->source));
+        }
         rec_add(r, "Date", today);
         object_about(r, same, from ? uuid : NULL, latest, cat, made_now, is_file ? NULL : it->source, git);
         if (!same && twin) {                /* the same bytes, another lineage: noted, not merged */
@@ -2088,7 +2351,9 @@ void plan_objects(const disc_plan *dp, int disc, const entries *files, const arc
             if (holder(dp, &dp->v[j]) == it) rec_add(r, "Except", dp->v[j].source + strlen(it->source) + 1);
         recs_add(out, r);
         strlist_add(manifests, text.s);
-        char *where = it->placed ? xprintf("data/%s, by the layout", it->placed) : xprintf("data/%s", top ? "" : it->path);
+        char *where = pack ? xprintf("in data/%s, as %s%s", pack, packing, it->placed ? ", by the layout" : "")
+                    : it->placed ? xprintf("data/%s, by the layout", it->placed) : xprintf("data/%s", top ? "" : it->path);
+        free(pack);
         fprintf(stderr, "Object %s%s (%s on %s): %s\n", rec_get(r, "Name"), is_file ? "" : "/", where, disc_id,
                 same ? "the same as a version already archived (another copy of it)"
                 : from ? "a new version of what was archived from there before" : "new");

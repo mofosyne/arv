@@ -214,6 +214,73 @@ grep -q "1 question kept for later" ab/make.txt && grep -q "^Questions waiting f
     && "$tool" todo -C ab/home --json | grep -q '"questions": \[{"about": "object:[0-9a-f-]*", "name": "nodoc/", "open": 1}\]}$' \
     && ok "questions: a repository that says nothing about itself gets one, from arv; arv todo lists it last (and in --json apart from what is owed); never on a disc" \
     || { cat ab/make.txt ab/todo.txt; no "questions: kept, and listed by todo"; }
+# ------------------------------------------------------------------ packed objects: one file on a disc, the same object
+mkdir -p pk/pc/docs/sub pk/pc/notes
+for i in 1 2 3; do seq 1 3000 > pk/pc/docs/f$i.txt; done
+seq 1 40 > pk/pc/docs/sub/a.txt
+echo hi > pk/pc/notes/n.txt
+(cd pk/pc && tar cf - notes | gzip -n > made.tar.gz && cp made.tar.gz fake.zip && cp -r docs docs2)
+{ "$tool" -C pk/home plan new p --set PK && "$tool" -C pk/home plan add p pk/pc/docs pk/pc/made.tar.gz pk/pc/fake.zip \
+    && "$tool" -C pk/home plan pack p docs tar+gzip && "$tool" -C pk/home plan disc p add \
+    && "$tool" -C pk/home plan add p pk/pc/notes pk/pc/docs2 --disc 2 \
+    && "$tool" -C pk/home plan pack p --disc 2 tar+gzip --together; } >pk/plan.txt 2>&1 || { cat pk/plan.txt; no "plan pack"; }
+"$tool" -C pk/home plan pack p docs xz 2>&1 | grep -q "a folder needs tar" || no "plan pack: a compressor alone for a folder"
+"$tool" -C pk/home plan show p --json | grep -q '"packing": "tar+gzip", "pack": "docs.tar.gz", "ownPacking": "tar+gzip"' \
+    || no "plan show --json: packing"
+"$tool" -C pk/home plan again p p2 >/dev/null
+"$tool" -C pk/home plan make p -y --no-ecc --no-formats --output-dir pk/out >pk/make.txt 2>&1 || { cat pk/make.txt; no "plan make (packed)"; }
+7z x -opk/d1 pk/out/PK-01_*.iso data catalog.rec >/dev/null && 7z x -opk/d2 pk/out/PK-02_*.iso data catalog.rec >/dev/null
+[ "$(cd pk/d1/data && ls)" = "$(printf 'docs.tar.gz\nfake.zip\nmade.tar.gz')" ] && [ "$(ls pk/d2/data)" = pack.tar.gz ] \
+    && [ "$(tar tzf pk/d1/data/docs.tar.gz)" = "$(printf 'docs/f1.txt\ndocs/f2.txt\ndocs/f3.txt\ndocs/sub/a.txt')" ] \
+    && [ "$(tar tzf pk/d2/data/pack.tar.gz)" = "$(printf 'docs2/f1.txt\ndocs2/f2.txt\ndocs2/f3.txt\ndocs2/sub/a.txt\nnotes/n.txt')" ] \
+    && (mkdir pk/un && cd pk/un && tar xzf ../d1/data/docs.tar.gz && diff -r docs ../pc/docs) \
+    && ok "packed objects: a folder as its own data/docs.tar.gz, a disc's objects together in data/pack.tar.gz; each unpacks to its path" \
+    || no "packed objects on the disc"
+grep -A12 '^Name: docs$' pk/d1/catalog.rec | grep -qx 'Pack: docs.tar.gz' \
+    && grep -A12 '^Name: docs$' pk/d1/catalog.rec | grep -qx 'Packing: tar+gzip' \
+    && grep -A12 '^Name: docs$' pk/d1/catalog.rec | grep -qx 'Files: 4' \
+    && grep -A12 '^Name: made.tar.gz$' pk/d1/catalog.rec | grep -qx 'Packing: tar+gzip' \
+    && ! grep -A12 '^Name: made.tar.gz$' pk/d1/catalog.rec | grep -q '^Pack:' \
+    && ! grep -A12 '^Name: fake.zip$' pk/d1/catalog.rec | grep -q '^Packing:' \
+    && grep -A12 '^Name: notes$' pk/d2/catalog.rec | grep -qx 'Pack: pack.tar.gz' \
+    && ok "packed objects: the record says how (Packing) and where (Pack), with the object's own files; a .tar.gz given as it is is found by its name and bytes, a .zip that is not one is not" \
+    || no "packed objects in the record"
+"$tool" -C pk/home status pk/pc/docs 2>/dev/null | grep -q "4 of its 4 files are on discs" \
+    && "$tool" -C pk/home objects docs | grep -q "data/docs.tar.gz (tar+gzip, unpacked: data/docs/)" \
+    && ok "packed objects: arv status finds a folder's files inside its pack; arv objects names the pack" \
+    || no "packed objects: status or objects"
+"$tool" -C pk/home plan pack p2 docs none >/dev/null && "$tool" -C pk/home plan pack p2 --disc 2 tar+gzip --together >/dev/null
+"$tool" -C pk/home plan make p2 -y --no-ecc --no-formats --output-dir pk/out2 >pk/make2.txt 2>&1 || { cat pk/make2.txt; no "plan make (again)"; }
+7z x -opk/e2 pk/out2/PK-04_*.iso data >/dev/null
+grep -q "^Object docs/ (data/docs on PK-03_.*): the same as a version already archived" pk/make2.txt \
+    && cmp -s pk/d2/data/pack.tar.gz pk/e2/data/pack.tar.gz \
+    && ok "packed objects: as its files on another disc, the same version; packed again, the very same bytes" \
+    || { cat pk/make2.txt; no "packed objects: the same version, the same pack"; }
+rm -rf pk/d1 && 7z x -opk/d1 pk/out/PK-01_*.iso >/dev/null
+"$tool" -C pk/home restore pk/d1 pk/back >pk/restore.txt 2>&1 && grep -q "^UNPACKED data/docs.tar.gz: 4 files" pk/restore.txt \
+    && diff -r pk/back/docs pk/pc/docs && cmp -s pk/back/made.tar.gz pk/pc/made.tar.gz && [ ! -e pk/back/docs.tar.gz ] \
+    && [ "$(stat -c %Y pk/back/docs/f1.txt)" = "$(stat -c %Y pk/pc/docs/f1.txt)" ] \
+    && grep -qx "$(printf 'sha256\tdocs/sub/a.txt\tdocs.tar.gz\ttar+gzip' | sed "s/^sha256/$(sha256sum pk/pc/docs/sub/a.txt | cut -c1-64)/")" \
+        pk/d1/catalog/volumes/PK-01_*/packed.tsv \
+    && ok "packed objects: arv restore unpacks each pack where it is, its files with their times; the disc lists every file in its packs (packed.tsv)" \
+    || { cat pk/restore.txt; no "packed objects: restore"; }
+"$tool" -C pk/home check pk/d1 >pk/check.txt 2>&1 && grep -q "inside its 1 pack, all 4 files match their checksums" pk/check.txt \
+    && ok "packed objects: arv check of a disc's files reads inside its packs" || { cat pk/check.txt; no "packed objects: check"; }
+printf 'x' | dd of=pk/d1/data/docs.tar.gz bs=1 seek=40 conv=notrunc 2>/dev/null
+rc=0; "$tool" -C pk/home restore pk/d1 pk/back2 >pk/restore2.txt 2>&1 || rc=$?
+[ "$rc" -eq 1 ] && grep -q "^DAMAGED  docs.tar.gz" pk/restore2.txt && [ -e pk/back2/docs.tar.gz ] \
+    && ok "packed objects: a damaged pack is restored as it is, and said to be damaged" || { cat pk/restore2.txt; no "packed objects: damaged pack"; }
+"$tool" -C pk/home plan again p p4 >/dev/null
+"$tool" -C pk/home plan show p4 --packed --json 2>/dev/null | grep -q '"packs": \[{"pack": "pack.tar.gz", "bytes": [1-9]' \
+    && "$tool" -C pk/home plan show p4 --packed 2>/dev/null | grep -q '^  data/pack.tar.gz  .* packed$' \
+    && ok "packed objects: plan show --packed packs to measure (the disc's fill with them)" || no "plan show --packed"
+if command -v zip >/dev/null && command -v unzip >/dev/null; then
+    "$tool" -C pk/home plan again p p3 >/dev/null && "$tool" -C pk/home plan pack p3 docs zip >/dev/null \
+        && "$tool" -C pk/home plan make p3 -y --no-ecc --no-formats --output-dir pk/out3 >pk/make3.txt 2>&1 \
+        && 7z x -opk/z pk/out3/PK-05_*.iso data/docs.zip >/dev/null && unzip -Z1 pk/z/data/docs.zip | grep -qx 'docs/sub/a.txt' \
+        && ok "packed objects: as a zip, by the zip program" || { cat pk/make3.txt; no "packed objects: zip"; }
+fi
+
 # ------------------------------------------------------------------ what depends on the machine
 # RS03, added and tested by arv itself (src/rs03); no dvdisaster needed. A small stand-in for
 # tools/: the real checkout is far larger than this test's medium (a real disc carries it all)

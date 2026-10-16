@@ -282,6 +282,26 @@ name with `plan rename`, and the layout keeps placing it, under that name. The d
 go into the disc's `tags.tsv` and the dates into its coverage. Re-filing a photo later is changing
 its tags; the next disc made puts it there.
 
+**Packing: an object as one file.** Many small files (source, mail, documents) take a sector each
+on a disc and compress well together; photos, video and music are compressed already. A plan can
+keep any of its objects as one file, and leave the rest as files:
+
+```sh
+arv plan pack family projects/station tar+zstd          # this one as data/projects/station.tar.zst
+arv plan pack family --disc 2 tar+xz                    # each object on disc 2 packed on its own
+arv plan pack family --disc 3 tar+zstd --together       # disc 3's objects in one data/pack.tar.zst
+arv plan pack family projects/station none              # as its files, whatever its disc says
+```
+
+`tar+zstd` packs best and fastest; `zip` opens with a double click anywhere and loses only a
+damaged file, not the rest of the pack. Each object stays itself in the record: the same files
+are the same version packed or not, `arv status` finds them inside packs, and unpacking a pack
+where it is (`tar -xf`, in `data/`) puts each object at its path. arv writes the tar; the
+compressor (`zstd`, `xz`, `gzip`, `lzip`, `bzip2`) or `zip` must be on PATH when the discs are made,
+and to unpack them. `arv plan show NAME --packed` packs to measure, so the discs' fill is right;
+`arv restore` unpacks each pack where it is, and `arv check` of a disc's files reads inside them.
+A `.zip` or `.tar.gz` added as it is gets `Packing` in the record too, found by its name and bytes.
+
 **A plan as a collection's edition.** `arv plan new family-2026 --collection FAM` makes the plan's
 discs the collection's next edition when it is made: the same revision, edition number and
 history as `arv make` of the collection's folder, but arranged as the plan says (sorted into

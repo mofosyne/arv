@@ -1870,3 +1870,52 @@ the rest of the disc, so a disc that is not full gets more than asked for: the m
 promised. Burning without defect management (`--no-defect-management`) gives back the spare area,
 about 3% (19.3 GiB of image on a BD-R 25 at 20%), for discs that are read back and checked anyway.
 
+## Decision (2026-10-15): packed objects, chosen per object and per disc; the disc stays UDF
+
+Asked for compression, the alternatives were a compressed filesystem (SquashFS) in place of UDF,
+or compression inside the bag. SquashFS was set aside for optical discs: Windows, macOS and players
+do not mount it, it has no standards body (the kernel's source is its specification), compressed
+blocks and fragments end reading with `dd` from `extents.tsv`, and its one copy of compressed
+metadata turns a bad patch into many lost files (UDF 2.50 mirrors its metadata). It stays a
+candidate for the encrypted inner image (above) and for carriers that are not optical.
+
+Archives mostly compress inside formats (FFV1, FLAC, lossless JPEG 2000) or per record (WARC's
+gzip members), seldom across a volume; Archivematica compresses each package (7-Zip by default)
+and many choose uncompressed. arv follows the per-object way: a plan says, for an object or for a
+disc, whether it is kept as one file and how; the rest of the disc stays plain files. Some discs
+compressed, others not, as the person chooses: compression pays for text, source and mail, where
+it can also leave room for more RS03, and for many small files, each of which takes a sector.
+
+- **One rule for every pack:** member paths are relative to the folder the pack is in, so
+  unpacking a pack where it is puts each object at its `Path`. An object's own pack sits next to
+  where it would be (`data/projects/station.tar.zst`); `--together` puts a disc's packed objects in
+  one `data/pack.*`, for the gain of compressing them together, at the cost of a bad patch reaching
+  several objects.
+- **The record keeps the object, not the pack:** `Path` is where it unpacks to, `Pack` the file,
+  `Packing` what it is; `Tree` is over its files, so packed and plain copies are the same version,
+  and `arv status` reads the object's manifest to find its files on discs.
+- **arv writes the tar** (about 150 lines): the system's tars differ (GNU, bsdtar, busybox) in
+  headers, owners and order, and making them agree takes GNU-only options; members come from
+  anywhere under names of the plan's choosing; and writing it lets arv hash each file as it goes
+  in and stop if it changed since it was scanned. The compressor is the system's, run with options
+  that give the same bytes (zstd `-12 -T0`, the same at any thread count; xz in blocks; gzip `-n`).
+  `-19` was measured at about 0.5 MB/s, too slow for a Blu-ray. Zip is the zip program's, over a
+  folder of links, its files checked afterwards.
+- **Tar or zip:** tar through a compressor packs best (one stream); zip opens anywhere with a
+  double click and loses only a damaged file. Both are standards (POSIX; ISO/IEC 21320-1).
+- **A file that is itself an archive** (a `.zip` someone made) gets `Packing` alone, by its name,
+  confirmed by its first bytes, so `.docx` and `.epub` (zips inside) are documents, not packs.
+
+A pack holding objects of several discs is never made: a pack is on one disc.
+
+**Reading packs back** (2026-10-16). The disc carries what is inside its packs:
+`catalog/volumes/ID/packed.tsv`, each file's SHA-256, its path as unpacked, its pack and packing,
+so a found disc can check what it unpacks without the home (the objects' manifests in
+`catalog/objects/` stay at home). arv reads its own tar (and pax) and runs the compressor's `-dc`
+(or `unzip`), and with that: `plan make` reads each pack back as soon as it is written, and stops
+if any file differs, so an image identical to the one made has good packs; `arv check` of a disc's
+files reads inside each pack against `packed.tsv`; `arv restore` unpacks each pack where it is,
+with the files' times and modes, and restores a damaged pack (or one whose compressor is missing)
+as it is, saying so. `plan show --packed` makes each pack in a temporary folder and measures it,
+and the disc's fill uses the sizes: no estimate, since what is compressed already does not shrink
+and only the compressor knows by how much the rest does.
