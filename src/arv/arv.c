@@ -73,6 +73,8 @@ static const char USAGE_ARCHIVE[] =
           "         or a disc's source (--past: an older state, kept for reference); logged, nothing written in it\n"
           "  arv names [--limit N] FOLDER   names a disc cannot hold, or Windows would show changed\n"
           "  arv describe FOLDER|DISC-ID|OBJECT [--save|--apply DRAFT|--answer] ...   title, description, tags (*)\n"
+          "         --ask: no model, questions over your vocabulary from the files' clues (names, dates, EXIF); --clues: the\n"
+          "         clues alone, as a draft\n"
           "  arv tag FOLDER|DISC-ID [--save DRAFT] ...   folder tags from your vocabulary (*)\n"
           "\n";
 static const char USAGE_RECORD[] =

@@ -869,6 +869,20 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   function llmPanel(box, target, fill, options) {
     var state = { previous: null, answers: [], agent: null, seen: null, captions: {} };
     box.textContent = "";
+    var clueStatus = el("span", { class: "muted", text: "" });
+    var clues = el("button", { class: "plain", type: "button", text: "Fill from the files (no model)",
+      title: "Dates from names or EXIF, the kinds of files, the vocabulary's words in the names (arv describe --clues)" });
+    clues.onclick = function () {
+      var t = target();
+      clues.disabled = true; clueStatus.textContent = "Reading the files' clues\u2026";
+      arvJson(["describe", t.disc_id || t.source, "--clues"]).then(function (res) {
+        clues.disabled = false;
+        lastSuggestion = null;              // from the files, not a model: what is saved is the person's
+        clueStatus.textContent = "From the files' names, dates and kinds. Edit anything below.";
+        fill(res);
+      }).catch(function (e) { clues.disabled = false; clueStatus.textContent = "Error: " + e.message; });
+    };
+    box.appendChild(el("div", { class: "inline" }, [clues, clueStatus]));
     if (!llmStatus || !llmStatus.available) {
       box.appendChild(el("p", { class: "muted", text: "Local LLM help (optional): not available" +
         (llmStatus && llmStatus.error ? " \u2014 " + llmStatus.error : "") +

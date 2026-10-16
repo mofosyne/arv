@@ -173,9 +173,12 @@ kinds, the folders that are not (a repository's own tree is left alone):
 - **Ingest at once, curate virtually.** The layout on disc changes only when a new edition is
   made for its content, never by burning again just to reorganise.
 
-Optional: `arv tag FOLDER --save d.json` suggests folder tags from your vocabulary, and `arv
-describe FOLDER --save d.json` asks a local language model for a title, description and
-questions; `arv make --draft d.json` takes either.
+Optional: `arv describe FOLDER --ask --save d.json` asks you, with no model: a few questions
+(topics, the event, places, people, when), each with the answer the files' names, dates and EXIF
+point to marked, so most are Enter; the title and description are made from the answers. `arv
+tag FOLDER --save d.json` suggests folder tags from your vocabulary, and `arv describe FOLDER
+--save d.json` asks a local language model for a title, description and questions; `arv make
+--draft d.json` takes any of them.
 
 ### 2. Sort, and see what changed
 

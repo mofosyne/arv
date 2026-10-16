@@ -272,6 +272,11 @@ class GuiTest(unittest.TestCase):
         self.job("describe", disc["Id"], "--apply", "-",
                  stdin=json.dumps({"title": "Spring photos", "authorship": "human", "agent": "owner"}))
         self.assertEqual(self.ok("list", "--json")["discs"][0]["Title"], "Spring photos")
+        trip = os.path.join(self.tmp, "2019-07 Kyoto trip")     # "Fill from the files": the clues, no model
+        write(os.path.join(trip, "IMG_20190711_120000.jpg"), "jpeg", 2019)
+        clues = json.loads(self.run_arv("describe", trip, "--clues")["out"])   # a draft, on standard output
+        self.assertEqual((clues["title"], clues["tags"]["."], clues["authorship"]),
+                         ("Kyoto trip, 11 July 2019", ["travel", "date:2019-07-11"], "automatic"))
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
     def test_copies(self):

@@ -178,6 +178,40 @@ static int load_tag_vocab(tag_vocab *tv, const arv_home *h)
     return tv->names.n ? 0 : -1;
 }
 
+/* the vocabulary's words, for questions about what something is (arv describe --ask): its tags,
+ * their aliases (from -> to), its namespaces (with what each holds, and the one-valued), and each
+ * tag's Match patterns (rule_tag, rule_glob); -1 when there is no vocabulary */
+int tag_words(const arv_home *h, tag_words_t *out)
+{
+    memset(out, 0, sizeof *out);
+    tag_vocab tv;
+    if (load_tag_vocab(&tv, h)) return -1;
+    out->names = tv.names;
+    out->alias_from = tv.alias_from;
+    out->alias_to = tv.alias_to;
+    out->ns_names = tv.ns_names;
+    out->ns_desc = tv.ns_desc;
+    out->ns_one = tv.ns_one;
+    rec_file f;
+    int bad = 0;
+    if (!rec_read(tv.path, &f, &bad)) {
+        for (size_t i = 0; i < f.nrecords; i++) {
+            const rec_record *r = &f.records[i];
+            if (r->descriptor || !rec_get(r, "Name") || (r->type && strcmp(r->type, "Tag"))) continue;
+            char *name = tag_normalise(rec_get(r, "Name"));
+            for (size_t j = 0; j < r->nfields; j++)
+                if (!strcmp(r->fields[j].name, "Match") && *r->fields[j].value) {
+                    strlist_add(&out->rule_tag, name);
+                    strlist_add(&out->rule_glob, r->fields[j].value);
+                }
+            free(name);
+        }
+        rec_free(&f);
+    }
+    free(tv.path);
+    return 0;
+}
+
 /* the home's declared namespaces that take one value a file (into one), and whether date's values
  * may come from a file's own date (From: file-date); -1 when there is no vocabulary */
 int tag_namespaces(const arv_home *h, strlist *one, strlist *declared, int *date_from_file)

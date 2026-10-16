@@ -114,7 +114,13 @@ int assist_llm_status(int argc, char **argv);
 int assist_tag(int argc, char **argv);
 
 /* shared by describe and tag */
-char *ask(const char *prompt);                          /* a line from the terminal; "" at the end */
+const char *kind_of(const char *ext);           /* tag.c: ".jpg" -> "photos" ("files": none of the kinds) */
+int generic_name(const char *base);              /* tag.c: a camera's or phone's name: DSC_4001.JPG */
+char *ask(const char *prompt);
+/* ask.c: a suggestion without a model: the files' clues, and with interactive, the person's answers
+ * to questions over the vocabulary (per_folder: offer to ask about each first-level folder too) */
+void ask_suggest(const arv_home *h, const archive *cat, const items *l, const char *name, const char *root, int interactive,
+                 int per_folder, suggestion *out);                          /* a line from the terminal; "" at the end */
 void read_tags_file(const char *path, ftags *out);      /* catalog.read_tag_info */
 void read_tags_now(const archive *cat, const char *disc_id, const char *burned, ftags *out);   /* as burned, and since */
 size_t record_tag_changes(archive *cat, rec_record *ev, const char *disc_id, const ftags *before, const ftags *after);

@@ -67,6 +67,10 @@ int cmd_init(int argc, char **argv);
 int cmd_tags(int argc, char **argv);
 void tags_canonical(const arv_home *h, strlist *tags);
 int tag_namespaces(const arv_home *h, strlist *one, strlist *declared, int *date_from_file);
+typedef struct {
+    strlist names, alias_from, alias_to, ns_names, ns_desc, ns_one, rule_tag, rule_glob;
+} tag_words_t;
+int tag_words(const arv_home *h, tag_words_t *out);   /* the tag vocabulary's words (tags.c) */
 int cmd_keywords(int argc, char **argv);
 int cmd_make(int argc, char **argv);
 long medium_budget(const char *medium, const char **label);

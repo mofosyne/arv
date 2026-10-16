@@ -130,7 +130,7 @@ grep -q "^Archive name: Trip" oinv.txt && grep -q "  Description: Pictures from 
 printf '{"title": "Our trip", "description": "Photos, one folder a day.", "notes": ["Kept by Mum"], "subjects": ["x"], "agent": "human:me"}\n' \
     | "$tool" --home home describe Trip --apply - > oapply.out 2> oapply.err || { cat oapply.err; no "describe OBJECT --apply"; }
 uuid=$(sed -n '/^%rec: Object/,$p' home/catalog/archive.rec | grep -m1 '^Uuid: ' | cut -d' ' -f2)
-grep -qx "Trip: updated Title, Description, Note" oapply.out && grep -q "Subjects and folder tags are a disc's" oapply.err \
+grep -qx "Trip: updated Title, Description, Note" oapply.out && grep -q "Subjects, captions and the tags of folders within are a disc's" oapply.err \
     && grep -A3 "^Object: object:$uuid" home/catalog/archive.rec | grep -q "^Type: metadata modification" \
     && grep -q "^Note: updated Title, Description, Note of version 1 (written by a person)" home/catalog/archive.rec \
     && "$arv" --home home objects Trip | grep -qx '    "Our trip": Photos, one folder a day.' \
@@ -316,4 +316,49 @@ if "$tool" --home th tag Stuff --model-file model.gguf > /dev/null 2>&1; then no
 if "$tool" --home th tag Stuff --llama-embedding llama-embedding > /dev/null 2>&1; then no "--llama-embedding accepted"; fi
 if "$tool" --home th models status > /dev/null 2>&1; then no "models command accepted"; fi
 ok "tag accepts only server embeddings or rules-only; models command removed"
+
+# ------------------------------------------------------------------ describing without a model: --clues and --ask
+"$arv" init askh >/dev/null 2>&1
+put "ask/2019-07 Kyoto trip/day1/IMG_20190711_120000.jpg" a
+put "ask/2019-07 Kyoto trip/day1/IMG_20190712_120000.jpg" b
+put "ask/2019-07 Kyoto trip/fushimi/PXL_20190713_130000.jpg" c
+put "ask/2019-07 Kyoto trip/notes.txt" d
+"$tool" --home askh describe "ask/2019-07 Kyoto trip" --clues > clues.json 2> clues.err || { cat clues.err; no "describe --clues"; }
+grep -q '^Clues: 4 files: 3 photos, 1 text document; dates 2019-07 (from names); named by a camera or phone' clues.err \
+    && tr -d '\n ' < clues.json | grep -q '"tags":{".":\["travel","date:2019-07"\]}' \
+    && grep -q '"title": "Kyoto trip, July 2019"' clues.json && grep -q '"authorship": "automatic"' clues.json \
+    && grep -q '"description": "3 photos and 1 text document, July 2019."' clues.json \
+    && ok "describe --clues: no model, no questions: dates from the names, a tag from an alias in them ('trip'), a title made from them" \
+    || { cat clues.err clues.json; no "describe --clues"; }
+# topics, event, place, person (typed), source, date (not EDTF, then EDTF), the folders too (fushimi: place, person), title, description
+printf '\n\nkyoto\nann, bo\n\nsoon\n2019-07-11/2019-07-13\ny\n\n\nKyoto, July 2019\n\n' \
+    | "$tool" --home askh describe "ask/2019-07 Kyoto trip" --ask --save ask.json > ask.out 2> ask.err || { cat ask.err; no "describe --ask"; }
+tr -d '\n ' < ask.json | grep -q '"tags":{".":\["travel","event:kyoto-trip","place:kyoto","person:ann","person:bo","date:2019-07-11/2019-07-13"\]}' \
+    && grep -q '"title": "Kyoto, July 2019"' ask.json \
+    && grep -q '"description": "3 photos and 1 text document, in Kyoto, with Ann and Bo, of the Kyoto trip, 11 to 13 July 2019."' ask.json \
+    && grep -q '"authorship": "human"' ask.json && grep -q 'soon is not an EDTF date' ask.err \
+    && grep -q "^  \*1 travel  ('trip' is in the names)" ask.err && grep -q '^  \*1 kyoto-trip  (from the name)' ask.err \
+    && ok "describe --ask: the clues' answers marked, a number or a typed answer each; a date must be EDTF; the description made from the answers" \
+    || { cat ask.err ask.json; no "describe --ask"; }
+"$arv" -C askh make -y --no-ecc --no-formats --set TRIP --output-dir askout "ask/2019-07 Kyoto trip" >/dev/null 2>&1 || no "make (ask)"
+id=$("$arv" -C askh list | awk '{ print $1; exit }')
+printf '\n\n\nann\n\n\n\n\n' | "$tool" --home askh describe "$id" --ask --no-folders --save disc.json >/dev/null 2>&1 \
+    && "$tool" --home askh describe "$id" --apply disc.json > askapply.out 2>&1 \
+    && grep -q "updated Title, Description, Subject, tags" askapply.out && "$arv" -C askh find 'person:ann' | grep -q "$id" \
+    && ok "describe --ask on a disc, then --apply: its title, description and tags" || { cat askapply.out; no "describe --ask on a disc"; }
+uuid=$("$arv" -C askh objects --json | tr ',' '\n' | sed -n 's/.*"uuid": "\([^"]*\)".*/\1/p' | head -1)
+printf '\n2\n\n\n\n\n\n' | "$tool" --home askh describe "$uuid" --ask --save obj.json >/dev/null 2>&1 \
+    && "$tool" --home askh describe "$uuid" --apply obj.json > objapply.out 2>&1 && grep -q "tags" objapply.out \
+    && "$arv" -C askh objects --json | grep -q '"tags": "[^"]*event:' \
+    && [ "$("$arv" -C askh objects --json | grep -o 'event:[a-z0-9-]*' | sort -u | wc -l)" -eq 1 ] \
+    && ok "describe --ask on a data object: its own tags too, a one-valued namespace's new value replacing the old" \
+    || { cat objapply.out; "$arv" -C askh objects --json; no "describe --ask on an object"; }
+mkdir -p fakebin && printf '#!/bin/sh\necho %s\n' "'[{\"SourceFile\": \"a\", \"DateTimeOriginal\": \"2021:12:24 18:00:00\", \"Model\": \"Pixel 7\"}, {\"SourceFile\": \"b\", \"CreateDate\": \"2021:12:25 09:00:00\", \"Model\": \"Pixel 7\"}]'" > fakebin/exiftool
+chmod +x fakebin/exiftool
+put ex/a.jpg x
+put ex/b.jpg y
+PATH="$dir/fakebin:$PATH" "$tool" --home askh describe ex --clues > ex.json 2> ex.err || no "describe --clues with EXIF"
+grep -q 'dates 2021-12 (from EXIF); camera Pixel 7 (EXIF)' ex.err && tr -d '\n ' < ex.json | grep -q '"source:pixel-7"' \
+    && grep -q '"description": "2 photos, from a Pixel 7, December 2021."' ex.json \
+    && ok "describe --clues: EXIF dates and camera, through exiftool when it is there" || { cat ex.err ex.json; no "EXIF clues"; }
 echo "all checks passed"

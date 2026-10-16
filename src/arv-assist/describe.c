@@ -297,7 +297,9 @@ static rec_record *object_on_disc(const archive *cat, const char *disc_id, const
 /* a draft applied to a data object: its title, description and notes, on its newest version */
 static void apply_object_draft(const arv_home *h, archive *cat, const rec_record *obj, const draft *d, strlist *changed)
 {
-    if (d->subjects.n || d->nft || d->ncap) log_line("Subjects and folder tags are a disc's: left out for a data object.");
+    int others = d->subjects.n || d->ncap;
+    for (size_t k = 0; k < d->nft; k++) others |= strcmp(d->ft_folder[k], ".") != 0;
+    if (others) log_line("Subjects, captions and the tags of folders within are a disc's: left out for a data object.");
     const char *how = d->authorship ? d->authorship : is_model(d->agent) ? "suggested" : "human";
     char *uuid = xstrdup(rec_get(obj, "Uuid")), *version = xstrdup(rec_get(obj, "Version") ? rec_get(obj, "Version") : "1");
     apply_to_object(cat, uuid, version, d->title, d->description, &d->notes, d->agent, how, changed);
@@ -717,12 +719,60 @@ static size_t answer_waiting(const arv_home *h, archive *cat, rec_record *disc, 
     return n;
 }
 
+/* an object's tags: as arv retag sets them, the new ones added to those it has; 1 if it changed */
+static int object_add_tags(const arv_home *h, archive *cat, const rec_record *obj, const strlist *tags)
+{
+    if (!tags || !tags->n) return 0;
+    char *had = object_tags_now(h, cat, obj);
+    strlist have = { 0 };
+    char *copy = xstrdup(had);
+    for (char *t = strtok(copy, ","); t; t = strtok(NULL, ",")) {
+        while (*t == ' ') t++;
+        if (*t) strlist_add(&have, t);
+    }
+    strlist one = { 0 };                    /* a one-valued namespace's new value replaces its old one */
+    tag_namespaces(h, &one, NULL, NULL);
+    int added = 0;
+    for (size_t i = 0; i < tags->n; i++) {
+        if (strlist_has(&have, tags->v[i])) continue;
+        const char *colon = strchr(tags->v[i], ':');
+        if (colon) {
+            char *ns = xprintf("%.*s", (int)(colon - tags->v[i]), tags->v[i]);
+            if (strlist_has(&one, ns)) {
+                strlist kept = { 0 };
+                size_t n = strlen(ns);
+                for (size_t k = 0; k < have.n; k++)
+                    if (strncmp(have.v[k], ns, n) || have.v[k][n] != ':') strlist_add(&kept, have.v[k]);
+                strlist_free(&have);
+                have = kept;
+            }
+            free(ns);
+        }
+        strlist_add(&have, tags->v[i]);
+        added++;
+    }
+    sbuf all = { 0 };
+    sb_puts(&all, "");
+    for (size_t k = 0; k < have.n; k++) sb_printf(&all, "%s%s", k ? ", " : "", have.v[k]);
+    strlist_free(&one);
+    if (added) {
+        char *argv2[] = { "--home", h->path, (char *)rec_get(obj, "Uuid"), all.s, NULL };
+        if (cmd_retag(4, argv2)) fprintf(stderr, "Warning: its tags were not set (arv retag %s TAGS)\n", rec_get(obj, "Name"));
+        archive_load(cat, h->rec_path);     /* retag wrote the record: read it again */
+    }
+    free(had);
+    free(copy);
+    free(all.s);
+    strlist_free(&have);
+    return added > 0;
+}
+
 /* ------------------------------------------------------------------ arv describe */
 
 int assist_describe(int argc, char **argv)
 {
     const char *tgt = NULL, *save = NULL, *disc_root = NULL, *apply = NULL, *home = NULL;
-    int rounds = 2, questions = 5, show_inventory = 0, suggested = 0, answer = 0;
+    int rounds = 2, questions = 5, show_inventory = 0, suggested = 0, answer = 0, asking = 0, clues = 0, each = 1;
     llm_opts o = { 0 };
     o.per_folder = 3;
     o.max_total = 40;
@@ -738,13 +788,17 @@ int assist_describe(int argc, char **argv)
         else if (!strcmp(a, "--show-inventory")) show_inventory = 1;
         else if (!strcmp(a, "--suggested")) suggested = 1;
         else if (!strcmp(a, "--answer")) answer = 1;
+        else if (!strcmp(a, "--ask")) asking = 1;
+        else if (!strcmp(a, "--clues")) clues = 1;
+        else if (!strcmp(a, "--no-folders")) each = 0;
         else if (a[0] != '-' && !tgt) tgt = a;
         else return 2;
     }
     if (!tgt) return 2;
     arv_home h;
     archive cat;
-    if (home_try(&h, home, NULL)) memset(&cat, 0, sizeof cat);   /* no archive: a folder can still be described */
+    int no_home = home_try(&h, home, NULL) != 0;
+    if (no_home) memset(&cat, 0, sizeof cat);   /* no archive: a folder can still be described */
     else archive_load(&cat, h.rec_path);
     rec_record *disc = archive_disc(&cat, tgt);
     char *err = NULL;
@@ -774,6 +828,8 @@ int assist_describe(int argc, char **argv)
         strlist changed;
         if (obj) {
             apply_object_draft(&h, &cat, obj, &d, &changed);
+            for (size_t k = 0; strcmp(d.authorship ? d.authorship : "", "suggested") && k < d.nft; k++)   /* its own tags, */
+                if (!strcmp(d.ft_folder[k], ".") && object_add_tags(&h, &cat, obj, &d.ft_tags[k])) strlist_add(&changed, "tags");
             tgt = rec_get(obj, "Name") ? rec_get(obj, "Name") : tgt;
         } else {
             apply_to_disc(&h, &cat, disc, &d, d.agent, &changed);
@@ -786,6 +842,62 @@ int assist_describe(int argc, char **argv)
         printf("\n");
         free(what);
         free(about);
+        return 0;
+    }
+    if (asking || clues) {  /* no model: the files' clues, and with --ask questions over the vocabulary */
+        if (asking && clues) die("%s", "--ask asks; --clues takes the clues alone: one of them");
+        target t;
+        if (open_target(tgt, no_home ? NULL : &h, &cat, disc_root, &t, &err)) die("%s", err);
+        suggestion sug;
+        ask_suggest(no_home ? NULL : &h, &cat, &t.files, t.name, t.text_root, asking, each, &sug);
+        int g = 0;
+        char *src = find_source(NULL), *software = src ? software_version(src, &g) : xstrdup("arv");
+        char *agent = asking ? person() : software;
+        const char *how = asking ? "human" : "automatic";
+        strlist notes = { 0 };
+        if (save) {
+            jv *d = draft_json(&sug, &notes, how, agent, 0);
+            save_json(save, d);
+            jfree(d);
+            fprintf(stderr, "Draft saved to %s (arv describe %s --apply %s, or arv make --draft %s ...)\n", save, tgt, save, save);
+        }
+        int can_apply = (t.disc || t.object) && asking && isatty(0);
+        if (!save && !can_apply) {
+            sbuf b = { 0 };
+            jv *d = draft_json(&sug, &notes, how, agent, 0);
+            json_dump(&b, d, 2);
+            printf("%s\n", b.s);
+            jfree(d);
+            free(b.s);
+        }
+        if (can_apply) {
+            show(&sug);
+            char *q = t.disc ? xprintf("Apply to %s in the home catalogue? [y/N] ", rec_get(t.disc, "Id"))
+                             : xprintf("Apply to the data object %s (version %s) in the home catalogue? [y/N] ", t.name,
+                                       rec_get(t.object, "Version") ? rec_get(t.object, "Version") : "1");
+            char *ans = ask(q);
+            if (ans[0] == 'y' || ans[0] == 'Y') {
+                draft d;
+                strlist changed;
+                draft_of(&sug, &notes, how, agent, &d);
+                if (t.object) {
+                    apply_object_draft(&h, &cat, t.object, &d, &changed);
+                    if (object_add_tags(&h, &cat, t.object, ftags_get(&sug.folders, ".", 0))) strlist_add(&changed, "tags");
+                } else {
+                    apply_to_disc(&h, &cat, t.disc, &d, agent, &changed);
+                }
+                char *done = joined(&changed);
+                fprintf(stderr, "Updated: %s\n", *done ? done : "nothing");
+                free(done);
+            } else {
+                log_line("Not applied.");
+            }
+            free(q);
+            free(ans);
+        } else if (!save && t.text_root && !t.disc && !t.object) {
+            fprintf(stderr, "A folder: keep this as a draft for when it is archived (--save DRAFT; arv make --draft DRAFT)\n");
+        }
+        close_target(&t);
         return 0;
     }
     llm_client c;
@@ -924,7 +1036,8 @@ int assist_suggest(int argc, char **argv)
     if (llm_open(&c, o.url, o.model, o.allow_remote, &err)) return print_error(err);
     arv_home h;
     archive cat;
-    if (home_try(&h, home, NULL)) memset(&cat, 0, sizeof cat);   /* no archive: a folder can still be described */
+    int no_home = home_try(&h, home, NULL) != 0;
+    if (no_home) memset(&cat, 0, sizeof cat);   /* no archive: a folder can still be described */
     else archive_load(&cat, h.rec_path);
     const char *disc_id = jstr_of(json_get(req, "disc_id")), *source = jstr_of(json_get(req, "source"));
     target t;

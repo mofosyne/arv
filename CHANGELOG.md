@@ -21,6 +21,19 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Describing without a model: arv describe --ask**
+- `arv describe FOLDER|DISC-ID|OBJECT --ask` asks a few questions instead of a model: the topics
+  your vocabulary has, the event, places, people, what made it and when. Each offers the answers
+  the files point to, marked: dates from their names or EXIF (`exiftool`, when it is there), a
+  camera's model, the vocabulary's tags and aliases in the folders' names, values used before in
+  the archive. Enter takes the marked one; a number picks; anything else is the answer. At most 20
+  questions; it can go through the first-level folders too. The title and description are made
+  from the answers, to accept or edit, and kept as the person's (`Authorship: human`).
+- `--clues` takes the clues alone, as a draft (`automatic`); the GUI's describe panels have "Fill
+  from the files (no model)".
+- A draft applied to a data object now sets its own tags too (as `arv retag` would, a one-valued
+  namespace's new value replacing the old).
+
 **Packed objects: a plan can keep an object as one file**
 - `arv plan pack NAME PATH tar+zstd` keeps that object on its disc as one file
   (`data/PATH.tar.zst`); `--disc N PACKING` packs each object of a disc, and `--together` puts a

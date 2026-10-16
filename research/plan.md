@@ -1919,3 +1919,51 @@ with the files' times and modes, and restores a damaged pack (or one whose compr
 as it is, saying so. `plan show --packed` makes each pack in a temporary folder and measures it,
 and the disc's fill uses the sizes: no estimate, since what is compressed already does not shrink
 and only the compressor knows by how much the rest does.
+
+## Decision (2026-10-16): describing without a model, by questions; thumbnails later
+
+The owner wanted a way to describe that needs no AI. Twenty questions works because each answer
+splits a set of known possibilities; arv has that set, its own vocabulary: the tags and aliases
+in `tags.rec`, the namespaces (event, place, person, project, source, date) and the values the
+archive has used. So `arv describe --ask` (arv-assist, `ask.c`) asks over the vocabulary, not in
+the open:
+
+- **Clues first, with no question:** the kinds of files (by extension), dates in their names
+  (`IMG_20190712`, `2019-07 Kyoto`) or EXIF (`exiftool`, sampled, when installed; principle 7),
+  a camera's model, names made by a camera or phone, the words of the folders' names. A word that
+  is a tag or an alias marks that tag; a Match pattern that claims a tenth of the files marks its
+  tag; a value used before whose words are in the names marks it.
+- **Then a question for each thing still unknown,** in an order that narrows (topics, then event or
+  project, places, people, what made it, when), with the likely answers marked: Enter takes them,
+  a number picks, anything else is typed. A place's words are not offered again as a person. A
+  typed date must be EDTF. At most 20 questions; '.' stops and keeps the clues for the rest. The
+  first-level folders can be gone through too, asking only what may differ (places, people, a
+  date outside the whole's).
+- **Free text is made, not asked:** the title and description come from the answers by template
+  ("Kyoto trip, 11 to 13 July 2019"; "6 photos, from a Pixel 7, in Kyoto, with Ann, of the Kyoto
+  trip, ..."), to accept or edit.
+- **Authorship:** `--ask` is the person's (`human`); `--clues`, the clues alone, is `automatic`.
+  Both write the same draft as the model's path, so applying, events and the GUI are shared.
+
+It lives in arv-assist, next to `--answer` and `--apply` (also model-free), because it shares the
+draft and applying code; arv-assist is always built and installed.
+
+**Later, in this order:** learned rules (an answer that the clues did not foresee becomes an
+Alias or a Match in the vocabulary, so the question is not asked next time); the questions in the
+GUI (a JSON question protocol, buttons for the choices; for now the GUI has "Fill from the files");
+a small model only to rank each question's choices, never to write: text through arv-assist's
+embeddings (`llama-embedding`, bge-small, about 37 MB), images through llama.cpp's `llama-server`
+with a small vision model whose answer is held to the choices by a JSON schema. The smallest
+vision models llama.cpp runs are a few hundred MB, not under 100; a CLIP-style encoder would be
+smaller but needs a second runtime, and a model is on the computer, never on a disc.
+
+**Thumbnails on discs (designed, not built).** Each disc could carry thumbnails of its own photos,
+videos (a frame) and documents (a first page), so a found disc, the home and the GUI show what a
+disc holds without reading it, and the questions above can show them. About 256 px JPEG, 6 to 10
+KB each: 10,000 photos is about 80 MB of a 25 GB disc. Named by the content's SHA-256 (one per
+picture, whatever its names), plain files under `catalog/thumbs/` with an index TSV, so
+`index.html` and any file browser show them with no reader. Made by tools built for it
+(`vipsthumbnail`, ImageMagick, `ffmpeg`, `pdftoppm`) when present; none otherwise. A disc carries
+its own thumbnails, not every other disc's (100,000 photos would put about a gigabyte on every
+disc): those stay at home. They follow the disc's access level, since a thumbnail shows content.
+

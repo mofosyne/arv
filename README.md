@@ -98,7 +98,7 @@ Each layer does its own job:
 | `src/udfwrite/` | arv's UDF 2.50 writer (library, built into arv, and a program): [docs/spec/archival-udf.md](docs/spec/archival-udf.md) |
 | `src/rs03/` | dvdisaster's RS03 error correction: add, test, repair (library, built into arv, and a program): [docs/spec/rs03-format.md](docs/spec/rs03-format.md) |
 | `src/bagit/` | BagIt (RFC 8493) checking and the digests (library, built into arv, and a `bagit` program for any bag) |
-| `src/arv-assist/` | **arv-assist**, optional, in C: the AI helpers (`arv describe`, `arv tag`) for OpenAI-compatible local services |
+| `src/arv-assist/` | **arv-assist**, optional, in C: describing and tagging (`arv describe`, `arv tag`): with OpenAI-compatible local services, or by asking you (`describe --ask`) |
 | `src/arv-gui/` | **arv-gui**, optional, in C: `arv gui`, the interface in your web browser; a small local server that runs arv for every action |
 | `arv` | runs `src/arv/build/arv` in a checkout (and `tools/arv/arv` on a disc), building it with `make` first if needed |
 | `docs/` | For users: concepts, workflow, burning, shelving, architecture, philosophy, and the website |
@@ -397,6 +397,17 @@ ask you specific questions ("Who is in the Kyoto photos?"). Nothing is written
 until you accept it, your answers are kept verbatim as notes, and each accepted
 change is logged as a PREMIS `metadata modification` event naming the model.
 This is arv-assist (`src/arv-assist`, optional, in C): everything works without it.
+
+**Without a model**, `arv describe NAME --ask` asks you instead, twenty-questions style: the
+files' clues (dates in their names or EXIF, the kinds of files, a camera, the words of the folders'
+names that your vocabulary knows) mark the likely answer to each question, so most answers are
+Enter or a number. The title and description are made from your answers. `--clues` takes the
+clues alone, as a draft to edit; the GUI's "Fill from the files" does the same.
+
+```sh
+./arv describe ./2019-07_Kyoto --ask --save d.json     # then arv make ./2019-07_Kyoto --draft d.json
+./arv describe PERSONAL-01_2018-2022_Y --ask            # a disc already made: asks, then applies
+```
 
 ```sh
 ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM Studio, vLLM
