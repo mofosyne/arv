@@ -125,6 +125,9 @@ static const char USAGE_RECORD_MORE[] =     /* the same group, apart: C99 string
           "         add KEY [--label L] [--alias A] [--qualifier Q] [--same ID] [--private|--public]; label KEY LABEL (the old\n"
           "         one kept as an alias); alias KEY FORM; merge KEY INTO (its uses moved); split KEY [--new KEY2] (two of one\n"
           "         name: each use asked about); retire KEY [--why TEXT]; each change an event\n"
+          "         a place's: add place:KEY [--parent PLACE] [--at LAT,LON] [--kind site] (the gazetteer, config/places.rec)\n"
+          "  arv map [--json | --geojson | --svg]   the places the tags name: where each is (the gazetteer's position, or\n"
+          "         a broader place's), on how many paths and discs; --geojson for map tools, --svg a picture\n"
           "  arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files\n"
           "\n";
 static const char USAGE_REST[] =
@@ -528,7 +531,7 @@ static const char *const MANUAL_NOTES[] = {      /* in parts: C99 strings may be
     "## Reading and changing the record\n"
     "\n"
     "These only read: `list`, `find`, `objects`, `todo`, `status`, `log`, `diff`,\n"
-    "`sets`, `tags`, `keywords`, `info`, `audit`, `inventory`, `drives` (without\n"
+    "`sets`, `tags`, `map`, `keywords`, `info`, `audit`, `inventory`, `drives` (without\n"
     "`--check`), `where` (without `--here`), `names`, `plan list|show`, `collection list|show`, `location\n"
     "list`, `appraise --due`, and `retire` without `--yes` (a preview). `restore`\n"
     "writes only the files it restores, where it is told, and records where (when the home knows the disc).\n"
@@ -834,7 +837,7 @@ int main(int argc, char **argv)
                  { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
                  { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit }, { "drives", cmd_drives }, { "relabel", cmd_relabel }, { "inventory", cmd_inventory }, { "identify", cmd_identify },
-                 { "tags", cmd_tags }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
+                 { "tags", cmd_tags }, { "map", cmd_map }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
     arv_argv0 = argv[0];
     if (argc >= 2 && !strcmp(argv[1], "__complete")) {     /* for the shell's completion (completion/) */
         const char *names[sizeof cmds / sizeof *cmds + 5];

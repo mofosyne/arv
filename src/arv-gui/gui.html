@@ -24,6 +24,7 @@ nav.groups button { font-size:16px; font-weight:600; padding:8px 16px; }
 nav.groups .hint { font-weight:400; font-size:12px; color:var(--muted); margin-left:4px; }
 nav.sub { border-bottom:none; padding:8px 16px; gap:6px; background:var(--panel); }
 nav[hidden] { display:none; }
+.map svg { display:block; width:100%; height:auto; border:1px solid var(--line); border-radius:6px; margin:8px 0; }
 @media (max-width: 600px) { nav.groups .hint { display:none; } nav.groups button { padding:8px 12px; } }
 nav.sub button { border:1px solid var(--line); border-radius:16px; padding:4px 12px; font-size:14px; background:var(--bg); }
 nav.sub button[aria-selected=true] { border-color:var(--accent); color:var(--accent); }
@@ -149,6 +150,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   <button data-tab="collections">Collections</button>
   <button data-tab="discs">Discs</button>
   <button data-tab="places">Places</button>
+  <button data-tab="map">Map</button>
   <button data-tab="search">Search</button>
 </nav>
 <nav class="sub" data-group="verify" hidden>
@@ -272,6 +274,27 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     <div class="browser" id="st-browser" hidden></div>
   </form>
   <div id="st-out"></div>
+</section>
+
+<section id="tab-map" hidden>
+  <p class="muted">Where things are from: the places their tags name (<span class="mono">place:kyoto</span>), found in the
+    gazetteer (countries and cities, and places of your own). The record keeps the place, never coordinates;
+    <span class="mono">arv map --geojson</span> gives them to map tools.</p>
+  <div id="map-svg" class="map"></div>
+  <div id="map-list"></div>
+  <div class="card">
+    <h3>Add a place of your own</h3>
+    <form id="map-add">
+      <div class="row">
+        <div><label for="map-key">Tag (place:...)</label><input type="text" id="map-key" required placeholder="e.g. place:fushimi-inari"></div>
+        <div><label for="map-label">Name</label><input type="text" id="map-label" placeholder="e.g. Fushimi Inari"></div>
+        <div><label for="map-in">In</label><input type="text" id="map-in" placeholder="e.g. place:kyoto"></div>
+        <div><label for="map-at">Position (latitude, longitude; makes it private)</label><input type="text" id="map-at" placeholder="e.g. 34.967, 135.773"></div>
+      </div>
+      <button type="submit">Add</button>
+    </form>
+    <pre id="map-out" class="log" hidden></pre>
+  </div>
 </section>
 
 <section id="tab-search" hidden>
@@ -525,6 +548,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (name === "collections") loadCollections();
     if (name === "inventory") loadPlaces();
     if (name === "places") loadPlacesView();
+    if (name === "map") loadMap();
   }
   document.querySelectorAll("nav.sub button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
   document.querySelectorAll("nav.groups button").forEach(function (b) { b.onclick = function () { showTab(lastView[b.dataset.group]); }; });
@@ -1445,6 +1469,35 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       $("inv-place").textContent = "";        // the inventory's list is read again when next shown
     }).catch(function (e) { $("pl-list").textContent = "Error: " + e.message; });
   }
+  // ---------------------------------------------------------------- record: the places the tags name (arv map)
+  function loadMap() {
+    arvRun(["map", "--svg"]).then(function (r) {   // arv's own picture: labels escaped by arv, read as SVG, never run
+      var box = $("map-svg"); box.textContent = "";
+      if (r.returncode) return;
+      var doc = new DOMParser().parseFromString(r.out, "image/svg+xml");
+      if (doc.documentElement.nodeName === "svg") box.appendChild(document.importNode(doc.documentElement, true));
+    });
+    return arvJson(["map", "--json"]).then(function (res) {
+      var box = $("map-list"); box.textContent = "";
+      if (!res.places.length) { box.appendChild(el("p", { class: "muted", text: "No place tags yet: tag a folder or an object place:kyoto (Describe offers the places it finds)." })); return; }
+      var t = el("table");
+      t.appendChild(el("tr", {}, ["Place", "Tag", "Where", "Uses", "Discs"].map(function (h) { return el("th", { text: h }); })));
+      res.places.forEach(function (p) {
+        var where = !p.inGazetteer ? "not in the gazetteer: add it below" : p.position === "none" ? "no position" :
+          p.lat.toFixed(2) + ", " + p.lon.toFixed(2) + (p.position === "broader" ? " (a broader place's)" : "");
+        t.appendChild(el("tr", {}, [el("td", { text: (p.where || p.key.slice(6)) + (p.private ? " (private)" : "") }), el("td", { class: "mono", text: p.key }),
+          el("td", { class: "muted", text: where }), el("td", { text: String(p.paths + p.objects) }), el("td", { class: "mono", text: p.discs.join(" ") })]));
+      });
+      box.appendChild(el("div", { class: "scroll" }, [t]));
+    }).catch(function (e) { $("map-list").textContent = "Error: " + e.message; });
+  }
+  $("map-add").onsubmit = function (ev) {
+    ev.preventDefault();
+    var key = $("map-key").value.trim().toLowerCase();
+    if (key.indexOf("place:") !== 0) key = "place:" + key;
+    var argv = opt(opt(opt(["tags", "add", key], "--label", $("map-label").value), "--parent", $("map-in").value), "--at", $("map-at").value);
+    act(argv, $("map-out"), function () { $("map-add").reset(); loadMap(); });
+  };
   $("pl-add").onsubmit = function (ev) {
     ev.preventDefault();
     var argv = ["location", "add", $("pl-code").value.trim().toUpperCase()];

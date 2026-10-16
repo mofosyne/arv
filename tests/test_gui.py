@@ -279,6 +279,24 @@ class GuiTest(unittest.TestCase):
                          ("Kyoto trip, 11 July 2019", ["travel", "date:2019-07-11"], "automatic"))
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
+    def test_map(self):
+        """The Map view: the places the tags name, from the gazetteer, as the page reads them (arv map), and one added."""
+        self.start()
+        src = os.path.join(self.tmp, "Trip")
+        write(os.path.join(src, "temple", "a.jpg"), "jpeg", 2019)
+        draft = json.dumps({"tags": {".": ["place:kyoto"], "temple": ["place:fushimi-inari"]}, "authorship": "human", "agent": "owner"})
+        self.job("make", "-y", src, "--set", "TRIP", "--medium", "auto", "--no-ecc",
+                 "--output-dir", os.path.join(self.tmp, "out"), "--draft", "-", stdin=draft)
+        places = {p["key"]: p for p in self.ok("map", "--json")["places"]}
+        self.assertEqual((places["place:kyoto"]["where"], places["place:kyoto"]["position"]), ("Kyoto, Japan", "own"))
+        self.assertFalse(places["place:fushimi-inari"]["inGazetteer"])
+        self.job("tags", "add", "place:fushimi-inari", "--label", "Fushimi Inari", "--parent", "place:kyoto")
+        place = [p for p in self.ok("map", "--json")["places"] if p["key"] == "place:fushimi-inari"][0]
+        self.assertEqual((place["where"], place["position"]), ("Fushimi Inari, Kyoto, Japan", "broader"))
+        self.assertIn("<title>Kyoto, Japan: 1 path or object</title>", self.run_arv("map", "--svg")["out"])
+        self.assertIn('id="tab-map"', self.request("/?t=" + self.token, token=False)[1])
+
+    @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
     def test_copies(self):
         """A disc's copies by letter: burned with a drive (read back), burned without, stored, then one checked."""
         self.start()

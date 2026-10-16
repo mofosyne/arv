@@ -2159,7 +2159,7 @@ than its own tags do.
    the questions for one form of two entries.
 2. Taking a known name without asking, by the rule above.
 3. Changing them: `arv names` to list, rename, merge, split and retire, each an event.
-4. Places: the gazetteer, EXIF GPS, the GeoJSON export and the map.
+4. Places: the gazetteer, EXIF GPS, the GeoJSON export and the map (done, below).
 5. Later: export of people and organisations as EAC-CPF; a model proposing entries in bulk.
 
 **Done (2026-10-16): steps 1 to 3.** `src/arv/known.c` reads and edits the entries in
@@ -2178,4 +2178,36 @@ a common word (Rose, Grace) counts as a name when it is mostly written with a ca
 shows each entry's label, qualifier and whether it is private or retired; a public disc's
 vocabulary leaves the private entries out. The four namespaces are in the default vocabulary.
 Not yet: places (step 4), likely duplicates offered for merging, EAC-CPF export.
+
+**Done (2026-10-16): step 4, places.** The gazetteer is `config/places.rec` (`%rec: Place`), its
+own file beside `tags.rec` so the vocabulary stays readable: Natural Earth's 242 countries and its
+1,251 populated places of the 1:50m scale (about 150 KB; the 1:10m list's 7,000 would be a
+megabyte on every disc for villages a person adds better themselves), written by
+`dev-tools/places.py`, compiled into arv and copied into a home on first use like the other
+vocabularies. Keys come from the English name in ASCII; a name two places share takes the country's
+ISO code, then the region (`place:portland-us`, `place:victoria-ca`) and a `Qualifier`, so the form
+names two entries and is asked about, never taken. A city's `Parent` is its country; positions are
+to two decimals. `known.c` reads both files as one list and writes a place to the gazetteer (unless
+`tags.rec` has it); `arv tags add place:KEY` takes `--parent`, `--at` (ISO 6709, or `lat,lon`),
+`--kind` and `--country`, and a place given a position is private unless `--public` (it may be a
+house). The position is written to the gazetteer, never as an event: the record keeps places, not
+coordinates.
+
+`describe --ask` reads the photos' GPS with `exiftool -n` and takes the median, so one photo from
+elsewhere does not move it; the nearest place within reach is offered, marked: a place of your own
+within 3 km (it is a site), a city within 40 km (the 1:50m list is sparse), else, within 400 km of a
+city, its country. The gazetteer's places found in a folder's names are offered marked, those its
+text mentions unmarked (a letter naming Lima is not from Lima), each saying where it is ("Lima,
+Peru"). A city that is also a word was first left out by the common-words list, but that list holds
+London and Paris (they are common in books), so the person sees where instead. A place typed in
+answer becomes an entry, in a known place named with it or the city nearest the GPS.
+
+`arv map` lists the places the tags name with their positions (own, or the nearest broader
+place's), uses and discs; `--json`, `--geojson` (for QGIS, uMap, geojson.io: Principle 7) and
+`--svg`. The picture is an equirectangular outline of Natural Earth's 1:110m land as one path (23
+KB, `data/world.txt`), framed to the places shown, dots sized by use; each disc's `index.html` has it
+inline when its tags name places (a public disc shows a private place's tag only), and the GUI has a
+Map view. Not yet: `arv find place:japan` finding what is tagged with places inside Japan; regions
+(admin-1) as places; a larger list (GeoNames) as an optional download; offering likely duplicates
+for merging; EAC-CPF export.
 

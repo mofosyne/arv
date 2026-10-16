@@ -361,6 +361,29 @@ PATH="$dir/fakebin:$PATH" "$tool" --home askh describe ex --clues > ex.json 2> e
 grep -q 'dates 2021-12 (from EXIF); camera Pixel 7 (EXIF)' ex.err && tr -d '\n ' < ex.json | grep -q '"source:pixel-7"' \
     && grep -q '"description": "2 photos, from a Pixel 7, December 2021."' ex.json \
     && ok "describe --clues: EXIF dates and camera, through exiftool when it is there" || { cat ex.err ex.json; no "EXIF clues"; }
+# places: the GPS of the photos (the nearest place of the gazetteer), a typed place made an entry in it, a city in the names
+mkdir -p gpsbin && printf '#!/bin/sh\necho %s\n' "'[{\"SourceFile\": \"a\", \"DateTimeOriginal\": \"2019:07:13 10:00:00\", \"GPSLatitude\": 34.9671, \"GPSLongitude\": 135.7727}, {\"SourceFile\": \"b\", \"GPSLatitude\": 34.968, \"GPSLongitude\": 135.773}]'" > gpsbin/exiftool
+chmod +x gpsbin/exiftool
+put "shrine visit/a.jpg" x
+put "shrine visit/b.jpg" y
+PATH="$dir/gpsbin:$PATH" "$tool" --home askh describe "shrine visit" --clues > gps.json 2> gps.err || no "describe --clues with GPS"
+grep -q '; GPS in 2 photos, near Kyoto;' gps.err && tr -d '\n ' < gps.json | grep -q '"place:kyoto"' \
+    && ok "describe --clues: the photos' GPS gives the nearest place of the gazetteer (the place kept, never the position)" \
+    || { cat gps.err gps.json; no "GPS clues"; }
+printf '\n\n1, fushimi-inari\n-\n\n\n\n' | PATH="$dir/gpsbin:$PATH" "$tool" --home askh describe "shrine visit" --ask --save gps2.json > /dev/null 2> gps2.err \
+    || { cat gps2.err; no "describe --ask with GPS"; }
+grep -q '^  \*1 kyoto  (the GPS of 2 photos: 7 km from Kyoto)' gps2.err \
+    && grep -q 'Known from now on: place:fushimi-inari (Fushimi Inari), in Kyoto' gps2.err \
+    && grep -q '"description": "2 photos, in Kyoto and Fushimi Inari, ' gps2.json \
+    && "$arv" -C askh tags show place:fushimi-inari | grep -q '^  in: Kyoto, Japan (place:kyoto)' \
+    && "$arv" -C askh tags show place:fushimi-inari | grep -q '^  kind: site' \
+    && ok "describe --ask: a place typed becomes an entry of the gazetteer, in the known place named with it" \
+    || { cat gps2.err gps2.json; no "a new place from --ask"; }
+put "osaka/a.txt" "Letters about Lima and Lima again"
+printf '\n\n\n\n\n\n\n\n' | "$tool" --home askh describe osaka --ask --save oo.json > /dev/null 2> oo.err || { cat oo.err; no "describe --ask (cities)"; }
+grep -q '^  \*[0-9] osaka  (known: Ōsaka, Japan)' oo.err && grep -q '^   [0-9] lima  (known: Lima, Peru)' oo.err \
+    && ok "describe --ask: a city of the gazetteer in the names is offered, marked, saying where it is; one its text only mentions, unmarked" \
+    || { cat oo.err; no "cities in the names"; }
 # ------------------------------------------------------------------ words and tags, counted: from the record, the answers, the text
 "$arv" init wh >/dev/null 2>&1
 for n in 1 2 3; do

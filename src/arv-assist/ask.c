@@ -12,6 +12,7 @@
 
 #include <ctype.h>
 #include <stdio.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -28,6 +29,8 @@ typedef struct {
     const char *date_from;      /* "EXIF", "names" or "file times" */
     char *camera;               /* EXIF's most common Model, or NULL */
     size_t camera_names;        /* files named by a camera or phone (DSC_0001.JPG) */
+    size_t gps;                 /* photos with a position in their EXIF, and where most were (the median) */
+    double lat, lon;
     strlist words;              /* the words of the name and the folders' names, the most telling first */
     strlist terms;              /* the same with each two in a row: what the counts of words and tags are by */
     strlist text;               /* the most telling words of its text files and PDFs */
@@ -164,6 +167,12 @@ static void name_words(const char *name, strlist *out)
 
 /* ------------------------------------------------------------------ clues */
 
+static int by_double(const void *a, const void *b)
+{
+    double x = *(const double *)a, y = *(const double *)b;
+    return x < y ? -1 : x > y;
+}
+
 static void exif_clues(const items *l, const char *root, clues *c, strlist *dates)
 {
     if (!root || !on_path("exiftool")) return;
@@ -190,7 +199,7 @@ static void exif_clues(const items *l, const char *root, clues *c, strlist *date
         free(p);
     }
     if (!files.n) return;
-    char **argv = xmalloc((files.n + 8) * sizeof *argv);
+    char **argv = xmalloc((files.n + 12) * sizeof *argv);
     int n = 0;
     argv[n++] = "exiftool";
     argv[n++] = "-j";
@@ -198,14 +207,23 @@ static void exif_clues(const items *l, const char *root, clues *c, strlist *date
     argv[n++] = "-DateTimeOriginal";
     argv[n++] = "-CreateDate";
     argv[n++] = "-Model";
+    argv[n++] = "-n";                   /* positions as signed decimal degrees */
+    argv[n++] = "-GPSLatitude";
+    argv[n++] = "-GPSLongitude";
     for (size_t i = 0; i < files.n; i++) argv[n++] = files.v[i];
     argv[n] = NULL;
     char *out = NULL;
     run(argv, &out);                    /* a file it cannot read is left out; the rest still come */
     jv *doc = out ? json_parse(strchr(out, '[') ? strchr(out, '[') : out) : NULL;
     strlist models = { 0 };
+    double *lats = xmalloc((files.n + 1) * sizeof *lats), *lons = xmalloc((files.n + 1) * sizeof *lons);
     for (size_t i = 0; doc && doc->kind == 'a' && i < doc->n; i++) {
         const jv *o = doc->vals[i];
+        const jv *la = json_get(o, "GPSLatitude"), *lo = json_get(o, "GPSLongitude");
+        if (la && lo && la->kind == 't' && lo->kind == 't') {
+            double y = atof(la->str), x = atof(lo->str);
+            if ((y || x) && y >= -90 && y <= 90 && x >= -180 && x <= 180 && c->gps < files.n) lats[c->gps] = y, lons[c->gps++] = x;
+        }
         const char *t = jstr_of(json_get(o, "DateTimeOriginal")), *t2 = jstr_of(json_get(o, "CreateDate"));
         long d = exif_date(t ? t : t2);
         if (d) {
@@ -226,6 +244,14 @@ static void exif_clues(const items *l, const char *root, clues *c, strlist *date
             c->camera = xstrdup(models.v[i]);
         }
     }
+    if (c->gps) {                       /* the median: a stray photo from elsewhere does not move it */
+        qsort(lats, c->gps, sizeof *lats, by_double);
+        qsort(lons, c->gps, sizeof *lons, by_double);
+        c->lat = lats[c->gps / 2];
+        c->lon = lons[c->gps / 2];
+    }
+    free(lats);
+    free(lons);
     if (doc) jfree(doc);
     strlist_free(&models);
     strlist_free(&files);
@@ -504,7 +530,7 @@ static void choose(asking *a, const char *heading, const strlist *opts, const st
         }
     }
     if (col) fputc('\n', stderr);
-    char *ans = ask(many ? "Enter: the marked ones; numbers (1,3), '-' none, '.' stop asking, or type them, commas between\n> "
+    char *ans = ask(many ? "Enter: the marked ones; numbers (1,3), '-' none, '.' stop asking, or type them, commas between (1, x)\n> "
                          : "Enter: the marked one; a number, '-' none, '.' stop asking, or type it\n> ");
     if (!strcmp(ans, ".")) {
         a->stopped = 1;
@@ -520,7 +546,9 @@ static void choose(asking *a, const char *heading, const strlist *opts, const st
             char *e = t + strlen(t);
             while (e > t && e[-1] == ' ') *--e = 0;
             if (!*t) continue;
-            if (all_numbers) {
+            int number = 1;                 /* "1, fushimi-inari": an option by its number, and one typed */
+            for (const char *q = t; *q && number; q++) number = isdigit((unsigned char)*q);
+            if (all_numbers || number) {
                 long k = atol(t);
                 if (k >= 1 && (size_t)k <= opts->n && !strlist_has(out, opts->v[k - 1])) strlist_add(out, opts->v[k - 1]);
             } else if (!strlist_has(out, t)) {
@@ -637,7 +665,7 @@ static size_t entries_named(const asking *a, const char *form)
 static void known_choices(const asking *a, const clues *c, const char *ns, int one, strlist *opts, strlist *why,
                           strlist *marked, strlist *certain)
 {
-    size_t nl = strlen(ns);
+    size_t nl = strlen(ns), places = 0;
     for (size_t i = 0; i < a->kn; i++) {
         const known_entry *e = &a->kv[i];
         if (e->retired || strncmp(e->key, ns, nl) || e->key[nl] != ':') continue;
@@ -653,6 +681,11 @@ static void known_choices(const asking *a, const clues *c, const char *ns, int o
         }
         two = entries_named(a, found) > 1;
         size_t uses = word_tag_uses(a->ws, e->key), with = 0, all = 0;
+        int gazetteer = e->kind && (!strcmp(e->kind, "city") || !strcmp(e->kind, "country"));
+        if (gazetteer && !uses && ++places > 8) {
+            strlist_free(&forms);           /* a text naming many cities: the first few, by where they are found */
+            continue;
+        }
         int context = 0;
         const strlist *lists[2] = { &c->terms, &c->text };
         for (int k = 0; k < 2 && !context; k++)
@@ -664,21 +697,61 @@ static void known_choices(const asking *a, const clues *c, const char *ns, int o
         int sure = !two && uses >= 2 && context && where <= 2;
         const char *value = e->key + nl + 1;
         if (!strlist_has(opts, value)) {
-            char *y = sure ? xprintf("known: %s, in %zu folders before", e->label ? e->label : value, uses)
-                      : two ? xprintf("known: %s%s%s%s, one of two entries of this name", e->label ? e->label : value,
+            char *place = e->parent ? known_where(a->kv, a->kn, e) : NULL;   /* which Victoria: "Victoria, Canada" */
+            const char *shown = place ? place : e->label ? e->label : value;
+            char *y = sure ? xprintf("known: %s, in %zu folders before", shown, uses)
+                      : two ? xprintf("known: %s%s%s%s, one of two entries of this name", shown,
                                       e->qualifier ? " (" : "", e->qualifier ? e->qualifier : "", e->qualifier ? ")" : "")
-                            : xprintf("known: %s%s%s%s", e->label ? e->label : value, e->qualifier ? " (" : "",
+                            : xprintf("known: %s%s%s%s", shown, e->qualifier ? " (" : "",
                                       e->qualifier ? e->qualifier : "", e->qualifier ? ")" : "");
             strlist_add(opts, value);
             strlist_add(why, y);
             free(y);
             if (sure) strlist_add(certain, value);
-            if (sure || (!two && a->interactive)) {
+            if (sure || (!two && a->interactive && (!gazetteer || uses || where == 1))) {   /* a city its text mentions: offered */
                 if (!marked->n || !one) strlist_add(marked, value);
             }
+            free(place);
         }
         strlist_free(&forms);
     }
+}
+
+static double km_between(double lat1, double lon1, double lat2, double lon2)
+{
+    const double r = 6371.0, d = 3.14159265358979323846 / 180;
+    double dl = (lat2 - lat1) * d, dn = (lon2 - lon1) * d;
+    double h = sin(dl / 2) * sin(dl / 2) + cos(lat1 * d) * cos(lat2 * d) * sin(dn / 2) * sin(dn / 2);
+    return 2 * r * atan2(sqrt(h), sqrt(1 - h));
+}
+
+/* the place nearest the photos' GPS, within its reach: a place of your own (a site) within 3 km,
+ * else a city within 40; else, within 400 km of a city, its country (*broad set). NULL: none. */
+static const known_entry *gps_place(const asking *a, const clues *c, int *broad, double *km)
+{
+    const known_entry *best = NULL, *near = NULL;
+    double bd = 0, nd = 0;
+    int best_site = 0;
+    *broad = 0;
+    for (size_t i = 0; c->gps && i < a->kn; i++) {
+        const known_entry *e = &a->kv[i];
+        if (!e->has_at || e->retired || strncmp(e->key, "place:", 6) || (e->kind && !strcmp(e->kind, "country"))) continue;
+        int site = !e->kind || strcmp(e->kind, "city");
+        double d = km_between(c->lat, c->lon, e->lat, e->lon);
+        if (d <= (site ? 3 : 40) && (!best || (site && !best_site) || (site == best_site && d < bd)))
+            best = e, bd = d, best_site = site;
+        if (!site && d <= 400 && (!near || d < nd)) near = e, nd = d;
+    }
+    if (best) {
+        *km = bd;
+        return best;
+    }
+    const known_entry *up = near ? known_find(a->kv, a->kn, near->parent) : NULL;
+    if (up) {
+        *broad = 1;
+        *km = nd;
+    }
+    return up;
 }
 
 /* one namespace's value(s) for a folder: the choices are values used before that its words name,
@@ -716,6 +789,22 @@ static void ask_namespace(asking *a, const arv_home *h, const archive *cat, cons
             if (!marked.n || !one) strlist_add(&marked, v);
         }
         free(v);
+    }
+    if (!strcmp(ns, "place") && c->gps) {   /* where the photos were taken, from their EXIF: the place, not the position */
+        int broad;
+        double km;
+        const known_entry *e = gps_place(a, c, &broad, &km);
+        if (e && !strlist_has(&opts, e->key + 6)) {
+            char *y = broad ? xprintf("the GPS of %zu photo%s: in %s, %.0f km from a city of it", c->gps, c->gps == 1 ? "" : "s",
+                                      e->label ? e->label : e->key + 6, km)
+                            : xprintf("the GPS of %zu photo%s: %.0f km from %s", c->gps, c->gps == 1 ? "" : "s", km,
+                                      e->label ? e->label : e->key + 6);
+            strlist_add(&opts, e->key + 6);
+            strlist_add(&why, y);
+            strong++;
+            if (!marked.n || !one) strlist_add(&marked, e->key + 6);
+            free(y);
+        }
     }
     if (one && !sub && strcmp(ns, "source")) {      /* the name, as a value: "2019-07 Kyoto trip" -> kyoto-trip */
         strlist w = { 0 };
@@ -947,6 +1036,13 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
         }
         if (c.camera) sb_printf(&b, "; camera %s (EXIF)", c.camera);
         else if (c.camera_names * 2 > c.files) sb_puts(&b, "; named by a camera or phone");
+        if (c.gps) {
+            int broad;
+            double km;
+            const known_entry *e = gps_place(&a, &c, &broad, &km);
+            sb_printf(&b, "; GPS in %zu photo%s", c.gps, c.gps == 1 ? "" : "s");
+            if (e) sb_printf(&b, broad ? ", in %s" : ", near %s", e->label ? e->label : e->key + 6);
+        }
         if (c.words.n) {
             sb_puts(&b, "; words in the names:");
             for (size_t i = 0; i < c.words.n && i < 8; i++) sb_printf(&b, " %s", c.words.v[i]);
@@ -1062,7 +1158,7 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
         }
     }
     if (interactive && h && cat) {          /* a name confirmed: known from now on (an entry, and an event) */
-        static const char *const NAMED[] = { "person:", "family:", "organisation:", "software:", "work:", NULL };
+        static const char *const NAMED[] = { "person:", "family:", "organisation:", "software:", "work:", "place:", NULL };
         strlist made = { 0 };
         char today[11], *who = person();
         today_iso(today);
@@ -1077,8 +1173,21 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
                 char *label = known_label_of(t), *basis = xprintf("confirmed by %s in arv describe --ask of %s, %s", who, name, today);
                 known_made(h, cat, t, label, basis);
                 strlist_add(&made, t);
-                fprintf(stderr, "Known from now on: %s (%s)%s; arv tags show %s\n", t, label,
-                        !strncmp(t, "person:", 7) || !strncmp(t, "family:", 7) ? ", private" : "", t);
+                const known_entry *in = NULL;
+                if (!strncmp(t, "place:", 6)) {     /* a place of the gazetteer's own: in a known place it was named with, */
+                    known_field(h, t, "Kind", "site", 0);   /* or the city nearest the photos' GPS */
+                    for (size_t k = 0; k < out->folders.tags[f].n && !in; k++) {
+                        const known_entry *e = known_find(a.kv, a.kn, out->folders.tags[f].v[k]);
+                        if (e && strcmp(e->key, t) && !strncmp(e->key, "place:", 6)) in = e;
+                    }
+                    int broad;
+                    double km;
+                    if (!in) in = gps_place(&a, &c, &broad, &km);
+                    if (in) known_field(h, t, "Parent", in->key, 0);
+                }
+                fprintf(stderr, "Known from now on: %s (%s)%s%s%s; arv tags show %s\n", t, label,
+                        !strncmp(t, "person:", 7) || !strncmp(t, "family:", 7) ? ", private" : "", in ? ", in " : "",
+                        in ? (in->label ? in->label : in->key) : "", t);
                 free(label);
                 free(basis);
             }
@@ -1116,13 +1225,19 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
         if (!strncmp(tags.v[i], "person:", 7)) strlist_add(&people, tags.v[i] + 7);
     }
     if (c.camera && !strcmp(what, "photos")) sb_printf(&d, ", from a %s", c.camera);
-    for (size_t i = 0; i < places.n; i++) {
-        char *p = pretty(places.v[i]);
+    for (size_t i = 0; i < places.n; i++) {     /* by their labels when known: "Ōsaka", "Fushimi Inari" */
+        char *key = xprintf("place:%s", places.v[i]);
+        const known_entry *e = known_find(a.kv, a.kn, key);
+        char *p = e && e->label ? xstrdup(e->label) : known_label_of(key);
         sb_printf(&d, "%s%s", i ? " and " : ", in ", p);
         free(p);
+        free(key);
     }
     for (size_t i = 0; i < people.n; i++) {
-        char *p = pretty(people.v[i]);
+        char *key = xprintf("person:%s", people.v[i]);
+        const known_entry *e = known_find(a.kv, a.kn, key);
+        char *p = e && e->label ? xstrdup(e->label) : pretty(people.v[i]);
+        free(key);
         sb_printf(&d, "%s%s", i ? (i + 1 == people.n ? " and " : ", ") : ", with ", p);
         free(p);
     }

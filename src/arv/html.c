@@ -153,7 +153,7 @@ static void line(sbuf *out, const char *s)
 }
 
 char *render_index(const rec_record *disc, const rec_record *binding, const entries *files,
-                   const archive *snapshot, char *(*where_fn)(const archive *, const rec_record *))
+                   const archive *snapshot, char *(*where_fn)(const archive *, const rec_record *), const char *places_html)
 {
     sbuf out = { 0 }, t = { 0 };
     const char *title = rec_get(disc, "Title") ? rec_get(disc, "Title") : rec_get(disc, "Id");
@@ -209,6 +209,7 @@ char *render_index(const rec_record *disc, const rec_record *binding, const entr
             html_esc(&out, disc->fields[f].value);
             sb_puts(&out, "</div>");
         }
+    if (places_html) sb_puts(&out, places_html);     /* the places its tags name, on a map (map.c) */
     line(&out, "<h2>Files</h2>");
     if (files->n) {
         tnode root = { 0 };

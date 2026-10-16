@@ -321,6 +321,37 @@ printf 'b. 1931\ncolleague\n2\n\n' | "$tool" -C kn/home tags split person:anne-s
     && grep -q '^Name: family$' kn/disc/catalog/config/tags.rec \
     && ok "known names: a public disc's vocabulary leaves the private entries out (software:kicad goes, person:anne-smith stays home)" \
     || no "known names: private entries on a public disc"
+# places: the gazetteer (Natural Earth's countries and cities), a place of your own in one, arv map, a disc's index.html
+"$tool" -C kn/home tags show place:kyoto | grep -q '^  in: Japan (place:japan)$' \
+    && "$tool" -C kn/home tags add place:fushimi-inari --label "Fushimi Inari" --parent kyoto --at 34.9671,135.7727 > kn/place.out \
+    && grep -q 'private: stays home' kn/place.out && grep -A7 '^Name: place:fushimi-inari$' kn/home/config/places.rec > kn/place.txt \
+    && grep -qx 'At: +34.97+135.77/' kn/place.txt && grep -qx 'Parent: place:kyoto' kn/place.txt && grep -qx 'Kind: site' kn/place.txt \
+    && ! grep -q '135.77' kn/home/catalog/archive.rec \
+    && ok "places: the gazetteer's entries (a city in its country); one of your own in one, private with a position, never in the record" \
+    || { cat kn/place.out kn/place.txt; no "places: the gazetteer"; }
+"$tool" -C kn/home tags add place:kyoto --at nowhere >/dev/null 2>&1 && no "a position that is not ISO 6709 was taken"
+"$tool" -C kn/home tags add person:x --parent kyoto >/dev/null 2>&1 && no "a person was given a parent place"
+mkdir -p kn/trip/temple kn/trip/castle && echo 4 > kn/trip/temple/t.jpg && echo 5 > kn/trip/castle/c.jpg
+printf '{"tags": {".": ["place:kyoto"], "temple": ["place:fushimi-inari"], "castle": ["place:osaka", "place:nowhere-known"]}, "authorship": "human", "agent": "human:t"}\n' > kn/trip.json
+"$tool" -C kn/home make -y --no-ecc --no-formats --set KN --access public --draft kn/trip.json --output-dir kn/out3 kn/trip >/dev/null 2>&1 \
+    || no "make (places)"
+"$tool" -C kn/home map > kn/map.out \
+    && grep -q '^  place:kyoto  *Kyoto, Japan  *+35.03+135.75/  1 object on 1 disc$' kn/map.out \
+    && grep -q '^  place:fushimi-inari  *Fushimi Inari, Kyoto, Japan  *+34.97+135.77/  1 path on 1 disc; private$' kn/map.out \
+    && grep -q '^  place:nowhere-known  *(not in the gazetteer)' kn/map.out && grep -q '^1 not in the gazetteer' kn/map.out \
+    && "$tool" -C kn/home map --geojson > kn/map.geojson && grep -q '"type": "FeatureCollection"' kn/map.geojson \
+    && grep -q '"coordinates": \[135.4600, 34.7500\]}, "properties": {"key": "place:osaka"' kn/map.geojson && ! grep -q nowhere-known kn/map.geojson \
+    && "$tool" -C kn/home map --json | grep -q '"key": "place:nowhere-known", .*"position": "none", "inGazetteer": false' \
+    && "$tool" -C kn/home map --svg | grep -q '<title>Ōsaka, Japan: 1 path or object</title>' \
+    && ok "arv map: the places the tags name, where each is (the gazetteer's, or a broader place's), as text, JSON, GeoJSON and SVG" \
+    || { cat kn/map.out kn/map.geojson; no "arv map"; }
+7z x -okn/disc3 kn/out3/*.iso index.html catalog/config/places.rec >/dev/null \
+    && grep -q '<h2>Places</h2>' kn/disc3/index.html && grep -q '<svg xmlns=' kn/disc3/index.html \
+    && grep -q '<td>Ōsaka, Japan</td><td><code>place:osaka</code>' kn/disc3/index.html \
+    && ! grep -q 'Fushimi Inari' kn/disc3/index.html && grep -q '<code>place:fushimi-inari</code>' kn/disc3/index.html \
+    && grep -q '^Name: place:kyoto$' kn/disc3/catalog/config/places.rec && ! grep -q '^Name: place:fushimi' kn/disc3/catalog/config/places.rec \
+    && ok "a disc's index.html shows its places on a map; a public disc says nothing of a private place but its tag, and its gazetteer leaves it out" \
+    || no "places on a disc"
 
 # ------------------------------------------------------------------ what depends on the machine
 # RS03, added and tested by arv itself (src/rs03); no dvdisaster needed. A small stand-in for

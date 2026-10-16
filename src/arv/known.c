@@ -32,58 +32,173 @@ static char *vocab_file(const arv_home *h)
     return p;
 }
 
+/* the gazetteer: places, entries of their own file, copied from Natural Earth's on first use */
+static char *places_file(const arv_home *h)
+{
+    char *p = join(h->config_dir, "places.rec");
+    if (access(p, F_OK) && !mkdirs(h->config_dir)) write_text(p, DATA_DEFAULT_PLACES);
+    return p;
+}
+
+/* the file an entry is in, or goes in: a place's in the gazetteer, unless tags.rec has it already */
+static char *file_for(const arv_home *h, const char *key)
+{
+    char *tags = vocab_file(h);
+    if (strncmp(key, "place:", 6)) return tags;
+    char *text = read_text(tags), *line = xprintf("Name: %s\n", key), *at = text ? strstr(text, line) : NULL;
+    int here = at && (at == text || at[-1] == '\n');
+    free(text);
+    free(line);
+    if (here) return tags;
+    free(tags);
+    return places_file(h);
+}
+
 /* the namespaces whose entries stay home by default: people's names are personal data */
 static int private_by_default(const char *key)
 {
     return !strncmp(key, "person:", 7) || !strncmp(key, "family:", 7);
 }
 
+/* ISO 6709 in decimal degrees (+35.03+135.75/), or "35.03,135.75" as a map shows it */
+int iso6709_parse(const char *s, double *lat, double *lon)
+{
+    char *end;
+    while (*s == ' ') s++;
+    double a = strtod(s, &end);
+    if (end == s) return -1;
+    const char *p = end;
+    while (*p == ',' || *p == ' ') p++;
+    if (*p != '+' && *p != '-' && !isdigit((unsigned char)*p)) return -1;
+    if (p == end && *p != '+' && *p != '-') return -1;
+    double b = strtod(p, &end);
+    if (end == p) return -1;
+    while (*end == ' ' || *end == '/') end++;
+    if (*end || a < -90 || a > 90 || b < -180 || b > 180) return -1;
+    *lat = a;
+    *lon = b;
+    return 0;
+}
+
+char *iso6709(double lat, double lon)
+{
+    return xprintf("%+06.2f%+07.2f/", lat, lon);
+}
+
+static void known_free_one(known_entry *e);
+
+static int is_entry(const rec_record *r, const char *type)
+{
+    const char *name = rec_get(r, "Name");
+    return !r->descriptor && name && strchr(name, ':') && (!r->type || !strcmp(r->type, type));
+}
+
+static void load_file(const char *p, const char *type, known_entry **out, size_t *n)
+{
+    rec_file f;
+    int bad = 0;
+    if (rec_read(p, &f, &bad)) return;
+    for (size_t i = 0; i < f.nrecords; i++) {
+        const rec_record *r = &f.records[i];
+        if (!is_entry(r, type)) continue;
+        *out = xrealloc(*out, (*n + 1) * sizeof **out);
+        known_entry *e = &(*out)[(*n)++];
+        memset(e, 0, sizeof *e);
+        e->key = xstrdup(rec_get(r, "Name"));
+        for (size_t j = 0; j < r->nfields; j++) {
+            const char *fn = r->fields[j].name, *v = r->fields[j].value;
+            if (!strcmp(fn, "Label") && !e->label) e->label = xstrdup(v);
+            else if (!strcmp(fn, "Alias")) strlist_add(&e->aliases, v);
+            else if (!strcmp(fn, "Qualifier") && !e->qualifier) e->qualifier = xstrdup(v);
+            else if (!strcmp(fn, "Related")) strlist_add(&e->related, v);
+            else if (!strcmp(fn, "Same")) strlist_add(&e->same, v);
+            else if (!strcmp(fn, "Basis") && !e->basis) e->basis = xstrdup(v);
+            else if (!strcmp(fn, "Private")) e->private_ = !strcmp(v, "yes");
+            else if (!strcmp(fn, "Retired")) e->retired = xstrdup(v);
+            else if (!strcmp(fn, "Kind") && !e->kind) e->kind = xstrdup(v);
+            else if (!strcmp(fn, "Parent") && !e->parent) e->parent = xstrdup(v);
+            else if (!strcmp(fn, "Country") && !e->country) e->country = xstrdup(v);
+            else if (!strcmp(fn, "At") && !e->at) {
+                e->at = xstrdup(v);
+                e->has_at = !iso6709_parse(v, &e->lat, &e->lon);
+            }
+        }
+    }
+    rec_free(&f);
+}
+
 size_t known_load(const arv_home *h, known_entry **out)
 {
     *out = NULL;
-    char *p = vocab_file(h);
-    rec_file f;
-    int bad = 0;
     size_t n = 0;
-    if (!rec_read(p, &f, &bad)) {
-        for (size_t i = 0; i < f.nrecords; i++) {
-            const rec_record *r = &f.records[i];
-            const char *name = rec_get(r, "Name");
-            if (r->descriptor || !name || !strchr(name, ':') || (r->type && strcmp(r->type, "Tag"))) continue;
-            *out = xrealloc(*out, (n + 1) * sizeof **out);
-            known_entry *e = &(*out)[n++];
-            memset(e, 0, sizeof *e);
-            e->key = xstrdup(name);
-            for (size_t j = 0; j < r->nfields; j++) {
-                const char *fn = r->fields[j].name, *v = r->fields[j].value;
-                if (!strcmp(fn, "Label") && !e->label) e->label = xstrdup(v);
-                else if (!strcmp(fn, "Alias")) strlist_add(&e->aliases, v);
-                else if (!strcmp(fn, "Qualifier") && !e->qualifier) e->qualifier = xstrdup(v);
-                else if (!strcmp(fn, "Related")) strlist_add(&e->related, v);
-                else if (!strcmp(fn, "Same")) strlist_add(&e->same, v);
-                else if (!strcmp(fn, "Basis") && !e->basis) e->basis = xstrdup(v);
-                else if (!strcmp(fn, "Private")) e->private_ = !strcmp(v, "yes");
-                else if (!strcmp(fn, "Retired")) e->retired = xstrdup(v);
-            }
-        }
-        rec_free(&f);
+    char *p = vocab_file(h), *g = places_file(h);
+    load_file(p, "Tag", out, &n);
+    size_t tags = n;
+    load_file(g, "Place", out, &n);
+    size_t kept = tags;
+    for (size_t i = tags; i < n; i++) {         /* a place in tags.rec too: tags.rec's is the one */
+        int dup = 0;
+        for (size_t k = 0; k < tags && !dup; k++) dup = !strcmp((*out)[k].key, (*out)[i].key);
+        if (dup) known_free_one(&(*out)[i]);
+        else (*out)[kept++] = (*out)[i];
     }
+    n = kept;
     free(p);
+    free(g);
     return n;
+}
+
+const known_entry *known_find(const known_entry *v, size_t n, const char *key)
+{
+    for (size_t i = 0; key && i < n; i++)
+        if (!strcmp(v[i].key, key)) return &v[i];
+    return NULL;
+}
+
+/* where a place is: its own position (2), the nearest broader place's (1), or none (0) */
+int known_position(const known_entry *v, size_t n, const known_entry *e, double *lat, double *lon)
+{
+    for (int depth = 0; e && depth < 16; depth++, e = known_find(v, n, e->parent))
+        if (e->has_at) {
+            *lat = e->lat;
+            *lon = e->lon;
+            return depth ? 1 : 2;
+        }
+    return 0;
+}
+
+/* a place with the places it is in: "Fushimi Inari, Kyoto, Japan" */
+char *known_where(const known_entry *v, size_t n, const known_entry *e)
+{
+    sbuf b = { 0 };
+    sb_puts(&b, "");
+    for (int depth = 0; e && depth < 16; depth++, e = known_find(v, n, e->parent)) {
+        char *l = e->label ? xstrdup(e->label) : known_label_of(e->key);
+        sb_printf(&b, "%s%s", depth ? ", " : "", l);
+        free(l);
+    }
+    return b.s;
+}
+
+static void known_free_one(known_entry *e)
+{
+    free(e->key);
+    free(e->label);
+    free(e->qualifier);
+    free(e->basis);
+    free(e->retired);
+    strlist_free(&e->aliases);
+    strlist_free(&e->related);
+    strlist_free(&e->same);
+    free(e->kind);
+    free(e->parent);
+    free(e->country);
+    free(e->at);
 }
 
 void known_free(known_entry *v, size_t n)
 {
-    for (size_t i = 0; i < n; i++) {
-        free(v[i].key);
-        free(v[i].label);
-        free(v[i].qualifier);
-        free(v[i].basis);
-        free(v[i].retired);
-        strlist_free(&v[i].aliases);
-        strlist_free(&v[i].related);
-        strlist_free(&v[i].same);
-    }
+    for (size_t i = 0; i < n; i++) known_free_one(&v[i]);
     free(v);
 }
 
@@ -141,7 +256,7 @@ static int save_vocab(const char *path, const char *text)
  * entry, before the Namespace records, when there is none */
 int known_field(const arv_home *h, const char *key, const char *field, const char *value, int add)
 {
-    char *p = vocab_file(h), *text = read_text(p);
+    char *p = file_for(h, key), *text = read_text(p);
     if (!text) {
         free(p);
         return -1;
@@ -375,13 +490,22 @@ static char *line_in(const char *prompt)
     return line;
 }
 
-static void show_entry(const archive *cat, const known_entry *e, const uses *u)
+static void show_entry(const archive *cat, const known_entry *v, size_t n, const known_entry *e, const uses *u)
 {
     printf("%s  %s%s%s%s\n", e->key, e->label ? e->label : "(no label)", e->qualifier ? " (" : "", e->qualifier ? e->qualifier : "",
            e->qualifier ? ")" : "");
     for (size_t i = 0; i < e->aliases.n; i++) printf("  also: %s\n", e->aliases.v[i]);
     for (size_t i = 0; i < e->related.n; i++) printf("  related: %s\n", e->related.v[i]);
     for (size_t i = 0; i < e->same.n; i++) printf("  same as: %s\n", e->same.v[i]);
+    if (e->kind) printf("  kind: %s\n", e->kind);
+    if (e->parent) {
+        const known_entry *up = known_find(v, n, e->parent);
+        char *w = up ? known_where(v, n, up) : NULL;
+        printf("  in: %s%s%s%s\n", w ? w : "", w ? " (" : "", e->parent, w ? ")" : ", not in the gazetteer");
+        free(w);
+    }
+    if (e->country) printf("  country: %s\n", e->country);
+    if (e->at) printf("  at: %s\n", e->at);
     if (e->basis) printf("  basis: %s\n", e->basis);
     printf("  %s\n", e->private_ ? "private: stays home, never on a public disc" : "on discs with the vocabulary");
     if (e->retired) printf("  RETIRED: %s\n", e->retired);
@@ -404,6 +528,7 @@ static int known_ok(const char *key)
 int known_cmd(const char *sub, int argc, char **argv, const char *given)
 {
     const char *label = NULL, *qual = NULL, *new_key = NULL, *new_qual = NULL, *why = NULL;
+    const char *parent = NULL, *pos = NULL, *kind = NULL, *country = NULL;   /* a place's */
     strlist words = { 0 }, aliases = { 0 }, same = { 0 };
     int priv = -1;
     for (int i = 0; i < argc; i++) {
@@ -415,6 +540,10 @@ int known_cmd(const char *sub, int argc, char **argv, const char *given)
         else if (v && !strcmp(a, "--new")) new_key = argv[++i];
         else if (v && !strcmp(a, "--new-qualifier")) new_qual = argv[++i];
         else if (v && !strcmp(a, "--why")) why = argv[++i];
+        else if (v && !strcmp(a, "--parent")) parent = argv[++i];
+        else if (v && !strcmp(a, "--at")) pos = argv[++i];
+        else if (v && !strcmp(a, "--kind")) kind = argv[++i];
+        else if (v && !strcmp(a, "--country")) country = argv[++i];
         else if (!strcmp(a, "--private")) priv = 1;
         else if (!strcmp(a, "--public")) priv = 0;
         else if (a[0] == '-') return 2;
@@ -423,6 +552,19 @@ int known_cmd(const char *sub, int argc, char **argv, const char *given)
     if (!words.n) return 2;
     char *key = tag_normalise(words.v[0]);
     if (!known_ok(key)) die("%s: an entry's key is a namespaced tag, NAMESPACE:value (person:anne-smith, software:kicad)", words.v[0]);
+    int place = !strncmp(key, "place:", 6);
+    if (!place && (parent || pos || kind || country)) die("%s", "--parent, --at, --kind and --country are a place's (place:KEY)");
+    char *at = NULL, *in = parent ? tag_normalise(parent) : NULL;
+    if (in && strncmp(in, "place:", 6)) {       /* --parent kyoto: a place's key */
+        char *full = xprintf("place:%s", in);
+        free(in);
+        in = full;
+    }
+    if (pos) {
+        double la, lo;
+        if (iso6709_parse(pos, &la, &lo)) die("%s: a position is ISO 6709 in decimal degrees, +35.03+135.75/ (or 35.03,135.75)", pos);
+        at = iso6709(la, lo);
+    }
     arv_home h;
     archive cat;
     home_find(&h, given, NULL);
@@ -439,7 +581,7 @@ int known_cmd(const char *sub, int argc, char **argv, const char *given)
         if (!e && !u.paths.n && !u.objects.n) die("no entry %s, and no tag of it in use (arv tags lists them)", key);
         known_entry blank = { 0 };
         blank.key = key;
-        show_entry(&cat, e ? e : &blank, &u);
+        show_entry(&cat, v, n, e ? e : &blank, &u);
         if (!e) printf("  not an entry yet: arv tags add %s --label \"...\"\n", key);
     } else if (!strcmp(sub, "add")) {
         if (words.n > 1) return 2;
@@ -447,9 +589,11 @@ int known_cmd(const char *sub, int argc, char **argv, const char *given)
             char *lb = label ? xstrdup(label) : known_label_of(key), *basis = xprintf("made by %s with arv tags add, %s", who, today);
             known_field(&h, key, "Label", lb, 0);
             known_field(&h, key, "Basis", basis, 0);
-            if (priv == 1 || (priv < 0 && private_by_default(key))) known_field(&h, key, "Private", "yes", 0);
+            int hide = priv == 1 || (priv < 0 && (private_by_default(key) || at));   /* a place to the metre: someone's home, perhaps */
+            if (hide) known_field(&h, key, "Private", "yes", 0);
+            if (place) known_field(&h, key, "Kind", kind ? kind : "site", 0);
             name_event(&cat, key, "an entry of the known names, made", "Label", lb);
-            printf("%s: an entry now, %s%s\n", key, lb, priv == 1 || (priv < 0 && private_by_default(key)) ? " (private: stays home)" : "");
+            printf("%s: an entry now, %s%s\n", key, lb, hide ? " (private: stays home)" : "");
             free(lb);
             free(basis);
         } else if (label) {
@@ -460,6 +604,14 @@ int known_cmd(const char *sub, int argc, char **argv, const char *given)
         for (size_t i = 0; i < aliases.n; i++) known_field(&h, key, "Alias", aliases.v[i], 1);
         for (size_t i = 0; i < same.n; i++) known_field(&h, key, "Same", same.v[i], 1);
         if (qual) known_field(&h, key, "Qualifier", qual, 0);
+        if (e && kind) known_field(&h, key, "Kind", kind, 0);
+        if (in) {
+            if (!entry_of(v, n, in)) fprintf(stderr, "(%s is not in the gazetteer yet: arv tags add %s)\n", in, in);
+            known_field(&h, key, "Parent", in, 0);
+            name_event(&cat, key, "the place it is in", "Parent", in);
+        }
+        if (country) known_field(&h, key, "Country", country, 0);
+        if (at) known_field(&h, key, "At", at, 0);   /* the gazetteer's, never an event: the record keeps no coordinates */
         if (e) printf("%s: updated\n", key);
         saved = 1;
     } else if (!strcmp(sub, "label")) {
@@ -577,5 +729,7 @@ int known_cmd(const char *sub, int argc, char **argv, const char *given)
     strlist_free(&same);
     free(who);
     free(key);
+    free(at);
+    free(in);
     return rc;
 }

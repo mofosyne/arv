@@ -77,13 +77,23 @@ typedef struct {
     char *key, *label, *qualifier, *basis, *retired;   /* retired: why, or NULL */
     strlist aliases, related, same;
     int private_;
+    char *kind, *parent, *country, *at;                 /* a place (the gazetteer, config/places.rec) */
+    int has_at;
+    double lat, lon;                                    /* from at: ISO 6709, decimal degrees */
 } known_entry;
-size_t known_load(const arv_home *h, known_entry **out);
+size_t known_load(const arv_home *h, known_entry **out);   /* tags.rec's entries, then places.rec's */
+const known_entry *known_find(const known_entry *v, size_t n, const char *key);
+int known_position(const known_entry *v, size_t n, const known_entry *e, double *lat, double *lon);   /* its own, or a parent's: 2, 1 */
+char *known_where(const known_entry *v, size_t n, const known_entry *e);   /* "Kyoto, Japan" */
+int iso6709_parse(const char *s, double *lat, double *lon);   /* +35.03+135.75/ or 35.03,135.75; 0 when it is one */
+char *iso6709(double lat, double lon);
 void known_free(known_entry *v, size_t n);
 char *known_label_of(const char *key);      /* person:anne-smith -> "Anne Smith" */
 int known_field(const arv_home *h, const char *key, const char *field, const char *value, int add);
-char *known_strip_private(const char *text);   /* tags.rec without its Private: yes entries */
+char *known_strip_private(const char *text);   /* tags.rec or places.rec without its Private: yes entries */
 int known_cmd(const char *sub, int argc, char **argv, const char *given);
+int cmd_map(int argc, char **argv);                                      /* map.c */
+char *map_disc_html(const arv_home *h, const char *tags_tsv, int public_);   /* a disc's places, for index.html */
 int cmd_keywords(int argc, char **argv);
 int cmd_make(int argc, char **argv);
 long medium_budget(const char *medium, const char **label);
@@ -425,7 +435,7 @@ void html_esc(sbuf *b, const char *s);     /* html.escape */
 void url_quote(sbuf *b, const char *s);    /* urllib.parse.quote */
 void hash_both(const char *path, char sha256[65], char sha512[129]);
 char *render_index(const rec_record *disc, const rec_record *binding, const entries *files,
-                   const archive *snapshot, char *(*where_fn)(const archive *, const rec_record *));
+                   const archive *snapshot, char *(*where_fn)(const archive *, const rec_record *), const char *places);
 
 /* names.c: file names a disc image cannot keep exactly; volume labels */
 typedef struct {

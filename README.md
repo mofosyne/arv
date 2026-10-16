@@ -387,7 +387,7 @@ an embedding service. For suggestions, point `--embed-url` at an OpenAI-compatib
 server. arv does not download or build a model or runtime. See `arv tag --help` and
 [src/arv-assist/README.md](src/arv-assist/README.md).
 
-`arv tags` lists tags in use; `arv keywords DISC` writes hierarchical keywords in exiftool format.
+`arv tags` lists tags in use; `arv map` the places they name; `arv keywords DISC` writes hierarchical keywords in exiftool format.
 A reviewed tag draft can be applied to `arv make` as `--draft FILE`.
 
 ## Optional: local LLM help with descriptions and tags
@@ -409,6 +409,13 @@ organisation, software or work you confirm becomes a known name: offered next ti
 without asking once it is certain. `arv tags show|label|alias|merge|split|retire KEY` keeps them
 right (two people of one name: `split`, each use asked about). `--clues` takes the clues alone, as
 a draft to edit; the GUI's "Fill from the files" does the same.
+
+**Places** come from a gazetteer, `config/places.rec`: Natural Earth's countries and cities
+(public domain), and the places you add (`arv tags add place:fushimi-inari --parent kyoto`).
+`--ask` offers the cities a folder's names or text mention, saying which ("Lima, Peru"), and the
+nearest one to its photos' GPS; the record keeps the place, never the coordinates. `arv map` lists
+the places your tags name and where each is; `--geojson` gives them to map tools, `--svg` draws
+them, and each disc's `index.html` shows its places on a small map that needs nothing installed.
 
 ```sh
 ./arv describe ./2019-07_Kyoto --ask --save d.json     # then arv make ./2019-07_Kyoto --draft d.json

@@ -125,7 +125,8 @@ word_stats *word_stats_load(const arv_home *h, const archive *cat);   /* cache/w
 void word_stats_free(word_stats *ws);
 void name_word_list(const char *name, strlist *out);  /* a name's words, and each two in a row */
 double word_rarity(const word_stats *ws, const char *w);
-int word_common(const word_stats *ws, const char *w);  /* in a fifth of the archive's folders or more */
+int word_common(const word_stats *ws, const char *w);
+int word_plain(const char *w);                         /* one of the language's commonest words */  /* in a fifth of the archive's folders or more */
 void word_tags(const word_stats *ws, const strlist *names, const strlist *text, strlist *tags, strlist *why);
 void word_counts(const word_stats *ws, const char *w, const char *tag, size_t *with, size_t *all);
 size_t word_tag_uses(const word_stats *ws, const char *tag);   /* tagged paths (and answers) with it */
