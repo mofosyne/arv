@@ -2076,7 +2076,10 @@ Private: yes                     stays home: never on a disc whose access is wid
 
 A name is not always a person or a place: "KiCad" is software, "Weather station" a project of your
 own, "Acme" a company. Libraries control persons, families, corporate bodies, works and places; the
-default vocabulary's namespaces become, with two added:
+default vocabulary's namespaces become, with four added. Software has its own, not `work`: it is
+what a personal archive holds most of among things others made, and what one looks for by name
+(and a layout's `software/kicad/` reads better than `work/kicad/`); `work` holds the rest until one
+kind is common enough to earn its own:
 
 | Namespace | What | Values |
 |---|---|---|
@@ -2086,12 +2089,13 @@ default vocabulary's namespaces become, with two added:
 | `place` | where (the gazetteer) | many |
 | `event` | an occasion | one |
 | `project` | a piece of your own work | one |
-| `work` | something made by others that it is about or made with: software (KiCad), a book, a film | many |
+| `software` | a program it is made with or about: KiCad, Blender, a game | many |
+| `work` | anything else made by others that it is about: a book, a film, an album | many |
 | `source` | what made the files: a camera, a scanner, an account | many |
 
 One form may be several entries ("Jordan" a country and a person; "KiCad" the software, and a word
 that goes with the topic electronics): a form names an entry for certain only when it names one
-alone. A topic and an entry are linked by `Related` ("work:kicad" related to "electronics"), so
+alone. A topic and an entry are linked by `Related` ("software:kicad" related to "electronics"), so
 confirming one offers the other.
 
 ### When a known name is taken without asking
@@ -2148,7 +2152,7 @@ than its own tags do.
 ### Order of building
 
 1. The fields, read and written: `Label`, `Qualifier`, `Related`, `Same`, `Basis`, `Private`,
-   `Retired`, and the two new namespaces; `--ask` confirming a name makes or extends an entry, with
+   `Retired`, and the four new namespaces (`family`, `organisation`, `software`, `work`); `--ask` confirming a name makes or extends an entry, with
    the questions for one form of two entries.
 2. Taking a known name without asking, by the rule above.
 3. Changing them: `arv names` to list, rename, merge, split and retire, each an event.
