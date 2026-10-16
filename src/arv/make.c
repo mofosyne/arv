@@ -878,7 +878,7 @@ typedef struct {
     char disc_id[64], uuid[37];
     long sequence;
     int part, parts;
-    char *out, *label, *stage, *built, *extents, *b_manifest, *b_listing, *b_formats, *b_tags;
+    char *out, *label, *stage, *built, *extents, *b_manifest, *b_listing, *b_formats, *b_tags, *b_packed;
     rec_record *disc, *binding;
     recs events, appraisals;
     recs objects;                   /* --plan: the data objects on this disc (with Source: home only) */
@@ -990,7 +990,7 @@ static int prior_disc(const maker *mk, const rec_record *d)
 static long snapshot_estimate(const maker *mk)
 {
     static const char *const KINDS[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", "git.tsv",
-                                         NULL };
+                                         "packed.tsv", NULL };
     long total = 0;
     for (size_t i = 0; i < mk->cat->discs.n; i++) {
         const rec_record *d = mk->cat->discs.v[i];
@@ -1342,6 +1342,26 @@ static void batch_files(maker *mk)
             if (write_plan_tags(t, mk->tags, &p->described)) p->b_tags = t;
             else free(t);
         }
+        p->b_packed = NULL;                 /* the files in its packs: each one's hash, path and pack */
+        {
+            entries in = { 0 };
+            for (size_t k = 0; k < p->described.n; k++)
+                if (p->described.v[k].pack) {
+                    in.v = xrealloc(in.v, (in.n + 1) * sizeof *in.v);
+                    in.v[in.n++] = p->described.v[k];
+                }
+            if (in.n) {
+                qsort(in.v, in.n, sizeof *in.v, by_entry_path);
+                sbuf t = { 0 };
+                sb_puts(&t, "# arv packed 1\tsha256\tpath (relative to data/, as unpacked)\tpack (relative to data/)\tpacking\n");
+                for (size_t k = 0; k < in.n; k++)
+                    sb_printf(&t, "%s\t%s\t%s\t%s\n", in.v[k].sha256, in.v[k].path, in.v[k].pack, in.v[k].packing);
+                p->b_packed = xprintf("%s/%s.packed", batch, p->disc_id);
+                write_text(p->b_packed, t.s);
+                free(t.s);
+            }
+            free(in.v);
+        }
         p->b_formats = NULL;
         if (mk->have_formats) {
             p->b_formats = xprintf("%s/%s.csv", batch, p->disc_id);
@@ -1467,7 +1487,7 @@ static void stage_plan(maker *mk, size_t idx)
         free(dir);
     }
     static const char *const KINDS[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", "git.tsv",
-                                         NULL };
+                                         "packed.tsv", NULL };
     for (size_t i = 0; i < prior.n; i++) {               /* earlier discs' file lists (not sealed ones) */
         rec_record *d = archive_disc(cat, prior.v[i]);
         if (!d || !strcmp(disc_access(d), "sealed")) continue;
@@ -1501,6 +1521,11 @@ static void stage_plan(maker *mk, size_t idx)
             char *tg = join(dir, "tags.tsv");
             copy_file(mk->plans[b].b_tags, tg);
             free(tg);
+        }
+        if (mk->plans[b].b_packed) {
+            char *pk = join(dir, "packed.tsv");
+            copy_file(mk->plans[b].b_packed, pk);
+            free(pk);
         }
         char *gt = git_tsv_for(&mk->git, &mk->plans[b].files);     /* its repositories' commits */
         if (gt) {
@@ -1572,8 +1597,9 @@ static void stage_plan(maker *mk, size_t idx)
         rec_add(arc, "HomeUuid", archive_home_uuid(cat));
         const char *pointers[][2] = { { "Manifest", "manifest-sha256.txt" }, { "Listing", "catalog/volumes/%s/listing.tsv" },
                                       { "Tags", "catalog/volumes/%s/tags.tsv" }, { "Formats", "catalog/volumes/%s/formats.csv" },
-                                      { "Snapshot", "catalog/archive.rec" }, { "Viewer", "index.html" }, { "Payload", "data/" } };
-        for (int i = 0; i < 7; i++) {
+                                      { "Packed", "catalog/volumes/%s/packed.tsv" }, { "Snapshot", "catalog/archive.rec" },
+                                      { "Viewer", "index.html" }, { "Payload", "data/" } };
+        for (int i = 0; i < 8; i++) {
             char *rel = strstr(pointers[i][1], "%s") ? xprintf(pointers[i][1], p->disc_id) : xstrdup(pointers[i][1]);
             if (!strcmp(pointers[i][0], "Payload") || has(p->stage, rel)) rec_add(arc, pointers[i][0], rel);
             free(rel);
@@ -1746,6 +1772,19 @@ static void pack_members(maker *mk)
         }
         fprintf(stderr, "Packing data/%s (%s): %zu file%s ...\n", first->pack, first->packing, j - i, j - i == 1 ? "" : "s");
         pack_write(out, first->packing, by + i, names, j - i, mk->workdir);
+        {                                   /* read back: every file comes out of it as it went in */
+            strlist got = { 0 }, hex = { 0 };
+            const char *base = strrchr(first->member, '/') ? strrchr(first->member, '/') + 1 : first->member;
+            const char *wrong = pack_read(out, first->packing, base, NULL, &got, &hex);
+            size_t same = 0;                /* in the pack as written: by name */
+            for (size_t k = 0; !wrong && k < got.n && i + k < j; k++)
+                same += (!strcmp(by[i + k]->member, got.v[k]) || j - i == 1) && !strcmp(by[i + k]->sha256, hex.v[k]);
+            if (wrong || got.n != j - i || same != j - i)
+                die2("data/%s did not read back as it was written (%s): nothing was made", first->pack,
+                     wrong ? wrong : "its files differ");
+            strlist_free(&got);
+            strlist_free(&hex);
+        }
         entry e;
         scan_file(out, first->pack, &e);
         e.bin = first->bin;
@@ -1919,11 +1958,11 @@ static int make_discs(maker *mk)
         }
         char *home_vol = xprintf("%s/volumes/%s", mk->h->catalog_dir, p->disc_id);
         if (mkdirs(home_vol)) die("cannot create %s", home_vol);
-        const char *kinds[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", "git.tsv" };
+        const char *kinds[] = { "manifest.sha256", "listing.tsv", "formats.csv", "tags.tsv", "extents.tsv", "git.tsv", "packed.tsv" };
         char *own = xprintf("%s/catalog/volumes/%s", p->stage, p->disc_id);
         char *from[] = { join(own, "manifest.sha256"), join(own, "listing.tsv"), join(own, "formats.csv"), join(own, "tags.tsv"),
-                         xstrdup(p->extents), join(own, "git.tsv") };
-        for (int k = 0; k < 6; k++) {       /* extents: kept at home and on later discs, never on this one */
+                         xstrdup(p->extents), join(own, "git.tsv"), join(own, "packed.tsv") };
+        for (int k = 0; k < 7; k++) {       /* extents: kept at home and on later discs, never on this one */
             if (!access(from[k], F_OK)) {
                 char *to = join(home_vol, kinds[k]);
                 copy_file(from[k], to);

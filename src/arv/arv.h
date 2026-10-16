@@ -259,6 +259,16 @@ const char *packing_tool(const char *name);         /* the program it needs, or 
 const char *packing_found(const char *path);        /* what a file is packed as, by name and bytes, or NULL */
 void pack_write(const char *out, const char *packing, const entry *const *members, char *const *names, size_t n,
                 const char *workdir);
+/* reads a pack: each file's name in it (relative to the pack's folder) and SHA-256, and with out_dir
+ * writes them there too (never over a file); single: a compressed file's name. NULL, or what is wrong */
+const char *pack_read(const char *file, const char *packing, const char *single, const char *out_dir, strlist *names,
+                      strlist *hashes);
+typedef struct {
+    char *sha256, *path, *pack, *packing;  /* a file in a pack: its hash and path as unpacked, under data/ */
+} packed_row;
+size_t packed_rows(const char *file, packed_row **out);   /* a disc's catalog/volumes/ID/packed.tsv */
+const char *pack_compare(const char *pack_file, const packed_row *rows, size_t n, const char *pack, const char *out_dir,
+                         size_t *same, size_t *differ, size_t *gone, uint64_t *bytes, sbuf *msgs);
 void text_sha256(const char *text, char hex[65]);
 void json_str(sbuf *b, const char *s);     /* a JSON string, quoted */
 /* every JSON output starts {"format": "arv-json 1", ...}: whose and which shape (fields are only

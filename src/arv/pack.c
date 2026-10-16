@@ -354,3 +354,397 @@ void pack_write(const char *out, const char *packing, const entry *const *member
     }
     signal(SIGPIPE, was);
 }
+
+/* ------------------------------------------------------------------ reading */
+
+static ssize_t read_full(int fd, void *buf, size_t n)
+{
+    size_t got = 0;
+    while (got < n) {
+        ssize_t r = read(fd, (char *)buf + got, n - got);
+        if (r < 0 && errno == EINTR) continue;
+        if (r <= 0) break;
+        got += (size_t)r;
+    }
+    return (ssize_t)got;
+}
+
+/* the decompressor, reading the pack and writing a pipe; returns the pipe's end to read from */
+static int start_reader(const struct packing *pk, const char *file, pid_t *pid)
+{
+    int in = open(file, O_RDONLY);
+    if (in < 0) return -1;
+    if (!pk->argv[0] || pk->kind == ZIP) {
+        *pid = 0;
+        return in;
+    }
+    int fds[2];
+    if (pipe(fds)) {
+        close(in);
+        return -1;
+    }
+    *pid = fork();
+    if (*pid < 0) return -1;
+    if (*pid == 0) {
+        dup2(in, 0);
+        dup2(fds[1], 1);
+        int devnull = open("/dev/null", O_WRONLY);
+        if (devnull >= 0) dup2(devnull, 2);
+        close(fds[0]);
+        close(fds[1]);
+        close(in);
+        execlp(pk->argv[0], pk->argv[0], "-dc", (char *)NULL);
+        _exit(127);
+    }
+    close(fds[1]);
+    close(in);
+    return fds[0];
+}
+
+/* 0, or why not: the program missing, or it failed */
+static const char *end_reader(int fd, pid_t pid)
+{
+    char sink[65536];
+    while (read(fd, sink, sizeof sink) > 0) {}   /* what is left (the tar's padding) */
+    close(fd);
+    if (!pid) return NULL;
+    int status;
+    while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {}
+    if (!WIFEXITED(status) || WEXITSTATUS(status) == 127) return "is not on PATH";
+    return WEXITSTATUS(status) ? "failed: the pack is damaged" : NULL;
+}
+
+static uint64_t octal(const char *f, size_t n)
+{
+    if ((unsigned char)f[0] & 0x80) {           /* base-256, for large sizes */
+        uint64_t v = (unsigned char)f[0] & 0x7f;
+        for (size_t i = 1; i < n; i++) v = v << 8 | (unsigned char)f[i];
+        return v;
+    }
+    uint64_t v = 0;
+    for (size_t i = 0; i < n && f[i]; i++)
+        if (f[i] >= '0' && f[i] <= '7') v = v * 8 + (uint64_t)(f[i] - '0');
+    return v;
+}
+
+/* one member's bytes from fd: hashed, and written to out (-1: not) */
+static int member_bytes(int fd, uint64_t size, int out, char hex[65])
+{
+    static unsigned char buf[1 << 16];
+    sha256_ctx c;
+    unsigned char digest[32];
+    sha256_init(&c);
+    for (uint64_t left = size; left;) {
+        size_t want = left < sizeof buf ? (size_t)left : sizeof buf;
+        if (read_full(fd, buf, want) != (ssize_t)want) return -1;
+        sha256_update(&c, buf, want);
+        if (out >= 0 && write_all(out, buf, want)) return -2;
+        left -= want;
+    }
+    sha256_final(&c, digest);
+    sha256_hex(digest, hex);
+    if (size % 512) {
+        char pad_[512];
+        if (read_full(fd, pad_, 512 - size % 512) != (ssize_t)(512 - size % 512)) return -1;
+    }
+    return 0;
+}
+
+/* writes a member under dir (never over a file there); returns the open file, or -1 with *why */
+static int member_file(const char *dir, const char *name, const char **why)
+{
+    if (!safe_rel(name)) {
+        *why = "not a safe path";
+        return -1;
+    }
+    int fd = -1;
+    char *at = join(dir, name);
+    if (make_parents(dir, name) || (fd = open(at, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0644)) < 0) *why = strerror(errno);
+    free(at);
+    return fd;
+}
+
+static void member_done(const char *dir, const char *name, int executable, time_t mtime)
+{
+    char *at = join(dir, name);
+    chmod(at, executable ? 0755 : 0644);
+    struct timespec ts[2] = { { mtime, 0 }, { mtime, 0 } };
+    utimensat(AT_FDCWD, at, ts, AT_SYMLINK_NOFOLLOW);
+    free(at);
+}
+
+const char *pack_read(const char *file, const char *packing, const char *single, const char *out_dir, strlist *names,
+                      strlist *hashes)
+{
+    static char why[512];
+    const struct packing *pk = by_name(packing);
+    if (!pk || pk->kind == FOUND_ONLY) return "not a packing arv reads";
+    void (*was)(int) = signal(SIGPIPE, SIG_IGN);
+    const char *problem = NULL;
+    if (pk->kind == ZIP) {                      /* the zip program: its names, then each member */
+        char *list = NULL;
+        char *const la[] = { "unzip", "-Z1", (char *)file, NULL };
+        int rc = run(la, &list);
+        if (rc == -1) problem = "unzip is not on PATH";
+        else if (rc) problem = "unzip cannot read it: the pack is damaged";
+        if (!problem && out_dir) {              /* unzip writes them, with their times; never over a file */
+            char *out = NULL;
+            char *const xa[] = { "unzip", "-q", "-n", "-X", (char *)file, "-d", (char *)out_dir, NULL };
+            if (mkdirs(out_dir) || run(xa, &out)) problem = "unzip could not write every file";
+            free(out);
+        }
+        for (char *line = list, *next; !problem && line && *line; line = next) {
+            next = strchr(line, '\n');
+            if (next) *next++ = 0;
+            size_t n = strlen(line);
+            if (!n || line[n - 1] == '/') continue;
+            char hex[65];
+            if (out_dir) {
+                char *at = join(out_dir, line);
+                if (!safe_rel(line) || hash_file(at, hex, -1, NULL)) {
+                    snprintf(why, sizeof why, "%s was not unpacked", line);
+                    problem = why;
+                }
+                free(at);
+            } else {
+                sbuf pat = { 0 };               /* unzip reads a name as a pattern: its wildcards escaped */
+                for (const char *c = line; *c; c++) {
+                    if (strchr("*?[]\\", *c)) sb_add(&pat, "\\", 1);
+                    sb_add(&pat, c, 1);
+                }
+                int fds[2];
+                if (pipe(fds)) problem = "cannot run unzip";
+                pid_t pid = problem ? -1 : fork();
+                if (pid == 0) {
+                    dup2(fds[1], 1);
+                    close(fds[0]);
+                    close(fds[1]);
+                    execlp("unzip", "unzip", "-p", file, pat.s, (char *)NULL);
+                    _exit(127);
+                }
+                if (pid > 0) {
+                    close(fds[1]);
+                    sha256_ctx c;
+                    unsigned char buf[65536], digest[32];
+                    ssize_t r;
+                    sha256_init(&c);
+                    while ((r = read(fds[0], buf, sizeof buf)) > 0) sha256_update(&c, buf, (size_t)r);
+                    close(fds[0]);
+                    sha256_final(&c, digest);
+                    sha256_hex(digest, hex);
+                    int status;
+                    while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {}
+                    if (!WIFEXITED(status) || WEXITSTATUS(status)) {
+                        snprintf(why, sizeof why, "unzip cannot read %s: the pack is damaged", line);
+                        problem = why;
+                    }
+                }
+                free(pat.s);
+            }
+            if (!problem) {
+                strlist_add(names, line);
+                strlist_add(hashes, hex);
+            }
+        }
+        free(list);
+        signal(SIGPIPE, was);
+        return problem;
+    }
+    pid_t pid;
+    int fd = start_reader(pk, file, &pid);
+    if (fd < 0) {
+        signal(SIGPIPE, was);
+        return "cannot read it";
+    }
+    if (pk->kind == COMPRESSED) {               /* one file, compressed */
+        char hex[65];
+        const char *wrong = NULL;
+        int out = out_dir ? member_file(out_dir, single, &wrong) : -1;
+        if (out_dir && out < 0) {
+            snprintf(why, sizeof why, "%s: %s", single, wrong);
+            problem = why;
+        } else {
+            sha256_ctx c;
+            unsigned char buf[65536], digest[32];
+            ssize_t r;
+            sha256_init(&c);
+            while ((r = read(fd, buf, sizeof buf)) > 0) {
+                sha256_update(&c, buf, (size_t)r);
+                if (out >= 0 && write_all(out, buf, (size_t)r)) problem = "cannot write";
+            }
+            sha256_final(&c, digest);
+            sha256_hex(digest, hex);
+            if (out >= 0) close(out);
+            strlist_add(names, single);
+            strlist_add(hashes, hex);
+        }
+    } else {                                    /* a tar: header, bytes, padding; pax for long names and sizes */
+        char h[512], *long_name = NULL;
+        uint64_t long_size = 0;
+        int have_size = 0;
+        while (!problem) {
+            if (read_full(fd, h, 512) != 512) {
+                problem = "it ends too soon: the pack is damaged";
+                break;
+            }
+            int zero = 1;
+            for (int i = 0; i < 512 && zero; i++) zero = !h[i];
+            if (zero) break;
+            uint64_t size = octal(h + 124, 12);
+            char type = h[156];
+            if (type == 'x' || type == 'L') {   /* pax extended header, or GNU long name: for the next */
+                char *body = xmalloc((size_t)size + 1);
+                if (read_full(fd, body, (size_t)size) != (ssize_t)size) {
+                    free(body);
+                    problem = "it ends too soon: the pack is damaged";
+                    break;
+                }
+                body[size] = 0;
+                if (size % 512) {
+                    char pad_[512];
+                    read_full(fd, pad_, 512 - size % 512);
+                }
+                if (type == 'L') {
+                    free(long_name);
+                    long_name = xstrdup(body);
+                } else {
+                    for (char *r = body; r < body + size;) {    /* "LEN key=value\n" */
+                        char *sp = strchr(r, ' '), *eq = sp ? strchr(sp, '=') : NULL;
+                        long len = strtol(r, NULL, 10);
+                        if (!sp || !eq || len <= 0 || r + len > body + size) break;
+                        char *end = r + len - 1;
+                        if (!strncmp(sp + 1, "path=", 5)) {
+                            free(long_name);
+                            long_name = xprintf("%.*s", (int)(end - eq - 1), eq + 1);
+                        } else if (!strncmp(sp + 1, "size=", 5)) {
+                            long_size = strtoull(eq + 1, NULL, 10);
+                            have_size = 1;
+                        }
+                        r += len;
+                    }
+                }
+                free(body);
+                continue;
+            }
+            if (have_size) size = long_size;
+            char name[257];
+            if (long_name) snprintf(name, sizeof name, "%s", long_name);
+            else if (h[345]) snprintf(name, sizeof name, "%.155s/%.100s", h + 345, h);
+            else snprintf(name, sizeof name, "%.100s", h);
+            char *full = long_name ? long_name : xstrdup(name);
+            long_name = NULL;
+            have_size = 0;
+            if (type != '0' && type != 0) {     /* folders and anything else: not files arv packed */
+                char hex[65];
+                if (member_bytes(fd, size, -1, hex)) problem = "it ends too soon: the pack is damaged";
+                free(full);
+                continue;
+            }
+            const char *wrong = NULL;
+            int out = out_dir ? member_file(out_dir, full, &wrong) : -1;
+            if (out_dir && out < 0) {
+                snprintf(why, sizeof why, "%s: %s", full, wrong);
+                problem = why;
+                free(full);
+                break;
+            }
+            char hex[65];
+            int rc = member_bytes(fd, size, out, hex);
+            if (out >= 0) {
+                close(out);
+                member_done(out_dir, full, (int)(octal(h + 100, 8) & 0111), (time_t)octal(h + 136, 12));
+            }
+            if (rc == -1) problem = "it ends too soon: the pack is damaged";
+            else if (rc == -2) problem = "cannot write";
+            else {
+                strlist_add(names, full);
+                strlist_add(hashes, hex);
+            }
+            free(full);
+        }
+        free(long_name);
+    }
+    const char *end = end_reader(fd, pid);
+    if (!problem && end) {
+        snprintf(why, sizeof why, "%s %s", pk->argv[0], end);
+        problem = why;
+    }
+    signal(SIGPIPE, was);
+    return problem;
+}
+
+/* ------------------------------------------------------------------ a disc's packed.tsv */
+
+size_t packed_rows(const char *file, packed_row **out)
+{
+    *out = NULL;
+    char *text = read_text(file);
+    if (!text) return 0;
+    size_t n = 0, cap = 0;
+    for (char *line = text, *next; line && *line; line = next) {
+        next = strchr(line, '\n');
+        if (next) *next++ = 0;
+        if (line[0] == '#' || !*line) continue;
+        char *c[4];
+        if (split_tabs(line, c, 4) != 4) continue;
+        if (n == cap) {
+            cap = cap ? 2 * cap : 64;
+            *out = xrealloc(*out, cap * sizeof **out);
+        }
+        packed_row r = { xstrdup(c[0]), xstrdup(c[1]), xstrdup(c[2]), xstrdup(c[3]) };
+        (*out)[n++] = r;
+    }
+    free(text);
+    return n;
+}
+
+/* one pack against the rows naming it: read (and with out_dir, unpacked there), each file's hash
+ * compared; every finding a line in msgs. NULL, or why it could not be read at all */
+const char *pack_compare(const char *pack_file, const packed_row *rows, size_t n, const char *pack, const char *out_dir,
+                         size_t *same, size_t *differ, size_t *gone, uint64_t *bytes, sbuf *msgs)
+{
+    const char *packing = NULL, *single = NULL;
+    size_t mine = 0;
+    for (size_t i = 0; i < n; i++)
+        if (!strcmp(rows[i].pack, pack)) {
+            packing = rows[i].packing;
+            single = strrchr(rows[i].path, '/') ? strrchr(rows[i].path, '/') + 1 : rows[i].path;
+            mine++;
+        }
+    if (!packing) return "no files are listed for it";
+    char *folder = xstrdup(pack), *slash = strrchr(folder, '/');
+    if (slash) *slash = 0;
+    else *folder = 0;
+    strlist names = { 0 }, hashes = { 0 };
+    const char *wrong = pack_read(pack_file, packing, single, out_dir, &names, &hashes);
+    strlist seen = { 0 };
+    for (size_t k = 0; k < names.n; k++) {
+        char *path = *folder ? join(folder, names.v[k]) : xstrdup(names.v[k]);
+        const packed_row *r = NULL;
+        for (size_t i = 0; i < n && !r; i++)
+            if (!strcmp(rows[i].pack, pack) && (!strcmp(rows[i].path, path) || mine == 1)) r = &rows[i];
+        if (!r) sb_printf(msgs, "EXTRA    %s (in data/%s, not in its list)\n", path, pack);
+        else if (strcmp(r->sha256, hashes.v[k])) {
+            sb_printf(msgs, "DAMAGED  %s (in data/%s: its checksum differs)\n", r->path, pack);
+            (*differ)++;
+        } else {
+            (*same)++;
+            struct stat st;
+            char *at = out_dir ? join(out_dir, names.v[k]) : NULL;
+            if (at && bytes && !stat(at, &st)) *bytes += (uint64_t)st.st_size;
+            free(at);
+        }
+        if (r) strlist_add(&seen, r->path);
+        free(path);
+    }
+    for (size_t i = 0; i < n; i++)
+        if (!strcmp(rows[i].pack, pack) && !strlist_has(&seen, rows[i].path)) {
+            sb_printf(msgs, "MISSING  %s (not read from data/%s)\n", rows[i].path, pack);
+            (*gone)++;
+        }
+    strlist_free(&names);
+    strlist_free(&hashes);
+    strlist_free(&seen);
+    free(folder);
+    return wrong;
+}

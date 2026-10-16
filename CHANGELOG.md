@@ -33,6 +33,11 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   file added as it is that is an archive (`.zip`, `.tar.gz`, `.7z` ...) gets `Packing` alone.
 - `plan show` (and `--json`) says how each item is packed and into what; `objects` names the pack;
   `status` counts files inside packs as on discs; `objects --json` gives `packing` and `pack`.
+- Each disc lists the files in its packs, with their SHA-256 (`catalog/volumes/ID/packed.tsv`).
+  `plan make` reads each pack back as soon as it is written; `arv check` of a disc's files reads
+  inside its packs; `arv restore` unpacks each pack where it is, with its files' times.
+- `plan show NAME --packed` packs what the plan packs, in a temporary folder, and gives each pack's
+  size and the discs' fill with them (`packs` in `--json`); the GUI's "Packed sizes" asks it.
 
 **The room on a disc, in the spec**
 - The disc format spec gives each medium's sectors and how much image fits at 10, 20, 30 and 50%

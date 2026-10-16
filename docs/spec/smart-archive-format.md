@@ -82,6 +82,7 @@ Manifest: manifest-sha256.txt
 Listing: catalog/volumes/2020-2025_PROJECTS_01/listing.tsv
 Tags: catalog/volumes/2020-2025_PROJECTS_01/tags.tsv
 Formats: catalog/volumes/2020-2025_PROJECTS_01/formats.csv
+Packed: catalog/volumes/2020-2025_PROJECTS_01/packed.tsv    only when the disc has packs
 Snapshot: catalog/archive.rec
 Viewer: index.html
 Payload: data/
@@ -107,13 +108,14 @@ catalogue rebuilt from a disc takes the disc's archive identity.
 | `catalog/volumes/<id>/tags.tsv` | TSV | Tags of folders and files, and optional image captions |
 | `catalog/volumes/<id>/git.tsv` | TSV | For each git repository on the disc: its root commits, heads, shallow boundary and every commit it holds (see [Git repositories](#git-repositories)) |
 | `catalog/volumes/<id>/formats.csv` | CSV | PRONOM format identification per file (optional) |
+| `catalog/volumes/<id>/packed.tsv` | TSV | Every file inside the disc's packs: its SHA-256, its path under `data/` as unpacked, its pack and how it is packed (see [Packed objects](#object-records-data-objects-format-05)); only when the disc has packs |
 | `catalog/volumes/<id>/manifest.sha256` | BagIt manifest | Copy of the disc's `manifest-sha256.txt` |
 | `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Binding`, `Location`, `Collection`, `Revision`, `Event` and `Appraisal` records (limited by [Access](#access)) |
 | `catalog/config/sets.rec`, `catalog/config/tags.rec` | recfile | The archive's vocabularies at burn time: the set codes (`Set`, `Category`) and the tag words its records use, with their names, parents and aliases. Full snapshots only; optional (format 0.5) |
 | `catalog/volumes/<other-id>/` | as above | The same per-volume index files for the other discs in the snapshot: one folder per volume, as LTFS keeps one index per tape |
 | `index.html` | HTML | Offline viewer (for people; readers can ignore) |
 | `README.txt` | text | How to browse, search, verify, restore and repair the disc, for people |
-| `tools/arv/` | files | The source of the software that made the disc (C; its optional web interface in Python), with this spec |
+| `tools/arv/` | files | The source of the software that made the disc (C, its web interface too), with this spec |
 | `tools/arv.com` | program | That software as one Actually Portable Executable (Cosmopolitan): runs as is on Linux, macOS, Windows and the BSDs, x86-64 and ARM64. Optional: present when it was built where the disc was made |
 | `data/` | files | The payload, untouched |
 
@@ -509,7 +511,17 @@ objects of one disc (`data/pack.tar.zst`, its members named from `data/`, so unp
 lays them over the disc's other objects). `Tree`, `Files` and `Bytes` are those of the object's
 files, as unpacked, so the same files are the same version whether packed or not, and its
 manifest lists them; the bag's manifests, the listing and `extents.tsv` list the pack, a file like
-any other. `tags.tsv` and `formats.csv` name the files at their paths as unpacked.
+any other. `tags.tsv` and `formats.csv` name the files at their paths as unpacked, and
+`packed.tsv` lists each with its SHA-256, so a reader can check what it unpacks without the home:
+
+```
+# arv packed 1	sha256	path (relative to data/, as unpacked)	pack (relative to data/)	packing
+5b3c...	docs/sub/a.txt	docs.tar.gz	tar+gzip
+```
+
+arv reads each pack back as soon as it is made, so an image that is the very image made has
+packs that unpack as recorded. `arv check` of a disc's files reads inside each pack against
+`packed.tsv`, and `arv restore` unpacks each where it is (a damaged pack is restored as it is).
 
 | `Packing` | What the file is | Unpacked with |
 |---|---|---|

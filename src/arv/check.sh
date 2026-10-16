@@ -256,6 +256,24 @@ grep -q "^Object docs/ (data/docs on PK-03_.*): the same as a version already ar
     && cmp -s pk/d2/data/pack.tar.gz pk/e2/data/pack.tar.gz \
     && ok "packed objects: as its files on another disc, the same version; packed again, the very same bytes" \
     || { cat pk/make2.txt; no "packed objects: the same version, the same pack"; }
+rm -rf pk/d1 && 7z x -opk/d1 pk/out/PK-01_*.iso >/dev/null
+"$tool" -C pk/home restore pk/d1 pk/back >pk/restore.txt 2>&1 && grep -q "^UNPACKED data/docs.tar.gz: 4 files" pk/restore.txt \
+    && diff -r pk/back/docs pk/pc/docs && cmp -s pk/back/made.tar.gz pk/pc/made.tar.gz && [ ! -e pk/back/docs.tar.gz ] \
+    && [ "$(stat -c %Y pk/back/docs/f1.txt)" = "$(stat -c %Y pk/pc/docs/f1.txt)" ] \
+    && grep -qx "$(printf 'sha256\tdocs/sub/a.txt\tdocs.tar.gz\ttar+gzip' | sed "s/^sha256/$(sha256sum pk/pc/docs/sub/a.txt | cut -c1-64)/")" \
+        pk/d1/catalog/volumes/PK-01_*/packed.tsv \
+    && ok "packed objects: arv restore unpacks each pack where it is, its files with their times; the disc lists every file in its packs (packed.tsv)" \
+    || { cat pk/restore.txt; no "packed objects: restore"; }
+"$tool" -C pk/home check pk/d1 >pk/check.txt 2>&1 && grep -q "inside its 1 pack, all 4 files match their checksums" pk/check.txt \
+    && ok "packed objects: arv check of a disc's files reads inside its packs" || { cat pk/check.txt; no "packed objects: check"; }
+printf 'x' | dd of=pk/d1/data/docs.tar.gz bs=1 seek=40 conv=notrunc 2>/dev/null
+rc=0; "$tool" -C pk/home restore pk/d1 pk/back2 >pk/restore2.txt 2>&1 || rc=$?
+[ "$rc" -eq 1 ] && grep -q "^DAMAGED  docs.tar.gz" pk/restore2.txt && [ -e pk/back2/docs.tar.gz ] \
+    && ok "packed objects: a damaged pack is restored as it is, and said to be damaged" || { cat pk/restore2.txt; no "packed objects: damaged pack"; }
+"$tool" -C pk/home plan again p p4 >/dev/null
+"$tool" -C pk/home plan show p4 --packed --json 2>/dev/null | grep -q '"packs": \[{"pack": "pack.tar.gz", "bytes": [1-9]' \
+    && "$tool" -C pk/home plan show p4 --packed 2>/dev/null | grep -q '^  data/pack.tar.gz  .* packed$' \
+    && ok "packed objects: plan show --packed packs to measure (the disc's fill with them)" || no "plan show --packed"
 if command -v zip >/dev/null && command -v unzip >/dev/null; then
     "$tool" -C pk/home plan again p p3 >/dev/null && "$tool" -C pk/home plan pack p3 docs zip >/dev/null \
         && "$tool" -C pk/home plan make p3 -y --no-ecc --no-formats --output-dir pk/out3 >pk/make3.txt 2>&1 \

@@ -3,7 +3,8 @@
  *   arv plan new NAME [--medium M] [--set CODE] [--title TEXT] [--description TEXT] [--access LEVEL] [--discs N]
  *                    [--collection CODE]   (--collection: its discs are that collection's next edition)
  *   arv plan list [--all]           open plans (--all: made ones too)
- *   arv plan show NAME [--json] [--archived] [--duplicates]   (--duplicates: byte-identical files on a
+ *   arv plan show NAME [--json] [--archived] [--duplicates] [--packed]   (--packed: what it packs, packed
+ *                                  and measured; --duplicates: byte-identical files on a
  *                                  disc; --archived: hashes each item, through the hash
  *                                  cache, and says what of it is on discs already)
  *   arv plan add NAME SOURCE [--of OBJECT]   SOURCE continues that data object (a copy of it you made); files
@@ -1069,7 +1070,60 @@ static char **show_places(const arv_home *h, const disc_plan *p)
     return at;
 }
 
-static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived)
+typedef struct {
+    int disc;
+    char *pack;
+    uint64_t bytes;
+} packed_size;
+
+static int by_pack_member(const void *a, const void *b)
+{
+    const entry *x = *(const entry *const *)a, *y = *(const entry *const *)b;
+    int c = x->bin != y->bin ? (x->bin < y->bin ? -1 : 1) : strcmp(x->pack, y->pack);
+    return c ? c : strcmp(x->member, y->member);
+}
+
+/* plan show --packed: each pack made for real, in a folder of its own that is removed after, and
+ * measured (a guess would be wrong for what is compressed already) */
+static size_t measure_packs(const arv_home *h, disc_plan *p, packed_size **out)
+{
+    *out = NULL;
+    entries files, noted;
+    size_t left_out = 0;
+    fprintf(stderr, "Packing what the plan packs, to measure it ...\n");
+    plan_scan(h, p, "default", &files, &noted, &left_out, NULL, NULL);
+    size_t n = 0, np = 0;
+    const entry **by = xmalloc((files.n + 1) * sizeof *by);
+    for (size_t i = 0; i < files.n; i++)
+        if (files.v[i].pack) by[n++] = &files.v[i];
+    qsort(by, n, sizeof *by, by_pack_member);
+    char *tmp = xprintf("%s/arv-pack-XXXXXX", getenv("TMPDIR") && *getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp");
+    if (n && !mkdtemp(tmp)) die("cannot create %s", tmp);
+    for (size_t i = 0; i < n;) {
+        size_t j = i;
+        while (j < n && by[j]->bin == by[i]->bin && !strcmp(by[j]->pack, by[i]->pack)) j++;
+        char **names = xmalloc((j - i) * sizeof *names);
+        for (size_t k = i; k < j; k++) names[k - i] = by[k]->member;
+        char *file = xprintf("%s/pack-%zu", tmp, np);
+        pack_write(file, by[i]->packing, by + i, names, j - i, tmp);
+        struct stat st;
+        *out = xrealloc(*out, (np + 1) * sizeof **out);
+        (*out)[np].disc = by[i]->bin + 1;
+        (*out)[np].pack = xstrdup(by[i]->pack);
+        (*out)[np].bytes = stat(file, &st) ? 0 : (uint64_t)st.st_size;
+        np++;
+        unlink(file);
+        free(file);
+        free(names);
+        i = j;
+    }
+    if (n) remove_tree(tmp);
+    free(tmp);
+    free(by);
+    return np;
+}
+
+static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived, int want_packed)
 {
     rec_record *hd = head(p);
     const char *label;
@@ -1098,6 +1152,13 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
         used[p->v[i].disc] += m[i].sectors;
         bytes[p->v[i].disc] += m[i].bytes;
     }
+    packed_size *ps = NULL;                 /* --packed: each pack's size, and each disc's fill with them */
+    size_t nps = want_packed && !made ? measure_packs(h, p, &ps) : 0;
+    for (size_t i = 0; nps && i < p->n; i++) {
+        int tog;
+        if (plan_packing(p, &p->v[i], &tog)) used[p->v[i].disc] -= m[i].sectors;
+    }
+    for (size_t k = 0; k < nps; k++) used[ps[k].disc] += (long)((ps[k].bytes + SECTOR - 1) / SECTOR) + 1;
     const char *fields[] = { "Title", "Set", "Medium", "Description", "Access", "From", "Collection", NULL };
     if (as_json) {
         sbuf b = { 0 };
@@ -1131,6 +1192,17 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
             if (plan_field(p, "Packing", d) && strncmp(plan_field(p, "Packing", d), "none", 4))
                 json_str(&b, plan_field(p, "Packing", d));
             else sb_puts(&b, "null");
+            if (want_packed) {                  /* --packed: each pack made and measured */
+                sb_puts(&b, ", \"packs\": [");
+                int pk = 0;
+                for (size_t k = 0; k < nps; k++)
+                    if (ps[k].disc == d) {
+                        sb_puts(&b, pk++ ? ", {\"pack\": " : "{\"pack\": ");
+                        json_str(&b, ps[k].pack);
+                        sb_printf(&b, ", \"bytes\": %llu}", (unsigned long long)ps[k].bytes);
+                    }
+                sb_puts(&b, "]");
+            }
             sb_puts(&b, ", \"items\": [");
             int any = 0;
             for (size_t i = 0; i < p->n; i++) {
@@ -1210,7 +1282,16 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
             else printf("Disc %d  %s in %zu item%s\n", d, size, items, items == 1 ? "" : "s");
             if (plan_layout(p, d)) printf("  laid out by %s\n", plan_layout(p, d));
             if (plan_field(p, "Packing", d) && strncmp(plan_field(p, "Packing", d), "none", 4))
-                printf("  packed: %s (sizes are as files; packed, smaller)\n", plan_field(p, "Packing", d));
+                printf("  packed: %s%s\n", plan_field(p, "Packing", d),
+                       nps ? "" : " (sizes are as files: arv plan show NAME --packed measures them packed)");
+            const char *dp = plan_field(p, "Packing", d);
+            int disc_together = dp && strstr(dp, " together") != NULL;
+            for (size_t k = 0; disc_together && k < nps; k++)   /* the disc's pack; an item's own is shown with it */
+                if (ps[k].disc == d && !strncmp(ps[k].pack, "pack.", 5) && !strchr(ps[k].pack, '/')) {
+                    char sz[32];
+                    human_size(ps[k].bytes, sz);
+                    printf("  data/%s  %s packed\n", ps[k].pack, sz);
+                }
             for (size_t i = 0; i < p->n; i++) {
                 if (p->v[i].disc != d) continue;
                 char sz[32];
@@ -1249,7 +1330,16 @@ static void show(const arv_home *h, disc_plan *p, int as_json, int want_archived
                         p->v[i].placed = at[i];
                         char *pp = pk ? pack_path(&p->v[i], pk, tog) : NULL;
                         p->v[i].placed = was;
-                        if (pp) printf("      packed as %s: in data/%s%s\n", pk, pp, tog ? ", with the disc's others" : "");
+                        const char *psize = "";
+                        char pbuf[48];
+                        for (size_t k = 0; pp && !tog && k < nps; k++)
+                            if (ps[k].disc == d && !strcmp(ps[k].pack, pp)) {
+                                char hs[32];
+                                human_size(ps[k].bytes, hs);
+                                snprintf(pbuf, sizeof pbuf, ", %s", hs);
+                                psize = pbuf;
+                            }
+                        if (pp) printf("      packed as %s: in data/%s%s%s\n", pk, pp, psize, tog ? ", with the disc's others" : "");
                         free(pp);
                     }
                     for (size_t j = 0; j < i; j++)  /* two items at one place: only a layout can do that */
@@ -1558,7 +1648,7 @@ static int set_tags(const arv_home *h, disc_plan *p, const char *given, const ch
 int cmd_plan(int argc, char **argv)
 {
     const char *given = NULL, *action = NULL, *name = NULL, *disc = NULL, *as = NULL, *from_s = NULL, *list = NULL, *of = NULL;
-    int as_json = 0, all = 0, on_discs = 0, each = 0, dups = 0, together = 0;
+    int as_json = 0, all = 0, on_discs = 0, each = 0, dups = 0, together = 0, packed = 0;
     strlist args = { 0 }, defaults = { 0 }, rest = { 0 };
     static const char *const SETTINGS[][2] = { { "--medium", "Medium" }, { "--set", "Set" }, { "--title", "Title" },
                                                { "--description", "Description" }, { "--access", "Access" },
@@ -1571,6 +1661,7 @@ int cmd_plan(int argc, char **argv)
         else if (!strcmp(argv[i], "--archived")) on_discs = 1;
         else if (!strcmp(argv[i], "--each")) each = 1;
         else if (!strcmp(argv[i], "--duplicates")) dups = 1;
+        else if (!strcmp(argv[i], "--packed")) packed = 1;
         else if (!strcmp(argv[i], "--together")) together = 1;
         else if (!action) action = argv[i];
         else if (!name) {
@@ -1760,7 +1851,7 @@ int cmd_plan(int argc, char **argv)
     if (!strcmp(action, "show")) {
         if (args.n) return 2;
         if (dups) show_duplicates(&h, &p);
-        else show(&h, &p, as_json, on_discs);
+        else show(&h, &p, as_json, on_discs, packed);
         return 0;
     }
     if (!strcmp(action, "add")) {

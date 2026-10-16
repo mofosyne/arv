@@ -1906,6 +1906,16 @@ it can also leave room for more RS03, and for many small files, each of which ta
 - **A file that is itself an archive** (a `.zip` someone made) gets `Packing` alone, by its name,
   confirmed by its first bytes, so `.docx` and `.epub` (zips inside) are documents, not packs.
 
-Not built yet: `arv restore` unpacking (it restores the pack as a file), `arv check --deep`
-reading inside packs against `Tree`, and an estimate of the packed size in `plan show` (it shows
-sizes as files). A pack holding objects of several discs is never made: a pack is on one disc.
+A pack holding objects of several discs is never made: a pack is on one disc.
+
+**Reading packs back** (2026-10-16). The disc carries what is inside its packs:
+`catalog/volumes/ID/packed.tsv`, each file's SHA-256, its path as unpacked, its pack and packing,
+so a found disc can check what it unpacks without the home (the objects' manifests in
+`catalog/objects/` stay at home). arv reads its own tar (and pax) and runs the compressor's `-dc`
+(or `unzip`), and with that: `plan make` reads each pack back as soon as it is written, and stops
+if any file differs, so an image identical to the one made has good packs; `arv check` of a disc's
+files reads inside each pack against `packed.tsv`; `arv restore` unpacks each pack where it is,
+with the files' times and modes, and restores a damaged pack (or one whose compressor is missing)
+as it is, saying so. `plan show --packed` makes each pack in a temporary folder and measures it,
+and the disc's fill uses the sizes: no estimate, since what is compressed already does not shrink
+and only the compressor knows by how much the rest does.

@@ -297,7 +297,9 @@ arv plan pack family projects/station none              # as its files, whatever
 damaged file, not the rest of the pack. Each object stays itself in the record: the same files
 are the same version packed or not, `arv status` finds them inside packs, and unpacking a pack
 where it is (`tar -xf`, in `data/`) puts each object at its path. arv writes the tar; the
-compressor (`zstd`, `xz`, `gzip`, `lzip`, `bzip2`) or `zip` must be on PATH when the discs are made.
+compressor (`zstd`, `xz`, `gzip`, `lzip`, `bzip2`) or `zip` must be on PATH when the discs are made,
+and to unpack them. `arv plan show NAME --packed` packs to measure, so the discs' fill is right;
+`arv restore` unpacks each pack where it is, and `arv check` of a disc's files reads inside them.
 A `.zip` or `.tar.gz` added as it is gets `Packing` in the record too, found by its name and bytes.
 
 **A plan as a collection's edition.** `arv plan new family-2026 --collection FAM` makes the plan's

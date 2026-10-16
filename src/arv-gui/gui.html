@@ -328,6 +328,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     <button class="plain" type="button" id="p-again" hidden>Make it again as a new plan…</button>
     <button class="plain" type="button" id="p-delete">Delete plan</button>
     <button class="plain" type="button" id="p-archived" title="Hashes each item (quick when it was hashed before) and marks what is on discs already">What is on discs already?</button>
+    <button class="plain" type="button" id="p-packed" title="Packs what the plan packs, in a temporary folder, to measure it">Packed sizes</button>
   </div>
   <form id="p-new" class="card" hidden>
     <div class="row">
@@ -1183,6 +1184,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       return loadPlan();
     });
   }
+  $("p-packed").onclick = function () {
+    if (!planName()) return;
+    say("Packing what the plan packs, to measure it …");
+    arvJson(["plan", "show", planName(), "--json", "--packed"]).then(function (p) { plan = p; renderPlan(); say(""); })
+      .catch(function (e) { say("Error: " + e.message, true); });
+  };
   $("p-archived").onclick = function () {
     if (!planName()) return;
     say("Hashing the plan's items …");
@@ -1248,7 +1255,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       }
       card.appendChild(head);
       if (d.layout) card.appendChild(el("div", { class: "capnote", text: "laid out by " + d.layout }));
-      if (d.packing) card.appendChild(el("div", { class: "capnote", text: "packed: " + d.packing + " (sizes as files; packed, smaller)" }));
+      if (d.packing) card.appendChild(el("div", { class: "capnote", text: "packed: " + d.packing + (d.packs ? "" : " (sizes as files: Packed sizes measures them)") }));
+      (d.packs || []).forEach(function (pk) { card.appendChild(el("div", { class: "capnote", text: "data/" + pk.pack + ": " + human(pk.bytes) + " packed" })); });
       var bar = el("div", { class: "cap" + (pct > 100 ? " bad" : pct > 90 ? " warn" : "") }, [el("div", {})]);
       bar.firstChild.style.width = Math.min(pct, 100) + "%";
       card.appendChild(bar);

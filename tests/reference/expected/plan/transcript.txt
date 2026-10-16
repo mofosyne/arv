@@ -411,7 +411,8 @@ arv plan: unexpected or missing arguments: delete card --yes
          pack NAME PATH... PACKING keeps an object as one file (tar, tar+zstd, tar+xz, tar+gzip, zip, none ...);
          pack NAME [--disc N] PACKING [--together] for a disc's objects (--together: in one pack, data/pack.*);
          move NAME PATH... --disc N|new moves them; drop NAME PATH... takes them off; disc NAME add|drop N;
-         show NAME [--duplicates]; make NAME makes the images; again NAME NEW starts the same plan anew; delete NAME
+         show NAME [--duplicates] [--packed] (--packed: packs what it packs, to measure it);
+         make NAME makes the images; again NAME NEW starts the same plan anew; delete NAME
 DISC: the root of a mounted arv disc or an extracted image (the folder with catalog.rec)
 All commands: arv --help. More: README.md and docs/workflow.md.
 rc=2
