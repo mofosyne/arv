@@ -331,7 +331,7 @@ grep -q '^Clues: 4 files: 3 photos, 1 text document; dates 2019-07 (from names);
     && ok "describe --clues: no model, no questions: dates from the names, a tag from an alias in them ('trip'), a title made from them" \
     || { cat clues.err clues.json; no "describe --clues"; }
 # topics, event, place, person (typed), source, date (not EDTF, then EDTF), the folders too (fushimi: place, person), title, description
-printf '\n\nkyoto\nann, bo\n\nsoon\n2019-07-11/2019-07-13\ny\n\n\nKyoto, July 2019\n\n' \
+printf '\n\nkyoto\nann, bo\nsoon\n2019-07-11/2019-07-13\ny\n\n\nKyoto, July 2019\n\n' \
     | "$tool" --home askh describe "ask/2019-07 Kyoto trip" --ask --save ask.json > ask.out 2> ask.err || { cat ask.err; no "describe --ask"; }
 tr -d '\n ' < ask.json | grep -q '"tags":{".":\["travel","event:kyoto-trip","place:kyoto","person:ann","person:bo","date:2019-07-11/2019-07-13"\]}' \
     && grep -q '"title": "Kyoto, July 2019"' ask.json \
@@ -409,6 +409,18 @@ grep -q "words in the text: anne smith, self assessment, fushimi, family" f.err 
 printf '\n\n\n\n\n\n\n\n' | "$tool" --home wh describe forms --ask --no-folders > /dev/null 2> fa.err || no "describe --ask (forms)"
 grep -A4 '^person:' fa.err | grep -q ' anne-smith  (a name in the text)' \
     && ok "describe --ask offers the text's names as people and places" || { cat fa.err; no "names offered"; }
+"$arv" init rh >/dev/null 2>&1
+for n in 1 2 3 4; do
+    put "rose$n/a.txt" "We visited Rose at the farm. Then Rose made jam."
+    put "rose$n/b.txt" "With Rose at the farm again."
+    printf '\n\n\nrose\n\n\n\n\n\n' | "$tool" --home rh describe "rose$n" --ask --no-folders > /dev/null 2> "r$n.err" || { cat "r$n.err"; no "describe --ask (known)"; }
+done
+grep -q "Known from now on: person:rose (Rose), private" r1.err && grep -A2 '^Name: person:rose$' rh/config/tags.rec | grep -qx 'Label: Rose' \
+    && grep -q '^  \*1 rose  (known: Rose)$' r2.err \
+    && grep -q 'person: rose (known: Rose, in 3 folders before; taken without asking)' r4.err \
+    && grep -q '^Object: name:person:rose$' rh/catalog/archive.rec \
+    && ok "known names: a name confirmed in --ask becomes an entry; next time it is offered, marked; once used and in the same context, taken without asking (a common word too: 'Rose' written as a name)" \
+    || { cat r1.err r2.err r4.err; no "known names in --ask"; }
 if command -v pdftotext >/dev/null && command -v pdfinfo >/dev/null; then
     mkdir -p pdfs
     for f in a:"Tax return 2021":"HMRC self assessment" b:"Invoice 0042":"Invoice from HMRC"; do

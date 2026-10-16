@@ -21,6 +21,18 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Known names: what --ask learns, kept as entries (authority control)**
+- A namespaced tag can be an entry of the vocabulary: its key (made once), `Label`, `Alias`,
+  `Qualifier` (two of one name), `Related`, `Same` (wikidata, viaf, isni), `Basis`, `Private`,
+  `Retired`. `arv describe --ask` makes one when you confirm a person, family, organisation,
+  software or work, offers known ones it finds in a folder's names and text, and takes one without
+  asking when it is unambiguous, used before and its context agrees.
+- `arv tags show|add|label|alias|merge|split|retire KEY`: each change an event about `name:KEY`;
+  merge and split move the uses with ordinary tag changes (split asks about each). `arv tags` shows
+  labels and qualifiers.
+- People's and families' entries are private by default: left out of a public disc's vocabulary.
+- The default vocabulary gains the namespaces `family`, `organisation`, `software` and `work`.
+
 **Describing without a model: arv describe --ask**
 - `arv describe FOLDER|DISC-ID|OBJECT --ask` asks a few questions instead of a model: the topics
   your vocabulary has, the event, places, people, what made it and when. Each offers the answers

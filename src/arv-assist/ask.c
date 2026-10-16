@@ -473,6 +473,9 @@ static char *pretty(const char *value)      /* "kyoto-trip" -> "Kyoto trip" */
 
 typedef struct {
     int interactive, asked, stopped;
+    const known_entry *kv;      /* the known names (known.c) */
+    size_t kn;
+    const word_stats *ws;
 } asking;
 
 /* one question: numbered choices (marked: the default), and an answer: Enter takes the marked ones,
@@ -560,9 +563,122 @@ static int asks(const char *kind, const char *ns)
     int work = kind && (!strcmp(kind, "source code files") || !strcmp(kind, "text documents") || !strcmp(kind, "PDF documents")
                         || !strcmp(kind, "spreadsheets"));
     if (!strcmp(ns, "date")) return 0;     /* asked on its own */
-    if (!strcmp(ns, "project")) return !media;
+    if (!strcmp(ns, "project") || !strcmp(ns, "software") || !strcmp(ns, "organisation")) return !media;
+    if (!strcmp(ns, "family")) return !work;
     if (!strcmp(ns, "event") || !strcmp(ns, "source")) return !work;
     return 1;
+}
+
+/* a form as the clues hold words: lower case, words one space apart ("Anne-Smith" -> "anne smith") */
+static char *form_of(const char *s)
+{
+    sbuf b = { 0 };
+    int gap = 0;
+    for (const unsigned char *p = (const unsigned char *)s; *p; p++) {
+        if (isalnum(*p) || *p >= 0x80) {
+            if (gap && b.len) sb_puts(&b, " ");
+            char ch = (char)tolower(*p);
+            sb_add(&b, &ch, 1);
+            gap = 0;
+        } else {
+            gap = 1;
+        }
+    }
+    return b.s ? b.s : xstrdup("");
+}
+
+/* where a form is among a folder's clues: 1 in its names, 2 a name in its text, 3 a word of its text; 0 not */
+static int form_where(const clues *c, const char *form)
+{
+    if (strlist_has(&c->terms, form)) return 1;
+    if (strlist_has(&c->text_names, form)) return 2;
+    if (strlist_has(&c->text, form)) return 3;
+    return 0;
+}
+
+/* the forms an entry is found as: its key's value, its label, its aliases */
+static void entry_forms(const known_entry *e, strlist *out)
+{
+    memset(out, 0, sizeof *out);
+    const char *v = strchr(e->key, ':') ? strchr(e->key, ':') + 1 : e->key;
+    char *f = form_of(v);
+    strlist_add(out, f);
+    free(f);
+    if (e->label) {
+        f = form_of(e->label);
+        if (!strlist_has(out, f)) strlist_add(out, f);
+        free(f);
+    }
+    for (size_t i = 0; i < e->aliases.n; i++) {
+        if (strchr(e->aliases.v[i], ':')) continue;   /* a merged key, not a form */
+        f = form_of(e->aliases.v[i]);
+        if (*f && !strlist_has(out, f)) strlist_add(out, f);
+        free(f);
+    }
+}
+
+/* how many entries (not retired) a form names */
+static size_t entries_named(const asking *a, const char *form)
+{
+    size_t n = 0;
+    for (size_t i = 0; i < a->kn; i++) {
+        if (a->kv[i].retired) continue;
+        strlist f;
+        entry_forms(&a->kv[i], &f);
+        n += strlist_has(&f, form);
+        strlist_free(&f);
+    }
+    return n;
+}
+
+/* the known names of a namespace among a folder's clues, as choices: taken without asking (certain)
+ * when the form names this entry alone, is in the names or written as a name in the text, the entry
+ * was used twice or more, and a word of this folder went with it before; else offered */
+static void known_choices(const asking *a, const clues *c, const char *ns, int one, strlist *opts, strlist *why,
+                          strlist *marked, strlist *certain)
+{
+    size_t nl = strlen(ns);
+    for (size_t i = 0; i < a->kn; i++) {
+        const known_entry *e = &a->kv[i];
+        if (e->retired || strncmp(e->key, ns, nl) || e->key[nl] != ':') continue;
+        strlist forms;
+        entry_forms(e, &forms);
+        int where = 0, two = 0;
+        const char *found = NULL;
+        for (size_t f = 0; f < forms.n && !where; f++)
+            if ((where = form_where(c, forms.v[f]))) found = forms.v[f];
+        if (!where) {
+            strlist_free(&forms);
+            continue;
+        }
+        two = entries_named(a, found) > 1;
+        size_t uses = word_tag_uses(a->ws, e->key), with = 0, all = 0;
+        int context = 0;
+        const strlist *lists[2] = { &c->terms, &c->text };
+        for (int k = 0; k < 2 && !context; k++)
+            for (size_t w = 0; w < lists[k]->n && !context; w++) {
+                if (strstr(found, lists[k]->v[w]) || strstr(lists[k]->v[w], found)) continue;   /* its own words */
+                word_counts(a->ws, lists[k]->v[w], e->key, &with, &all);
+                context = with >= 2;
+            }
+        int sure = !two && uses >= 2 && context && where <= 2;
+        const char *value = e->key + nl + 1;
+        if (!strlist_has(opts, value)) {
+            char *y = sure ? xprintf("known: %s, in %zu folders before", e->label ? e->label : value, uses)
+                      : two ? xprintf("known: %s%s%s%s, one of two entries of this name", e->label ? e->label : value,
+                                      e->qualifier ? " (" : "", e->qualifier ? e->qualifier : "", e->qualifier ? ")" : "")
+                            : xprintf("known: %s%s%s%s", e->label ? e->label : value, e->qualifier ? " (" : "",
+                                      e->qualifier ? e->qualifier : "", e->qualifier ? ")" : "");
+            strlist_add(opts, value);
+            strlist_add(why, y);
+            free(y);
+            if (sure) strlist_add(certain, value);
+            if (sure || (!two && a->interactive)) {
+                if (!marked->n || !one) strlist_add(marked, value);
+            }
+        }
+        strlist_free(&forms);
+    }
 }
 
 /* one namespace's value(s) for a folder: the choices are values used before that its words name,
@@ -570,12 +686,15 @@ static int asks(const char *kind, const char *ns)
 static void ask_namespace(asking *a, const arv_home *h, const archive *cat, const tag_words_t *tw, const clues *c,
                           const char *name, const char *ns, int one, int sub, strlist *taken, strlist *tags)
 {
-    strlist used = { 0 }, opts = { 0 }, why = { 0 }, marked = { 0 }, got;
+    strlist used = { 0 }, opts = { 0 }, why = { 0 }, marked = { 0 }, certain = { 0 }, got;
+    known_choices(a, c, ns, one, &opts, &why, &marked, &certain);
+    size_t strong = opts.n;                 /* known names, learned values and the text's names: worth a question */
     size_t nl = strlen(ns);
     for (size_t i = 0; i < c->learned.n; i++)  /* the values its words went with before (words.c) */
         if (!strncmp(c->learned.v[i], ns, nl) && c->learned.v[i][nl] == ':' && !strlist_has(&opts, c->learned.v[i] + nl + 1)) {
             strlist_add(&opts, c->learned.v[i] + nl + 1);
             strlist_add(&why, c->learned_why.v[i]);
+            strong++;
             if (!marked.n || !one) strlist_add(&marked, c->learned.v[i] + nl + 1);
         }
     used_values(h, cat, ns, &used);
@@ -593,6 +712,7 @@ static void ask_namespace(asking *a, const arv_home *h, const archive *cat, cons
         if (!strlist_has(&opts, v)) {
             strlist_add(&opts, v);
             strlist_add(&why, "the photos' EXIF");
+            strong++;
             if (!marked.n || !one) strlist_add(&marked, v);
         }
         free(v);
@@ -620,6 +740,7 @@ static void ask_namespace(asking *a, const arv_home *h, const archive *cat, cons
         if (!strlist_has(taken, c->text_names.v[w]) && !strlist_has(&opts, v)) {
             strlist_add(&opts, v);
             strlist_add(&why, "a name in the text");
+            strong++;
         }
         free(v);
     }
@@ -628,9 +749,18 @@ static void ask_namespace(asking *a, const arv_home *h, const archive *cat, cons
             strlist_add(&opts, used.v[i]);
             strlist_add(&why, "used before");
         }
-    if (opts.n || (a->interactive && !sub)) {
+    int core = !strcmp(ns, "event") || !strcmp(ns, "project") || !strcmp(ns, "place") || !strcmp(ns, "person");
+    if (core ? opts.n || (a->interactive && !sub) : strong > 0) {   /* the others: only with something to go on */
         char *q = xprintf("%s: %s?%s", ns, ns_desc(tw, ns), one ? "" : " (one or more)");
-        choose(a, q, &opts, &why, &marked, !one, &got);
+        if (certain.n && certain.n == strong) {   /* the likely ones all known and certain: taken without a question */
+            memset(&got, 0, sizeof got);
+            for (size_t i = 0; i < certain.n && (!one || !got.n); i++) strlist_add(&got, certain.v[i]);
+            for (size_t i = 0; i < got.n; i++)
+                for (size_t k = 0; k < opts.n; k++)
+                    if (!strcmp(opts.v[k], got.v[i])) fprintf(stderr, "%s: %s (%s; taken without asking)\n", ns, got.v[i], why.v[k]);
+        } else {
+            choose(a, q, &opts, &why, &marked, !one, &got);
+        }
         for (size_t i = 0; i < got.n; i++) {
             char *v = slug(got.v[i]), *t = xprintf("%s:%s", ns, v);
             if (*v && !strlist_has(tags, t)) strlist_add(tags, t);
@@ -649,6 +779,7 @@ static void ask_namespace(asking *a, const arv_home *h, const archive *cat, cons
     strlist_free(&opts);
     strlist_free(&why);
     strlist_free(&marked);
+    strlist_free(&certain);
 }
 
 /* the tags (topics and namespaces) and the date of one folder, asked about */
@@ -714,7 +845,8 @@ static char *ask_folder(asking *a, const arv_home *h, const archive *cat, const 
         strlist_free(&why);
         strlist_free(&marked);
     }
-    static const char *const ORDER[] = { "event", "project", "place", "person", "source", NULL };   /* the narrowing first */
+    static const char *const ORDER[] = { "event", "project", "place", "person", "family", "organisation", "software", "work",
+                                         "source", NULL };   /* the narrowing first */
     strlist order = { 0 };
     for (int k = 0; ORDER[k]; k++)
         if (strlist_has(&tw->ns_names, ORDER[k])) strlist_add(&order, ORDER[k]);
@@ -785,15 +917,19 @@ static const char *tag_value(const strlist *tags, const char *ns)
     return NULL;
 }
 
-void ask_suggest(const arv_home *h, const archive *cat, const items *l, const char *name, const char *root, int interactive,
+void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *name, const char *root, int interactive,
                  int per_folder, suggestion *out)
 {
     memset(out, 0, sizeof *out);
-    asking a = { interactive, 0, 0 };
+    asking a = { interactive, 0, 0, NULL, 0, NULL };
+    known_entry *kv = NULL;
+    a.kn = h ? known_load(h, &kv) : 0;
+    a.kv = kv;
     tag_words_t tw;
     if (!h || tag_words(h, &tw)) memset(&tw, 0, sizeof tw);
     word_stats *ws = h ? word_stats_load(h, cat) : NULL;
     if (ws) word_stats_vocab(ws, &tw.names, &tw.alias_from);   /* your vocabulary's words are never common */
+    a.ws = ws;
     clues c;
     gather(ws, l, name, root, &c);
     {                                       /* what the files say by themselves */
@@ -925,6 +1061,31 @@ void ask_suggest(const arv_home *h, const archive *cat, const items *l, const ch
             }
         }
     }
+    if (interactive && h && cat) {          /* a name confirmed: known from now on (an entry, and an event) */
+        static const char *const NAMED[] = { "person:", "family:", "organisation:", "software:", "work:", NULL };
+        strlist made = { 0 };
+        char today[11], *who = person();
+        today_iso(today);
+        for (size_t f = 0; f < out->folders.n; f++)
+            for (size_t i = 0; i < out->folders.tags[f].n; i++) {
+                const char *t = out->folders.tags[f].v[i];
+                int named = 0;
+                for (int k = 0; NAMED[k] && !named; k++) named = !strncmp(t, NAMED[k], strlen(NAMED[k]));
+                int known = strlist_has(&made, t);
+                for (size_t k = 0; k < a.kn && !known; k++) known = !strcmp(a.kv[k].key, t);
+                if (!named || known) continue;
+                char *label = known_label_of(t), *basis = xprintf("confirmed by %s in arv describe --ask of %s, %s", who, name, today);
+                known_made(h, cat, t, label, basis);
+                strlist_add(&made, t);
+                fprintf(stderr, "Known from now on: %s (%s)%s; arv tags show %s\n", t, label,
+                        !strncmp(t, "person:", 7) || !strncmp(t, "family:", 7) ? ", private" : "", t);
+                free(label);
+                free(basis);
+            }
+        if (made.n) archive_save(cat, h->rec_path);
+        strlist_free(&made);
+        free(who);
+    }
     /* the title and description, made from the answers */
     const char *what = c.kind ? c.kind : "files";
     const char *event = tag_value(&tags, "event"), *project = tag_value(&tags, "project");
@@ -988,4 +1149,5 @@ void ask_suggest(const arv_home *h, const archive *cat, const items *l, const ch
     strlist_free(&tags);
     clues_free(&c);
     word_stats_free(ws);
+    known_free(kv, a.kn);
 }

@@ -1480,7 +1480,14 @@ static void stage_plan(maker *mk, size_t idx)
         if (!access(from, F_OK)) {
             char *to = join(dir, HOME_VOCABULARIES[k]);
             if (mkdirs(dir)) die("cannot create %s", dir);
-            copy_file(from, to);
+            if (!strcmp(HOME_VOCABULARIES[k], "tags.rec") && !strcmp(disc_access(p->disc), "public")) {
+                char *text = read_text(from), *kept = text ? known_strip_private(text) : NULL;   /* known names kept home */
+                write_text(to, kept ? kept : "");
+                free(text);
+                free(kept);
+            } else {
+                copy_file(from, to);
+            }
             free(to);
         }
         free(from);

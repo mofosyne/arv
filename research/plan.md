@@ -2116,10 +2116,13 @@ an event (`Object: name:KEY`, `Type: metadata modification`), so the record says
 made, merged, split or renamed, and why, as authority files keep their decisions.
 
 - **Rename** (a new preferred form): `Label` changes, the old one becomes an `Alias`; nothing else.
-- **Merge** (two entries were one person; a misspelling, as authority files gather over time): the
-  second key becomes an `Alias` of the first. arv already reads every tag through its aliases
-  (`tags_canonical`), so every tag naming the old key reads as the new one, and no earlier record
-  is rewritten. Likely duplicates (close labels, few uses, the same context) are offered for merging.
+- **Merge** (two entries were one person; a misspelling, as authority files gather over time):
+  every use of the second key moves to the first, each an ordinary tag change (an event with
+  `Sets` and `Replaces`), and the second is kept, retired, its key, label and aliases now aliases
+  of the first, so anything typed or found as the old later means the new. Moving the uses, not only
+  aliasing the key, keeps what is read (find, layouts, discs made later) right without every reader
+  having to look through aliases; nothing earlier is rewritten. Likely duplicates (close labels, few
+  uses, the same context) are to be offered for merging.
 - **Split** (two people of one name, found later): a new entry is made with a `Qualifier` to tell
   them apart, and every place the old key is used (discs' paths, objects) is asked about in turn, in
   the questions' way ("this Anne Smith: b. 1931, or the colleague?"), with the clues of each place
@@ -2158,4 +2161,21 @@ than its own tags do.
 3. Changing them: `arv names` to list, rename, merge, split and retire, each an event.
 4. Places: the gazetteer, EXIF GPS, the GeoJSON export and the map.
 5. Later: export of people and organisations as EAC-CPF; a model proposing entries in bulk.
+
+**Done (2026-10-16): steps 1 to 3.** `src/arv/known.c` reads and edits the entries in
+`config/tags.rec` (a field set or added after the record's lines, a new record before the Namespace
+records, the file's comments kept) and records each change as an event about `name:KEY` (at home:
+snapshots carry the events of the objects and places on them only). `arv tags show|add|label|alias|
+merge|split|retire KEY` make the changes; split asks about each use in turn (a disc's path, or a
+data object at its own path, as `describe --apply` treats it). `arv describe --ask` makes an entry
+when a person confirms a `person`, `family`, `organisation`, `software` or `work` value
+(`Private: yes` for people and families), and offers known entries found among a folder's clues
+(its names, its text's names and words) by their key's value, label or aliases: marked when the
+form is one entry's alone; taken without a question when, besides, the entry was used twice or
+more, it is in the names or written as a name, a word of the folder went with it twice before,
+and nothing else as strong is offered; never when two entries share the form. A name that is also
+a common word (Rose, Grace) counts as a name when it is mostly written with a capital. `arv tags`
+shows each entry's label, qualifier and whether it is private or retired; a public disc's
+vocabulary leaves the private entries out. The four namespaces are in the default vocabulary.
+Not yet: places (step 4), likely duplicates offered for merging, EAC-CPF export.
 

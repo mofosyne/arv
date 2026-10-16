@@ -111,6 +111,8 @@ static const char USAGE_RECORD[] =
           "  arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]\n"
           "         how much something matters and to whom (essential, important, useful); TARGET: DISC-ID,\n"
           "         DISC-ID:folder/, DISC-ID:file or set:CODE; --due: the appraisals due for review by DATE\n"
+          ;
+static const char USAGE_RECORD_MORE[] =     /* the same group, apart: C99 strings may be 4095 characters */
           "  arv log [COLLECTION]   a collection's editions, and what changed in each\n"
           "  arv diff REV [REV]   what changed between two revisions, or from one to the folder now\n"
           "         (REV: a revision's first digits, or CODE/N for edition N)\n"
@@ -119,6 +121,10 @@ static const char USAGE_RECORD[] =
           "  arv sets [-v]   the set codes and categories, as a tree\n"
           "  arv tags [--namespace NS]   the tags in use, by namespace, on how many paths and discs; and the\n"
           "         paths to correct: two values of a one-valued namespace, a date that is not EDTF\n"
+          "  arv tags show|add|label|alias|merge|split|retire KEY ...   known names (person:anne-smith, software:kicad):\n"
+          "         add KEY [--label L] [--alias A] [--qualifier Q] [--same ID] [--private|--public]; label KEY LABEL (the old\n"
+          "         one kept as an alias); alias KEY FORM; merge KEY INTO (its uses moved); split KEY [--new KEY2] (two of one\n"
+          "         name: each use asked about); retire KEY [--why TEXT]; each change an event\n"
           "  arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files\n"
           "\n";
 static const char USAGE_REST[] =
@@ -148,7 +154,7 @@ static const char USAGE_REST[] =
           "DISC: the root of a mounted arv disc or an extracted image (the folder with catalog.rec)\n"
           "CATALOG: a disc root, its catalog/ folder or a home (.arv); default: $ARV_HOME, or the\n"
           "first .arv folder or disc root from here up\n";
-static const char *const USAGE[] = { USAGE_ARCHIVE, USAGE_RECORD, USAGE_REST, NULL };
+static const char *const USAGE[] = { USAGE_ARCHIVE, USAGE_RECORD, USAGE_RECORD_MORE, USAGE_REST, NULL };
 
 /* arv alone: where you are, the commands to start with, and how to find the rest */
 /* --json on a command that changes the record: the events it made, as JSON on standard output, and
@@ -530,7 +536,8 @@ static const char *const MANUAL_NOTES[] = {      /* in parts: C99 strings may be
     "These change the record, each leaving an event that says who and when: `init`, `make`, `plan make`,\n"
     "`collection init|keep`, `link`, `burned`, `stored`, `identify`,\n"
     "`relabel`, `note`, `rename`, `retag`, `same`, `locate`, `access`, `location add|move`, `appraise`,\n"
-    "`retire --yes`, `rebuild`, `check` and `drives --check` (a check is logged), `describe` and `tag`\n"
+    "`retire --yes`, `rebuild`, `check` and `drives --check` (a check is logged), `tags add|label|alias|merge|split|retire`\n"
+    "(the known names; `tags` and `tags show` only read), `describe` and `tag`\n"
     "(when a draft is applied). `where --here` changes only where the catalogue may be written.\n"
     "arv never deletes a file, an image or a disc.\n"
     "\n"

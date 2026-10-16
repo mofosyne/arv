@@ -96,6 +96,7 @@ struct word_stats {
     size_t text_folders;        /* folders whose text's words were kept (the answers) */
     counts text_df;             /* word -> those whose text had it: the archive's own common words */
     counts keep;                /* the vocabulary's words: never common, whatever the lists say */
+    counts tag_units;           /* tag -> tagged paths (and answers) with it */
     counts df;                  /* word -> folders whose names have it */
     counts units;               /* word -> tagged paths (and answers) whose words have it */
     counts pairs;               /* "word\ttag" -> those of them with the tag */
@@ -218,6 +219,7 @@ static void unique(strlist *l)
 static void count_unit(word_stats *ws, strlist *words, const strlist *tags)
 {
     unique(words);
+    for (size_t t = 0; t < tags->n; t++) bump(&ws->tag_units, tags->v[t], 1);
     for (size_t i = 0; i < words->n; i++) {
         bump(&ws->units, words->v[i], 1);
         for (size_t t = 0; t < tags->n; t++) {
@@ -372,13 +374,15 @@ static char *examples_file(const arv_home *h)
 static void save_cache(const arv_home *h, const word_stats *ws, const char *stamp)
 {
     sbuf b = { 0 };
-    sb_printf(&b, "# arv words 1\t%s\t%zu\n", stamp, ws->folders);
+    sb_printf(&b, "# arv words 2\t%s\t%zu\n", stamp, ws->folders);
     for (size_t i = 0; i < ws->df.cap; i++)
         if (ws->df.keys[i]) sb_printf(&b, "d\t%s\t%zu\n", ws->df.keys[i], ws->df.vals[i]);
     for (size_t i = 0; i < ws->units.cap; i++)
         if (ws->units.keys[i]) sb_printf(&b, "u\t%s\t%zu\n", ws->units.keys[i], ws->units.vals[i]);
     for (size_t i = 0; i < ws->pairs.cap; i++)
         if (ws->pairs.keys[i]) sb_printf(&b, "p\t%s\t%zu\n", ws->pairs.keys[i], ws->pairs.vals[i]);
+    for (size_t i = 0; i < ws->tag_units.cap; i++)
+        if (ws->tag_units.keys[i]) sb_printf(&b, "t\t%s\t%zu\n", ws->tag_units.keys[i], ws->tag_units.vals[i]);
     if (!mkdirs(h->cache_dir)) {
         char *p = cache_path(h), *tmp = xprintf("%s.tmp", p);
         write_text(tmp, b.s ? b.s : "");
@@ -396,7 +400,7 @@ static int load_cache(const arv_home *h, word_stats *ws, const char *stamp)
     if (!text) return -1;
     char *nl = strchr(text, '\n');
     char want[128];
-    snprintf(want, sizeof want, "# arv words 1\t%s\t", stamp);
+    snprintf(want, sizeof want, "# arv words 2\t%s\t", stamp);
     if (!nl || strncmp(text, want, strlen(want))) {
         free(text);
         return -1;
@@ -410,7 +414,8 @@ static int load_cache(const arv_home *h, word_stats *ws, const char *stamp)
         if (!last || line[1] != '\t') continue;
         *last = 0;
         size_t v = (size_t)atol(last + 1);
-        counts *m = line[0] == 'd' ? &ws->df : line[0] == 'u' ? &ws->units : line[0] == 'p' ? &ws->pairs : NULL;
+        counts *m = line[0] == 'd' ? &ws->df : line[0] == 'u' ? &ws->units : line[0] == 'p' ? &ws->pairs
+                  : line[0] == 't' ? &ws->tag_units : NULL;
         if (m) bump(m, line + 2, v);
     }
     free(text);
@@ -479,6 +484,7 @@ word_stats *word_stats_load(const arv_home *h, const archive *cat)
         counts_free(&ws->df);
         counts_free(&ws->units);
         counts_free(&ws->pairs);
+        counts_free(&ws->tag_units);
         ws->folders = 0;
         count_record(h, cat, ws);
         save_cache(h, ws, stamp);
@@ -498,6 +504,7 @@ void word_stats_free(word_stats *ws)
     counts_free(&ws->tag_index);
     counts_free(&ws->text_df);
     counts_free(&ws->keep);
+    counts_free(&ws->tag_units);
     strlist_free(&ws->tags_of_word_key);
     strlist_free(&ws->tags_of_word_val);
     free(ws);
@@ -569,6 +576,11 @@ void word_tags(const word_stats *ws, const strlist *names, const strlist *text, 
 }
 
 /* how often a word was seen with a tag, and in how many tagged paths: for the offer of a rule */
+size_t word_tag_uses(const word_stats *ws, const char *tag)
+{
+    return ws ? count_of(&ws->tag_units, tag) : 0;
+}
+
 void word_counts(const word_stats *ws, const char *w, const char *tag, size_t *with, size_t *all)
 {
     char *k = xprintf("%s\t%s", w, tag);
@@ -603,7 +615,7 @@ static void ext_of(const char *path, char ext[16])
 /* a text's words, lower case, into words (each once a file in files); each two in a row with nothing
  * between them but a space or a hyphen, and neither common, into the same (as "a b"); and a word
  * written with a capital where no sentence starts, into caps: a name, likely */
-static void scan_text(const word_stats *ws, const char *text, counts *tf, counts *files, counts *caps)
+static void scan_text(const word_stats *ws, const char *text, counts *tf, counts *files, counts *caps, counts *occur)
 {
     counts here = { 0 };
     char *prev = NULL, *prev_cap = NULL;
@@ -620,6 +632,7 @@ static void scan_text(const word_stats *ws, const char *text, counts *tf, counts
             for (size_t i = 0; i < w.len; i++) w.s[i] = (char)tolower((unsigned char)w.s[i]);
             int ok = w.len >= 3 && w.len <= 30 && !stop_word(w.s), plain = ok && text_common(ws, w.s);
             if (ok) {                       /* a common word: never a clue alone, but half of a phrase ("self assessment") */
+                bump(occur, w.s, 1);        /* every time, capital or not: is it mostly written as a name? */
                 if (!plain) {
                     bump(tf, w.s, 1);
                     if (!count_of(&here, w.s)) bump(&here, w.s, 1);
@@ -630,7 +643,7 @@ static void scan_text(const word_stats *ws, const char *text, counts *tf, counts
                     if (!count_of(&here, pair)) bump(&here, pair, 1);
                     free(pair);
                 }
-                if (capital && !sentence && !plain) {
+                if (capital && !sentence) {     /* a name may be a common word too: Rose, Grace, Reading */
                     bump(caps, w.s, 1);
                     if (prev_cap && !broken) {
                         char *pair = xprintf("%s %s", prev_cap, w.s);
@@ -674,7 +687,7 @@ void text_clues(const word_stats *ws, const char *root, const items *l, strlist 
     }
     if (!readable) return;
     size_t step = readable > TEXT_FILES ? readable / TEXT_FILES : 1, at = 0, done = 0;
-    counts tf = { 0 }, files = { 0 }, caps = { 0 };
+    counts tf = { 0 }, files = { 0 }, caps = { 0 }, occur = { 0 };
     for (size_t i = 0; i < l->n && done < TEXT_FILES; i++) {
         char ext[16];
         ext_of(l->v[i].path, ext);
@@ -716,7 +729,7 @@ void text_clues(const word_stats *ws, const char *root, const items *l, strlist 
         free(p);
         if (!text) continue;
         done++;
-        scan_text(ws, text, &tf, &files, &caps);
+        scan_text(ws, text, &tf, &files, &caps, &occur);
         free(text);
     }
     /* telling: in two files or more (or three times in one), weighed by how rare in the archive's names;
@@ -756,7 +769,8 @@ void text_clues(const word_stats *ws, const char *root, const items *l, strlist 
         memset(names, 0, sizeof *names);
         for (size_t i = 0; i < caps.cap && names->n < 10; i++) {
             if (!caps.keys[i] || caps.vals[i] < 2) continue;
-            size_t all = count_of(&tf, caps.keys[i]);
+            size_t all = strchr(caps.keys[i], ' ') ? count_of(&tf, caps.keys[i]) : count_of(&occur, caps.keys[i]);
+            if (!all) all = caps.vals[i];
             int in_pair = 0;                /* "anne" of "anne smith": the pair is the name */
             for (size_t j = 0; !strchr(caps.keys[i], ' ') && j < caps.cap && !in_pair; j++)
                 if (caps.keys[j] && caps.vals[j] >= 2 && strchr(caps.keys[j], ' ')) {
@@ -791,6 +805,7 @@ void text_clues(const word_stats *ws, const char *root, const items *l, strlist 
     counts_free(&tf);
     counts_free(&files);
     counts_free(&caps);
+    counts_free(&occur);
 }
 
 /* ------------------------------------------------------------------ what was answered, kept */

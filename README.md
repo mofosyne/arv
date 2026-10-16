@@ -404,8 +404,11 @@ names that your vocabulary knows) mark the likely answer to each question, so mo
 Enter or a number. The title and description are made from your answers. It learns by counting:
 a word that went with a tag before marks it next time, saying how often ("'kicad' in 9 of 10
 folders tagged electronics"), the words of text files and PDFs count too (`pdftotext`), and a
-word that keeps going with a tag is offered as a rule in your vocabulary. `--clues` takes the
-clues alone, as a draft to edit; the GUI's "Fill from the files" does the same.
+word that keeps going with a tag is offered as a rule in your vocabulary. A person, family,
+organisation, software or work you confirm becomes a known name: offered next time, and taken
+without asking once it is certain. `arv tags show|label|alias|merge|split|retire KEY` keeps them
+right (two people of one name: `split`, each use asked about). `--clues` takes the clues alone, as
+a draft to edit; the GUI's "Fill from the files" does the same.
 
 ```sh
 ./arv describe ./2019-07_Kyoto --ask --save d.json     # then arv make ./2019-07_Kyoto --draft d.json

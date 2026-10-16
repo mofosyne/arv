@@ -128,6 +128,7 @@ double word_rarity(const word_stats *ws, const char *w);
 int word_common(const word_stats *ws, const char *w);  /* in a fifth of the archive's folders or more */
 void word_tags(const word_stats *ws, const strlist *names, const strlist *text, strlist *tags, strlist *why);
 void word_counts(const word_stats *ws, const char *w, const char *tag, size_t *with, size_t *all);
+size_t word_tag_uses(const word_stats *ws, const char *tag);   /* tagged paths (and answers) with it */
 void text_clues(const word_stats *ws, const char *root, const items *l, strlist *out, strlist *titles, strlist *names);
 void word_stats_vocab(word_stats *ws, const strlist *names, const strlist *aliases);   /* never common */
 void word_example_add(const arv_home *h, const strlist *tags, const strlist *names, const strlist *text);
@@ -135,7 +136,7 @@ int word_rule_add(const arv_home *h, const char *tag, const char *word);
 
 /* ask.c: a suggestion without a model: the files' clues, and with interactive, the person's answers
  * to questions over the vocabulary (per_folder: offer to ask about each first-level folder too) */
-void ask_suggest(const arv_home *h, const archive *cat, const items *l, const char *name, const char *root, int interactive,
+void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *name, const char *root, int interactive,
                  int per_folder, suggestion *out);                          /* a line from the terminal; "" at the end */
 void read_tags_file(const char *path, ftags *out);      /* catalog.read_tag_info */
 void read_tags_now(const archive *cat, const char *disc_id, const char *burned, ftags *out);   /* as burned, and since */

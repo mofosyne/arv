@@ -314,6 +314,27 @@ static void check_namespaces(const tag_vocab *tv, const char *id, const tag_file
 int cmd_tags(int argc, char **argv)
 {
     const char *given = NULL, *only = NULL;
+    static const char *const SUBS[] = { "show", "add", "label", "alias", "merge", "split", "retire", NULL };
+    for (int i = 0; i < argc; i++) {             /* known names: arv tags show|add|label|alias|merge|split|retire KEY ... */
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) {
+            given = argv[++i];
+            continue;
+        }
+        for (int k = 0; SUBS[k]; k++)
+            if (!strcmp(argv[i], SUBS[k])) {
+                char **rest = xmalloc(((size_t)argc + 1) * sizeof *rest);
+                int n = 0;
+                for (int j = i + 1; j < argc; j++) {
+                    if (j + 1 < argc && (!strcmp(argv[j], "-C") || !strcmp(argv[j], "--home"))) given = argv[++j];
+                    else rest[n++] = argv[j];
+                }
+                rest[n] = NULL;
+                int rc = known_cmd(SUBS[k], n, rest, given);
+                free(rest);
+                return rc;
+            }
+        break;
+    }
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--namespace")) only = argv[++i];
@@ -369,6 +390,8 @@ int cmd_tags(int argc, char **argv)
         strlist_add(&spaces, only);
     }
     if (spaces.n) qsort(spaces.v, spaces.n, sizeof *spaces.v, by_str);
+    known_entry *kv;                               /* the known names: their labels, beside their keys */
+    size_t kn = known_load(&h, &kv);
     for (size_t s = 0; s < spaces.n; s++) {
         const char *ns = spaces.v[s];
         if (!*ns) puts("(no namespace)");
@@ -397,6 +420,10 @@ int cmd_tags(int argc, char **argv)
             if (x->folders.n) printf(" %zu folder%s", x->folders.n, x->folders.n == 1 ? "" : "s");
             if (x->files.n) printf("%s %zu file%s", x->folders.n ? "," : "", x->files.n, x->files.n == 1 ? "" : "s");
             printf(" on %zu disc%s", x->discs.n, x->discs.n == 1 ? "" : "s");
+            for (size_t e = 0; *ns && e < kn; e++)
+                if (!strcmp(kv[e].key, x->tag))
+                    printf("   %s%s%s%s%s%s", kv[e].label ? kv[e].label : "", kv[e].qualifier ? " (" : "", kv[e].qualifier ? kv[e].qualifier : "",
+                           kv[e].qualifier ? ")" : "", kv[e].private_ ? ", private" : "", kv[e].retired ? ", RETIRED" : "");
             if (have_vocab && !*ns && !strlist_has(&tv.names, x->tag)) {
                 char *norm = tag_normalise(x->tag);
                 const char *canon = norm;
@@ -410,6 +437,7 @@ int cmd_tags(int argc, char **argv)
         }
         free(mine);
     }
+    known_free(kv, kn);
     if (problems.n) {
         printf("\n%zu to correct (a one-valued namespace has one value a file, and a date is EDTF: 2019-07, 1995/2008):\n",
                problems.n);

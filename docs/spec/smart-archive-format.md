@@ -555,8 +555,8 @@ own. A version's copies have the same fields.
 
 ### `Event` records (recfile)
 
-`EventId` (format 0.5), then `Disc` (or, for a change to a place or a data object,
-`Object`: `location:CODE` or `object:UUID`), `Type` (PREMIS event type:
+`EventId` (format 0.5), then `Disc` (or, for a change to a place, a data object or a known
+name, `Object`: `location:CODE`, `object:UUID` or `name:KEY`), `Type` (PREMIS event type:
 `message digest calculation`, `creation`,
 `fixity check`, `format identification`, `metadata modification`, `ingestion`,
 `replication`), `Date`, `Outcome` (`success` / `failure` / `warning`), `Authorship`,
@@ -731,10 +731,22 @@ where, which occasion, which device. Any single word works; the tag vocabulary
 `file-date`, the file's own date). A one-valued namespace has one value a path, and a path's
 own value replaces the one it has from its folder: `date` (the date of the content, one EDTF
 date or range, as `Coverage`), `event` and `project`. `person`, `place` (places nest: `kyoto`
-and `fushimi-inari`) and `source` take many. The
+and `fushimi-inari`) and `source` take many, as do `family`, `organisation`, `software`
+(a program it is made with or about) and `work` (a book, a film, an album). The
 hierarchical keyword form used by XMP `lr:hierarchicalSubject` (Lightroom,
 digiKam) replaces the colon with `|`: `place|kyoto`; set paths become
 `MEMORIES|PHOTO|TRIP`.
+
+**Known names** (authority control; format 0.5). A namespaced tag may be an entry of its own in
+the vocabulary, a `Tag` record whose `Name` is the key (`person:anne-smith`, made once and kept
+whatever the name becomes), with `Label` (its preferred form now), `Alias`* (other forms it is
+found as, and the keys of entries merged into it), `Qualifier` (what tells two of one name
+apart), `Related`*, `Same`* (the same entity elsewhere: `wikidata:Q...`, `viaf:...`,
+`isni:...`, `geonames:...`), `Basis` (why it was made: by whom, where, when), `Private: yes` and
+`Retired` (why it was withdrawn; kept, no longer offered). A change to an entry is an event about
+`name:KEY`, kept at home; a change to where it is used is an ordinary tag change. An entry with
+`Private: yes` (people's and families' by default) is left out of the vocabulary a `public` disc
+carries; the disc's own tags still name it by its key.
 
 ### Git repositories
 

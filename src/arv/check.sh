@@ -281,6 +281,47 @@ if command -v zip >/dev/null && command -v unzip >/dev/null; then
         && ok "packed objects: as a zip, by the zip program" || { cat pk/make3.txt; no "packed objects: zip"; }
 fi
 
+# ------------------------------------------------------------------ known names: entries of the vocabulary, changed by events
+"$tool" init kn/home >/dev/null 2>&1
+mkdir -p kn/one/a kn/two/a && echo 1 > kn/one/a/x.txt && echo 2 > kn/two/a/y.txt
+printf '{"tags": {"a": ["person:anne-smith"]}, "authorship": "human", "agent": "human:t"}\n' > kn/d.json
+for f in one two; do
+    "$tool" -C kn/home make -y --no-ecc --no-formats --set KN --access public --draft kn/d.json --output-dir kn/out "kn/$f" >/dev/null 2>&1 \
+        || no "make (known names)"
+done
+d1=$("$tool" -C kn/home list | awk 'NR == 1 { print $1 }'); d2=$("$tool" -C kn/home list | awk 'NR == 2 { print $1 }')
+"$tool" -C kn/home tags add person:anne-smith --alias Anne > kn/add.out && "$tool" -C kn/home tags label person:anne-smith "Anne Jones" >/dev/null \
+    && grep -A6 '^Name: person:anne-smith$' kn/home/config/tags.rec > kn/entry.txt \
+    && grep -qx 'Label: Anne Jones' kn/entry.txt && grep -qx 'Alias: Anne Smith' kn/entry.txt && grep -qx 'Private: yes' kn/entry.txt \
+    && [ "$(grep -c '^Object: name:person:anne-smith$' kn/home/catalog/archive.rec)" -ge 2 ] \
+    && "$tool" -C kn/home tags | grep -q 'anne-smith .* Anne Jones, private' \
+    && ok "known names: an entry of the vocabulary (a person's private); a new label keeps the old as an alias; each change an event about name:KEY" \
+    || { cat kn/add.out kn/entry.txt; no "known names: add, label"; }
+printf 'b. 1931\ncolleague\n2\n\n' | "$tool" -C kn/home tags split person:anne-smith > kn/split.out 2> kn/split.err \
+    && grep -q "1 of 2 uses moved to person:anne-smith-2" kn/split.out \
+    && "$tool" -C kn/home tags show person:anne-smith-2 | grep -q "^    $d1  data/a$" \
+    && "$tool" -C kn/home tags show person:anne-smith | grep -q "^    $d2  data/a$" \
+    && grep -A2 '^Name: person:anne-smith-2$' kn/home/config/tags.rec | grep -qx 'Qualifier: colleague' \
+    && grep -q "^Tags: a	person:anne-smith-2$" kn/home/catalog/archive.rec \
+    && ok "known names: split, two of one name: each use asked about, a qualifier each; a moved use is a tag change (an event)" \
+    || { cat kn/split.out kn/split.err; no "known names: split"; }
+"$tool" -C kn/home tags merge person:anne-smith-2 person:anne-smith > kn/merge.out \
+    && [ "$("$tool" -C kn/home tags show person:anne-smith | grep -c 'data/a$')" -eq 2 ] \
+    && grep -A8 '^Name: person:anne-smith-2$' kn/home/config/tags.rec | grep -qx 'Retired: merged into person:anne-smith' \
+    && grep -A12 '^Name: person:anne-smith$' kn/home/config/tags.rec | grep -qx 'Alias: person:anne-smith-2' \
+    && "$tool" -C kn/home tags retire person:anne-smith-2 --why "a mistake" >/dev/null \
+    && ok "known names: merge moves the uses back, the other kept, retired, its key an alias; retire keeps the entry" \
+    || { cat kn/merge.out; no "known names: merge"; }
+"$tool" -C kn/home tags add software:kicad --related electronics >/dev/null 2>&1 && no "tags add takes an unknown option"
+"$tool" -C kn/home tags add software:kicad --label KiCad --same wikidata:Q1141917 > /dev/null \
+    && ! grep -A5 '^Name: software:kicad$' kn/home/config/tags.rec | grep -q '^Private' \
+    && echo 3 > kn/one/a/z.txt && "$tool" -C kn/home make -y --no-ecc --no-formats --set KN --access public --output-dir kn/out2 kn/one >/dev/null 2>&1 \
+    && 7z x -okn/disc kn/out2/*.iso catalog/config/tags.rec >/dev/null \
+    && grep -q '^Name: software:kicad$' kn/disc/catalog/config/tags.rec && ! grep -q '^Name: person:anne-smith' kn/disc/catalog/config/tags.rec \
+    && grep -q '^Name: family$' kn/disc/catalog/config/tags.rec \
+    && ok "known names: a public disc's vocabulary leaves the private entries out (software:kicad goes, person:anne-smith stays home)" \
+    || no "known names: private entries on a public disc"
+
 # ------------------------------------------------------------------ what depends on the machine
 # RS03, added and tested by arv itself (src/rs03); no dvdisaster needed. A small stand-in for
 # tools/: the real checkout is far larger than this test's medium (a real disc carries it all)

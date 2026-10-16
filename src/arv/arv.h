@@ -71,6 +71,19 @@ typedef struct {
     strlist names, alias_from, alias_to, ns_names, ns_desc, ns_one, rule_tag, rule_glob;
 } tag_words_t;
 int tag_words(const arv_home *h, tag_words_t *out);   /* the tag vocabulary's words (tags.c) */
+
+/* known.c: known names, entries of the tag vocabulary (authority control; research/plan.md) */
+typedef struct {
+    char *key, *label, *qualifier, *basis, *retired;   /* retired: why, or NULL */
+    strlist aliases, related, same;
+    int private_;
+} known_entry;
+size_t known_load(const arv_home *h, known_entry **out);
+void known_free(known_entry *v, size_t n);
+char *known_label_of(const char *key);      /* person:anne-smith -> "Anne Smith" */
+int known_field(const arv_home *h, const char *key, const char *field, const char *value, int add);
+char *known_strip_private(const char *text);   /* tags.rec without its Private: yes entries */
+int known_cmd(const char *sub, int argc, char **argv, const char *given);
 int cmd_keywords(int argc, char **argv);
 int cmd_make(int argc, char **argv);
 long medium_budget(const char *medium, const char **label);
@@ -183,6 +196,7 @@ const rec_record *object_at_uuid(const archive *a, const char *uuid);    /* its 
 char *object_tags_now(const arv_home *h, const archive *a, const rec_record *o);
 rec_record *object_event_like(const rec_record *ev, const char *uuid);   /* an event about it, as ev is */
 const rec_record *object_at(const archive *a, const char *disc_id, const char *path);   /* the object at path on a disc */
+void known_made(const arv_home *h, archive *cat, const char *key, const char *label, const char *basis);   /* known.c */
 /* the Uuid of the data object a word names (its Uuid or 8+ characters of it, or its name); dies
  * when it names none or several (listed) */
 const char *object_by_word(const archive *a, const char *text);
