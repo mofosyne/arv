@@ -383,7 +383,7 @@ for n in 1 2 3; do
     printf 'finance\n-\n\n\n\n%s\n\n\n' "$answer" | "$tool" --home wh describe "papers$n" --ask --no-folders > /dev/null 2> "p$n.err" \
         || { cat "p$n.err"; no "describe --ask (text)"; }
 done
-grep -q "words in the text: hmrc invoice vat" p1.err \
+grep -q "words in the text: hmrc, invoice, vat" p1.err \
     && grep -q "^'papers' has been in 3 of 3 folders tagged finance: make it a rule (Match: \*papers\*)" p3.err \
     && grep -q "Added to the vocabulary" p3.err && grep -A1 '^Name: finance$' wh/config/tags.rec | grep -qx 'Match: \*papers\*' \
     && [ "$(grep -c 'finance.papers.hmrc,invoice,vat$' wh/config/word-examples.tsv)" -eq 3 ] \
@@ -395,6 +395,20 @@ put letters/y.txt "HMRC VAT invoice again."
 grep -q "  points to finance: '[a-z]*' in 3 of 3 folders tagged finance, from the files' text" l.err \
     && tr -d '\n ' < l.json | grep -q '"finance"' \
     && ok "the words of text files point to tags too (weighed less than names'), learned from the answers" || { cat l.err; no "text words"; }
+put forms/a.txt "Dear Sir,
+Hello. Please find attached the self assessment for Anne Smith. Your name and address are below.
+We met Anne Smith in Fushimi last week, and Fushimi was lovely. The family garden."
+put forms/b.txt "Hello again. The self assessment is due. Anne Smith will visit Fushimi with the family.
+Name: Bob
+Address: 1 Lane"
+"$tool" --home wh describe forms --clues > /dev/null 2> f.err || no "describe --clues (forms)"
+grep -q "words in the text: anne smith, self assessment, fushimi, family" f.err && grep -q "names in the text: Anne Smith, Fushimi" f.err \
+    && ! grep "words in the text" f.err | grep -q "hello\|name,\|address\|garden" \
+    && ok "text: the language's commonest words left out (a built-in list), a vocabulary word kept ('family'); pairs that go together as phrases ('self assessment'); words written as names found" \
+    || { cat f.err; no "common words, phrases, names"; }
+printf '\n\n\n\n\n\n\n\n' | "$tool" --home wh describe forms --ask --no-folders > /dev/null 2> fa.err || no "describe --ask (forms)"
+grep -A4 '^person:' fa.err | grep -q ' anne-smith  (a name in the text)' \
+    && ok "describe --ask offers the text's names as people and places" || { cat fa.err; no "names offered"; }
 if command -v pdftotext >/dev/null && command -v pdfinfo >/dev/null; then
     mkdir -p pdfs
     for f in a:"Tax return 2021":"HMRC self assessment" b:"Invoice 0042":"Invoice from HMRC"; do

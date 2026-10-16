@@ -2009,3 +2009,26 @@ descriptions. Places come next, as their own vocabulary (`places.rec`, Natural E
 places, public domain, with the nearest place to a photo's EXIF GPS as a clue); its format goes here
 when it is built.
 
+**Common words, phrases and names in text** (the same day). Rarity is counted over names, which
+hardly ever hold "hello", "name" or "address", so those came through from forms and letters; and a
+dictionary is the wrong test, since "invoice", "wedding" and "tax" are dictionary words and among the
+best clues. What says nothing is the language's commonest words, so:
+
+- **A list to start from:** `src/arv-assist/data/common-words.txt`, the 1,500 most frequent English
+  words of three letters or more over 24 public-domain books (Project Gutenberg), each in half of
+  them at least so no character's name gets in, and a short list of today's letter, form and email
+  words the books lack. Made by `dev-tools/common-words.sh`; built into arv-assist at each build
+  (`dev-tools/embed.c`), never as generated code in the repository. A word of the vocabulary (a tag
+  or an alias) is never common: "family" stays a clue though the list has it.
+- **Then the archive's own texts:** once ten described folders have kept their text's words, a word
+  in more than half of them is common too, in any language, which a fixed list cannot be.
+- **Phrases:** two words in a row, nothing but a space or a hyphen between them, count as a phrase
+  when the pair is seen twice or more and mostly where its rarer word is ("self assessment", "anne
+  smith"); a common word may be half of a phrase ("self") though never a clue alone. A phrase
+  replaces its words in the folder's 30 when they are mostly in it. Three words in a row add little
+  for the cost, and are not counted.
+- **Names:** a word written with a capital where no sentence starts (not after `.`, `!`, `?`, `:` or
+  a line break), not common, seen twice, mostly so written, is likely a name; a pair of them is one
+  name ("Anne Smith"). `--ask` offers them in the place and person questions ("a name in the text"),
+  never marked. A crude finder of names, with no model, for the markers a model would read better.
+

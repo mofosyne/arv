@@ -93,6 +93,9 @@ static void counts_free(counts *m)
 
 struct word_stats {
     size_t folders;             /* folders counted for rarity */
+    size_t text_folders;        /* folders whose text's words were kept (the answers) */
+    counts text_df;             /* word -> those whose text had it: the archive's own common words */
+    counts keep;                /* the vocabulary's words: never common, whatever the lists say */
     counts df;                  /* word -> folders whose names have it */
     counts units;               /* word -> tagged paths (and answers) whose words have it */
     counts pairs;               /* "word\ttag" -> those of them with the tag */
@@ -117,6 +120,44 @@ static const char *const STOP[] = {
     "those", "while", "same", "does", "made", "make", "most", "must", "many", "much", "well", "page", "date", "dear",
     "yours", "please", "thank", "thanks", "regards", "sincerely", NULL
 };
+
+extern const char COMMON_WORDS[];          /* data/common-words.txt, built in (dev-tools/common-words.sh) */
+static counts common;                       /* its words, read once */
+
+static void common_load(void)
+{
+    if (common.n) return;
+    for (const char *s = COMMON_WORDS, *e; *s; s = *e ? e + 1 : e) {
+        e = strchr(s, '\n');
+        if (!e) e = s + strlen(s);
+        if (*s != '#' && e > s) {
+            char *w = xprintf("%.*s", (int)(e - s), s);
+            bump(&common, w, 1);
+            free(w);
+        }
+    }
+}
+
+/* a word of a text that says nothing about what the folder holds: one of the language's commonest
+ * (the list), or in most of the texts described before (the archive's own); never one of the
+ * vocabulary's words */
+static int text_common(const word_stats *ws, const char *w)
+{
+    if (ws && count_of(&ws->keep, w)) return 0;
+    common_load();
+    if (count_of(&common, w)) return 1;
+    return ws && ws->text_folders >= 10 && count_of(&ws->text_df, w) * 2 > ws->text_folders;
+}
+
+void word_stats_vocab(word_stats *ws, const strlist *names, const strlist *aliases)
+{
+    const strlist *both[2] = { names, aliases };
+    for (int k = 0; k < 2; k++)
+        for (size_t i = 0; both[k] && i < both[k]->n; i++) {
+            const char *w = strchr(both[k]->v[i], ':') ? strchr(both[k]->v[i], ':') + 1 : both[k]->v[i];
+            bump(&ws->keep, w, 1);
+        }
+}
 
 static int stop_word(const char *w)
 {
@@ -389,9 +430,17 @@ static void count_examples(const arv_home *h, word_stats *ws)
         if (split_tabs(line, c, 4) < 3) continue;
         strlist tags = { 0 }, words = { 0 };
         split_tags(c[1], &tags);
+        int had_text = 0;
         for (int k = 2; k < 4; k++)
             for (char *w = c[k] ? strtok(c[k], ",") : NULL; w; w = strtok(NULL, ","))
-                if (*w) strlist_add(&words, w);
+                if (*w) {
+                    strlist_add(&words, w);
+                    if (k == 3) {
+                        bump(&ws->text_df, w, 1);   /* a text's words: how common in the archive's texts */
+                        had_text = 1;
+                    }
+                }
+        ws->text_folders += had_text;
         if (tags.n) count_unit(ws, &words, &tags);
         strlist_free(&tags);
         strlist_free(&words);
@@ -447,6 +496,8 @@ void word_stats_free(word_stats *ws)
     counts_free(&ws->units);
     counts_free(&ws->pairs);
     counts_free(&ws->tag_index);
+    counts_free(&ws->text_df);
+    counts_free(&ws->keep);
     strlist_free(&ws->tags_of_word_key);
     strlist_free(&ws->tags_of_word_val);
     free(ws);
@@ -549,7 +600,68 @@ static void ext_of(const char *path, char ext[16])
 
 /* the words of a folder's text files and PDFs (pdftotext, when it is there), sampled; the most
  * telling CONTENT_WORDS (frequent here, rare in the archive's names), and the PDFs' own titles */
-void text_clues(const word_stats *ws, const char *root, const items *l, strlist *out, strlist *titles)
+/* a text's words, lower case, into words (each once a file in files); each two in a row with nothing
+ * between them but a space or a hyphen, and neither common, into the same (as "a b"); and a word
+ * written with a capital where no sentence starts, into caps: a name, likely */
+static void scan_text(const word_stats *ws, const char *text, counts *tf, counts *files, counts *caps)
+{
+    counts here = { 0 };
+    char *prev = NULL, *prev_cap = NULL;
+    int sentence = 1, broken = 1, prev_plain = 0;
+    sbuf w = { 0 };
+    for (const char *p = text;; p++) {
+        unsigned char c = (unsigned char)*p;
+        if (c && (isalpha(c) || c >= 0x80)) {
+            if (w.len < 64) sb_add(&w, (const char *)&c, 1);
+            continue;
+        }
+        if (w.len) {
+            int capital = isupper((unsigned char)w.s[0]) && !(w.len > 1 && isupper((unsigned char)w.s[1]));   /* not ALL CAPS */
+            for (size_t i = 0; i < w.len; i++) w.s[i] = (char)tolower((unsigned char)w.s[i]);
+            int ok = w.len >= 3 && w.len <= 30 && !stop_word(w.s), plain = ok && text_common(ws, w.s);
+            if (ok) {                       /* a common word: never a clue alone, but half of a phrase ("self assessment") */
+                if (!plain) {
+                    bump(tf, w.s, 1);
+                    if (!count_of(&here, w.s)) bump(&here, w.s, 1);
+                }
+                if (prev && !broken && !(plain && prev_plain)) {
+                    char *pair = xprintf("%s %s", prev, w.s);
+                    bump(tf, pair, 1);
+                    if (!count_of(&here, pair)) bump(&here, pair, 1);
+                    free(pair);
+                }
+                if (capital && !sentence && !plain) {
+                    bump(caps, w.s, 1);
+                    if (prev_cap && !broken) {
+                        char *pair = xprintf("%s %s", prev_cap, w.s);
+                        bump(caps, pair, 1);
+                        free(pair);
+                    }
+                }
+            }
+            free(prev);
+            free(prev_cap);
+            prev = ok ? xstrdup(w.s) : NULL;
+            prev_plain = plain;
+            prev_cap = ok && capital && !sentence ? xstrdup(w.s) : NULL;
+            sentence = 0;
+            broken = 0;
+            w.len = 0;
+            w.s[0] = 0;
+        }
+        if (!c) break;
+        if (c == '.' || c == '!' || c == '?' || c == ':' || c == '\n') sentence = 1;   /* a capital after these is no clue */
+        if (c != ' ' && c != '-') broken = 1;
+    }
+    for (size_t i = 0; i < here.cap; i++)
+        if (here.keys[i]) bump(files, here.keys[i], 1);
+    counts_free(&here);
+    free(prev);
+    free(prev_cap);
+    free(w.s);
+}
+
+void text_clues(const word_stats *ws, const char *root, const items *l, strlist *out, strlist *titles, strlist *names)
 {
     memset(out, 0, sizeof *out);
     if (!root) return;
@@ -562,7 +674,7 @@ void text_clues(const word_stats *ws, const char *root, const items *l, strlist 
     }
     if (!readable) return;
     size_t step = readable > TEXT_FILES ? readable / TEXT_FILES : 1, at = 0, done = 0;
-    counts tf = { 0 }, files = { 0 };
+    counts tf = { 0 }, files = { 0 }, caps = { 0 };
     for (size_t i = 0; i < l->n && done < TEXT_FILES; i++) {
         char ext[16];
         ext_of(l->v[i].path, ext);
@@ -604,25 +716,64 @@ void text_clues(const word_stats *ws, const char *root, const items *l, strlist 
         free(p);
         if (!text) continue;
         done++;
-        strlist w = { 0 };
-        words_of(text, strlen(text), 0, &w);
-        for (size_t k = 0; k < w.n; k++) bump(&tf, w.v[k], 1);
-        unique(&w);
-        for (size_t k = 0; k < w.n; k++) bump(&files, w.v[k], 1);
-        strlist_free(&w);
+        scan_text(ws, text, &tf, &files, &caps);
         free(text);
     }
-    /* telling: in two files or more (or three times in one), weighed by how rare in the archive's names */
+    /* telling: in two files or more (or three times in one), weighed by how rare in the archive's names;
+     * a pair only as a phrase: twice or more, and mostly where its rarer word is ("self assessment"),
+     * and then its words only where they are not mostly in it */
     size_t n = 0;
     char **keys = xmalloc((tf.n + 1) * sizeof *keys);
     double *score = xmalloc((tf.n + 1) * sizeof *score);
+    counts covered = { 0 };
     for (size_t i = 0; i < tf.cap; i++) {
         if (!tf.keys[i]) continue;
+        char *sp = strchr(tf.keys[i], ' ');
+        if (!sp) continue;
+        *sp = 0;
+        size_t a = count_of(&tf, tf.keys[i]), b = count_of(&tf, sp + 1), pc = tf.vals[i];
+        if (!a) a = pc;                     /* a common word is counted only in its pairs */
+        if (!b) b = pc;
+        size_t lo = a < b ? a : b;
+        if (pc >= 2 && pc * 2 >= lo) {
+            if (a <= pc * 2) bump(&covered, tf.keys[i], 1);
+            if (b <= pc * 2) bump(&covered, sp + 1, 1);
+            *sp = ' ';
+        } else {
+            *sp = ' ';
+            tf.vals[i] = 0;                 /* two words side by side, no more */
+        }
+    }
+    for (size_t i = 0; i < tf.cap; i++) {
+        if (!tf.keys[i] || !tf.vals[i] || count_of(&covered, tf.keys[i])) continue;
         size_t f = count_of(&files, tf.keys[i]);
         if (f < 2 && tf.vals[i] < 3) continue;
         keys[n] = tf.keys[i];
-        score[n++] = log(1.0 + (double)tf.vals[i]) * (1.0 + (double)f) * (ws ? word_rarity(ws, tf.keys[i]) + 1.0 : 1.0);
+        score[n++] = log(1.0 + (double)tf.vals[i]) * (1.0 + (double)f) * (ws ? word_rarity(ws, tf.keys[i]) + 1.0 : 1.0)
+                     * (strchr(tf.keys[i], ' ') ? 1.5 : 1.0);
     }
+    if (names) {                            /* names: written with a capital where no sentence starts, mostly */
+        memset(names, 0, sizeof *names);
+        for (size_t i = 0; i < caps.cap && names->n < 10; i++) {
+            if (!caps.keys[i] || caps.vals[i] < 2) continue;
+            size_t all = count_of(&tf, caps.keys[i]);
+            int in_pair = 0;                /* "anne" of "anne smith": the pair is the name */
+            for (size_t j = 0; !strchr(caps.keys[i], ' ') && j < caps.cap && !in_pair; j++)
+                if (caps.keys[j] && caps.vals[j] >= 2 && strchr(caps.keys[j], ' ')) {
+                    size_t k = strlen(caps.keys[i]);
+                    in_pair = (!strncmp(caps.keys[j], caps.keys[i], k) && caps.keys[j][k] == ' ')
+                              || !strcmp(strchr(caps.keys[j], ' ') + 1, caps.keys[i]);
+                }
+            if (!in_pair && caps.vals[i] * 3 >= all * 2) strlist_add(names, caps.keys[i]);
+        }
+        for (size_t i = 1; i < names->n; i++)  /* the same every run: by name */
+            for (size_t j = i; j > 0 && strcmp(names->v[j], names->v[j - 1]) < 0; j--) {
+                char *t = names->v[j];
+                names->v[j] = names->v[j - 1];
+                names->v[j - 1] = t;
+            }
+    }
+    counts_free(&covered);
     for (size_t k = 0; k < CONTENT_WORDS && k < n; k++) {
         size_t best = k;
         for (size_t j = k + 1; j < n; j++)
@@ -639,6 +790,7 @@ void text_clues(const word_stats *ws, const char *root, const items *l, strlist 
     free(score);
     counts_free(&tf);
     counts_free(&files);
+    counts_free(&caps);
 }
 
 /* ------------------------------------------------------------------ what was answered, kept */

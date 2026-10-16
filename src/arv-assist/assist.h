@@ -128,7 +128,8 @@ double word_rarity(const word_stats *ws, const char *w);
 int word_common(const word_stats *ws, const char *w);  /* in a fifth of the archive's folders or more */
 void word_tags(const word_stats *ws, const strlist *names, const strlist *text, strlist *tags, strlist *why);
 void word_counts(const word_stats *ws, const char *w, const char *tag, size_t *with, size_t *all);
-void text_clues(const word_stats *ws, const char *root, const items *l, strlist *out, strlist *titles);
+void text_clues(const word_stats *ws, const char *root, const items *l, strlist *out, strlist *titles, strlist *names);
+void word_stats_vocab(word_stats *ws, const strlist *names, const strlist *aliases);   /* never common */
 void word_example_add(const arv_home *h, const strlist *tags, const strlist *names, const strlist *text);
 int word_rule_add(const arv_home *h, const char *tag, const char *word);
 

@@ -37,6 +37,10 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   `pdfinfo` when installed), their most telling words counted and a PDF's title put in the
   description; what `--ask` is told is kept (`config/word-examples.tsv`). A word that keeps going
   with a tag is offered as a rule, a `Match` in `tags.rec`.
+- In text, the language's commonest words are left out (a built-in list of 1,500 English words, then
+  the words most of the archive's described texts share), your vocabulary's words are kept, pairs
+  that go together count as phrases ("self assessment"), and words written as names are ("Anne
+  Smith") are offered as people and places.
 - A draft applied to a data object now sets its own tags too (as `arv retag` would, a one-valued
   namespace's new value replacing the old).
 

@@ -32,6 +32,7 @@ typedef struct {
     strlist terms;              /* the same with each two in a row: what the counts of words and tags are by */
     strlist text;               /* the most telling words of its text files and PDFs */
     strlist titles;             /* its PDFs' own titles */
+    strlist text_names;         /* words of its text written as names are (a capital mid-sentence): a person? a place? */
     strlist learned, learned_why;   /* the tags its words point to, and why (words.c) */
 } clues;
 
@@ -343,7 +344,7 @@ static void gather(const word_stats *ws, const items *l, const char *name, const
         strlist_free(&c->terms);
         c->terms = u;
     }
-    text_clues(ws, root, l, &c->text, &c->titles);
+    text_clues(ws, root, l, &c->text, &c->titles, &c->text_names);
     if (ws) word_tags(ws, &c->terms, &c->text, &c->learned, &c->learned_why);
     strlist_free(&kinds);
     strlist_free(&name_dates);
@@ -358,6 +359,7 @@ static void clues_free(clues *c)
     strlist_free(&c->terms);
     strlist_free(&c->text);
     strlist_free(&c->titles);
+    strlist_free(&c->text_names);
     strlist_free(&c->learned);
     strlist_free(&c->learned_why);
     free(c->camera);
@@ -613,6 +615,14 @@ static void ask_namespace(asking *a, const arv_home *h, const archive *cat, cons
             strlist_add(&opts, c->words.v[w]);
             strlist_add(&why, "a word in the names");
         }
+    for (size_t w = 0; !one && (!strcmp(ns, "place") || !strcmp(ns, "person")) && w < c->text_names.n && opts.n < 8; w++) {
+        char *v = slug(c->text_names.v[w]);       /* names in the text: a place? a person? */
+        if (!strlist_has(taken, c->text_names.v[w]) && !strlist_has(&opts, v)) {
+            strlist_add(&opts, v);
+            strlist_add(&why, "a name in the text");
+        }
+        free(v);
+    }
     for (size_t i = 0; i < used.n && opts.n < 8; i++)
         if (!strlist_has(&opts, used.v[i])) {
             strlist_add(&opts, used.v[i]);
@@ -783,6 +793,7 @@ void ask_suggest(const arv_home *h, const archive *cat, const items *l, const ch
     tag_words_t tw;
     if (!h || tag_words(h, &tw)) memset(&tw, 0, sizeof tw);
     word_stats *ws = h ? word_stats_load(h, cat) : NULL;
+    if (ws) word_stats_vocab(ws, &tw.names, &tw.alias_from);   /* your vocabulary's words are never common */
     clues c;
     gather(ws, l, name, root, &c);
     {                                       /* what the files say by themselves */
@@ -806,7 +817,17 @@ void ask_suggest(const arv_home *h, const archive *cat, const items *l, const ch
         }
         if (c.text.n) {
             sb_puts(&b, "; words in the text:");
-            for (size_t i = 0; i < c.text.n && i < 8; i++) sb_printf(&b, " %s", c.text.v[i]);
+            for (size_t i = 0; i < c.text.n && i < 8; i++) sb_printf(&b, "%s %s", i ? "," : "", c.text.v[i]);
+        }
+        if (c.text_names.n) {
+            sb_puts(&b, "; names in the text:");
+            for (size_t i = 0; i < c.text_names.n && i < 6; i++) {
+                char *nm = xstrdup(c.text_names.v[i]);
+                for (char *q = nm; *q; q++)
+                    if (q == nm || q[-1] == ' ') *q = (char)toupper((unsigned char)*q);
+                sb_printf(&b, "%s %s", i ? "," : "", nm);
+                free(nm);
+            }
         }
         if (!root && interactive) sb_puts(&b, " (the files themselves are not here: no EXIF or text)");
         fprintf(stderr, "%s\n", b.s);
