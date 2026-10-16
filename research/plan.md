@@ -2032,3 +2032,126 @@ best clues. What says nothing is the language's commonest words, so:
   name ("Anne Smith"). `--ask` offers them in the place and person questions ("a name in the text"),
   never marked. A crude finder of names, with no model, for the markers a model would read better.
 
+## Design (2026-10-16): known names, as authority control
+
+What `--ask` finds by counting (a word written as a name, a rare word that keeps going with a tag)
+is a suggestion. Once a person confirms it, it should be known: recognised the next time by plain
+matching, with no model and no question when nothing is ambiguous. Libraries and archives have done
+this for over a century as **authority control** (Wikipedia, "Authority control"): one agreed form
+for each person, organisation, place, work and subject, with its variants, kept in authority files
+(the Library of Congress's, the national files joined by VIAF; for archives ISAAR(CPF), encoded as
+EAC-CPF; for places the Getty TGN and GeoNames), and persistent identifiers (VIAF, ISNI, GND,
+Wikidata). It is done by cataloguers, increasingly with a machine suggesting: ePADD finds names in
+email archives for the archivist to confirm, OpenRefine reconciles lists against Wikidata. arv's
+version is the same loop at one person's scale: counting suggests, a person (or a model, as a
+suggestion) confirms, the confirmed entry is matched after; the authority list grows as a side
+effect of describing, not as a task of its own.
+
+### An entry
+
+Known names are entries of the tag vocabulary (namespaced `Tag` records in `config/tags.rec`), and
+places of the gazetteer (`config/places.rec`, below). The fields follow SKOS, which arv's set
+vocabulary already uses (`Parent` for broader):
+
+```
+Name: person:anne-smith          the key: made once, never made again from the label
+Label: Anne Smith                the preferred form now (SKOS prefLabel)
+Alias: Anne                      other forms it is found as: "see" references (altLabel), repeatable
+Alias: A. Smith
+Qualifier: b. 1931               what tells two of one name apart (dates, "grandmother", a place)
+Related: organisation:acme       "see also" (related), repeatable
+Same: wikidata:Q...              the same entity elsewhere (exactMatch): wikidata, viaf, isni, geonames
+Basis: confirmed by a person in arv describe of 2019-07 Kyoto trip, 2026-10-16
+Private: yes                     stays home: never on a disc whose access is wider (see Places)
+```
+
+- **The key is an identifier, the label is a name.** Authority files keep the two apart because
+  names change (marriage, a pen name, a renamed city or company). A key is made once from the
+  first label and kept; a later name becomes the `Label` and the earlier one an `Alias`, and every
+  tag already naming the key stays right.
+- **The basis** is the authority record's statement of justification: where and when the name was
+  confirmed, by whom (a person, or a model's suggestion accepted), in what form.
+
+### What a name can be: the namespaces
+
+A name is not always a person or a place: "KiCad" is software, "Weather station" a project of your
+own, "Acme" a company. Libraries control persons, families, corporate bodies, works and places; the
+default vocabulary's namespaces become, with two added:
+
+| Namespace | What | Values |
+|---|---|---|
+| `person` | someone in it, or who made it | many |
+| `family` | a family as a whole (its papers, its house) | many |
+| `organisation` | a company, school, club, authority (HMRC) | many |
+| `place` | where (the gazetteer) | many |
+| `event` | an occasion | one |
+| `project` | a piece of your own work | one |
+| `work` | something made by others that it is about or made with: software (KiCad), a book, a film | many |
+| `source` | what made the files: a camera, a scanner, an account | many |
+
+One form may be several entries ("Jordan" a country and a person; "KiCad" the software, and a word
+that goes with the topic electronics): a form names an entry for certain only when it names one
+alone. A topic and an entry are linked by `Related` ("work:kicad" related to "electronics"), so
+confirming one offers the other.
+
+### When a known name is taken without asking
+
+Recognised by its label or an alias, in the names (a folder named "Anne's 80th") or the text
+(written as a name is, as now). Taken without a question, as `automatic` with its reason ("Anne
+Smith: known, person:anne-smith, in 5 family folders before"), only when the form is one entry's
+alone, it is written as a name where it is found, and its context agrees (the tags its folders had
+before go with this folder's, by the counts of words and tags). Otherwise marked and asked: a form
+of two entries, a context unlike its others, or an entry confirmed only once. A model's proposals
+are entries too, but `suggested` until a person accepts them: a model's mistake must not be
+matched for ever after.
+
+### Changing them later
+
+The record is appended to, never edited; entries change as the archive learns, and each change is
+an event (`Object: name:KEY`, `Type: metadata modification`), so the record says when an entry was
+made, merged, split or renamed, and why, as authority files keep their decisions.
+
+- **Rename** (a new preferred form): `Label` changes, the old one becomes an `Alias`; nothing else.
+- **Merge** (two entries were one person; a misspelling, as authority files gather over time): the
+  second key becomes an `Alias` of the first. arv already reads every tag through its aliases
+  (`tags_canonical`), so every tag naming the old key reads as the new one, and no earlier record
+  is rewritten. Likely duplicates (close labels, few uses, the same context) are offered for merging.
+- **Split** (two people of one name, found later): a new entry is made with a `Qualifier` to tell
+  them apart, and every place the old key is used (discs' paths, objects) is asked about in turn, in
+  the questions' way ("this Anne Smith: b. 1931, or the colleague?"), with the clues of each place
+  marked; each answer that moves a use is an ordinary tag change, an event with `Sets` and
+  `Replaces`. Uses not yet answered stay with the old entry, which gets its own `Qualifier`. From then
+  on the form names two entries, so it is never taken without asking.
+- **Retire** (a mistake): the entry is kept, marked `Retired: yes` with why, and no longer offered;
+  tags naming it stay readable. Nothing in the vocabulary is deleted, as nothing in the record is.
+
+### Places
+
+The gazetteer is the same kind of entry with a position: `config/places.rec`, `%rec: Place`, with
+`Name`, `Label`, `Alias`, `Qualifier`, `Same`, `Basis`, `Private`, and `At` (ISO 6709, WGS84
+decimal degrees: `+35.0116+135.7681/`), `Kind` (country, region, city, site), `Parent` (broader:
+fushimi-inari, kyoto, japan), `Country` (ISO 3166-1). The default list is Natural Earth's populated
+places and countries (public domain, about 150 KB), copied into the home like the other
+vocabularies and carried on discs with them. A photo's EXIF GPS is a clue for the nearest place
+within reach, never kept in the record itself: the record keeps the place, at the level of a city,
+so no catalogue holds where anyone lives to the metre. Mapping is for map tools (`arv places
+--geojson`) and an offline outline in the GUI and on each disc's `index.html`.
+
+### Private entries
+
+People's names are personal data, and the vocabulary goes on discs. An entry with `Private: yes`
+(the default for `person` and `family`, and for a place you add with exact coordinates) stays in the
+home's vocabulary and goes on a disc only when the disc's access is `private` or narrower; a tag
+naming it still goes on the disc, as the key alone (`person:anne-smith`), so a disc says no more
+than its own tags do.
+
+### Order of building
+
+1. The fields, read and written: `Label`, `Qualifier`, `Related`, `Same`, `Basis`, `Private`,
+   `Retired`, and the two new namespaces; `--ask` confirming a name makes or extends an entry, with
+   the questions for one form of two entries.
+2. Taking a known name without asking, by the rule above.
+3. Changing them: `arv names` to list, rename, merge, split and retire, each an event.
+4. Places: the gazetteer, EXIF GPS, the GeoJSON export and the map.
+5. Later: export of people and organisations as EAC-CPF; a model proposing entries in bulk.
+
