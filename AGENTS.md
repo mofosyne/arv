@@ -21,7 +21,7 @@ a recfile catalogue, its own source in `tools/`), and keeps the record of what e
 | Path | What |
 |---|---|
 | `src/arv/` | the CLI, C99 and POSIX, no libraries; `arv.c` holds the usage text and the command table |
-| `src/arv-assist/` | describing and tagging (`describe`, `tag`, `models`): local AI, or questions without it (`ask.c`), C |
+| `src/arv-assist/` | describing and tagging (`describe`, `tag`, `models`): local AI, or questions without it (`ask.c`, counting words with tags in `words.c`), C |
 | `src/arv-gui/` | the browser interface: a small local server (C) and its page, `gui.html` |
 | `src/udfwrite/`, `src/bagit/`, `src/rs03/` | the image writer, BagIt, the error correction: programs of their own |
 | `tests/reference/` | scenarios run by `make check`, and their expected output |

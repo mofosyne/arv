@@ -31,6 +31,12 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   from the answers, to accept or edit, and kept as the person's (`Authorship: human`).
 - `--clues` takes the clues alone, as a draft (`automatic`); the GUI's describe panels have "Fill
   from the files (no model)".
+- **It learns, by counting:** a word of a folder's names that went with a tag before marks that tag
+  ("'kicad' in 9 of 10 folders tagged electronics"), and rare words are offered first, common ones
+  left out (`cache/words.tsv`, from the record). Text files and PDFs are read too (`pdftotext`,
+  `pdfinfo` when installed), their most telling words counted and a PDF's title put in the
+  description; what `--ask` is told is kept (`config/word-examples.tsv`). A word that keeps going
+  with a tag is offered as a rule, a `Match` in `tags.rec`.
 - A draft applied to a data object now sets its own tags too (as `arv retag` would, a one-valued
   namespace's new value replacing the old).
 

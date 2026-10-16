@@ -28,7 +28,11 @@ typedef struct {
     const char *date_from;      /* "EXIF", "names" or "file times" */
     char *camera;               /* EXIF's most common Model, or NULL */
     size_t camera_names;        /* files named by a camera or phone (DSC_0001.JPG) */
-    strlist words;              /* the words of the name and the folders' names, most used first */
+    strlist words;              /* the words of the name and the folders' names, the most telling first */
+    strlist terms;              /* the same with each two in a row: what the counts of words and tags are by */
+    strlist text;               /* the most telling words of its text files and PDFs */
+    strlist titles;             /* its PDFs' own titles */
+    strlist learned, learned_why;   /* the tags its words point to, and why (words.c) */
 } clues;
 
 /* ------------------------------------------------------------------ dates */
@@ -234,12 +238,13 @@ static int by_count_desc(const void *a, const void *b)
     return x[1] != y[1] ? (x[1] > y[1] ? -1 : 1) : (x[0] < y[0] ? -1 : x[0] > y[0]);
 }
 
-static void gather(const items *l, const char *name, const char *root, clues *c)
+static void gather(const word_stats *ws, const items *l, const char *name, const char *root, clues *c)
 {
     memset(c, 0, sizeof *c);
     c->files = l->n;
     strlist kinds = { 0 }, name_dates = { 0 }, exif = { 0 }, all_words = { 0 };
     long t_first = 0, t_last = 0;
+    char *last_folder = NULL;
     for (size_t i = 0; i < l->n; i++) {
         const char *path = l->v[i].path, *base = strrchr(path, '/') ? strrchr(path, '/') + 1 : path;
         const char *dot = strrchr(base, '.');
@@ -262,12 +267,19 @@ static void gather(const items *l, const char *name, const char *root, clues *c)
         char *folder = xstrdup(path), *slash = strrchr(folder, '/');      /* the folders' names, not the files' */
         if (slash) {
             *slash = 0;
-            name_words(folder, &all_words);
+            if (!last_folder || strcmp(last_folder, folder)) {   /* each folder once (a listing is by path) */
+                name_words(folder, &all_words);
+                name_word_list(folder, &c->terms);
+                free(last_folder);
+                last_folder = xstrdup(folder);
+            }
         }
         free(folder);
     }
+    free(last_folder);
     name_words(name, &all_words);
     name_words(name, &all_words);           /* the name itself counts more than one folder */
+    name_word_list(name, &c->terms);
     {                                       /* the kinds, most first */
         long (*order)[2] = xmalloc((kinds.n + 1) * sizeof *order);
         for (size_t j = 0; j < kinds.n && j < 16; j++) order[j][0] = (long)j, order[j][1] = (long)c->kind_n[j];
@@ -308,11 +320,31 @@ static void gather(const items *l, const char *name, const char *root, clues *c)
             order[nu][1] = k;
             nu++;
         }
+        if (ws)                             /* the most telling: rare in the archive's names, then used here */
+            for (size_t i = 0; i < nu; i++)
+                order[i][1] = (long)(word_rarity(ws, uniq.v[order[i][0]]) * 100) * 1000 + (order[i][1] < 999 ? order[i][1] : 999);
         qsort(order, nu, sizeof *order, by_count_desc);
-        for (size_t i = 0; i < nu && i < 12; i++) strlist_add(&c->words, uniq.v[order[i][0]]);
+        for (size_t i = 0; i < nu && c->words.n < 12; i++)
+            if (!ws || !word_common(ws, uniq.v[order[i][0]])) strlist_add(&c->words, uniq.v[order[i][0]]);
         strlist_free(&uniq);
         free(order);
     }
+    {                                       /* the terms once each, rare first */
+        strlist u = { 0 };
+        for (size_t i = 0; i < c->terms.n; i++)
+            if (!strlist_has(&u, c->terms.v[i]) && (!ws || !word_common(ws, c->terms.v[i]))) strlist_add(&u, c->terms.v[i]);
+        for (size_t i = 1; ws && i < u.n; i++)
+            for (size_t j = i; j > 0 && word_rarity(ws, u.v[j]) > word_rarity(ws, u.v[j - 1]); j--) {
+                char *t = u.v[j];
+                u.v[j] = u.v[j - 1];
+                u.v[j - 1] = t;
+            }
+        while (u.n > 60) free(u.v[--u.n]);
+        strlist_free(&c->terms);
+        c->terms = u;
+    }
+    text_clues(ws, root, l, &c->text, &c->titles);
+    if (ws) word_tags(ws, &c->terms, &c->text, &c->learned, &c->learned_why);
     strlist_free(&kinds);
     strlist_free(&name_dates);
     strlist_free(&exif);
@@ -323,6 +355,11 @@ static void clues_free(clues *c)
 {
     strlist_free(&c->kinds);
     strlist_free(&c->words);
+    strlist_free(&c->terms);
+    strlist_free(&c->text);
+    strlist_free(&c->titles);
+    strlist_free(&c->learned);
+    strlist_free(&c->learned_why);
     free(c->camera);
 }
 
@@ -532,6 +569,13 @@ static void ask_namespace(asking *a, const arv_home *h, const archive *cat, cons
                           const char *name, const char *ns, int one, int sub, strlist *taken, strlist *tags)
 {
     strlist used = { 0 }, opts = { 0 }, why = { 0 }, marked = { 0 }, got;
+    size_t nl = strlen(ns);
+    for (size_t i = 0; i < c->learned.n; i++)  /* the values its words went with before (words.c) */
+        if (!strncmp(c->learned.v[i], ns, nl) && c->learned.v[i][nl] == ':' && !strlist_has(&opts, c->learned.v[i] + nl + 1)) {
+            strlist_add(&opts, c->learned.v[i] + nl + 1);
+            strlist_add(&why, c->learned_why.v[i]);
+            if (!marked.n || !one) strlist_add(&marked, c->learned.v[i] + nl + 1);
+        }
     used_values(h, cat, ns, &used);
     for (size_t i = 0; i < used.n; i++)     /* a value used before, named by a word here */
         for (size_t w = 0; w < c->words.n; w++)
@@ -632,6 +676,12 @@ static char *ask_folder(asking *a, const arv_home *h, const archive *cat, const 
                 free(wy);
             }
         }
+        for (size_t i = 0; i < c->learned.n; i++)  /* the topics its words went with before (words.c) */
+            if (!strchr(c->learned.v[i], ':') && !strlist_has(&marked, c->learned.v[i])) {
+                strlist_add(&marked, c->learned.v[i]);
+                strlist_add(&opts, c->learned.v[i]);
+                strlist_add(&why, c->learned_why.v[i]);
+            }
         for (size_t i = 0; i < tw->names.n; i++)
             if (!strchr(tw->names.v[i], ':') && !strlist_has(&opts, tw->names.v[i])) {
                 strlist_add(&opts, tw->names.v[i]);
@@ -732,12 +782,13 @@ void ask_suggest(const arv_home *h, const archive *cat, const items *l, const ch
     asking a = { interactive, 0, 0 };
     tag_words_t tw;
     if (!h || tag_words(h, &tw)) memset(&tw, 0, sizeof tw);
+    word_stats *ws = h ? word_stats_load(h, cat) : NULL;
     clues c;
-    gather(l, name, root, &c);
+    gather(ws, l, name, root, &c);
     {                                       /* what the files say by themselves */
         sbuf b = { 0 };
         sb_printf(&b, "Clues: %zu file%s", c.files, c.files == 1 ? "" : "s");
-        for (size_t i = 0; i < c.kinds.n && i < 4; i++) {
+        for (size_t i = 0; i < c.kinds.n && i < 4 && !(c.kinds.n == 1 && !strcmp(c.kinds.v[0], "files")); i++) {
             char *one = counted(c.kind_n[i], c.kinds.v[i]);
             sb_printf(&b, "%s%s", i ? ", " : ": ", one);
             free(one);
@@ -753,8 +804,14 @@ void ask_suggest(const arv_home *h, const archive *cat, const items *l, const ch
             sb_puts(&b, "; words in the names:");
             for (size_t i = 0; i < c.words.n && i < 8; i++) sb_printf(&b, " %s", c.words.v[i]);
         }
-        if (!root && interactive) sb_puts(&b, " (the files themselves are not here: no EXIF)");
+        if (c.text.n) {
+            sb_puts(&b, "; words in the text:");
+            for (size_t i = 0; i < c.text.n && i < 8; i++) sb_printf(&b, " %s", c.text.v[i]);
+        }
+        if (!root && interactive) sb_puts(&b, " (the files themselves are not here: no EXIF or text)");
         fprintf(stderr, "%s\n", b.s);
+        for (size_t i = 0; i < c.learned.n && i < 5; i++)
+            fprintf(stderr, "  points to %s: %s\n", c.learned.v[i], c.learned_why.v[i]);
         free(b.s);
     }
     if (!c.kind && interactive && c.kinds.n > 1) {   /* what it mostly is decides what is asked next */
@@ -797,17 +854,55 @@ void ask_suggest(const arv_home *h, const archive *cat, const items *l, const ch
         folder_items(l, folders.v[f], &sub);
         clues fc;
         char *froot = root ? join(root, folders.v[f]) : NULL;
-        gather(&sub, folders.v[f], froot, &fc);
+        gather(ws, &sub, folders.v[f], froot, &fc);
         fc.kind = fc.kind ? fc.kind : c.kind;
         fprintf(stderr, "\n-- %s/ (%zu file%s)\n", folders.v[f], sub.n, sub.n == 1 ? "" : "s");
         strlist ft = { 0 };
         free(ask_folder(&a, h, cat, &tw, &fc, folders.v[f], &sub, 0, date, clue_date, &ft));
         for (size_t i = 0; i < ft.n; i++)
             if (!strlist_has(&tags, ft.v[i])) strlist_add(ftags_get(&out->folders, folders.v[f], 1), ft.v[i]);
+        if (interactive && !a.stopped) word_example_add(h, &ft, &fc.terms, &fc.text);   /* what was told, kept */
         strlist_free(&ft);
         clues_free(&fc);
         items_free(&sub);
         free(froot);
+    }
+    if (interactive && h) {                 /* what was told, kept: the next folder's questions are shorter */
+        word_example_add(h, &tags, &c.terms, &c.text);
+        size_t offered = 0;                 /* a word that keeps going with a tag: offered as a rule */
+        for (size_t i = 0; i < tags.n && offered < 3 && !a.stopped; i++) {
+            if (!strncmp(tags.v[i], "date:", 5)) continue;
+            for (size_t w = 0; w < c.terms.n && offered < 3; w++) {
+                const char *word = c.terms.v[w];
+                size_t with, all;
+                word_counts(ws, word, tags.v[i], &with, &all);
+                with++, all++;              /* this answer too */
+                if (all < WORD_MIN || with * 100 < all * 90) continue;
+                const char *value = strchr(tags.v[i], ':') ? strchr(tags.v[i], ':') + 1 : tags.v[i];
+                if (strstr(value, word)) continue;      /* the tag's own word: no rule needed */
+                char *glob = xprintf("*%s*", word);
+                for (char *g = glob; *g; g++)
+                    if (*g == ' ') *g = '*';
+                int have = 0;
+                for (size_t r = 0; r < tw.rule_tag.n && !have; r++)
+                    have = !strcmp(tw.rule_tag.v[r], tags.v[i]) && !strcmp(tw.rule_glob.v[r], glob);
+                if (!have) {
+                    offered++;
+                    char *q = xprintf("\n'%s' has been in %zu of %zu folders tagged %s: make it a rule (Match: %s), so "
+                                      "folders with it are tagged without asking? [y/N] ", word, with, all, tags.v[i], glob);
+                    char *ans = ask(q);
+                    if (ans[0] == 'y' || ans[0] == 'Y') {
+                        if (word_rule_add(h, tags.v[i], word)) fprintf(stderr, "Could not write %s/tags.rec\n", h->config_dir);
+                        else fprintf(stderr, "Added to the vocabulary (%s/tags.rec): %s, Match: %s\n", h->config_dir, tags.v[i], glob);
+                        strlist_add(&tw.rule_tag, tags.v[i]);
+                        strlist_add(&tw.rule_glob, glob);
+                    }
+                    free(ans);
+                    free(q);
+                }
+                free(glob);
+            }
+        }
     }
     /* the title and description, made from the answers */
     const char *what = c.kind ? c.kind : "files";
@@ -830,6 +925,9 @@ void ask_suggest(const arv_home *h, const archive *cat, const items *l, const ch
     char *upper = xstrdup(kinds_text);
     sb_puts(&d, upper);
     free(upper);
+    for (size_t i = 0; i < c.titles.n && i < 3; i++)   /* the PDFs' own titles say what they are */
+        sb_printf(&d, "%s%s", i ? ", " : " (", c.titles.v[i]);
+    if (c.titles.n) sb_printf(&d, "%s)", c.titles.n > 3 ? ", ..." : "");
     strlist places = { 0 }, people = { 0 };
     for (size_t i = 0; i < tags.n; i++) {
         if (!strncmp(tags.v[i], "place:", 6)) strlist_add(&places, tags.v[i] + 6);
@@ -868,4 +966,5 @@ void ask_suggest(const arv_home *h, const archive *cat, const items *l, const ch
     strlist_free(&folders);
     strlist_free(&tags);
     clues_free(&c);
+    word_stats_free(ws);
 }

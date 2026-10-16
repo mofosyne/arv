@@ -1967,3 +1967,45 @@ picture, whatever its names), plain files under `catalog/thumbs/` with an index 
 its own thumbnails, not every other disc's (100,000 photos would put about a gigabyte on every
 disc): those stay at home. They follow the disc's access level, since a thumbnail shows content.
 
+## Done (2026-10-16): words and tags, counted; text and PDFs; rules offered
+
+Learned rules from the entry above, done by counting, so that each answer makes the next folder's
+questions shorter. No model: every suggestion says the counts behind it.
+
+- **Rarity:** every folder of every disc's listing, its name and its files' names, gives how many
+  folders each word is in. "img", "final" and "2019" are everywhere and say nothing; "kicad" and
+  "fushimi" are rare and say a lot. `--ask` offers the rare words first, and leaves out a word in
+  more than a fifth of the archive's folders.
+- **Words with tags:** every tagged path (the discs' tags now, and objects' own tags where their
+  disc has none for their path) counts its names' words, and each two in a row ("birthday party"),
+  against its tags. A word seen in 3 tagged paths or more, 80% of them with a tag, marks that tag:
+  "'kicad' in 9 of 10 folders tagged electronics". Kept in `cache/words.tsv`, rebuilt when the
+  catalogue changes (its size and time), never on a disc.
+- **Text and PDFs:** a folder's text files (the first 64 KB) and PDFs (`pdftotext`, the first three
+  pages, when installed) are sampled, 20 a folder, and their 30 most telling words kept: frequent
+  there, in two files or more, rare in the archive's names, with a short list of common English words
+  left out (rarity alone cannot judge a short text). The text is never kept, only those words. A
+  PDF's own Title (`pdfinfo`) goes into the description. Text words weigh half a name's: a word in a
+  folder's name was chosen, one in a letter is incidental.
+- **What was told:** each `--ask` answer is kept in `config/word-examples.tsv` (home only, not
+  rebuildable: the text's words are in no record), with the words of the names and of the text, and
+  counted with the rest.
+- **Rules:** a word that has been with a tag in 3 or more of the folders it was in, 90% of them,
+  counting this answer, is offered as a rule: `Match: *kicad*` under the tag in `tags.rec`, inserted
+  after its Name line so the file keeps its comments (a new Tag record, before the Namespace records,
+  when there is none). Then the vocabulary has it, on discs too, and anyone can read and edit it.
+
+Limits: it starts empty and learns habits, mistakes too, so it only marks answers and never tags
+alone (`--clues` takes what is marked, as `automatic`). Names written without spaces (京都旅行) are
+one word to it; short runs of characters would split them, later. Office files and scanned PDFs
+are not read yet (`pandoc`, `tesseract`). Contents are not searched: `arv find` stays on names,
+tags and descriptions, and full-text search is for tools built for it (Recoll, ripgrep).
+
+**Later: a model as a reader, not a writer.** With this in place a model's work can shrink to what
+counting cannot do, reading: pulling the markers out of a letter or a photo (a place, a person, an
+organisation, a date), which the counts and the vocabulary then turn into questions, and the person
+confirms. A model that extracts names is a smaller job, easier to check, than one that writes
+descriptions. Places come next, as their own vocabulary (`places.rec`, Natural Earth's populated
+places, public domain, with the nearest place to a photo's EXIF GPS as a clue); its format goes here
+when it is built.
+

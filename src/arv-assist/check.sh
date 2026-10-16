@@ -361,4 +361,55 @@ PATH="$dir/fakebin:$PATH" "$tool" --home askh describe ex --clues > ex.json 2> e
 grep -q 'dates 2021-12 (from EXIF); camera Pixel 7 (EXIF)' ex.err && tr -d '\n ' < ex.json | grep -q '"source:pixel-7"' \
     && grep -q '"description": "2 photos, from a Pixel 7, December 2021."' ex.json \
     && ok "describe --clues: EXIF dates and camera, through exiftool when it is there" || { cat ex.err ex.json; no "EXIF clues"; }
+# ------------------------------------------------------------------ words and tags, counted: from the record, the answers, the text
+"$arv" init wh >/dev/null 2>&1
+for n in 1 2 3; do
+    put "kicad-board-$n/main.kicad_pcb" "x$n"
+    "$arv" -C wh make -y --no-ecc --no-formats --set PROJ --output-dir wout "kicad-board-$n" >/dev/null 2>&1 || no "make (words)"
+done
+for id in $("$arv" -C wh list | awk '{ print $1 }'); do
+    printf '{"tags": {".": ["electronics"]}, "authorship": "human", "agent": "human:t"}' | "$tool" --home wh describe "$id" --apply - >/dev/null || no "apply (words)"
+done
+put "new kicad thing/a.kicad_sch" z
+"$tool" --home wh describe "new kicad thing" --clues > w.json 2> w.err || no "describe --clues (learned)"
+grep -qx "  points to electronics: 'kicad' in 3 of 3 folders tagged electronics" w.err \
+    && tr -d '\n ' < w.json | grep -q '"tags":{".":\["electronics"' && [ -s wh/cache/words.tsv ] \
+    && ok "words and tags, counted from the record: a word of the names that went with a tag before marks it, saying how often (cache/words.tsv)" \
+    || { cat w.err w.json; no "learned from the record"; }
+for n in 1 2 3; do
+    put "papers$n/a.txt" "Invoice for VAT. HMRC reference. Invoice total. HMRC VAT return."
+    put "papers$n/b.txt" "Another invoice from HMRC about VAT."
+    answer=n; [ "$n" = 3 ] && answer=y
+    printf 'finance\n-\n\n\n\n%s\n\n\n' "$answer" | "$tool" --home wh describe "papers$n" --ask --no-folders > /dev/null 2> "p$n.err" \
+        || { cat "p$n.err"; no "describe --ask (text)"; }
+done
+grep -q "words in the text: hmrc invoice vat" p1.err \
+    && grep -q "^'papers' has been in 3 of 3 folders tagged finance: make it a rule (Match: \*papers\*)" p3.err \
+    && grep -q "Added to the vocabulary" p3.err && grep -A1 '^Name: finance$' wh/config/tags.rec | grep -qx 'Match: \*papers\*' \
+    && [ "$(grep -c 'finance.papers.hmrc,invoice,vat$' wh/config/word-examples.tsv)" -eq 3 ] \
+    && ok "describe --ask keeps what it was told (config/word-examples.tsv), the text's words too; a word that keeps going with a tag is offered as a rule, put in tags.rec" \
+    || { cat p1.err p3.err; no "answers kept, a rule offered"; }
+put letters/x.txt "Dear sir, the HMRC invoice and VAT."
+put letters/y.txt "HMRC VAT invoice again."
+"$tool" --home wh describe letters --clues > l.json 2> l.err || no "describe --clues (text)"
+grep -q "  points to finance: '[a-z]*' in 3 of 3 folders tagged finance, from the files' text" l.err \
+    && tr -d '\n ' < l.json | grep -q '"finance"' \
+    && ok "the words of text files point to tags too (weighed less than names'), learned from the answers" || { cat l.err; no "text words"; }
+if command -v pdftotext >/dev/null && command -v pdfinfo >/dev/null; then
+    mkdir -p pdfs
+    for f in a:"Tax return 2021":"HMRC self assessment" b:"Invoice 0042":"Invoice from HMRC"; do
+        name=${f%%:*}; rest=${f#*:}; title=${rest%%:*}; text=${rest#*:}
+        stream="BT /F1 12 Tf 10 100 Td ($text) Tj ET"
+        { printf '%%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n'
+          printf '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n'
+          printf '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 300 144] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj\n'
+          printf '4 0 obj << /Length %d >> stream\n%s\nendstream endobj\n' "${#stream}" "$stream"
+          printf '5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n'
+          printf '6 0 obj << /Title (%s) >> endobj\n' "$title"
+          printf 'trailer << /Root 1 0 R /Info 6 0 R >>\n%%%%EOF\n'; } > "pdfs/$name.pdf"
+    done
+    "$tool" --home wh describe pdfs --clues > pdf.json 2> pdf.err || no "describe --clues (PDF)"
+    grep -q '"description": "2 PDF documents (Tax return 2021, Invoice 0042)' pdf.json && grep -q "words in the text: hmrc" pdf.err \
+        && ok "PDFs: their text through pdftotext, their titles through pdfinfo, in the description" || { cat pdf.err pdf.json; no "PDF clues"; }
+fi
 echo "all checks passed"

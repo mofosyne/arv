@@ -401,7 +401,10 @@ This is arv-assist (`src/arv-assist`, optional, in C): everything works without 
 **Without a model**, `arv describe NAME --ask` asks you instead, twenty-questions style: the
 files' clues (dates in their names or EXIF, the kinds of files, a camera, the words of the folders'
 names that your vocabulary knows) mark the likely answer to each question, so most answers are
-Enter or a number. The title and description are made from your answers. `--clues` takes the
+Enter or a number. The title and description are made from your answers. It learns by counting:
+a word that went with a tag before marks it next time, saying how often ("'kicad' in 9 of 10
+folders tagged electronics"), the words of text files and PDFs count too (`pdftotext`), and a
+word that keeps going with a tag is offered as a rule in your vocabulary. `--clues` takes the
 clues alone, as a draft to edit; the GUI's "Fill from the files" does the same.
 
 ```sh

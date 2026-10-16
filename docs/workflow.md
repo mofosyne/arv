@@ -175,7 +175,9 @@ kinds, the folders that are not (a repository's own tree is left alone):
 
 Optional: `arv describe FOLDER --ask --save d.json` asks you, with no model: a few questions
 (topics, the event, places, people, when), each with the answer the files' names, dates and EXIF
-point to marked, so most are Enter; the title and description are made from the answers. `arv
+point to marked, so most are Enter; the title and description are made from the answers. It
+learns from what you tag: a word that went with a tag before marks it next time (names, and the
+words of text files and PDFs), and one that always does is offered as a rule in `tags.rec`. `arv
 tag FOLDER --save d.json` suggests folder tags from your vocabulary, and `arv describe FOLDER
 --save d.json` asks a local language model for a title, description and questions; `arv make
 --draft d.json` takes any of them.
