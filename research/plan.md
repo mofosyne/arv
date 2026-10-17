@@ -2207,7 +2207,22 @@ place's), uses and discs; `--json`, `--geojson` (for QGIS, uMap, geojson.io: Pri
 `--svg`. The picture is an equirectangular outline of Natural Earth's 1:110m land as one path (23
 KB, `data/world.txt`), framed to the places shown, dots sized by use; each disc's `index.html` has it
 inline when its tags name places (a public disc shows a private place's tag only), and the GUI has a
-Map view. Not yet: `arv find place:japan` finding what is tagged with places inside Japan; regions
+Map view.
+
+**GPS by outlines and boxes (2026-10-17).** The nearest point within a radius put a photo taken in
+Kehl in Strasbourg (the nearest city, across the Rhine) and one far from any city of the sparse
+1:50m list in the wrong country, or none. Now: a place of your own may have an `Extent` (a box: two
+ISO 6709 corners) and a `Reach` (`2km`); a photo inside the box, or within reach (3 km unless it
+says), is there, the smallest box first. Then a city within 40 km, but only of the country the
+point is in; then that country. Which country is a point-in-polygon test (a ray's crossings) over
+Natural Earth's 1:110m outlines, 96 KB built into arv-assist (`data/countries.txt`, from
+`dev-tools/places.py`; arv does not need it), the smallest ring holding the point winning, so
+Lesotho is not South Africa. A country too small for 1:110m (Singapore, Malta) has no outline: its
+cities are trusted whatever outline holds them. Off every outline (a coast drawn coarsely, a small
+island), the old rule stays: the country of a city within 400 km, said as "perhaps". A size-scaled
+reach for cities (Tokyo is not a town) was left: population is a poor guess at extent, and real city
+boundaries are megabytes. Positions given by a person keep four decimals (about 11 m); the
+gazetteer's cities stay at two. Not yet: `arv find place:japan` finding what is tagged with places inside Japan; regions
 (admin-1) as places; a larger list (GeoNames) as an optional download; offering likely duplicates
 for merging; EAC-CPF export.
 

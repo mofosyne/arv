@@ -5,13 +5,15 @@
 # dev-tools/places.py from Natural Earth (public domain, naturalearthdata.com): 242 countries and
 # 1251 populated places. Add your own (a village, a house, a site) with
 #   arv tags add place:fushimi-inari --label "Fushimi Inari" --parent place:kyoto [--at +34.97+135.77/]
-# A place added with a position is private (it stays home) unless --public says otherwise.
+# A place added with a position or an extent is private (it stays home) unless --public says otherwise.
 #
 # The fields of a known name (see tags.rec), and:
 #   Kind      country, region, city or site
 #   Parent    the place it is in (broader): fushimi-inari, kyoto, japan
 #   Country   ISO 3166-1 alpha-2, for a country
 #   At        where, ISO 6709 in decimal degrees (WGS84): +35.03+135.75/ (a city's to about a km)
+#   Extent    the box it covers, two opposite corners: +34.96+135.76/+34.98+135.78/ (a park, a farm)
+#   Reach     how near a photo must be to At to be here: 2km, 500m (your places: 3km unless it says)
 #
 # arv describe --ask offers a place found in a folder's names or text, and the nearest one to its
 # photos' GPS (the record keeps the place, never the coordinates); arv map shows them.
@@ -19,7 +21,7 @@
 %rec: Place
 %key: Name
 %mandatory: Name
-%allowed: Name Label Alias Qualifier Related Same Basis Private Retired Kind Parent Country At
+%allowed: Name Label Alias Qualifier Related Same Basis Private Retired Kind Parent Country At Extent Reach
 
 Name: place:afghanistan
 Label: Afghanistan

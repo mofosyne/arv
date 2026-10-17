@@ -725,33 +725,138 @@ static double km_between(double lat1, double lon1, double lat2, double lon2)
     return 2 * r * atan2(sqrt(h), sqrt(1 - h));
 }
 
-/* the place nearest the photos' GPS, within its reach: a place of your own (a site) within 3 km,
- * else a city within 40; else, within 400 km of a city, its country (*broad set). NULL: none. */
-static const known_entry *gps_place(const asking *a, const clues *c, int *broad, double *km)
+/* ------------------------------------------------------------------ where the photos' GPS is */
+
+extern const char COUNTRIES[];              /* data/countries.txt, built in (dev-tools/places.py) */
+
+typedef struct {
+    char key[64];
+    int *pt;                                /* lon,lat pairs, tenths of a degree */
+    size_t n;
+    double area;
+} ring;
+
+static ring *rings;
+static size_t nrings;
+
+static void rings_load(void)
 {
-    const known_entry *best = NULL, *near = NULL;
-    double bd = 0, nd = 0;
-    int best_site = 0;
-    *broad = 0;
-    for (size_t i = 0; c->gps && i < a->kn; i++) {
+    static int done;
+    if (done) return;
+    done = 1;
+    for (const char *s = COUNTRIES, *e; *s; s = *e ? e + 1 : e) {
+        e = strchr(s, '\n');
+        if (!e) e = s + strlen(s);
+        const char *tab = memchr(s, '\t', (size_t)(e - s));
+        if (*s == '#' || !tab || tab - s >= 64) continue;
+        rings = xrealloc(rings, (nrings + 1) * sizeof *rings);
+        ring *r = &rings[nrings++];
+        memset(r, 0, sizeof *r);
+        memcpy(r->key, s, (size_t)(tab - s));
+        for (const char *p = tab + 1; p < e;) {
+            char *q;
+            long x = strtol(p, &q, 10);
+            if (q == p || *q != ',') break;
+            long y = strtol(q + 1, &q, 10);
+            r->pt = xrealloc(r->pt, (r->n + 1) * 2 * sizeof *r->pt);
+            r->pt[2 * r->n] = (int)x, r->pt[2 * r->n + 1] = (int)y;
+            r->n++;
+            p = q;
+            while (p < e && *p == ' ') p++;
+        }
+        for (size_t i = 0, j = r->n - 1; i < r->n; j = i++)   /* the shoelace: an enclave's ring is the smaller */
+            r->area += (double)r->pt[2 * j] * r->pt[2 * i + 1] - (double)r->pt[2 * i] * r->pt[2 * j + 1];
+        r->area = r->area < 0 ? -r->area / 2 : r->area / 2;
+    }
+}
+
+/* the country whose outline holds a point (the smallest ring that does: Lesotho, not South Africa), or NULL */
+static const char *country_at(double lat, double lon)
+{
+    rings_load();
+    double x = lon * 10, y = lat * 10;
+    const ring *best = NULL;
+    for (size_t k = 0; k < nrings; k++) {
+        const ring *r = &rings[k];
+        int in = 0;                         /* a ray to the east: crossing an odd number of edges is inside */
+        for (size_t i = 0, j = r->n - 1; i < r->n; j = i++) {
+            double xi = r->pt[2 * i], yi = r->pt[2 * i + 1], xj = r->pt[2 * j], yj = r->pt[2 * j + 1];
+            if ((yi > y) != (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) in = !in;
+        }
+        if (in && (!best || r->area < best->area)) best = r;
+    }
+    return best ? best->key : NULL;
+}
+
+/* whether a country has an outline at this scale (Singapore, Malta, Monaco have none: trust their cities) */
+static int outlined(const char *key)
+{
+    rings_load();
+    for (size_t k = 0; key && k < nrings; k++)
+        if (!strcmp(rings[k].key, key)) return 1;
+    return 0;
+}
+
+enum { GPS_NEAR, GPS_INSIDE, GPS_OUTLINE, GPS_CITY_COUNTRY };
+
+/* the place the photos' GPS is in: a place of your own whose Extent holds it or within its Reach
+ * (3 km unless it says), else a city of the country it is in within 40 km, else that country (its
+ * outline), else, far from any outline (a small island), the country of a city within 400 km.
+ * *how says which; *km how far from the place's point. NULL: none. */
+static const known_entry *gps_place(const asking *a, const clues *c, int *how, double *km)
+{
+    const known_entry *site = NULL, *city = NULL, *near = NULL;
+    double sd = 0, cd = 0, nd = 0, box = 0;
+    int inside = 0;
+    *how = GPS_NEAR;
+    *km = 0;
+    if (!c->gps) return NULL;
+    const char *country = country_at(c->lat, c->lon);
+    for (size_t i = 0; i < a->kn; i++) {
         const known_entry *e = &a->kv[i];
         if (!e->has_at || e->retired || strncmp(e->key, "place:", 6) || (e->kind && !strcmp(e->kind, "country"))) continue;
-        int site = !e->kind || strcmp(e->kind, "city");
         double d = km_between(c->lat, c->lon, e->lat, e->lon);
-        if (d <= (site ? 3 : 40) && (!best || (site && !best_site) || (site == best_site && d < bd)))
-            best = e, bd = d, best_site = site;
-        if (!site && d <= 400 && (!near || d < nd)) near = e, nd = d;
+        if (!e->kind || strcmp(e->kind, "city")) {      /* your own: in its box (the smallest), or the nearest in reach */
+            int in = e->has_extent && c->lat >= e->south && c->lat <= e->north && c->lon >= e->west && c->lon <= e->east;
+            double area = in ? (e->north - e->south) * (e->east - e->west) : 0;
+            if (in ? !inside || area < box : !inside && d <= (e->reach_km > 0 ? e->reach_km : 3) && (!site || d < sd))
+                site = e, sd = d, inside = in, box = area;
+        } else {
+            int same = !country || (e->parent && !strcmp(e->parent, country)) || !outlined(e->parent);   /* not across a border */
+            if (same && d <= (e->reach_km > 0 ? e->reach_km : 40) && (!city || d < cd)) city = e, cd = d;
+            if (d <= 400 && (!near || d < nd)) near = e, nd = d;
+        }
     }
-    if (best) {
-        *km = bd;
-        return best;
+    if (site) {
+        *how = inside ? GPS_INSIDE : GPS_NEAR;
+        *km = sd;
+        return site;
     }
-    const known_entry *up = near ? known_find(a->kv, a->kn, near->parent) : NULL;
+    if (city) {
+        *km = cd;
+        return city;
+    }
+    const known_entry *up = country ? known_find(a->kv, a->kn, country) : NULL;
     if (up) {
-        *broad = 1;
+        *how = GPS_OUTLINE;
+        return up;
+    }
+    up = near ? known_find(a->kv, a->kn, near->parent) : NULL;
+    if (up) {
+        *how = GPS_CITY_COUNTRY;
         *km = nd;
     }
     return up;
+}
+
+/* why a place was offered from the GPS, in words */
+static char *gps_why(const clues *c, const known_entry *e, int how, double km)
+{
+    const char *l = e->label ? e->label : e->key + 6, *s = c->gps == 1 ? "" : "s";
+    if (how == GPS_INSIDE) return xprintf("the GPS of %zu photo%s: within %s", c->gps, s, l);
+    if (how == GPS_OUTLINE) return xprintf("the GPS of %zu photo%s: in %s, far from its cities", c->gps, s, l);
+    if (how == GPS_CITY_COUNTRY) return xprintf("the GPS of %zu photo%s: in %s, perhaps (%.0f km from a city of it)", c->gps, s, l, km);
+    return xprintf("the GPS of %zu photo%s: %.0f km from %s", c->gps, s, km, l);
 }
 
 /* one namespace's value(s) for a folder: the choices are values used before that its words name,
@@ -791,14 +896,11 @@ static void ask_namespace(asking *a, const arv_home *h, const archive *cat, cons
         free(v);
     }
     if (!strcmp(ns, "place") && c->gps) {   /* where the photos were taken, from their EXIF: the place, not the position */
-        int broad;
+        int how;
         double km;
-        const known_entry *e = gps_place(a, c, &broad, &km);
+        const known_entry *e = gps_place(a, c, &how, &km);
         if (e && !strlist_has(&opts, e->key + 6)) {
-            char *y = broad ? xprintf("the GPS of %zu photo%s: in %s, %.0f km from a city of it", c->gps, c->gps == 1 ? "" : "s",
-                                      e->label ? e->label : e->key + 6, km)
-                            : xprintf("the GPS of %zu photo%s: %.0f km from %s", c->gps, c->gps == 1 ? "" : "s", km,
-                                      e->label ? e->label : e->key + 6);
+            char *y = gps_why(c, e, how, km);
             strlist_add(&opts, e->key + 6);
             strlist_add(&why, y);
             strong++;
@@ -1037,11 +1139,12 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
         if (c.camera) sb_printf(&b, "; camera %s (EXIF)", c.camera);
         else if (c.camera_names * 2 > c.files) sb_puts(&b, "; named by a camera or phone");
         if (c.gps) {
-            int broad;
+            int how;
             double km;
-            const known_entry *e = gps_place(&a, &c, &broad, &km);
+            const known_entry *e = gps_place(&a, &c, &how, &km);
             sb_printf(&b, "; GPS in %zu photo%s", c.gps, c.gps == 1 ? "" : "s");
-            if (e) sb_printf(&b, broad ? ", in %s" : ", near %s", e->label ? e->label : e->key + 6);
+            if (e) sb_printf(&b, how == GPS_NEAR ? ", near %s" : how == GPS_CITY_COUNTRY ? ", in %s perhaps" : ", in %s",
+                             e->label ? e->label : e->key + 6);
         }
         if (c.words.n) {
             sb_puts(&b, "; words in the names:");
@@ -1180,9 +1283,9 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
                         const known_entry *e = known_find(a.kv, a.kn, out->folders.tags[f].v[k]);
                         if (e && strcmp(e->key, t) && !strncmp(e->key, "place:", 6)) in = e;
                     }
-                    int broad;
+                    int how;
                     double km;
-                    if (!in) in = gps_place(&a, &c, &broad, &km);
+                    if (!in) in = gps_place(&a, &c, &how, &km);
                     if (in) known_field(h, t, "Parent", in->key, 0);
                 }
                 fprintf(stderr, "Known from now on: %s (%s)%s%s%s; arv tags show %s\n", t, label,

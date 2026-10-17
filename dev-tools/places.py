@@ -4,6 +4,7 @@
   src/arv/data/default_places.rec   countries and populated places, as known names of the place
                                     namespace (research/plan.md, "Known names, as authority control")
   src/arv/data/world.txt            the land as one SVG path, for arv map --svg and discs' index.html
+  src/arv-assist/data/countries.txt the countries' outlines, for which country a photo's GPS is in
 
   python3 dev-tools/places.py [DIR]     (DIR: the Natural Earth GeoJSON files, else fetched with curl)
 
@@ -21,7 +22,7 @@ import tempfile
 import unicodedata
 
 BASE = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/"
-FILES = ["ne_50m_admin_0_countries", "ne_50m_populated_places_simple", "ne_110m_land"]
+FILES = ["ne_50m_admin_0_countries", "ne_50m_populated_places_simple", "ne_110m_land", "ne_110m_admin_0_countries"]
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "..", "src", "arv", "data")
 
@@ -122,7 +123,7 @@ def gazetteer(nef):
             r.append("Parent: place:" + c["country"]["key"])
         r.append("At: " + at(c["lat"], c["lon"]))
         records.append(r)
-    return records, len(countries), len(cities)
+    return records, len(countries), len(cities), by_a3
 
 
 HEADER = """\
@@ -133,13 +134,15 @@ HEADER = """\
 # dev-tools/places.py from Natural Earth (public domain, naturalearthdata.com): %d countries and
 # %d populated places. Add your own (a village, a house, a site) with
 #   arv tags add place:fushimi-inari --label "Fushimi Inari" --parent place:kyoto [--at +34.97+135.77/]
-# A place added with a position is private (it stays home) unless --public says otherwise.
+# A place added with a position or an extent is private (it stays home) unless --public says otherwise.
 #
 # The fields of a known name (see tags.rec), and:
 #   Kind      country, region, city or site
 #   Parent    the place it is in (broader): fushimi-inari, kyoto, japan
 #   Country   ISO 3166-1 alpha-2, for a country
 #   At        where, ISO 6709 in decimal degrees (WGS84): +35.03+135.75/ (a city's to about a km)
+#   Extent    the box it covers, two opposite corners: +34.96+135.76/+34.98+135.78/ (a park, a farm)
+#   Reach     how near a photo must be to At to be here: 2km, 500m (your places: 3km unless it says)
 #
 # arv describe --ask offers a place found in a folder's names or text, and the nearest one to its
 # photos' GPS (the record keeps the place, never the coordinates); arv map shows them.
@@ -147,7 +150,7 @@ HEADER = """\
 %%rec: Place
 %%key: Name
 %%mandatory: Name
-%%allowed: Name Label Alias Qualifier Related Same Basis Private Retired Kind Parent Country At
+%%allowed: Name Label Alias Qualifier Related Same Basis Private Retired Kind Parent Country At Extent Reach
 """
 
 
@@ -176,17 +179,42 @@ def outline(land):
     return "".join(parts) + "\n"
 
 
+def borders(nef, by_a3):
+    """Each country's outer rings, a line each: KEY, then lon,lat pairs in tenths of a degree. The
+    1:110m outlines (a few km off at a border; a small country missing falls back to its cities)."""
+    out = ["# The countries' outlines (Natural Earth 1:110m, public domain), written by dev-tools/places.py:",
+           "# a ring a line, the gazetteer's key then longitude,latitude pairs in tenths of a degree. arv",
+           "# describe --ask finds the country a photo's GPS is in (the smallest ring holding it: an enclave)."]
+    for x in nef["ne_110m_admin_0_countries"]:
+        p = x["properties"]
+        c = by_a3.get(p["ADM0_A3"]) or by_a3.get(p["SOV_A3"])
+        if not c:
+            continue
+        g = x["geometry"]
+        for poly in (g["coordinates"] if g["type"] == "MultiPolygon" else [g["coordinates"]]):
+            pts = []
+            for lon, lat in poly[0]:
+                q = (round(lon * 10), round(lat * 10))
+                if not pts or q != pts[-1]:
+                    pts.append(q)
+            if len(pts) >= 4:
+                out.append("place:%s\t%s" % (c["key"], " ".join("%d,%d" % q for q in pts)))
+    return "\n".join(out) + "\n"
+
+
 def main():
     src = sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp()
     nef = load(src)
-    records, nc, np = gazetteer(nef)
+    records, nc, np, by_a3 = gazetteer(nef)
     with open(os.path.join(DATA, "default_places.rec"), "w", encoding="utf-8") as fp:
         fp.write(HEADER % (nc, np))
         for r in records:
             fp.write("\n" + "\n".join(r) + "\n")
     with open(os.path.join(DATA, "world.txt"), "w", encoding="utf-8") as fp:
         fp.write(outline(nef["ne_110m_land"]))
-    print("wrote default_places.rec (%d countries, %d places) and world.txt" % (nc, np))
+    with open(os.path.join(HERE, "..", "src", "arv-assist", "data", "countries.txt"), "w", encoding="utf-8") as fp:
+        fp.write(borders(nef, by_a3))
+    print("wrote default_places.rec (%d countries, %d places), world.txt and countries.txt" % (nc, np))
 
 
 if __name__ == "__main__":

@@ -326,7 +326,7 @@ int cmd_map(int argc, char **argv)
             char *where = e ? known_where(kv, kn, e) : xstrdup("(not in the gazetteer)"), *at = pos ? iso6709(la, lo) : xstrdup("");
             printf("  %-24s %s", u.v[i].key, where);
             for (size_t w = utf8_chars(where); w < 34; w++) putchar(' ');
-            printf(" %-15s", pos == 1 ? "(a broader one)" : at);
+            printf(" %-19s", pos == 1 ? "(a broader one)" : at);
             if (u.v[i].paths) printf(" %zu path%s", u.v[i].paths, u.v[i].paths == 1 ? "" : "s");
             if (u.v[i].objects) printf("%s %zu object%s", u.v[i].paths ? "," : "", u.v[i].objects, u.v[i].objects == 1 ? "" : "s");
             printf(" on %zu disc%s%s\n", u.v[i].discs.n, u.v[i].discs.n == 1 ? "" : "s", e && e->private_ ? "; private" : "");

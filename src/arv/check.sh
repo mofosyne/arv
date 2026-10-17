@@ -325,19 +325,27 @@ printf 'b. 1931\ncolleague\n2\n\n' | "$tool" -C kn/home tags split person:anne-s
 "$tool" -C kn/home tags show place:kyoto | grep -q '^  in: Japan (place:japan)$' \
     && "$tool" -C kn/home tags add place:fushimi-inari --label "Fushimi Inari" --parent kyoto --at 34.9671,135.7727 > kn/place.out \
     && grep -q 'private: stays home' kn/place.out && grep -A7 '^Name: place:fushimi-inari$' kn/home/config/places.rec > kn/place.txt \
-    && grep -qx 'At: +34.97+135.77/' kn/place.txt && grep -qx 'Parent: place:kyoto' kn/place.txt && grep -qx 'Kind: site' kn/place.txt \
+    && grep -qx 'At: +34.9671+135.7727/' kn/place.txt && grep -qx 'Parent: place:kyoto' kn/place.txt && grep -qx 'Kind: site' kn/place.txt \
     && ! grep -q '135.77' kn/home/catalog/archive.rec \
     && ok "places: the gazetteer's entries (a city in its country); one of your own in one, private with a position, never in the record" \
     || { cat kn/place.out kn/place.txt; no "places: the gazetteer"; }
 "$tool" -C kn/home tags add place:kyoto --at nowhere >/dev/null 2>&1 && no "a position that is not ISO 6709 was taken"
+"$tool" -C kn/home tags add place:kyoto --extent "34.9,135.7" >/dev/null 2>&1 && no "an extent of one corner was taken"
+"$tool" -C kn/home tags add place:kyoto --reach far >/dev/null 2>&1 && no "a reach that is not a distance was taken"
+"$tool" -C kn/home tags add place:a-park --parent kyoto --extent "+35.0105+135.7495/ 35.02,135.76" --reach 500m > kn/park.out \
+    && grep -q 'private: stays home' kn/park.out && grep -A8 '^Name: place:a-park$' kn/home/config/places.rec > kn/park.txt \
+    && grep -qx 'Extent: +35.0105+135.7495/+35.02+135.76/' kn/park.txt && grep -qx 'Reach: 500m' kn/park.txt \
+    && "$tool" -C kn/home tags show place:a-park | grep -q '^  reach: 0.5 km' \
+    && ok "places: a place's extent (two corners, ISO 6709, to four decimals) and reach (2km, 500m); with either, private" \
+    || { cat kn/park.out kn/park.txt; no "places: extent and reach"; }
 "$tool" -C kn/home tags add person:x --parent kyoto >/dev/null 2>&1 && no "a person was given a parent place"
 mkdir -p kn/trip/temple kn/trip/castle && echo 4 > kn/trip/temple/t.jpg && echo 5 > kn/trip/castle/c.jpg
 printf '{"tags": {".": ["place:kyoto"], "temple": ["place:fushimi-inari"], "castle": ["place:osaka", "place:nowhere-known"]}, "authorship": "human", "agent": "human:t"}\n' > kn/trip.json
 "$tool" -C kn/home make -y --no-ecc --no-formats --set KN --access public --draft kn/trip.json --output-dir kn/out3 kn/trip >/dev/null 2>&1 \
     || no "make (places)"
 "$tool" -C kn/home map > kn/map.out \
-    && grep -q '^  place:kyoto  *Kyoto, Japan  *+35.03+135.75/  1 object on 1 disc$' kn/map.out \
-    && grep -q '^  place:fushimi-inari  *Fushimi Inari, Kyoto, Japan  *+34.97+135.77/  1 path on 1 disc; private$' kn/map.out \
+    && grep -q '^  place:kyoto  *Kyoto, Japan  *+35.03+135.75/  *1 object on 1 disc$' kn/map.out \
+    && grep -q '^  place:fushimi-inari  *Fushimi Inari, Kyoto, Japan  *+34.9671+135.7727/  *1 path on 1 disc; private$' kn/map.out \
     && grep -q '^  place:nowhere-known  *(not in the gazetteer)' kn/map.out && grep -q '^1 not in the gazetteer' kn/map.out \
     && "$tool" -C kn/home map --geojson > kn/map.geojson && grep -q '"type": "FeatureCollection"' kn/map.geojson \
     && grep -q '"coordinates": \[135.4600, 34.7500\]}, "properties": {"key": "place:osaka"' kn/map.geojson && ! grep -q nowhere-known kn/map.geojson \

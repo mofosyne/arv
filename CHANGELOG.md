@@ -26,12 +26,17 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   populated places (public domain; `dev-tools/places.py` makes it), as known names of `place`, each
   with `Kind`, `Parent` (the place it is in), `Country` and `At` (ISO 6709). Discs carry it with the
   other vocabularies; a public disc leaves out the private places.
-- `arv tags add place:KEY --parent PLACE --at LAT,LON --kind site`: a place of your own. One with a
-  position is private unless `--public`; the position stays in the gazetteer, never in the record.
+- `arv tags add place:KEY --parent PLACE --at LAT,LON --extent 'LAT,LON LAT,LON' --reach 2km --kind
+  site`: a place of your own, its point, the box it covers (a park, a farm) and how near a photo must
+  be to be there. One with a position or a box is private unless `--public`; they stay in the
+  gazetteer, never in the record.
 - `arv describe --ask` offers the gazetteer's places found in a folder's names (marked) or text
-  (unmarked), saying which ("Lima, Peru"), and the place nearest its photos' GPS (`exiftool`): a
-  place of your own within 3 km, a city within 40, else the country. A place you type becomes an
-  entry, in the known place named with it or the city nearest the GPS. Descriptions use labels.
+  (unmarked), saying which ("Lima, Peru"), and the place its photos' GPS is in (`exiftool`): a place
+  of your own whose box holds it or within its reach (3 km unless it says), else a city within 40 km
+  in the same country, else the country itself, by its outline (Natural Earth's 1:110m countries,
+  built into arv-assist), so a photo across a border from a city is not put in it, and an enclave
+  (Lesotho) is itself. A place you type becomes an entry, in the known place named with it or the
+  place the GPS gives. Descriptions use labels.
 - `arv map [--json | --geojson | --svg]`: the places the tags name, where each is (its own position
   or a broader place's), on how many paths and discs. Each disc's `index.html` shows its places on
   a map drawn from Natural Earth's land, with nothing to load; the GUI has a Map view.

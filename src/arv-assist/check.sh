@@ -379,6 +379,21 @@ grep -q '^  \*1 kyoto  (the GPS of 2 photos: 7 km from Kyoto)' gps2.err \
     && "$arv" -C askh tags show place:fushimi-inari | grep -q '^  kind: site' \
     && ok "describe --ask: a place typed becomes an entry of the gazetteer, in the known place named with it" \
     || { cat gps2.err gps2.json; no "a new place from --ask"; }
+# where the GPS is: inside a place's box, within its reach, a city of the country it is in (not across a border), a
+# country by its outline (an enclave: the smaller), a country too small to have one (its city trusted)
+printf '#!/bin/sh\necho "[{\\"SourceFile\\": \\"a\\", \\"GPSLatitude\\": $LAT, \\"GPSLongitude\\": $LON}]"\n' > gpsbin/exiftool
+"$arv" -C askh tags add place:fushimi-inari --extent "34.960,135.765 34.975,135.780" >/dev/null \
+    && "$arv" -C askh tags add place:my-farm --parent japan --at 36.5,138.0 --reach 1km >/dev/null || no "tags add --extent, --reach"
+put gpsw/a.jpg x
+where() { LAT=$1 LON=$2 PATH="$dir/gpsbin:$PATH" "$tool" --home askh describe gpsw --clues 2>&1 >/dev/null | grep -o 'GPS in [^;]*'; }
+[ "$(where 34.97 135.77)" = "GPS in 1 photo, in Fushimi Inari" ] && [ "$(where 36.505 138.0)" = "GPS in 1 photo, near My Farm" ] \
+    && [ "$(where 36.52 138.0)" = "GPS in 1 photo, near Nagano" ] && [ "$(where 48.57 7.81)" = "GPS in 1 photo, in Germany" ] \
+    && [ "$(where 48.58 7.75)" = "GPS in 1 photo, near Strasbourg" ] && [ "$(where -29.5 28.2)" = "GPS in 1 photo, in Lesotho" ] \
+    && [ "$(where 39.0 140.5)" = "GPS in 1 photo, in Japan" ] && [ "$(where 1.35 103.82)" = "GPS in 1 photo, near Singapore" ] \
+    && [ "$(where 0 -150)" = "GPS in 1 photo" ] \
+    && ok "GPS: a place's own box or reach first, then a city of the country its outline holds (Kehl is not Strasbourg), else the country" \
+    || { for p in "34.97 135.77" "36.505 138.0" "36.52 138.0" "48.57 7.81" "48.58 7.75" "-29.5 28.2" "39.0 140.5" "1.35 103.82" "0 -150"; do
+             echo "$p: $(eval where $p)"; done; no "GPS: boxes, reaches and borders"; }
 put "osaka/a.txt" "Letters about Lima and Lima again"
 printf '\n\n\n\n\n\n\n\n' | "$tool" --home askh describe osaka --ask --save oo.json > /dev/null 2> oo.err || { cat oo.err; no "describe --ask (cities)"; }
 grep -q '^  \*[0-9] osaka  (known: Ōsaka, Japan)' oo.err && grep -q '^   [0-9] lima  (known: Lima, Peru)' oo.err \

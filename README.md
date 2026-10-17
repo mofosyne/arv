@@ -411,9 +411,11 @@ right (two people of one name: `split`, each use asked about). `--clues` takes t
 a draft to edit; the GUI's "Fill from the files" does the same.
 
 **Places** come from a gazetteer, `config/places.rec`: Natural Earth's countries and cities
-(public domain), and the places you add (`arv tags add place:fushimi-inari --parent kyoto`).
-`--ask` offers the cities a folder's names or text mention, saying which ("Lima, Peru"), and the
-nearest one to its photos' GPS; the record keeps the place, never the coordinates. `arv map` lists
+(public domain), and the places you add (`arv tags add place:fushimi-inari --parent kyoto`, with
+`--extent` for the box it covers or `--reach 2km`). `--ask` offers the cities a folder's names or
+text mention, saying which ("Lima, Peru"), and the place its photos' GPS is in: one of yours, a
+city of the same country, or the country by its outline. The record keeps the place, never the
+coordinates. `arv map` lists
 the places your tags name and where each is; `--geojson` gives them to map tools, `--svg` draws
 them, and each disc's `index.html` shows its places on a small map that needs nothing installed.
 

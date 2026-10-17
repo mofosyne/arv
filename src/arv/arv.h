@@ -78,14 +78,18 @@ typedef struct {
     strlist aliases, related, same;
     int private_;
     char *kind, *parent, *country, *at;                 /* a place (the gazetteer, config/places.rec) */
-    int has_at;
+    int has_at, has_extent;
     double lat, lon;                                    /* from at: ISO 6709, decimal degrees */
+    double south, west, north, east;                    /* Extent: the box it covers (two ISO 6709 corners) */
+    double reach_km;                                    /* Reach: how far a photo may be from At (0: the default) */
 } known_entry;
 size_t known_load(const arv_home *h, known_entry **out);   /* tags.rec's entries, then places.rec's */
 const known_entry *known_find(const known_entry *v, size_t n, const char *key);
 int known_position(const known_entry *v, size_t n, const known_entry *e, double *lat, double *lon);   /* its own, or a parent's: 2, 1 */
 char *known_where(const known_entry *v, size_t n, const known_entry *e);   /* "Kyoto, Japan" */
 int iso6709_parse(const char *s, double *lat, double *lon);   /* +35.03+135.75/ or 35.03,135.75; 0 when it is one */
+int extent_parse(const char *s, double *south, double *west, double *north, double *east);   /* two corners, any order */
+double reach_parse(const char *s);         /* "2km", "500 m", "1.5 km": kilometres, or -1 */
 char *iso6709(double lat, double lon);
 void known_free(known_entry *v, size_t n);
 char *known_label_of(const char *key);      /* person:anne-smith -> "Anne Smith" */

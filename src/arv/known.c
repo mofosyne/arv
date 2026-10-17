@@ -80,9 +80,53 @@ int iso6709_parse(const char *s, double *lat, double *lon)
     return 0;
 }
 
+/* two corners, ISO 6709 each ("+34.96+135.76/+34.98+135.78/"), or "lat,lon lat,lon"; any two opposite */
+int extent_parse(const char *s, double *south, double *west, double *north, double *east)
+{
+    const char *mid = strchr(s, '/');
+    if (!mid || !mid[1]) {                  /* "34.96,135.76 34.98,135.78" */
+        mid = strchr(s, ' ');
+        while (mid && mid[1] == ' ') mid++;
+        if (!mid) return -1;
+    }
+    char *a = xprintf("%.*s", (int)(mid - s), s);
+    double la1, lo1, la2, lo2;
+    int bad = iso6709_parse(a, &la1, &lo1) || iso6709_parse(mid + 1, &la2, &lo2);
+    free(a);
+    if (bad || la1 == la2 || lo1 == lo2) return -1;
+    *south = la1 < la2 ? la1 : la2, *north = la1 < la2 ? la2 : la1;
+    *west = lo1 < lo2 ? lo1 : lo2, *east = lo1 < lo2 ? lo2 : lo1;
+    return 0;
+}
+
+double reach_parse(const char *s)
+{
+    char *end;
+    double v = strtod(s, &end);
+    while (*end == ' ') end++;
+    if (end == s || v <= 0) return -1;
+    if (!strcmp(end, "km") || !*end) return v;
+    if (!strcmp(end, "m")) return v / 1000;
+    return -1;
+}
+
+/* ISO 6709: degrees padded (+05.00, -007.50), to four decimals (about 11 m), trailing zeros dropped to two */
+static void iso_part(sbuf *b, double v, int width)
+{
+    char t[32];
+    snprintf(t, sizeof t, "%+0*.4f", width + 6, v);
+    size_t n = strlen(t);
+    while (n > 0 && t[n - 1] == '0' && t[n - 3] != '.') t[--n] = 0;
+    sb_puts(b, t);
+}
+
 char *iso6709(double lat, double lon)
 {
-    return xprintf("%+06.2f%+07.2f/", lat, lon);
+    sbuf b = { 0 };
+    iso_part(&b, lat, 2);
+    iso_part(&b, lon, 3);
+    sb_puts(&b, "/");
+    return b.s;
 }
 
 static void known_free_one(known_entry *e);
@@ -118,10 +162,18 @@ static void load_file(const char *p, const char *type, known_entry **out, size_t
             else if (!strcmp(fn, "Kind") && !e->kind) e->kind = xstrdup(v);
             else if (!strcmp(fn, "Parent") && !e->parent) e->parent = xstrdup(v);
             else if (!strcmp(fn, "Country") && !e->country) e->country = xstrdup(v);
+            else if (!strcmp(fn, "Reach")) e->reach_km = reach_parse(v) > 0 ? reach_parse(v) : 0;
+            else if (!strcmp(fn, "Extent"))
+                e->has_extent = !extent_parse(v, &e->south, &e->west, &e->north, &e->east);
             else if (!strcmp(fn, "At") && !e->at) {
                 e->at = xstrdup(v);
                 e->has_at = !iso6709_parse(v, &e->lat, &e->lon);
             }
+        }
+        if (!e->has_at && e->has_extent) {     /* a box alone: it is where its middle is */
+            e->lat = (e->south + e->north) / 2;
+            e->lon = (e->west + e->east) / 2;
+            e->has_at = 1;
         }
     }
     rec_free(&f);
@@ -506,6 +558,8 @@ static void show_entry(const archive *cat, const known_entry *v, size_t n, const
     }
     if (e->country) printf("  country: %s\n", e->country);
     if (e->at) printf("  at: %s\n", e->at);
+    if (e->has_extent) printf("  covers: %.4f to %.4f north, %.4f to %.4f east\n", e->south, e->north, e->west, e->east);
+    if (e->reach_km > 0) printf("  reach: %g km (a photo this near is here)\n", e->reach_km);
     if (e->basis) printf("  basis: %s\n", e->basis);
     printf("  %s\n", e->private_ ? "private: stays home, never on a public disc" : "on discs with the vocabulary");
     if (e->retired) printf("  RETIRED: %s\n", e->retired);
@@ -528,7 +582,7 @@ static int known_ok(const char *key)
 int known_cmd(const char *sub, int argc, char **argv, const char *given)
 {
     const char *label = NULL, *qual = NULL, *new_key = NULL, *new_qual = NULL, *why = NULL;
-    const char *parent = NULL, *pos = NULL, *kind = NULL, *country = NULL;   /* a place's */
+    const char *parent = NULL, *pos = NULL, *kind = NULL, *country = NULL, *reach = NULL, *extent = NULL;   /* a place's */
     strlist words = { 0 }, aliases = { 0 }, same = { 0 };
     int priv = -1;
     for (int i = 0; i < argc; i++) {
@@ -544,6 +598,8 @@ int known_cmd(const char *sub, int argc, char **argv, const char *given)
         else if (v && !strcmp(a, "--at")) pos = argv[++i];
         else if (v && !strcmp(a, "--kind")) kind = argv[++i];
         else if (v && !strcmp(a, "--country")) country = argv[++i];
+        else if (v && !strcmp(a, "--reach")) reach = argv[++i];
+        else if (v && !strcmp(a, "--extent")) extent = argv[++i];
         else if (!strcmp(a, "--private")) priv = 1;
         else if (!strcmp(a, "--public")) priv = 0;
         else if (a[0] == '-') return 2;
@@ -553,7 +609,23 @@ int known_cmd(const char *sub, int argc, char **argv, const char *given)
     char *key = tag_normalise(words.v[0]);
     if (!known_ok(key)) die("%s: an entry's key is a namespaced tag, NAMESPACE:value (person:anne-smith, software:kicad)", words.v[0]);
     int place = !strncmp(key, "place:", 6);
-    if (!place && (parent || pos || kind || country)) die("%s", "--parent, --at, --kind and --country are a place's (place:KEY)");
+    if (!place && (parent || pos || kind || country || reach || extent))
+        die("%s", "--parent, --at, --kind, --country, --reach and --extent are a place's (place:KEY)");
+    char *box = NULL, *far = NULL;
+    if (extent) {
+        double s, w, no, ea;
+        if (extent_parse(extent, &s, &w, &no, &ea))
+            die("%s: an extent is two opposite corners, ISO 6709: +34.96+135.76/+34.98+135.78/ (or '34.96,135.76 34.98,135.78')", extent);
+        char *sw = iso6709(s, w), *ne = iso6709(no, ea);
+        box = xprintf("%s%s", sw, ne);
+        free(sw);
+        free(ne);
+    }
+    if (reach) {
+        double r = reach_parse(reach);
+        if (r <= 0) die("%s: a reach is a distance, 2km or 500m", reach);
+        far = r < 1 ? xprintf("%gm", r * 1000) : xprintf("%gkm", r);
+    }
     char *at = NULL, *in = parent ? tag_normalise(parent) : NULL;
     if (in && strncmp(in, "place:", 6)) {       /* --parent kyoto: a place's key */
         char *full = xprintf("place:%s", in);
@@ -589,7 +661,7 @@ int known_cmd(const char *sub, int argc, char **argv, const char *given)
             char *lb = label ? xstrdup(label) : known_label_of(key), *basis = xprintf("made by %s with arv tags add, %s", who, today);
             known_field(&h, key, "Label", lb, 0);
             known_field(&h, key, "Basis", basis, 0);
-            int hide = priv == 1 || (priv < 0 && (private_by_default(key) || at));   /* a place to the metre: someone's home, perhaps */
+            int hide = priv == 1 || (priv < 0 && (private_by_default(key) || at || box));   /* a place to the metre: someone's home, perhaps */
             if (hide) known_field(&h, key, "Private", "yes", 0);
             if (place) known_field(&h, key, "Kind", kind ? kind : "site", 0);
             name_event(&cat, key, "an entry of the known names, made", "Label", lb);
@@ -612,6 +684,8 @@ int known_cmd(const char *sub, int argc, char **argv, const char *given)
         }
         if (country) known_field(&h, key, "Country", country, 0);
         if (at) known_field(&h, key, "At", at, 0);   /* the gazetteer's, never an event: the record keeps no coordinates */
+        if (box) known_field(&h, key, "Extent", box, 0);
+        if (far) known_field(&h, key, "Reach", far, 0);
         if (e) printf("%s: updated\n", key);
         saved = 1;
     } else if (!strcmp(sub, "label")) {
@@ -731,5 +805,7 @@ int known_cmd(const char *sub, int argc, char **argv, const char *given)
     free(key);
     free(at);
     free(in);
+    free(box);
+    free(far);
     return rc;
 }

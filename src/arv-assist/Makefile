@@ -8,13 +8,13 @@ ARV      = $(filter-out ../arv/arv.c, $(wildcard ../arv/*.c)) ../bagit/bagit.c .
 
 all: $(BUILD)/arv-assist
 
-# the commonest words (dev-tools/common-words.sh), built in; generated at each build, never committed
+# the commonest words (dev-tools/common-words.sh) and the countries' outlines (dev-tools/places.py), built in; generated at each build, never committed
 $(BUILD)/embed: ../../dev-tools/embed.c
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(WARN) -o $@ ../../dev-tools/embed.c
 
-$(BUILD)/words-data.c: data/common-words.txt $(BUILD)/embed
-	$(BUILD)/embed $@ COMMON_WORDS=data/common-words.txt
+$(BUILD)/words-data.c: data/common-words.txt data/countries.txt $(BUILD)/embed
+	$(BUILD)/embed $@ COMMON_WORDS=data/common-words.txt COUNTRIES=data/countries.txt
 
 $(BUILD)/arv-assist: *.c *.h $(BUILD)/words-data.c $(ARV) ../arv/*.h
 	@mkdir -p $(BUILD)
