@@ -504,6 +504,55 @@ typedef struct {
     const word_stats *ws;
 } asking;
 
+/* answers given ahead (the GUI: describe --answers), replayed in order; when they run out, the next
+ * question is kept (pending) and the rest goes as if '.' stopped the asking. dry: nothing is kept
+ * (no examples, rules or entries written) until a run with every answer given. */
+static const strlist *script;
+static size_t script_pos;
+static jv *pending;
+static int dry;
+
+void ask_replay(const strlist *answers, int dry_run)
+{
+    script = answers;
+    script_pos = 0;
+    dry = dry_run;
+    if (pending) jfree(pending);
+    pending = NULL;
+}
+
+jv *ask_pending(void)
+{
+    jv *p = pending;
+    pending = NULL;
+    return p;
+}
+
+/* an answer: from the terminal, or the next one given ahead; q describes the question (freed here) */
+static char *reply(asking *a, const char *prompt, jv *q)
+{
+    if (!script) {
+        jfree(q);
+        return ask(prompt);
+    }
+    if (script_pos < script->n) {
+        jfree(q);
+        return xstrdup(script->v[script_pos++]);
+    }
+    if (!pending) pending = q;
+    else jfree(q);
+    a->stopped = 1;
+    return xstrdup(".");
+}
+
+static jv *qjson(const char *kind, const char *text)
+{
+    jv *q = jobj();
+    jput(q, "kind", jstr(kind));
+    jput(q, "text", jstr(text));
+    return q;
+}
+
 /* one question: numbered choices (marked: the default), and an answer: Enter takes the marked ones,
  * numbers pick, '-' none, '.' stops asking (the rest as the clues have it), anything else is the
  * answer itself (commas between several, when many). The answer goes into out. */
@@ -530,8 +579,18 @@ static void choose(asking *a, const char *heading, const strlist *opts, const st
         }
     }
     if (col) fputc('\n', stderr);
-    char *ans = ask(many ? "Enter: the marked ones; numbers (1,3), '-' none, '.' stop asking, or type them, commas between (1, x)\n> "
-                         : "Enter: the marked one; a number, '-' none, '.' stop asking, or type it\n> ");
+    jv *q = qjson("choose", heading), *list = jarr();
+    jput(q, "many", jnum(many ? "true" : "false"));
+    for (size_t i = 0; i < opts->n; i++) {
+        jv *o = jobj();
+        jput(o, "value", jstr(opts->v[i]));
+        jput(o, "why", jstr(why && i < why->n ? why->v[i] : ""));
+        jput(o, "marked", jnum(strlist_has(marked, opts->v[i]) ? "true" : "false"));
+        jpush(list, o);
+    }
+    jput(q, "options", list);
+    char *ans = reply(a, many ? "Enter: the marked ones; numbers (1,3), '-' none, '.' stop asking, or type them, commas between (1, x)\n> "
+                              : "Enter: the marked one; a number, '-' none, '.' stop asking, or type it\n> ", q);
     if (!strcmp(ans, ".")) {
         a->stopped = 1;
     } else if (!strcmp(ans, "-")) {
@@ -547,7 +606,7 @@ static void choose(asking *a, const char *heading, const strlist *opts, const st
             while (e > t && e[-1] == ' ') *--e = 0;
             if (!*t) continue;
             int number = 1;                 /* "1, fushimi-inari": an option by its number, and one typed */
-            for (const char *q = t; *q && number; q++) number = isdigit((unsigned char)*q);
+            for (const char *d = t; *d && number; d++) number = isdigit((unsigned char)*d);
             if (all_numbers || number) {
                 long k = atol(t);
                 if (k >= 1 && (size_t)k <= opts->n && !strlist_has(out, opts->v[k - 1])) strlist_add(out, opts->v[k - 1]);
@@ -566,7 +625,9 @@ static char *field(asking *a, const char *label, const char *made)
 {
     if (!a->interactive || a->stopped) return xstrdup(made);
     fprintf(stderr, "\n%s: %s\n", label, made);
-    char *ans = ask("Enter: as it is; or type another ('.' keeps it and stops asking)\n> ");
+    jv *q = qjson("field", label);
+    jput(q, "value", jstr(made));
+    char *ans = reply(a, "Enter: as it is; or type another ('.' keeps it and stops asking)\n> ", q);
     if (!strcmp(ans, ".")) {
         a->stopped = 1;
         free(ans);
@@ -1200,7 +1261,7 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
     int each = 0;
     if (per_folder && interactive && !a.stopped && folders.n >= 2 && folders.n <= 40 && a.asked < MAX_QUESTIONS) {
         char *q = xprintf("\nIts %zu folders: ask about each of them too (what is it, where, when)? [y/N] ", folders.n);
-        char *ans = ask(q);
+        char *ans = reply(&a, q, qjson("yesno", q + 1));
         each = ans[0] == 'y' || ans[0] == 'Y';
         free(ans);
         free(q);
@@ -1217,14 +1278,14 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
         free(ask_folder(&a, h, cat, &tw, &fc, folders.v[f], &sub, 0, date, clue_date, &ft));
         for (size_t i = 0; i < ft.n; i++)
             if (!strlist_has(&tags, ft.v[i])) strlist_add(ftags_get(&out->folders, folders.v[f], 1), ft.v[i]);
-        if (interactive && !a.stopped) word_example_add(h, &ft, &fc.terms, &fc.text);   /* what was told, kept */
+        if (interactive && !a.stopped && !dry) word_example_add(h, &ft, &fc.terms, &fc.text);   /* what was told, kept */
         strlist_free(&ft);
         clues_free(&fc);
         items_free(&sub);
         free(froot);
     }
     if (interactive && h) {                 /* what was told, kept: the next folder's questions are shorter */
-        word_example_add(h, &tags, &c.terms, &c.text);
+        if (!dry) word_example_add(h, &tags, &c.terms, &c.text);
         size_t offered = 0;                 /* a word that keeps going with a tag: offered as a rule */
         for (size_t i = 0; i < tags.n && offered < 3 && !a.stopped; i++) {
             if (!strncmp(tags.v[i], "date:", 5)) continue;
@@ -1246,8 +1307,8 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
                     offered++;
                     char *q = xprintf("\n'%s' has been in %zu of %zu folders tagged %s: make it a rule (Match: %s), so "
                                       "folders with it are tagged without asking? [y/N] ", word, with, all, tags.v[i], glob);
-                    char *ans = ask(q);
-                    if (ans[0] == 'y' || ans[0] == 'Y') {
+                    char *ans = reply(&a, q, qjson("yesno", q + 1));
+                    if ((ans[0] == 'y' || ans[0] == 'Y') && !dry) {
                         if (word_rule_add(h, tags.v[i], word)) fprintf(stderr, "Could not write %s/tags.rec\n", h->config_dir);
                         else fprintf(stderr, "Added to the vocabulary (%s/tags.rec): %s, Match: %s\n", h->config_dir, tags.v[i], glob);
                         strlist_add(&tw.rule_tag, tags.v[i]);
@@ -1260,7 +1321,7 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
             }
         }
     }
-    if (interactive && h && cat) {          /* a name confirmed: known from now on (an entry, and an event) */
+    if (interactive && h && cat && !dry) {  /* a name confirmed: known from now on (an entry, and an event) */
         static const char *const NAMED[] = { "person:", "family:", "organisation:", "software:", "work:", "place:", NULL };
         strlist made = { 0 };
         char today[11], *who = person();

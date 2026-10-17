@@ -408,7 +408,9 @@ word that keeps going with a tag is offered as a rule in your vocabulary. A pers
 organisation, software or work you confirm becomes a known name: offered next time, and taken
 without asking once it is certain. `arv tags show|label|alias|merge|split|retire KEY` keeps them
 right (two people of one name: `split`, each use asked about). `--clues` takes the clues alone, as
-a draft to edit; the GUI's "Fill from the files" does the same.
+a draft to edit; the GUI's "Fill from the files" does the same, and its "Ask me (no model)" asks the
+same questions in the page. Its Names view keeps the known names right (rename, merge, split by
+ticking the uses that are the other person, retire), and its Map view shows the places.
 
 **Places** come from a gazetteer, `config/places.rec`: Natural Earth's countries and cities
 (public domain), and the places you add (`arv tags add place:fushimi-inari --parent kyoto`, with

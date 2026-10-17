@@ -361,6 +361,17 @@ PATH="$dir/fakebin:$PATH" "$tool" --home askh describe ex --clues > ex.json 2> e
 grep -q 'dates 2021-12 (from EXIF); camera Pixel 7 (EXIF)' ex.err && tr -d '\n ' < ex.json | grep -q '"source:pixel-7"' \
     && grep -q '"description": "2 photos, from a Pixel 7, December 2021."' ex.json \
     && ok "describe --clues: EXIF dates and camera, through exiftool when it is there" || { cat ex.err ex.json; no "EXIF clues"; }
+# the same questions for a program (the GUI): the answers so far in, the next question out; nothing kept until the last
+"$arv" init qh >/dev/null 2>&1
+put "q/2019-07 Kyoto trip/IMG_20190711_120000.jpg" a
+echo '{"answers": ["", "", "", "zed"]}' | "$tool" --home qh describe "q/2019-07 Kyoto trip" --answers - > q1.json 2>/dev/null
+grep -q '"done": false' q1.json && grep -q '"number": 5' q1.json && grep -q '"kind": "choose"' q1.json \
+    && ! grep -q 'person:zed' qh/config/tags.rec && [ ! -e qh/config/word-examples.tsv ] \
+    && echo '{"answers": ["", "", "", "zed", "", "", ""]}' | "$tool" --home qh describe "q/2019-07 Kyoto trip" --answers - > q2.json 2>/dev/null \
+    && grep -q '"done": true' q2.json && tr -d '\n ' < q2.json | grep -q '"person:zed"' \
+    && grep -q '^Name: person:zed$' qh/config/tags.rec && [ "$(grep -vc '^#' qh/config/word-examples.tsv)" -eq 1 ] \
+    && ok "describe --answers: one question at a time as JSON for the GUI; names, examples and rules kept only with the last answer" \
+    || { cat q1.json q2.json; no "describe --answers"; }
 # places: the GPS of the photos (the nearest place of the gazetteer), a typed place made an entry in it, a city in the names
 mkdir -p gpsbin && printf '#!/bin/sh\necho %s\n' "'[{\"SourceFile\": \"a\", \"DateTimeOriginal\": \"2019:07:13 10:00:00\", \"GPSLatitude\": 34.9671, \"GPSLongitude\": 135.7727}, {\"SourceFile\": \"b\", \"GPSLatitude\": 34.968, \"GPSLongitude\": 135.773}]'" > gpsbin/exiftool
 chmod +x gpsbin/exiftool

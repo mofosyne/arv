@@ -771,7 +771,7 @@ static int object_add_tags(const arv_home *h, archive *cat, const rec_record *ob
 
 int assist_describe(int argc, char **argv)
 {
-    const char *tgt = NULL, *save = NULL, *disc_root = NULL, *apply = NULL, *home = NULL;
+    const char *tgt = NULL, *save = NULL, *disc_root = NULL, *apply = NULL, *home = NULL, *given_file = NULL;
     int rounds = 2, questions = 5, show_inventory = 0, suggested = 0, answer = 0, asking = 0, clues = 0, each = 1;
     llm_opts o = { 0 };
     o.per_folder = 3;
@@ -789,6 +789,7 @@ int assist_describe(int argc, char **argv)
         else if (!strcmp(a, "--suggested")) suggested = 1;
         else if (!strcmp(a, "--answer")) answer = 1;
         else if (!strcmp(a, "--ask")) asking = 1;
+        else if (!strcmp(a, "--answers") && v) { given_file = v; asking = 1; i++; }
         else if (!strcmp(a, "--clues")) clues = 1;
         else if (!strcmp(a, "--no-folders")) each = 0;
         else if (a[0] != '-' && !tgt) tgt = a;
@@ -849,12 +850,69 @@ int assist_describe(int argc, char **argv)
         target t;
         if (open_target(tgt, no_home ? NULL : &h, &cat, disc_root, &t, &err)) die("%s", err);
         suggestion sug;
+        strlist given = { 0 };
+        if (given_file) {      /* the GUI: the answers so far; the next question back, or the draft when none is left */
+            sbuf in = { 0 };
+            if (!strcmp(given_file, "-")) {
+                char buf[4096];
+                size_t n;
+                while ((n = fread(buf, 1, sizeof buf, stdin)) > 0) sb_add(&in, buf, n);
+            } else {
+                char *text = read_text(given_file);
+                if (!text) die("cannot read %s", given_file);
+                sb_puts(&in, text);
+                free(text);
+            }
+            jv *doc = in.s ? json_parse(in.s) : NULL;
+            const jv *list = doc && doc->kind == 'o' ? json_get(doc, "answers") : doc;
+            if (!list || list->kind != 'a') die("%s", "--answers: {\"answers\": [\"\", \"1\", \"kyoto\", ...]}, one for each question so far");
+            for (size_t i = 0; i < list->n; i++) strlist_add(&given, list->vals[i]->kind == 's' ? list->vals[i]->str : "");
+            jfree(doc);
+            free(in.s);
+            ask_replay(&given, 1);          /* first without keeping anything: is a question left? */
+            ask_suggest(no_home ? NULL : &h, &cat, &t.files, t.name, t.text_root, 1, each, &sug);
+            jv *q = ask_pending();
+            if (q) {
+                sbuf b = { 0 };
+                jv *res = jobj();
+                jput(res, "done", jnum("false"));
+                jput(res, "question", q);
+                char n[32];
+                snprintf(n, sizeof n, "%zu", given.n + 1);
+                jput(res, "number", jnum(n));
+                json_dump(&b, res, 2);
+                printf("{\"format\": \"arv-json 1\", %s\n", b.s + 1);
+                jfree(res);
+                free(b.s);
+                suggestion_free(&sug);
+                strlist_free(&given);
+                close_target(&t);
+                return 0;
+            }
+            suggestion_free(&sug);
+            ask_replay(&given, 0);          /* every answer given: now kept, as at a terminal */
+        }
         ask_suggest(no_home ? NULL : &h, &cat, &t.files, t.name, t.text_root, asking, each, &sug);
+        if (given_file) ask_replay(NULL, 0);
         int g = 0;
         char *src = find_source(NULL), *software = src ? software_version(src, &g) : xstrdup("arv");
         char *agent = asking ? person() : software;
         const char *how = asking ? "human" : "automatic";
         strlist notes = { 0 };
+        if (given_file) {
+            sbuf b = { 0 };
+            jv *d = draft_json(&sug, &notes, how, agent, 0), *res = jobj();
+            jput(res, "done", jnum("true"));
+            jput(res, "draft", d);
+            json_dump(&b, res, 2);
+            printf("{\"format\": \"arv-json 1\", %s\n", b.s + 1);
+            jfree(res);
+            free(b.s);
+            suggestion_free(&sug);
+            strlist_free(&given);
+            close_target(&t);
+            return 0;
+        }
         if (save) {
             jv *d = draft_json(&sug, &notes, how, agent, 0);
             save_json(save, d);

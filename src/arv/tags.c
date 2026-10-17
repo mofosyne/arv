@@ -314,7 +314,7 @@ static void check_namespaces(const tag_vocab *tv, const char *id, const tag_file
 int cmd_tags(int argc, char **argv)
 {
     const char *given = NULL, *only = NULL;
-    static const char *const SUBS[] = { "show", "add", "label", "alias", "merge", "split", "retire", NULL };
+    static const char *const SUBS[] = { "show", "add", "label", "alias", "merge", "split", "retire", "names", NULL };
     for (int i = 0; i < argc; i++) {             /* known names: arv tags show|add|label|alias|merge|split|retire KEY ... */
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) {
             given = argv[++i];

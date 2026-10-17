@@ -21,6 +21,8 @@ static const char USAGE[] =
     "       arv describe DISC-ID|OBJECT --answer   the questions kept from before (arv todo lists them); no model needed\n"
     "       arv describe FOLDER|DISC-ID|OBJECT --ask [--no-folders] [--save DRAFT]   no model: questions over your vocabulary,\n"
     "                    from the files' clues (names, dates, EXIF with exiftool); --clues: the clues alone, as a draft\n"
+    "       arv describe FOLDER|DISC-ID|OBJECT --answers FILE|-   the same questions for a program (the GUI): {\"answers\":\n"
+    "                    [...]} in, the next question out as JSON, or the draft when none is left (kept only then)\n"
     "                    [--show-inventory] [--llm-url URL] [--llm-model NAME] [--llm-allow-remote]\n"
     "                    [--vision [--vision-model NAME] [--vision-url URL] [--vision-per-folder N] [--vision-max N]]\n"
     "       arv tag FOLDER|DISC-ID [--save DRAFT] [--apply] [--top N] [--vocab FILE] [--disc-root DIR] [--rules-only]\n"

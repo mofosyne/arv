@@ -24,6 +24,8 @@ nav.groups button { font-size:16px; font-weight:600; padding:8px 16px; }
 nav.groups .hint { font-weight:400; font-size:12px; color:var(--muted); margin-left:4px; }
 nav.sub { border-bottom:none; padding:8px 16px; gap:6px; background:var(--panel); }
 nav[hidden] { display:none; }
+.asking h3 { margin:12px 0 6px; font-size:15px; } .asking label.pick { display:block; margin:2px 0; font-weight:400; }
+.asking input[type=text] { margin:6px 0; }
 .map svg { display:block; width:100%; height:auto; border:1px solid var(--line); border-radius:6px; margin:8px 0; }
 @media (max-width: 600px) { nav.groups .hint { display:none; } nav.groups button { padding:8px 12px; } }
 nav.sub button { border:1px solid var(--line); border-radius:16px; padding:4px 12px; font-size:14px; background:var(--bg); }
@@ -151,6 +153,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   <button data-tab="discs">Discs</button>
   <button data-tab="places">Places</button>
   <button data-tab="map">Map</button>
+  <button data-tab="names">Names</button>
   <button data-tab="search">Search</button>
 </nav>
 <nav class="sub" data-group="verify" hidden>
@@ -290,11 +293,34 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         <div><label for="map-label">Name</label><input type="text" id="map-label" placeholder="e.g. Fushimi Inari"></div>
         <div><label for="map-in">In</label><input type="text" id="map-in" placeholder="e.g. place:kyoto"></div>
         <div><label for="map-at">Position (latitude, longitude; makes it private)</label><input type="text" id="map-at" placeholder="e.g. 34.967, 135.773"></div>
+        <div><label for="map-extent">Or the box it covers (two corners)</label><input type="text" id="map-extent" placeholder="e.g. 34.960,135.765 34.975,135.780"></div>
+        <div><label for="map-reach">Reach (a photo this near is here)</label><input type="text" id="map-reach" placeholder="e.g. 2km, 500m (3km if empty)"></div>
       </div>
-      <button type="submit">Add</button>
+      <button class="primary" type="submit">Add the place</button>
     </form>
     <pre id="map-out" class="log" hidden></pre>
   </div>
+</section>
+
+<section id="tab-names" hidden>
+  <p class="muted">Known names: the people, families, organisations, software, works and places of your own that you
+    have confirmed (Describe makes them as you answer). Each has a key that stays (<span class="mono">person:anne-smith</span>)
+    and a name that can change; every change is an event in the record. People and families stay home: never on a
+    public disc.</p>
+  <div id="names-list"></div>
+  <div id="names-split" class="card" hidden></div>
+  <div class="card">
+    <h3>Add a name</h3>
+    <form id="names-add">
+      <div class="row">
+        <div><label for="names-key">Tag (namespace:value)</label><input type="text" id="names-key" required placeholder="e.g. person:anne-smith, software:kicad"></div>
+        <div><label for="names-label">Name</label><input type="text" id="names-label" placeholder="e.g. Anne Smith"></div>
+        <div><label for="names-qual">What tells it apart</label><input type="text" id="names-qual" placeholder="e.g. b. 1931, grandmother"></div>
+      </div>
+      <button class="primary" type="submit">Add the name</button>
+    </form>
+  </div>
+  <pre id="names-out" class="log" hidden></pre>
 </section>
 
 <section id="tab-search" hidden>
@@ -529,7 +555,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // ---------------------------------------------------------------- tabs
   // Archive, Record, Verify: each view belongs to one of the three
   var GROUP = { master: "archive", make: "archive", status: "archive", objects: "record", collections: "record", discs: "record",
-                places: "record", search: "record",
+                places: "record", map: "record", names: "record", search: "record",
                 owed: "verify", tools: "verify", inventory: "verify", audit: "verify", restore: "verify" };
   var lastView = { archive: "make", record: "objects", verify: "owed" };
   function showTab(name) {
@@ -549,6 +575,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (name === "inventory") loadPlaces();
     if (name === "places") loadPlacesView();
     if (name === "map") loadMap();
+    if (name === "names") loadNames();
   }
   document.querySelectorAll("nav.sub button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
   document.querySelectorAll("nav.groups button").forEach(function (b) { b.onclick = function () { showTab(lastView[b.dataset.group]); }; });
@@ -906,7 +933,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         fill(res);
       }).catch(function (e) { clues.disabled = false; clueStatus.textContent = "Error: " + e.message; });
     };
-    box.appendChild(el("div", { class: "inline" }, [clues, clueStatus]));
+    var asker = el("button", { class: "plain", type: "button", text: "Ask me (no model)",
+      title: "A few questions over your vocabulary, the files' clues marking the likely answers (arv describe --ask)" });
+    var askBox = el("div", { class: "asking" });
+    asker.onclick = function () { askQuestions(target(), askBox, clueStatus, function (draft) { lastSuggestion = null; fill(draft); }); };
+    box.appendChild(el("div", { class: "inline" }, [clues, asker, clueStatus]));
+    box.appendChild(askBox);
     if (!llmStatus || !llmStatus.available) {
       box.appendChild(el("p", { class: "muted", text: "Local LLM help (optional): not available" +
         (llmStatus && llmStatus.error ? " \u2014 " + llmStatus.error : "") +
@@ -973,6 +1005,60 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     }
     go.onclick = function () { ask(state.answers); };
     return state;
+  }
+  // describing without a model: arv describe --answers, one question at a time; the answers so far go
+  // back each time, and what is learned (names, examples, rules) is kept only when the last is given
+  function askQuestions(t, box, status, done) {
+    var answers = [];
+    function next() {
+      status.textContent = "Reading the files' clues\u2026";
+      arvRun(["describe", t.disc_id || t.source, "--answers", "-"], JSON.stringify({ answers: answers }), "arv-assist").then(function (r) {
+        var res;
+        try { res = JSON.parse(r.out); } catch (e) { status.textContent = "Error: " + ((r.err || "").trim() || e.message); return; }
+        box.textContent = "";
+        if (res.done) {
+          status.textContent = answers.length + " answered. Edit anything below, then apply or save.";
+          done(res.draft);
+          return;
+        }
+        status.textContent = "Question " + res.number + " (at most 20)";
+        show(res.question);
+      }).catch(function (e) { status.textContent = "Error: " + e.message; });
+    }
+    function answer(a) { answers.push(a); next(); }
+    function button(text, cls, fn) { var b = el("button", { class: cls || "plain", type: "button", text: text }); b.onclick = fn; return b; }
+    function show(q) {
+      box.appendChild(el("h3", { text: q.text }));
+      if (q.kind === "yesno") {
+        box.appendChild(el("div", { class: "inline" }, [button("Yes", "primary", function () { answer("y"); }), button("No", null, function () { answer("n"); })]));
+        return;
+      }
+      var typed = el("input", { type: "text", "aria-label": "Or type", placeholder: q.kind === "field" ? "" : "or type " + (q.many ? "them, commas between" : "it") });
+      if (q.kind === "field") {
+        typed.value = q.value;
+        box.appendChild(typed);
+        box.appendChild(el("div", { class: "inline" }, [button("Next", "primary", function () { answer(typed.value.trim() === q.value ? "" : typed.value.trim()); }),
+          button("Keep it and stop asking", null, function () { answer("."); })]));
+        return;
+      }
+      var picks = q.options.map(function (o, i) {
+        var input = el("input", { type: q.many ? "checkbox" : "radio", name: "ask-pick", value: String(i + 1) });
+        input.checked = o.marked;
+        box.appendChild(el("label", { class: "pick" }, [input, document.createTextNode(" " + o.value + (o.why ? "  (" + o.why + ")" : ""))]));
+        return [input, o];
+      });
+      box.appendChild(typed);
+      box.appendChild(el("div", { class: "inline" }, [button("Next", "primary", function () {
+        var chosen = picks.filter(function (p) { return p[0].checked; }), more = typed.value.trim();
+        var asMarked = !more && chosen.length === picks.filter(function (p) { return p[1].marked; }).length &&
+                       chosen.every(function (p) { return p[1].marked; });
+        if (asMarked && chosen.length) return answer("");          // the marked ones: Enter
+        var parts = chosen.map(function (p) { return p[0].value; });
+        if (more) parts.push(more);
+        answer(parts.length ? parts.join(", ") : "-");
+      }), button("None", null, function () { answer("-"); }), button("Stop asking", null, function () { answer("."); })]));
+    }
+    next();
   }
   function qaNotes(state) {
     return state.answers.map(function (p) { return "Q: " + p[0] + "\nA: " + p[1]; });
@@ -1496,7 +1582,77 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var key = $("map-key").value.trim().toLowerCase();
     if (key.indexOf("place:") !== 0) key = "place:" + key;
     var argv = opt(opt(opt(["tags", "add", key], "--label", $("map-label").value), "--parent", $("map-in").value), "--at", $("map-at").value);
+    opt(opt(argv, "--extent", $("map-extent").value), "--reach", $("map-reach").value);
     act(argv, $("map-out"), function () { $("map-add").reset(); loadMap(); });
+  };
+  // ---------------------------------------------------------------- record: known names (arv tags names|label|alias|merge|split|retire)
+  function loadNames() {
+    return arvJson(["tags", "names", "--json"]).then(function (res) {
+      var box = $("names-list"); box.textContent = "";
+      if (!res.names.length) { box.appendChild(el("p", { class: "muted", text: "No known names yet: Describe makes them as you confirm a person, a place, a program." })); return; }
+      var t = el("table");
+      t.appendChild(el("tr", {}, ["Name", "Tag", "Also", "Uses", ""].map(function (h) { return el("th", { text: h }); })));
+      res.names.forEach(function (n) {
+        var acts = el("td", { class: "inline" });
+        function change(text, argv) { var b = el("button", { class: "plain", type: "button", text: text }); b.onclick = argv; acts.appendChild(b); }
+        var out = $("names-out");
+        change("Rename", function () {
+          var v = prompt("The name of " + n.key + " now (the old one is kept as another form it is found as)", n.label);
+          if (v && v.trim() && v.trim() !== n.label) act(["tags", "label", n.key, v.trim()], out, loadNames);
+        });
+        change("Another form", function () {
+          var v = prompt("Another form " + n.key + " is found as (a nickname, an old name, a spelling)");
+          if (v && v.trim()) act(["tags", "alias", n.key, v.trim()], out, loadNames);
+        });
+        change("Merge into\u2026", function () {
+          var v = prompt("The same as which? Every use of " + n.key + " moves to it, and " + n.key + " is kept as its alias (e.g. person:anne-smith)");
+          if (v && v.trim()) act(["tags", "merge", n.key, v.trim()], out, loadNames);
+        });
+        change("Split\u2026", function () { splitName(n); });
+        if (!n.retired) change("Retire", function () {
+          var v = prompt("Why is " + n.key + " withdrawn? (kept, no longer offered; its uses keep it)", "a mistake");
+          if (v !== null) act(["tags", "retire", n.key, "--why", v.trim() || "a mistake"], out, loadNames);
+        });
+        t.appendChild(el("tr", {}, [
+          el("td", { text: n.label + (n.qualifier ? " (" + n.qualifier + ")" : "") + (n.private ? ", private" : "") + (n.retired ? ", retired: " + n.retired : "") }),
+          el("td", { class: "mono", text: n.key }), el("td", { class: "muted", text: n.aliases.join(", ") }),
+          el("td", { text: String(n.paths + n.objects) }), acts]));
+      });
+      box.appendChild(el("div", { class: "scroll" }, [t]));
+    }).catch(function (e) { $("names-list").textContent = "Error: " + e.message; });
+  }
+  function splitName(n) {      // two of one name: tick the uses that are the other one
+    arvJson(["tags", "show", n.key, "--json"]).then(function (res) {
+      var box = $("names-split"); box.textContent = ""; box.hidden = false;
+      box.appendChild(el("h3", { text: "Split " + n.key + ": two of one name" }));
+      var q1 = el("input", { type: "text", value: n.qualifier || "", "aria-label": "What tells this one apart" });
+      var q2 = el("input", { type: "text", "aria-label": "What tells the other one apart" });
+      var key2 = el("input", { type: "text", placeholder: n.key + "-2", "aria-label": "The other one's tag" });
+      [["What tells this one apart (dates, a relation, a place)", q1], ["And the other one", q2], ["The other one's tag (empty: " + n.key + "-2)", key2]]
+        .forEach(function (p) { box.appendChild(el("label", { text: p[0] })); box.appendChild(p[1]); });
+      box.appendChild(el("p", { class: "muted", text: "Tick the uses that are the other one; the rest stay with " + n.key + "." }));
+      var ticks = res.uses.map(function (u) {
+        var c = el("input", { type: "checkbox" });
+        box.appendChild(el("label", { class: "pick" }, [c, document.createTextNode(" " + (u.object ? "object " + u.name : u.disc + "  data/" + u.path) + "  (" + u.tags + ")")]));
+        return c;
+      });
+      var go = el("button", { class: "primary", type: "button", text: "Split" });
+      go.onclick = function () {
+        if (!q1.value.trim() || !q2.value.trim()) { alert("Two of one name need a qualifier each, to tell them apart."); return; }
+        var argv = opt(["tags", "split", n.key, "--qualifier", q1.value.trim(), "--new-qualifier", q2.value.trim()], "--new", key2.value);
+        arvText(argv, ticks.map(function (c) { return c.checked ? "2" : ""; }).join("\n") + "\n").then(function (r) {
+          var out = $("names-out"); out.hidden = false; out.textContent = r.output; out.className = "log" + (r.returncode ? " bad" : "");
+          if (!r.returncode) { box.hidden = true; loadNames(); }
+        });
+      };
+      box.appendChild(el("div", { class: "inline" }, [go, el("button", { class: "plain", type: "button", text: "Cancel" })]));
+      box.lastChild.lastChild.onclick = function () { box.hidden = true; };
+    }).catch(function (e) { alert("Error: " + e.message); });
+  }
+  $("names-add").onsubmit = function (ev) {
+    ev.preventDefault();
+    var argv = opt(opt(["tags", "add", $("names-key").value.trim().toLowerCase()], "--label", $("names-label").value), "--qualifier", $("names-qual").value);
+    act(argv, $("names-out"), function () { $("names-add").reset(); loadNames(); });
   };
   $("pl-add").onsubmit = function (ev) {
     ev.preventDefault();

@@ -579,12 +579,61 @@ static int known_ok(const char *key)
     return 1;
 }
 
+/* arv tags names [--json]: the entries made here (the vocabulary's, and places of your own: the
+ * gazetteer's own, which no one made here, aside), with their uses */
+static int known_names(const char *given, int as_json)
+{
+    arv_home h;
+    archive cat;
+    home_find(&h, given, NULL);
+    archive_load(&cat, h.rec_path);
+    known_entry *v;
+    size_t n = known_load(&h, &v);
+    sbuf b = { 0 };
+    sb_puts(&b, as_json ? "{" JSON_FORMAT ", \"names\": [" : "");
+    size_t shown = 0;
+    for (size_t i = 0; i < n; i++) {
+        const known_entry *e = &v[i];
+        if (!e->basis && e->kind && (!strcmp(e->kind, "city") || !strcmp(e->kind, "country"))) continue;
+        uses u;
+        uses_of(&h, &cat, e->key, &u);
+        if (as_json) {
+            sb_puts(&b, shown ? ",\n  {" : "\n  {");
+            sb_puts(&b, "\"key\": "); json_str(&b, e->key);
+            sb_puts(&b, ", \"label\": "); json_str(&b, e->label ? e->label : "");
+            sb_puts(&b, ", \"qualifier\": "); json_str(&b, e->qualifier ? e->qualifier : "");
+            sb_puts(&b, ", \"aliases\": [");
+            for (size_t k = 0; k < e->aliases.n; k++) {
+                if (k) sb_puts(&b, ", ");
+                json_str(&b, e->aliases.v[k]);
+            }
+            sb_puts(&b, "], \"basis\": "); json_str(&b, e->basis ? e->basis : "");
+            sb_puts(&b, ", \"retired\": "); json_str(&b, e->retired ? e->retired : "");
+            sb_puts(&b, ", \"parent\": "); json_str(&b, e->parent ? e->parent : "");
+            sb_printf(&b, ", \"private\": %s, \"paths\": %zu, \"objects\": %zu}", e->private_ ? "true" : "false", u.paths.n, u.objects.n);
+        } else {
+            sb_printf(&b, "%-28s %s%s%s%s  (%zu path%s, %zu object%s)%s%s\n", e->key, e->label ? e->label : "(no label)",
+                      e->qualifier ? " (" : "", e->qualifier ? e->qualifier : "", e->qualifier ? ")" : "", u.paths.n,
+                      u.paths.n == 1 ? "" : "s", u.objects.n, u.objects.n == 1 ? "" : "s", e->private_ ? " private" : "",
+                      e->retired ? " RETIRED" : "");
+        }
+        shown++;
+        uses_free(&u);
+    }
+    if (as_json) sb_puts(&b, "\n]}\n");
+    else if (!shown) sb_puts(&b, "No known names yet: arv describe --ask makes them as you confirm names (arv tags add KEY makes one).\n");
+    fputs(b.s ? b.s : "", stdout);
+    free(b.s);
+    known_free(v, n);
+    return 0;
+}
+
 int known_cmd(const char *sub, int argc, char **argv, const char *given)
 {
     const char *label = NULL, *qual = NULL, *new_key = NULL, *new_qual = NULL, *why = NULL;
     const char *parent = NULL, *pos = NULL, *kind = NULL, *country = NULL, *reach = NULL, *extent = NULL;   /* a place's */
     strlist words = { 0 }, aliases = { 0 }, same = { 0 };
-    int priv = -1;
+    int priv = -1, as_json = 0;
     for (int i = 0; i < argc; i++) {
         const char *a = argv[i], *v = i + 1 < argc ? argv[i + 1] : NULL;
         if (v && !strcmp(a, "--label")) label = argv[++i];
@@ -600,10 +649,18 @@ int known_cmd(const char *sub, int argc, char **argv, const char *given)
         else if (v && !strcmp(a, "--country")) country = argv[++i];
         else if (v && !strcmp(a, "--reach")) reach = argv[++i];
         else if (v && !strcmp(a, "--extent")) extent = argv[++i];
+        else if (!strcmp(a, "--json")) as_json = 1;
         else if (!strcmp(a, "--private")) priv = 1;
         else if (!strcmp(a, "--public")) priv = 0;
         else if (a[0] == '-') return 2;
         else strlist_add(&words, a);
+    }
+    if (!strcmp(sub, "names")) {
+        if (words.n) return 2;
+        int rc = known_names(given, as_json);
+        strlist_free(&aliases);
+        strlist_free(&same);
+        return rc;
     }
     if (!words.n) return 2;
     char *key = tag_normalise(words.v[0]);
@@ -649,7 +706,34 @@ int known_cmd(const char *sub, int argc, char **argv, const char *given)
     uses u;
     uses_of(&h, &cat, key, &u);
     int rc = 0, saved = 0;
-    if (!strcmp(sub, "show")) {
+    if (!strcmp(sub, "show") && as_json) {   /* its uses in the order split asks about them */
+        sbuf b = { 0 };
+        sb_puts(&b, "{" JSON_FORMAT ", \"key\": ");
+        json_str(&b, key);
+        sb_puts(&b, ", \"entry\": ");
+        sb_puts(&b, e ? "true" : "false");
+        sb_puts(&b, ", \"label\": "); json_str(&b, e && e->label ? e->label : "");
+        sb_puts(&b, ", \"qualifier\": "); json_str(&b, e && e->qualifier ? e->qualifier : "");
+        sb_puts(&b, ", \"uses\": [");
+        for (size_t i = 0; i < u.paths.n + u.objects.n; i++) {
+            int object = i >= u.paths.n;
+            size_t k = object ? i - u.paths.n : i;
+            sb_puts(&b, i ? ",\n  {" : "\n  {");
+            if (object) {
+                sb_puts(&b, "\"object\": "); json_str(&b, u.objects.v[k]);
+                sb_puts(&b, ", \"name\": "); json_str(&b, object_slug(&cat, object_at_uuid(&cat, u.objects.v[k])));
+                sb_puts(&b, ", \"tags\": "); json_str(&b, u.otags.v[k]);
+            } else {
+                sb_puts(&b, "\"disc\": "); json_str(&b, u.discs.v[k]);
+                sb_puts(&b, ", \"path\": "); json_str(&b, u.paths.v[k]);
+                sb_puts(&b, ", \"tags\": "); json_str(&b, u.tags.v[k]);
+            }
+            sb_puts(&b, "}");
+        }
+        sb_puts(&b, "\n]}\n");
+        fputs(b.s, stdout);
+        free(b.s);
+    } else if (!strcmp(sub, "show")) {
         if (!e && !u.paths.n && !u.objects.n) die("no entry %s, and no tag of it in use (arv tags lists them)", key);
         known_entry blank = { 0 };
         blank.key = key;

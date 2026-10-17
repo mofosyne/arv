@@ -2217,7 +2217,18 @@ says), is there, the smallest box first. Then a city within 40 km, but only of t
 point is in; then that country. Which country is a point-in-polygon test (a ray's crossings) over
 Natural Earth's 1:110m outlines, 96 KB built into arv-assist (`data/countries.txt`, from
 `dev-tools/places.py`; arv does not need it), the smallest ring holding the point winning, so
-Lesotho is not South Africa. A country too small for 1:110m (Singapore, Malta) has no outline: its
+Lesotho is not South Africa.
+
+**The questions in the GUI (2026-10-17).** `--ask` reads a terminal; the GUI's server only runs
+commands and returns what they print. So the questions became replayable: `describe --answers`
+takes the answers given so far, runs the same questions with them (the flow is the same each time,
+given the files and the answers), and stops at the first one without an answer, returning it as
+JSON (its options, which are marked, why). A run is dry until no question is left: nothing learned is
+kept (examples, rules, known names), and then it runs once more with every answer to keep them, so a
+person who leaves halfway leaves nothing behind, and nothing is kept twice. Reading the clues again
+each round costs a second or so; keeping a session in the server was the alternative, and the
+server knows no features (2026-10-15). Names got a view of their own, split as a list of uses to
+tick rather than one question each. A country too small for 1:110m (Singapore, Malta) has no outline: its
 cities are trusted whatever outline holds them. Off every outline (a coast drawn coarsely, a small
 island), the old rule stays: the country of a city within 400 km, said as "perhaps". A size-scaled
 reach for cities (Tokyo is not a town) was left: population is a poor guess at extent, and real city

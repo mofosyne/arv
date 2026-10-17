@@ -21,6 +21,16 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**In the GUI: the questions, the names, the places**
+- "Ask me (no model)" in the describe panels asks `--ask`'s questions in the page: the likely answers
+  ticked, with why, a box to type others. `arv describe --answers FILE|-` is how: the answers so far
+  in, the next question out as JSON, or the draft when none is left; what is learned (names,
+  examples, rules) is kept only with the last answer.
+- A Names view (Record): the known names made here, with rename, another form, merge, split (tick
+  the uses that are the other one) and retire. `arv tags names [--json]` lists them;
+  `arv tags show KEY --json` gives each use, in the order split asks about them.
+- The Map view's form takes a place's box and reach.
+
 **Places: a gazetteer, the photos' GPS, and a map**
 - `config/places.rec`, copied into the home on first use: Natural Earth's 242 countries and 1,251
   populated places (public domain; `dev-tools/places.py` makes it), as known names of `place`, each

@@ -139,6 +139,8 @@ int word_rule_add(const arv_home *h, const char *tag, const char *word);
  * to questions over the vocabulary (per_folder: offer to ask about each first-level folder too) */
 void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *name, const char *root, int interactive,
                  int per_folder, suggestion *out);                          /* a line from the terminal; "" at the end */
+void ask_replay(const strlist *answers, int dry_run);   /* answers given ahead (NULL: the terminal); dry: keep nothing */
+jv *ask_pending(void);                  /* the question the given answers ran out at, or NULL */
 void read_tags_file(const char *path, ftags *out);      /* catalog.read_tag_info */
 void read_tags_now(const archive *cat, const char *disc_id, const char *burned, ftags *out);   /* as burned, and since */
 size_t record_tag_changes(archive *cat, rec_record *ev, const char *disc_id, const ftags *before, const ftags *after);
