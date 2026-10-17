@@ -1595,7 +1595,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   };
   // ---------------------------------------------------------------- archive: the programs arv can use (arv programs)
   var PROGRAM_GROUPS = [["helpers", "arv's own helpers"], ["making", "Making discs"], ["describing", "Describing"],
-                        ["interface", "The interface"], ["beside", "Beside arv: work it leaves to other tools (it never runs them)"]];
+                        ["interface", "The interface"], ["beside", "Beside arv: work it leaves to other tools (it never runs them)"],
+                        ["data", "Place data (beside the built-in countries and cities)"]];
   function loadPrograms() {
     return arvJson(["programs", "--json"]).then(function (res) {
       var box = $("programs-list"); box.textContent = "";

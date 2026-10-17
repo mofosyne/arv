@@ -414,7 +414,9 @@ same questions in the page. Its Names view keeps the known names right (rename, 
 ticking the uses that are the other person, retire), and its Map view shows the places.
 
 **Places** come from a gazetteer, `config/places.rec`: Natural Earth's countries and cities
-(public domain), and the places you add (`arv tags add place:fushimi-inari --parent kyoto`, with
+(public domain), regions (states, prefectures) from `iso-codes` when it is installed, towns from
+GeoNames if you fetch them (`sh docs/examples/places-geonames.sh`), and the places you add
+(`arv tags add place:fushimi-inari --parent kyoto`, with
 `--extent` for the box it covers or `--reach 2km`). `--ask` offers the cities a folder's names or
 text mention, saying which ("Lima, Peru"), and the place its photos' GPS is in: one of yours, a
 city of the same country, or the country by its outline. The record keeps the place, never the

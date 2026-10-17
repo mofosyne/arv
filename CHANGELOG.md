@@ -21,6 +21,18 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**More places: regions and towns, from data the machine has**
+- Regions: ISO 3166-2's 5,046 subdivisions (states, prefectures, counties) from `iso-codes` when it
+  is installed (it usually is), each in its country, keyed by name (`place:hokkaido`,
+  `place:kyoto-prefecture` beside Kyoto the city, `place:georgia-state` beside the country).
+- More places: any `places/NAME.rec` in the XDG data folders (`~/.local/share/arv/places/`,
+  `/usr/share/arv/places/`). `docs/examples/places-geonames.sh` writes GeoNames' towns there
+  (CC BY 4.0; 26,000 to 220,000 places, with positions); arv never downloads.
+- A place from extra data that a tag uses is copied into the home's `places.rec` (describing,
+  making a disc, `--parent`), so the record and its discs never depend on what is installed.
+- `--ask`: a region and a city of one name (Osaka) are not two choices: the city is offered.
+- `arv programs` lists the place data too; the packages suggest `iso-codes`.
+
 **arv programs: which optional programs are here**
 - `arv programs [--json]` lists every program arv can use (its helpers; git, Siegfried and the
   compressors for making; exiftool, poppler and ffmpeg for describing; the browser opener; and the

@@ -82,8 +82,12 @@ typedef struct {
     double lat, lon;                                    /* from at: ISO 6709, decimal degrees */
     double south, west, north, east;                    /* Extent: the box it covers (two ISO 6709 corners) */
     double reach_km;                                    /* Reach: how far a photo may be from At (0: the default) */
+    const char *source;                                 /* NULL: the home's own; else extra data it came from */
 } known_entry;
-size_t known_load(const arv_home *h, known_entry **out);   /* tags.rec's entries, then places.rec's */
+size_t known_load(const arv_home *h, known_entry **out);   /* tags.rec's, places.rec's, then extra place data */
+int known_keep(const arv_home *h, const known_entry *v, size_t n, const char *key);   /* an extra place copied home: 1 */
+void known_keep_tags(const arv_home *h, const char *tags_tsv);
+void known_extra_files(char **iso, strlist *files);   /* the extra place data here: iso-codes, places/NAME.rec */   /* each extra place a disc's tags name, copied home */
 const known_entry *known_find(const known_entry *v, size_t n, const char *key);
 size_t known_places_of(const char *catalog_dir, known_entry **out);   /* a catalogue's gazetteer, home or disc */
 int known_within(const known_entry *v, size_t n, const char *place, const char *key);   /* place:kyoto within place:japan */

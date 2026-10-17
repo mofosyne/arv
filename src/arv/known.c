@@ -20,6 +20,7 @@
 #include "data.h"
 
 #include <ctype.h>
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -179,6 +180,273 @@ static void load_file(const char *p, const char *type, known_entry **out, size_t
     rec_free(&f);
 }
 
+/* ------------------------------------------------------------------ keys, indexed */
+
+typedef struct {
+    char **key;
+    size_t *at, cap, n;
+} key_index;
+
+static size_t key_hash(const char *s)
+{
+    size_t h = 5381;
+    while (*s) h = h * 33 + (unsigned char)*s++;
+    return h;
+}
+
+static void index_free(key_index *x)
+{
+    free(x->key);
+    free(x->at);
+    memset(x, 0, sizeof *x);
+}
+
+static void index_put(key_index *x, char *key, size_t at)
+{
+    if ((x->n + 1) * 2 > x->cap) {          /* grow, and put them all again */
+        key_index y = { 0 };
+        y.cap = x->cap ? x->cap * 2 : 1024;
+        y.key = xmalloc(y.cap * sizeof *y.key);
+        y.at = xmalloc(y.cap * sizeof *y.at);
+        memset(y.key, 0, y.cap * sizeof *y.key);
+        for (size_t i = 0; i < x->cap; i++)
+            if (x->key[i]) index_put(&y, x->key[i], x->at[i]);
+        index_free(x);
+        *x = y;
+    }
+    size_t i = key_hash(key) & (x->cap - 1);
+    while (x->key[i] && strcmp(x->key[i], key)) i = (i + 1) & (x->cap - 1);
+    if (!x->key[i]) x->n++;
+    x->key[i] = key;
+    x->at[i] = at;
+}
+
+static long index_get(const key_index *x, const char *key)
+{
+    if (!x->cap) return -1;
+    size_t i = key_hash(key) & (x->cap - 1);
+    while (x->key[i]) {
+        if (!strcmp(x->key[i], key)) return (long)x->at[i];
+        i = (i + 1) & (x->cap - 1);
+    }
+    return -1;
+}
+
+/* ------------------------------------------------------------------ extra place data */
+
+/* "Kyoto Prefecture" -> "kyoto-prefecture": ASCII folded to lower case, other bytes kept */
+static char *key_slug(const char *s)
+{
+    sbuf b = { 0 };
+    int dash = 0;
+    for (const unsigned char *p = (const unsigned char *)s; *p; p++) {
+        if (isalnum(*p) || *p >= 0x80) {
+            if (dash && b.len) sb_puts(&b, "-");
+            char c = (char)tolower(*p);
+            sb_add(&b, &c, 1);
+            dash = 0;
+        } else {
+            dash = 1;
+        }
+    }
+    return b.s ? b.s : xstrdup("");
+}
+
+static const char *jstr_get(const jv *o, const char *key)
+{
+    const jv *v = json_get(o, key);
+    return v && v->kind == 's' ? v->str : NULL;
+}
+
+/* ISO 3166-2 subdivisions from iso-codes, when installed: regions in their countries (and in a
+ * broader subdivision when it has one), named as people write them; no positions */
+static void load_iso_regions(const char *path, known_entry **out, size_t *n, key_index *keys)
+{
+    char *text = read_text(path);
+    jv *doc = text ? json_parse(text) : NULL;
+    const jv *list = doc ? json_get(doc, "3166-2") : NULL;
+    free(text);
+    if (!list || list->kind != 'a') {
+        if (doc) jfree(doc);
+        return;
+    }
+    key_index country = { 0 }, by_code = { 0 };
+    for (size_t i = 0; i < *n; i++)
+        if ((*out)[i].kind && !strcmp((*out)[i].kind, "country") && (*out)[i].country) index_put(&country, (*out)[i].country, i);
+    size_t first = *n;
+    for (size_t i = 0; i < list->n; i++) {
+        const jv *r = list->vals[i];
+        const char *code = jstr_get(r, "code"), *name = jstr_get(r, "name"), *type = jstr_get(r, "type");
+        if (!code || !name || strlen(code) < 4 || code[2] != '-') continue;
+        char cc[3] = { code[0], code[1], 0 };
+        long c = index_get(&country, cc);
+        char *k1 = key_slug(name), *k2 = type ? xprintf("%s %s", name, type) : xstrdup(name), *k2s = key_slug(k2);
+        char *key = xprintf("place:%s", k1);
+        if (index_get(keys, key) >= 0) {        /* Kyoto the city has place:kyoto: place:kyoto-prefecture */
+            free(key);
+            key = xprintf("place:%s", k2s);
+        }
+        if (index_get(keys, key) >= 0) {        /* Georgia the state and Georgia the country */
+            char *more = xprintf("%s-%c%c", key, tolower((unsigned char)cc[0]), tolower((unsigned char)cc[1]));
+            free(key);
+            key = more;
+        }
+        free(k1);
+        free(k2);
+        free(k2s);
+        if (index_get(keys, key) >= 0) {
+            free(key);
+            continue;
+        }
+        *out = xrealloc(*out, (*n + 1) * sizeof **out);
+        known_entry *e = &(*out)[(*n)++];
+        memset(e, 0, sizeof *e);
+        e->key = key;
+        e->label = xstrdup(name);
+        e->qualifier = type ? xstrdup(type) : NULL;
+        e->kind = xstrdup("region");
+        e->country = xstrdup(code);     /* for now its code: its Parent comes from it, below */
+        if (c >= 0) e->parent = xstrdup((*out)[c].key);
+        e->source = "iso-codes (ISO 3166-2)";
+        char *same = xprintf("iso3166-2:%s", code);
+        strlist_add(&e->same, same);
+        free(same);
+        index_put(keys, e->key, *n - 1);
+        index_put(&by_code, e->country, *n - 1);
+    }
+    for (size_t i = 0, k = first; k < *n; i++) {   /* a subdivision of a subdivision: Babək in Nakhchivan */
+        const jv *r = list->vals[i];
+        const char *code = jstr_get(r, "code"), *up = jstr_get(r, "parent");
+        if (!code || strcmp(code, (*out)[k].country)) continue;
+        if (up) {
+            char *full = strchr(up, '-') ? xstrdup(up) : xprintf("%.2s-%s", code, up);
+            long p = index_get(&by_code, full);
+            if (p >= 0) {
+                free((*out)[k].parent);
+                (*out)[k].parent = xstrdup((*out)[p].key);
+            }
+            free(full);
+        }
+        k++;
+    }
+    for (size_t k = first; k < *n; k++) {
+        free((*out)[k].country);
+        (*out)[k].country = NULL;
+    }
+    index_free(&country);
+    index_free(&by_code);
+    jfree(doc);
+}
+
+/* where extra data is looked for: $XDG_DATA_HOME (~/.local/share), then $XDG_DATA_DIRS
+ * (/usr/local/share:/usr/share), each with the path given after it */
+static void data_dirs(strlist *out)
+{
+    memset(out, 0, sizeof *out);
+    const char *home = getenv("XDG_DATA_HOME"), *dirs = getenv("XDG_DATA_DIRS");
+    if (home && *home) strlist_add(out, home);
+    else if (getenv("HOME")) {
+        char *d = xprintf("%s/.local/share", getenv("HOME"));
+        strlist_add(out, d);
+        free(d);
+    }
+    char *copy = xstrdup(dirs && *dirs ? dirs : "/usr/local/share:/usr/share");
+    for (char *d = strtok(copy, ":"); d; d = strtok(NULL, ":"))
+        if (*d && !strlist_has(out, d)) strlist_add(out, d);
+    free(copy);
+}
+
+/* the extra place data here: iso-codes' subdivisions (the first found), and each places/NAME.rec */
+void known_extra_files(char **iso, strlist *files)
+{
+    strlist dirs;
+    data_dirs(&dirs);
+    *iso = NULL;
+    memset(files, 0, sizeof *files);
+    for (size_t d = 0; d < dirs.n; d++) {
+        char *p = xprintf("%s/iso-codes/json/iso_3166-2.json", dirs.v[d]), *dir = xprintf("%s/arv/places", dirs.v[d]);
+        if (!*iso && !access(p, R_OK)) *iso = p;
+        else free(p);
+        DIR *dp = opendir(dir);
+        for (struct dirent *de; dp && (de = readdir(dp));) {
+            size_t l = strlen(de->d_name);
+            if (l > 4 && !strcmp(de->d_name + l - 4, ".rec")) {
+                char *f = xprintf("%s/%s", dir, de->d_name);
+                strlist_add(files, f);
+                free(f);
+            }
+        }
+        if (dp) closedir(dp);
+        free(dir);
+    }
+    strlist_free(&dirs);
+}
+
+static int by_name(const void *a, const void *b)
+{
+    return strcmp(*(char *const *)a, *(char *const *)b);
+}
+
+/* the extra data: DIR/arv/places/NAME.rec in each data folder (GeoNames, a region's own list), then
+ * iso-codes' subdivisions; an entry whose key is known already is left out (the home's wins) */
+static void load_extra(known_entry **out, size_t *n, key_index *keys)
+{
+    if (getenv("ARV_NO_EXTRA_PLACES") && *getenv("ARV_NO_EXTRA_PLACES")) return;   /* the tests: the same places everywhere */
+    strlist dirs;
+    data_dirs(&dirs);
+    for (size_t d = 0; d < dirs.n; d++) {
+        char *dir = xprintf("%s/arv/places", dirs.v[d]);
+        strlist files = { 0 };
+        DIR *dp = opendir(dir);
+        for (struct dirent *de; dp && (de = readdir(dp));) {
+            size_t l = strlen(de->d_name);
+            if (l > 4 && !strcmp(de->d_name + l - 4, ".rec")) strlist_add(&files, de->d_name);
+        }
+        if (dp) closedir(dp);
+        if (files.n) qsort(files.v, files.n, sizeof *files.v, by_name);
+        for (size_t f = 0; f < files.n; f++) {
+            char *path = xprintf("%s/%s", dir, files.v[f]);
+            size_t first = *n;
+            load_file(path, "Place", out, n);
+            static strlist sources;             /* the names live as long as the program */
+            strlist_add(&sources, files.v[f]);
+            size_t kept = first;
+            for (size_t i = first; i < *n; i++) {
+                if (index_get(keys, (*out)[i].key) >= 0) {
+                    known_free_one(&(*out)[i]);
+                    continue;
+                }
+                (*out)[kept] = (*out)[i];
+                (*out)[kept].source = sources.v[sources.n - 1];
+                index_put(keys, (*out)[kept].key, kept);
+                kept++;
+            }
+            *n = kept;
+            free(path);
+        }
+        strlist_free(&files);
+        free(dir);
+    }
+    key_index country = { 0 };             /* Country: JP on a place without a Parent: in Japan */
+    for (size_t i = 0; i < *n; i++)
+        if ((*out)[i].kind && !strcmp((*out)[i].kind, "country") && (*out)[i].country) index_put(&country, (*out)[i].country, i);
+    for (size_t i = 0; i < *n; i++) {
+        known_entry *e = &(*out)[i];
+        if (!e->source || e->parent || !e->country || (e->kind && !strcmp(e->kind, "country"))) continue;
+        long c = index_get(&country, e->country);
+        if (c >= 0) e->parent = xstrdup((*out)[c].key);
+    }
+    index_free(&country);
+    for (size_t d = 0; d < dirs.n; d++) {
+        char *iso = xprintf("%s/iso-codes/json/iso_3166-2.json", dirs.v[d]);
+        int here = !access(iso, R_OK);
+        if (here) load_iso_regions(iso, out, n, keys);
+        free(iso);
+        if (here) break;
+    }
+    strlist_free(&dirs);
+}
+
 size_t known_load(const arv_home *h, known_entry **out)
 {
     *out = NULL;
@@ -187,17 +455,70 @@ size_t known_load(const arv_home *h, known_entry **out)
     load_file(p, "Tag", out, &n);
     size_t tags = n;
     load_file(g, "Place", out, &n);
+    key_index keys = { 0 };
+    for (size_t i = 0; i < tags; i++) index_put(&keys, (*out)[i].key, i);
     size_t kept = tags;
     for (size_t i = tags; i < n; i++) {         /* a place in tags.rec too: tags.rec's is the one */
-        int dup = 0;
-        for (size_t k = 0; k < tags && !dup; k++) dup = !strcmp((*out)[k].key, (*out)[i].key);
-        if (dup) known_free_one(&(*out)[i]);
-        else (*out)[kept++] = (*out)[i];
+        if (index_get(&keys, (*out)[i].key) >= 0) {
+            known_free_one(&(*out)[i]);
+            continue;
+        }
+        (*out)[kept] = (*out)[i];
+        index_put(&keys, (*out)[kept].key, kept);
+        kept++;
     }
     n = kept;
+    load_extra(out, &n, &keys);
+    index_free(&keys);
     free(p);
     free(g);
     return n;
+}
+
+/* every place a tags file (tags.tsv) names, kept as known_keep keeps one: for a disc about to be made */
+void known_keep_tags(const arv_home *h, const char *tags_tsv)
+{
+    char *text = tags_tsv ? read_text(tags_tsv) : NULL;
+    if (!text || !strstr(text, "place:")) {
+        free(text);
+        return;
+    }
+    known_entry *v;
+    size_t n = known_load(h, &v);
+    for (char *t = text; (t = strstr(t, "place:")); t++) {
+        size_t l = strcspn(t, ",\t\n ");
+        char *key = xprintf("%.*s", (int)l, t);
+        const known_entry *e = known_find(v, n, key);
+        if (e && e->source) known_keep(h, v, n, key);
+        free(key);
+    }
+    known_free(v, n);
+    free(text);
+}
+
+/* an entry from extra data, copied into the home's places.rec when a tag first uses it (and the
+ * places it is in, likewise), so the record and its discs never depend on data installed here */
+int known_keep(const arv_home *h, const known_entry *v, size_t n, const char *key)
+{
+    const known_entry *e = known_find(v, n, key);
+    int copied = 0;
+    for (int depth = 0; e && e->source && depth < 16; depth++, e = known_find(v, n, e->parent)) {
+        char today[11], *basis;
+        today_iso(today);
+        basis = xprintf("from %s, copied when first used, %s", e->source, today);
+        known_field(h, e->key, "Label", e->label ? e->label : e->key + 6, 0);
+        for (size_t i = 0; i < e->aliases.n; i++) known_field(h, e->key, "Alias", e->aliases.v[i], 1);
+        if (e->qualifier) known_field(h, e->key, "Qualifier", e->qualifier, 0);
+        if (e->kind) known_field(h, e->key, "Kind", e->kind, 0);
+        if (e->parent) known_field(h, e->key, "Parent", e->parent, 0);
+        if (e->country) known_field(h, e->key, "Country", e->country, 0);
+        if (e->at) known_field(h, e->key, "At", e->at, 0);
+        for (size_t i = 0; i < e->same.n; i++) known_field(h, e->key, "Same", e->same.v[i], 1);
+        known_field(h, e->key, "Basis", basis, 0);
+        free(basis);
+        copied = 1;
+    }
+    return copied;
 }
 
 /* the gazetteer a catalogue goes with, home or disc: config/places.rec beside or inside it, else
@@ -226,11 +547,29 @@ int known_within(const known_entry *v, size_t n, const char *place, const char *
     return 0;
 }
 
+static const known_entry *last;                 /* an index of the list asked about last (known_find) */
+static size_t last_n;
+static key_index last_index;
+
 const known_entry *known_find(const known_entry *v, size_t n, const char *key)
 {
-    for (size_t i = 0; key && i < n; i++)
-        if (!strcmp(v[i].key, key)) return &v[i];
-    return NULL;
+    key_index *xp = &last_index;
+#define x (*xp)
+    if (!key || !n) return NULL;
+    if (n < 64) {
+        for (size_t i = 0; i < n; i++)
+            if (!strcmp(v[i].key, key)) return &v[i];
+        return NULL;
+    }
+    if (v != last || n != last_n || !x.cap) {
+        index_free(&x);
+        for (size_t i = n; i-- > 0;) index_put(&x, v[i].key, i);   /* the first of a key wins */
+        last = v;
+        last_n = n;
+    }
+    long i = index_get(&x, key);
+#undef x
+    return i >= 0 && (size_t)i < n && !strcmp(v[i].key, key) ? &v[i] : NULL;
 }
 
 /* where a place is: its own position (2), the nearest broader place's (1), or none (0) */
@@ -276,6 +615,10 @@ static void known_free_one(known_entry *e)
 
 void known_free(known_entry *v, size_t n)
 {
+    if (v == last) {                            /* its index goes with it */
+        index_free(&last_index);
+        last = NULL;
+    }
     for (size_t i = 0; i < n; i++) known_free_one(&v[i]);
     free(v);
 }
@@ -726,7 +1069,7 @@ static int known_names(const char *given, int as_json)
     size_t shown = 0;
     for (size_t i = 0; i < n; i++) {
         const known_entry *e = &v[i];
-        if (!e->basis && e->kind && (!strcmp(e->kind, "city") || !strcmp(e->kind, "country"))) continue;
+        if (e->source || (!e->basis && e->kind && strcmp(e->kind, "site"))) continue;   /* the gazetteer's and extra data's own */
         uses u;
         uses_of(&h, &cat, e->key, &u);
         if (as_json) {
@@ -917,6 +1260,7 @@ int known_cmd(const char *sub, int argc, char **argv, const char *given)
         if (e && kind) known_field(&h, key, "Kind", kind, 0);
         if (in) {
             if (!entry_of(v, n, in)) fprintf(stderr, "(%s is not in the gazetteer yet: arv tags add %s)\n", in, in);
+            else known_keep(&h, v, n, in);      /* a region from iso-codes, say: copied home */
             known_field(&h, key, "Parent", in, 0);
             name_event(&cat, key, "the place it is in", "Parent", in);
         }

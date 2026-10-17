@@ -2246,7 +2246,21 @@ of one (two from eight letters; nothing under four, so Jo and Jon are two people
 ("A. Smith"). Keys are compared only without a label (`anne-smith-2` is a key, not a name), and a
 name with a qualifier is left out: it was told apart on purpose, and "Not the same" records that by
 giving each a qualifier, so a refusal is kept in the vocabulary rather than in a list of its own.
-arv never merges by itself. Not yet: regions
-(admin-1) as places; a larger list (GeoNames) as an optional download; offering likely duplicates
-for merging; EAC-CPF export.
+arv never merges by itself.
+
+**Regions and towns, from data the machine has (2026-10-17).** Bundling GeoNames (25 MB) or
+Natural Earth's regions (500 KB on every disc) was weighed against what Linux already ships:
+`iso-codes`, a dependency of package managers and desktops, holds ISO 3166-2's 5,046 subdivisions
+by name (no positions), at `/usr/share/iso-codes/json/iso_3166-2.json`. So arv reads it when it is
+there, and reads `places/NAME.rec` from the XDG data folders (the standard place for such data:
+`$XDG_DATA_HOME`, `$XDG_DATA_DIRS`), which `docs/examples/places-geonames.sh` fills from GeoNames
+for those who want towns; arv itself never downloads (principle 7). Keys follow the gazetteer's:
+the name (`place:hokkaido`), then with its type when the name is taken (`place:kyoto-prefecture`),
+then the country's code. The home's entries win over extra data, and an entry a tag uses is copied
+into the home's `places.rec` with its places above, so what a disc names it carries: removing the
+extra data later changes nothing written. A region and a city of the same name in one country (Osaka)
+are one choice, the city, not two. Lookups went from a list to a hash (34,000 places load in about
+0.2 s). The tests run with `ARV_NO_EXTRA_PLACES=1`, the same places on every machine. Not yet:
+GPS within a region (iso-codes has no outlines); regions on Natural Earth's cities (their Parent is
+the country); EAC-CPF export. Pushing for such data as packages: an issue.
 

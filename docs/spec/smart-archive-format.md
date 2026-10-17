@@ -751,12 +751,15 @@ carries; the disc's own tags still name it by its key.
 **Places** are the known names of the `place` namespace, kept in their own file, the gazetteer
 (`catalog/config/places.rec`, `%rec: Place`): the same fields, and `Kind` (`country`, `region`,
 `city`, `site`), `Parent` (the place it is in: `place:kyoto` in `place:japan`), `Country` (ISO
-3166-1 alpha-2, for a country), `At` (where: ISO 6709 in decimal degrees, WGS84,
+3166-1 alpha-2: the country it is, or, for a place without a `Parent`, the country it is in), `At` (where: ISO 6709 in decimal degrees, WGS84,
 `+35.03+135.75/`), `Extent` (the box it covers: two opposite corners, `+34.96+135.76/+34.98+135.78/`)
 and `Reach` (how near to `At` a photo must be to be there: `2km`, `500m`). The default list is Natural Earth's countries and populated places (public
 domain), to two decimals. A place with a position of a person's own is private by default. The
 catalogue keeps tags, never coordinates; a reader finds a tag's position in the gazetteer, or a
 broader place's. `index.html` shows a disc's places on a map (an inline SVG, with nothing to load).
+Extra place data a machine has (ISO 3166-2 regions from iso-codes, a GeoNames list in
+`$XDG_DATA_HOME/arv/places/`) is read beside it, never relied on: an entry a tag uses is copied into
+the gazetteer (`Basis: from SOURCE, copied when first used`), so a disc carries every place it names.
 
 ### Git repositories
 

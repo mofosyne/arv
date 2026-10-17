@@ -707,15 +707,43 @@ static void entry_forms(const known_entry *e, strlist *out)
 }
 
 /* how many entries (not retired) a form names */
-static size_t entries_named(const asking *a, const char *form)
+/* the country (or the broadest place) a place is in */
+static const char *top_of(const asking *a, const known_entry *e)
+{
+    const char *key = e->key;
+    for (int depth = 0; e && e->parent && depth < 16; depth++) {
+        key = e->parent;
+        e = known_find(a->kv, a->kn, e->parent);
+    }
+    return key;
+}
+
+/* o holds e: o is one of the places e is in, or a region of e's country with e's name (Osaka the
+ * prefecture and Osaka the city: the gazetteer's cities are in their countries, not their regions) */
+static int holds(const asking *a, const known_entry *o, const known_entry *e)
+{
+    if (known_within(a->kv, a->kn, e->key, o->key)) return 1;
+    return o->kind && e->kind && !strcmp(o->kind, "region") && !strcmp(e->kind, "city") && !strcmp(top_of(a, o), top_of(a, e));
+}
+
+static size_t entries_named(const asking *a, const char *form, const known_entry *e, int *outer)
 {
     size_t n = 0;
+    *outer = 0;
     for (size_t i = 0; i < a->kn; i++) {
-        if (a->kv[i].retired) continue;
+        const known_entry *o = &a->kv[i];
+        if (o->retired) continue;
         strlist f;
-        entry_forms(&a->kv[i], &f);
-        n += strlist_has(&f, form);
+        entry_forms(o, &f);
+        int named = strlist_has(&f, form);
         strlist_free(&f);
+        if (!named) continue;
+        if (o != e && holds(a, e, o)) {
+            *outer = 1;                     /* Kyoto Prefecture, which Kyoto the city is in: the city is offered */
+            continue;
+        }
+        if (o != e && holds(a, o, e)) continue;   /* the other way: not two */
+        n++;
     }
     return n;
 }
@@ -740,9 +768,14 @@ static void known_choices(const asking *a, const clues *c, const char *ns, int o
             strlist_free(&forms);
             continue;
         }
-        two = entries_named(a, found) > 1;
+        int outer;
+        two = entries_named(a, found, e, &outer) > 1;
+        if (outer) {
+            strlist_free(&forms);
+            continue;
+        }
         size_t uses = word_tag_uses(a->ws, e->key), with = 0, all = 0;
-        int gazetteer = e->kind && (!strcmp(e->kind, "city") || !strcmp(e->kind, "country"));
+        int gazetteer = e->kind && (!strcmp(e->kind, "city") || !strcmp(e->kind, "country") || !strcmp(e->kind, "region"));
         if (gazetteer && !uses && ++places > 8) {
             strlist_free(&forms);           /* a text naming many cities: the first few, by where they are found */
             continue;
@@ -1321,6 +1354,9 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
             }
         }
     }
+    for (size_t f = 0; interactive && h && !dry && f < out->folders.n; f++)   /* a place from extra data, used: copied home */
+        for (size_t i = 0; i < out->folders.tags[f].n; i++)
+            if (!strncmp(out->folders.tags[f].v[i], "place:", 6)) known_keep(h, a.kv, a.kn, out->folders.tags[f].v[i]);
     if (interactive && h && cat && !dry) {  /* a name confirmed: known from now on (an entry, and an event) */
         static const char *const NAMED[] = { "person:", "family:", "organisation:", "software:", "work:", "place:", NULL };
         strlist made = { 0 };

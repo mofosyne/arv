@@ -18,6 +18,7 @@ import urllib.request
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.environ["ARV_APE"] = "none"   # the small test media have no room for tools/arv.com
+os.environ["ARV_NO_EXTRA_PLACES"] = "1"   # the built-in places only, whatever this machine has installed
 ARV = os.path.join(REPO, "src", "arv", "build", "arv")
 GUI = os.path.join(REPO, "src", "arv-gui", "build", "arv-gui")
 FAKE_LLM = os.path.join(REPO, "src", "arv-assist", "build", "fake-llm")

@@ -22,8 +22,10 @@ typedef struct {
 
 static const char *from(const program *p)   /* where one with no package comes from */
 {
-    return !strcmp(p->name, "sf") ? "Siegfried: github.com/richardlehane/siegfried (a release, or its own .deb)"
-                                  : "make install in arv's source puts it beside arv";
+    if (!strcmp(p->name, "sf")) return "Siegfried: github.com/richardlehane/siegfried (a release, or its own .deb)";
+    if (!strcmp(p->name, "places"))
+        return "sh docs/examples/places-geonames.sh (in arv's source, or share/arv): writes ~/.local/share/arv/places/";
+    return "make install in arv's source puts it beside arv";
 }
 
 static const program PROGRAMS[] = {
@@ -50,6 +52,10 @@ static const program PROGRAMS[] = {
       "gddrescue", "ddrescue" },
     { "ocrmypdf", NULL, "beside", "a text layer for scanned PDFs, before describing", "scans' words not read", "ocrmypdf", "ocrmypdf" },
     { "tesseract", NULL, "beside", "a .txt beside a scanned image, before describing", "scans' words not read", "tesseract-ocr", "tesseract" },
+    { "iso-codes", NULL, "data", "regions (ISO 3166-2: states, prefectures, counties) as places, by name",
+      "no regions but those you add", "iso-codes", "iso-codes" },
+    { "places", NULL, "data", "more places: towns with positions (docs/examples/places-geonames.sh, from GeoNames)",
+      "the built-in 1,251 cities and your own", NULL, NULL },
 };
 
 static const char *const GROUPS[][2] = {
@@ -58,6 +64,7 @@ static const char *const GROUPS[][2] = {
     { "describing", "Describing (arv describe, arv tag)" },
     { "interface", "The interface" },
     { "beside", "Beside arv: work it leaves to tools built for it (it never runs them)" },
+    { "data", "Place data (beside the built-in countries and cities)" },
 };
 
 /* where a program is on PATH, or NULL */
@@ -79,12 +86,27 @@ static char *where_is(const program *p)
 {
     if (!strcmp(p->name, "arv-assist")) return helper_program("ARV_ASSIST", "arv-assist", "arv-assist/build/arv-assist");
     if (!strcmp(p->name, "arv-gui")) return helper_program("ARV_GUI", "arv-gui", "arv-gui/build/arv-gui");
+    if (!strcmp(p->name, "iso-codes") || !strcmp(p->name, "places")) {   /* data, not programs: files in the data folders */
+        char *iso;
+        strlist files;
+        known_extra_files(&iso, &files);
+        sbuf b = { 0 };
+        for (size_t i = 0; i < files.n; i++) sb_printf(&b, "%s%s", i ? ", " : "", files.v[i]);
+        strlist_free(&files);
+        if (!strcmp(p->name, "iso-codes")) {
+            free(b.s);
+            return iso;
+        }
+        free(iso);
+        return b.s;
+    }
     char *at = path_of(p->name);
     return at ? at : path_of(p->alt);
 }
 
 static char *real_where(const program *p)
 {
+    if (!strcmp(p->name, "places") || !strcmp(p->name, "iso-codes")) return where_is(p);
     char *at = where_is(p), *real = at ? realpath(at, NULL) : NULL;
     if (real) free(at);
     return real ? real : at;

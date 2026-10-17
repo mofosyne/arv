@@ -17,7 +17,7 @@ mkdir -p "$dir"
 cd "$dir"
 ok() { echo "ok: $*"; }
 no() { echo "FAILED: $*"; [ -f log ] && tail -c 600 log; exit 1; }
-export ARV_APE=none HOME="$dir/userhome" XDG_CONFIG_HOME="$dir/userhome/.config" XDG_DATA_HOME="$dir/userhome/.local/share"
+export ARV_NO_EXTRA_PLACES=1 ARV_APE=none HOME="$dir/userhome" XDG_CONFIG_HOME="$dir/userhome/.config" XDG_DATA_HOME="$dir/userhome/.local/share"
 unset ARV_HOME ARCHIVE_LLM_URL ARCHIVE_LLM_MODEL
 put() { mkdir -p "$(dirname "$1")"; printf '%s' "$2" > "$1"; touch -d "@${3:-1560000000}" "$1"; }
 
@@ -407,7 +407,11 @@ where() { LAT=$1 LON=$2 PATH="$dir/gpsbin:$PATH" "$tool" --home askh describe gp
              echo "$p: $(eval where $p)"; done; no "GPS: boxes, reaches and borders"; }
 put "osaka/a.txt" "Letters about Lima and Lima again"
 printf '\n\n\n\n\n\n\n\n' | "$tool" --home askh describe osaka --ask --save oo.json > /dev/null 2> oo.err || { cat oo.err; no "describe --ask (cities)"; }
+mkdir -p xdata/iso-codes/json && printf '{"3166-2": [{"code": "JP-27", "name": "Osaka", "type": "Prefecture"}]}\n' > xdata/iso-codes/json/iso_3166-2.json
+printf '\n\n\n\n\n\n\n\n' | ARV_NO_EXTRA_PLACES= XDG_DATA_DIRS="$dir/xdata" "$tool" --home askh describe osaka --ask --save oo2.json > /dev/null 2> oo2.err \
+    || { cat oo2.err; no "describe --ask (a region of a city's name)"; }
 grep -q '^  \*[0-9] osaka  (known: Ōsaka, Japan)' oo.err && grep -q '^   [0-9] lima  (known: Lima, Peru)' oo.err \
+    && grep -q '^  \*[0-9] osaka  (known: Ōsaka, Japan)' oo2.err && ! grep -q 'osaka-prefecture' oo2.err \
     && ok "describe --ask: a city of the gazetteer in the names is offered, marked, saying where it is; one its text only mentions, unmarked" \
     || { cat oo.err; no "cities in the names"; }
 # ------------------------------------------------------------------ words and tags, counted: from the record, the answers, the text
