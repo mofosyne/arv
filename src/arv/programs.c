@@ -95,6 +95,7 @@ int cmd_programs(int argc, char **argv)
     int as_json = 0;
     for (int i = 0; i < argc; i++) {
         if (!strcmp(argv[i], "--json")) as_json = 1;
+        else if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) i++;   /* the same for any home */
         else return 2;
     }
     size_t n = sizeof PROGRAMS / sizeof *PROGRAMS, found = 0;
