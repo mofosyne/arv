@@ -99,6 +99,7 @@ static const char USAGE_RECORD[] =
           "  arv access DISC-ID public|private|sealed   what later discs' catalogues may show of it\n"
           "  arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)\n"
           "  arv find [-C CATALOG] [--limit N] PATTERN   discs, copies (by identifier or carrier), objects, tags\n"
+          "         (place:japan: the places in it too, by the gazetteer)\n"
           "         and files, on every disc the catalogue knows (PATTERN: text, or a glob with * ? [)\n"
           "  arv list [-C CATALOG] [--in CODE] [--at PLACE] [--made DATE] [--access LEVEL] [--covers DATE]\n"
           "           [--unchecked-since AGE|DATE] [--one-place] [--json]   the discs, one a line (--in: a set or\n"

@@ -351,7 +351,9 @@ printf '{"tags": {".": ["place:kyoto"], "temple": ["place:fushimi-inari"], "cast
     && grep -q '"coordinates": \[135.4600, 34.7500\]}, "properties": {"key": "place:osaka"' kn/map.geojson && ! grep -q nowhere-known kn/map.geojson \
     && "$tool" -C kn/home map --json | grep -q '"key": "place:nowhere-known", .*"position": "none", "inGazetteer": false' \
     && "$tool" -C kn/home map --svg | grep -q '<title>Ōsaka, Japan: 1 path or object</title>' \
-    && ok "arv map: the places the tags name, where each is (the gazetteer's, or a broader place's), as text, JSON, GeoJSON and SVG" \
+    && "$tool" -C kn/home find place:japan > kn/find.out && grep -q 'data/castle/  (place:osaka' kn/find.out \
+    && grep -q 'data/temple/  (place:fushimi-inari)' kn/find.out && ! "$tool" -C kn/home find place:osaka | grep -q temple \
+    && ok "arv map: the places the tags name, where each is (the gazetteer's, or a broader place's), as text, JSON, GeoJSON and SVG; find place:japan finds the places in it" \
     || { cat kn/map.out kn/map.geojson; no "arv map"; }
 7z x -okn/disc3 kn/out3/*.iso index.html catalog/config/places.rec >/dev/null \
     && grep -q '<h2>Places</h2>' kn/disc3/index.html && grep -q '<svg xmlns=' kn/disc3/index.html \

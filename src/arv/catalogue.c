@@ -410,6 +410,8 @@ int cmd_find(int argc, char **argv)
             free(line);
             free(path);
         }
+    known_entry *kv = NULL;                                 /* place:japan finds place:kyoto too: the gazetteer's */
+    size_t kn = !glob && !strncmp(pat, "place:", 6) && pat[6] ? known_places_of(c.dir, &kv) : 0;
     for (size_t i = 0; i < c.rec.nrecords; i++) {          /* folder tags and captions */
         const rec_record *d = &c.rec.records[i];
         if (!is_type(d, "Disc") || !rec_get(d, "Id")) continue;
@@ -431,6 +433,11 @@ int cmd_find(int argc, char **argv)
                 while (e > t && e[-1] == ' ') *--e = 0;
                 if (!*t) continue;
                 if (matches(pat, glob, t)) hit = 1;
+                else if (kn && !strncmp(t, "place:", 6)) {
+                    char *tl = lower(t);
+                    hit |= known_within(kv, kn, tl, pat);
+                    free(tl);
+                }
                 if (*shown) strncat(shown, ", ", sizeof shown - strlen(shown) - 1);
                 strncat(shown, t, sizeof shown - strlen(shown) - 1);
             }
@@ -452,6 +459,7 @@ int cmd_find(int argc, char **argv)
         free(line);
         free(path);
     }
+    known_free(kv, kn);
     for (size_t i = 0; i < c.rec.nrecords; i++) {          /* files, from each disc's manifest */
         const rec_record *d = &c.rec.records[i];
         if (!is_type(d, "Disc") || !rec_get(d, "Id")) continue;

@@ -2238,7 +2238,9 @@ cities are trusted whatever outline holds them. Off every outline (a coast drawn
 island), the old rule stays: the country of a city within 400 km, said as "perhaps". A size-scaled
 reach for cities (Tokyo is not a town) was left: population is a poor guess at extent, and real city
 boundaries are megabytes. Positions given by a person keep four decimals (about 11 m); the
-gazetteer's cities stay at two. Not yet: `arv find place:japan` finding what is tagged with places inside Japan; regions
+gazetteer's cities stay at two. `arv find place:japan` finds what is tagged with places inside Japan
+too (done 2026-10-17: the tag's chain of `Parent`s in the gazetteer of the catalogue searched, a
+disc's own when it is a disc's, else the built-in one). Not yet: regions
 (admin-1) as places; a larger list (GeoNames) as an optional download; offering likely duplicates
 for merging; EAC-CPF export.
 

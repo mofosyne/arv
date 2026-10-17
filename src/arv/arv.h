@@ -85,6 +85,8 @@ typedef struct {
 } known_entry;
 size_t known_load(const arv_home *h, known_entry **out);   /* tags.rec's entries, then places.rec's */
 const known_entry *known_find(const known_entry *v, size_t n, const char *key);
+size_t known_places_of(const char *catalog_dir, known_entry **out);   /* a catalogue's gazetteer, home or disc */
+int known_within(const known_entry *v, size_t n, const char *place, const char *key);   /* place:kyoto within place:japan */
 int known_position(const known_entry *v, size_t n, const known_entry *e, double *lat, double *lon);   /* its own, or a parent's: 2, 1 */
 char *known_where(const known_entry *v, size_t n, const known_entry *e);   /* "Kyoto, Japan" */
 int iso6709_parse(const char *s, double *lat, double *lon);   /* +35.03+135.75/ or 35.03,135.75; 0 when it is one */

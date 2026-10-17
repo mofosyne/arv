@@ -141,7 +141,7 @@ static void load_file(const char *p, const char *type, known_entry **out, size_t
 {
     rec_file f;
     int bad = 0;
-    if (rec_read(p, &f, &bad)) return;
+    if (p ? rec_read(p, &f, &bad) : rec_parse(DATA_DEFAULT_PLACES, &f, &bad)) return;   /* NULL: the built-in gazetteer */
     for (size_t i = 0; i < f.nrecords; i++) {
         const rec_record *r = &f.records[i];
         if (!is_entry(r, type)) continue;
@@ -198,6 +198,32 @@ size_t known_load(const arv_home *h, known_entry **out)
     free(p);
     free(g);
     return n;
+}
+
+/* the gazetteer a catalogue goes with, home or disc: config/places.rec beside or inside it, else
+ * the built-in one */
+size_t known_places_of(const char *catalog_dir, known_entry **out)
+{
+    *out = NULL;
+    size_t n = 0;
+    char *in = xprintf("%s/config/places.rec", catalog_dir), *beside = xprintf("%s/../config/places.rec", catalog_dir);
+    load_file(!access(in, F_OK) ? in : !access(beside, F_OK) ? beside : NULL, "Place", out, &n);
+    free(in);
+    free(beside);
+    return n;
+}
+
+/* whether a place is key or within it (its parents, and theirs) */
+int known_within(const known_entry *v, size_t n, const char *place, const char *key)
+{
+    const known_entry *e = known_find(v, n, place);
+    for (int depth = 0; depth < 16; depth++) {
+        if (!strcmp(place, key)) return 1;
+        if (!e || !e->parent) return 0;
+        place = e->parent;
+        e = known_find(v, n, place);
+    }
+    return 0;
 }
 
 const known_entry *known_find(const known_entry *v, size_t n, const char *key)

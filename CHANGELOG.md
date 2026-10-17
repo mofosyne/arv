@@ -30,6 +30,8 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   the uses that are the other one) and retire. `arv tags names [--json]` lists them;
   `arv tags show KEY --json` gives each use, in the order split asks about them.
 - The Map view's form takes a place's box and reach.
+- `arv find place:japan` finds what is tagged with places in Japan too (Kyoto, Fushimi Inari), by the
+  gazetteer's parents: the home's, a disc's own, or the built-in one.
 
 **Places: a gazetteer, the photos' GPS, and a map**
 - `config/places.rec`, copied into the home on first use: Natural Earth's 242 countries and 1,251

@@ -485,7 +485,7 @@ arv location list -v                                 # places, their temperature
 | What do I have from July 2019? | `arv list --covers 2019-07` |
 | Everything under a category or a place | `arv list --in MEMORIES`, `arv list --at PARENTS` |
 | What has this collection been through? | `arv collection show FAMILY`, `arv log FAMILY` |
-| Which tags do I use? | `arv tags`; `arv find place:kyoto` |
+| Which tags do I use? | `arv tags`; `arv find place:kyoto` (`place:japan` finds Kyoto's too) |
 | Where is it all from? | `arv map` (`--geojson` for a map tool, `--svg` for a picture) |
 | Without this tool installed? | every disc carries it: `tools/arv.com find PATTERN` from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
 | Changes after burning | `arv note`, `arv locate`, `arv access` (home catalogue; later discs carry them) |
