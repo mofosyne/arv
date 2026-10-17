@@ -405,7 +405,8 @@ Record: what exists, and where
   arv sets [-v]   the set codes and categories, as a tree
   arv tags [--namespace NS]   the tags in use, by namespace, on how many paths and discs; and the
          paths to correct: two values of a one-valued namespace, a date that is not EDTF
-  arv tags names [--json]   the known names made here, with their uses (tags show KEY --json: each use)
+  arv tags names [--json]   the known names made here, with their uses, and those likely the same (a letter
+         apart, initials: merge, or a qualifier each); tags show KEY --json: each use
   arv tags show|add|label|alias|merge|split|retire KEY ...   known names (person:anne-smith, software:kicad):
          add KEY [--label L] [--alias A] [--qualifier Q] [--same ID] [--private|--public]; label KEY LABEL (the old
          one kept as an alias); alias KEY FORM; merge KEY INTO (its uses moved); split KEY [--new KEY2] (two of one

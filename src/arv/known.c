@@ -605,6 +605,112 @@ static int known_ok(const char *key)
     return 1;
 }
 
+/* ------------------------------------------------------------------ likely the same */
+
+/* a form as forms are compared: lower case, words one space apart ("A. Smith" -> "a smith") */
+static char *plain_form(const char *s)
+{
+    sbuf b = { 0 };
+    int gap = 0;
+    for (const unsigned char *p = (const unsigned char *)s; *p; p++) {
+        if (isalnum(*p) || *p >= 0x80) {
+            if (gap && b.len) sb_puts(&b, " ");
+            char ch = (char)tolower(*p);
+            sb_add(&b, &ch, 1);
+            gap = 0;
+        } else {
+            gap = 1;
+        }
+    }
+    return b.s ? b.s : xstrdup("");
+}
+
+static size_t edits(const char *a, const char *b)   /* Levenshtein, small strings */
+{
+    size_t n = strlen(a), m = strlen(b), *row = xmalloc((m + 1) * sizeof *row);
+    for (size_t j = 0; j <= m; j++) row[j] = j;
+    for (size_t i = 1; i <= n; i++) {
+        size_t prev = row[0];
+        row[0] = i;
+        for (size_t j = 1; j <= m; j++) {
+            size_t here = row[j], best = prev + (a[i - 1] != b[j - 1]);
+            if (row[j] + 1 < best) best = row[j] + 1;
+            if (row[j - 1] + 1 < best) best = row[j - 1] + 1;
+            row[j] = best;
+            prev = here;
+        }
+    }
+    size_t d = row[m];
+    free(row);
+    return d;
+}
+
+/* "a smith" and "anne smith": as many words, each the same or one an initial of the other */
+static int initials_of(const char *a, const char *b)
+{
+    strlist x = { 0 }, y = { 0 };
+    char *ca = xstrdup(a), *cb = xstrdup(b);
+    for (char *t = strtok(ca, " "); t; t = strtok(NULL, " ")) strlist_add(&x, t);
+    for (char *t = strtok(cb, " "); t; t = strtok(NULL, " ")) strlist_add(&y, t);
+    int same = x.n == y.n && x.n > 1, initial = 0;
+    for (size_t i = 0; same && i < x.n; i++) {
+        if (!strcmp(x.v[i], y.v[i])) continue;
+        int one = (strlen(x.v[i]) == 1 && y.v[i][0] == x.v[i][0]) || (strlen(y.v[i]) == 1 && x.v[i][0] == y.v[i][0]);
+        same = one;
+        initial |= one;
+    }
+    strlist_free(&x);
+    strlist_free(&y);
+    free(ca);
+    free(cb);
+    return same && initial;
+}
+
+static void forms_of(const known_entry *e, strlist *out)
+{
+    memset(out, 0, sizeof *out);
+    char *f;
+    if (!e->label) {                        /* the key only when it has no label: person:anne-smith-2 is a key, not a name */
+        f = plain_form(strchr(e->key, ':') + 1);
+        strlist_add(out, f);
+        free(f);
+    } else {
+        f = plain_form(e->label);
+        if (!strlist_has(out, f)) strlist_add(out, f);
+        free(f);
+    }
+    for (size_t i = 0; i < e->aliases.n; i++) {
+        if (strchr(e->aliases.v[i], ':')) continue;
+        f = plain_form(e->aliases.v[i]);
+        if (*f && !strlist_has(out, f)) strlist_add(out, f);
+        free(f);
+    }
+}
+
+/* why two entries are likely one (NULL: they are not): the same namespace, neither told apart on
+ * purpose (a qualifier), and a form in common, one or two letters apart, or initials */
+static char *likely_same(const known_entry *a, const known_entry *b)
+{
+    size_t na = (size_t)(strchr(a->key, ':') - a->key);
+    if (strncmp(a->key, b->key, na + 1) || a->retired || b->retired) return NULL;
+    if (a->qualifier || b->qualifier) return NULL;
+    strlist fa, fb;
+    forms_of(a, &fa);
+    forms_of(b, &fb);
+    char *why = NULL;
+    for (size_t i = 0; i < fa.n && !why; i++)
+        for (size_t j = 0; j < fb.n && !why; j++) {
+            const char *x = fa.v[i], *y = fb.v[j];
+            size_t lx = strlen(x), ly = strlen(y), d = lx < 4 || ly < 4 ? 0 : edits(x, y);
+            if (!strcmp(x, y)) why = xprintf("both found as \"%s\"", x);
+            else if (d && d <= (lx >= 8 && ly >= 8 ? 2u : 1u)) why = xprintf("\"%s\" and \"%s\": %zu letter%s apart", x, y, d, d == 1 ? "" : "s");
+            else if (initials_of(x, y)) why = xprintf("\"%s\" and \"%s\": initials", x, y);
+        }
+    strlist_free(&fa);
+    strlist_free(&fb);
+    return why;
+}
+
 /* arv tags names [--json]: the entries made here (the vocabulary's, and places of your own: the
  * gazetteer's own, which no one made here, aside), with their uses */
 static int known_names(const char *given, int as_json)
@@ -646,6 +752,28 @@ static int known_names(const char *given, int as_json)
         shown++;
         uses_free(&u);
     }
+    size_t pairs = 0;                       /* likely the same: offered for merging, never merged here */
+    sb_puts(&b, as_json ? "\n], \"likelySame\": [" : "");
+    for (size_t i = 0; i < n; i++)
+        for (size_t j = i + 1; j < n; j++) {
+            if ((!v[i].basis && v[i].kind) || (!v[j].basis && v[j].kind)) continue;   /* the gazetteer's own aside */
+            char *why = likely_same(&v[i], &v[j]);
+            if (!why) continue;
+            if (as_json) {
+                sb_puts(&b, pairs ? ",\n  {\"keys\": [" : "\n  {\"keys\": [");
+                json_str(&b, v[i].key);
+                sb_puts(&b, ", ");
+                json_str(&b, v[j].key);
+                sb_puts(&b, "], \"why\": ");
+                json_str(&b, why);
+                sb_puts(&b, "}");
+            } else {
+                if (!pairs) sb_puts(&b, "\nLikely the same (arv tags merge KEY INTO; two people of one name: arv tags add KEY --qualifier Q):\n");
+                sb_printf(&b, "  %s and %s: %s\n", v[i].key, v[j].key, why);
+            }
+            pairs++;
+            free(why);
+        }
     if (as_json) sb_puts(&b, "\n]}\n");
     else if (!shown) sb_puts(&b, "No known names yet: arv describe --ask makes them as you confirm names (arv tags add KEY makes one).\n");
     fputs(b.s ? b.s : "", stdout);

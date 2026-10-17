@@ -312,6 +312,14 @@ printf 'b. 1931\ncolleague\n2\n\n' | "$tool" -C kn/home tags split person:anne-s
     && "$tool" -C kn/home tags retire person:anne-smith-2 --why "a mistake" >/dev/null \
     && ok "known names: merge moves the uses back, the other kept, retired, its key an alias; retire keeps the entry" \
     || { cat kn/merge.out; no "known names: merge"; }
+"$tool" -C kn/home tags add person:ann-smith --label "Ann Smith" >/dev/null && "$tool" -C kn/home tags add person:a-smith --label "A. Smith" >/dev/null \
+    && "$tool" -C kn/home tags add person:jo --label Jo >/dev/null && "$tool" -C kn/home tags add person:jon --label Jon >/dev/null \
+    && "$tool" -C kn/home tags names > kn/names.out \
+    && grep -q '^  person:ann-smith and person:a-smith: "ann smith" and "a smith": initials$' kn/names.out \
+    && ! grep -q 'person:anne-smith and\|person:jo and' kn/names.out \
+    && "$tool" -C kn/home tags names --json | grep -q '"likelySame": \[' \
+    && ok "known names: likely the same offered (a letter apart, initials, a form in common); never a short name, nor one told apart by a qualifier" \
+    || { cat kn/names.out; no "known names: likely the same"; }
 "$tool" -C kn/home tags add software:kicad --related electronics >/dev/null 2>&1 && no "tags add takes an unknown option"
 "$tool" -C kn/home tags add software:kicad --label KiCad --same wikidata:Q1141917 > /dev/null \
     && ! grep -A5 '^Name: software:kicad$' kn/home/config/tags.rec | grep -q '^Private' \

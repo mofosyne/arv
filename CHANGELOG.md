@@ -30,6 +30,10 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   the uses that are the other one) and retire. `arv tags names [--json]` lists them;
   `arv tags show KEY --json` gives each use, in the order split asks about them.
 - The Map view's form takes a place's box and reach.
+- Likely duplicates offered for merging: `arv tags names` lists pairs of names in one namespace a
+  letter or two apart ("Ann Smith", "Anne Smith"), initials ("A. Smith") or found as the same form
+  ("Bob"); a name with a qualifier was told apart on purpose and is left out. The Names view offers
+  each with merge either way, or "Not the same" (a qualifier each).
 - `arv find place:japan` finds what is tagged with places in Japan too (Kyoto, Fushimi Inari), by the
   gazetteer's parents: the home's, a disc's own, or the built-in one.
 

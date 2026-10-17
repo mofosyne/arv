@@ -1619,6 +1619,21 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
           el("td", { text: String(n.paths + n.objects) }), acts]));
       });
       box.appendChild(el("div", { class: "scroll" }, [t]));
+      if (!res.likelySame.length) return;
+      box.appendChild(el("h3", { text: "Likely the same" }));
+      box.appendChild(el("p", { class: "muted", text: "Close names in one namespace. Merge them, or say they are different (a qualifier each, so they are not offered again)." }));
+      res.likelySame.forEach(function (p) {
+        var a = p.keys[0], b = p.keys[1], out = $("names-out");
+        function merge(from, into) { var x = el("button", { class: "plain", type: "button", text: "Merge into " + into }); x.onclick = function () { act(["tags", "merge", from, into], out, loadNames); }; return x; }
+        var differ = el("button", { class: "plain", type: "button", text: "Not the same" });
+        differ.onclick = function () {
+          var qa = prompt("What tells " + a + " apart (dates, a relation, a place)?"); if (!qa || !qa.trim()) return;
+          var qb = prompt("And " + b + "?"); if (!qb || !qb.trim()) return;
+          act(["tags", "add", a, "--qualifier", qa.trim()], out, function () { act(["tags", "add", b, "--qualifier", qb.trim()], out, loadNames); });
+        };
+        box.appendChild(el("div", { class: "inline" }, [el("span", { class: "mono", text: a + "  and  " + b }), el("span", { class: "muted", text: p.why }),
+          merge(b, a), merge(a, b), differ]));
+      });
     }).catch(function (e) { $("names-list").textContent = "Error: " + e.message; });
   }
   function splitName(n) {      // two of one name: tick the uses that are the other one

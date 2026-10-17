@@ -2240,7 +2240,13 @@ reach for cities (Tokyo is not a town) was left: population is a poor guess at e
 boundaries are megabytes. Positions given by a person keep four decimals (about 11 m); the
 gazetteer's cities stay at two. `arv find place:japan` finds what is tagged with places inside Japan
 too (done 2026-10-17: the tag's chain of `Parent`s in the gazetteer of the catalogue searched, a
-disc's own when it is a disc's, else the built-in one). Not yet: regions
+disc's own when it is a disc's, else the built-in one). Likely duplicates are offered (done
+2026-10-17, `arv tags names`, the Names view): in one namespace, a form in common, an edit distance
+of one (two from eight letters; nothing under four, so Jo and Jon are two people), or initials
+("A. Smith"). Keys are compared only without a label (`anne-smith-2` is a key, not a name), and a
+name with a qualifier is left out: it was told apart on purpose, and "Not the same" records that by
+giving each a qualifier, so a refusal is kept in the vocabulary rather than in a list of its own.
+arv never merges by itself. Not yet: regions
 (admin-1) as places; a larger list (GeoNames) as an optional download; offering likely duplicates
 for merging; EAC-CPF export.
 
