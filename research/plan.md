@@ -2262,5 +2262,5 @@ extra data later changes nothing written. A region and a city of the same name i
 are one choice, the city, not two. Lookups went from a list to a hash (34,000 places load in about
 0.2 s). The tests run with `ARV_NO_EXTRA_PLACES=1`, the same places on every machine. Not yet:
 GPS within a region (iso-codes has no outlines); regions on Natural Earth's cities (their Parent is
-the country); EAC-CPF export. Pushing for such data as packages: an issue.
+the country); EAC-CPF export. Pushing for such data as distribution packages: issue #53.
 
