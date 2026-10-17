@@ -131,6 +131,7 @@ char *iso6709(double lat, double lon)
 }
 
 static void known_free_one(known_entry *e);
+static char *key_slug(const char *s);
 
 static int is_entry(const rec_record *r, const char *type)
 {
@@ -716,10 +717,11 @@ char *known_where(const known_entry *v, size_t n, const known_entry *e)
     char *prev = NULL;
     sb_puts(&b, "");
     for (int depth = 0; e && depth < 16; depth++, e = known_find(v, n, e->parent)) {
-        char *l = e->label ? xstrdup(e->label) : known_label_of(e->key);
-        if (!prev || strcmp(l, prev)) sb_printf(&b, "%s%s", depth ? ", " : "", l);   /* Kyoto in Kyoto: once */
+        char *l = e->label ? xstrdup(e->label) : known_label_of(e->key), *f = key_slug(l);
+        if (!prev || strcmp(f, prev)) sb_printf(&b, "%s%s", depth ? ", " : "", l);   /* Kyoto in Kyoto, Ōsaka in Osaka: once */
         free(prev);
-        prev = l;
+        free(l);
+        prev = f;
     }
     free(prev);
     return b.s;
