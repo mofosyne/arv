@@ -1997,8 +1997,13 @@ questions shorter. No model: every suggestion says the counts behind it.
 
 Limits: it starts empty and learns habits, mistakes too, so it only marks answers and never tags
 alone (`--clues` takes what is marked, as `automatic`). Names written without spaces (京都旅行) are
-one word to it; short runs of characters would split them, later. Office files and scanned PDFs
-are not read yet (`pandoc`, `tesseract`). Contents are not searched: `arv find` stays on names,
+one word to it; short runs of characters would split them, later. Office files are not read yet
+(`pandoc`). OCR is not arv's (decided 2026-10-17): it is slow (seconds a page, again on every
+round of the GUI's questions), often wrong on handwriting and old type (bad words make bad clues),
+and needs choices (languages, page layout) made once with the tool built for it. Run before
+describing, `ocrmypdf` gives a PDF a text layer and `tesseract` a `.txt` beside an image, which arv
+already reads; the text is then kept on the disc too, searchable with `grep` when no OCR tool is
+at hand, rather than worked out and thrown away while describing. Contents are not searched: `arv find` stays on names,
 tags and descriptions, and full-text search is for tools built for it (Recoll, ripgrep).
 
 **Later: a model as a reader, not a writer.** With this in place a model's work can shrink to what

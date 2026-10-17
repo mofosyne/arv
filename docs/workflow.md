@@ -182,6 +182,14 @@ tag FOLDER --save d.json` suggests folder tags from your vocabulary, and `arv de
 --save d.json` asks a local language model for a title, description and questions; `arv make
 --draft d.json` takes any of them.
 
+Scans: arv reads a PDF's text layer and any `.txt` beside the files, but does no OCR itself. Do it
+first, with the tools built for it, and the text becomes both a clue and part of what is kept:
+
+```sh
+ocrmypdf letter.pdf letter-ocr.pdf      # a text layer in a copy of the PDF
+tesseract scan-0042.jpg scan-0042       # scan-0042.txt beside the image: a clue, and searchable on the disc
+```
+
 ### 2. Sort, and see what changed
 
 Work in the folder as you like. arv tells you what changed since the last edition, and between
