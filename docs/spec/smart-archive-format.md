@@ -753,7 +753,8 @@ carries; the disc's own tags still name it by its key.
 `city`, `site`), `Parent` (the place it is in: `place:kyoto` in `place:japan`), `Country` (ISO
 3166-1 alpha-2: the country it is, or, for a place without a `Parent`, the country it is in), `At` (where: ISO 6709 in decimal degrees, WGS84,
 `+35.03+135.75/`), `Extent` (the box it covers: two opposite corners, `+34.96+135.76/+34.98+135.78/`)
-and `Reach` (how near to `At` a photo must be to be there: `2km`, `500m`). The default list is Natural Earth's countries and populated places (public
+`Reach` (how near to `At` a photo must be to be there: `2km`, `500m`) and `Region`* (the region it is
+in, by name or ISO 3166-2 code, as its source writes it: a reader with that region puts it there). The default list is Natural Earth's countries and populated places (public
 domain), to two decimals. A place with a position of a person's own is private by default. The
 catalogue keeps tags, never coordinates; a reader finds a tag's position in the gazetteer, or a
 broader place's. `index.html` shows a disc's places on a map (an inline SVG, with nothing to load).

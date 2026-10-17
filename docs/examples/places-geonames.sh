@@ -34,7 +34,7 @@ function slug(s) { s = tolower(s); gsub(/[^a-z0-9]+/, "-", s); gsub(/^-+|-+$/, "
 FNR == NR { region[$1] = $2; next }
 ($7 == "P") {
     id[++m] = $1; name[m] = $2; ascii[m] = $3 != "" ? $3 : $2; lat[m] = $5; lon[m] = $6; cc[m] = $9
-    reg[m] = region[$9 "." $11]
+    reg[m] = region[$9 "." $11]; code[m] = $11 != "" ? $9 "-" $11 : ""
     k1[m] = slug(ascii[m]); c1[k1[m]]++
 }
 END {
@@ -57,6 +57,8 @@ END {
         printf "\nName: place:%s\nLabel: %s\n", k, name[i]
         if (ascii[i] != name[i]) printf "Alias: %s\n", ascii[i]
         if (reg[i] != "") printf "Qualifier: %s\n", reg[i]
+        if (code[i] != "") printf "Region: %s\n", code[i]      # often the ISO 3166-2 code (JP-26, US-CA)
+        if (reg[i] != "") printf "Region: %s\n", reg[i]
         printf "Kind: city\nCountry: %s\nAt: %+06.2f%+07.2f/\nSame: geonames:%s\n", cc[i], lat[i], lon[i], id[i]
     }
 }' "$work/admin1.txt" "$work/cities.txt" > "$work/out.rec"

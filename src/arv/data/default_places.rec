@@ -14,6 +14,8 @@
 #   At        where, ISO 6709 in decimal degrees (WGS84): +35.03+135.75/ (a city's to about a km)
 #   Extent    the box it covers, two opposite corners: +34.96+135.76/+34.98+135.78/ (a park, a farm)
 #   Reach     how near a photo must be to At to be here: 2km, 500m (your places: 3km unless it says)
+#   Region    the region it is in, by name or ISO 3166-2 code, as its source writes it (repeatable):
+#             with iso-codes installed, arv puts the place in that region (Uji in Kyoto Prefecture)
 #
 # arv describe --ask offers a place found in a folder's names or text, and the nearest one to its
 # photos' GPS (the record keeps the place, never the coordinates); arv map shows them.
@@ -21,7 +23,7 @@
 %rec: Place
 %key: Name
 %mandatory: Name
-%allowed: Name Label Alias Qualifier Related Same Basis Private Retired Kind Parent Country At Extent Reach
+%allowed: Name Label Alias Qualifier Related Same Basis Private Retired Kind Parent Country At Extent Reach Region
 
 Name: place:afghanistan
 Label: Afghanistan
@@ -1795,6 +1797,7 @@ Name: place:abakan
 Label: Abakan
 Kind: city
 Parent: place:russia
+Region: Krasnoyarsk
 At: +53.70+091.45/
 
 Name: place:abeche
@@ -1802,12 +1805,14 @@ Label: Abéché
 Alias: Abeche
 Kind: city
 Parent: place:chad
+Region: Ouaddaï
 At: +13.84+020.83/
 
 Name: place:abidjan
 Label: Abidjan
 Kind: city
 Parent: place:ivory-coast
+Region: Lagunes
 At: +05.32-004.04/
 
 Name: place:aboa-station
@@ -1820,24 +1825,28 @@ Name: place:abu-dhabi
 Label: Abu Dhabi
 Kind: city
 Parent: place:united-arab-emirates
+Region: Abu Dhabi
 At: +24.47+054.37/
 
 Name: place:abuja
 Label: Abuja
 Kind: city
 Parent: place:nigeria
+Region: Federal Capital Territory
 At: +09.09+007.53/
 
 Name: place:acapulco
 Label: Acapulco
 Kind: city
 Parent: place:mexico
+Region: Guerrero
 At: +16.85-099.92/
 
 Name: place:accra
 Label: Accra
 Kind: city
 Parent: place:ghana
+Region: Greater Accra
 At: +05.55-000.22/
 
 Name: place:adana
@@ -1845,30 +1854,35 @@ Label: Adana
 Alias: Seyhan
 Kind: city
 Parent: place:turkey
+Region: Adana
 At: +37.00+035.32/
 
 Name: place:addis-ababa
 Label: Addis Ababa
 Kind: city
 Parent: place:ethiopia
+Region: Addis Ababa
 At: +09.04+038.70/
 
 Name: place:adelaide
 Label: Adelaide
 Kind: city
 Parent: place:australia
+Region: South Australia
 At: -34.93+138.60/
 
 Name: place:aden
 Label: Aden
 Kind: city
 Parent: place:yemen
+Region: `Adan
 At: +12.78+045.01/
 
 Name: place:agadez
 Label: Agadez
 Kind: city
 Parent: place:niger
+Region: Agadez
 At: +17.00+007.98/
 
 Name: place:agana
@@ -1881,6 +1895,7 @@ Name: place:agra
 Label: Agra
 Kind: city
 Parent: place:india
+Region: Uttar Pradesh
 At: +27.17+078.01/
 
 Name: place:ahmedabad
@@ -1888,6 +1903,7 @@ Label: Ahmedabad
 Alias: Ahmadabad
 Kind: city
 Parent: place:india
+Region: Dadra and Nagar Haveli
 At: +23.03+072.58/
 
 Name: place:ahvaz
@@ -1895,42 +1911,49 @@ Label: Ahvaz
 Alias: Ahwaz
 Kind: city
 Parent: place:iran
+Region: Khuzestan
 At: +31.28+048.72/
 
 Name: place:ajaccio
 Label: Ajaccio
 Kind: city
 Parent: place:france
+Region: Corse
 At: +41.93+008.73/
 
 Name: place:akola
 Label: Akola
 Kind: city
 Parent: place:india
+Region: Maharashtra
 At: +20.71+077.01/
 
 Name: place:al-jawf
 Label: Al Jawf
 Kind: city
 Parent: place:libya
+Region: Al Kufrah
 At: +24.20+023.29/
 
 Name: place:albany
 Label: Albany
 Kind: city
 Parent: place:australia
+Region: Western Australia
 At: -35.02+117.89/
 
 Name: place:albuquerque
 Label: Albuquerque
 Kind: city
 Parent: place:united-states-of-america
+Region: New Mexico
 At: +35.10-106.64/
 
 Name: place:aldan
 Label: Aldan
 Kind: city
 Parent: place:russia
+Region: Sakha (Yakutia)
 At: +58.60+125.39/
 
 Name: place:aleppo
@@ -1938,6 +1961,7 @@ Label: Aleppo
 Alias: Halab
 Kind: city
 Parent: place:syria
+Region: Aleppo (Halab)
 At: +36.23+037.17/
 
 Name: place:alexandria
@@ -1945,6 +1969,7 @@ Label: Alexandria
 Alias: Al-Iskandariyah
 Kind: city
 Parent: place:egypt
+Region: Al Iskandariyah
 At: +31.20+029.95/
 
 Name: place:algiers
@@ -1952,96 +1977,112 @@ Label: Algiers
 Alias: El Djazacr
 Kind: city
 Parent: place:algeria
+Region: Alger
 At: +36.77+003.05/
 
 Name: place:alice-springs
 Label: Alice Springs
 Kind: city
 Parent: place:australia
+Region: Northern Territory
 At: -23.70+133.88/
 
 Name: place:aligarh
 Label: Aligarh
 Kind: city
 Parent: place:india
+Region: Uttar Pradesh
 At: +27.89+078.06/
 
 Name: place:allahabad
 Label: Allahabad
 Kind: city
 Parent: place:india
+Region: Uttar Pradesh
 At: +25.46+081.84/
 
 Name: place:almaty
 Label: Almaty
 Kind: city
 Parent: place:kazakhstan
+Region: Almaty
 At: +43.33+076.91/
 
 Name: place:alta-floresta
 Label: Alta Floresta
 Kind: city
 Parent: place:brazil
+Region: Mato Grosso
 At: -09.90-055.91/
 
 Name: place:altay
 Label: Altay
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Xinjiang Uygur
 At: +47.87+088.12/
 
 Name: place:alvorada
 Label: Alvorada
 Kind: city
 Parent: place:brazil
+Region: Tocantins
 At: -12.47-049.08/
 
 Name: place:amaravati
 Label: Amaravati
 Kind: city
 Parent: place:india
+Region: Andhra Pradesh
 At: +16.53+080.52/
 
 Name: place:amarillo
 Label: Amarillo
 Kind: city
 Parent: place:united-states-of-america
+Region: Texas
 At: +35.23-101.83/
 
 Name: place:ambarchik
 Label: Ambarchik
 Kind: city
 Parent: place:russia
+Region: Sakha (Yakutia)
 At: +69.65+162.33/
 
 Name: place:ambon
 Label: Ambon
 Kind: city
 Parent: place:indonesia
+Region: Maluku
 At: -03.72+128.20/
 
 Name: place:amiens
 Label: Amiens
 Kind: city
 Parent: place:france
+Region: Picardie
 At: +49.90+002.30/
 
 Name: place:amman
 Label: Amman
 Kind: city
 Parent: place:jordan
+Region: Amman
 At: +31.95+035.93/
 
 Name: place:amritsar
 Label: Amritsar
 Kind: city
 Parent: place:india
+Region: Punjab
 At: +31.64+074.87/
 
 Name: place:amsterdam
 Label: Amsterdam
 Kind: city
 Parent: place:netherlands
+Region: Noord-Holland
 At: +52.35+004.91/
 
 Name: place:amundseniscott-south-pole-station
@@ -2057,24 +2098,28 @@ Label: Najaf
 Alias: An Najaf
 Kind: city
 Parent: place:iraq
+Region: An-Najaf
 At: +32.00+044.34/
 
 Name: place:anadyr
 Label: Anadyr
 Kind: city
 Parent: place:russia
+Region: Chukchi Autonomous Okrug
 At: +64.74+177.47/
 
 Name: place:anchorage
 Label: Anchorage
 Kind: city
 Parent: place:united-states-of-america
+Region: Alaska
 At: +61.22-149.90/
 
 Name: place:ancona
 Label: Ancona
 Kind: city
 Parent: place:italy
+Region: Marche
 At: +43.60+013.50/
 
 Name: place:andijon
@@ -2083,6 +2128,7 @@ Alias: Andijon
 Alias: Andizhan
 Kind: city
 Parent: place:uzbekistan
+Region: Andijon
 At: +40.79+072.34/
 
 Name: place:andorra-ad
@@ -2096,24 +2142,28 @@ Name: place:angarsk
 Label: Angarsk
 Kind: city
 Parent: place:russia
+Region: Irkutsk
 At: +52.56+103.92/
 
 Name: place:ankang
 Label: Ankang
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Shaanxi
 At: +32.68+109.02/
 
 Name: place:ankara
 Label: Ankara
 Kind: city
 Parent: place:turkey
+Region: Ankara
 At: +39.93+032.86/
 
 Name: place:annaba
 Label: Annaba
 Kind: city
 Parent: place:algeria
+Region: Annaba
 At: +36.92+007.76/
 
 Name: place:anshan
@@ -2121,30 +2171,35 @@ Label: Anshan
 Alias: Anshan, Liaoning
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Liaoning
 At: +41.12+122.94/
 
 Name: place:antananarivo
 Label: Antananarivo
 Kind: city
 Parent: place:madagascar
+Region: Antananarivo
 At: -18.91+047.51/
 
 Name: place:antofagasta
 Label: Antofagasta
 Kind: city
 Parent: place:chile
+Region: Antofagasta
 At: -23.65-070.40/
 
 Name: place:antsiranana
 Label: Antsiranana
 Kind: city
 Parent: place:madagascar
+Region: Antsiranana
 At: -12.28+049.31/
 
 Name: place:aosta
 Label: Aosta
 Kind: city
 Parent: place:italy
+Region: Valle d'Aosta
 At: +45.74+007.32/
 
 Name: place:apia
@@ -2158,36 +2213,42 @@ Label: Aqtobe
 Alias: Aktyubinsk
 Kind: city
 Parent: place:kazakhstan
+Region: Aqtöbe
 At: +50.28+057.17/
 
 Name: place:archangel
 Label: Archangel
 Kind: city
 Parent: place:russia
+Region: Arkhangel'sk
 At: +64.57+040.55/
 
 Name: place:arctic-bay
 Label: Arctic Bay
 Kind: city
 Parent: place:canada
+Region: Nunavut
 At: +73.03-085.17/
 
 Name: place:arequipa
 Label: Arequipa
 Kind: city
 Parent: place:peru
+Region: Arequipa
 At: -16.42-071.53/
 
 Name: place:arica
 Label: Arica
 Kind: city
 Parent: place:chile
+Region: Arica y Parinacota
 At: -18.50-070.29/
 
 Name: place:armidale
 Label: Armidale
 Kind: city
 Parent: place:australia
+Region: New South Wales
 At: -30.51+151.67/
 
 Name: place:artigas-base
@@ -2200,42 +2261,49 @@ Name: place:arua
 Label: Arua
 Kind: city
 Parent: place:uganda
+Region: Arua Municipality
 At: +03.02+030.90/
 
 Name: place:arusha
 Label: Arusha
 Kind: city
 Parent: place:tanzania
+Region: Arusha
 At: -03.36+036.67/
 
 Name: place:arviat
 Label: Arviat
 Kind: city
 Parent: place:canada
+Region: Nunavut
 At: +61.11-094.06/
 
 Name: place:asansol
 Label: Asansol
 Kind: city
 Parent: place:india
+Region: West Bengal
 At: +23.69+086.98/
 
 Name: place:ashgabat
 Label: Ashgabat
 Kind: city
 Parent: place:turkmenistan
+Region: Ahal
 At: +37.95+058.38/
 
 Name: place:asmara
 Label: Asmara
 Kind: city
 Parent: place:eritrea
+Region: Anseba
 At: +15.33+038.93/
 
 Name: place:assab
 Label: Assab
 Kind: city
 Parent: place:eritrea
+Region: Debubawi Keyih Bahri
 At: +13.01+042.73/
 
 Name: place:astana
@@ -2243,12 +2311,14 @@ Label: Nur-Sultan
 Alias: Astana
 Kind: city
 Parent: place:kazakhstan
+Region: Aqmola
 At: +51.18+071.43/
 
 Name: place:astrakhan
 Label: Astrakhan
 Kind: city
 Parent: place:russia
+Region: Astrakhan'
 At: +46.35+048.05/
 
 Name: place:asuncion
@@ -2256,18 +2326,21 @@ Label: Asunción
 Alias: Asuncion
 Kind: city
 Parent: place:paraguay
+Region: Asunción
 At: -25.29-057.64/
 
 Name: place:aswan
 Label: Aswan
 Kind: city
 Parent: place:egypt
+Region: Aswan
 At: +24.09+032.90/
 
 Name: place:asyut
 Label: Asyut
 Kind: city
 Parent: place:egypt
+Region: Asyut
 At: +27.19+031.18/
 
 Name: place:atakpame
@@ -2275,12 +2348,14 @@ Label: Atakpamé
 Alias: Atakpame
 Kind: city
 Parent: place:togo
+Region: Plateaux
 At: +07.53+001.12/
 
 Name: place:atar
 Label: Atar
 Kind: city
 Parent: place:mauritania
+Region: Adrar
 At: +20.52-013.05/
 
 Name: place:athens
@@ -2288,42 +2363,49 @@ Label: Athens
 Alias: Athinai
 Kind: city
 Parent: place:greece
+Region: Attiki
 At: +37.99+023.73/
 
 Name: place:atlanta
 Label: Atlanta
 Kind: city
 Parent: place:united-states-of-america
+Region: Georgia
 At: +33.83-084.40/
 
 Name: place:atyrau
 Label: Atyrau
 Kind: city
 Parent: place:kazakhstan
+Region: Atyrau
 At: +47.11+051.92/
 
 Name: place:auckland
 Label: Auckland
 Kind: city
 Parent: place:new-zealand
+Region: Auckland
 At: -36.85+174.76/
 
 Name: place:augusta
 Label: Augusta
 Kind: city
 Parent: place:united-states-of-america
+Region: Maine
 At: +44.31-069.78/
 
 Name: place:aurangabad
 Label: Aurangabad
 Kind: city
 Parent: place:india
+Region: Maharashtra
 At: +19.90+075.32/
 
 Name: place:austin
 Label: Austin
 Kind: city
 Parent: place:united-states-of-america
+Region: Texas
 At: +30.27-097.74/
 
 Name: place:ayoun-el-atrous
@@ -2331,12 +2413,14 @@ Label: Ayoun el Atrous
 Alias: Ayoun El Atrous
 Kind: city
 Parent: place:mauritania
+Region: Hodh el Gharbi
 At: +16.67-009.62/
 
 Name: place:baghdad
 Label: Baghdad
 Kind: city
 Parent: place:iraq
+Region: Baghdad
 At: +33.34+044.39/
 
 Name: place:baguio-city
@@ -2344,6 +2428,7 @@ Label: Baguio
 Alias: Baguio City
 Kind: city
 Parent: place:philippines
+Region: Benguet
 At: +16.43+120.57/
 
 Name: place:bahia-blanca
@@ -2351,54 +2436,63 @@ Label: Bahía Blanca
 Alias: Bahia Blanca
 Kind: city
 Parent: place:argentina
+Region: Ciudad de Buenos Aires
 At: -38.74-062.27/
 
 Name: place:bahir-dar
 Label: Bahir Dar
 Kind: city
 Parent: place:ethiopia
+Region: Amhara
 At: +11.60+037.38/
 
 Name: place:baku
 Label: Baku
 Kind: city
 Parent: place:azerbaijan
+Region: Baki
 At: +40.40+049.86/
 
 Name: place:balikpapan
 Label: Balikpapan
 Kind: city
 Parent: place:indonesia
+Region: Kalimantan Timur
 At: -01.25+116.83/
 
 Name: place:baltimore
 Label: Baltimore
 Kind: city
 Parent: place:united-states-of-america
+Region: Maryland
 At: +39.30-076.62/
 
 Name: place:bamako
 Label: Bamako
 Kind: city
 Parent: place:mali
+Region: Bamako
 At: +12.65-008.00/
 
 Name: place:bambari
 Label: Bambari
 Kind: city
 Parent: place:central-african-republic
+Region: Ouaka
 At: +05.76+020.67/
 
 Name: place:bamenda
 Label: Bamenda
 Kind: city
 Parent: place:cameroon
+Region: Nord-Ouest
 At: +05.96+010.15/
 
 Name: place:banda-aceh
 Label: Banda Aceh
 Kind: city
 Parent: place:indonesia
+Region: Aceh
 At: +05.55+095.32/
 
 Name: place:bandar-e-abbas
@@ -2406,18 +2500,21 @@ Label: Bandar-e-Abbas
 Alias: Bandar-E Abbas
 Kind: city
 Parent: place:iran
+Region: Hormozgan
 At: +27.20+056.27/
 
 Name: place:bandar-lampung
 Label: Bandar Lampung
 Kind: city
 Parent: place:indonesia
+Region: Lampung
 At: -05.43+105.27/
 
 Name: place:bandar-seri-begawan
 Label: Bandar Seri Begawan
 Kind: city
 Parent: place:brunei
+Region: Brunei and Muara
 At: +04.88+114.93/
 
 Name: place:bandjarmasin
@@ -2425,18 +2522,21 @@ Label: Bandjarmasin
 Alias: Bandjermasin
 Kind: city
 Parent: place:indonesia
+Region: Kalimantan Selatan
 At: -03.33+114.58/
 
 Name: place:bandundu
 Label: Bandundu
 Kind: city
 Parent: place:democratic-republic-of-the-congo
+Region: Bandundu
 At: -03.31+017.38/
 
 Name: place:bandung
 Label: Bandung
 Kind: city
 Parent: place:indonesia
+Region: Jawa Barat
 At: -06.95+107.57/
 
 Name: place:banghazi
@@ -2444,6 +2544,7 @@ Label: Banghazi
 Alias: Benghazi
 Kind: city
 Parent: place:libya
+Region: Benghazi
 At: +32.12+020.06/
 
 Name: place:bangkok
@@ -2451,66 +2552,77 @@ Label: Bangkok
 Alias: Krung Thep
 Kind: city
 Parent: place:thailand
+Region: Bangkok Metropolis
 At: +13.75+100.51/
 
 Name: place:bangui
 Label: Bangui
 Kind: city
 Parent: place:central-african-republic
+Region: Bangui
 At: +04.37+018.56/
 
 Name: place:banja-luka
 Label: Banja Luka
 Kind: city
 Parent: place:bosnia-and-herzegovina
+Region: Serbian Republic
 At: +44.78+017.18/
 
 Name: place:banjul
 Label: Banjul
 Kind: city
 Parent: place:the-gambia
+Region: Banjul
 At: +13.45-016.59/
 
 Name: place:baoshan
 Label: Baoshan
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Yunnan
 At: +25.12+099.15/
 
 Name: place:baotou
 Label: Baotou
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Nei Mongol
 At: +40.65+109.82/
 
 Name: place:barcelona
 Label: Barcelona
 Kind: city
 Parent: place:spain
+Region: Cataluña
 At: +41.39+002.18/
 
 Name: place:bari
 Label: Bari
 Kind: city
 Parent: place:italy
+Region: Apulia
 At: +41.11+016.87/
 
 Name: place:barnaul
 Label: Barnaul
 Kind: city
 Parent: place:russia
+Region: Altay
 At: +53.35+083.75/
 
 Name: place:barranquilla
 Label: Barranquilla
 Kind: city
 Parent: place:colombia
+Region: Atlántico
 At: +10.96-074.80/
 
 Name: place:barreiras
 Label: Barreiras
 Kind: city
 Parent: place:brazil
+Region: Bahia
 At: -12.14-045.00/
 
 Name: place:base-presidente-montalva
@@ -2525,12 +2637,14 @@ Label: Basra
 Alias: Al-Basrah
 Kind: city
 Parent: place:iraq
+Region: Al-Basrah
 At: +30.52+047.81/
 
 Name: place:basse-terre
 Label: Basse-terre
 Kind: city
 Parent: place:france
+Region: Guadeloupe
 At: +16.01-061.71/
 
 Name: place:basseterre
@@ -2543,12 +2657,14 @@ Name: place:batagay
 Label: Batagay
 Kind: city
 Parent: place:russia
+Region: Sakha (Yakutia)
 At: +67.66+134.64/
 
 Name: place:baton-rouge
 Label: Baton Rouge
 Kind: city
 Parent: place:united-states-of-america
+Region: Louisiana
 At: +30.46-091.14/
 
 Name: place:battambang
@@ -2556,6 +2672,7 @@ Label: Battambang
 Alias: Batdambang
 Kind: city
 Parent: place:cambodia
+Region: Batdâmbâng
 At: +13.10+103.20/
 
 Name: place:batumi
@@ -2563,6 +2680,7 @@ Label: Batumi
 Alias: Bat'umi
 Kind: city
 Parent: place:georgia
+Region: Ajaria
 At: +41.60+041.63/
 
 Name: place:beian
@@ -2570,18 +2688,21 @@ Label: Bei'an
 Alias: Beian
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Heilongjiang
 At: +48.24+126.48/
 
 Name: place:beijing
 Label: Beijing
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Beijing
 At: +39.93+116.39/
 
 Name: place:beira
 Label: Beira
 Kind: city
 Parent: place:mozambique
+Region: Sofala
 At: -19.82+034.87/
 
 Name: place:beirut
@@ -2589,6 +2710,7 @@ Label: Beirut
 Alias: Bayrut
 Kind: city
 Parent: place:lebanon
+Region: Beirut
 At: +33.87+035.51/
 
 Name: place:belem
@@ -2596,18 +2718,21 @@ Label: Belém
 Alias: Belem
 Kind: city
 Parent: place:brazil
+Region: Pará
 At: -01.45-048.48/
 
 Name: place:belfast
 Label: Belfast
 Kind: city
 Parent: place:united-kingdom
+Region: Belfast
 At: +54.60-005.96/
 
 Name: place:belgrade
 Label: Belgrade
 Kind: city
 Parent: place:serbia
+Region: Grad Beograd
 At: +44.82+020.47/
 
 Name: place:belgrano-ii-base
@@ -2621,36 +2746,42 @@ Name: place:belmopan
 Label: Belmopan
 Kind: city
 Parent: place:belize
+Region: Cayo
 At: +17.25-088.77/
 
 Name: place:belo-horizonte
 Label: Belo Horizonte
 Kind: city
 Parent: place:brazil
+Region: Minas Gerais
 At: -19.91-043.92/
 
 Name: place:bendigo
 Label: Bendigo
 Kind: city
 Parent: place:australia
+Region: Victoria
 At: -36.76+144.28/
 
 Name: place:bengaluru
 Label: Bengaluru
 Kind: city
 Parent: place:india
+Region: Karnataka
 At: +12.97+077.56/
 
 Name: place:benguela
 Label: Benguela
 Kind: city
 Parent: place:angola
+Region: Benguela
 At: -12.58+013.41/
 
 Name: place:benin-city
 Label: Benin City
 Kind: city
 Parent: place:nigeria
+Region: Edo
 At: +06.34+005.62/
 
 Name: place:berbera
@@ -2663,18 +2794,21 @@ Name: place:bergen
 Label: Bergen
 Kind: city
 Parent: place:norway
+Region: Hordaland
 At: +60.39+005.32/
 
 Name: place:berlin
 Label: Berlin
 Kind: city
 Parent: place:germany
+Region: Berlin
 At: +52.52+013.40/
 
 Name: place:bern
 Label: Bern
 Kind: city
 Parent: place:switzerland
+Region: Bern
 At: +46.92+007.47/
 
 Name: place:besancon
@@ -2682,18 +2816,21 @@ Label: Besançon
 Alias: Besancon
 Kind: city
 Parent: place:france
+Region: Franche-Comté
 At: +47.23+006.03/
 
 Name: place:bethel
 Label: Bethel
 Kind: city
 Parent: place:united-states-of-america
+Region: Alaska
 At: +60.79-161.76/
 
 Name: place:bhagalpur
 Label: Bhagalpur
 Kind: city
 Parent: place:india
+Region: Bihar
 At: +25.23+086.98/
 
 Name: place:bhilai
@@ -2701,12 +2838,14 @@ Label: Bhilai
 Alias: Durg-Bhilainagar
 Kind: city
 Parent: place:india
+Region: Chhattisgarh
 At: +21.22+081.43/
 
 Name: place:bhopal
 Label: Bhopal
 Kind: city
 Parent: place:india
+Region: Madhya Pradesh
 At: +23.25+077.41/
 
 Name: place:bhubaneshwar
@@ -2714,18 +2853,21 @@ Label: Bhubaneswar
 Alias: Bhubaneshwar
 Kind: city
 Parent: place:india
+Region: Orissa
 At: +20.27+085.83/
 
 Name: place:bilbao
 Label: Bilbao
 Kind: city
 Parent: place:spain
+Region: País Vasco
 At: +43.25-002.93/
 
 Name: place:billings
 Label: Billings
 Kind: city
 Parent: place:united-states-of-america
+Region: Montana
 At: +45.79-108.54/
 
 Name: place:bir-lehlou
@@ -2738,102 +2880,119 @@ Name: place:birmingham
 Label: Birmingham
 Kind: city
 Parent: place:united-kingdom
+Region: West Midlands
 At: +52.48-001.92/
 
 Name: place:bishkek
 Label: Bishkek
 Kind: city
 Parent: place:kyrgyzstan
+Region: Bishkek
 At: +42.88+074.58/
 
 Name: place:bismarck
 Label: Bismarck
 Kind: city
 Parent: place:united-states-of-america
+Region: North Dakota
 At: +46.81-100.78/
 
 Name: place:bissau
 Label: Bissau
 Kind: city
 Parent: place:guinea-bissau
+Region: Bissau
 At: +11.87-015.60/
 
 Name: place:blagoveshchensk
 Label: Blagoveshchensk
 Kind: city
 Parent: place:russia
+Region: Amur
 At: +50.27+127.53/
 
 Name: place:blantyre
 Label: Blantyre
 Kind: city
 Parent: place:malawi
+Region: Blantyre
 At: -15.79+034.99/
 
 Name: place:blenheim
 Label: Blenheim
 Kind: city
 Parent: place:new-zealand
+Region: Marlborough
 At: -41.51+173.95/
 
 Name: place:bloemfontein
 Label: Bloemfontein
 Kind: city
 Parent: place:south-africa
+Region: Orange Free State
 At: -29.12+026.23/
 
 Name: place:boa-vista
 Label: Boa Vista
 Kind: city
 Parent: place:brazil
+Region: Roraima
 At: +02.82-060.67/
 
 Name: place:bobo-dioulasso
 Label: Bobo Dioulasso
 Kind: city
 Parent: place:burkina-faso
+Region: Houet
 At: +11.18-004.29/
 
 Name: place:bogota
 Label: Bogota
 Kind: city
 Parent: place:colombia
+Region: Bogota
 At: +04.60-074.09/
 
 Name: place:boise
 Label: Boise
 Kind: city
 Parent: place:united-states-of-america
+Region: Idaho
 At: +43.61-116.23/
 
 Name: place:bologna
 Label: Bologna
 Kind: city
 Parent: place:italy
+Region: Emilia-Romagna
 At: +44.50+011.34/
 
 Name: place:bombo
 Label: Bombo
 Kind: city
 Parent: place:uganda
+Region: Bamunanika
 At: +00.58+032.53/
 
 Name: place:bordeaux
 Label: Bordeaux
 Kind: city
 Parent: place:france
+Region: Aquitaine
 At: +44.85-000.60/
 
 Name: place:bose
 Label: Bose
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Guangxi
 At: +23.90+106.61/
 
 Name: place:boston
 Label: Boston
 Kind: city
 Parent: place:united-states-of-america
+Region: Massachusetts
 At: +42.33-071.07/
 
 Name: place:bouake
@@ -2841,12 +3000,14 @@ Label: Bouaké
 Alias: Bouake
 Kind: city
 Parent: place:ivory-coast
+Region: Vallée du Bandama
 At: +07.69-005.03/
 
 Name: place:brandon
 Label: Brandon
 Kind: city
 Parent: place:canada
+Region: Manitoba
 At: +49.83-099.95/
 
 Name: place:brasilia
@@ -2854,30 +3015,35 @@ Label: Brasília
 Alias: Brasilia
 Kind: city
 Parent: place:brazil
+Region: Distrito Federal
 At: -15.78-047.92/
 
 Name: place:bratislava
 Label: Bratislava
 Kind: city
 Parent: place:slovakia
+Region: Bratislavský
 At: +48.15+017.12/
 
 Name: place:bratsk
 Label: Bratsk
 Kind: city
 Parent: place:russia
+Region: Irkutsk
 At: +56.16+101.62/
 
 Name: place:brazzaville
 Label: Brazzaville
 Kind: city
 Parent: place:republic-of-the-congo
+Region: Pool
 At: -04.26+015.28/
 
 Name: place:brest
 Label: Brest
 Kind: city
 Parent: place:belarus
+Region: Brest
 At: +52.10+023.70/
 
 Name: place:bridgeport
@@ -2885,30 +3051,35 @@ Label: Bridgeport
 Alias: Bridgeport-Stamford
 Kind: city
 Parent: place:united-states-of-america
+Region: Connecticut
 At: +41.18-073.20/
 
 Name: place:bridgetown
 Label: Bridgetown
 Kind: city
 Parent: place:barbados
+Region: Saint Michael
 At: +13.10-059.62/
 
 Name: place:brisbane
 Label: Brisbane
 Kind: city
 Parent: place:australia
+Region: Queensland
 At: -27.45+153.03/
 
 Name: place:broken-hill
 Label: Broken Hill
 Kind: city
 Parent: place:australia
+Region: New South Wales
 At: -31.95+141.43/
 
 Name: place:broome
 Label: Broome
 Kind: city
 Parent: place:australia
+Region: Western Australia
 At: -17.96+122.23/
 
 Name: place:brussels
@@ -2916,6 +3087,7 @@ Label: Brussels
 Alias: Bruxelles-Brussel
 Kind: city
 Parent: place:belgium
+Region: Brussels
 At: +50.84+004.33/
 
 Name: place:bryansk
@@ -2923,60 +3095,70 @@ Label: Bryansk
 Alias: Klintsy
 Kind: city
 Parent: place:russia
+Region: Bryansk
 At: +53.26+034.43/
 
 Name: place:bucharest
 Label: Bucharest
 Kind: city
 Parent: place:romania
+Region: Bucharest
 At: +44.44+026.10/
 
 Name: place:budapest
 Label: Budapest
 Kind: city
 Parent: place:hungary
+Region: Budapest
 At: +47.50+019.08/
 
 Name: place:buenos-aires
 Label: Buenos Aires
 Kind: city
 Parent: place:argentina
+Region: Ciudad de Buenos Aires
 At: -34.60-058.40/
 
 Name: place:buffalo
 Label: Buffalo
 Kind: city
 Parent: place:united-states-of-america
+Region: New York
 At: +42.88-078.88/
 
 Name: place:bujumbura
 Label: Bujumbura
 Kind: city
 Parent: place:burundi
+Region: Bujumbura Mairie
 At: -03.38+029.36/
 
 Name: place:bukachacha
 Label: Bukachacha
 Kind: city
 Parent: place:russia
+Region: Chita
 At: +52.98+116.92/
 
 Name: place:bukhara
 Label: Bukhara
 Kind: city
 Parent: place:uzbekistan
+Region: Bukhoro
 At: +39.78+064.43/
 
 Name: place:bulawayo
 Label: Bulawayo
 Kind: city
 Parent: place:zimbabwe
+Region: Bulawayo
 At: -20.17+028.58/
 
 Name: place:bumba
 Label: Bumba
 Kind: city
 Parent: place:democratic-republic-of-the-congo
+Region: Équateur
 At: +02.19+022.46/
 
 Name: place:bur-said
@@ -2984,18 +3166,21 @@ Label: Bur Said
 Alias: Port Said
 Kind: city
 Parent: place:egypt
+Region: Bur Sa`id
 At: +31.26+032.29/
 
 Name: place:burlington
 Label: Burlington
 Kind: city
 Parent: place:united-states-of-america
+Region: Vermont
 At: +44.48-073.21/
 
 Name: place:bursa
 Label: Bursa
 Kind: city
 Parent: place:turkey
+Region: Bursa
 At: +40.20+029.07/
 
 Name: place:busan
@@ -3003,36 +3188,42 @@ Label: Busan
 Alias: Pusan
 Kind: city
 Parent: place:south-korea
+Region: Busan
 At: +35.10+129.01/
 
 Name: place:busselton
 Label: Busselton
 Kind: city
 Parent: place:australia
+Region: Western Australia
 At: -33.66+115.35/
 
 Name: place:butembo
 Label: Butembo
 Kind: city
 Parent: place:democratic-republic-of-the-congo
+Region: Nord-Kivu
 At: +00.13+029.28/
 
 Name: place:caen
 Label: Caen
 Kind: city
 Parent: place:france
+Region: Basse-Normandie
 At: +49.18-000.35/
 
 Name: place:cagliari
 Label: Cagliari
 Kind: city
 Parent: place:italy
+Region: Sardegna
 At: +39.22+009.10/
 
 Name: place:cairns
 Label: Cairns
 Kind: city
 Parent: place:australia
+Region: Queensland
 At: -16.89+145.76/
 
 Name: place:cairo
@@ -3040,54 +3231,63 @@ Label: Cairo
 Alias: Al-Qahirah
 Kind: city
 Parent: place:egypt
+Region: Al Qahirah
 At: +30.05+031.25/
 
 Name: place:calgary
 Label: Calgary
 Kind: city
 Parent: place:canada
+Region: Alberta
 At: +51.08-114.08/
 
 Name: place:cali
 Label: Cali
 Kind: city
 Parent: place:colombia
+Region: Valle del Cauca
 At: +03.40-076.50/
 
 Name: place:cambridge-bay
 Label: Cambridge Bay
 Kind: city
 Parent: place:canada
+Region: Nunavut
 At: +69.12-105.03/
 
 Name: place:campeche
 Label: Campeche
 Kind: city
 Parent: place:mexico
+Region: Campeche
 At: +19.83-090.50/
 
 Name: place:campinas
 Label: Campinas
 Kind: city
 Parent: place:brazil
+Region: São Paulo
 At: -22.90-047.10/
 
 Name: place:campo-grande
 Label: Campo Grande
 Kind: city
 Parent: place:brazil
+Region: Mato Grosso do Sul
 At: -20.45-054.62/
 
 Name: place:campobasso
 Label: Campobasso
 Kind: city
 Parent: place:italy
+Region: Molise
 At: +41.56+014.66/
 
 Name: place:canberra
 Label: Canberra
 Kind: city
 Parent: place:australia
+Region: Australian Capital Territory
 At: -35.28+149.13/
 
 Name: place:cancun
@@ -3095,12 +3295,14 @@ Label: Cancún
 Alias: Cancun
 Kind: city
 Parent: place:mexico
+Region: Quintana Roo
 At: +21.17-086.83/
 
 Name: place:cape-town
 Label: Cape Town
 Kind: city
 Parent: place:south-africa
+Region: Western Cape
 At: -33.92+018.43/
 
 Name: place:capitan-arturo-prat-station
@@ -3113,12 +3315,14 @@ Name: place:caracas
 Label: Caracas
 Kind: city
 Parent: place:venezuela
+Region: Distrito Capital
 At: +10.50-066.92/
 
 Name: place:cardiff
 Label: Cardiff
 Kind: city
 Parent: place:united-kingdom
+Region: Cardiff
 At: +51.50-003.23/
 
 Name: place:carlini-base
@@ -3132,6 +3336,7 @@ Name: place:cartagena
 Label: Cartagena
 Kind: city
 Parent: place:colombia
+Region: Bolívar
 At: +10.40-075.52/
 
 Name: place:casablanca
@@ -3139,6 +3344,7 @@ Label: Casablanca
 Alias: Dar-el-Beida
 Kind: city
 Parent: place:morocco
+Region: Grand Casablanca
 At: +33.60-007.62/
 
 Name: place:casey-station
@@ -3151,6 +3357,7 @@ Name: place:casper
 Label: Casper
 Kind: city
 Parent: place:united-states-of-america
+Region: Wyoming
 At: +42.87-106.31/
 
 Name: place:castries
@@ -3163,48 +3370,56 @@ Name: place:catania
 Label: Catania
 Kind: city
 Parent: place:italy
+Region: Sicily
 At: +37.50+015.08/
 
 Name: place:catanzaro
 Label: Catanzaro
 Kind: city
 Parent: place:italy
+Region: Calabria
 At: +38.90+016.60/
 
 Name: place:caxias
 Label: Caxias
 Kind: city
 Parent: place:brazil
+Region: Maranh
 At: -04.83-043.35/
 
 Name: place:caxias-do-sul
 Label: Caxias do Sul
 Kind: city
 Parent: place:brazil
+Region: Rio Grande do Sul
 At: -29.18-051.17/
 
 Name: place:cayenne
 Label: Cayenne
 Kind: city
 Parent: place:france
+Region: Guinaa
 At: +04.93-052.33/
 
 Name: place:cebu
 Label: Cebu
 Kind: city
 Parent: place:philippines
+Region: Cebu
 At: +10.32+123.90/
 
 Name: place:chandigarh
 Label: Chandigarh
 Kind: city
 Parent: place:india
+Region: Chandigarh
 At: +30.72+076.78/
 
 Name: place:changchun
 Label: Changchun
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Jilin
 At: +43.87+125.34/
 
 Name: place:changsha
@@ -3212,90 +3427,105 @@ Label: Changsha
 Alias: Changsha, Hunan
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Hunan
 At: +28.20+112.97/
 
 Name: place:charleston
 Label: Charleston
 Kind: city
 Parent: place:united-states-of-america
+Region: West Virginia
 At: +38.35-081.63/
 
 Name: place:charlottetown
 Label: Charlottetown
 Kind: city
 Parent: place:canada
+Region: Prince Edward Island
 At: +46.25-063.13/
 
 Name: place:chattogram
 Label: Chattogram
 Kind: city
 Parent: place:bangladesh
+Region: Chittagong
 At: +22.33+091.80/
 
 Name: place:chelyabinsk
 Label: Chelyabinsk
 Kind: city
 Parent: place:russia
+Region: Chelyabinsk
 At: +55.16+061.44/
 
 Name: place:chengdu
 Label: Chengdu
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Sichuan
 At: +30.67+104.07/
 
 Name: place:chennai
 Label: Chennai
 Kind: city
 Parent: place:india
+Region: Tamil Nadu
 At: +13.09+080.28/
 
 Name: place:chesterfield-inlet
 Label: Chesterfield Inlet
 Kind: city
 Parent: place:canada
+Region: Nunavut
 At: +63.34-090.70/
 
 Name: place:cheyenne
 Label: Cheyenne
 Kind: city
 Parent: place:united-states-of-america
+Region: Wyoming
 At: +41.14-104.82/
 
 Name: place:chiang-mai
 Label: Chiang Mai
 Kind: city
 Parent: place:thailand
+Region: Chiang Mai
 At: +18.80+098.98/
 
 Name: place:chicago
 Label: Chicago
 Kind: city
 Parent: place:united-states-of-america
+Region: Illinois
 At: +41.83-087.75/
 
 Name: place:chifeng
 Label: Chifeng
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Nei Mongol
 At: +42.27+118.95/
 
 Name: place:chihuahua
 Label: Chihuahua
 Kind: city
 Parent: place:mexico
+Region: Chihuahua
 At: +28.65-106.09/
 
 Name: place:chimbote
 Label: Chimbote
 Kind: city
 Parent: place:peru
+Region: Ancash
 At: -09.07-078.57/
 
 Name: place:chipata
 Label: Chipata
 Kind: city
 Parent: place:zambia
+Region: Eastern
 At: -13.63+032.64/
 
 Name: place:chisinau
@@ -3303,30 +3533,35 @@ Label: Chișinău
 Alias: Chisinau
 Kind: city
 Parent: place:moldova
+Region: Chisinau
 At: +47.01+028.86/
 
 Name: place:chita
 Label: Chita
 Kind: city
 Parent: place:russia
+Region: Chita
 At: +52.06+113.47/
 
 Name: place:chitungwiza
 Label: Chitungwiza
 Kind: city
 Parent: place:zimbabwe
+Region: Harare
 At: -18.00+031.10/
 
 Name: place:chokurdakh
 Label: Chokurdakh
 Kind: city
 Parent: place:russia
+Region: Sakha (Yakutia)
 At: +70.62+147.89/
 
 Name: place:chongqing
 Label: Chongqing
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Chongqing
 At: +29.57+106.59/
 
 Name: place:choybalsan
@@ -3334,66 +3569,77 @@ Label: Choibalsan
 Alias: Choybalsan
 Kind: city
 Parent: place:mongolia
+Region: Dornod
 At: +48.07+114.51/
 
 Name: place:christchurch
 Label: Christchurch
 Kind: city
 Parent: place:new-zealand
+Region: Canterbury
 At: -43.54+172.63/
 
 Name: place:churchill
 Label: Churchill
 Kind: city
 Parent: place:canada
+Region: Manitoba
 At: +58.77-094.17/
 
 Name: place:cincinnati
 Label: Cincinnati
 Kind: city
 Parent: place:united-states-of-america
+Region: Ohio
 At: +39.16-084.46/
 
 Name: place:ciudad-del-este
 Label: Ciudad del Este
 Kind: city
 Parent: place:paraguay
+Region: Alto Paran
 At: -25.52-054.62/
 
 Name: place:ciudad-guayana
 Label: Ciudad Guayana
 Kind: city
 Parent: place:venezuela
+Region: Bolívar
 At: +08.37-062.62/
 
 Name: place:clermont-ferrand
 Label: Clermont-Ferrand
 Kind: city
 Parent: place:france
+Region: Auvergne
 At: +45.78+003.08/
 
 Name: place:cleveland
 Label: Cleveland
 Kind: city
 Parent: place:united-states-of-america
+Region: Ohio
 At: +41.47-081.70/
 
 Name: place:coihaique
 Label: Coihaique
 Kind: city
 Parent: place:chile
+Region: Aisén del General Carlos Ibáñez del Campo
 At: -45.57-072.07/
 
 Name: place:coimbatore
 Label: Coimbatore
 Kind: city
 Parent: place:india
+Region: Tamil Nadu
 At: +11.00+076.95/
 
 Name: place:cold-bay
 Label: Cold Bay
 Kind: city
 Parent: place:united-states-of-america
+Region: Alaska
 At: +55.20-162.72/
 
 Name: place:colider
@@ -3401,42 +3647,49 @@ Label: Colíder
 Alias: Colider
 Kind: city
 Parent: place:brazil
+Region: Mato Grosso
 At: -10.82-055.45/
 
 Name: place:colima
 Label: Colima
 Kind: city
 Parent: place:mexico
+Region: Colima
 At: +19.23-103.72/
 
 Name: place:colombo
 Label: Colombo
 Kind: city
 Parent: place:sri-lanka
+Region: Colombo
 At: +06.93+079.86/
 
 Name: place:colorado-springs
 Label: Colorado Springs
 Kind: city
 Parent: place:united-states-of-america
+Region: Colorado
 At: +38.86-104.79/
 
 Name: place:columbia
 Label: Columbia
 Kind: city
 Parent: place:united-states-of-america
+Region: South Carolina
 At: +34.04-080.90/
 
 Name: place:comodoro-rivadavia
 Label: Comodoro Rivadavia
 Kind: city
 Parent: place:argentina
+Region: Chubut
 At: -45.87-067.50/
 
 Name: place:conakry
 Label: Conakry
 Kind: city
 Parent: place:guinea
+Region: Conakry
 At: +09.53-013.68/
 
 Name: place:concepcion
@@ -3444,6 +3697,7 @@ Label: Concepción
 Alias: Concepcion
 Kind: city
 Parent: place:chile
+Region: Bío-Bío
 At: -36.83-073.05/
 
 Name: place:concordia-research-station
@@ -3457,12 +3711,14 @@ Label: Constanța
 Alias: Constanta
 Kind: city
 Parent: place:romania
+Region: Constanta
 At: +44.20+028.61/
 
 Name: place:constantine
 Label: Constantine
 Kind: city
 Parent: place:algeria
+Region: Constantine
 At: +36.36+006.60/
 
 Name: place:copiapo
@@ -3470,6 +3726,7 @@ Label: Copiapó
 Alias: Copiapo
 Kind: city
 Parent: place:chile
+Region: Atacama
 At: -27.36-070.34/
 
 Name: place:cordoba-ar
@@ -3478,6 +3735,7 @@ Alias: Cordoba
 Qualifier: Córdoba, Argentina
 Kind: city
 Parent: place:argentina
+Region: Córdoba
 At: -31.40-064.18/
 
 Name: place:cordoba-es
@@ -3486,12 +3744,14 @@ Alias: Cordoba
 Qualifier: Andalucía, Spain
 Kind: city
 Parent: place:spain
+Region: Andalucía
 At: +37.88-004.77/
 
 Name: place:corpus-christi
 Label: Corpus Christi
 Kind: city
 Parent: place:united-states-of-america
+Region: Texas
 At: +27.74-097.40/
 
 Name: place:corumba
@@ -3499,30 +3759,35 @@ Label: Corumbá
 Alias: Corumba
 Kind: city
 Parent: place:brazil
+Region: Mato Grosso do Sul
 At: -19.02-057.65/
 
 Name: place:cotonou
 Label: Cotonou
 Kind: city
 Parent: place:benin
+Region: Ouémé
 At: +06.40+002.52/
 
 Name: place:cottica
 Label: Cottica
 Kind: city
 Parent: place:suriname
+Region: Sipaliwini
 At: +03.85-054.23/
 
 Name: place:cruzeiro-do-sul
 Label: Cruzeiro do Sul
 Kind: city
 Parent: place:brazil
+Region: Acre
 At: -07.63-072.67/
 
 Name: place:cuenca
 Label: Cuenca
 Kind: city
 Parent: place:ecuador
+Region: Azuay
 At: -02.90-079.00/
 
 Name: place:cuiaba
@@ -3530,6 +3795,7 @@ Label: Cuiabá
 Alias: Cuiaba
 Kind: city
 Parent: place:brazil
+Region: Mato Grosso
 At: -15.57-056.09/
 
 Name: place:culiacan
@@ -3537,12 +3803,14 @@ Label: Culiacán
 Alias: Culiacan
 Kind: city
 Parent: place:mexico
+Region: Sinaloa
 At: +24.83-107.38/
 
 Name: place:curitiba
 Label: Curitiba
 Kind: city
 Parent: place:brazil
+Region: Paraná
 At: -25.42-049.32/
 
 Name: place:cusco
@@ -3550,18 +3818,21 @@ Label: Cusco
 Alias: Cuzco
 Kind: city
 Parent: place:peru
+Region: Cusco
 At: -13.53-071.97/
 
 Name: place:cuttack
 Label: Cuttack
 Kind: city
 Parent: place:india
+Region: Orissa
 At: +20.47+085.89/
 
 Name: place:da-nang
 Label: Da Nang
 Kind: city
 Parent: place:vietnam
+Region: Ðà N?ng
 At: +16.06+108.25/
 
 Name: place:daejeon
@@ -3570,24 +3841,28 @@ Alias: Taejon
 Alias: Daejon
 Kind: city
 Parent: place:south-korea
+Region: Daejeon
 At: +36.34+127.42/
 
 Name: place:dakar
 Label: Dakar
 Kind: city
 Parent: place:senegal
+Region: Dakar
 At: +14.72-017.48/
 
 Name: place:dalandzadgad
 Label: Dalandzadgad
 Kind: city
 Parent: place:mongolia
+Region: Ömnögovi
 At: +43.58+104.44/
 
 Name: place:dalian
 Label: Dalian
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Liaoning
 At: +38.92+121.63/
 
 Name: place:dallas
@@ -3595,12 +3870,14 @@ Label: Dallas
 Alias: Dallas-Fort Worth
 Kind: city
 Parent: place:united-states-of-america
+Region: Texas
 At: +32.82-096.84/
 
 Name: place:dalnegorsk
 Label: Dalnegorsk
 Kind: city
 Parent: place:russia
+Region: Primor'ye
 At: +44.54+135.52/
 
 Name: place:damascus
@@ -3608,36 +3885,42 @@ Label: Damascus
 Alias: Dimashq
 Kind: city
 Parent: place:syria
+Region: Damascus
 At: +33.50+036.30/
 
 Name: place:daqing
 Label: Daqing
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Heilongjiang
 At: +46.58+125.00/
 
 Name: place:dar-es-salaam
 Label: Dar es Salaam
 Kind: city
 Parent: place:tanzania
+Region: Dar-Es-Salaam
 At: -06.80+039.27/
 
 Name: place:darwin
 Label: Darwin
 Kind: city
 Parent: place:australia
+Region: Northern Territory
 At: -12.43+130.85/
 
 Name: place:davao
 Label: Davao
 Kind: city
 Parent: place:philippines
+Region: Davao Del Sur
 At: +07.11+125.63/
 
 Name: place:david
 Label: David
 Kind: city
 Parent: place:panama
+Region: Chiriquí
 At: +08.43-082.43/
 
 Name: place:davis-station
@@ -3651,12 +3934,14 @@ Label: Dawson City
 Alias: Dawson
 Kind: city
 Parent: place:canada
+Region: Yukon
 At: +64.07-139.42/
 
 Name: place:delhi
 Label: Delhi
 Kind: city
 Parent: place:india
+Region: Delhi
 At: +28.67+077.23/
 
 Name: place:denver
@@ -3664,42 +3949,49 @@ Label: Denver
 Alias: Denver-Aurora
 Kind: city
 Parent: place:united-states-of-america
+Region: Colorado
 At: +39.74-104.99/
 
 Name: place:des-moines
 Label: Des Moines
 Kind: city
 Parent: place:united-states-of-america
+Region: Iowa
 At: +41.58-093.62/
 
 Name: place:detroit
 Label: Detroit
 Kind: city
 Parent: place:united-states-of-america
+Region: Michigan
 At: +42.33-083.08/
 
 Name: place:devonport
 Label: Devonport
 Kind: city
 Parent: place:australia
+Region: Tasmania
 At: -41.19+146.33/
 
 Name: place:dhaka
 Label: Dhaka
 Kind: city
 Parent: place:bangladesh
+Region: Dhaka
 At: +23.73+090.41/
 
 Name: place:dhanbad
 Label: Dhanbad
 Kind: city
 Parent: place:india
+Region: Jharkhand
 At: +23.80+086.42/
 
 Name: place:dijon
 Label: Dijon
 Kind: city
 Parent: place:france
+Region: Bourgogne
 At: +47.33+005.03/
 
 Name: place:dikson
@@ -3707,18 +3999,21 @@ Label: Dikson
 Alias: Dickson
 Kind: city
 Parent: place:russia
+Region: Taymyr
 At: +73.51+080.55/
 
 Name: place:dili
 Label: Dili
 Kind: city
 Parent: place:east-timor
+Region: Dili
 At: -08.56+125.58/
 
 Name: place:dire-dawa
 Label: Dire Dawa
 Kind: city
 Parent: place:ethiopia
+Region: Dire Dawa
 At: +09.59+041.86/
 
 Name: place:dispur
@@ -3726,6 +4021,7 @@ Label: Dispur
 Alias: Gauhati
 Kind: city
 Parent: place:india
+Region: Assam
 At: +26.14+091.77/
 
 Name: place:djenne
@@ -3733,6 +4029,7 @@ Label: Djenné
 Alias: Djenne
 Kind: city
 Parent: place:mali
+Region: Mopti
 At: +13.90-004.55/
 
 Name: place:djibouti-dj
@@ -3740,6 +4037,7 @@ Label: Djibouti
 Qualifier: Djibouti, Djibouti
 Kind: city
 Parent: place:djibouti
+Region: Djibouti
 At: +11.60+043.15/
 
 Name: place:dnipro
@@ -3747,18 +4045,21 @@ Label: Dnipro
 Alias: Dnipropetrovsk
 Kind: city
 Parent: place:ukraine
+Region: Dnipropetrovs'k
 At: +48.48+035.00/
 
 Name: place:dodoma
 Label: Dodoma
 Kind: city
 Parent: place:tanzania
+Region: Dodoma
 At: -06.18+035.75/
 
 Name: place:doha
 Label: Doha
 Kind: city
 Parent: place:qatar
+Region: Ad Dawhah
 At: +25.29+051.53/
 
 Name: place:donetsk
@@ -3766,24 +4067,28 @@ Label: Donetsk
 Alias: Donets'k
 Kind: city
 Parent: place:ukraine
+Region: Donets'k
 At: +48.00+037.83/
 
 Name: place:dongguan
 Label: Dongguan
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Guangdong
 At: +23.05+113.74/
 
 Name: place:dongola
 Label: Dongola
 Kind: city
 Parent: place:sudan
+Region: Northern
 At: +19.17+030.48/
 
 Name: place:douala
 Label: Douala
 Kind: city
 Parent: place:cameroon
+Region: Littoral
 At: +04.06+009.71/
 
 Name: place:douglas
@@ -3796,30 +4101,35 @@ Name: place:dresden
 Label: Dresden
 Kind: city
 Parent: place:germany
+Region: Sachsen
 At: +51.05+013.75/
 
 Name: place:dubai
 Label: Dubai
 Kind: city
 Parent: place:united-arab-emirates
+Region: Dubay
 At: +25.23+055.28/
 
 Name: place:dubbo
 Label: Dubbo
 Kind: city
 Parent: place:australia
+Region: New South Wales
 At: -32.26+148.60/
 
 Name: place:dublin
 Label: Dublin
 Kind: city
 Parent: place:ireland
+Region: Dublin
 At: +53.34-006.25/
 
 Name: place:dulan
 Label: Dulan
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Gansu
 At: +36.17+098.27/
 
 Name: place:dumont-d-urville-station
@@ -3833,84 +4143,98 @@ Label: Dund-Us
 Alias: Hovd
 Kind: city
 Parent: place:mongolia
+Region: Hovd
 At: +48.02+091.63/
 
 Name: place:dunedin
 Label: Dunedin
 Kind: city
 Parent: place:new-zealand
+Region: Otago
 At: -45.89+170.49/
 
 Name: place:dunhuang
 Label: Dunhuang
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Gansu
 At: +40.14+094.66/
 
 Name: place:durazno
 Label: Durazno
 Kind: city
 Parent: place:uruguay
+Region: Durazno
 At: -33.41-056.51/
 
 Name: place:durban
 Label: Durban
 Kind: city
 Parent: place:south-africa
+Region: KwaZulu-Natal
 At: -29.86+030.98/
 
 Name: place:dushanbe
 Label: Dushanbe
 Kind: city
 Parent: place:tajikistan
+Region: Tadzhikistan Territories
 At: +38.56+068.77/
 
 Name: place:east-london
 Label: East London
 Kind: city
 Parent: place:south-africa
+Region: Eastern Cape
 At: -32.97+027.87/
 
 Name: place:ebolowa
 Label: Ebolowa
 Kind: city
 Parent: place:cameroon
+Region: Sud
 At: +02.90+011.15/
 
 Name: place:edinburgh
 Label: Edinburgh
 Kind: city
 Parent: place:united-kingdom
+Region: Edinburgh
 At: +55.95-003.22/
 
 Name: place:edmonton
 Label: Edmonton
 Kind: city
 Parent: place:canada
+Region: Alberta
 At: +53.55-113.50/
 
 Name: place:ekibastuz
 Label: Ekibastuz
 Kind: city
 Parent: place:kazakhstan
+Region: Pavlodar
 At: +51.73+075.32/
 
 Name: place:el-calafate
 Label: El Calafate
 Kind: city
 Parent: place:argentina
+Region: Santa Cruz
 At: -50.33-072.30/
 
 Name: place:el-faiyum
 Label: El Faiyum
 Kind: city
 Parent: place:egypt
+Region: Al Fayyum
 At: +29.31+030.84/
 
 Name: place:el-fasher
 Label: El Fasher
 Kind: city
 Parent: place:sudan
+Region: Northern Darfur
 At: +13.63+025.35/
 
 Name: place:el-obeid
@@ -3918,18 +4242,21 @@ Label: Al-Ubayyid
 Alias: El Obeid
 Kind: city
 Parent: place:sudan
+Region: North Kurdufan
 At: +13.18+030.22/
 
 Name: place:el-paso
 Label: El Paso
 Kind: city
 Parent: place:united-states-of-america
+Region: Texas
 At: +31.78-106.51/
 
 Name: place:eldoret
 Label: Eldoret
 Kind: city
 Parent: place:kenya
+Region: Rift Valley
 At: +00.52+035.27/
 
 Name: place:elephant-island
@@ -3942,18 +4269,21 @@ Name: place:elko
 Label: Elko
 Kind: city
 Parent: place:united-states-of-america
+Region: Nevada
 At: +40.83-115.76/
 
 Name: place:enugu
 Label: Enugu
 Kind: city
 Parent: place:nigeria
+Region: Enugu
 At: +06.45+007.50/
 
 Name: place:erdenet
 Label: Erdenet
 Kind: city
 Parent: place:mongolia
+Region: Orhon
 At: +49.05+104.12/
 
 Name: place:escudero-base
@@ -3973,30 +4303,35 @@ Name: place:eureka
 Label: Eureka
 Kind: city
 Parent: place:united-states-of-america
+Region: California
 At: +40.80-124.15/
 
 Name: place:fairbanks
 Label: Fairbanks
 Kind: city
 Parent: place:united-states-of-america
+Region: Alaska
 At: +64.84-147.71/
 
 Name: place:fargo
 Label: Fargo
 Kind: city
 Parent: place:united-states-of-america
+Region: North Dakota
 At: +46.88-096.79/
 
 Name: place:faridabad
 Label: Faridabad
 Kind: city
 Parent: place:india
+Region: Haryana
 At: +28.44+077.31/
 
 Name: place:feira-de-santana
 Label: Feira de Santana
 Kind: city
 Parent: place:brazil
+Region: Bahia
 At: -12.25-038.97/
 
 Name: place:fez
@@ -4005,24 +4340,28 @@ Alias: Fes
 Alias: F-s
 Kind: city
 Parent: place:morocco
+Region: Fès - Boulemane
 At: +34.06-005.00/
 
 Name: place:fianarantsoa
 Label: Fianarantsoa
 Kind: city
 Parent: place:madagascar
+Region: Fianarantsoa
 At: -21.43+047.08/
 
 Name: place:flagstaff
 Label: Flagstaff
 Kind: city
 Parent: place:united-states-of-america
+Region: Arizona
 At: +35.20-111.65/
 
 Name: place:florence
 Label: Florence
 Kind: city
 Parent: place:italy
+Region: Toscana
 At: +43.78+011.25/
 
 Name: place:florianopolis
@@ -4030,60 +4369,70 @@ Label: Florianópolis
 Alias: Florianopolis
 Kind: city
 Parent: place:brazil
+Region: Santa Catarina
 At: -27.58-048.52/
 
 Name: place:formosa
 Label: Formosa
 Kind: city
 Parent: place:argentina
+Region: Formosa
 At: -26.17-058.18/
 
 Name: place:fort-de-france
 Label: Fort-de-France
 Kind: city
 Parent: place:france
+Region: Martinique
 At: +14.61-061.08/
 
 Name: place:fort-good-hope
 Label: Fort Good Hope
 Kind: city
 Parent: place:canada
+Region: Northwest Territories
 At: +66.27-128.63/
 
 Name: place:fort-mcmurray
 Label: Fort McMurray
 Kind: city
 Parent: place:canada
+Region: Alberta
 At: +56.73-111.38/
 
 Name: place:fort-portal
 Label: Fort Portal
 Kind: city
 Parent: place:uganda
+Region: Kabarole
 At: +00.67+030.28/
 
 Name: place:fort-severn
 Label: Fort Severn
 Kind: city
 Parent: place:canada
+Region: Ontario
 At: +55.98-087.65/
 
 Name: place:fort-smith
 Label: Fort Smith
 Kind: city
 Parent: place:canada
+Region: Alberta
 At: +60.00-111.88/
 
 Name: place:fort-st-john
 Label: Fort St. John
 Kind: city
 Parent: place:canada
+Region: British Columbia
 At: +56.25-120.83/
 
 Name: place:fortaleza
 Label: Fortaleza
 Kind: city
 Parent: place:brazil
+Region: Ceará
 At: -03.75-038.58/
 
 Name: place:franceville
@@ -4091,12 +4440,14 @@ Label: Franceville
 Alias: Masuku
 Kind: city
 Parent: place:gabon
+Region: Haut-Ogooué
 At: -01.63+013.58/
 
 Name: place:francistown
 Label: Francistown
 Kind: city
 Parent: place:botswana
+Region: Central
 At: -21.17+027.50/
 
 Name: place:frankfurt
@@ -4104,6 +4455,7 @@ Label: Frankfurt
 Alias: Frankfurt am Main
 Kind: city
 Parent: place:germany
+Region: Hessen
 At: +50.10+008.68/
 
 Name: place:freeport
@@ -4116,12 +4468,14 @@ Name: place:freetown
 Label: Freetown
 Kind: city
 Parent: place:sierra-leone
+Region: Western
 At: +08.47-013.24/
 
 Name: place:fresno
 Label: Fresno
 Kind: city
 Parent: place:united-states-of-america
+Region: California
 At: +36.75-119.77/
 
 Name: place:ft-worth
@@ -4130,6 +4484,7 @@ Alias: Ft. Worth
 Alias: Fort Worth
 Kind: city
 Parent: place:united-states-of-america
+Region: Texas
 At: +32.74-097.34/
 
 Name: place:fukuoka
@@ -4137,6 +4492,7 @@ Label: Fukuoka
 Alias: Fukuoka-Kitakyushu
 Kind: city
 Parent: place:japan
+Region: Fukuoka
 At: +33.60+130.41/
 
 Name: place:funafuti
@@ -4149,6 +4505,7 @@ Name: place:funchal
 Label: Funchal
 Kind: city
 Parent: place:portugal
+Region: Madeira
 At: +32.65-016.88/
 
 Name: place:fuzhou
@@ -4156,24 +4513,28 @@ Label: Fuzhou
 Alias: Fuzhou, Fujian
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Fujian
 At: +26.08+119.30/
 
 Name: place:gaborone
 Label: Gaborone
 Kind: city
 Parent: place:botswana
+Region: South-East
 At: -24.65+025.91/
 
 Name: place:gao
 Label: Gao
 Kind: city
 Parent: place:mali
+Region: Gao
 At: +16.27-000.05/
 
 Name: place:garoua
 Label: Garoua
 Kind: city
 Parent: place:cameroon
+Region: Nord
 At: +09.30+013.39/
 
 Name: place:gaza
@@ -4189,12 +4550,14 @@ Alias: Gdansk
 Alias: Danzig
 Kind: city
 Parent: place:poland
+Region: Pomeranian
 At: +54.36+018.64/
 
 Name: place:gejiu
 Label: Gejiu
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Yunnan
 At: +23.38+103.15/
 
 Name: place:gen-o-higgins-base
@@ -4208,30 +4571,35 @@ Name: place:geneina
 Label: Geneina
 Kind: city
 Parent: place:sudan
+Region: West Darfur
 At: +13.45+022.44/
 
 Name: place:general-santos
 Label: General Santos
 Kind: city
 Parent: place:philippines
+Region: South Cotabato
 At: +06.11+125.17/
 
 Name: place:geneva
 Label: Geneva
 Kind: city
 Parent: place:switzerland
+Region: Genève
 At: +46.21+006.14/
 
 Name: place:genoa
 Label: Genoa
 Kind: city
 Parent: place:italy
+Region: Liguria
 At: +44.41+008.93/
 
 Name: place:george
 Label: George
 Kind: city
 Parent: place:south-africa
+Region: Western Cape
 At: -33.95+022.45/
 
 Name: place:george-town-ky
@@ -4248,48 +4616,56 @@ Alias: Penang
 Qualifier: Pulau Pinang, Malaysia
 Kind: city
 Parent: place:malaysia
+Region: Pulau Pinang
 At: +05.41+100.33/
 
 Name: place:georgetown
 Label: Georgetown
 Kind: city
 Parent: place:guyana
+Region: East Berbice-Corentyne
 At: +06.80-058.17/
 
 Name: place:geraldton
 Label: Geraldton
 Kind: city
 Parent: place:australia
+Region: Western Australia
 At: -28.77+114.60/
 
 Name: place:ghardaia
 Label: Ghardaia
 Kind: city
 Parent: place:algeria
+Region: Ghardaaa
 At: +32.49+003.67/
 
 Name: place:ghaziabad
 Label: Ghaziabad
 Kind: city
 Parent: place:india
+Region: Uttar Pradesh
 At: +28.66+077.41/
 
 Name: place:gibraltar
 Label: Gibraltar
 Kind: city
 Parent: place:united-kingdom
+Region: Gibraltar
 At: +36.13-005.38/
 
 Name: place:gifu
 Label: Gifu
 Kind: city
 Parent: place:japan
+Region: Gifu
 At: +35.42+136.76/
 
 Name: place:glasgow
 Label: Glasgow
 Kind: city
 Parent: place:united-kingdom
+Region: Glasgow
 At: +55.88-004.25/
 
 Name: place:goiania
@@ -4297,18 +4673,21 @@ Label: Goiânia
 Alias: Goiania
 Kind: city
 Parent: place:brazil
+Region: Goiás
 At: -16.72-049.30/
 
 Name: place:gold-coast
 Label: Gold Coast
 Kind: city
 Parent: place:australia
+Region: Queensland
 At: -28.08+153.45/
 
 Name: place:golmud
 Label: Golmud
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Gansu
 At: +36.42+094.88/
 
 Name: place:goma
@@ -4316,6 +4695,7 @@ Label: Goma
 Alias: Gisenyi
 Kind: city
 Parent: place:democratic-republic-of-the-congo
+Region: Nord-Kivu
 At: -01.68+029.22/
 
 Name: place:gonder
@@ -4323,18 +4703,21 @@ Label: Gondar
 Alias: Gonder
 Kind: city
 Parent: place:ethiopia
+Region: Amhara
 At: +12.61+037.46/
 
 Name: place:goroka
 Label: Goroka
 Kind: city
 Parent: place:papua-new-guinea
+Region: Eastern Highlands
 At: -06.08+145.39/
 
 Name: place:gorontalo
 Label: Gorontalo
 Kind: city
 Parent: place:indonesia
+Region: Gorontalo
 At: +00.55+123.07/
 
 Name: place:grand-turk
@@ -4347,6 +4730,7 @@ Name: place:great-falls
 Label: Great Falls
 Kind: city
 Parent: place:united-states-of-america
+Region: Montana
 At: +47.50-111.30/
 
 Name: place:great-wall-station
@@ -4359,12 +4743,14 @@ Name: place:griffith
 Label: Griffith
 Kind: city
 Parent: place:australia
+Region: New South Wales
 At: -34.29+146.04/
 
 Name: place:grootfontein
 Label: Grootfontein
 Kind: city
 Parent: place:namibia
+Region: Otjozondjupa
 At: -19.57+018.12/
 
 Name: place:groznyy
@@ -4372,12 +4758,14 @@ Label: Grozny
 Alias: Groznyy
 Kind: city
 Parent: place:russia
+Region: Chechnya
 At: +43.32+045.70/
 
 Name: place:guadalajara
 Label: Guadalajara
 Kind: city
 Parent: place:mexico
+Region: Jalisco
 At: +20.67-103.33/
 
 Name: place:guangzhou
@@ -4385,6 +4773,7 @@ Label: Guangzhou
 Alias: Dongguan, Guangdong
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Guangdong
 At: +23.15+113.32/
 
 Name: place:guatemala-gt
@@ -4394,42 +4783,49 @@ Alias: Ciudad de Guatemala (Guatemala City)
 Qualifier: Guatemala, Guatemala
 Kind: city
 Parent: place:guatemala
+Region: Guatemala
 At: +14.62-090.53/
 
 Name: place:guayaquil
 Label: Guayaquil
 Kind: city
 Parent: place:ecuador
+Region: Guayas
 At: -02.22-079.92/
 
 Name: place:guaymas
 Label: Guaymas
 Kind: city
 Parent: place:mexico
+Region: Sonora
 At: +27.93-110.89/
 
 Name: place:guilin
 Label: Guilin
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Guangxi
 At: +25.28+110.28/
 
 Name: place:guiyang
 Label: Guiyang
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Guizhou
 At: +26.58+106.72/
 
 Name: place:gujranwala
 Label: Gujranwala
 Kind: city
 Parent: place:pakistan
+Region: Punjab
 At: +32.16+074.18/
 
 Name: place:gulu
 Label: Gulu
 Kind: city
 Parent: place:uganda
+Region: Aswa
 At: +02.78+032.28/
 
 Name: place:guwahati
@@ -4438,12 +4834,14 @@ Alias: Gauhati
 Alias: Dispur
 Kind: city
 Parent: place:india
+Region: Assam
 At: +26.16+091.77/
 
 Name: place:gwalior
 Label: Gwalior
 Kind: city
 Parent: place:india
+Region: Madhya Pradesh
 At: +26.23+078.18/
 
 Name: place:gwangju
@@ -4451,12 +4849,14 @@ Label: Gwangju
 Alias: Kwangju
 Kind: city
 Parent: place:south-korea
+Region: Kwangju-gwangyoksi
 At: +35.17+126.91/
 
 Name: place:hailar
 Label: Hailar
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Nei Mongol
 At: +49.20+119.70/
 
 Name: place:haiphong
@@ -4464,18 +4864,21 @@ Label: Haiphong
 Alias: Hai Phnng
 Kind: city
 Parent: place:vietnam
+Region: Qu?ng Ninh
 At: +20.83+106.68/
 
 Name: place:hakodate
 Label: Hakodate
 Kind: city
 Parent: place:japan
+Region: Hokkaido
 At: +41.79+140.74/
 
 Name: place:halifax
 Label: Halifax
 Kind: city
 Parent: place:canada
+Region: Nova Scotia
 At: +44.65-063.60/
 
 Name: place:halley-station
@@ -4488,18 +4891,21 @@ Name: place:hamadan
 Label: Hamadan
 Kind: city
 Parent: place:iran
+Region: Hamadan
 At: +34.80+048.52/
 
 Name: place:hamburg
 Label: Hamburg
 Kind: city
 Parent: place:germany
+Region: Hamburg
 At: +53.55+010.00/
 
 Name: place:hami
 Label: Hami
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Xinjiang Uygur
 At: +42.83+093.52/
 
 Name: place:hamilton-bm
@@ -4514,24 +4920,28 @@ Label: Hamilton
 Qualifier: Waikato, New Zealand
 Kind: city
 Parent: place:new-zealand
+Region: Waikato
 At: -37.78+175.29/
 
 Name: place:hammerfest
 Label: Hammerfest
 Kind: city
 Parent: place:norway
+Region: Finnmark
 At: +70.66+023.69/
 
 Name: place:handan
 Label: Handan
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Hebei
 At: +36.58+114.48/
 
 Name: place:hangzhou
 Label: Hangzhou
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Zhejiang
 At: +30.25+120.17/
 
 Name: place:hanoi
@@ -4539,12 +4949,14 @@ Label: Hanoi
 Alias: H
 Kind: city
 Parent: place:vietnam
+Region: Thái Nguyên
 At: +21.04+105.85/
 
 Name: place:harare
 Label: Harare
 Kind: city
 Parent: place:zimbabwe
+Region: Harare
 At: -17.82+031.04/
 
 Name: place:harbin
@@ -4552,6 +4964,7 @@ Label: Harbin
 Alias: Haerbin
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Heilongjiang
 At: +45.75+126.65/
 
 Name: place:hargeysa
@@ -4566,54 +4979,63 @@ Label: Havana
 Alias: La Habana
 Kind: city
 Parent: place:cuba
+Region: Ciudad de la Habana
 At: +23.13-082.37/
 
 Name: place:hefei
 Label: Hefei
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Anhui
 At: +31.85+117.28/
 
 Name: place:helena
 Label: Helena
 Kind: city
 Parent: place:united-states-of-america
+Region: Montana
 At: +46.59-112.04/
 
 Name: place:helsinki
 Label: Helsinki
 Kind: city
 Parent: place:finland
+Region: Southern Finland
 At: +60.18+024.93/
 
 Name: place:hengyang
 Label: Hengyang
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Hunan
 At: +26.88+112.59/
 
 Name: place:herat
 Label: Herat
 Kind: city
 Parent: place:afghanistan
+Region: Hirat
 At: +34.33+062.17/
 
 Name: place:hermosillo
 Label: Hermosillo
 Kind: city
 Parent: place:mexico
+Region: Sonora
 At: +29.10-110.95/
 
 Name: place:hilo
 Label: Hilo
 Kind: city
 Parent: place:united-states-of-america
+Region: Hawaii
 At: +19.70-155.09/
 
 Name: place:hiroshima
 Label: Hiroshima
 Kind: city
 Parent: place:japan
+Region: Hiroshima
 At: +34.39+132.44/
 
 Name: place:ho-chi-minh-city
@@ -4621,12 +5043,14 @@ Label: Ho Chi Minh City
 Alias: Th nh Pho Ho Chy Minh
 Kind: city
 Parent: place:vietnam
+Region: H? Chí Minh city
 At: +10.78+106.69/
 
 Name: place:hobart
 Label: Hobart
 Kind: city
 Parent: place:australia
+Region: Tasmania
 At: -42.85+147.30/
 
 Name: place:hohhot
@@ -4634,6 +5058,7 @@ Label: Hohhot
 Alias: Huhot
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Nei Mongol
 At: +40.82+111.66/
 
 Name: place:hong-kong-hk
@@ -4647,36 +5072,42 @@ Name: place:honiara
 Label: Honiara
 Kind: city
 Parent: place:solomon-islands
+Region: Guadalcanal
 At: -09.44+159.95/
 
 Name: place:honolulu
 Label: Honolulu
 Kind: city
 Parent: place:united-states-of-america
+Region: Hawaii
 At: +21.31-157.86/
 
 Name: place:hotan
 Label: Hotan
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Xinjiang Uygur
 At: +37.10+079.93/
 
 Name: place:houma
 Label: Houma
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Shanxi
 At: +35.62+111.21/
 
 Name: place:houston
 Label: Houston
 Kind: city
 Parent: place:united-states-of-america
+Region: Texas
 At: +29.82-095.34/
 
 Name: place:huainan
 Label: Huainan
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Anhui
 At: +32.63+116.98/
 
 Name: place:huaiyin
@@ -4684,24 +5115,28 @@ Label: Huaiyin
 Alias: Huai'an
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Jiangsu
 At: +33.58+119.03/
 
 Name: place:huambo
 Label: Huambo
 Kind: city
 Parent: place:angola
+Region: Huambo
 At: -12.75+015.76/
 
 Name: place:huancayo
 Label: Huancayo
 Kind: city
 Parent: place:peru
+Region: Junín
 At: -12.08-075.20/
 
 Name: place:hubballi
 Label: Hubballi
 Kind: city
 Parent: place:india
+Region: Karnataka
 At: +15.36+075.12/
 
 Name: place:hyderabad-in
@@ -4709,6 +5144,7 @@ Label: Hyderabad
 Qualifier: Telangana, India
 Kind: city
 Parent: place:india
+Region: Telangana
 At: +17.40+078.48/
 
 Name: place:hyderabad-pk
@@ -4716,6 +5152,7 @@ Label: Hyderabad
 Qualifier: Sind, Pakistan
 Kind: city
 Parent: place:pakistan
+Region: Sind
 At: +25.38+068.37/
 
 Name: place:iasi
@@ -4723,30 +5160,35 @@ Label: Iași
 Alias: Iasi
 Kind: city
 Parent: place:romania
+Region: Iasi
 At: +47.17+027.57/
 
 Name: place:ibadan
 Label: Ibadan
 Kind: city
 Parent: place:nigeria
+Region: Oyo
 At: +07.38+003.93/
 
 Name: place:ica
 Label: Ica
 Kind: city
 Parent: place:peru
+Region: Ica
 At: -14.07-075.73/
 
 Name: place:igloolik
 Label: Igloolik
 Kind: city
 Parent: place:canada
+Region: Nunavut
 At: +69.26-081.79/
 
 Name: place:iloilo
 Label: Iloilo
 Kind: city
 Parent: place:philippines
+Region: Iloilo
 At: +10.71+122.55/
 
 Name: place:incheon
@@ -4754,48 +5196,56 @@ Label: Incheon
 Alias: Inch`on
 Kind: city
 Parent: place:south-korea
+Region: Inch'on-gwangyoksi
 At: +37.48+126.64/
 
 Name: place:indianapolis
 Label: Indianapolis
 Kind: city
 Parent: place:united-states-of-america
+Region: Indiana
 At: +39.75-086.17/
 
 Name: place:indore
 Label: Indore
 Kind: city
 Parent: place:india
+Region: Madhya Pradesh
 At: +22.72+075.86/
 
 Name: place:international-falls
 Label: International Falls
 Kind: city
 Parent: place:united-states-of-america
+Region: Minnesota
 At: +48.60-093.41/
 
 Name: place:iqaluit
 Label: Iqaluit
 Kind: city
 Parent: place:canada
+Region: Nunavut
 At: +63.75-068.50/
 
 Name: place:iquique
 Label: Iquique
 Kind: city
 Parent: place:chile
+Region: Tarapacá
 At: -20.25-070.13/
 
 Name: place:iquitos
 Label: Iquitos
 Kind: city
 Parent: place:peru
+Region: Loreto
 At: -03.75-073.25/
 
 Name: place:irkutsk
 Label: Irkutsk
 Kind: city
 Parent: place:russia
+Region: Irkutsk
 At: +52.32+104.25/
 
 Name: place:isfahan
@@ -4803,18 +5253,21 @@ Label: Isfahan
 Alias: Esfahan
 Kind: city
 Parent: place:iran
+Region: Esfahan
 At: +32.70+051.70/
 
 Name: place:islamabad
 Label: Islamabad
 Kind: city
 Parent: place:pakistan
+Region: F.C.T.
 At: +33.70+073.16/
 
 Name: place:istanbul
 Label: Istanbul
 Kind: city
 Parent: place:turkey
+Region: Istanbul
 At: +41.11+029.01/
 
 Name: place:izmir
@@ -4822,18 +5275,21 @@ Label: İzmir
 Alias: Izmir
 Kind: city
 Parent: place:turkey
+Region: Izmir
 At: +38.44+027.15/
 
 Name: place:jabalpur
 Label: Jabalpur
 Kind: city
 Parent: place:india
+Region: Madhya Pradesh
 At: +23.18+079.95/
 
 Name: place:jackson
 Label: Jackson
 Kind: city
 Parent: place:united-states-of-america
+Region: Mississippi
 At: +32.30-090.18/
 
 Name: place:jacksonville
@@ -4841,36 +5297,42 @@ Label: Jacksonville
 Alias: Jacksonville, Florida
 Kind: city
 Parent: place:united-states-of-america
+Region: Florida
 At: +30.33-081.67/
 
 Name: place:jaipur
 Label: Jaipur
 Kind: city
 Parent: place:india
+Region: Rajasthan
 At: +26.92+075.81/
 
 Name: place:jakarta
 Label: Jakarta
 Kind: city
 Parent: place:indonesia
+Region: Jakarta Raya
 At: -06.17+106.83/
 
 Name: place:jammu
 Label: Jammu
 Kind: city
 Parent: place:india
+Region: Jammu and Kashmir
 At: +32.71+074.84/
 
 Name: place:jamshedpur
 Label: Jamshedpur
 Kind: city
 Parent: place:india
+Region: Jharkhand
 At: +22.79+086.20/
 
 Name: place:jayapura
 Label: Jayapura
 Kind: city
 Parent: place:indonesia
+Region: Papua
 At: -02.53+140.70/
 
 Name: place:jeddah
@@ -4878,12 +5340,14 @@ Label: Jeddah
 Alias: Jiddah
 Kind: city
 Parent: place:saudi-arabia
+Region: Makkah
 At: +21.52+039.22/
 
 Name: place:jerusalem
 Label: Jerusalem
 Kind: city
 Parent: place:israel
+Region: Jerusalem
 At: +31.78+035.21/
 
 Name: place:ji-parana
@@ -4891,24 +5355,28 @@ Label: Ji-Paraná
 Alias: Ji-Parana
 Kind: city
 Parent: place:brazil
+Region: Rondinia
 At: -10.83-061.97/
 
 Name: place:jiamusi
 Label: Jiamusi
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Heilongjiang
 At: +46.83+130.35/
 
 Name: place:jiayuguan
 Label: Jiayuguan
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Gansu
 At: +39.82+098.30/
 
 Name: place:jilin
 Label: Jilin
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Jilin
 At: +43.85+126.55/
 
 Name: place:jinan
@@ -4916,12 +5384,14 @@ Label: Jinan
 Alias: Jinan, Shandong
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Shandong
 At: +36.68+116.99/
 
 Name: place:jinja
 Label: Jinja
 Kind: city
 Parent: place:uganda
+Region: Jinja
 At: +00.44+033.20/
 
 Name: place:jinxi
@@ -4929,6 +5399,7 @@ Label: Jinxi
 Alias: Jinxi, Liaoning
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Liaoning
 At: +40.75+120.83/
 
 Name: place:jixi
@@ -4936,23 +5407,27 @@ Label: Jixi
 Alias: Jixi, Heilongjiang
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Heilongjiang
 At: +45.30+130.97/
 
 Name: place:jodhpur
 Label: Jodhpur
 Kind: city
 Parent: place:india
+Region: Rajasthan
 At: +26.29+073.01/
 
 Name: place:johannesburg
 Label: Johannesburg
 Kind: city
 Parent: place:south-africa
+Region: Gauteng
 At: -26.17+028.03/
 
 Name: place:juba
 Label: Juba
 Kind: city
+Region: Central Equatoria
 At: +04.83+031.58/
 
 Name: place:jullundur
@@ -4960,30 +5435,35 @@ Label: Jullundur
 Alias: Jalandhar
 Kind: city
 Parent: place:india
+Region: Punjab
 At: +31.34+075.57/
 
 Name: place:juneau
 Label: Juneau
 Kind: city
 Parent: place:united-states-of-america
+Region: Alaska
 At: +58.31-134.42/
 
 Name: place:kabul
 Label: Kabul
 Kind: city
 Parent: place:afghanistan
+Region: Kabul
 At: +34.52+069.18/
 
 Name: place:kabwe
 Label: Kabwe
 Kind: city
 Parent: place:zambia
+Region: Central
 At: -14.44+028.45/
 
 Name: place:kaduna
 Label: Kaduna
 Kind: city
 Parent: place:nigeria
+Region: Kaduna
 At: +10.52+007.44/
 
 Name: place:kaedi
@@ -4991,132 +5471,154 @@ Label: Kaédi
 Alias: Kaedi
 Kind: city
 Parent: place:senegal
+Region: Matam
 At: +16.15-013.50/
 
 Name: place:kalaburagi
 Label: Kalaburagi
 Kind: city
 Parent: place:india
+Region: Karnataka
 At: +17.35+076.82/
 
 Name: place:kalemie
 Label: Kalemie
 Kind: city
 Parent: place:democratic-republic-of-the-congo
+Region: Katanga
 At: -05.93+029.20/
 
 Name: place:kalgoorlie
 Label: Kalgoorlie
 Kind: city
 Parent: place:australia
+Region: Western Australia
 At: -30.74+121.46/
 
 Name: place:kaliningrad
 Label: Kaliningrad
 Kind: city
 Parent: place:russia
+Region: Kaliningrad
 At: +54.70+020.50/
 
 Name: place:kampala
 Label: Kampala
 Kind: city
 Parent: place:uganda
+Region: Kampala
 At: +00.32+032.58/
 
 Name: place:kananga
 Label: Kananga
 Kind: city
 Parent: place:democratic-republic-of-the-congo
+Region: Kasaï-Occidental
 At: -05.89+022.40/
 
 Name: place:kandahar
 Label: Kandahar
 Kind: city
 Parent: place:afghanistan
+Region: Kandahar
 At: +31.61+065.69/
 
 Name: place:kandy
 Label: Kandy
 Kind: city
 Parent: place:sri-lanka
+Region: Kandy
 At: +07.28+080.67/
 
 Name: place:kankan
 Label: Kankan
 Kind: city
 Parent: place:guinea
+Region: Kankan
 At: +10.39-009.31/
 
 Name: place:kano
 Label: Kano
 Kind: city
 Parent: place:nigeria
+Region: Kano
 At: +12.00+008.52/
 
 Name: place:kanpur
 Label: Kanpur
 Kind: city
 Parent: place:india
+Region: Uttar Pradesh
 At: +26.46+080.32/
 
 Name: place:kansas-city
 Label: Kansas City
 Kind: city
 Parent: place:united-states-of-america
+Region: Missouri
 At: +39.11-094.61/
 
 Name: place:kaohsiung
 Label: Kaohsiung
 Kind: city
 Parent: place:taiwan
+Region: Kaohsiung City
 At: +22.63+120.27/
 
 Name: place:kaolack
 Label: Kaolack
 Kind: city
 Parent: place:senegal
+Region: Kaolack
 At: +14.15-016.10/
 
 Name: place:karachi
 Label: Karachi
 Kind: city
 Parent: place:pakistan
+Region: Sind
 At: +24.87+066.99/
 
 Name: place:karratha
 Label: Karratha
 Kind: city
 Parent: place:australia
+Region: Western Australia
 At: -20.73+116.87/
 
 Name: place:kashgar
 Label: Kashgar
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Xinjiang Uygur
 At: +39.48+075.97/
 
 Name: place:kasongo
 Label: Kasongo
 Kind: city
 Parent: place:democratic-republic-of-the-congo
+Region: Maniema
 At: -04.45+026.66/
 
 Name: place:kassala
 Label: Kassala
 Kind: city
 Parent: place:sudan
+Region: Kassala
 At: +15.46+036.39/
 
 Name: place:katherine
 Label: Katherine
 Kind: city
 Parent: place:australia
+Region: Northern Territory
 At: -14.47+132.27/
 
 Name: place:kathmandu
 Label: Kathmandu
 Kind: city
 Parent: place:nepal
+Region: Bhaktapur
 At: +27.72+085.31/
 
 Name: place:kayes-cg
@@ -5124,6 +5626,7 @@ Label: Kayes
 Qualifier: Bouenza, Republic of the Congo
 Kind: city
 Parent: place:republic-of-the-congo
+Region: Bouenza
 At: -04.18+013.28/
 
 Name: place:kayes-ml
@@ -5131,6 +5634,7 @@ Label: Kayes
 Qualifier: Kayes, Mali
 Kind: city
 Parent: place:mali
+Region: Kayes
 At: +14.45-011.44/
 
 Name: place:kazan
@@ -5138,30 +5642,35 @@ Label: Kazan
 Alias: Kazan'
 Kind: city
 Parent: place:russia
+Region: Tatarstan
 At: +55.75+049.12/
 
 Name: place:keetmanshoop
 Label: Keetmanshoop
 Kind: city
 Parent: place:namibia
+Region: Karas
 At: -26.57+018.13/
 
 Name: place:kemerovo
 Label: Kemerovo
 Kind: city
 Parent: place:russia
+Region: Kemerovo
 At: +55.34+086.09/
 
 Name: place:khabarovsk
 Label: Khabarovsk
 Kind: city
 Parent: place:russia
+Region: Khabarovsk
 At: +48.45+135.12/
 
 Name: place:kharkiv
 Label: Kharkiv
 Kind: city
 Parent: place:ukraine
+Region: Kharkiv
 At: +50.00+036.25/
 
 Name: place:khartoum
@@ -5169,18 +5678,21 @@ Label: Khartoum
 Alias: Al-Khartum
 Kind: city
 Parent: place:sudan
+Region: Khartoum
 At: +15.59+032.53/
 
 Name: place:khatanga
 Label: Khatanga
 Kind: city
 Parent: place:russia
+Region: Taymyr
 At: +72.04+102.47/
 
 Name: place:khulna
 Label: Khulna
 Kind: city
 Parent: place:bangladesh
+Region: Khulna
 At: +22.84+089.56/
 
 Name: place:kiev
@@ -5188,18 +5700,21 @@ Label: Kyiv
 Alias: Kiev
 Kind: city
 Parent: place:ukraine
+Region: Kiev
 At: +50.44+030.51/
 
 Name: place:kigali
 Label: Kigali
 Kind: city
 Parent: place:rwanda
+Region: Kigali City
 At: -01.95+030.06/
 
 Name: place:kikwit
 Label: Kikwit
 Kind: city
 Parent: place:democratic-republic-of-the-congo
+Region: Bandundu
 At: -05.03+018.85/
 
 Name: place:king-sejong-station
@@ -5212,6 +5727,7 @@ Name: place:kingston
 Label: Kingston
 Kind: city
 Parent: place:jamaica
+Region: Kingston
 At: +17.98-076.77/
 
 Name: place:kingstown
@@ -5224,12 +5740,14 @@ Name: place:kinshasa
 Label: Kinshasa
 Kind: city
 Parent: place:democratic-republic-of-the-congo
+Region: Kinshasa City
 At: -04.33+015.31/
 
 Name: place:kirkuk
 Label: Kirkuk
 Kind: city
 Parent: place:iraq
+Region: At-Ta'mim
 At: +35.47+044.39/
 
 Name: place:kirov
@@ -5237,24 +5755,28 @@ Label: Kirov
 Alias: Vyatka
 Kind: city
 Parent: place:russia
+Region: Kirov
 At: +58.59+049.67/
 
 Name: place:kisangani
 Label: Kisangani
 Kind: city
 Parent: place:democratic-republic-of-the-congo
+Region: Orientale
 At: +00.52+025.22/
 
 Name: place:kitwe
 Label: Kitwe
 Kind: city
 Parent: place:zambia
+Region: Copperbelt
 At: -12.81+028.22/
 
 Name: place:knoxville
 Label: Knoxville
 Kind: city
 Parent: place:united-states-of-america
+Region: Tennessee
 At: +35.97-083.92/
 
 Name: place:kobenhavn
@@ -5263,6 +5785,7 @@ Alias: Kobenhavn
 Alias: Kbenhavn
 Kind: city
 Parent: place:denmark
+Region: Hovedstaden
 At: +55.68+012.56/
 
 Name: place:kochi-in
@@ -5270,6 +5793,7 @@ Label: Kochi
 Qualifier: Kerala, India
 Kind: city
 Parent: place:india
+Region: Kerala
 At: +10.02+076.22/
 
 Name: place:kochi-jp
@@ -5278,48 +5802,56 @@ Alias: Kochi
 Qualifier: Kochi, Japan
 Kind: city
 Parent: place:japan
+Region: Kochi
 At: +33.56+133.54/
 
 Name: place:kodiak
 Label: Kodiak
 Kind: city
 Parent: place:united-states-of-america
+Region: Alaska
 At: +57.79-152.41/
 
 Name: place:kolhapur
 Label: Kolhapur
 Kind: city
 Parent: place:india
+Region: Maharashtra
 At: +16.70+074.22/
 
 Name: place:kolkata
 Label: Kolkata
 Kind: city
 Parent: place:india
+Region: West Bengal
 At: +22.50+088.32/
 
 Name: place:kolwezi
 Label: Kolwezi
 Kind: city
 Parent: place:democratic-republic-of-the-congo
+Region: Katanga
 At: -10.72+025.47/
 
 Name: place:konya
 Label: Konya
 Kind: city
 Parent: place:turkey
+Region: Konya
 At: +37.88+032.47/
 
 Name: place:kota
 Label: Kota
 Kind: city
 Parent: place:india
+Region: Rajasthan
 At: +25.18+075.83/
 
 Name: place:kozhikode
 Label: Kozhikode
 Kind: city
 Parent: place:india
+Region: Kerala
 At: +11.25+075.77/
 
 Name: place:krakow
@@ -5327,72 +5859,84 @@ Label: Kraków
 Alias: Krakow
 Kind: city
 Parent: place:poland
+Region: Lesser Poland
 At: +50.06+019.96/
 
 Name: place:krasnodar
 Label: Krasnodar
 Kind: city
 Parent: place:russia
+Region: Krasnodar
 At: +45.02+039.00/
 
 Name: place:krasnoyarsk
 Label: Krasnoyarsk
 Kind: city
 Parent: place:russia
+Region: Krasnoyarsk
 At: +56.02+092.86/
 
 Name: place:kristiansand
 Label: Kristiansand
 Kind: city
 Parent: place:norway
+Region: Vest-Agder
 At: +58.17+008.00/
 
 Name: place:kuala-lumpur
 Label: Kuala Lumpur
 Kind: city
 Parent: place:malaysia
+Region: Selangor
 At: +03.17+101.70/
 
 Name: place:kuching
 Label: Kuching
 Kind: city
 Parent: place:malaysia
+Region: Sarawak
 At: +01.53+110.33/
 
 Name: place:kugluktuk
 Label: Kugluktuk
 Kind: city
 Parent: place:canada
+Region: Nunavut
 At: +67.80-115.13/
 
 Name: place:kunming
 Label: Kunming
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Yunnan
 At: +25.07+102.68/
 
 Name: place:kupang
 Label: Kupang
 Kind: city
 Parent: place:indonesia
+Region: Nusa Tenggara Timur
 At: -10.18+123.58/
 
 Name: place:kushiro
 Label: Kushiro
 Kind: city
 Parent: place:japan
+Region: Hokkaido
 At: +42.97+144.37/
 
 Name: place:kuujjuaq
 Label: Kuujjuaq
 Kind: city
 Parent: place:canada
+Region: Québec
 At: +58.10-068.40/
 
 Name: place:kuujjuarapik
 Label: Kuujjuarapik
 Kind: city
 Parent: place:canada
+Region: Québec
 At: +55.28-077.77/
 
 Name: place:kuwait-city
@@ -5401,18 +5945,21 @@ Alias: Al Kuwayt
 Alias: Kuwait
 Kind: city
 Parent: place:kuwait
+Region: Al Kuwayt
 At: +29.37+047.98/
 
 Name: place:kyoto
 Label: Kyoto
 Kind: city
 Parent: place:japan
+Region: Kyoto
 At: +35.03+135.75/
 
 Name: place:kyzyl
 Label: Kyzyl
 Kind: city
 Parent: place:russia
+Region: Tuva
 At: +51.71+094.38/
 
 Name: place:l-aquila
@@ -5420,6 +5967,7 @@ Label: L'Aquila
 Alias: Aquila
 Kind: city
 Parent: place:italy
+Region: Abruzzo
 At: +42.35+013.39/
 
 Name: place:la-paz-bo
@@ -5427,6 +5975,7 @@ Label: La Paz
 Qualifier: La Paz, Bolivia
 Kind: city
 Parent: place:bolivia
+Region: La Paz
 At: -16.50-068.15/
 
 Name: place:la-paz-mx
@@ -5434,66 +5983,77 @@ Label: La Paz
 Qualifier: Baja California Sur, Mexico
 Kind: city
 Parent: place:mexico
+Region: Baja California Sur
 At: +24.14-110.32/
 
 Name: place:la-serena
 Label: La Serena
 Kind: city
 Parent: place:chile
+Region: Coquimbo
 At: -29.90-071.25/
 
 Name: place:laayoune
 Label: Laayoune
 Kind: city
 Parent: place:morocco
+Region: Laâyoune - Boujdour - Sakia El Hamra
 At: +27.15-013.20/
 
 Name: place:labrador-city
 Label: Labrador City
 Kind: city
 Parent: place:canada
+Region: Newfoundland and Labrador
 At: +52.94-066.92/
 
 Name: place:lae
 Label: Lae
 Kind: city
 Parent: place:papua-new-guinea
+Region: Morobe
 At: -06.73+146.99/
 
 Name: place:lagos
 Label: Lagos
 Kind: city
 Parent: place:nigeria
+Region: Lagos
 At: +06.45+003.39/
 
 Name: place:lahore
 Label: Lahore
 Kind: city
 Parent: place:pakistan
+Region: Punjab
 At: +31.56+074.35/
 
 Name: place:lanzhou
 Label: Lanzhou
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Gansu
 At: +36.06+103.79/
 
 Name: place:laoag
 Label: Laoag
 Kind: city
 Parent: place:philippines
+Region: Ilocos Norte
 At: +18.20+120.59/
 
 Name: place:laredo
 Label: Laredo
 Kind: city
 Parent: place:united-states-of-america
+Region: Texas
 At: +27.51-099.51/
 
 Name: place:larkana
 Label: Larkana
 Kind: city
 Parent: place:pakistan
+Region: Sind
 At: +27.56+068.21/
 
 Name: place:las-palmas
@@ -5506,24 +6066,28 @@ Name: place:las-vegas
 Label: Las Vegas
 Kind: city
 Parent: place:united-states-of-america
+Region: Nevada
 At: +36.21-115.22/
 
 Name: place:le-havre
 Label: Le Havre
 Kind: city
 Parent: place:france
+Region: Haute-Normandie
 At: +49.50+000.10/
 
 Name: place:leh
 Label: Leh
 Kind: city
 Parent: place:india
+Region: Ladakh
 At: +34.16+077.57/
 
 Name: place:lensk
 Label: Lensk
 Kind: city
 Parent: place:russia
+Region: Sakha (Yakutia)
 At: +60.73+114.95/
 
 Name: place:leon
@@ -5532,48 +6096,56 @@ Alias: Leon
 Alias: Leon de los Aldamas
 Kind: city
 Parent: place:mexico
+Region: Guanajuato
 At: +21.15-101.70/
 
 Name: place:leticia
 Label: Leticia
 Kind: city
 Parent: place:colombia
+Region: Amazonas
 At: -04.20-069.96/
 
 Name: place:lhasa
 Label: Lhasa
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Xizang
 At: +29.65+091.10/
 
 Name: place:libreville
 Label: Libreville
 Kind: city
 Parent: place:gabon
+Region: Estuaire
 At: +00.39+009.46/
 
 Name: place:lille
 Label: Lille
 Kind: city
 Parent: place:france
+Region: Nord-Pas-de-Calais
 At: +50.65+003.08/
 
 Name: place:lilongwe
 Label: Lilongwe
 Kind: city
 Parent: place:malawi
+Region: Lilongwe
 At: -13.98+033.78/
 
 Name: place:lima
 Label: Lima
 Kind: city
 Parent: place:peru
+Region: Lima
 At: -12.05-077.05/
 
 Name: place:limoges
 Label: Limoges
 Kind: city
 Parent: place:france
+Region: Limousin
 At: +45.83+001.25/
 
 Name: place:linyi
@@ -5581,12 +6153,14 @@ Label: Linyi
 Alias: Linyi, Shandong
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Shandong
 At: +35.08+118.33/
 
 Name: place:lisbon
 Label: Lisbon
 Kind: city
 Parent: place:portugal
+Region: Lisboa
 At: +38.72-009.15/
 
 Name: place:liupanshui
@@ -5594,24 +6168,28 @@ Label: Liupanshui
 Alias: Lupanshui
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Guizhou
 At: +26.60+104.83/
 
 Name: place:livingstone
 Label: Livingstone
 Kind: city
 Parent: place:zambia
+Region: Southern
 At: -17.86+025.86/
 
 Name: place:ljubljana
 Label: Ljubljana
 Kind: city
 Parent: place:slovenia
+Region: Osrednjeslovenska
 At: +46.06+014.51/
 
 Name: place:lobamba
 Label: Lobamba
 Kind: city
 Parent: place:eswatini
+Region: Manzini
 At: -26.47+031.20/
 
 Name: place:lome
@@ -5619,18 +6197,21 @@ Label: Lomé
 Alias: Lome
 Kind: city
 Parent: place:togo
+Region: Maritime
 At: +06.13+001.22/
 
 Name: place:london
 Label: London
 Kind: city
 Parent: place:united-kingdom
+Region: Westminster
 At: +51.50-000.12/
 
 Name: place:longyearbyen
 Label: Longyearbyen
 Kind: city
 Parent: place:norway
+Region: Svalbard
 At: +78.22+015.55/
 
 Name: place:los-angeles-cl
@@ -5638,6 +6219,7 @@ Label: Los Angeles
 Qualifier: Bío-Bío, Chile
 Kind: city
 Parent: place:chile
+Region: Bío-Bío
 At: -37.46-072.36/
 
 Name: place:los-angeles-us
@@ -5646,18 +6228,21 @@ Alias: Los Angeles-Long Beach-Santa Ana
 Qualifier: California, United States of America
 Kind: city
 Parent: place:united-states-of-america
+Region: California
 At: +33.99-118.18/
 
 Name: place:luanda
 Label: Luanda
 Kind: city
 Parent: place:angola
+Region: Luanda
 At: -08.84+013.23/
 
 Name: place:lubango
 Label: Lubango
 Kind: city
 Parent: place:angola
+Region: Huíla
 At: -14.91+013.49/
 
 Name: place:lubumbashi
@@ -5665,12 +6250,14 @@ Label: Lubumbashi
 Alias: Lumumbashi
 Kind: city
 Parent: place:democratic-republic-of-the-congo
+Region: Katanga
 At: -11.68+027.48/
 
 Name: place:lucknow
 Label: Lucknow
 Kind: city
 Parent: place:india
+Region: Uttar Pradesh
 At: +26.86+080.91/
 
 Name: place:luderitz
@@ -5678,12 +6265,14 @@ Label: Lüderitz
 Alias: Luderitz
 Kind: city
 Parent: place:namibia
+Region: Karas
 At: -26.65+015.16/
 
 Name: place:ludhiana
 Label: Ludhiana
 Kind: city
 Parent: place:india
+Region: Punjab
 At: +30.93+075.87/
 
 Name: place:lulea
@@ -5691,12 +6280,14 @@ Label: Luleå
 Alias: Lulea
 Kind: city
 Parent: place:sweden
+Region: Norrbotten
 At: +65.60+022.16/
 
 Name: place:lusaka
 Label: Lusaka
 Kind: city
 Parent: place:zambia
+Region: Lusaka
 At: -15.41+028.28/
 
 Name: place:luxembourg-lu
@@ -5704,12 +6295,14 @@ Label: Luxembourg
 Qualifier: Luxembourg, Luxembourg
 Kind: city
 Parent: place:luxembourg
+Region: Luxembourg
 At: +49.61+006.13/
 
 Name: place:luxor
 Label: Luxor
 Kind: city
 Parent: place:egypt
+Region: Qina
 At: +25.70+032.65/
 
 Name: place:lvov
@@ -5718,12 +6311,14 @@ Alias: Lvov
 Alias: L'viv
 Kind: city
 Parent: place:ukraine
+Region: L'viv
 At: +49.83+024.03/
 
 Name: place:lyon
 Label: Lyon
 Kind: city
 Parent: place:france
+Region: Rhône-Alpes
 At: +45.77+004.83/
 
 Name: place:macapa
@@ -5731,6 +6326,7 @@ Label: Macapá
 Alias: Macapa
 Kind: city
 Parent: place:brazil
+Region: Amapá
 At: +00.03-051.05/
 
 Name: place:macau-mo
@@ -5745,48 +6341,56 @@ Label: Maceió
 Alias: Maceio
 Kind: city
 Parent: place:brazil
+Region: Alagoas
 At: -09.62-035.73/
 
 Name: place:madrid
 Label: Madrid
 Kind: city
 Parent: place:spain
+Region: Comunidad de Madrid
 At: +40.40-003.69/
 
 Name: place:madurai
 Label: Madurai
 Kind: city
 Parent: place:india
+Region: Tamil Nadu
 At: +09.92+078.12/
 
 Name: place:magadan
 Label: Magadan
 Kind: city
 Parent: place:russia
+Region: Maga Buryatdan
 At: +59.57+150.81/
 
 Name: place:magnitogorsk
 Label: Magnitogorsk
 Kind: city
 Parent: place:russia
+Region: Chelyabinsk
 At: +53.42+058.98/
 
 Name: place:mahajanga
 Label: Mahajanga
 Kind: city
 Parent: place:madagascar
+Region: Mahajanga
 At: -15.67+046.35/
 
 Name: place:mahalapye
 Label: Mahalapye
 Kind: city
 Parent: place:botswana
+Region: Central
 At: -23.10+026.82/
 
 Name: place:maiduguri
 Label: Maiduguri
 Kind: city
 Parent: place:nigeria
+Region: Borno
 At: +11.85+013.16/
 
 Name: place:maitri-station
@@ -5807,35 +6411,41 @@ Alias: Kota Makassar
 Alias: Ujung Pandang
 Kind: city
 Parent: place:indonesia
+Region: Sulawesi Selatan
 At: -05.14+119.43/
 
 Name: place:makkah
 Label: Makkah
 Kind: city
 Parent: place:saudi-arabia
+Region: Makkah
 At: +21.43+039.82/
 
 Name: place:makurdi
 Label: Makurdi
 Kind: city
 Parent: place:nigeria
+Region: Benue
 At: +07.73+008.53/
 
 Name: place:malabo
 Label: Malabo
 Kind: city
 Parent: place:equatorial-guinea
+Region: Bioko Norte
 At: +03.75+008.78/
 
 Name: place:malakal
 Label: Malakal
 Kind: city
+Region: Upper Nile
 At: +09.54+031.66/
 
 Name: place:malang
 Label: Malang
 Kind: city
 Parent: place:indonesia
+Region: Jawa Timur
 At: -07.98+112.61/
 
 Name: place:malanje
@@ -5843,6 +6453,7 @@ Label: Malanje
 Alias: Malange
 Kind: city
 Parent: place:angola
+Region: Malanje
 At: -09.54+016.34/
 
 Name: place:male
@@ -5857,12 +6468,14 @@ Label: Malmö
 Alias: Malmo
 Kind: city
 Parent: place:sweden
+Region: Skåne
 At: +55.58+013.03/
 
 Name: place:managua
 Label: Managua
 Kind: city
 Parent: place:nicaragua
+Region: Managua
 At: +12.15-086.27/
 
 Name: place:manama
@@ -5875,42 +6488,49 @@ Name: place:manaus
 Label: Manaus
 Kind: city
 Parent: place:brazil
+Region: Amazonas
 At: -03.10-060.00/
 
 Name: place:manchester
 Label: Manchester
 Kind: city
 Parent: place:united-kingdom
+Region: Manchester
 At: +53.50-002.25/
 
 Name: place:mandalay
 Label: Mandalay
 Kind: city
 Parent: place:myanmar
+Region: Mandalay
 At: +21.97+096.08/
 
 Name: place:mandurah
 Label: Mandurah
 Kind: city
 Parent: place:australia
+Region: Western Australia
 At: -32.52+115.75/
 
 Name: place:mangaluru
 Label: Mangaluru
 Kind: city
 Parent: place:india
+Region: Karnataka
 At: +12.90+074.85/
 
 Name: place:manila
 Label: Manila
 Kind: city
 Parent: place:philippines
+Region: Metropolitan Manila
 At: +14.61+120.98/
 
 Name: place:manizales
 Label: Manizales
 Kind: city
 Parent: place:colombia
+Region: Caldas
 At: +05.06-075.52/
 
 Name: place:manukau
@@ -5918,18 +6538,21 @@ Label: Manukau
 Alias: Southern Auckland
 Kind: city
 Parent: place:new-zealand
+Region: Auckland
 At: -37.00+174.88/
 
 Name: place:maputo
 Label: Maputo
 Kind: city
 Parent: place:mozambique
+Region: Maputo
 At: -25.95+032.59/
 
 Name: place:mar-del-plata
 Label: Mar del Plata
 Kind: city
 Parent: place:argentina
+Region: Ciudad de Buenos Aires
 At: -38.00-057.58/
 
 Name: place:maraba
@@ -5937,12 +6560,14 @@ Label: Marabá
 Alias: Maraba
 Kind: city
 Parent: place:brazil
+Region: Pará
 At: -05.35-049.12/
 
 Name: place:maracaibo
 Label: Maracaibo
 Kind: city
 Parent: place:venezuela
+Region: Zulia
 At: +10.73-071.66/
 
 Name: place:maradi
@@ -5950,6 +6575,7 @@ Label: Niamey
 Alias: Maradi
 Kind: city
 Parent: place:niger
+Region: Maradi
 At: +13.49+007.10/
 
 Name: place:marambio-base
@@ -5963,12 +6589,14 @@ Name: place:mariehamn
 Label: Mariehamn
 Kind: city
 Parent: place:aland
+Region: Finström
 At: +60.10+019.95/
 
 Name: place:maroua
 Label: Maroua
 Kind: city
 Parent: place:cameroon
+Region: Extrême-Nord
 At: +10.60+014.32/
 
 Name: place:marrakesh
@@ -5976,6 +6604,7 @@ Label: Marrakesh
 Alias: Marrakech
 Kind: city
 Parent: place:morocco
+Region: Marrakech - Tensift - Al Haouz
 At: +31.63-008.00/
 
 Name: place:marseille
@@ -5983,48 +6612,56 @@ Label: Marseille
 Alias: Marseille-Aix-en-Provence
 Kind: city
 Parent: place:france
+Region: Provence-Alpes-Côte-d'Azur
 At: +43.29+005.37/
 
 Name: place:mary
 Label: Mary
 Kind: city
 Parent: place:turkmenistan
+Region: Mary
 At: +37.60+061.83/
 
 Name: place:masaka
 Label: Masaka
 Kind: city
 Parent: place:uganda
+Region: Masaka
 At: -00.33+031.73/
 
 Name: place:maseru
 Label: Maseru
 Kind: city
 Parent: place:lesotho
+Region: Maseru
 At: -29.32+027.48/
 
 Name: place:mashhad
 Label: Mashhad
 Kind: city
 Parent: place:iran
+Region: Razavi Khorasan
 At: +36.27+059.57/
 
 Name: place:matadi
 Label: Matadi
 Kind: city
 Parent: place:democratic-republic-of-the-congo
+Region: Bas-Congo
 At: -05.82+013.45/
 
 Name: place:matamoros
 Label: Matamoros
 Kind: city
 Parent: place:mexico
+Region: Tamaulipas
 At: +25.88-097.50/
 
 Name: place:matsuyama
 Label: Matsuyama
 Kind: city
 Parent: place:japan
+Region: Ehime
 At: +33.85+132.77/
 
 Name: place:mawson-station
@@ -6039,6 +6676,7 @@ Alias: Mazar-e Sharif
 Alias: Mazar-E Sharif
 Kind: city
 Parent: place:afghanistan
+Region: Balkh
 At: +36.70+067.10/
 
 Name: place:mazatlan
@@ -6046,42 +6684,49 @@ Label: Mazatlán
 Alias: Mazatlan
 Kind: city
 Parent: place:mexico
+Region: Sinaloa
 At: +23.22-106.42/
 
 Name: place:mbabane
 Label: Mbabane
 Kind: city
 Parent: place:eswatini
+Region: Hhohho
 At: -26.32+031.13/
 
 Name: place:mbale
 Label: Mbale
 Kind: city
 Parent: place:uganda
+Region: Bungokho
 At: +01.09+034.17/
 
 Name: place:mbandaka
 Label: Mbandaka
 Kind: city
 Parent: place:democratic-republic-of-the-congo
+Region: Équateur
 At: +00.04+018.26/
 
 Name: place:mbarara
 Label: Mbarara
 Kind: city
 Parent: place:uganda
+Region: Kashari
 At: -00.60+030.65/
 
 Name: place:mbeya
 Label: Mbeya
 Kind: city
 Parent: place:tanzania
+Region: Mbeya
 At: -08.89+033.43/
 
 Name: place:mbuji-mayi
 Label: Mbuji-Mayi
 Kind: city
 Parent: place:democratic-republic-of-the-congo
+Region: Kasaï-Oriental
 At: -06.15+023.60/
 
 Name: place:mcmurdo-station
@@ -6094,6 +6739,7 @@ Name: place:medan
 Label: Medan
 Kind: city
 Parent: place:indonesia
+Region: Sumatera Utara
 At: +03.58+098.65/
 
 Name: place:medellin
@@ -6101,6 +6747,7 @@ Label: Medellín
 Alias: Medellin
 Kind: city
 Parent: place:colombia
+Region: Antioquia
 At: +06.28-075.58/
 
 Name: place:medina
@@ -6108,12 +6755,14 @@ Label: Medina
 Alias: Al-Madinah
 Kind: city
 Parent: place:saudi-arabia
+Region: Al Madinah
 At: +24.50+039.58/
 
 Name: place:meerut
 Label: Meerut
 Kind: city
 Parent: place:india
+Region: Uttar Pradesh
 At: +29.00+077.70/
 
 Name: place:mekele
@@ -6121,12 +6770,14 @@ Label: Mekele
 Alias: Mek'ele
 Kind: city
 Parent: place:ethiopia
+Region: Tigray
 At: +13.50+039.47/
 
 Name: place:melbourne
 Label: Melbourne
 Kind: city
 Parent: place:australia
+Region: Victoria
 At: -37.82+144.97/
 
 Name: place:melekeok
@@ -6139,18 +6790,21 @@ Name: place:memphis
 Label: Memphis
 Kind: city
 Parent: place:united-states-of-america
+Region: Tennessee
 At: +35.12-090.00/
 
 Name: place:mendoza
 Label: Mendoza
 Kind: city
 Parent: place:argentina
+Region: Mendoza
 At: -32.88-068.82/
 
 Name: place:menongue
 Label: Menongue
 Kind: city
 Parent: place:angola
+Region: Cuando Cubango
 At: -14.67+017.70/
 
 Name: place:merida-mx
@@ -6159,6 +6813,7 @@ Alias: Merida
 Qualifier: Yucatán, Mexico
 Kind: city
 Parent: place:mexico
+Region: Yucatán
 At: +20.97-089.62/
 
 Name: place:merida-ve
@@ -6167,18 +6822,21 @@ Alias: Merida
 Qualifier: Mérida, Venezuela
 Kind: city
 Parent: place:venezuela
+Region: Mérida
 At: +08.40-071.13/
 
 Name: place:meru
 Label: Meru
 Kind: city
 Parent: place:kenya
+Region: Eastern
 At: +00.06+037.64/
 
 Name: place:mexicali
 Label: Mexicali
 Kind: city
 Parent: place:mexico
+Region: Baja California
 At: +32.65-115.48/
 
 Name: place:mexico-city
@@ -6186,12 +6844,14 @@ Label: Mexico City
 Alias: Ciudad de M
 Kind: city
 Parent: place:mexico
+Region: Distrito Federal
 At: +19.44-099.13/
 
 Name: place:miami
 Label: Miami
 Kind: city
 Parent: place:united-states-of-america
+Region: Florida
 At: +25.79-080.23/
 
 Name: place:mianyang
@@ -6199,24 +6859,28 @@ Label: Mianyang
 Alias: Mianyang, Sichuan
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Sichuan
 At: +31.47+104.77/
 
 Name: place:middelburg
 Label: Middelburg
 Kind: city
 Parent: place:south-africa
+Region: Eastern Cape
 At: -31.50+025.01/
 
 Name: place:milan
 Label: Milan
 Kind: city
 Parent: place:italy
+Region: Lombardia
 At: +45.47+009.20/
 
 Name: place:milwaukee
 Label: Milwaukee
 Kind: city
 Parent: place:united-states-of-america
+Region: Wisconsin
 At: +43.05-087.92/
 
 Name: place:minneapolis
@@ -6224,18 +6888,21 @@ Label: Minneapolis
 Alias: Minneapolis-St. Paul
 Kind: city
 Parent: place:united-states-of-america
+Region: Minnesota
 At: +44.98-093.25/
 
 Name: place:minot
 Label: Minot
 Kind: city
 Parent: place:united-states-of-america
+Region: North Dakota
 At: +48.23-101.30/
 
 Name: place:minsk
 Label: Minsk
 Kind: city
 Parent: place:belarus
+Region: Minsk
 At: +53.90+027.56/
 
 Name: place:mirny-station
@@ -6249,6 +6916,7 @@ Label: Mirny
 Alias: Mirnyy
 Kind: city
 Parent: place:russia
+Region: Sakha (Yakutia)
 At: +62.54+113.96/
 
 Name: place:misratah
@@ -6256,12 +6924,14 @@ Label: Misrata
 Alias: Misratah
 Kind: city
 Parent: place:libya
+Region: Misratah
 At: +32.38+015.10/
 
 Name: place:missoula
 Label: Missoula
 Kind: city
 Parent: place:united-states-of-america
+Region: Montana
 At: +46.87-113.99/
 
 Name: place:mitu
@@ -6269,12 +6939,14 @@ Label: Mitú
 Alias: Mitu
 Kind: city
 Parent: place:colombia
+Region: Vaupés
 At: +01.20-070.17/
 
 Name: place:miyazaki
 Label: Miyazaki
 Kind: city
 Parent: place:japan
+Region: Miyazaki
 At: +31.92+131.42/
 
 Name: place:mogadishu
@@ -6282,12 +6954,14 @@ Label: Mogadishu
 Alias: Muqdisho
 Kind: city
 Parent: place:somalia
+Region: Banaadir
 At: +02.07+045.36/
 
 Name: place:mombasa
 Label: Mombasa
 Kind: city
 Parent: place:kenya
+Region: Coast
 At: -04.04+039.69/
 
 Name: place:monaco-mc
@@ -6301,36 +6975,42 @@ Name: place:monrovia
 Label: Monrovia
 Kind: city
 Parent: place:liberia
+Region: Montserrado
 At: +06.31-010.80/
 
 Name: place:monterrey
 Label: Monterrey
 Kind: city
 Parent: place:mexico
+Region: Nuevo León
 At: +25.67-100.33/
 
 Name: place:montes-claros
 Label: Montes Claros
 Kind: city
 Parent: place:brazil
+Region: Minas Gerais
 At: -16.72-043.86/
 
 Name: place:montevideo
 Label: Montevideo
 Kind: city
 Parent: place:uruguay
+Region: Montevideo
 At: -34.86-056.17/
 
 Name: place:montgomery
 Label: Montgomery
 Kind: city
 Parent: place:united-states-of-america
+Region: Alabama
 At: +32.36-086.28/
 
 Name: place:montpellier
 Label: Montpellier
 Kind: city
 Parent: place:france
+Region: Languedoc-Roussillon
 At: +43.61+003.87/
 
 Name: place:montreal
@@ -6338,18 +7018,21 @@ Label: Montréal
 Alias: Montreal
 Kind: city
 Parent: place:canada
+Region: Québec
 At: +45.50-073.59/
 
 Name: place:moradabad
 Label: Moradabad
 Kind: city
 Parent: place:india
+Region: Uttar Pradesh
 At: +28.84+078.75/
 
 Name: place:morogoro
 Label: Morogoro
 Kind: city
 Parent: place:tanzania
+Region: Morogoro
 At: -06.82+037.66/
 
 Name: place:moroni
@@ -6362,12 +7045,14 @@ Name: place:moroto
 Label: Moroto
 Kind: city
 Parent: place:uganda
+Region: Moroto
 At: +02.54+034.64/
 
 Name: place:moscow
 Label: Moscow
 Kind: city
 Parent: place:russia
+Region: Moskva
 At: +55.75+037.61/
 
 Name: place:mosul
@@ -6375,18 +7060,21 @@ Label: Mosul
 Alias: Al-Mawsil
 Kind: city
 Parent: place:iraq
+Region: Ninawa
 At: +36.35+043.14/
 
 Name: place:moundou
 Label: Moundou
 Kind: city
 Parent: place:chad
+Region: Logone Oriental
 At: +08.55+016.09/
 
 Name: place:mount-isa
 Label: Mount Isa
 Kind: city
 Parent: place:australia
+Region: Queensland
 At: -20.72+139.49/
 
 Name: place:mt-hagen
@@ -6395,114 +7083,133 @@ Alias: Mt. Hagen
 Alias: Mount Hagen
 Kind: city
 Parent: place:papua-new-guinea
+Region: Western Highlands
 At: -05.86+144.22/
 
 Name: place:mufulira
 Label: Mufulira
 Kind: city
 Parent: place:zambia
+Region: Copperbelt
 At: -12.55+028.26/
 
 Name: place:multan
 Label: Multan
 Kind: city
 Parent: place:pakistan
+Region: Punjab
 At: +30.20+071.45/
 
 Name: place:mumbai
 Label: Mumbai
 Kind: city
 Parent: place:india
+Region: Maharashtra
 At: +19.02+072.86/
 
 Name: place:munich
 Label: Munich
 Kind: city
 Parent: place:germany
+Region: Bayern
 At: +48.13+011.57/
 
 Name: place:murmansk
 Label: Murmansk
 Kind: city
 Parent: place:russia
+Region: Murmansk
 At: +68.97+033.10/
 
 Name: place:muscat
 Label: Muscat
 Kind: city
 Parent: place:oman
+Region: Muscat
 At: +23.61+058.59/
 
 Name: place:mwanza
 Label: Mwanza
 Kind: city
 Parent: place:tanzania
+Region: Mwanza
 At: -02.52+032.93/
 
 Name: place:mysuru
 Label: Mysuru
 Kind: city
 Parent: place:india
+Region: Karnataka
 At: +12.31+076.66/
 
 Name: place:mzuzu
 Label: Mzuzu
 Kind: city
 Parent: place:malawi
+Region: Mzimba
 At: -11.46+034.02/
 
 Name: place:nacala
 Label: Nacala
 Kind: city
 Parent: place:mozambique
+Region: Nampula
 At: -14.52+040.72/
 
 Name: place:nagano
 Label: Nagano
 Kind: city
 Parent: place:japan
+Region: Nagano
 At: +36.65+138.17/
 
 Name: place:nagasaki
 Label: Nagasaki
 Kind: city
 Parent: place:japan
+Region: Nagasaki
 At: +32.76+129.89/
 
 Name: place:nagoya
 Label: Nagoya
 Kind: city
 Parent: place:japan
+Region: Aichi
 At: +35.16+136.91/
 
 Name: place:nagpur
 Label: Nagpur
 Kind: city
 Parent: place:india
+Region: Maharashtra
 At: +21.17+079.09/
 
 Name: place:naha
 Label: Naha
 Kind: city
 Parent: place:japan
+Region: Okinawa
 At: +26.21+127.67/
 
 Name: place:nain
 Label: Nain
 Kind: city
 Parent: place:canada
+Region: Newfoundland and Labrador
 At: +56.55-061.69/
 
 Name: place:nairobi
 Label: Nairobi
 Kind: city
 Parent: place:kenya
+Region: Nairobi
 At: -01.28+036.81/
 
 Name: place:nakhon-ratchasima
 Label: Nakhon Ratchasima
 Kind: city
 Parent: place:thailand
+Region: Nakhon Ratchasima
 At: +15.00+102.10/
 
 Name: place:naltchik
@@ -6510,6 +7217,7 @@ Label: Nalchik
 Alias: Naltchik
 Kind: city
 Parent: place:russia
+Region: Kabardin-Balkar
 At: +43.50+043.62/
 
 Name: place:namibe
@@ -6518,36 +7226,42 @@ Alias: Namibe
 Alias: Mocamedes
 Kind: city
 Parent: place:angola
+Region: Namibe
 At: -15.19+012.16/
 
 Name: place:nampula
 Label: Nampula
 Kind: city
 Parent: place:mozambique
+Region: Nampula
 At: -15.14+039.29/
 
 Name: place:nanchang
 Label: Nanchang
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Jiangxi
 At: +28.68+115.88/
 
 Name: place:nanchong
 Label: Nanchong
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Sichuan
 At: +30.78+106.13/
 
 Name: place:nancy
 Label: Nancy
 Kind: city
 Parent: place:france
+Region: Lorraine
 At: +48.68+006.20/
 
 Name: place:nanded
 Label: Nanded
 Kind: city
 Parent: place:india
+Region: Maharashtra
 At: +19.17+077.30/
 
 Name: place:nanjing
@@ -6555,18 +7269,21 @@ Label: Nanjing
 Alias: Nanjing, Jiangsu
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Jiangsu
 At: +32.05+118.78/
 
 Name: place:nanning
 Label: Nanning
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Guangxi
 At: +22.82+108.32/
 
 Name: place:nantes
 Label: Nantes
 Kind: city
 Parent: place:france
+Region: Pays de la Loire
 At: +47.21-001.59/
 
 Name: place:nanyang
@@ -6574,24 +7291,28 @@ Label: Nanyang
 Alias: Nanyang, Henan
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Henan
 At: +33.00+112.53/
 
 Name: place:napier
 Label: Napier
 Kind: city
 Parent: place:new-zealand
+Region: Gisborne
 At: -39.49+176.93/
 
 Name: place:naples
 Label: Naples
 Kind: city
 Parent: place:italy
+Region: Campania
 At: +40.84+014.24/
 
 Name: place:narsarsuaq
 Label: Narsarsuaq
 Kind: city
 Parent: place:greenland
+Region: Kommune Kujalleq
 At: +61.17-045.42/
 
 Name: place:nashville
@@ -6599,6 +7320,7 @@ Label: Nashville
 Alias: Nashville-Davidson
 Kind: city
 Parent: place:united-states-of-america
+Region: Tennessee
 At: +36.17-086.78/
 
 Name: place:nasik
@@ -6606,6 +7328,7 @@ Label: Nasik
 Alias: Nashik
 Kind: city
 Parent: place:india
+Region: Maharashtra
 At: +20.00+073.78/
 
 Name: place:nassau
@@ -6618,6 +7341,7 @@ Name: place:natal
 Label: Natal
 Kind: city
 Parent: place:brazil
+Region: Rio Grande do Norte
 At: -05.78-035.24/
 
 Name: place:naypyidaw
@@ -6625,6 +7349,7 @@ Label: Naypyidaw
 Alias: Nay Pyi Taw
 Kind: city
 Parent: place:myanmar
+Region: Mandalay
 At: +19.77+096.12/
 
 Name: place:ndele
@@ -6633,6 +7358,7 @@ Alias: Ndele
 Alias: N'Dele
 Kind: city
 Parent: place:central-african-republic
+Region: Bamingui-Bangoran
 At: +08.41+020.65/
 
 Name: place:ndjamena
@@ -6641,12 +7367,14 @@ Alias: Ndjamena
 Alias: N'Djamnna
 Kind: city
 Parent: place:chad
+Region: Hadjer-Lamis
 At: +12.12+015.05/
 
 Name: place:neijiang
 Label: Neijiang
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Sichuan
 At: +29.58+105.05/
 
 Name: place:neumayer-station-iii
@@ -6660,18 +7388,21 @@ Label: Neuquén
 Alias: Neuquen
 Kind: city
 Parent: place:argentina
+Region: Neuquén
 At: -38.95-068.06/
 
 Name: place:new-delhi
 Label: New Delhi
 Kind: city
 Parent: place:india
+Region: Delhi
 At: +28.60+077.20/
 
 Name: place:new-orleans
 Label: New Orleans
 Kind: city
 Parent: place:united-states-of-america
+Region: Louisiana
 At: +30.00-090.04/
 
 Name: place:new-york
@@ -6679,18 +7410,21 @@ Label: New York
 Alias: New York-Newark
 Kind: city
 Parent: place:united-states-of-america
+Region: New York
 At: +40.75-073.98/
 
 Name: place:newcastle
 Label: Newcastle
 Kind: city
 Parent: place:australia
+Region: New South Wales
 At: -32.85+151.82/
 
 Name: place:niamey
 Label: Niamey
 Kind: city
 Parent: place:niger
+Region: Niamey
 At: +13.52+002.11/
 
 Name: place:nicosia
@@ -6703,6 +7437,7 @@ Name: place:ningbo
 Label: Ningbo
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Zhejiang
 At: +29.88+121.55/
 
 Name: place:niyala
@@ -6710,12 +7445,14 @@ Label: Nyala
 Alias: Niyala
 Kind: city
 Parent: place:sudan
+Region: South Darfur
 At: +12.06+024.89/
 
 Name: place:nizhneyansk
 Label: Nizhneyansk
 Kind: city
 Parent: place:russia
+Region: Sakha (Yakutia)
 At: +71.43+136.07/
 
 Name: place:nizhny-novgorod
@@ -6725,54 +7462,63 @@ Alias: Nizhniy Novgorod
 Alias: Novgorod
 Kind: city
 Parent: place:russia
+Region: Nizhegorod
 At: +56.33+044.00/
 
 Name: place:nizhny-tagil
 Label: Nizhny Tagil
 Kind: city
 Parent: place:russia
+Region: Sverdlovsk
 At: +57.92+059.97/
 
 Name: place:nogales
 Label: Nogales
 Kind: city
 Parent: place:mexico
+Region: Sonora
 At: +31.30-110.94/
 
 Name: place:nome
 Label: Nome
 Kind: city
 Parent: place:united-states-of-america
+Region: Alaska
 At: +64.51-165.41/
 
 Name: place:norfolk
 Label: Norfolk
 Kind: city
 Parent: place:united-states-of-america
+Region: Virginia
 At: +36.85-076.28/
 
 Name: place:norilsk
 Label: Norilsk
 Kind: city
 Parent: place:russia
+Region: Taymyr
 At: +69.34+088.22/
 
 Name: place:north-bay
 Label: North Bay
 Kind: city
 Parent: place:canada
+Region: Ontario
 At: +46.30-079.45/
 
 Name: place:nouadhibou
 Label: Nouadhibou
 Kind: city
 Parent: place:mauritania
+Region: Dakhlet Nouadhibou
 At: +20.90-017.06/
 
 Name: place:nouakchott
 Label: Nouakchott
 Kind: city
 Parent: place:mauritania
+Region: Nouakchott
 At: +18.09-015.98/
 
 Name: place:noumea
@@ -6780,18 +7526,21 @@ Label: Nouméa
 Alias: Noumea
 Kind: city
 Parent: place:new-caledonia
+Region: Sud
 At: -22.26+166.44/
 
 Name: place:novi-sad
 Label: Novi Sad
 Kind: city
 Parent: place:serbia
+Region: Južno-Backi
 At: +45.25+019.85/
 
 Name: place:novokuznetsk
 Label: Novokuznetsk
 Kind: city
 Parent: place:russia
+Region: Kemerovo
 At: +53.75+087.11/
 
 Name: place:novolazarevskaya-station
@@ -6804,12 +7553,14 @@ Name: place:novosibirsk
 Label: Novosibirsk
 Kind: city
 Parent: place:russia
+Region: Novosibirsk
 At: +55.03+082.96/
 
 Name: place:nuevo-laredo
 Label: Nuevo Laredo
 Kind: city
 Parent: place:mexico
+Region: Tamaulipas
 At: +27.50-099.55/
 
 Name: place:nukualofa
@@ -6823,12 +7574,14 @@ Name: place:nukus
 Label: Nukus
 Kind: city
 Parent: place:uzbekistan
+Region: Karakalpakstan
 At: +42.47+059.62/
 
 Name: place:nuuk
 Label: Nuuk
 Kind: city
 Parent: place:greenland
+Region: Kommuneqarfik Sermersooq
 At: +64.20-051.73/
 
 Name: place:nzerekore
@@ -6836,6 +7589,7 @@ Label: Nzérékoré
 Alias: Nzerekore
 Kind: city
 Parent: place:guinea
+Region: Nzerekore
 At: +07.76-008.83/
 
 Name: place:oaxaca
@@ -6843,12 +7597,14 @@ Label: Oaxaca
 Alias: Oaxaca de Juárez
 Kind: city
 Parent: place:mexico
+Region: Oaxaca
 At: +17.08-096.67/
 
 Name: place:obo
 Label: Obo
 Kind: city
 Parent: place:central-african-republic
+Region: Haut-Mbomou
 At: +05.40+026.50/
 
 Name: place:odessa
@@ -6856,54 +7612,63 @@ Label: Odessa
 Alias: Odesa
 Kind: city
 Parent: place:ukraine
+Region: Odessa
 At: +46.49+030.71/
 
 Name: place:ogbomosho
 Label: Ogbomosho
 Kind: city
 Parent: place:nigeria
+Region: Oyo
 At: +08.13+004.24/
 
 Name: place:okha
 Label: Okha
 Kind: city
 Parent: place:russia
+Region: Sakhalin
 At: +53.57+142.95/
 
 Name: place:okhotsk
 Label: Okhotsk
 Kind: city
 Parent: place:russia
+Region: Khabarovsk
 At: +59.38+143.22/
 
 Name: place:oklahoma-city
 Label: Oklahoma City
 Kind: city
 Parent: place:united-states-of-america
+Region: Oklahoma
 At: +35.47-097.52/
 
 Name: place:olympia
 Label: Olympia
 Kind: city
 Parent: place:united-states-of-america
+Region: Washington
 At: +47.04-122.90/
 
 Name: place:omaha
 Label: Omaha
 Kind: city
 Parent: place:united-states-of-america
+Region: Nebraska
 At: +41.24-096.01/
 
 Name: place:omdurman
 Label: Omdurman
 Kind: city
 Parent: place:sudan
+Region: Khartoum
 At: +15.62+032.48/
 
 Name: place:omsk
 Label: Omsk
 Kind: city
 Parent: place:russia
+Region: Omsk
 At: +54.99+073.40/
 
 Name: place:oran
@@ -6911,12 +7676,14 @@ Label: Oran
 Alias: Wahran
 Kind: city
 Parent: place:algeria
+Region: Oran
 At: +35.71-000.62/
 
 Name: place:orange
 Label: Orange
 Kind: city
 Parent: place:australia
+Region: New South Wales
 At: -33.28+149.10/
 
 Name: place:oranjestad
@@ -6935,12 +7702,14 @@ Name: place:orenburg
 Label: Orenburg
 Kind: city
 Parent: place:russia
+Region: Orenburg
 At: +51.78+055.11/
 
 Name: place:orlando
 Label: Orlando
 Kind: city
 Parent: place:united-states-of-america
+Region: Florida
 At: +28.51-081.38/
 
 Name: place:orleans
@@ -6948,6 +7717,7 @@ Label: Orléans
 Alias: Orleans
 Kind: city
 Parent: place:france
+Region: Centre
 At: +47.90+001.90/
 
 Name: place:osaka
@@ -6956,6 +7726,7 @@ Alias: Osaka
 Alias: Osaka-Kobe
 Kind: city
 Parent: place:japan
+Region: Osaka
 At: +34.75+135.46/
 
 Name: place:oskemen
@@ -6963,18 +7734,21 @@ Label: Oskemen
 Alias: Ust'-Kamenogorsk
 Kind: city
 Parent: place:kazakhstan
+Region: East Kazakhstan
 At: +49.99+082.61/
 
 Name: place:oslo
 Label: Oslo
 Kind: city
 Parent: place:norway
+Region: Oslo
 At: +59.92+010.75/
 
 Name: place:otjiwarongo
 Label: Otjiwarongo
 Kind: city
 Parent: place:namibia
+Region: Otjozondjupa
 At: -20.46+016.64/
 
 Name: place:ottawa
@@ -6982,24 +7756,28 @@ Label: Ottawa
 Alias: Ottawa-Gatineau
 Kind: city
 Parent: place:canada
+Region: Ontario
 At: +45.42-075.70/
 
 Name: place:ouagadougou
 Label: Ouagadougou
 Kind: city
 Parent: place:burkina-faso
+Region: Kadiogo
 At: +12.37-001.53/
 
 Name: place:oujda
 Label: Oujda
 Kind: city
 Parent: place:morocco
+Region: Oriental
 At: +34.69-001.91/
 
 Name: place:padang
 Label: Padang
 Kind: city
 Parent: place:indonesia
+Region: Sumatera Barat
 At: -00.96+100.36/
 
 Name: place:pago-pago
@@ -7012,18 +7790,21 @@ Name: place:palana
 Label: Palana
 Kind: city
 Parent: place:russia
+Region: Kamchatka
 At: +59.08+159.95/
 
 Name: place:palembang
 Label: Palembang
 Kind: city
 Parent: place:indonesia
+Region: Sumatera Selatan
 At: -02.98+104.75/
 
 Name: place:palermo
 Label: Palermo
 Kind: city
 Parent: place:italy
+Region: Sicily
 At: +38.13+013.35/
 
 Name: place:palikir
@@ -7044,6 +7825,7 @@ Alias: Ciudad de Panam
 Alias: Panama
 Kind: city
 Parent: place:panama
+Region: Panama
 At: +08.97-079.53/
 
 Name: place:papeete
@@ -7056,66 +7838,77 @@ Name: place:parakou
 Label: Parakou
 Kind: city
 Parent: place:benin
+Region: Borgou
 At: +09.34+002.62/
 
 Name: place:paramaribo
 Label: Paramaribo
 Kind: city
 Parent: place:suriname
+Region: Paramaribo
 At: +05.84-055.17/
 
 Name: place:parepare
 Label: Parepare
 Kind: city
 Parent: place:indonesia
+Region: Sulawesi Selatan
 At: -04.02+119.63/
 
 Name: place:paris
 Label: Paris
 Kind: city
 Parent: place:france
+Region: Île-de-France
 At: +48.87+002.33/
 
 Name: place:pasto
 Label: Pasto
 Kind: city
 Parent: place:colombia
+Region: Nariño
 At: +01.21-077.28/
 
 Name: place:patna
 Label: Patna
 Kind: city
 Parent: place:india
+Region: Bihar
 At: +25.63+085.13/
 
 Name: place:pavlodar
 Label: Pavlodar
 Kind: city
 Parent: place:kazakhstan
+Region: Pavlodar
 At: +52.30+076.95/
 
 Name: place:peace-river
 Label: Peace River
 Kind: city
 Parent: place:canada
+Region: Alberta
 At: +56.23-117.28/
 
 Name: place:pelotas
 Label: Pelotas
 Kind: city
 Parent: place:brazil
+Region: Rio Grande do Sul
 At: -31.75-052.33/
 
 Name: place:pemba
 Label: Pemba
 Kind: city
 Parent: place:mozambique
+Region: Cabo Delgado
 At: -12.98+040.53/
 
 Name: place:penza
 Label: Penza
 Kind: city
 Parent: place:russia
+Region: Penza
 At: +53.18+045.00/
 
 Name: place:perm
@@ -7123,24 +7916,28 @@ Label: Perm
 Alias: Perm'
 Kind: city
 Parent: place:russia
+Region: Perm'
 At: +58.00+056.25/
 
 Name: place:perth
 Label: Perth
 Kind: city
 Parent: place:australia
+Region: Western Australia
 At: -31.95+115.84/
 
 Name: place:perugia
 Label: Perugia
 Kind: city
 Parent: place:italy
+Region: Umbria
 At: +43.11+012.39/
 
 Name: place:peshawar
 Label: Peshawar
 Kind: city
 Parent: place:pakistan
+Region: N.W.F.P.
 At: +34.01+071.53/
 
 Name: place:peter-i-island
@@ -7153,6 +7950,7 @@ Name: place:petrolina
 Label: Petrolina
 Kind: city
 Parent: place:brazil
+Region: Pernambuco
 At: -09.38-040.51/
 
 Name: place:petropavlovsk-kamchatskiy
@@ -7160,18 +7958,21 @@ Label: Petropavlovsk-Kamchatsky
 Alias: Petropavlovsk Kamchatskiy
 Kind: city
 Parent: place:russia
+Region: Kamchatka
 At: +53.06+158.62/
 
 Name: place:petrozavodsk
 Label: Petrozavodsk
 Kind: city
 Parent: place:russia
+Region: Karelia
 At: +61.85+034.28/
 
 Name: place:philadelphia
 Label: Philadelphia
 Kind: city
 Parent: place:united-states-of-america
+Region: Pennsylvania
 At: +40.00-075.17/
 
 Name: place:phnom-penh
@@ -7179,6 +7980,7 @@ Label: Phnom Penh
 Alias: Phnum Penh
 Kind: city
 Parent: place:cambodia
+Region: Phnom Penh
 At: +11.55+104.91/
 
 Name: place:phoenix
@@ -7186,12 +7988,14 @@ Label: Phoenix
 Alias: Phoenix-Mesa
 Kind: city
 Parent: place:united-states-of-america
+Region: Arizona
 At: +33.54-112.07/
 
 Name: place:pierre
 Label: Pierre
 Kind: city
 Parent: place:united-states-of-america
+Region: South Dakota
 At: +44.37-100.35/
 
 Name: place:pingxiang
@@ -7199,36 +8003,42 @@ Label: Pingxiang
 Alias: Pingxiang, Jiangxi
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Jiangxi
 At: +27.62+113.85/
 
 Name: place:pittsburgh
 Label: Pittsburgh
 Kind: city
 Parent: place:united-states-of-america
+Region: Pennsylvania
 At: +40.43-080.00/
 
 Name: place:piura
 Label: Piura
 Kind: city
 Parent: place:peru
+Region: Piura
 At: -05.21-080.63/
 
 Name: place:podgorica
 Label: Podgorica
 Kind: city
 Parent: place:montenegro
+Region: Podgorica
 At: +42.47+019.27/
 
 Name: place:point-hope
 Label: Point Hope
 Kind: city
 Parent: place:united-states-of-america
+Region: Alaska
 At: +68.35-166.81/
 
 Name: place:pointe-noire
 Label: Pointe-Noire
 Kind: city
 Parent: place:republic-of-the-congo
+Region: Kouilou
 At: -04.77+011.88/
 
 Name: place:poitier
@@ -7236,30 +8046,35 @@ Label: Poitier
 Alias: Poitiers
 Kind: city
 Parent: place:france
+Region: Poitou-Charentes
 At: +46.58+000.33/
 
 Name: place:ponta-delgada
 Label: Ponta Delgada
 Kind: city
 Parent: place:portugal
+Region: Azores
 At: +37.75-025.67/
 
 Name: place:ponta-grossa
 Label: Ponta Grossa
 Kind: city
 Parent: place:brazil
+Region: Paraná
 At: -25.09-050.16/
 
 Name: place:port-au-prince
 Label: Port-au-Prince
 Kind: city
 Parent: place:haiti
+Region: Ouest
 At: +18.54-072.34/
 
 Name: place:port-elizabeth
 Label: Port Elizabeth
 Kind: city
 Parent: place:south-africa
+Region: Eastern Cape
 At: -33.97+025.60/
 
 Name: place:port-gentil
@@ -7267,24 +8082,28 @@ Label: Port-Gentil
 Alias: Port Gentil
 Kind: city
 Parent: place:gabon
+Region: Ogooué-Maritime
 At: -00.72+008.78/
 
 Name: place:port-harcourt
 Label: Port Harcourt
 Kind: city
 Parent: place:nigeria
+Region: Rivers
 At: +04.81+007.01/
 
 Name: place:port-hedland
 Label: Port Hedland
 Kind: city
 Parent: place:australia
+Region: Western Australia
 At: -20.31+118.61/
 
 Name: place:port-lincoln
 Label: Port Lincoln
 Kind: city
 Parent: place:australia
+Region: South Australia
 At: -34.73+135.87/
 
 Name: place:port-louis
@@ -7297,24 +8116,28 @@ Name: place:port-moresby
 Label: Port Moresby
 Kind: city
 Parent: place:papua-new-guinea
+Region: Central
 At: -09.46+147.19/
 
 Name: place:port-of-spain
 Label: Port-of-Spain
 Kind: city
 Parent: place:trinidad-and-tobago
+Region: Port of Spain
 At: +10.65-061.52/
 
 Name: place:port-sudan
 Label: Port Sudan
 Kind: city
 Parent: place:sudan
+Region: Red Sea
 At: +19.62+037.22/
 
 Name: place:port-vila
 Label: Port Vila
 Kind: city
 Parent: place:vanuatu
+Region: Shefa
 At: -17.73+168.32/
 
 Name: place:portland-au
@@ -7322,6 +8145,7 @@ Label: Portland
 Qualifier: Victoria, Australia
 Kind: city
 Parent: place:australia
+Region: Victoria
 At: -38.34+141.59/
 
 Name: place:portland-us
@@ -7329,42 +8153,49 @@ Label: Portland
 Qualifier: Oregon, United States of America
 Kind: city
 Parent: place:united-states-of-america
+Region: Oregon
 At: +45.52-122.68/
 
 Name: place:porto-alegre
 Label: Porto Alegre
 Kind: city
 Parent: place:brazil
+Region: Rio Grande do Sul
 At: -30.05-051.20/
 
 Name: place:porto-novo
 Label: Porto-Novo
 Kind: city
 Parent: place:benin
+Region: Ouémé
 At: +06.48+002.62/
 
 Name: place:porto-velho
 Label: Porto Velho
 Kind: city
 Parent: place:brazil
+Region: Rondônia
 At: -08.75-063.90/
 
 Name: place:posadas
 Label: Posadas
 Kind: city
 Parent: place:argentina
+Region: Misiones
 At: -27.36-055.89/
 
 Name: place:potenza
 Label: Potenza
 Kind: city
 Parent: place:italy
+Region: Basilicata
 At: +40.64+015.80/
 
 Name: place:prague
 Label: Prague
 Kind: city
 Parent: place:czech-republic
+Region: Prague
 At: +50.09+014.46/
 
 Name: place:praia
@@ -7377,60 +8208,70 @@ Name: place:pretoria
 Label: Pretoria
 Kind: city
 Parent: place:south-africa
+Region: Gauteng
 At: -25.70+028.23/
 
 Name: place:prince-rupert
 Label: Prince Rupert
 Kind: city
 Parent: place:canada
+Region: British Columbia
 At: +54.32-130.33/
 
 Name: place:pristina
 Label: Pristina
 Kind: city
 Parent: place:kosovo
+Region: Pristina
 At: +42.67+021.17/
 
 Name: place:prudhoe-bay
 Label: Prudhoe Bay
 Kind: city
 Parent: place:united-states-of-america
+Region: Alaska
 At: +70.29-148.67/
 
 Name: place:pskov
 Label: Pskov
 Kind: city
 Parent: place:russia
+Region: Pskov
 At: +57.83+028.33/
 
 Name: place:pucallpa
 Label: Pucallpa
 Kind: city
 Parent: place:peru
+Region: Ucayali
 At: -08.37-074.53/
 
 Name: place:puducherry
 Label: Puducherry
 Kind: city
 Parent: place:india
+Region: Puducherry
 At: +11.93+079.83/
 
 Name: place:puebla
 Label: Puebla
 Kind: city
 Parent: place:mexico
+Region: Puebla
 At: +19.05-098.20/
 
 Name: place:puerto-ayacucho
 Label: Puerto Ayacucho
 Kind: city
 Parent: place:venezuela
+Region: Amazonas
 At: +05.66-067.62/
 
 Name: place:puerto-deseado
 Label: Puerto Deseado
 Kind: city
 Parent: place:argentina
+Region: Santa Cruz
 At: -47.75-065.90/
 
 Name: place:puerto-limon
@@ -7439,12 +8280,14 @@ Alias: Puerto Limon
 Alias: Limon
 Kind: city
 Parent: place:costa-rica
+Region: Limón
 At: +10.00-083.03/
 
 Name: place:puerto-montt
 Label: Puerto Montt
 Kind: city
 Parent: place:chile
+Region: Los Lagos
 At: -41.47-072.93/
 
 Name: place:pune
@@ -7452,18 +8295,21 @@ Label: Pune
 Alias: Poona
 Kind: city
 Parent: place:india
+Region: Maharashtra
 At: +18.53+073.85/
 
 Name: place:punta-arenas
 Label: Punta Arenas
 Kind: city
 Parent: place:chile
+Region: Magallanes y Antártica Chilena
 At: -53.16-070.94/
 
 Name: place:putrajaya
 Label: Putrajaya
 Kind: city
 Parent: place:malaysia
+Region: Selangor
 At: +02.91+101.70/
 
 Name: place:pyongyang
@@ -7471,24 +8317,28 @@ Label: Pyongyang
 Alias: P'yongyang
 Kind: city
 Parent: place:north-korea
+Region: P'yongyang
 At: +39.02+125.75/
 
 Name: place:qaanaaq
 Label: Qaanaaq
 Kind: city
 Parent: place:greenland
+Region: Qaasuitsup Kommunia
 At: +77.48-069.33/
 
 Name: place:qaraghandy
 Label: Qaraghandy
 Kind: city
 Parent: place:kazakhstan
+Region: Qaraghandy
 At: +49.88+073.12/
 
 Name: place:qingdao
 Label: Qingdao
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Shandong
 At: +36.09+120.33/
 
 Name: place:qiqihar
@@ -7496,12 +8346,14 @@ Label: Qiqihar
 Alias: Qiqihaer
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Heilongjiang
 At: +47.35+123.99/
 
 Name: place:quanzhou
 Label: Quanzhou
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Fujian
 At: +24.90+118.58/
 
 Name: place:quebec
@@ -7509,18 +8361,21 @@ Label: Québec
 Alias: Quebec
 Kind: city
 Parent: place:canada
+Region: Québec
 At: +46.84-071.25/
 
 Name: place:quelimane
 Label: Quelimane
 Kind: city
 Parent: place:mozambique
+Region: Zambezia
 At: -17.88+036.89/
 
 Name: place:quetta
 Label: Quetta
 Kind: city
 Parent: place:pakistan
+Region: Baluchistan
 At: +30.22+067.02/
 
 Name: place:quetzaltenango
@@ -7528,12 +8383,14 @@ Label: Quetzaltenango
 Alias: Quezaltenango
 Kind: city
 Parent: place:guatemala
+Region: Quezaltenango
 At: +14.83-091.52/
 
 Name: place:quito
 Label: Quito
 Kind: city
 Parent: place:ecuador
+Region: Pichincha
 At: -00.21-078.50/
 
 Name: place:qyzylorda
@@ -7542,48 +8399,56 @@ Alias: Qyzlorda
 Alias: Kyzylorda
 Kind: city
 Parent: place:kazakhstan
+Region: Qyzylorda
 At: +44.80+065.46/
 
 Name: place:raba
 Label: Raba
 Kind: city
 Parent: place:indonesia
+Region: Nusa Tenggara Barat
 At: -08.45+118.77/
 
 Name: place:rabat
 Label: Rabat
 Kind: city
 Parent: place:morocco
+Region: Rabat - Salé - Zemmour - Zaer
 At: +34.03-006.84/
 
 Name: place:rabaul
 Label: Rabaul
 Kind: city
 Parent: place:papua-new-guinea
+Region: East New Britain
 At: -04.21+152.14/
 
 Name: place:raipur
 Label: Raipur
 Kind: city
 Parent: place:india
+Region: Chhattisgarh
 At: +21.24+081.63/
 
 Name: place:rajkot
 Label: Rajkot
 Kind: city
 Parent: place:india
+Region: Dadra and Nagar Haveli
 At: +22.31+070.80/
 
 Name: place:rajshahi
 Label: Rajshahi
 Kind: city
 Parent: place:bangladesh
+Region: Rajshahi
 At: +24.38+088.60/
 
 Name: place:raleigh
 Label: Raleigh
 Kind: city
 Parent: place:united-states-of-america
+Region: North Carolina
 At: +35.82-078.64/
 
 Name: place:ramallah
@@ -7596,6 +8461,7 @@ Name: place:ranchi
 Label: Ranchi
 Kind: city
 Parent: place:india
+Region: Jharkhand
 At: +23.37+085.33/
 
 Name: place:rangoon
@@ -7603,42 +8469,49 @@ Label: Yangon
 Alias: Rangoon
 Kind: city
 Parent: place:myanmar
+Region: Yangon
 At: +16.79+096.16/
 
 Name: place:rawson
 Label: Rawson
 Kind: city
 Parent: place:argentina
+Region: Chubut
 At: -43.30-065.10/
 
 Name: place:recife
 Label: Recife
 Kind: city
 Parent: place:brazil
+Region: Pernambuco
 At: -08.07-034.92/
 
 Name: place:regina
 Label: Regina
 Kind: city
 Parent: place:canada
+Region: Saskatchewan
 At: +50.45-104.62/
 
 Name: place:reims
 Label: Reims
 Kind: city
 Parent: place:france
+Region: Champagne-Ardenne
 At: +49.25+004.03/
 
 Name: place:rennes
 Label: Rennes
 Kind: city
 Parent: place:france
+Region: Bretagne
 At: +48.10-001.67/
 
 Name: place:reno
 Label: Reno
 Kind: city
 Parent: place:united-states-of-america
+Region: Nevada
 At: +39.53-119.82/
 
 Name: place:repulse-bay
@@ -7646,12 +8519,14 @@ Label: Naujaat
 Alias: Repulse Bay
 Kind: city
 Parent: place:canada
+Region: Nunavut
 At: +66.53-086.28/
 
 Name: place:resolute
 Label: Resolute
 Kind: city
 Parent: place:canada
+Region: Nunavut
 At: +74.68-094.90/
 
 Name: place:reykjavik
@@ -7659,6 +8534,7 @@ Label: Reykjavík
 Alias: Reykjavik
 Kind: city
 Parent: place:iceland
+Region: Suðurnes
 At: +64.15-021.95/
 
 Name: place:ribeirao-preto
@@ -7666,36 +8542,42 @@ Label: Ribeirão Preto
 Alias: Ribeirao Preto
 Kind: city
 Parent: place:brazil
+Region: São Paulo
 At: -21.17-047.83/
 
 Name: place:riberalta
 Label: Riberalta
 Kind: city
 Parent: place:bolivia
+Region: El Beni
 At: -10.98-066.10/
 
 Name: place:richmond
 Label: Richmond
 Kind: city
 Parent: place:united-states-of-america
+Region: Virginia
 At: +37.55-077.45/
 
 Name: place:riga
 Label: Riga
 Kind: city
 Parent: place:latvia
+Region: Riga
 At: +56.95+024.10/
 
 Name: place:rio-branco
 Label: Rio Branco
 Kind: city
 Parent: place:brazil
+Region: Acre
 At: -09.97-067.80/
 
 Name: place:rio-de-janeiro
 Label: Rio de Janeiro
 Kind: city
 Parent: place:brazil
+Region: Rio de Janeiro
 At: -22.92-043.23/
 
 Name: place:rio-gallegos
@@ -7703,6 +8585,7 @@ Label: Río Gallegos
 Alias: Rio Gallegos
 Kind: city
 Parent: place:argentina
+Region: Santa Cruz
 At: -51.63-069.22/
 
 Name: place:riyadh
@@ -7710,36 +8593,42 @@ Label: Riyadh
 Alias: Ar-Riyadh
 Kind: city
 Parent: place:saudi-arabia
+Region: Ar Riyad
 At: +24.64+046.77/
 
 Name: place:rochester
 Label: Rochester
 Kind: city
 Parent: place:united-states-of-america
+Region: New York
 At: +43.17-077.62/
 
 Name: place:rockhampton
 Label: Rockhampton
 Kind: city
 Parent: place:australia
+Region: Queensland
 At: -23.36+150.52/
 
 Name: place:rome
 Label: Rome
 Kind: city
 Parent: place:italy
+Region: Lazio
 At: +41.90+012.48/
 
 Name: place:rosario
 Label: Rosario
 Kind: city
 Parent: place:argentina
+Region: Santa Fe
 At: -32.95-060.67/
 
 Name: place:roseau
 Label: Roseau
 Kind: city
 Parent: place:dominica
+Region: Saint George
 At: +15.30-061.39/
 
 Name: place:rostov
@@ -7748,6 +8637,7 @@ Alias: Rostov-on-Don
 Alias: Rostov-na-Donu
 Kind: city
 Parent: place:russia
+Region: Rostov
 At: +47.24+039.71/
 
 Name: place:rothera-station
@@ -7760,12 +8650,14 @@ Name: place:rouen
 Label: Rouen
 Kind: city
 Parent: place:france
+Region: Haute-Normandie
 At: +49.43+001.08/
 
 Name: place:rovaniemi
 Label: Rovaniemi
 Kind: city
 Parent: place:finland
+Region: Lapland
 At: +66.50+025.72/
 
 Name: place:rudny
@@ -7773,36 +8665,42 @@ Label: Rudniy
 Alias: Rudny
 Kind: city
 Parent: place:kazakhstan
+Region: Qostanay
 At: +52.95+063.13/
 
 Name: place:ryazan
 Label: Ryazan
 Kind: city
 Parent: place:russia
+Region: Ryazan'
 At: +54.62+039.72/
 
 Name: place:sabha
 Label: Sabha
 Kind: city
 Parent: place:libya
+Region: Sabha
 At: +27.03+014.43/
 
 Name: place:sacramento
 Label: Sacramento
 Kind: city
 Parent: place:united-states-of-america
+Region: California
 At: +38.58-121.47/
 
 Name: place:safi
 Label: Safi
 Kind: city
 Parent: place:morocco
+Region: Doukkala - Abda
 At: +32.32-009.24/
 
 Name: place:saharanpur
 Label: Saharanpur
 Kind: city
 Parent: place:india
+Region: Uttar Pradesh
 At: +29.97+077.55/
 
 Name: place:saint-george-s
@@ -7822,12 +8720,14 @@ Label: Saint-Laurent-du-Maroni
 Alias: Albina
 Kind: city
 Parent: place:france
+Region: Guinaa
 At: +05.50-054.03/
 
 Name: place:sakata
 Label: Sakata
 Kind: city
 Parent: place:japan
+Region: Yamagata
 At: +38.92+139.85/
 
 Name: place:salem-in
@@ -7835,6 +8735,7 @@ Label: Salem
 Qualifier: Tamil Nadu, India
 Kind: city
 Parent: place:india
+Region: Tamil Nadu
 At: +11.67+078.18/
 
 Name: place:salem-us
@@ -7842,24 +8743,28 @@ Label: Salem
 Qualifier: Oregon, United States of America
 Kind: city
 Parent: place:united-states-of-america
+Region: Oregon
 At: +44.93-123.02/
 
 Name: place:salt-lake-city
 Label: Salt Lake City
 Kind: city
 Parent: place:united-states-of-america
+Region: Utah
 At: +40.78-111.93/
 
 Name: place:salta
 Label: Salta
 Kind: city
 Parent: place:argentina
+Region: Salta
 At: -24.78-065.42/
 
 Name: place:salvador
 Label: Salvador
 Kind: city
 Parent: place:brazil
+Region: Bahia
 At: -12.97-038.48/
 
 Name: place:samara
@@ -7867,6 +8772,7 @@ Label: Samara
 Alias: Kuybyskev
 Kind: city
 Parent: place:russia
+Region: Samara
 At: +53.20+050.15/
 
 Name: place:samarqand
@@ -7874,18 +8780,21 @@ Label: Samarkand
 Alias: Samarqand
 Kind: city
 Parent: place:uzbekistan
+Region: Samarkand
 At: +39.67+066.94/
 
 Name: place:samsun
 Label: Samsun
 Kind: city
 Parent: place:turkey
+Region: Samsun
 At: +41.28+036.34/
 
 Name: place:san-antonio
 Label: San Antonio
 Kind: city
 Parent: place:united-states-of-america
+Region: Texas
 At: +29.49-098.51/
 
 Name: place:san-bernardino
@@ -7893,6 +8802,7 @@ Label: San Bernardino
 Alias: Riverside-San Bernardino
 Kind: city
 Parent: place:united-states-of-america
+Region: California
 At: +34.12-117.30/
 
 Name: place:san-carlos-de-bariloche
@@ -7900,6 +8810,7 @@ Label: Bariloche
 Alias: San Carlos de Bariloche
 Kind: city
 Parent: place:argentina
+Region: Río Negro
 At: -41.15-071.30/
 
 Name: place:san-cristobal
@@ -7907,12 +8818,14 @@ Label: San Cristóbal
 Alias: San Cristobal
 Kind: city
 Parent: place:venezuela
+Region: Táchira
 At: +07.77-072.25/
 
 Name: place:san-diego
 Label: San Diego
 Kind: city
 Parent: place:united-states-of-america
+Region: California
 At: +32.82-117.18/
 
 Name: place:san-francisco
@@ -7920,6 +8833,7 @@ Label: San Francisco
 Alias: San Francisco-Oakland
 Kind: city
 Parent: place:united-states-of-america
+Region: California
 At: +37.77-122.42/
 
 Name: place:san-jose-cr
@@ -7928,6 +8842,7 @@ Alias: San Jose
 Qualifier: San José, Costa Rica
 Kind: city
 Parent: place:costa-rica
+Region: San José
 At: +09.94-084.09/
 
 Name: place:san-jose-us
@@ -7935,6 +8850,7 @@ Label: San Jose
 Qualifier: California, United States of America
 Kind: city
 Parent: place:united-states-of-america
+Region: California
 At: +37.30-121.85/
 
 Name: place:san-juan-ar
@@ -7942,6 +8858,7 @@ Label: San Juan
 Qualifier: San Juan, Argentina
 Kind: city
 Parent: place:argentina
+Region: San Juan
 At: -31.55-068.52/
 
 Name: place:san-juan-pr
@@ -7956,6 +8873,7 @@ Label: San Luis Potosí
 Alias: San Luis Potosi
 Kind: city
 Parent: place:mexico
+Region: San Luis Potosí
 At: +22.17-101.00/
 
 Name: place:san-marino-sm
@@ -7976,6 +8894,7 @@ Name: place:san-salvador
 Label: San Salvador
 Kind: city
 Parent: place:el-salvador
+Region: San Salvador
 At: +13.71-089.20/
 
 Name: place:sanaa
@@ -7983,12 +8902,14 @@ Label: Sanaa
 Alias: Sana'a'
 Kind: city
 Parent: place:yemen
+Region: Amanat Al Asimah
 At: +15.36+044.20/
 
 Name: place:santa-barbara
 Label: Santa Barbara
 Kind: city
 Parent: place:united-states-of-america
+Region: California
 At: +34.43-119.72/
 
 Name: place:santa-cruz-bo
@@ -7997,6 +8918,7 @@ Alias: Santa Cruz de La Sierra
 Qualifier: Santa Cruz, Bolivia
 Kind: city
 Parent: place:bolivia
+Region: Santa Cruz
 At: -17.75-063.23/
 
 Name: place:santa-cruz-ec
@@ -8004,6 +8926,7 @@ Label: Santa Cruz
 Qualifier: Gal, Ecuador
 Kind: city
 Parent: place:ecuador
+Region: Gal
 At: -00.53-090.35/
 
 Name: place:santa-fe-ar
@@ -8011,6 +8934,7 @@ Label: Santa Fe
 Qualifier: Santa Fe, Argentina
 Kind: city
 Parent: place:argentina
+Region: Santa Fe
 At: -31.62-060.69/
 
 Name: place:santa-fe-us
@@ -8018,12 +8942,14 @@ Label: Santa Fe
 Qualifier: New Mexico, United States of America
 Kind: city
 Parent: place:united-states-of-america
+Region: New Mexico
 At: +35.69-105.94/
 
 Name: place:santa-rosa
 Label: Santa Rosa
 Kind: city
 Parent: place:argentina
+Region: La Pampa
 At: -36.62-064.30/
 
 Name: place:santarem
@@ -8031,6 +8957,7 @@ Label: Santarém
 Alias: Santarem
 Kind: city
 Parent: place:brazil
+Region: Pará
 At: -02.43-054.70/
 
 Name: place:santiago-cl
@@ -8038,6 +8965,7 @@ Label: Santiago
 Qualifier: Región Metropolitana de Santiago, Chile
 Kind: city
 Parent: place:chile
+Region: Región Metropolitana de Santiago
 At: -33.45-070.67/
 
 Name: place:santiago-de-cuba
@@ -8045,6 +8973,7 @@ Label: Santiago de Cuba
 Alias: Santiago De Cuba
 Kind: city
 Parent: place:cuba
+Region: Santiago de Cuba
 At: +20.03-075.82/
 
 Name: place:santiago-do
@@ -8053,12 +8982,14 @@ Alias: Santiago de los Caballeros
 Qualifier: Santiago, Dominican Republic
 Kind: city
 Parent: place:dominican-republic
+Region: Santiago
 At: +19.50-070.67/
 
 Name: place:santo-domingo
 Label: Santo Domingo
 Kind: city
 Parent: place:dominican-republic
+Region: Distrito Nacional
 At: +18.47-069.90/
 
 Name: place:sao-luis
@@ -8067,6 +8998,7 @@ Alias: Sao Luis
 Alias: Grande S
 Kind: city
 Parent: place:brazil
+Region: Maranhão
 At: -02.51-044.27/
 
 Name: place:sao-paulo
@@ -8075,6 +9007,7 @@ Alias: Sao Paulo
 Alias: Sio Paulo
 Kind: city
 Parent: place:brazil
+Region: São Paulo
 At: -23.56-046.63/
 
 Name: place:sao-tome
@@ -8088,36 +9021,42 @@ Name: place:sapporo
 Label: Sapporo
 Kind: city
 Parent: place:japan
+Region: Hokkaido
 At: +43.08+141.34/
 
 Name: place:sarajevo
 Label: Sarajevo
 Kind: city
 Parent: place:bosnia-and-herzegovina
+Region: Sarajevo
 At: +43.85+018.38/
 
 Name: place:saratov
 Label: Saratov
 Kind: city
 Parent: place:russia
+Region: Saratov
 At: +51.58+046.03/
 
 Name: place:saskatoon
 Label: Saskatoon
 Kind: city
 Parent: place:canada
+Region: Saskatchewan
 At: +52.17-106.67/
 
 Name: place:sault-ste-marie
 Label: Sault Ste. Marie
 Kind: city
 Parent: place:united-states-of-america
+Region: Michigan
 At: +46.50-084.35/
 
 Name: place:savannah
 Label: Savannah
 Kind: city
 Parent: place:united-states-of-america
+Region: Georgia
 At: +32.02-081.11/
 
 Name: place:scott-base
@@ -8130,6 +9069,7 @@ Name: place:seattle
 Label: Seattle
 Kind: city
 Parent: place:united-states-of-america
+Region: Washington
 At: +47.57-122.34/
 
 Name: place:segou
@@ -8137,12 +9077,14 @@ Label: Ségou
 Alias: Segou
 Kind: city
 Parent: place:mali
+Region: Ségou
 At: +13.44-006.26/
 
 Name: place:semarang
 Label: Semarang
 Kind: city
 Parent: place:indonesia
+Region: Jawa Tengah
 At: -06.96+110.42/
 
 Name: place:semey
@@ -8150,24 +9092,28 @@ Label: Semey
 Alias: Semipalatinsk
 Kind: city
 Parent: place:kazakhstan
+Region: East Kazakhstan
 At: +50.43+080.28/
 
 Name: place:sendai
 Label: Sendai
 Kind: city
 Parent: place:japan
+Region: Miyagi
 At: +38.29+141.02/
 
 Name: place:seoul
 Label: Seoul
 Kind: city
 Parent: place:south-korea
+Region: Seoul
 At: +37.57+127.00/
 
 Name: place:serowe
 Label: Serowe
 Kind: city
 Parent: place:botswana
+Region: Central
 At: -22.39+026.71/
 
 Name: place:sevastapol
@@ -8175,36 +9121,42 @@ Label: Sevastopol
 Alias: Sevastapol
 Kind: city
 Parent: place:russia
+Region: Crimea
 At: +44.60+033.46/
 
 Name: place:seville
 Label: Seville
 Kind: city
 Parent: place:spain
+Region: Andalucía
 At: +37.41-005.98/
 
 Name: place:shache
 Label: Shache
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Xinjiang Uygur
 At: +38.43+077.25/
 
 Name: place:shanghai
 Label: Shanghai
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Shanghai
 At: +31.22+121.43/
 
 Name: place:shantou
 Label: Shantou
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Guangdong
 At: +23.37+116.67/
 
 Name: place:shaoguan
 Label: Shaoguan
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Guangdong
 At: +24.80+113.58/
 
 Name: place:shenyeng
@@ -8212,12 +9164,14 @@ Label: Shenyeng
 Alias: Shenyang
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Liaoning
 At: +41.81+123.45/
 
 Name: place:shenzhen
 Label: Shenzhen
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Guangdong
 At: +22.55+114.12/
 
 Name: place:shijiazhuang
@@ -8225,18 +9179,21 @@ Label: Shijiazhuang
 Alias: Shijianzhuang
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Hebei
 At: +38.05+114.48/
 
 Name: place:shiraz
 Label: Shiraz
 Kind: city
 Parent: place:iran
+Region: Fars
 At: +29.63+052.57/
 
 Name: place:shizuishan
 Label: Shizuishan
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Ningxia Hui
 At: +39.23+106.77/
 
 Name: place:sholapur
@@ -8244,6 +9201,7 @@ Label: Sholapur
 Alias: Solapur
 Kind: city
 Parent: place:india
+Region: Maharashtra
 At: +17.67+075.90/
 
 Name: place:showa-station
@@ -8256,12 +9214,14 @@ Name: place:shreveport
 Label: Shreveport
 Kind: city
 Parent: place:united-states-of-america
+Region: Louisiana
 At: +32.50-093.77/
 
 Name: place:shymkent
 Label: Shymkent
 Kind: city
 Parent: place:kazakhstan
+Region: South Kazakhstan
 At: +42.32+069.60/
 
 Name: place:siem-reap
@@ -8269,6 +9229,7 @@ Label: Siem Reap
 Alias: Siemreab
 Kind: city
 Parent: place:cambodia
+Region: Siemréab
 At: +13.37+103.85/
 
 Name: place:signy-research-station
@@ -8288,42 +9249,49 @@ Name: place:sinuiju
 Label: Sinuiju
 Kind: city
 Parent: place:north-korea
+Region: P'yongan-bukto
 At: +40.09+124.42/
 
 Name: place:sioux-falls
 Label: Sioux Falls
 Kind: city
 Parent: place:united-states-of-america
+Region: South Dakota
 At: +43.55-096.73/
 
 Name: place:sisimiut
 Label: Sisimiut
 Kind: city
 Parent: place:greenland
+Region: Qeqqata Kommunia
 At: +66.95-053.67/
 
 Name: place:sitka
 Label: Sitka
 Kind: city
 Parent: place:united-states-of-america
+Region: Alaska
 At: +57.06-135.33/
 
 Name: place:sittwe
 Label: Sittwe
 Kind: city
 Parent: place:myanmar
+Region: Rakhine
 At: +20.14+092.88/
 
 Name: place:skopje
 Label: Skopje
 Kind: city
 Parent: place:north-macedonia
+Region: Centar
 At: +42.00+021.43/
 
 Name: place:smolensk
 Label: Smolensk
 Kind: city
 Parent: place:russia
+Region: Smolensk
 At: +54.78+032.05/
 
 Name: place:sobral-base
@@ -8337,42 +9305,49 @@ Name: place:sochi
 Label: Sochi
 Kind: city
 Parent: place:russia
+Region: Krasnodar
 At: +43.59+039.73/
 
 Name: place:sofia
 Label: Sofia
 Kind: city
 Parent: place:bulgaria
+Region: Grad Sofiya
 At: +42.69+023.31/
 
 Name: place:sokoto
 Label: Sokoto
 Kind: city
 Parent: place:nigeria
+Region: Sokoto
 At: +13.06+005.24/
 
 Name: place:sorocaba
 Label: Sorocaba
 Kind: city
 Parent: place:brazil
+Region: São Paulo
 At: -23.49-047.47/
 
 Name: place:sousse
 Label: Sousse
 Kind: city
 Parent: place:tunisia
+Region: Sousse
 At: +35.83+010.63/
 
 Name: place:spokane
 Label: Spokane
 Kind: city
 Parent: place:united-states-of-america
+Region: Washington
 At: +47.67-117.42/
 
 Name: place:springbok
 Label: Springbok
 Kind: city
 Parent: place:south-africa
+Region: Northern Cape
 At: -29.67+017.88/
 
 Name: place:sri-jawewardenepura-kotte
@@ -8380,18 +9355,21 @@ Label: Sri Jayawardenepura Kotte
 Alias: Sri Jawewardenepura Kotte
 Kind: city
 Parent: place:sri-lanka
+Region: Colombo
 At: +06.90+079.95/
 
 Name: place:srinagar
 Label: Srinagar
 Kind: city
 Parent: place:india
+Region: Jammu and Kashmir
 At: +34.10+074.81/
 
 Name: place:st-denis
 Label: St.-Denis
 Kind: city
 Parent: place:france
+Region: La Réunion
 At: -20.88+055.45/
 
 Name: place:st-john-s
@@ -8399,12 +9377,14 @@ Label: St. John's
 Alias: Saint John's
 Kind: city
 Parent: place:canada
+Region: Newfoundland and Labrador
 At: +47.58-052.68/
 
 Name: place:st-louis
 Label: St. Louis
 Kind: city
 Parent: place:united-states-of-america
+Region: Missouri
 At: +38.64-090.24/
 
 Name: place:st-paul
@@ -8413,6 +9393,7 @@ Alias: St. Paul
 Alias: Saint Paul
 Kind: city
 Parent: place:united-states-of-america
+Region: Minnesota
 At: +44.94-093.08/
 
 Name: place:st-petersburg
@@ -8422,6 +9403,7 @@ Alias: Sankt Peterburg
 Alias: Saint Petersburg
 Kind: city
 Parent: place:russia
+Region: City of St. Petersburg
 At: +59.94+030.31/
 
 Name: place:stanley
@@ -8434,30 +9416,35 @@ Name: place:stavropol
 Label: Stavropol
 Kind: city
 Parent: place:russia
+Region: Stavropol'
 At: +45.05+041.98/
 
 Name: place:stockholm
 Label: Stockholm
 Kind: city
 Parent: place:sweden
+Region: Stockholm
 At: +59.35+018.10/
 
 Name: place:strasbourg
 Label: Strasbourg
 Kind: city
 Parent: place:france
+Region: Alsace
 At: +48.58+007.75/
 
 Name: place:sucre
 Label: Sucre
 Kind: city
 Parent: place:bolivia
+Region: Chuquisaca
 At: -19.04-065.26/
 
 Name: place:suez
 Label: Suez
 Kind: city
 Parent: place:egypt
+Region: As Suways
 At: +30.00+032.55/
 
 Name: place:sukhumi
@@ -8465,12 +9452,14 @@ Label: Sukhumi
 Alias: Sokhumi
 Kind: city
 Parent: place:georgia
+Region: Abkhazia
 At: +43.02+041.02/
 
 Name: place:sundsvall
 Label: Sundsvall
 Kind: city
 Parent: place:sweden
+Region: Västernorrland
 At: +62.40+017.32/
 
 Name: place:surabaya
@@ -8478,36 +9467,42 @@ Label: Surabaya
 Alias: Surabaja
 Kind: city
 Parent: place:indonesia
+Region: Jawa Timur
 At: -07.25+112.75/
 
 Name: place:surakarta
 Label: Surakarta
 Kind: city
 Parent: place:indonesia
+Region: Jawa Tengah
 At: -07.56+110.83/
 
 Name: place:surat
 Label: Surat
 Kind: city
 Parent: place:india
+Region: Dadra and Nagar Haveli
 At: +21.20+072.84/
 
 Name: place:surat-thani
 Label: Surat Thani
 Kind: city
 Parent: place:thailand
+Region: Surat Thani
 At: +09.15+099.34/
 
 Name: place:surgut
 Label: Surgut
 Kind: city
 Parent: place:russia
+Region: Khanty-Mansiy
 At: +61.26+073.43/
 
 Name: place:suva
 Label: Suva
 Kind: city
 Parent: place:fiji
+Region: Central
 At: -18.13+178.44/
 
 Name: place:suzhou-cn-anhui
@@ -8516,6 +9511,7 @@ Alias: Suzhou, Anhui
 Qualifier: Anhui, People's Republic of China
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Anhui
 At: +33.64+116.98/
 
 Name: place:suzhou-cn-jiangsu
@@ -8524,6 +9520,7 @@ Alias: Suzhou, Jiangsu
 Qualifier: Jiangsu, People's Republic of China
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Jiangsu
 At: +31.30+120.62/
 
 Name: place:svea-station
@@ -8536,6 +9533,7 @@ Name: place:swakopmund
 Label: Swakopmund
 Kind: city
 Parent: place:namibia
+Region: Erongo
 At: -22.67+014.54/
 
 Name: place:sydney-au
@@ -8543,6 +9541,7 @@ Label: Sydney
 Qualifier: New South Wales, Australia
 Kind: city
 Parent: place:australia
+Region: New South Wales
 At: -33.92+151.18/
 
 Name: place:sydney-ca
@@ -8550,36 +9549,42 @@ Label: Sydney
 Qualifier: Nova Scotia, Canada
 Kind: city
 Parent: place:canada
+Region: Nova Scotia
 At: +46.07-060.18/
 
 Name: place:syracuse
 Label: Syracuse
 Kind: city
 Parent: place:united-states-of-america
+Region: New York
 At: +43.05-076.15/
 
 Name: place:tabriz
 Label: Tabriz
 Kind: city
 Parent: place:iran
+Region: East Azarbaijan
 At: +38.09+046.30/
 
 Name: place:tabuk
 Label: Tabuk
 Kind: city
 Parent: place:saudi-arabia
+Region: Tabuk
 At: +28.38+036.55/
 
 Name: place:tacna
 Label: Tacna
 Kind: city
 Parent: place:peru
+Region: Tacna
 At: -18.00-070.25/
 
 Name: place:tahoua
 Label: Tahoua
 Kind: city
 Parent: place:niger
+Region: Tahoua
 At: +14.90+005.26/
 
 Name: place:taichung
@@ -8587,12 +9592,14 @@ Label: Taichung
 Alias: T'aichung
 Kind: city
 Parent: place:taiwan
+Region: Taichung City
 At: +24.15+120.68/
 
 Name: place:taipei
 Label: Taipei
 Kind: city
 Parent: place:taiwan
+Region: Taipei City
 At: +25.04+121.57/
 
 Name: place:taiyuan
@@ -8600,6 +9607,7 @@ Label: Taiyuan
 Alias: Taiyuan, Shanxi
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Shanxi
 At: +37.88+112.54/
 
 Name: place:taizz
@@ -8607,30 +9615,35 @@ Label: Taizz
 Alias: Ta'izz
 Kind: city
 Parent: place:yemen
+Region: Ta`izz
 At: +13.61+044.04/
 
 Name: place:tallahassee
 Label: Tallahassee
 Kind: city
 Parent: place:united-states-of-america
+Region: Florida
 At: +30.45-084.28/
 
 Name: place:tallinn
 Label: Tallinn
 Kind: city
 Parent: place:estonia
+Region: Harju
 At: +59.43+024.73/
 
 Name: place:taloyoak
 Label: Taloyoak
 Kind: city
 Parent: place:canada
+Region: Nunavut
 At: +69.53-093.53/
 
 Name: place:tamanrasset
 Label: Tamanrasset
 Kind: city
 Parent: place:algeria
+Region: Tamanghasset
 At: +22.79+005.52/
 
 Name: place:tampa
@@ -8638,18 +9651,21 @@ Label: Tampa
 Alias: Tampa-St. Petersburg
 Kind: city
 Parent: place:united-states-of-america
+Region: Florida
 At: +27.95-082.46/
 
 Name: place:tampere
 Label: Tampere
 Kind: city
 Parent: place:finland
+Region: Pirkanmaa
 At: +61.50+023.75/
 
 Name: place:tampico
 Label: Tampico
 Kind: city
 Parent: place:mexico
+Region: Tamaulipas
 At: +22.30-097.87/
 
 Name: place:tanjungpandan
@@ -8657,12 +9673,14 @@ Label: Tanjung Pandan
 Alias: Tanjungpandan
 Kind: city
 Parent: place:indonesia
+Region: Bangka-Belitung
 At: -02.75+107.65/
 
 Name: place:tarakan
 Label: Tarakan
 Kind: city
 Parent: place:indonesia
+Region: Kalimantan Timur
 At: +03.30+117.63/
 
 Name: place:tarawa
@@ -8676,18 +9694,21 @@ Label: Taraz
 Alias: Dzhambul
 Kind: city
 Parent: place:kazakhstan
+Region: Zhambyl
 At: +42.90+071.36/
 
 Name: place:tarija
 Label: Tarija
 Kind: city
 Parent: place:bolivia
+Region: Tarija
 At: -21.52-064.75/
 
 Name: place:tashkent
 Label: Tashkent
 Kind: city
 Parent: place:uzbekistan
+Region: Tashkent
 At: +41.31+069.29/
 
 Name: place:tbilisi
@@ -8695,18 +9716,21 @@ Label: Tbilisi
 Alias: T'Bilisi
 Kind: city
 Parent: place:georgia
+Region: Tbilisi
 At: +41.73+044.79/
 
 Name: place:tegucigalpa
 Label: Tegucigalpa
 Kind: city
 Parent: place:honduras
+Region: Francisco Morazán
 At: +14.10-087.22/
 
 Name: place:tehran
 Label: Tehran
 Kind: city
 Parent: place:iran
+Region: Tehran
 At: +35.67+051.42/
 
 Name: place:tel-aviv-yafo
@@ -8715,102 +9739,119 @@ Alias: Tel Aviv-Yafo
 Alias: Tel Aviv-Jaffa
 Kind: city
 Parent: place:israel
+Region: Tel Aviv
 At: +32.08+034.77/
 
 Name: place:teresina
 Label: Teresina
 Kind: city
 Parent: place:brazil
+Region: Piauí
 At: -05.09-042.78/
 
 Name: place:ternate
 Label: Ternate
 Kind: city
 Parent: place:indonesia
+Region: Maluku Utara
 At: +00.79+127.36/
 
 Name: place:tete
 Label: Tete
 Kind: city
 Parent: place:mozambique
+Region: Tete
 At: -16.17+033.58/
 
 Name: place:the-hague
 Label: The Hague
 Kind: city
 Parent: place:netherlands
+Region: Zuid-Holland
 At: +52.08+004.27/
 
 Name: place:thessaloniki
 Label: Thessaloniki
 Kind: city
 Parent: place:greece
+Region: Kentriki Makedonia
 At: +40.70+022.88/
 
 Name: place:thimphu
 Label: Thimphu
 Kind: city
 Parent: place:bhutan
+Region: Thimphu
 At: +27.47+089.64/
 
 Name: place:thiruvananthapuram
 Label: Thiruvananthapuram
 Kind: city
 Parent: place:india
+Region: Kerala
 At: +08.50+076.95/
 
 Name: place:thompson
 Label: Thompson
 Kind: city
 Parent: place:canada
+Region: Manitoba
 At: +55.75-097.87/
 
 Name: place:thunder-bay
 Label: Thunder Bay
 Kind: city
 Parent: place:canada
+Region: Ontario
 At: +48.45-089.27/
 
 Name: place:tianjin
 Label: Tianjin
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Tianjin
 At: +39.13+117.20/
 
 Name: place:tianshui
 Label: Tianshui
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Gansu
 At: +34.60+105.92/
 
 Name: place:tijuana
 Label: Tijuana
 Kind: city
 Parent: place:mexico
+Region: Baja California
 At: +32.50-117.08/
 
 Name: place:tiksi
 Label: Tiksi
 Kind: city
 Parent: place:russia
+Region: Sakha (Yakutia)
 At: +71.63+128.83/
 
 Name: place:timbuktu
 Label: Timbuktu
 Kind: city
 Parent: place:mali
+Region: Timbuktu
 At: +16.77-003.02/
 
 Name: place:timmins
 Label: Timmins
 Kind: city
 Parent: place:canada
+Region: Ontario
 At: +48.47-081.33/
 
 Name: place:tirana
 Label: Tirana
 Kind: city
 Parent: place:albania
+Region: Durrës
 At: +41.33+019.82/
 
 Name: place:tiruchirappalli
@@ -8818,6 +9859,7 @@ Label: Tiruchirappalli
 Alias: Trichinopoly
 Kind: city
 Parent: place:india
+Region: Tamil Nadu
 At: +10.81+078.69/
 
 Name: place:tmassah
@@ -8825,42 +9867,49 @@ Label: Tmassa
 Alias: Tmassah
 Kind: city
 Parent: place:libya
+Region: Murzuq
 At: +26.37+015.80/
 
 Name: place:tokyo
 Label: Tokyo
 Kind: city
 Parent: place:japan
+Region: Tokyo
 At: +35.69+139.75/
 
 Name: place:toliara
 Label: Toliara
 Kind: city
 Parent: place:madagascar
+Region: Toliary
 At: -23.36+043.69/
 
 Name: place:tomsk
 Label: Tomsk
 Kind: city
 Parent: place:russia
+Region: Tomsk
 At: +56.49+084.98/
 
 Name: place:tongliao
 Label: Tongliao
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Nei Mongol
 At: +43.62+122.27/
 
 Name: place:topeka
 Label: Topeka
 Kind: city
 Parent: place:united-states-of-america
+Region: Kansas
 At: +39.05-095.67/
 
 Name: place:toronto
 Label: Toronto
 Kind: city
 Parent: place:canada
+Region: Ontario
 At: +43.70-079.42/
 
 Name: place:torreon
@@ -8868,42 +9917,49 @@ Label: Torreón
 Alias: Torreon
 Kind: city
 Parent: place:mexico
+Region: Coahuila
 At: +25.57-103.42/
 
 Name: place:toulouse
 Label: Toulouse
 Kind: city
 Parent: place:france
+Region: Midi-Pyrénées
 At: +43.62+001.45/
 
 Name: place:townsville
 Label: Townsville
 Kind: city
 Parent: place:australia
+Region: Queensland
 At: -19.25+146.77/
 
 Name: place:trento
 Label: Trento
 Kind: city
 Parent: place:italy
+Region: Trentino-Alto Adige
 At: +46.08+011.12/
 
 Name: place:trieste
 Label: Trieste
 Kind: city
 Parent: place:italy
+Region: Friuli-Venezia Giulia
 At: +45.65+013.80/
 
 Name: place:trinidad
 Label: Trinidad
 Kind: city
 Parent: place:bolivia
+Region: El Beni
 At: -14.83-064.90/
 
 Name: place:tripoli
 Label: Tripoli
 Kind: city
 Parent: place:libya
+Region: Tajura' wa an Nawahi al Arba
 At: +32.89+013.18/
 
 Name: place:troll-station
@@ -8918,24 +9974,28 @@ Alias: Tromso
 Alias: Troms
 Kind: city
 Parent: place:norway
+Region: Troms
 At: +69.64+018.99/
 
 Name: place:trondheim
 Label: Trondheim
 Kind: city
 Parent: place:norway
+Region: Sør-Trøndelag
 At: +63.42+010.42/
 
 Name: place:trujillo
 Label: Trujillo
 Kind: city
 Parent: place:peru
+Region: La Libertad
 At: -08.12-079.02/
 
 Name: place:tucson
 Label: Tucson
 Kind: city
 Parent: place:united-states-of-america
+Region: Arizona
 At: +32.21-110.89/
 
 Name: place:tucuman
@@ -8945,18 +10005,21 @@ Alias: San Miguel De Tucuman
 Alias: San Miguel de Tucumnn
 Kind: city
 Parent: place:argentina
+Region: Tucumán
 At: -26.81-065.22/
 
 Name: place:tulsa
 Label: Tulsa
 Kind: city
 Parent: place:united-states-of-america
+Region: Oklahoma
 At: +36.12-095.93/
 
 Name: place:tunis
 Label: Tunis
 Kind: city
 Parent: place:tunisia
+Region: Tunis
 At: +36.80+010.18/
 
 Name: place:turin
@@ -8964,6 +10027,7 @@ Label: Turin
 Alias: Torino
 Kind: city
 Parent: place:italy
+Region: Piemonte
 At: +45.07+007.67/
 
 Name: place:turkmenabat
@@ -8972,6 +10036,7 @@ Alias: Turkmenabat
 Alias: Chardzhev
 Kind: city
 Parent: place:turkmenistan
+Region: Chardzhou
 At: +39.11+063.58/
 
 Name: place:turkmenbasy
@@ -8980,6 +10045,7 @@ Alias: Turkmenbasy
 Alias: Turkmenbashi
 Kind: city
 Parent: place:turkmenistan
+Region: Balkan
 At: +40.02+052.97/
 
 Name: place:tuxtla-gutierrez
@@ -8987,18 +10053,21 @@ Label: Tuxtla Gutiérrez
 Alias: Tuxtla Gutierrez
 Kind: city
 Parent: place:mexico
+Region: Chiapas
 At: +16.75-093.15/
 
 Name: place:tver
 Label: Tver
 Kind: city
 Parent: place:russia
+Region: Tver'
 At: +56.86+035.89/
 
 Name: place:tyumen
 Label: Tyumen
 Kind: city
 Parent: place:russia
+Region: Tyumen'
 At: +57.14+065.53/
 
 Name: place:uberlandia
@@ -9006,24 +10075,28 @@ Label: Uberlândia
 Alias: Uberlandia
 Kind: city
 Parent: place:brazil
+Region: Minas Gerais
 At: -18.90-048.28/
 
 Name: place:ufa
 Label: Ufa
 Kind: city
 Parent: place:russia
+Region: Bashkortostan
 At: +54.79+056.04/
 
 Name: place:ugolnye-kopi
 Label: Ugolnye Kopi
 Kind: city
 Parent: place:russia
+Region: Chukchi Autonomous Okrug
 At: +64.73+177.70/
 
 Name: place:ulaanbaatar
 Label: Ulaanbaatar
 Kind: city
 Parent: place:mongolia
+Region: Ulaanbaatar
 At: +47.92+106.91/
 
 Name: place:ulan-ude
@@ -9031,6 +10104,7 @@ Label: Ulan-Ude
 Alias: Ulan Ude
 Kind: city
 Parent: place:russia
+Region: Buryat
 At: +51.82+107.62/
 
 Name: place:ulanhot
@@ -9038,6 +10112,7 @@ Label: Ulan Hot
 Alias: Ulanhot
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Nei Mongol
 At: +46.08+122.08/
 
 Name: place:ulyanovsk
@@ -9045,18 +10120,21 @@ Label: Ulyanovsk
 Alias: Ul'yanovsk
 Kind: city
 Parent: place:russia
+Region: Ul'yanovsk
 At: +54.33+048.41/
 
 Name: place:upernavik
 Label: Upernavik
 Kind: city
 Parent: place:greenland
+Region: Qaasuitsup Kommunia
 At: +72.71-056.14/
 
 Name: place:upington
 Label: Upington
 Kind: city
 Parent: place:south-africa
+Region: Northern Cape
 At: -28.46+021.23/
 
 Name: place:urumqi
@@ -9066,6 +10144,7 @@ Alias: rumqi
 Alias: Wulumqi
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Xinjiang Uygur
 At: +43.81+087.57/
 
 Name: place:ust-nera
@@ -9073,6 +10152,7 @@ Label: Ust-Nera
 Alias: Ust Nera
 Kind: city
 Parent: place:russia
+Region: Sakha (Yakutia)
 At: +64.57+143.20/
 
 Name: place:ust-ulimsk
@@ -9080,6 +10160,7 @@ Label: Ust-Ilimsk
 Alias: Ust-Ulimsk
 Kind: city
 Parent: place:russia
+Region: Irkutsk
 At: +57.99+102.63/
 
 Name: place:utqiagvik
@@ -9087,12 +10168,14 @@ Label: Utqiaġvik
 Alias: Utqiagvik
 Kind: city
 Parent: place:united-states-of-america
+Region: Alaska
 At: +71.29-156.79/
 
 Name: place:vaasa
 Label: Vaasa
 Kind: city
 Parent: place:finland
+Region: Western Finland
 At: +63.10+021.60/
 
 Name: place:vadodara
@@ -9100,6 +10183,7 @@ Label: Vadodara
 Alias: Baroda
 Kind: city
 Parent: place:india
+Region: Dadra and Nagar Haveli
 At: +22.31+073.18/
 
 Name: place:vaduz
@@ -9112,12 +10196,14 @@ Name: place:valdez
 Label: Valdez
 Kind: city
 Parent: place:united-states-of-america
+Region: Alaska
 At: +61.14-146.35/
 
 Name: place:valdivia
 Label: Valdivia
 Kind: city
 Parent: place:chile
+Region: Los Ríos
 At: -39.80-073.25/
 
 Name: place:valencia-es
@@ -9125,6 +10211,7 @@ Label: Valencia
 Qualifier: Comunidad Valenciana, Spain
 Kind: city
 Parent: place:spain
+Region: Comunidad Valenciana
 At: +39.49-000.40/
 
 Name: place:valencia-ve
@@ -9132,6 +10219,7 @@ Label: Valencia
 Qualifier: Carabobo, Venezuela
 Kind: city
 Parent: place:venezuela
+Region: Carabobo
 At: +10.23-067.98/
 
 Name: place:valletta
@@ -9145,6 +10233,7 @@ Label: Valparaíso
 Alias: Valparaiso
 Kind: city
 Parent: place:chile
+Region: Valparaíso
 At: -33.05-071.62/
 
 Name: place:vancouver-ca
@@ -9152,6 +10241,7 @@ Label: Vancouver
 Qualifier: British Columbia, Canada
 Kind: city
 Parent: place:canada
+Region: British Columbia
 At: +49.28-123.12/
 
 Name: place:vancouver-us
@@ -9159,6 +10249,7 @@ Label: Vancouver
 Qualifier: Washington, United States of America
 Kind: city
 Parent: place:united-states-of-america
+Region: Washington
 At: +45.63-122.64/
 
 Name: place:varanasi
@@ -9166,6 +10257,7 @@ Label: Varanasi
 Alias: Benares
 Kind: city
 Parent: place:india
+Region: Uttar Pradesh
 At: +25.33+083.00/
 
 Name: place:vatican-city-va
@@ -9173,18 +10265,21 @@ Label: Vatican City
 Qualifier: Lazio, Vatican City
 Kind: city
 Parent: place:vatican-city
+Region: Lazio
 At: +41.90+012.45/
 
 Name: place:venice
 Label: Venice
 Kind: city
 Parent: place:italy
+Region: Veneto
 At: +45.44+012.33/
 
 Name: place:veracruz
 Label: Veracruz
 Kind: city
 Parent: place:mexico
+Region: Veracruz
 At: +19.18-096.16/
 
 Name: place:victoria-ca
@@ -9192,6 +10287,7 @@ Label: Victoria
 Qualifier: British Columbia, Canada
 Kind: city
 Parent: place:canada
+Region: British Columbia
 At: +48.43-123.35/
 
 Name: place:victoria-sc
@@ -9205,18 +10301,21 @@ Name: place:vienna
 Label: Vienna
 Kind: city
 Parent: place:austria
+Region: Wien
 At: +48.20+016.36/
 
 Name: place:vientiane
 Label: Vientiane
 Kind: city
 Parent: place:laos
+Region: Vientiane [prefecture]
 At: +17.97+102.60/
 
 Name: place:vigo
 Label: Vigo
 Kind: city
 Parent: place:spain
+Region: Galicia
 At: +42.22-008.73/
 
 Name: place:vijayawada
@@ -9225,24 +10324,28 @@ Alias: Bezwada
 Alias: Bezawada
 Kind: city
 Parent: place:india
+Region: Andhra Pradesh
 At: +16.52+080.63/
 
 Name: place:vila-velha
 Label: Vila Velha
 Kind: city
 Parent: place:brazil
+Region: Espírito Santo
 At: -20.37-040.32/
 
 Name: place:vilhena
 Label: Vilhena
 Kind: city
 Parent: place:brazil
+Region: Rondônia
 At: -12.72-060.12/
 
 Name: place:vilnius
 Label: Vilnius
 Kind: city
 Parent: place:lithuania
+Region: Vilniaus
 At: +54.68+025.32/
 
 Name: place:vishakhapatnam
@@ -9250,6 +10353,7 @@ Label: Vishakhapatnam
 Alias: Visakhapatnam
 Kind: city
 Parent: place:india
+Region: Andhra Pradesh
 At: +17.73+083.30/
 
 Name: place:vitoria-da-conquista
@@ -9257,36 +10361,42 @@ Label: Vitória da Conquista
 Alias: Vitoria da Conquista
 Kind: city
 Parent: place:brazil
+Region: Bahia
 At: -14.85-040.84/
 
 Name: place:vladivostok
 Label: Vladivostok
 Kind: city
 Parent: place:russia
+Region: Primor'ye
 At: +43.13+131.91/
 
 Name: place:volgograd
 Label: Volgograd
 Kind: city
 Parent: place:russia
+Region: Volgograd
 At: +48.71+044.50/
 
 Name: place:vologda
 Label: Vologda
 Kind: city
 Parent: place:russia
+Region: Vologda
 At: +59.21+039.92/
 
 Name: place:vorkuta
 Label: Vorkuta
 Kind: city
 Parent: place:russia
+Region: Komi
 At: +67.50+064.01/
 
 Name: place:voronezh
 Label: Voronezh
 Kind: city
 Parent: place:russia
+Region: Voronezh
 At: +51.73+039.27/
 
 Name: place:vostok
@@ -9300,24 +10410,28 @@ Name: place:walvis-bay
 Label: Walvis Bay
 Kind: city
 Parent: place:namibia
+Region: Erongo
 At: -22.96+014.51/
 
 Name: place:wangaratta
 Label: Wangaratta
 Kind: city
 Parent: place:australia
+Region: Victoria
 At: -36.36+146.30/
 
 Name: place:warri
 Label: Warri
 Kind: city
 Parent: place:nigeria
+Region: Delta
 At: +05.52+005.76/
 
 Name: place:warsaw
 Label: Warsaw
 Kind: city
 Parent: place:poland
+Region: Masovian
 At: +52.25+021.00/
 
 Name: place:wasa-station
@@ -9332,41 +10446,48 @@ Alias: Washington, D.C.
 Alias: Washington D.C.
 Kind: city
 Parent: place:united-states-of-america
+Region: District of Columbia
 At: +38.90-077.01/
 
 Name: place:wau
 Label: Wau
 Kind: city
+Region: West Bahr-al-Ghazal
 At: +07.70+027.99/
 
 Name: place:welkom
 Label: Welkom
 Kind: city
 Parent: place:south-africa
+Region: Orange Free State
 At: -27.97+026.73/
 
 Name: place:wellington
 Label: Wellington
 Kind: city
 Parent: place:new-zealand
+Region: Manawatu-Wanganui
 At: -41.30+174.78/
 
 Name: place:wenzhou
 Label: Wenzhou
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Zhejiang
 At: +28.02+120.65/
 
 Name: place:whitehorse
 Label: Whitehorse
 Kind: city
 Parent: place:canada
+Region: Yukon
 At: +60.72-135.05/
 
 Name: place:whyalla
 Label: Whyalla
 Kind: city
 Parent: place:australia
+Region: South Australia
 At: -33.03+137.56/
 
 Name: place:willemstad
@@ -9379,48 +10500,56 @@ Name: place:wilmington
 Label: Wilmington
 Kind: city
 Parent: place:united-states-of-america
+Region: North Carolina
 At: +34.23-077.95/
 
 Name: place:windhoek
 Label: Windhoek
 Kind: city
 Parent: place:namibia
+Region: Khomas
 At: -22.57+017.08/
 
 Name: place:windorah
 Label: Windorah
 Kind: city
 Parent: place:australia
+Region: Queensland
 At: -25.43+142.65/
 
 Name: place:winnipeg
 Label: Winnipeg
 Kind: city
 Parent: place:canada
+Region: Manitoba
 At: +49.88-097.17/
 
 Name: place:wonsan
 Label: Wonsan
 Kind: city
 Parent: place:north-korea
+Region: Kangwon-do
 At: +39.16+127.43/
 
 Name: place:worcester
 Label: Worcester
 Kind: city
 Parent: place:south-africa
+Region: Western Cape
 At: -33.64+019.44/
 
 Name: place:wuhan
 Label: Wuhan
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Hubei
 At: +30.58+114.27/
 
 Name: place:wuwei
 Label: Wuwei
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Gansu
 At: +37.93+102.64/
 
 Name: place:wuxi
@@ -9428,24 +10557,28 @@ Label: Wuxi
 Alias: Wuxi, Jiangsu
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Jiangsu
 At: +31.58+120.30/
 
 Name: place:wuzhou
 Label: Wuzhou
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Guangxi
 At: +23.48+111.32/
 
 Name: place:xai-xai
 Label: Xai-Xai
 Kind: city
 Parent: place:mozambique
+Region: Gaza
 At: -25.04+033.64/
 
 Name: place:xiamen
 Label: Xiamen
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Fujian
 At: +24.45+118.08/
 
 Name: place:xian
@@ -9453,48 +10586,56 @@ Label: Xian
 Alias: Xi'an, Shaanxi
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Shaanxi
 At: +34.28+108.89/
 
 Name: place:xichang
 Label: Xichang
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Sichuan
 At: +27.88+102.30/
 
 Name: place:xigaze
 Label: Xigaze
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Xizang
 At: +29.25+088.88/
 
 Name: place:xining
 Label: Xining
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Gansu
 At: +36.62+101.77/
 
 Name: place:xuzhou
 Label: Xuzhou
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Jiangsu
 At: +34.28+117.18/
 
 Name: place:yakutsk
 Label: Yakutsk
 Kind: city
 Parent: place:russia
+Region: Sakha (Yakutia)
 At: +62.03+129.74/
 
 Name: place:yamoussoukro
 Label: Yamoussoukro
 Kind: city
 Parent: place:ivory-coast
+Region: Lacs
 At: +06.82-005.28/
 
 Name: place:yantai
 Label: Yantai
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Shandong
 At: +37.53+121.40/
 
 Name: place:yaounde
@@ -9502,18 +10643,21 @@ Label: Yaoundé
 Alias: Yaounde
 Kind: city
 Parent: place:cameroon
+Region: Centre
 At: +03.87+011.51/
 
 Name: place:yaroslavl
 Label: Yaroslavl
 Kind: city
 Parent: place:russia
+Region: Yaroslavl'
 At: +57.62+039.87/
 
 Name: place:yazd
 Label: Yazd
 Kind: city
 Parent: place:iran
+Region: Yazd
 At: +31.92+054.37/
 
 Name: place:yekaterinburg
@@ -9521,36 +10665,42 @@ Label: Yekaterinburg
 Alias: Sverdlovsk
 Kind: city
 Parent: place:russia
+Region: Sverdlovsk
 At: +56.85+060.60/
 
 Name: place:yellowknife
 Label: Yellowknife
 Kind: city
 Parent: place:canada
+Region: Northwest Territories
 At: +62.44-114.40/
 
 Name: place:yerevan
 Label: Yerevan
 Kind: city
 Parent: place:armenia
+Region: Erevan
 At: +40.18+044.51/
 
 Name: place:yinchuan
 Label: Yinchuan
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Ningxia Hui
 At: +38.47+106.27/
 
 Name: place:yining
 Label: Yining
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Xinjiang Uygur
 At: +43.90+081.35/
 
 Name: place:yueyang
 Label: Yueyang
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Hunan
 At: +29.38+113.10/
 
 Name: place:yulin-cn-guangxi
@@ -9559,6 +10709,7 @@ Alias: Yulin, Guangxi
 Qualifier: Guangxi, People's Republic of China
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Guangxi
 At: +22.63+110.15/
 
 Name: place:yulin-cn-shaanxi
@@ -9566,6 +10717,7 @@ Label: Yulin
 Qualifier: Shaanxi, People's Republic of China
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Shaanxi
 At: +38.28+109.73/
 
 Name: place:yuzhno-sakhalinsk
@@ -9573,54 +10725,63 @@ Label: Yuzhno Sakhalinsk
 Alias: Yuzhno-Sakhalinsk
 Kind: city
 Parent: place:russia
+Region: Sakhalin
 At: +46.96+142.74/
 
 Name: place:zagreb
 Label: Zagreb
 Kind: city
 Parent: place:croatia
+Region: Grad Zagreb
 At: +45.80+016.00/
 
 Name: place:zamboanga
 Label: Zamboanga
 Kind: city
 Parent: place:philippines
+Region: Zamboanga del Sur
 At: +06.92+122.08/
 
 Name: place:zanzibar
 Label: Zanzibar
 Kind: city
 Parent: place:tanzania
+Region: Zanzibar West
 At: -06.16+039.20/
 
 Name: place:zaozhuang
 Label: Zaozhuang
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Shandong
 At: +34.88+117.57/
 
 Name: place:zhangye
 Label: Zhangye
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Gansu
 At: +38.93+100.45/
 
 Name: place:zhanjiang
 Label: Zhanjiang
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Guangdong
 At: +21.20+110.38/
 
 Name: place:zhengzhou
 Label: Zhengzhou
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Henan
 At: +34.76+113.66/
 
 Name: place:zhigansk
 Label: Zhigansk
 Kind: city
 Parent: place:russia
+Region: Sakha (Yakutia)
 At: +66.77+123.37/
 
 Name: place:zhongshan-station
@@ -9635,18 +10796,21 @@ Label: Zhytomyr
 Alias: Zhytomyra
 Kind: city
 Parent: place:ukraine
+Region: Zhytomyr
 At: +50.25+028.66/
 
 Name: place:zibo
 Label: Zibo
 Kind: city
 Parent: place:people-s-republic-of-china
+Region: Shandong
 At: +36.80+118.05/
 
 Name: place:zinder
 Label: Zinder
 Kind: city
 Parent: place:niger
+Region: Zinder
 At: +13.80+008.98/
 
 Name: place:zucchelli-station
@@ -9661,6 +10825,7 @@ Label: Zürich
 Alias: Zurich
 Kind: city
 Parent: place:switzerland
+Region: Zürich
 At: +47.38+008.55/
 
 Name: place:zuwarah
@@ -9668,4 +10833,5 @@ Label: Zuwara
 Alias: Zuwarah
 Kind: city
 Parent: place:libya
+Region: An Nuqat al Khams
 At: +32.93+012.08/

@@ -2260,7 +2260,15 @@ then the country's code. The home's entries win over extra data, and an entry a 
 into the home's `places.rec` with its places above, so what a disc names it carries: removing the
 extra data later changes nothing written. A region and a city of the same name in one country (Osaka)
 are one choice, the city, not two. Lookups went from a list to a hash (34,000 places load in about
-0.2 s). The tests run with `ARV_NO_EXTRA_PLACES=1`, the same places on every machine. Not yet:
-GPS within a region (iso-codes has no outlines); regions on Natural Earth's cities (their Parent is
-the country); EAC-CPF export. Pushing for such data as distribution packages: issue #53.
+0.2 s). The tests run with `ARV_NO_EXTRA_PLACES=1`, the same places on every machine.
+
+GPS within a region, without outlines (the same day): a photo's GPS gives its nearest town, and the
+town is in its region, so the region comes with it. Natural Earth and GeoNames name each place's
+region (`Region`); arv matches the name against the regions it knows in that country (iso-codes',
+or one copied home, recognised by its ISO code) and puts the place there. Natural Earth's names match
+ISO 3166-2's for about 60% of its cities (France's regions before 2016, Uganda's districts, for one,
+do not); those stay in their country. GeoNames' region codes look like ISO's but often are not
+(Japan's are FIPS numbers: its 26 is Shizuoka, not Kyoto), so a code counts only when no name is
+given. Region outlines (Natural Earth's admin-1, tens of MB at a useful scale) were not needed. Not
+yet: EAC-CPF export. Pushing for such data as distribution packages: issue #53.
 

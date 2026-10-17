@@ -31,6 +31,11 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - A place from extra data that a tag uses is copied into the home's `places.rec` (describing,
   making a disc, `--parent`), so the record and its discs never depend on what is installed.
 - `--ask`: a region and a city of one name (Osaka) are not two choices: the city is offered.
+- Cities in their regions: the gazetteer's cities and GeoNames' places carry `Region` (the region's
+  name, as their source writes it), and with iso-codes' regions arv puts each in its region: a
+  photo's GPS near Uji gives Uji, in Kyoto Prefecture, in Japan, and `arv find place:kyoto-prefecture`
+  finds it. A name decides; a code only when no name is given (GeoNames' codes are not all ISO's).
+  Keys made from names fold accents (`place:ile-de-france`).
 - `arv programs` lists the place data too; the packages suggest `iso-codes`.
 
 **arv programs: which optional programs are here**

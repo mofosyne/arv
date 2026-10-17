@@ -350,22 +350,24 @@ PATH="$PWD/progbin:/usr/bin/nonexistent" "$tool" programs > prog.out \
 mkdir -p xdata/iso-codes/json xhome/arv/places
 printf '{"3166-2": [{"code": "JP-26", "name": "Kyoto", "type": "Prefecture"}, {"code": "JP-01", "name": "Hokkaido", "type": "Prefecture"}]}\n' \
     > xdata/iso-codes/json/iso_3166-2.json
-printf '%%rec: Place\n\nName: place:uji\nLabel: Uji\nKind: city\nCountry: JP\nAt: +34.89+135.80/\nSame: geonames:1849372\n' > xhome/arv/places/test.rec
+printf '%%rec: Place\n\nName: place:uji\nLabel: Uji\nKind: city\nCountry: JP\nRegion: JP-01\nRegion: Kyoto\nAt: +34.89+135.80/\nSame: geonames:1849372\n' > xhome/arv/places/test.rec
 xp() { ARV_NO_EXTRA_PLACES= XDG_DATA_DIRS="$dir/xdata" XDG_DATA_HOME="$dir/xhome" "$tool" "$@"; }
 xp -C kn/home tags show place:kyoto-prefecture > kn/x1.out && grep -q '^  in: Japan (place:japan)$' kn/x1.out \
     && grep -q '^  same as: iso3166-2:JP-26$' kn/x1.out && xp -C kn/home tags show place:hokkaido | grep -q '(Prefecture)' \
-    && xp -C kn/home tags show place:uji | grep -q '^  in: Japan (place:japan)$' \
+    && xp -C kn/home tags show place:uji | grep -q '^  in: Kyoto, Japan (place:kyoto-prefecture)$' \
+    && xp -C kn/home tags show place:kyoto | grep -q '^  in: Kyoto, Japan (place:kyoto-prefecture)$' \
     && ! grep -q '^Name: place:hokkaido$' kn/home/config/places.rec \
     && xp -C kn/home tags add place:a-ryokan --parent hokkaido >/dev/null \
     && grep -A8 '^Name: place:hokkaido$' kn/home/config/places.rec | grep -q '^Basis: from iso-codes (ISO 3166-2), copied when first used' \
     && mkdir -p kn/uji && echo 6 > kn/uji/u.jpg \
     && printf '{"tags": {".": ["place:uji"]}, "authorship": "human", "agent": "human:t"}\n' > kn/uji.json \
     && xp -C kn/home make -y --no-ecc --no-formats --set KN --access public --draft kn/uji.json --output-dir kn/out4 kn/uji >/dev/null 2>&1 \
-    && grep -A8 '^Name: place:uji$' kn/home/config/places.rec | grep -q '^Basis: from test.rec, copied when first used' \
+    && grep -A12 '^Name: place:uji$' kn/home/config/places.rec | grep -q '^Basis: from test.rec, copied when first used' \
     && "$tool" -C kn/home tags show place:uji | grep -q '^  at: +34.89+135.80/$' \
     && 7z x -okn/disc4 kn/out4/*.iso catalog/config/places.rec >/dev/null && grep -q '^Name: place:uji$' kn/disc4/catalog/config/places.rec \
     && xp programs | grep -q '^  ok       iso-codes ' && "$tool" -C kn/home tags names | grep -qv 'place:hokkaido' \
-    && ok "extra place data: iso-codes' regions in their countries, places/NAME.rec from the data folders; one a tag uses is copied home (and onto the disc)" \
+    && xp -C kn/home find place:kyoto-prefecture | grep -q '  data/  (place:uji)$' \
+    && ok "extra place data: iso-codes' regions in their countries, a place's Region by name (not a code when a name is given), places/NAME.rec from the data folders; one a tag uses is copied home (and onto the disc)" \
     || { cat kn/x1.out; no "extra place data"; }
 "$tool" -C kn/home tags add place:kyoto --at nowhere >/dev/null 2>&1 && no "a position that is not ISO 6709 was taken"
 "$tool" -C kn/home tags add place:kyoto --extent "34.9,135.7" >/dev/null 2>&1 && no "an extent of one corner was taken"

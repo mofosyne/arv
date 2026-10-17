@@ -75,7 +75,7 @@ def gazetteer(nef):
         country = by_a3.get(p["adm0_a3"]) or by_a3.get(p["sov_a3"])
         aliases = [p["nameascii"]] + (p["namealt"] or "").split("|")
         cities.append({"label": p["name"], "base": slug(p["nameascii"] or p["name"]), "aliases": aliases,
-                       "country": country, "region": p["adm1name"], "iso": (p["iso_a2"] or "").lower(),
+                       "country": country, "region": (p["adm1name"] or "").strip(), "iso": (p["iso_a2"] or "").lower(),
                        "lat": p["latitude"], "lon": p["longitude"]})
     count = {}
     for c in cities:
@@ -121,6 +121,8 @@ def gazetteer(nef):
         r.append("Kind: city")
         if c["country"]:
             r.append("Parent: place:" + c["country"]["key"])
+        if c["region"]:
+            r.append("Region: " + c["region"])
         r.append("At: " + at(c["lat"], c["lon"]))
         records.append(r)
     return records, len(countries), len(cities), by_a3
@@ -143,6 +145,8 @@ HEADER = """\
 #   At        where, ISO 6709 in decimal degrees (WGS84): +35.03+135.75/ (a city's to about a km)
 #   Extent    the box it covers, two opposite corners: +34.96+135.76/+34.98+135.78/ (a park, a farm)
 #   Reach     how near a photo must be to At to be here: 2km, 500m (your places: 3km unless it says)
+#   Region    the region it is in, by name or ISO 3166-2 code, as its source writes it (repeatable):
+#             with iso-codes installed, arv puts the place in that region (Uji in Kyoto Prefecture)
 #
 # arv describe --ask offers a place found in a folder's names or text, and the nearest one to its
 # photos' GPS (the record keeps the place, never the coordinates); arv map shows them.
@@ -150,7 +154,7 @@ HEADER = """\
 %%rec: Place
 %%key: Name
 %%mandatory: Name
-%%allowed: Name Label Alias Qualifier Related Same Basis Private Retired Kind Parent Country At Extent Reach
+%%allowed: Name Label Alias Qualifier Related Same Basis Private Retired Kind Parent Country At Extent Reach Region
 """
 
 

@@ -75,7 +75,7 @@ int tag_words(const arv_home *h, tag_words_t *out);   /* the tag vocabulary's wo
 /* known.c: known names, entries of the tag vocabulary (authority control; research/plan.md) */
 typedef struct {
     char *key, *label, *qualifier, *basis, *retired;   /* retired: why, or NULL */
-    strlist aliases, related, same;
+    strlist aliases, related, same, regions;   /* regions: Region, a place's region by name or ISO 3166-2 code */
     int private_;
     char *kind, *parent, *country, *at;                 /* a place (the gazetteer, config/places.rec) */
     int has_at, has_extent;
