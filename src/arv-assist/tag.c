@@ -123,7 +123,7 @@ static const char *const KIND_EXTS[] = {
     ".zip .tar .gz .7z .rar .iso .img .bundle",
 };
 
-static const char *kind_of(const char *ext)
+const char *kind_of(const char *ext)
 {
     if (!*ext) return "files";
     for (size_t k = 0; k < sizeof KIND_NAMES / sizeof *KIND_NAMES; k++) {
@@ -138,7 +138,7 @@ static const char *kind_of(const char *ext)
 }
 
 /* camera and phone default names carry no meaning: DSC_4001.JPG, IMG_20211221_1830.jpg, GH010042.MP4 */
-static int generic_name(const char *base)
+int generic_name(const char *base)
 {
     static const char *const words[] = { "dscn", "dsc", "img", "pxl", "mvi", "vid", "gopr", "dji", "sam", "photo", "image",
                                          "scan", NULL };

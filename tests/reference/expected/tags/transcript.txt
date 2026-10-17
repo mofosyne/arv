@@ -29,8 +29,8 @@ place:   many values: where it is from; places nest, so a photo may be both kyot
   fushimi-inari                1 folder on 1 disc
   kinkaku-ji                   1 folder on 1 disc
   kiyomizu-dera                1 folder on 1 disc
-  kyoto                        1 folder on 1 disc
-  osaka                        1 folder on 1 disc
+  kyoto                        1 folder on 1 disc   Kyoto
+  osaka                        1 folder on 1 disc   Ōsaka
 project:   one value: the piece of work it belongs to
   weather-station              2 folders on 1 disc
 
@@ -46,8 +46,8 @@ place:   many values: where it is from; places nest, so a photo may be both kyot
   fushimi-inari                1 folder on 1 disc
   kinkaku-ji                   1 folder on 1 disc
   kiyomizu-dera                1 folder on 1 disc
-  kyoto                        1 folder on 1 disc
-  osaka                        1 folder on 1 disc
+  kyoto                        1 folder on 1 disc   Kyoto
+  osaka                        1 folder on 1 disc   Ōsaka
 rc=0
 $ --home tags tags --namespace 
 (no namespace)

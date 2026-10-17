@@ -178,6 +178,40 @@ static int load_tag_vocab(tag_vocab *tv, const arv_home *h)
     return tv->names.n ? 0 : -1;
 }
 
+/* the vocabulary's words, for questions about what something is (arv describe --ask): its tags,
+ * their aliases (from -> to), its namespaces (with what each holds, and the one-valued), and each
+ * tag's Match patterns (rule_tag, rule_glob); -1 when there is no vocabulary */
+int tag_words(const arv_home *h, tag_words_t *out)
+{
+    memset(out, 0, sizeof *out);
+    tag_vocab tv;
+    if (load_tag_vocab(&tv, h)) return -1;
+    out->names = tv.names;
+    out->alias_from = tv.alias_from;
+    out->alias_to = tv.alias_to;
+    out->ns_names = tv.ns_names;
+    out->ns_desc = tv.ns_desc;
+    out->ns_one = tv.ns_one;
+    rec_file f;
+    int bad = 0;
+    if (!rec_read(tv.path, &f, &bad)) {
+        for (size_t i = 0; i < f.nrecords; i++) {
+            const rec_record *r = &f.records[i];
+            if (r->descriptor || !rec_get(r, "Name") || (r->type && strcmp(r->type, "Tag"))) continue;
+            char *name = tag_normalise(rec_get(r, "Name"));
+            for (size_t j = 0; j < r->nfields; j++)
+                if (!strcmp(r->fields[j].name, "Match") && *r->fields[j].value) {
+                    strlist_add(&out->rule_tag, name);
+                    strlist_add(&out->rule_glob, r->fields[j].value);
+                }
+            free(name);
+        }
+        rec_free(&f);
+    }
+    free(tv.path);
+    return 0;
+}
+
 /* the home's declared namespaces that take one value a file (into one), and whether date's values
  * may come from a file's own date (From: file-date); -1 when there is no vocabulary */
 int tag_namespaces(const arv_home *h, strlist *one, strlist *declared, int *date_from_file)
@@ -280,6 +314,27 @@ static void check_namespaces(const tag_vocab *tv, const char *id, const tag_file
 int cmd_tags(int argc, char **argv)
 {
     const char *given = NULL, *only = NULL;
+    static const char *const SUBS[] = { "show", "add", "label", "alias", "merge", "split", "retire", "names", NULL };
+    for (int i = 0; i < argc; i++) {             /* known names: arv tags show|add|label|alias|merge|split|retire KEY ... */
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) {
+            given = argv[++i];
+            continue;
+        }
+        for (int k = 0; SUBS[k]; k++)
+            if (!strcmp(argv[i], SUBS[k])) {
+                char **rest = xmalloc(((size_t)argc + 1) * sizeof *rest);
+                int n = 0;
+                for (int j = i + 1; j < argc; j++) {
+                    if (j + 1 < argc && (!strcmp(argv[j], "-C") || !strcmp(argv[j], "--home"))) given = argv[++j];
+                    else rest[n++] = argv[j];
+                }
+                rest[n] = NULL;
+                int rc = known_cmd(SUBS[k], n, rest, given);
+                free(rest);
+                return rc;
+            }
+        break;
+    }
     for (int i = 0; i < argc; i++) {
         if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--namespace")) only = argv[++i];
@@ -335,6 +390,8 @@ int cmd_tags(int argc, char **argv)
         strlist_add(&spaces, only);
     }
     if (spaces.n) qsort(spaces.v, spaces.n, sizeof *spaces.v, by_str);
+    known_entry *kv;                               /* the known names: their labels, beside their keys */
+    size_t kn = known_load(&h, &kv);
     for (size_t s = 0; s < spaces.n; s++) {
         const char *ns = spaces.v[s];
         if (!*ns) puts("(no namespace)");
@@ -363,6 +420,10 @@ int cmd_tags(int argc, char **argv)
             if (x->folders.n) printf(" %zu folder%s", x->folders.n, x->folders.n == 1 ? "" : "s");
             if (x->files.n) printf("%s %zu file%s", x->folders.n ? "," : "", x->files.n, x->files.n == 1 ? "" : "s");
             printf(" on %zu disc%s", x->discs.n, x->discs.n == 1 ? "" : "s");
+            for (size_t e = 0; *ns && e < kn; e++)
+                if (!strcmp(kv[e].key, x->tag))
+                    printf("   %s%s%s%s%s%s", kv[e].label ? kv[e].label : "", kv[e].qualifier ? " (" : "", kv[e].qualifier ? kv[e].qualifier : "",
+                           kv[e].qualifier ? ")" : "", kv[e].private_ ? ", private" : "", kv[e].retired ? ", RETIRED" : "");
             if (have_vocab && !*ns && !strlist_has(&tv.names, x->tag)) {
                 char *norm = tag_normalise(x->tag);
                 const char *canon = norm;
@@ -376,6 +437,7 @@ int cmd_tags(int argc, char **argv)
         }
         free(mine);
     }
+    known_free(kv, kn);
     if (problems.n) {
         printf("\n%zu to correct (a one-valued namespace has one value a file, and a date is EDTF: 2019-07, 1995/2008):\n",
                problems.n);

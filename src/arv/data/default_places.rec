@@ -1,0 +1,9671 @@
+# The gazetteer: places, as known names of the place namespace (arv tags show place:kyoto).
+#
+# Copied to <home>/config/places.rec on first use; edit that copy freely, or change entries with
+# arv tags add|label|alias|merge|split|retire place:KEY (each an event). Made by
+# dev-tools/places.py from Natural Earth (public domain, naturalearthdata.com): 242 countries and
+# 1251 populated places. Add your own (a village, a house, a site) with
+#   arv tags add place:fushimi-inari --label "Fushimi Inari" --parent place:kyoto [--at +34.97+135.77/]
+# A place added with a position or an extent is private (it stays home) unless --public says otherwise.
+#
+# The fields of a known name (see tags.rec), and:
+#   Kind      country, region, city or site
+#   Parent    the place it is in (broader): fushimi-inari, kyoto, japan
+#   Country   ISO 3166-1 alpha-2, for a country
+#   At        where, ISO 6709 in decimal degrees (WGS84): +35.03+135.75/ (a city's to about a km)
+#   Extent    the box it covers, two opposite corners: +34.96+135.76/+34.98+135.78/ (a park, a farm)
+#   Reach     how near a photo must be to At to be here: 2km, 500m (your places: 3km unless it says)
+#
+# arv describe --ask offers a place found in a folder's names or text, and the nearest one to its
+# photos' GPS (the record keeps the place, never the coordinates); arv map shows them.
+
+%rec: Place
+%key: Name
+%mandatory: Name
+%allowed: Name Label Alias Qualifier Related Same Basis Private Retired Kind Parent Country At Extent Reach
+
+Name: place:afghanistan
+Label: Afghanistan
+Kind: country
+Country: AF
+At: +34.16+066.50/
+Same: wikidata:Q889
+
+Name: place:aland
+Label: Åland
+Alias: Åland Islands
+Alias: Aland
+Kind: country
+Country: AX
+At: +60.16+019.87/
+Same: wikidata:Q5689
+
+Name: place:albania
+Label: Albania
+Kind: country
+Country: AL
+At: +40.65+020.11/
+Same: wikidata:Q222
+
+Name: place:algeria
+Label: Algeria
+Kind: country
+Country: DZ
+At: +27.40+002.81/
+Same: wikidata:Q262
+
+Name: place:american-samoa
+Label: American Samoa
+Kind: country
+Country: AS
+At: -14.33-170.75/
+Same: wikidata:Q16641
+
+Name: place:andorra
+Label: Andorra
+Kind: country
+Country: AD
+At: +42.55+001.54/
+Same: wikidata:Q228
+
+Name: place:angola
+Label: Angola
+Kind: country
+Country: AO
+At: -12.18+017.98/
+Same: wikidata:Q916
+
+Name: place:anguilla
+Label: Anguilla
+Kind: country
+Country: AI
+At: +18.24-063.03/
+Same: wikidata:Q25228
+
+Name: place:antarctica
+Label: Antarctica
+Kind: country
+Country: AQ
+At: -79.84+035.89/
+Same: wikidata:Q51
+
+Name: place:antigua-and-barbuda
+Label: Antigua and Barbuda
+Alias: Antigua and Barb.
+Kind: country
+Country: AG
+At: +17.35-061.79/
+Same: wikidata:Q781
+
+Name: place:argentina
+Label: Argentina
+Kind: country
+Country: AR
+At: -33.50-064.17/
+Same: wikidata:Q414
+
+Name: place:armenia
+Label: Armenia
+Kind: country
+Country: AM
+At: +40.46+044.80/
+Same: wikidata:Q399
+
+Name: place:aruba
+Label: Aruba
+Kind: country
+Country: AW
+At: +12.52-069.97/
+Same: wikidata:Q21203
+
+Name: place:ashmore-and-cartier-islands
+Label: Ashmore and Cartier Islands
+Alias: Ashmore and Cartier Is.
+Kind: country
+Country: AU
+At: -12.43+123.59/
+Same: wikidata:Q133888
+
+Name: place:australia
+Label: Australia
+Kind: country
+Country: AU
+At: -24.13+134.05/
+Same: wikidata:Q408
+
+Name: place:australian-indian-ocean-territories
+Label: Australian Indian Ocean Territories
+Alias: Indian Ocean Ter.
+Alias: Indian Ocean Territories
+Kind: country
+Country: AU
+At: -10.49+105.67/
+Same: wikidata:Q4824275
+
+Name: place:austria
+Label: Austria
+Kind: country
+Country: AT
+At: +47.52+014.13/
+Same: wikidata:Q40
+
+Name: place:azerbaijan
+Label: Azerbaijan
+Kind: country
+Country: AZ
+At: +40.40+047.21/
+Same: wikidata:Q227
+
+Name: place:bahrain
+Label: Bahrain
+Kind: country
+Country: BH
+At: +26.06+050.55/
+Same: wikidata:Q398
+
+Name: place:bangladesh
+Label: Bangladesh
+Kind: country
+Country: BD
+At: +24.21+089.68/
+Same: wikidata:Q902
+
+Name: place:barbados
+Label: Barbados
+Kind: country
+Country: BB
+At: +13.16-059.57/
+Same: wikidata:Q244
+
+Name: place:belarus
+Label: Belarus
+Kind: country
+Country: BY
+At: +53.82+028.42/
+Same: wikidata:Q184
+
+Name: place:belgium
+Label: Belgium
+Kind: country
+Country: BE
+At: +50.79+004.80/
+Same: wikidata:Q31
+
+Name: place:belize
+Label: Belize
+Kind: country
+Country: BZ
+At: +17.20-088.71/
+Same: wikidata:Q242
+
+Name: place:benin
+Label: Benin
+Kind: country
+Country: BJ
+At: +10.32+002.35/
+Same: wikidata:Q962
+
+Name: place:bermuda
+Label: Bermuda
+Kind: country
+Country: BM
+At: +32.30-064.76/
+Same: wikidata:Q23635
+
+Name: place:bhutan
+Label: Bhutan
+Kind: country
+Country: BT
+At: +27.54+090.04/
+Same: wikidata:Q917
+
+Name: place:bolivia
+Label: Bolivia
+Kind: country
+Country: BO
+At: -16.67-064.59/
+Same: wikidata:Q750
+
+Name: place:bosnia-and-herzegovina
+Label: Bosnia and Herzegovina
+Alias: Bosnia and Herz.
+Kind: country
+Country: BA
+At: +44.09+018.07/
+Same: wikidata:Q225
+
+Name: place:botswana
+Label: Botswana
+Kind: country
+Country: BW
+At: -22.10+024.18/
+Same: wikidata:Q963
+
+Name: place:brazil
+Label: Brazil
+Kind: country
+Country: BR
+At: -12.10-049.56/
+Same: wikidata:Q155
+
+Name: place:british-indian-ocean-territory
+Label: British Indian Ocean Territory
+Alias: Br. Indian Ocean Ter.
+Kind: country
+Country: IO
+At: -06.19+071.35/
+Same: wikidata:Q43448
+
+Name: place:british-virgin-islands
+Label: British Virgin Islands
+Alias: British Virgin Is.
+Kind: country
+Country: VG
+At: +18.43-064.64/
+Same: wikidata:Q25305
+
+Name: place:brunei
+Label: Brunei
+Alias: Brunei Darussalam
+Kind: country
+Country: BN
+At: +04.45+114.55/
+Same: wikidata:Q921
+
+Name: place:bulgaria
+Label: Bulgaria
+Kind: country
+Country: BG
+At: +42.51+025.16/
+Same: wikidata:Q219
+
+Name: place:burkina-faso
+Label: Burkina Faso
+Kind: country
+Country: BF
+At: +12.67-001.36/
+Same: wikidata:Q965
+
+Name: place:burundi
+Label: Burundi
+Kind: country
+Country: BI
+At: -03.33+029.92/
+Same: wikidata:Q967
+
+Name: place:cambodia
+Label: Cambodia
+Kind: country
+Country: KH
+At: +12.65+104.50/
+Same: wikidata:Q424
+
+Name: place:cameroon
+Label: Cameroon
+Kind: country
+Country: CM
+At: +04.59+012.47/
+Same: wikidata:Q1009
+
+Name: place:canada
+Label: Canada
+Kind: country
+Country: CA
+At: +60.32-101.91/
+Same: wikidata:Q16
+
+Name: place:cape-verde
+Label: Cape Verde
+Alias: Cabo Verde
+Alias: Republic of Cabo Verde
+Kind: country
+Country: CV
+At: +15.07-023.64/
+Same: wikidata:Q1011
+
+Name: place:cayman-islands
+Label: Cayman Islands
+Alias: Cayman Is.
+Kind: country
+Country: KY
+At: +19.32-081.24/
+Same: wikidata:Q5785
+
+Name: place:central-african-republic
+Label: Central African Republic
+Alias: Central African Rep.
+Kind: country
+Country: CF
+At: +06.99+020.91/
+Same: wikidata:Q929
+
+Name: place:chad
+Label: Chad
+Kind: country
+Country: TD
+At: +15.14+018.65/
+Same: wikidata:Q657
+
+Name: place:chile
+Label: Chile
+Kind: country
+Country: CL
+At: -38.15-072.32/
+Same: wikidata:Q298
+
+Name: place:colombia
+Label: Colombia
+Kind: country
+Country: CO
+At: +03.37-073.17/
+Same: wikidata:Q739
+
+Name: place:comoros
+Label: Comoros
+Kind: country
+Country: KM
+At: -11.73+043.32/
+Same: wikidata:Q970
+
+Name: place:cook-islands
+Label: Cook Islands
+Alias: Cook Is.
+Kind: country
+Country: CK
+At: -21.22-159.79/
+Same: wikidata:Q26988
+
+Name: place:costa-rica
+Label: Costa Rica
+Kind: country
+Country: CR
+At: +10.07-084.08/
+Same: wikidata:Q800
+
+Name: place:croatia
+Label: Croatia
+Kind: country
+Country: HR
+At: +45.81+016.37/
+Same: wikidata:Q224
+
+Name: place:cuba
+Label: Cuba
+Kind: country
+Country: CU
+At: +21.33-077.98/
+Same: wikidata:Q241
+
+Name: place:curacao
+Label: Curaçao
+Alias: Curacao
+Kind: country
+Country: CW
+At: +12.15-068.92/
+Same: wikidata:Q25279
+
+Name: place:cyprus
+Label: Cyprus
+Kind: country
+Country: CY
+At: +34.91+033.08/
+Same: wikidata:Q229
+
+Name: place:czech-republic
+Label: Czech Republic
+Alias: Czechia
+Alias: Česko
+Kind: country
+Country: CZ
+At: +49.88+015.38/
+Same: wikidata:Q213
+
+Name: place:democratic-republic-of-the-congo
+Label: Democratic Republic of the Congo
+Alias: Dem. Rep. Congo
+Kind: country
+Country: CD
+At: -01.86+023.46/
+Same: wikidata:Q974
+
+Name: place:denmark
+Label: Denmark
+Kind: country
+Country: DK
+At: +55.97+009.02/
+Same: wikidata:Q35
+
+Name: place:djibouti
+Label: Djibouti
+Kind: country
+Country: DJ
+At: +11.98+042.50/
+Same: wikidata:Q977
+
+Name: place:dominica
+Label: Dominica
+Kind: country
+Country: DM
+At: +15.46-061.34/
+Same: wikidata:Q784
+
+Name: place:dominican-republic
+Label: Dominican Republic
+Alias: Dominican Rep.
+Kind: country
+Country: DO
+At: +19.10-070.65/
+Same: wikidata:Q786
+
+Name: place:east-timor
+Label: East Timor
+Alias: Timor-Leste
+Kind: country
+Country: TL
+At: -08.80+125.85/
+Same: wikidata:Q574
+
+Name: place:ecuador
+Label: Ecuador
+Kind: country
+Country: EC
+At: -01.26-078.19/
+Same: wikidata:Q736
+
+Name: place:egypt
+Label: Egypt
+Kind: country
+Country: EG
+At: +26.19+029.45/
+Same: wikidata:Q79
+
+Name: place:el-salvador
+Label: El Salvador
+Kind: country
+Country: SV
+At: +13.69-088.89/
+Same: wikidata:Q792
+
+Name: place:equatorial-guinea
+Label: Equatorial Guinea
+Alias: Eq. Guinea
+Kind: country
+Country: GQ
+At: +02.33+008.99/
+Same: wikidata:Q983
+
+Name: place:eritrea
+Label: Eritrea
+Kind: country
+Country: ER
+At: +15.79+038.29/
+Same: wikidata:Q986
+
+Name: place:estonia
+Label: Estonia
+Kind: country
+Country: EE
+At: +58.72+025.87/
+Same: wikidata:Q191
+
+Name: place:eswatini
+Label: Eswatini
+Alias: eSwatini
+Alias: Kingdom of eSwatini
+Alias: Swaziland
+Kind: country
+Country: SZ
+At: -26.53+031.47/
+Same: wikidata:Q1050
+
+Name: place:ethiopia
+Label: Ethiopia
+Kind: country
+Country: ET
+At: +08.03+039.09/
+Same: wikidata:Q115
+
+Name: place:falkland-islands
+Label: Falkland Islands
+Alias: Falkland Is.
+Alias: Falkland Islands / Malvinas
+Alias: Islas Malvinas
+Kind: country
+Country: FK
+At: -51.61-058.74/
+Same: wikidata:Q9648
+
+Name: place:faroe-islands
+Label: Faroe Islands
+Alias: Faeroe Is.
+Alias: Faeroe Islands
+Kind: country
+Country: FO
+At: +62.19-007.06/
+Same: wikidata:Q4628
+
+Name: place:federated-states-of-micronesia
+Label: Federated States of Micronesia
+Alias: Micronesia
+Kind: country
+Country: FM
+At: +06.89+158.23/
+Same: wikidata:Q702
+
+Name: place:fiji
+Label: Fiji
+Kind: country
+Country: FJ
+At: -17.83+177.98/
+Same: wikidata:Q712
+
+Name: place:finland
+Label: Finland
+Kind: country
+Country: FI
+At: +63.25+027.28/
+Same: wikidata:Q33
+
+Name: place:france
+Label: France
+Kind: country
+Country: FR
+At: +46.70+002.55/
+Same: wikidata:Q142
+
+Name: place:french-polynesia
+Label: French Polynesia
+Alias: Fr. Polynesia
+Kind: country
+Country: PF
+At: -17.63-149.46/
+Same: wikidata:Q30971
+
+Name: place:french-southern-and-antarctic-lands
+Label: French Southern and Antarctic Lands
+Alias: Fr. S. Antarctic Lands
+Kind: country
+Country: TF
+At: -49.30+069.12/
+Same: wikidata:Q129003
+
+Name: place:gabon
+Label: Gabon
+Kind: country
+Country: GA
+At: -00.44+011.84/
+Same: wikidata:Q1000
+
+Name: place:georgia
+Label: Georgia
+Kind: country
+Country: GE
+At: +41.87+043.74/
+Same: wikidata:Q230
+
+Name: place:germany
+Label: Germany
+Kind: country
+Country: DE
+At: +50.96+009.68/
+Same: wikidata:Q183
+
+Name: place:ghana
+Label: Ghana
+Kind: country
+Country: GH
+At: +07.72-001.04/
+Same: wikidata:Q117
+
+Name: place:greece
+Label: Greece
+Kind: country
+Country: GR
+At: +39.49+021.73/
+Same: wikidata:Q41
+
+Name: place:greenland
+Label: Greenland
+Kind: country
+Country: GL
+At: +74.32-039.34/
+Same: wikidata:Q223
+
+Name: place:grenada
+Label: Grenada
+Kind: country
+Country: GD
+At: +12.11-061.68/
+Same: wikidata:Q769
+
+Name: place:guam
+Label: Guam
+Kind: country
+Country: GU
+At: +13.35+144.70/
+Same: wikidata:Q16635
+
+Name: place:guatemala
+Label: Guatemala
+Kind: country
+Country: GT
+At: +14.98-090.50/
+Same: wikidata:Q774
+
+Name: place:guernsey
+Label: Guernsey
+Kind: country
+Country: GG
+At: +49.46-002.56/
+Same: wikidata:Q25230
+
+Name: place:guinea
+Label: Guinea
+Kind: country
+Country: GN
+At: +10.62-010.02/
+Same: wikidata:Q1006
+
+Name: place:guinea-bissau
+Label: Guinea-Bissau
+Kind: country
+Country: GW
+At: +12.16-014.52/
+Same: wikidata:Q1007
+
+Name: place:guyana
+Label: Guyana
+Kind: country
+Country: GY
+At: +05.12-058.94/
+Same: wikidata:Q734
+
+Name: place:haiti
+Label: Haiti
+Kind: country
+Country: HT
+At: +19.26-072.22/
+Same: wikidata:Q790
+
+Name: place:heard-island-and-mcdonald-islands
+Label: Heard Island and McDonald Islands
+Alias: Heard I. and McDonald Is.
+Alias: Heard I. and McDonald Islands
+Kind: country
+Country: HM
+At: -53.10+073.51/
+Same: wikidata:Q131198
+
+Name: place:honduras
+Label: Honduras
+Kind: country
+Country: HN
+At: +14.79-086.89/
+Same: wikidata:Q783
+
+Name: place:hong-kong
+Label: Hong Kong
+Kind: country
+Country: HK
+At: +22.45+114.10/
+Same: wikidata:Q8646
+
+Name: place:hungary
+Label: Hungary
+Kind: country
+Country: HU
+At: +47.09+019.45/
+Same: wikidata:Q28
+
+Name: place:iceland
+Label: Iceland
+Kind: country
+Country: IS
+At: +64.78-018.67/
+Same: wikidata:Q189
+
+Name: place:india
+Label: India
+Kind: country
+Country: IN
+At: +22.69+079.36/
+Same: wikidata:Q668
+
+Name: place:indonesia
+Label: Indonesia
+Kind: country
+Country: ID
+At: -00.95+101.89/
+Same: wikidata:Q252
+
+Name: place:iran
+Label: Iran
+Kind: country
+Country: IR
+At: +32.17+054.93/
+Same: wikidata:Q794
+
+Name: place:iraq
+Label: Iraq
+Kind: country
+Country: IQ
+At: +33.09+043.26/
+Same: wikidata:Q796
+
+Name: place:ireland
+Label: Ireland
+Kind: country
+Country: IE
+At: +53.08-007.80/
+Same: wikidata:Q27
+
+Name: place:isle-of-man
+Label: Isle of Man
+Kind: country
+Country: IM
+At: +54.22-004.53/
+Same: wikidata:Q9676
+
+Name: place:israel
+Label: Israel
+Kind: country
+Country: IL
+At: +30.91+034.85/
+Same: wikidata:Q801
+
+Name: place:italy
+Label: Italy
+Kind: country
+Country: IT
+At: +44.73+011.08/
+Same: wikidata:Q38
+
+Name: place:ivory-coast
+Label: Ivory Coast
+Alias: Côte d'Ivoire
+Kind: country
+Country: CI
+At: +07.49-005.57/
+Same: wikidata:Q1008
+
+Name: place:jamaica
+Label: Jamaica
+Kind: country
+Country: JM
+At: +18.14-077.32/
+Same: wikidata:Q766
+
+Name: place:japan
+Label: Japan
+Kind: country
+Country: JP
+At: +36.14+138.44/
+Same: wikidata:Q17
+
+Name: place:jersey
+Label: Jersey
+Kind: country
+Country: JE
+At: +49.22-002.09/
+Same: wikidata:Q785
+
+Name: place:jordan
+Label: Jordan
+Kind: country
+Country: JO
+At: +30.81+036.38/
+Same: wikidata:Q810
+
+Name: place:kazakhstan
+Label: Kazakhstan
+Kind: country
+Country: KZ
+At: +49.05+068.69/
+Same: wikidata:Q232
+
+Name: place:kenya
+Label: Kenya
+Kind: country
+Country: KE
+At: +00.55+037.91/
+Same: wikidata:Q114
+
+Name: place:kiribati
+Label: Kiribati
+Kind: country
+Country: KI
+At: +01.82-157.38/
+Same: wikidata:Q710
+
+Name: place:kosovo
+Label: Kosovo
+Kind: country
+Country: XK
+At: +42.59+020.86/
+Same: wikidata:Q1246
+
+Name: place:kuwait
+Label: Kuwait
+Kind: country
+Country: KW
+At: +29.41+047.31/
+Same: wikidata:Q817
+
+Name: place:kyrgyzstan
+Label: Kyrgyzstan
+Kind: country
+Country: KG
+At: +41.67+074.53/
+Same: wikidata:Q813
+
+Name: place:laos
+Label: Laos
+Alias: Lao PDR
+Kind: country
+Country: LA
+At: +19.43+102.53/
+Same: wikidata:Q819
+
+Name: place:latvia
+Label: Latvia
+Kind: country
+Country: LV
+At: +57.07+025.46/
+Same: wikidata:Q211
+
+Name: place:lebanon
+Label: Lebanon
+Kind: country
+Country: LB
+At: +34.13+035.99/
+Same: wikidata:Q822
+
+Name: place:lesotho
+Label: Lesotho
+Kind: country
+Country: LS
+At: -29.48+028.25/
+Same: wikidata:Q1013
+
+Name: place:liberia
+Label: Liberia
+Kind: country
+Country: LR
+At: +06.45-009.46/
+Same: wikidata:Q1014
+
+Name: place:libya
+Label: Libya
+Kind: country
+Country: LY
+At: +26.64+018.01/
+Same: wikidata:Q1016
+
+Name: place:liechtenstein
+Label: Liechtenstein
+Kind: country
+Country: LI
+At: +47.11+009.56/
+Same: wikidata:Q347
+
+Name: place:lithuania
+Label: Lithuania
+Kind: country
+Country: LT
+At: +55.10+024.09/
+Same: wikidata:Q37
+
+Name: place:luxembourg
+Label: Luxembourg
+Kind: country
+Country: LU
+At: +49.73+006.08/
+Same: wikidata:Q32
+
+Name: place:macau
+Label: Macau
+Alias: Macao
+Kind: country
+Country: MO
+At: +22.13+113.56/
+Same: wikidata:Q14773
+
+Name: place:madagascar
+Label: Madagascar
+Kind: country
+Country: MG
+At: -18.63+046.70/
+Same: wikidata:Q1019
+
+Name: place:malawi
+Label: Malawi
+Kind: country
+Country: MW
+At: -13.39+033.61/
+Same: wikidata:Q1020
+
+Name: place:malaysia
+Label: Malaysia
+Kind: country
+Country: MY
+At: +02.53+113.84/
+Same: wikidata:Q833
+
+Name: place:maldives
+Label: Maldives
+Kind: country
+Country: MV
+At: +04.17+073.51/
+Same: wikidata:Q826
+
+Name: place:mali
+Label: Mali
+Kind: country
+Country: ML
+At: +18.69-002.04/
+Same: wikidata:Q912
+
+Name: place:malta
+Label: Malta
+Kind: country
+Country: MT
+At: +35.89+014.43/
+Same: wikidata:Q233
+
+Name: place:marshall-islands
+Label: Marshall Islands
+Alias: Marshall Is.
+Kind: country
+Country: MH
+At: +07.08+171.19/
+Same: wikidata:Q709
+
+Name: place:mauritania
+Label: Mauritania
+Kind: country
+Country: MR
+At: +19.59-009.74/
+Same: wikidata:Q1025
+
+Name: place:mauritius
+Label: Mauritius
+Kind: country
+Country: MU
+At: -20.30+057.57/
+Same: wikidata:Q1027
+
+Name: place:mexico
+Label: Mexico
+Kind: country
+Country: MX
+At: +23.92-102.29/
+Same: wikidata:Q96
+
+Name: place:moldova
+Label: Moldova
+Kind: country
+Country: MD
+At: +47.43+028.49/
+Same: wikidata:Q217
+
+Name: place:monaco
+Label: Monaco
+Kind: country
+Country: MC
+At: +43.74+007.40/
+Same: wikidata:Q235
+
+Name: place:mongolia
+Label: Mongolia
+Kind: country
+Country: MN
+At: +46.00+104.15/
+Same: wikidata:Q711
+
+Name: place:montenegro
+Label: Montenegro
+Kind: country
+Country: ME
+At: +42.80+019.14/
+Same: wikidata:Q236
+
+Name: place:montserrat
+Label: Montserrat
+Kind: country
+Country: MS
+At: +16.74-062.19/
+Same: wikidata:Q13353
+
+Name: place:morocco
+Label: Morocco
+Kind: country
+Country: MA
+At: +31.65-007.19/
+Same: wikidata:Q1028
+
+Name: place:mozambique
+Label: Mozambique
+Kind: country
+Country: MZ
+At: -13.94+037.84/
+Same: wikidata:Q1029
+
+Name: place:myanmar
+Label: Myanmar
+Kind: country
+Country: MM
+At: +21.57+095.80/
+Same: wikidata:Q836
+
+Name: place:namibia
+Label: Namibia
+Kind: country
+Country: NA
+At: -20.58+017.11/
+Same: wikidata:Q1030
+
+Name: place:nauru
+Label: Nauru
+Kind: country
+Country: NR
+At: -00.52+166.93/
+Same: wikidata:Q697
+
+Name: place:nepal
+Label: Nepal
+Kind: country
+Country: NP
+At: +28.30+083.64/
+Same: wikidata:Q837
+
+Name: place:netherlands
+Label: Netherlands
+Kind: country
+Country: NL
+At: +52.42+005.61/
+Same: wikidata:Q55
+
+Name: place:new-caledonia
+Label: New Caledonia
+Kind: country
+Country: NC
+At: -21.06+165.08/
+Same: wikidata:Q33788
+
+Name: place:new-zealand
+Label: New Zealand
+Kind: country
+Country: NZ
+At: -39.76+172.79/
+Same: wikidata:Q664
+
+Name: place:nicaragua
+Label: Nicaragua
+Kind: country
+Country: NI
+At: +12.67-085.07/
+Same: wikidata:Q811
+
+Name: place:niger
+Label: Niger
+Kind: country
+Country: NE
+At: +17.45+009.50/
+Same: wikidata:Q1032
+
+Name: place:nigeria
+Label: Nigeria
+Kind: country
+Country: NG
+At: +09.44+007.50/
+Same: wikidata:Q1033
+
+Name: place:niue
+Label: Niue
+Kind: country
+Country: NU
+At: -19.05-169.86/
+Same: wikidata:Q34020
+
+Name: place:norfolk-island
+Label: Norfolk Island
+Kind: country
+Country: NF
+At: -29.03+167.95/
+Same: wikidata:Q31057
+
+Name: place:north-korea
+Label: North Korea
+Alias: Dem. Rep. Korea
+Kind: country
+Country: KP
+At: +39.89+126.44/
+Same: wikidata:Q423
+
+Name: place:north-macedonia
+Label: North Macedonia
+Kind: country
+Country: MK
+At: +41.56+021.56/
+Same: wikidata:Q221
+
+Name: place:northern-mariana-islands
+Label: Northern Mariana Islands
+Alias: N. Mariana Is.
+Kind: country
+Country: MP
+At: +15.19+145.73/
+Same: wikidata:Q16644
+
+Name: place:norway
+Label: Norway
+Kind: country
+Country: NO
+At: +61.36+009.68/
+Same: wikidata:Q20
+
+Name: place:oman
+Label: Oman
+Kind: country
+Country: OM
+At: +22.12+057.34/
+Same: wikidata:Q842
+
+Name: place:pakistan
+Label: Pakistan
+Kind: country
+Country: PK
+At: +29.33+068.55/
+Same: wikidata:Q843
+
+Name: place:palau
+Label: Palau
+Kind: country
+Country: PW
+At: +07.52+134.58/
+Same: wikidata:Q695
+
+Name: place:palestine
+Label: Palestine
+Kind: country
+Country: PS
+At: +32.05+035.29/
+Same: wikidata:Q23792
+
+Name: place:panama
+Label: Panama
+Kind: country
+Country: PA
+At: +08.72-080.35/
+Same: wikidata:Q804
+
+Name: place:papua-new-guinea
+Label: Papua New Guinea
+Kind: country
+Country: PG
+At: -05.70+143.91/
+Same: wikidata:Q691
+
+Name: place:paraguay
+Label: Paraguay
+Kind: country
+Country: PY
+At: -21.67-060.15/
+Same: wikidata:Q733
+
+Name: place:people-s-republic-of-china
+Label: People's Republic of China
+Alias: China
+Kind: country
+Country: CN
+At: +32.50+106.34/
+Same: wikidata:Q148
+
+Name: place:peru
+Label: Peru
+Kind: country
+Country: PE
+At: -12.98-072.90/
+Same: wikidata:Q419
+
+Name: place:philippines
+Label: Philippines
+Kind: country
+Country: PH
+At: +11.20+122.47/
+Same: wikidata:Q928
+
+Name: place:pitcairn-islands
+Label: Pitcairn Islands
+Alias: Pitcairn Is.
+Kind: country
+Country: PN
+At: -24.36-128.32/
+Same: wikidata:Q35672
+
+Name: place:poland
+Label: Poland
+Kind: country
+Country: PL
+At: +51.99+019.49/
+Same: wikidata:Q36
+
+Name: place:portugal
+Label: Portugal
+Kind: country
+Country: PT
+At: +39.61-008.27/
+Same: wikidata:Q45
+
+Name: place:puerto-rico
+Label: Puerto Rico
+Kind: country
+Country: PR
+At: +18.23-066.48/
+Same: wikidata:Q1183
+
+Name: place:qatar
+Label: Qatar
+Kind: country
+Country: QA
+At: +25.24+051.14/
+Same: wikidata:Q846
+
+Name: place:republic-of-the-congo
+Label: Republic of the Congo
+Alias: Congo
+Kind: country
+Country: CG
+At: +00.14+015.90/
+Same: wikidata:Q971
+
+Name: place:romania
+Label: Romania
+Kind: country
+Country: RO
+At: +45.73+024.97/
+Same: wikidata:Q218
+
+Name: place:russia
+Label: Russia
+Alias: Russian Federation
+Kind: country
+Country: RU
+At: +58.25+044.69/
+Same: wikidata:Q159
+
+Name: place:rwanda
+Label: Rwanda
+Kind: country
+Country: RW
+At: -01.90+030.10/
+Same: wikidata:Q1037
+
+Name: place:saint-barthelemy
+Label: Saint Barthélemy
+Alias: St-Barthélemy
+Alias: Saint-Barthélemy
+Alias: Saint Barthelemy
+Kind: country
+Country: BL
+At: +17.90-062.83/
+Same: wikidata:Q25362
+
+Name: place:saint-helena
+Label: Saint Helena
+Kind: country
+Country: SH
+At: -15.95-005.71/
+Same: wikidata:Q34497
+
+Name: place:saint-kitts-and-nevis
+Label: Saint Kitts and Nevis
+Alias: St. Kitts and Nevis
+Kind: country
+Country: KN
+At: +17.34-062.76/
+Same: wikidata:Q763
+
+Name: place:saint-lucia
+Label: Saint Lucia
+Kind: country
+Country: LC
+At: +13.89-060.98/
+Same: wikidata:Q760
+
+Name: place:saint-martin
+Label: Saint Martin
+Alias: St-Martin
+Alias: Saint-Martin
+Kind: country
+Country: MF
+At: +18.08-063.05/
+Same: wikidata:Q126125
+
+Name: place:saint-pierre-and-miquelon
+Label: Saint Pierre and Miquelon
+Alias: St. Pierre and Miquelon
+Kind: country
+Country: PM
+At: +47.04-056.33/
+Same: wikidata:Q34617
+
+Name: place:saint-vincent-and-the-grenadines
+Label: Saint Vincent and the Grenadines
+Alias: St. Vin. and Gren.
+Kind: country
+Country: VC
+At: +13.09-061.34/
+Same: wikidata:Q757
+
+Name: place:samoa
+Label: Samoa
+Kind: country
+Country: WS
+At: -13.64-172.44/
+Same: wikidata:Q683
+
+Name: place:san-marino
+Label: San Marino
+Kind: country
+Country: SM
+At: +43.93+012.44/
+Same: wikidata:Q238
+
+Name: place:sao-tome-and-principe
+Label: São Tomé and Príncipe
+Alias: São Tomé and Principe
+Alias: Sao Tome and Principe
+Kind: country
+Country: ST
+At: +00.97+007.02/
+Same: wikidata:Q1039
+
+Name: place:saudi-arabia
+Label: Saudi Arabia
+Kind: country
+Country: SA
+At: +23.81+044.70/
+Same: wikidata:Q851
+
+Name: place:senegal
+Label: Senegal
+Kind: country
+Country: SN
+At: +15.14-014.78/
+Same: wikidata:Q1041
+
+Name: place:serbia
+Label: Serbia
+Kind: country
+Country: RS
+At: +44.19+020.79/
+Same: wikidata:Q403
+
+Name: place:seychelles
+Label: Seychelles
+Kind: country
+Country: SC
+At: -04.68+055.48/
+Same: wikidata:Q1042
+
+Name: place:siachen-glacier
+Label: Siachen Glacier
+Kind: country
+At: +35.34+077.13/
+Same: wikidata:Q333946
+
+Name: place:sierra-leone
+Label: Sierra Leone
+Kind: country
+Country: SL
+At: +08.62-011.76/
+Same: wikidata:Q1044
+
+Name: place:singapore
+Label: Singapore
+Kind: country
+Country: SG
+At: +01.37+103.82/
+Same: wikidata:Q334
+
+Name: place:sint-maarten
+Label: Sint Maarten
+Kind: country
+Country: SX
+At: +18.04-063.07/
+Same: wikidata:Q26273
+
+Name: place:slovakia
+Label: Slovakia
+Kind: country
+Country: SK
+At: +48.73+019.05/
+Same: wikidata:Q214
+
+Name: place:slovenia
+Label: Slovenia
+Kind: country
+Country: SI
+At: +46.06+014.92/
+Same: wikidata:Q215
+
+Name: place:solomon-islands
+Label: Solomon Islands
+Alias: Solomon Is.
+Kind: country
+Country: SB
+At: -08.03+159.17/
+Same: wikidata:Q685
+
+Name: place:somalia
+Label: Somalia
+Kind: country
+Country: SO
+At: +03.57+045.19/
+Same: wikidata:Q1045
+
+Name: place:somaliland
+Label: Somaliland
+Kind: country
+At: +09.44+046.73/
+Same: wikidata:Q34754
+
+Name: place:south-africa
+Label: South Africa
+Kind: country
+Country: ZA
+At: -29.71+023.67/
+Same: wikidata:Q258
+
+Name: place:south-georgia-and-the-south-sandwich-islands
+Label: South Georgia and the South Sandwich Islands
+Alias: S. Geo. and the Is.
+Alias: South Georgia and the Islands
+Kind: country
+Country: GS
+At: -55.68-031.06/
+Same: wikidata:Q35086
+
+Name: place:south-korea
+Label: South Korea
+Alias: Republic of Korea
+Kind: country
+Country: KR
+At: +36.38+128.13/
+Same: wikidata:Q884
+
+Name: place:south-sudan
+Label: South Sudan
+Alias: S. Sudan
+Kind: country
+Country: SS
+At: +07.23+030.39/
+Same: wikidata:Q958
+
+Name: place:spain
+Label: Spain
+Kind: country
+Country: ES
+At: +40.09-003.46/
+Same: wikidata:Q29
+
+Name: place:sri-lanka
+Label: Sri Lanka
+Kind: country
+Country: LK
+At: +07.58+080.70/
+Same: wikidata:Q854
+
+Name: place:sudan
+Label: Sudan
+Kind: country
+Country: SD
+At: +16.33+029.26/
+Same: wikidata:Q1049
+
+Name: place:suriname
+Label: Suriname
+Kind: country
+Country: SR
+At: +04.14-055.91/
+Same: wikidata:Q730
+
+Name: place:sweden
+Label: Sweden
+Kind: country
+Country: SE
+At: +65.86+019.02/
+Same: wikidata:Q34
+
+Name: place:switzerland
+Label: Switzerland
+Kind: country
+Country: CH
+At: +46.72+007.46/
+Same: wikidata:Q39
+
+Name: place:syria
+Label: Syria
+Kind: country
+Country: SY
+At: +35.01+038.28/
+Same: wikidata:Q858
+
+Name: place:taiwan
+Label: Taiwan
+Kind: country
+Country: TW
+At: +23.65+120.87/
+Same: wikidata:Q865
+
+Name: place:tajikistan
+Label: Tajikistan
+Kind: country
+Country: TJ
+At: +38.20+072.59/
+Same: wikidata:Q863
+
+Name: place:tanzania
+Label: Tanzania
+Kind: country
+Country: TZ
+At: -06.05+034.96/
+Same: wikidata:Q924
+
+Name: place:thailand
+Label: Thailand
+Kind: country
+Country: TH
+At: +15.46+101.07/
+Same: wikidata:Q869
+
+Name: place:the-bahamas
+Label: The Bahamas
+Alias: Bahamas
+Kind: country
+Country: BS
+At: +26.40-077.15/
+Same: wikidata:Q778
+
+Name: place:the-gambia
+Label: The Gambia
+Alias: Gambia
+Kind: country
+Country: GM
+At: +13.64-015.00/
+Same: wikidata:Q1005
+
+Name: place:togo
+Label: Togo
+Kind: country
+Country: TG
+At: +08.81+001.06/
+Same: wikidata:Q945
+
+Name: place:tonga
+Label: Tonga
+Kind: country
+Country: TO
+At: -21.21-175.16/
+Same: wikidata:Q678
+
+Name: place:trinidad-and-tobago
+Label: Trinidad and Tobago
+Kind: country
+Country: TT
+At: +11.00-060.92/
+Same: wikidata:Q754
+
+Name: place:tunisia
+Label: Tunisia
+Kind: country
+Country: TN
+At: +33.69+009.01/
+Same: wikidata:Q948
+
+Name: place:turkey
+Label: Turkey
+Kind: country
+Country: TR
+At: +39.35+034.51/
+Same: wikidata:Q43
+
+Name: place:turkish-republic-of-northern-cyprus
+Label: Turkish Republic of Northern Cyprus
+Alias: N. Cyprus
+Alias: Northern Cyprus
+Kind: country
+At: +35.22+033.69/
+Same: wikidata:Q23681
+
+Name: place:turkmenistan
+Label: Turkmenistan
+Kind: country
+Country: TM
+At: +39.86+058.68/
+Same: wikidata:Q874
+
+Name: place:turks-and-caicos-islands
+Label: Turks and Caicos Islands
+Alias: Turks and Caicos Is.
+Kind: country
+Country: TC
+At: +21.82-071.75/
+Same: wikidata:Q18221
+
+Name: place:tuvalu
+Label: Tuvalu
+Kind: country
+Country: TV
+At: -08.51+179.21/
+Same: wikidata:Q672
+
+Name: place:uganda
+Label: Uganda
+Kind: country
+Country: UG
+At: +01.97+032.95/
+Same: wikidata:Q1036
+
+Name: place:ukraine
+Label: Ukraine
+Kind: country
+Country: UA
+At: +49.72+032.14/
+Same: wikidata:Q212
+
+Name: place:united-arab-emirates
+Label: United Arab Emirates
+Kind: country
+Country: AE
+At: +23.47+054.55/
+Same: wikidata:Q878
+
+Name: place:united-kingdom
+Label: United Kingdom
+Alias: UK
+Alias: Britain
+Alias: Great Britain
+Kind: country
+Country: GB
+At: +54.40-002.12/
+Same: wikidata:Q145
+
+Name: place:united-states-of-america
+Label: United States of America
+Alias: United States
+Alias: USA
+Alias: America
+Kind: country
+Country: US
+At: +39.54-097.48/
+Same: wikidata:Q30
+
+Name: place:united-states-virgin-islands
+Label: United States Virgin Islands
+Alias: U.S. Virgin Is.
+Kind: country
+Country: VI
+At: +17.75-064.78/
+Same: wikidata:Q11703
+
+Name: place:uruguay
+Label: Uruguay
+Kind: country
+Country: UY
+At: -32.96-055.97/
+Same: wikidata:Q77
+
+Name: place:uzbekistan
+Label: Uzbekistan
+Kind: country
+Country: UZ
+At: +41.69+064.01/
+Same: wikidata:Q265
+
+Name: place:vanuatu
+Label: Vanuatu
+Kind: country
+Country: VU
+At: -15.37+166.91/
+Same: wikidata:Q686
+
+Name: place:vatican-city
+Label: Vatican City
+Alias: Vatican
+Alias: Holy See
+Kind: country
+Country: VA
+At: +41.90+012.45/
+Same: wikidata:Q237
+
+Name: place:venezuela
+Label: Venezuela
+Kind: country
+Country: VE
+At: +07.18-064.60/
+Same: wikidata:Q717
+
+Name: place:vietnam
+Label: Vietnam
+Kind: country
+Country: VN
+At: +21.72+105.39/
+Same: wikidata:Q881
+
+Name: place:wallis-and-futuna
+Label: Wallis and Futuna
+Alias: Wallis and Futuna Is.
+Alias: Wallis and Futuna Islands
+Kind: country
+Country: WF
+At: -14.29-178.14/
+Same: wikidata:Q35555
+
+Name: place:western-sahara
+Label: Western Sahara
+Alias: W. Sahara
+Kind: country
+Country: EH
+At: +23.97-012.63/
+Same: wikidata:Q6250
+
+Name: place:yemen
+Label: Yemen
+Kind: country
+Country: YE
+At: +15.33+045.87/
+Same: wikidata:Q805
+
+Name: place:zambia
+Label: Zambia
+Kind: country
+Country: ZM
+At: -14.66+026.40/
+Same: wikidata:Q953
+
+Name: place:zimbabwe
+Label: Zimbabwe
+Kind: country
+Country: ZW
+At: -18.91+029.93/
+Same: wikidata:Q954
+
+Name: place:abakan
+Label: Abakan
+Kind: city
+Parent: place:russia
+At: +53.70+091.45/
+
+Name: place:abeche
+Label: Abéché
+Alias: Abeche
+Kind: city
+Parent: place:chad
+At: +13.84+020.83/
+
+Name: place:abidjan
+Label: Abidjan
+Kind: city
+Parent: place:ivory-coast
+At: +05.32-004.04/
+
+Name: place:aboa-station
+Label: Aboa Station
+Kind: city
+Parent: place:antarctica
+At: -75.05-013.42/
+
+Name: place:abu-dhabi
+Label: Abu Dhabi
+Kind: city
+Parent: place:united-arab-emirates
+At: +24.47+054.37/
+
+Name: place:abuja
+Label: Abuja
+Kind: city
+Parent: place:nigeria
+At: +09.09+007.53/
+
+Name: place:acapulco
+Label: Acapulco
+Kind: city
+Parent: place:mexico
+At: +16.85-099.92/
+
+Name: place:accra
+Label: Accra
+Kind: city
+Parent: place:ghana
+At: +05.55-000.22/
+
+Name: place:adana
+Label: Adana
+Alias: Seyhan
+Kind: city
+Parent: place:turkey
+At: +37.00+035.32/
+
+Name: place:addis-ababa
+Label: Addis Ababa
+Kind: city
+Parent: place:ethiopia
+At: +09.04+038.70/
+
+Name: place:adelaide
+Label: Adelaide
+Kind: city
+Parent: place:australia
+At: -34.93+138.60/
+
+Name: place:aden
+Label: Aden
+Kind: city
+Parent: place:yemen
+At: +12.78+045.01/
+
+Name: place:agadez
+Label: Agadez
+Kind: city
+Parent: place:niger
+At: +17.00+007.98/
+
+Name: place:agana
+Label: Agana
+Kind: city
+Parent: place:guam
+At: +13.47+144.75/
+
+Name: place:agra
+Label: Agra
+Kind: city
+Parent: place:india
+At: +27.17+078.01/
+
+Name: place:ahmedabad
+Label: Ahmedabad
+Alias: Ahmadabad
+Kind: city
+Parent: place:india
+At: +23.03+072.58/
+
+Name: place:ahvaz
+Label: Ahvaz
+Alias: Ahwaz
+Kind: city
+Parent: place:iran
+At: +31.28+048.72/
+
+Name: place:ajaccio
+Label: Ajaccio
+Kind: city
+Parent: place:france
+At: +41.93+008.73/
+
+Name: place:akola
+Label: Akola
+Kind: city
+Parent: place:india
+At: +20.71+077.01/
+
+Name: place:al-jawf
+Label: Al Jawf
+Kind: city
+Parent: place:libya
+At: +24.20+023.29/
+
+Name: place:albany
+Label: Albany
+Kind: city
+Parent: place:australia
+At: -35.02+117.89/
+
+Name: place:albuquerque
+Label: Albuquerque
+Kind: city
+Parent: place:united-states-of-america
+At: +35.10-106.64/
+
+Name: place:aldan
+Label: Aldan
+Kind: city
+Parent: place:russia
+At: +58.60+125.39/
+
+Name: place:aleppo
+Label: Aleppo
+Alias: Halab
+Kind: city
+Parent: place:syria
+At: +36.23+037.17/
+
+Name: place:alexandria
+Label: Alexandria
+Alias: Al-Iskandariyah
+Kind: city
+Parent: place:egypt
+At: +31.20+029.95/
+
+Name: place:algiers
+Label: Algiers
+Alias: El Djazacr
+Kind: city
+Parent: place:algeria
+At: +36.77+003.05/
+
+Name: place:alice-springs
+Label: Alice Springs
+Kind: city
+Parent: place:australia
+At: -23.70+133.88/
+
+Name: place:aligarh
+Label: Aligarh
+Kind: city
+Parent: place:india
+At: +27.89+078.06/
+
+Name: place:allahabad
+Label: Allahabad
+Kind: city
+Parent: place:india
+At: +25.46+081.84/
+
+Name: place:almaty
+Label: Almaty
+Kind: city
+Parent: place:kazakhstan
+At: +43.33+076.91/
+
+Name: place:alta-floresta
+Label: Alta Floresta
+Kind: city
+Parent: place:brazil
+At: -09.90-055.91/
+
+Name: place:altay
+Label: Altay
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +47.87+088.12/
+
+Name: place:alvorada
+Label: Alvorada
+Kind: city
+Parent: place:brazil
+At: -12.47-049.08/
+
+Name: place:amaravati
+Label: Amaravati
+Kind: city
+Parent: place:india
+At: +16.53+080.52/
+
+Name: place:amarillo
+Label: Amarillo
+Kind: city
+Parent: place:united-states-of-america
+At: +35.23-101.83/
+
+Name: place:ambarchik
+Label: Ambarchik
+Kind: city
+Parent: place:russia
+At: +69.65+162.33/
+
+Name: place:ambon
+Label: Ambon
+Kind: city
+Parent: place:indonesia
+At: -03.72+128.20/
+
+Name: place:amiens
+Label: Amiens
+Kind: city
+Parent: place:france
+At: +49.90+002.30/
+
+Name: place:amman
+Label: Amman
+Kind: city
+Parent: place:jordan
+At: +31.95+035.93/
+
+Name: place:amritsar
+Label: Amritsar
+Kind: city
+Parent: place:india
+At: +31.64+074.87/
+
+Name: place:amsterdam
+Label: Amsterdam
+Kind: city
+Parent: place:netherlands
+At: +52.35+004.91/
+
+Name: place:amundseniscott-south-pole-station
+Label: Amundsen–Scott South Pole Station
+Alias: AmundseniScott South Pole Station
+Alias: AmundsenScott South Pole Station
+Kind: city
+Parent: place:antarctica
+At: -90.00+176.99/
+
+Name: place:an-najaf
+Label: Najaf
+Alias: An Najaf
+Kind: city
+Parent: place:iraq
+At: +32.00+044.34/
+
+Name: place:anadyr
+Label: Anadyr
+Kind: city
+Parent: place:russia
+At: +64.74+177.47/
+
+Name: place:anchorage
+Label: Anchorage
+Kind: city
+Parent: place:united-states-of-america
+At: +61.22-149.90/
+
+Name: place:ancona
+Label: Ancona
+Kind: city
+Parent: place:italy
+At: +43.60+013.50/
+
+Name: place:andijon
+Label: Andijan
+Alias: Andijon
+Alias: Andizhan
+Kind: city
+Parent: place:uzbekistan
+At: +40.79+072.34/
+
+Name: place:andorra-ad
+Label: Andorra
+Qualifier: Andorra
+Kind: city
+Parent: place:andorra
+At: +42.50+001.52/
+
+Name: place:angarsk
+Label: Angarsk
+Kind: city
+Parent: place:russia
+At: +52.56+103.92/
+
+Name: place:ankang
+Label: Ankang
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +32.68+109.02/
+
+Name: place:ankara
+Label: Ankara
+Kind: city
+Parent: place:turkey
+At: +39.93+032.86/
+
+Name: place:annaba
+Label: Annaba
+Kind: city
+Parent: place:algeria
+At: +36.92+007.76/
+
+Name: place:anshan
+Label: Anshan
+Alias: Anshan, Liaoning
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +41.12+122.94/
+
+Name: place:antananarivo
+Label: Antananarivo
+Kind: city
+Parent: place:madagascar
+At: -18.91+047.51/
+
+Name: place:antofagasta
+Label: Antofagasta
+Kind: city
+Parent: place:chile
+At: -23.65-070.40/
+
+Name: place:antsiranana
+Label: Antsiranana
+Kind: city
+Parent: place:madagascar
+At: -12.28+049.31/
+
+Name: place:aosta
+Label: Aosta
+Kind: city
+Parent: place:italy
+At: +45.74+007.32/
+
+Name: place:apia
+Label: Apia
+Kind: city
+Parent: place:samoa
+At: -13.84-171.74/
+
+Name: place:aqtobe
+Label: Aqtobe
+Alias: Aktyubinsk
+Kind: city
+Parent: place:kazakhstan
+At: +50.28+057.17/
+
+Name: place:archangel
+Label: Archangel
+Kind: city
+Parent: place:russia
+At: +64.57+040.55/
+
+Name: place:arctic-bay
+Label: Arctic Bay
+Kind: city
+Parent: place:canada
+At: +73.03-085.17/
+
+Name: place:arequipa
+Label: Arequipa
+Kind: city
+Parent: place:peru
+At: -16.42-071.53/
+
+Name: place:arica
+Label: Arica
+Kind: city
+Parent: place:chile
+At: -18.50-070.29/
+
+Name: place:armidale
+Label: Armidale
+Kind: city
+Parent: place:australia
+At: -30.51+151.67/
+
+Name: place:artigas-base
+Label: Artigas Base
+Kind: city
+Parent: place:antarctica
+At: -62.17-058.86/
+
+Name: place:arua
+Label: Arua
+Kind: city
+Parent: place:uganda
+At: +03.02+030.90/
+
+Name: place:arusha
+Label: Arusha
+Kind: city
+Parent: place:tanzania
+At: -03.36+036.67/
+
+Name: place:arviat
+Label: Arviat
+Kind: city
+Parent: place:canada
+At: +61.11-094.06/
+
+Name: place:asansol
+Label: Asansol
+Kind: city
+Parent: place:india
+At: +23.69+086.98/
+
+Name: place:ashgabat
+Label: Ashgabat
+Kind: city
+Parent: place:turkmenistan
+At: +37.95+058.38/
+
+Name: place:asmara
+Label: Asmara
+Kind: city
+Parent: place:eritrea
+At: +15.33+038.93/
+
+Name: place:assab
+Label: Assab
+Kind: city
+Parent: place:eritrea
+At: +13.01+042.73/
+
+Name: place:astana
+Label: Nur-Sultan
+Alias: Astana
+Kind: city
+Parent: place:kazakhstan
+At: +51.18+071.43/
+
+Name: place:astrakhan
+Label: Astrakhan
+Kind: city
+Parent: place:russia
+At: +46.35+048.05/
+
+Name: place:asuncion
+Label: Asunción
+Alias: Asuncion
+Kind: city
+Parent: place:paraguay
+At: -25.29-057.64/
+
+Name: place:aswan
+Label: Aswan
+Kind: city
+Parent: place:egypt
+At: +24.09+032.90/
+
+Name: place:asyut
+Label: Asyut
+Kind: city
+Parent: place:egypt
+At: +27.19+031.18/
+
+Name: place:atakpame
+Label: Atakpamé
+Alias: Atakpame
+Kind: city
+Parent: place:togo
+At: +07.53+001.12/
+
+Name: place:atar
+Label: Atar
+Kind: city
+Parent: place:mauritania
+At: +20.52-013.05/
+
+Name: place:athens
+Label: Athens
+Alias: Athinai
+Kind: city
+Parent: place:greece
+At: +37.99+023.73/
+
+Name: place:atlanta
+Label: Atlanta
+Kind: city
+Parent: place:united-states-of-america
+At: +33.83-084.40/
+
+Name: place:atyrau
+Label: Atyrau
+Kind: city
+Parent: place:kazakhstan
+At: +47.11+051.92/
+
+Name: place:auckland
+Label: Auckland
+Kind: city
+Parent: place:new-zealand
+At: -36.85+174.76/
+
+Name: place:augusta
+Label: Augusta
+Kind: city
+Parent: place:united-states-of-america
+At: +44.31-069.78/
+
+Name: place:aurangabad
+Label: Aurangabad
+Kind: city
+Parent: place:india
+At: +19.90+075.32/
+
+Name: place:austin
+Label: Austin
+Kind: city
+Parent: place:united-states-of-america
+At: +30.27-097.74/
+
+Name: place:ayoun-el-atrous
+Label: Ayoun el Atrous
+Alias: Ayoun El Atrous
+Kind: city
+Parent: place:mauritania
+At: +16.67-009.62/
+
+Name: place:baghdad
+Label: Baghdad
+Kind: city
+Parent: place:iraq
+At: +33.34+044.39/
+
+Name: place:baguio-city
+Label: Baguio
+Alias: Baguio City
+Kind: city
+Parent: place:philippines
+At: +16.43+120.57/
+
+Name: place:bahia-blanca
+Label: Bahía Blanca
+Alias: Bahia Blanca
+Kind: city
+Parent: place:argentina
+At: -38.74-062.27/
+
+Name: place:bahir-dar
+Label: Bahir Dar
+Kind: city
+Parent: place:ethiopia
+At: +11.60+037.38/
+
+Name: place:baku
+Label: Baku
+Kind: city
+Parent: place:azerbaijan
+At: +40.40+049.86/
+
+Name: place:balikpapan
+Label: Balikpapan
+Kind: city
+Parent: place:indonesia
+At: -01.25+116.83/
+
+Name: place:baltimore
+Label: Baltimore
+Kind: city
+Parent: place:united-states-of-america
+At: +39.30-076.62/
+
+Name: place:bamako
+Label: Bamako
+Kind: city
+Parent: place:mali
+At: +12.65-008.00/
+
+Name: place:bambari
+Label: Bambari
+Kind: city
+Parent: place:central-african-republic
+At: +05.76+020.67/
+
+Name: place:bamenda
+Label: Bamenda
+Kind: city
+Parent: place:cameroon
+At: +05.96+010.15/
+
+Name: place:banda-aceh
+Label: Banda Aceh
+Kind: city
+Parent: place:indonesia
+At: +05.55+095.32/
+
+Name: place:bandar-e-abbas
+Label: Bandar-e-Abbas
+Alias: Bandar-E Abbas
+Kind: city
+Parent: place:iran
+At: +27.20+056.27/
+
+Name: place:bandar-lampung
+Label: Bandar Lampung
+Kind: city
+Parent: place:indonesia
+At: -05.43+105.27/
+
+Name: place:bandar-seri-begawan
+Label: Bandar Seri Begawan
+Kind: city
+Parent: place:brunei
+At: +04.88+114.93/
+
+Name: place:bandjarmasin
+Label: Bandjarmasin
+Alias: Bandjermasin
+Kind: city
+Parent: place:indonesia
+At: -03.33+114.58/
+
+Name: place:bandundu
+Label: Bandundu
+Kind: city
+Parent: place:democratic-republic-of-the-congo
+At: -03.31+017.38/
+
+Name: place:bandung
+Label: Bandung
+Kind: city
+Parent: place:indonesia
+At: -06.95+107.57/
+
+Name: place:banghazi
+Label: Banghazi
+Alias: Benghazi
+Kind: city
+Parent: place:libya
+At: +32.12+020.06/
+
+Name: place:bangkok
+Label: Bangkok
+Alias: Krung Thep
+Kind: city
+Parent: place:thailand
+At: +13.75+100.51/
+
+Name: place:bangui
+Label: Bangui
+Kind: city
+Parent: place:central-african-republic
+At: +04.37+018.56/
+
+Name: place:banja-luka
+Label: Banja Luka
+Kind: city
+Parent: place:bosnia-and-herzegovina
+At: +44.78+017.18/
+
+Name: place:banjul
+Label: Banjul
+Kind: city
+Parent: place:the-gambia
+At: +13.45-016.59/
+
+Name: place:baoshan
+Label: Baoshan
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +25.12+099.15/
+
+Name: place:baotou
+Label: Baotou
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +40.65+109.82/
+
+Name: place:barcelona
+Label: Barcelona
+Kind: city
+Parent: place:spain
+At: +41.39+002.18/
+
+Name: place:bari
+Label: Bari
+Kind: city
+Parent: place:italy
+At: +41.11+016.87/
+
+Name: place:barnaul
+Label: Barnaul
+Kind: city
+Parent: place:russia
+At: +53.35+083.75/
+
+Name: place:barranquilla
+Label: Barranquilla
+Kind: city
+Parent: place:colombia
+At: +10.96-074.80/
+
+Name: place:barreiras
+Label: Barreiras
+Kind: city
+Parent: place:brazil
+At: -12.14-045.00/
+
+Name: place:base-presidente-montalva
+Label: Base Presidente Montalva
+Alias: Formerly Teniente Rodolfo Marsh Station
+Kind: city
+Parent: place:antarctica
+At: -62.18-058.91/
+
+Name: place:basra
+Label: Basra
+Alias: Al-Basrah
+Kind: city
+Parent: place:iraq
+At: +30.52+047.81/
+
+Name: place:basse-terre
+Label: Basse-terre
+Kind: city
+Parent: place:france
+At: +16.01-061.71/
+
+Name: place:basseterre
+Label: Basseterre
+Kind: city
+Parent: place:saint-kitts-and-nevis
+At: +17.30-062.72/
+
+Name: place:batagay
+Label: Batagay
+Kind: city
+Parent: place:russia
+At: +67.66+134.64/
+
+Name: place:baton-rouge
+Label: Baton Rouge
+Kind: city
+Parent: place:united-states-of-america
+At: +30.46-091.14/
+
+Name: place:battambang
+Label: Battambang
+Alias: Batdambang
+Kind: city
+Parent: place:cambodia
+At: +13.10+103.20/
+
+Name: place:batumi
+Label: Batumi
+Alias: Bat'umi
+Kind: city
+Parent: place:georgia
+At: +41.60+041.63/
+
+Name: place:beian
+Label: Bei'an
+Alias: Beian
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +48.24+126.48/
+
+Name: place:beijing
+Label: Beijing
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +39.93+116.39/
+
+Name: place:beira
+Label: Beira
+Kind: city
+Parent: place:mozambique
+At: -19.82+034.87/
+
+Name: place:beirut
+Label: Beirut
+Alias: Bayrut
+Kind: city
+Parent: place:lebanon
+At: +33.87+035.51/
+
+Name: place:belem
+Label: Belém
+Alias: Belem
+Kind: city
+Parent: place:brazil
+At: -01.45-048.48/
+
+Name: place:belfast
+Label: Belfast
+Kind: city
+Parent: place:united-kingdom
+At: +54.60-005.96/
+
+Name: place:belgrade
+Label: Belgrade
+Kind: city
+Parent: place:serbia
+At: +44.82+020.47/
+
+Name: place:belgrano-ii-base
+Label: Belgrano II Base
+Alias: General Belgrano II Station
+Kind: city
+Parent: place:antarctica
+At: -77.87-034.62/
+
+Name: place:belmopan
+Label: Belmopan
+Kind: city
+Parent: place:belize
+At: +17.25-088.77/
+
+Name: place:belo-horizonte
+Label: Belo Horizonte
+Kind: city
+Parent: place:brazil
+At: -19.91-043.92/
+
+Name: place:bendigo
+Label: Bendigo
+Kind: city
+Parent: place:australia
+At: -36.76+144.28/
+
+Name: place:bengaluru
+Label: Bengaluru
+Kind: city
+Parent: place:india
+At: +12.97+077.56/
+
+Name: place:benguela
+Label: Benguela
+Kind: city
+Parent: place:angola
+At: -12.58+013.41/
+
+Name: place:benin-city
+Label: Benin City
+Kind: city
+Parent: place:nigeria
+At: +06.34+005.62/
+
+Name: place:berbera
+Label: Berbera
+Kind: city
+Parent: place:somaliland
+At: +10.44+045.02/
+
+Name: place:bergen
+Label: Bergen
+Kind: city
+Parent: place:norway
+At: +60.39+005.32/
+
+Name: place:berlin
+Label: Berlin
+Kind: city
+Parent: place:germany
+At: +52.52+013.40/
+
+Name: place:bern
+Label: Bern
+Kind: city
+Parent: place:switzerland
+At: +46.92+007.47/
+
+Name: place:besancon
+Label: Besançon
+Alias: Besancon
+Kind: city
+Parent: place:france
+At: +47.23+006.03/
+
+Name: place:bethel
+Label: Bethel
+Kind: city
+Parent: place:united-states-of-america
+At: +60.79-161.76/
+
+Name: place:bhagalpur
+Label: Bhagalpur
+Kind: city
+Parent: place:india
+At: +25.23+086.98/
+
+Name: place:bhilai
+Label: Bhilai
+Alias: Durg-Bhilainagar
+Kind: city
+Parent: place:india
+At: +21.22+081.43/
+
+Name: place:bhopal
+Label: Bhopal
+Kind: city
+Parent: place:india
+At: +23.25+077.41/
+
+Name: place:bhubaneshwar
+Label: Bhubaneswar
+Alias: Bhubaneshwar
+Kind: city
+Parent: place:india
+At: +20.27+085.83/
+
+Name: place:bilbao
+Label: Bilbao
+Kind: city
+Parent: place:spain
+At: +43.25-002.93/
+
+Name: place:billings
+Label: Billings
+Kind: city
+Parent: place:united-states-of-america
+At: +45.79-108.54/
+
+Name: place:bir-lehlou
+Label: Bir Lehlou
+Kind: city
+Parent: place:western-sahara
+At: +26.12-009.65/
+
+Name: place:birmingham
+Label: Birmingham
+Kind: city
+Parent: place:united-kingdom
+At: +52.48-001.92/
+
+Name: place:bishkek
+Label: Bishkek
+Kind: city
+Parent: place:kyrgyzstan
+At: +42.88+074.58/
+
+Name: place:bismarck
+Label: Bismarck
+Kind: city
+Parent: place:united-states-of-america
+At: +46.81-100.78/
+
+Name: place:bissau
+Label: Bissau
+Kind: city
+Parent: place:guinea-bissau
+At: +11.87-015.60/
+
+Name: place:blagoveshchensk
+Label: Blagoveshchensk
+Kind: city
+Parent: place:russia
+At: +50.27+127.53/
+
+Name: place:blantyre
+Label: Blantyre
+Kind: city
+Parent: place:malawi
+At: -15.79+034.99/
+
+Name: place:blenheim
+Label: Blenheim
+Kind: city
+Parent: place:new-zealand
+At: -41.51+173.95/
+
+Name: place:bloemfontein
+Label: Bloemfontein
+Kind: city
+Parent: place:south-africa
+At: -29.12+026.23/
+
+Name: place:boa-vista
+Label: Boa Vista
+Kind: city
+Parent: place:brazil
+At: +02.82-060.67/
+
+Name: place:bobo-dioulasso
+Label: Bobo Dioulasso
+Kind: city
+Parent: place:burkina-faso
+At: +11.18-004.29/
+
+Name: place:bogota
+Label: Bogota
+Kind: city
+Parent: place:colombia
+At: +04.60-074.09/
+
+Name: place:boise
+Label: Boise
+Kind: city
+Parent: place:united-states-of-america
+At: +43.61-116.23/
+
+Name: place:bologna
+Label: Bologna
+Kind: city
+Parent: place:italy
+At: +44.50+011.34/
+
+Name: place:bombo
+Label: Bombo
+Kind: city
+Parent: place:uganda
+At: +00.58+032.53/
+
+Name: place:bordeaux
+Label: Bordeaux
+Kind: city
+Parent: place:france
+At: +44.85-000.60/
+
+Name: place:bose
+Label: Bose
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +23.90+106.61/
+
+Name: place:boston
+Label: Boston
+Kind: city
+Parent: place:united-states-of-america
+At: +42.33-071.07/
+
+Name: place:bouake
+Label: Bouaké
+Alias: Bouake
+Kind: city
+Parent: place:ivory-coast
+At: +07.69-005.03/
+
+Name: place:brandon
+Label: Brandon
+Kind: city
+Parent: place:canada
+At: +49.83-099.95/
+
+Name: place:brasilia
+Label: Brasília
+Alias: Brasilia
+Kind: city
+Parent: place:brazil
+At: -15.78-047.92/
+
+Name: place:bratislava
+Label: Bratislava
+Kind: city
+Parent: place:slovakia
+At: +48.15+017.12/
+
+Name: place:bratsk
+Label: Bratsk
+Kind: city
+Parent: place:russia
+At: +56.16+101.62/
+
+Name: place:brazzaville
+Label: Brazzaville
+Kind: city
+Parent: place:republic-of-the-congo
+At: -04.26+015.28/
+
+Name: place:brest
+Label: Brest
+Kind: city
+Parent: place:belarus
+At: +52.10+023.70/
+
+Name: place:bridgeport
+Label: Bridgeport
+Alias: Bridgeport-Stamford
+Kind: city
+Parent: place:united-states-of-america
+At: +41.18-073.20/
+
+Name: place:bridgetown
+Label: Bridgetown
+Kind: city
+Parent: place:barbados
+At: +13.10-059.62/
+
+Name: place:brisbane
+Label: Brisbane
+Kind: city
+Parent: place:australia
+At: -27.45+153.03/
+
+Name: place:broken-hill
+Label: Broken Hill
+Kind: city
+Parent: place:australia
+At: -31.95+141.43/
+
+Name: place:broome
+Label: Broome
+Kind: city
+Parent: place:australia
+At: -17.96+122.23/
+
+Name: place:brussels
+Label: Brussels
+Alias: Bruxelles-Brussel
+Kind: city
+Parent: place:belgium
+At: +50.84+004.33/
+
+Name: place:bryansk
+Label: Bryansk
+Alias: Klintsy
+Kind: city
+Parent: place:russia
+At: +53.26+034.43/
+
+Name: place:bucharest
+Label: Bucharest
+Kind: city
+Parent: place:romania
+At: +44.44+026.10/
+
+Name: place:budapest
+Label: Budapest
+Kind: city
+Parent: place:hungary
+At: +47.50+019.08/
+
+Name: place:buenos-aires
+Label: Buenos Aires
+Kind: city
+Parent: place:argentina
+At: -34.60-058.40/
+
+Name: place:buffalo
+Label: Buffalo
+Kind: city
+Parent: place:united-states-of-america
+At: +42.88-078.88/
+
+Name: place:bujumbura
+Label: Bujumbura
+Kind: city
+Parent: place:burundi
+At: -03.38+029.36/
+
+Name: place:bukachacha
+Label: Bukachacha
+Kind: city
+Parent: place:russia
+At: +52.98+116.92/
+
+Name: place:bukhara
+Label: Bukhara
+Kind: city
+Parent: place:uzbekistan
+At: +39.78+064.43/
+
+Name: place:bulawayo
+Label: Bulawayo
+Kind: city
+Parent: place:zimbabwe
+At: -20.17+028.58/
+
+Name: place:bumba
+Label: Bumba
+Kind: city
+Parent: place:democratic-republic-of-the-congo
+At: +02.19+022.46/
+
+Name: place:bur-said
+Label: Bur Said
+Alias: Port Said
+Kind: city
+Parent: place:egypt
+At: +31.26+032.29/
+
+Name: place:burlington
+Label: Burlington
+Kind: city
+Parent: place:united-states-of-america
+At: +44.48-073.21/
+
+Name: place:bursa
+Label: Bursa
+Kind: city
+Parent: place:turkey
+At: +40.20+029.07/
+
+Name: place:busan
+Label: Busan
+Alias: Pusan
+Kind: city
+Parent: place:south-korea
+At: +35.10+129.01/
+
+Name: place:busselton
+Label: Busselton
+Kind: city
+Parent: place:australia
+At: -33.66+115.35/
+
+Name: place:butembo
+Label: Butembo
+Kind: city
+Parent: place:democratic-republic-of-the-congo
+At: +00.13+029.28/
+
+Name: place:caen
+Label: Caen
+Kind: city
+Parent: place:france
+At: +49.18-000.35/
+
+Name: place:cagliari
+Label: Cagliari
+Kind: city
+Parent: place:italy
+At: +39.22+009.10/
+
+Name: place:cairns
+Label: Cairns
+Kind: city
+Parent: place:australia
+At: -16.89+145.76/
+
+Name: place:cairo
+Label: Cairo
+Alias: Al-Qahirah
+Kind: city
+Parent: place:egypt
+At: +30.05+031.25/
+
+Name: place:calgary
+Label: Calgary
+Kind: city
+Parent: place:canada
+At: +51.08-114.08/
+
+Name: place:cali
+Label: Cali
+Kind: city
+Parent: place:colombia
+At: +03.40-076.50/
+
+Name: place:cambridge-bay
+Label: Cambridge Bay
+Kind: city
+Parent: place:canada
+At: +69.12-105.03/
+
+Name: place:campeche
+Label: Campeche
+Kind: city
+Parent: place:mexico
+At: +19.83-090.50/
+
+Name: place:campinas
+Label: Campinas
+Kind: city
+Parent: place:brazil
+At: -22.90-047.10/
+
+Name: place:campo-grande
+Label: Campo Grande
+Kind: city
+Parent: place:brazil
+At: -20.45-054.62/
+
+Name: place:campobasso
+Label: Campobasso
+Kind: city
+Parent: place:italy
+At: +41.56+014.66/
+
+Name: place:canberra
+Label: Canberra
+Kind: city
+Parent: place:australia
+At: -35.28+149.13/
+
+Name: place:cancun
+Label: Cancún
+Alias: Cancun
+Kind: city
+Parent: place:mexico
+At: +21.17-086.83/
+
+Name: place:cape-town
+Label: Cape Town
+Kind: city
+Parent: place:south-africa
+At: -33.92+018.43/
+
+Name: place:capitan-arturo-prat-station
+Label: Capitan Arturo Prat Station
+Kind: city
+Parent: place:antarctica
+At: -62.50-059.68/
+
+Name: place:caracas
+Label: Caracas
+Kind: city
+Parent: place:venezuela
+At: +10.50-066.92/
+
+Name: place:cardiff
+Label: Cardiff
+Kind: city
+Parent: place:united-kingdom
+At: +51.50-003.23/
+
+Name: place:carlini-base
+Label: Carlini Base
+Alias: Formerly Teniente Jubany Station
+Kind: city
+Parent: place:antarctica
+At: -62.22-058.65/
+
+Name: place:cartagena
+Label: Cartagena
+Kind: city
+Parent: place:colombia
+At: +10.40-075.52/
+
+Name: place:casablanca
+Label: Casablanca
+Alias: Dar-el-Beida
+Kind: city
+Parent: place:morocco
+At: +33.60-007.62/
+
+Name: place:casey-station
+Label: Casey Station
+Kind: city
+Parent: place:antarctica
+At: -66.29+110.54/
+
+Name: place:casper
+Label: Casper
+Kind: city
+Parent: place:united-states-of-america
+At: +42.87-106.31/
+
+Name: place:castries
+Label: Castries
+Kind: city
+Parent: place:saint-lucia
+At: +14.00-061.00/
+
+Name: place:catania
+Label: Catania
+Kind: city
+Parent: place:italy
+At: +37.50+015.08/
+
+Name: place:catanzaro
+Label: Catanzaro
+Kind: city
+Parent: place:italy
+At: +38.90+016.60/
+
+Name: place:caxias
+Label: Caxias
+Kind: city
+Parent: place:brazil
+At: -04.83-043.35/
+
+Name: place:caxias-do-sul
+Label: Caxias do Sul
+Kind: city
+Parent: place:brazil
+At: -29.18-051.17/
+
+Name: place:cayenne
+Label: Cayenne
+Kind: city
+Parent: place:france
+At: +04.93-052.33/
+
+Name: place:cebu
+Label: Cebu
+Kind: city
+Parent: place:philippines
+At: +10.32+123.90/
+
+Name: place:chandigarh
+Label: Chandigarh
+Kind: city
+Parent: place:india
+At: +30.72+076.78/
+
+Name: place:changchun
+Label: Changchun
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +43.87+125.34/
+
+Name: place:changsha
+Label: Changsha
+Alias: Changsha, Hunan
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +28.20+112.97/
+
+Name: place:charleston
+Label: Charleston
+Kind: city
+Parent: place:united-states-of-america
+At: +38.35-081.63/
+
+Name: place:charlottetown
+Label: Charlottetown
+Kind: city
+Parent: place:canada
+At: +46.25-063.13/
+
+Name: place:chattogram
+Label: Chattogram
+Kind: city
+Parent: place:bangladesh
+At: +22.33+091.80/
+
+Name: place:chelyabinsk
+Label: Chelyabinsk
+Kind: city
+Parent: place:russia
+At: +55.16+061.44/
+
+Name: place:chengdu
+Label: Chengdu
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +30.67+104.07/
+
+Name: place:chennai
+Label: Chennai
+Kind: city
+Parent: place:india
+At: +13.09+080.28/
+
+Name: place:chesterfield-inlet
+Label: Chesterfield Inlet
+Kind: city
+Parent: place:canada
+At: +63.34-090.70/
+
+Name: place:cheyenne
+Label: Cheyenne
+Kind: city
+Parent: place:united-states-of-america
+At: +41.14-104.82/
+
+Name: place:chiang-mai
+Label: Chiang Mai
+Kind: city
+Parent: place:thailand
+At: +18.80+098.98/
+
+Name: place:chicago
+Label: Chicago
+Kind: city
+Parent: place:united-states-of-america
+At: +41.83-087.75/
+
+Name: place:chifeng
+Label: Chifeng
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +42.27+118.95/
+
+Name: place:chihuahua
+Label: Chihuahua
+Kind: city
+Parent: place:mexico
+At: +28.65-106.09/
+
+Name: place:chimbote
+Label: Chimbote
+Kind: city
+Parent: place:peru
+At: -09.07-078.57/
+
+Name: place:chipata
+Label: Chipata
+Kind: city
+Parent: place:zambia
+At: -13.63+032.64/
+
+Name: place:chisinau
+Label: Chișinău
+Alias: Chisinau
+Kind: city
+Parent: place:moldova
+At: +47.01+028.86/
+
+Name: place:chita
+Label: Chita
+Kind: city
+Parent: place:russia
+At: +52.06+113.47/
+
+Name: place:chitungwiza
+Label: Chitungwiza
+Kind: city
+Parent: place:zimbabwe
+At: -18.00+031.10/
+
+Name: place:chokurdakh
+Label: Chokurdakh
+Kind: city
+Parent: place:russia
+At: +70.62+147.89/
+
+Name: place:chongqing
+Label: Chongqing
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +29.57+106.59/
+
+Name: place:choybalsan
+Label: Choibalsan
+Alias: Choybalsan
+Kind: city
+Parent: place:mongolia
+At: +48.07+114.51/
+
+Name: place:christchurch
+Label: Christchurch
+Kind: city
+Parent: place:new-zealand
+At: -43.54+172.63/
+
+Name: place:churchill
+Label: Churchill
+Kind: city
+Parent: place:canada
+At: +58.77-094.17/
+
+Name: place:cincinnati
+Label: Cincinnati
+Kind: city
+Parent: place:united-states-of-america
+At: +39.16-084.46/
+
+Name: place:ciudad-del-este
+Label: Ciudad del Este
+Kind: city
+Parent: place:paraguay
+At: -25.52-054.62/
+
+Name: place:ciudad-guayana
+Label: Ciudad Guayana
+Kind: city
+Parent: place:venezuela
+At: +08.37-062.62/
+
+Name: place:clermont-ferrand
+Label: Clermont-Ferrand
+Kind: city
+Parent: place:france
+At: +45.78+003.08/
+
+Name: place:cleveland
+Label: Cleveland
+Kind: city
+Parent: place:united-states-of-america
+At: +41.47-081.70/
+
+Name: place:coihaique
+Label: Coihaique
+Kind: city
+Parent: place:chile
+At: -45.57-072.07/
+
+Name: place:coimbatore
+Label: Coimbatore
+Kind: city
+Parent: place:india
+At: +11.00+076.95/
+
+Name: place:cold-bay
+Label: Cold Bay
+Kind: city
+Parent: place:united-states-of-america
+At: +55.20-162.72/
+
+Name: place:colider
+Label: Colíder
+Alias: Colider
+Kind: city
+Parent: place:brazil
+At: -10.82-055.45/
+
+Name: place:colima
+Label: Colima
+Kind: city
+Parent: place:mexico
+At: +19.23-103.72/
+
+Name: place:colombo
+Label: Colombo
+Kind: city
+Parent: place:sri-lanka
+At: +06.93+079.86/
+
+Name: place:colorado-springs
+Label: Colorado Springs
+Kind: city
+Parent: place:united-states-of-america
+At: +38.86-104.79/
+
+Name: place:columbia
+Label: Columbia
+Kind: city
+Parent: place:united-states-of-america
+At: +34.04-080.90/
+
+Name: place:comodoro-rivadavia
+Label: Comodoro Rivadavia
+Kind: city
+Parent: place:argentina
+At: -45.87-067.50/
+
+Name: place:conakry
+Label: Conakry
+Kind: city
+Parent: place:guinea
+At: +09.53-013.68/
+
+Name: place:concepcion
+Label: Concepción
+Alias: Concepcion
+Kind: city
+Parent: place:chile
+At: -36.83-073.05/
+
+Name: place:concordia-research-station
+Label: Concordia Research Station
+Kind: city
+Parent: place:antarctica
+At: -74.67+124.17/
+
+Name: place:constanta
+Label: Constanța
+Alias: Constanta
+Kind: city
+Parent: place:romania
+At: +44.20+028.61/
+
+Name: place:constantine
+Label: Constantine
+Kind: city
+Parent: place:algeria
+At: +36.36+006.60/
+
+Name: place:copiapo
+Label: Copiapó
+Alias: Copiapo
+Kind: city
+Parent: place:chile
+At: -27.36-070.34/
+
+Name: place:cordoba-ar
+Label: Córdoba
+Alias: Cordoba
+Qualifier: Córdoba, Argentina
+Kind: city
+Parent: place:argentina
+At: -31.40-064.18/
+
+Name: place:cordoba-es
+Label: Córdoba
+Alias: Cordoba
+Qualifier: Andalucía, Spain
+Kind: city
+Parent: place:spain
+At: +37.88-004.77/
+
+Name: place:corpus-christi
+Label: Corpus Christi
+Kind: city
+Parent: place:united-states-of-america
+At: +27.74-097.40/
+
+Name: place:corumba
+Label: Corumbá
+Alias: Corumba
+Kind: city
+Parent: place:brazil
+At: -19.02-057.65/
+
+Name: place:cotonou
+Label: Cotonou
+Kind: city
+Parent: place:benin
+At: +06.40+002.52/
+
+Name: place:cottica
+Label: Cottica
+Kind: city
+Parent: place:suriname
+At: +03.85-054.23/
+
+Name: place:cruzeiro-do-sul
+Label: Cruzeiro do Sul
+Kind: city
+Parent: place:brazil
+At: -07.63-072.67/
+
+Name: place:cuenca
+Label: Cuenca
+Kind: city
+Parent: place:ecuador
+At: -02.90-079.00/
+
+Name: place:cuiaba
+Label: Cuiabá
+Alias: Cuiaba
+Kind: city
+Parent: place:brazil
+At: -15.57-056.09/
+
+Name: place:culiacan
+Label: Culiacán
+Alias: Culiacan
+Kind: city
+Parent: place:mexico
+At: +24.83-107.38/
+
+Name: place:curitiba
+Label: Curitiba
+Kind: city
+Parent: place:brazil
+At: -25.42-049.32/
+
+Name: place:cusco
+Label: Cusco
+Alias: Cuzco
+Kind: city
+Parent: place:peru
+At: -13.53-071.97/
+
+Name: place:cuttack
+Label: Cuttack
+Kind: city
+Parent: place:india
+At: +20.47+085.89/
+
+Name: place:da-nang
+Label: Da Nang
+Kind: city
+Parent: place:vietnam
+At: +16.06+108.25/
+
+Name: place:daejeon
+Label: Daejeon
+Alias: Taejon
+Alias: Daejon
+Kind: city
+Parent: place:south-korea
+At: +36.34+127.42/
+
+Name: place:dakar
+Label: Dakar
+Kind: city
+Parent: place:senegal
+At: +14.72-017.48/
+
+Name: place:dalandzadgad
+Label: Dalandzadgad
+Kind: city
+Parent: place:mongolia
+At: +43.58+104.44/
+
+Name: place:dalian
+Label: Dalian
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +38.92+121.63/
+
+Name: place:dallas
+Label: Dallas
+Alias: Dallas-Fort Worth
+Kind: city
+Parent: place:united-states-of-america
+At: +32.82-096.84/
+
+Name: place:dalnegorsk
+Label: Dalnegorsk
+Kind: city
+Parent: place:russia
+At: +44.54+135.52/
+
+Name: place:damascus
+Label: Damascus
+Alias: Dimashq
+Kind: city
+Parent: place:syria
+At: +33.50+036.30/
+
+Name: place:daqing
+Label: Daqing
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +46.58+125.00/
+
+Name: place:dar-es-salaam
+Label: Dar es Salaam
+Kind: city
+Parent: place:tanzania
+At: -06.80+039.27/
+
+Name: place:darwin
+Label: Darwin
+Kind: city
+Parent: place:australia
+At: -12.43+130.85/
+
+Name: place:davao
+Label: Davao
+Kind: city
+Parent: place:philippines
+At: +07.11+125.63/
+
+Name: place:david
+Label: David
+Kind: city
+Parent: place:panama
+At: +08.43-082.43/
+
+Name: place:davis-station
+Label: Davis Station
+Kind: city
+Parent: place:antarctica
+At: -68.78+078.14/
+
+Name: place:dawson-city
+Label: Dawson City
+Alias: Dawson
+Kind: city
+Parent: place:canada
+At: +64.07-139.42/
+
+Name: place:delhi
+Label: Delhi
+Kind: city
+Parent: place:india
+At: +28.67+077.23/
+
+Name: place:denver
+Label: Denver
+Alias: Denver-Aurora
+Kind: city
+Parent: place:united-states-of-america
+At: +39.74-104.99/
+
+Name: place:des-moines
+Label: Des Moines
+Kind: city
+Parent: place:united-states-of-america
+At: +41.58-093.62/
+
+Name: place:detroit
+Label: Detroit
+Kind: city
+Parent: place:united-states-of-america
+At: +42.33-083.08/
+
+Name: place:devonport
+Label: Devonport
+Kind: city
+Parent: place:australia
+At: -41.19+146.33/
+
+Name: place:dhaka
+Label: Dhaka
+Kind: city
+Parent: place:bangladesh
+At: +23.73+090.41/
+
+Name: place:dhanbad
+Label: Dhanbad
+Kind: city
+Parent: place:india
+At: +23.80+086.42/
+
+Name: place:dijon
+Label: Dijon
+Kind: city
+Parent: place:france
+At: +47.33+005.03/
+
+Name: place:dikson
+Label: Dikson
+Alias: Dickson
+Kind: city
+Parent: place:russia
+At: +73.51+080.55/
+
+Name: place:dili
+Label: Dili
+Kind: city
+Parent: place:east-timor
+At: -08.56+125.58/
+
+Name: place:dire-dawa
+Label: Dire Dawa
+Kind: city
+Parent: place:ethiopia
+At: +09.59+041.86/
+
+Name: place:dispur
+Label: Dispur
+Alias: Gauhati
+Kind: city
+Parent: place:india
+At: +26.14+091.77/
+
+Name: place:djenne
+Label: Djenné
+Alias: Djenne
+Kind: city
+Parent: place:mali
+At: +13.90-004.55/
+
+Name: place:djibouti-dj
+Label: Djibouti
+Qualifier: Djibouti, Djibouti
+Kind: city
+Parent: place:djibouti
+At: +11.60+043.15/
+
+Name: place:dnipro
+Label: Dnipro
+Alias: Dnipropetrovsk
+Kind: city
+Parent: place:ukraine
+At: +48.48+035.00/
+
+Name: place:dodoma
+Label: Dodoma
+Kind: city
+Parent: place:tanzania
+At: -06.18+035.75/
+
+Name: place:doha
+Label: Doha
+Kind: city
+Parent: place:qatar
+At: +25.29+051.53/
+
+Name: place:donetsk
+Label: Donetsk
+Alias: Donets'k
+Kind: city
+Parent: place:ukraine
+At: +48.00+037.83/
+
+Name: place:dongguan
+Label: Dongguan
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +23.05+113.74/
+
+Name: place:dongola
+Label: Dongola
+Kind: city
+Parent: place:sudan
+At: +19.17+030.48/
+
+Name: place:douala
+Label: Douala
+Kind: city
+Parent: place:cameroon
+At: +04.06+009.71/
+
+Name: place:douglas
+Label: Douglas
+Kind: city
+Parent: place:isle-of-man
+At: +54.15-004.48/
+
+Name: place:dresden
+Label: Dresden
+Kind: city
+Parent: place:germany
+At: +51.05+013.75/
+
+Name: place:dubai
+Label: Dubai
+Kind: city
+Parent: place:united-arab-emirates
+At: +25.23+055.28/
+
+Name: place:dubbo
+Label: Dubbo
+Kind: city
+Parent: place:australia
+At: -32.26+148.60/
+
+Name: place:dublin
+Label: Dublin
+Kind: city
+Parent: place:ireland
+At: +53.34-006.25/
+
+Name: place:dulan
+Label: Dulan
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +36.17+098.27/
+
+Name: place:dumont-d-urville-station
+Label: Dumont d'Urville Station
+Kind: city
+Parent: place:antarctica
+At: -66.78+139.96/
+
+Name: place:dund-us
+Label: Dund-Us
+Alias: Hovd
+Kind: city
+Parent: place:mongolia
+At: +48.02+091.63/
+
+Name: place:dunedin
+Label: Dunedin
+Kind: city
+Parent: place:new-zealand
+At: -45.89+170.49/
+
+Name: place:dunhuang
+Label: Dunhuang
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +40.14+094.66/
+
+Name: place:durazno
+Label: Durazno
+Kind: city
+Parent: place:uruguay
+At: -33.41-056.51/
+
+Name: place:durban
+Label: Durban
+Kind: city
+Parent: place:south-africa
+At: -29.86+030.98/
+
+Name: place:dushanbe
+Label: Dushanbe
+Kind: city
+Parent: place:tajikistan
+At: +38.56+068.77/
+
+Name: place:east-london
+Label: East London
+Kind: city
+Parent: place:south-africa
+At: -32.97+027.87/
+
+Name: place:ebolowa
+Label: Ebolowa
+Kind: city
+Parent: place:cameroon
+At: +02.90+011.15/
+
+Name: place:edinburgh
+Label: Edinburgh
+Kind: city
+Parent: place:united-kingdom
+At: +55.95-003.22/
+
+Name: place:edmonton
+Label: Edmonton
+Kind: city
+Parent: place:canada
+At: +53.55-113.50/
+
+Name: place:ekibastuz
+Label: Ekibastuz
+Kind: city
+Parent: place:kazakhstan
+At: +51.73+075.32/
+
+Name: place:el-calafate
+Label: El Calafate
+Kind: city
+Parent: place:argentina
+At: -50.33-072.30/
+
+Name: place:el-faiyum
+Label: El Faiyum
+Kind: city
+Parent: place:egypt
+At: +29.31+030.84/
+
+Name: place:el-fasher
+Label: El Fasher
+Kind: city
+Parent: place:sudan
+At: +13.63+025.35/
+
+Name: place:el-obeid
+Label: Al-Ubayyid
+Alias: El Obeid
+Kind: city
+Parent: place:sudan
+At: +13.18+030.22/
+
+Name: place:el-paso
+Label: El Paso
+Kind: city
+Parent: place:united-states-of-america
+At: +31.78-106.51/
+
+Name: place:eldoret
+Label: Eldoret
+Kind: city
+Parent: place:kenya
+At: +00.52+035.27/
+
+Name: place:elephant-island
+Label: Elephant Island
+Kind: city
+Parent: place:antarctica
+At: -62.00-058.00/
+
+Name: place:elko
+Label: Elko
+Kind: city
+Parent: place:united-states-of-america
+At: +40.83-115.76/
+
+Name: place:enugu
+Label: Enugu
+Kind: city
+Parent: place:nigeria
+At: +06.45+007.50/
+
+Name: place:erdenet
+Label: Erdenet
+Kind: city
+Parent: place:mongolia
+At: +49.05+104.12/
+
+Name: place:escudero-base
+Label: Escudero Base
+Kind: city
+Parent: place:antarctica
+At: -62.19-058.95/
+
+Name: place:esperanza-station
+Label: Esperanza Base
+Alias: Esperanza Station
+Kind: city
+Parent: place:antarctica
+At: -63.38-057.03/
+
+Name: place:eureka
+Label: Eureka
+Kind: city
+Parent: place:united-states-of-america
+At: +40.80-124.15/
+
+Name: place:fairbanks
+Label: Fairbanks
+Kind: city
+Parent: place:united-states-of-america
+At: +64.84-147.71/
+
+Name: place:fargo
+Label: Fargo
+Kind: city
+Parent: place:united-states-of-america
+At: +46.88-096.79/
+
+Name: place:faridabad
+Label: Faridabad
+Kind: city
+Parent: place:india
+At: +28.44+077.31/
+
+Name: place:feira-de-santana
+Label: Feira de Santana
+Kind: city
+Parent: place:brazil
+At: -12.25-038.97/
+
+Name: place:fez
+Label: Fez
+Alias: Fes
+Alias: F-s
+Kind: city
+Parent: place:morocco
+At: +34.06-005.00/
+
+Name: place:fianarantsoa
+Label: Fianarantsoa
+Kind: city
+Parent: place:madagascar
+At: -21.43+047.08/
+
+Name: place:flagstaff
+Label: Flagstaff
+Kind: city
+Parent: place:united-states-of-america
+At: +35.20-111.65/
+
+Name: place:florence
+Label: Florence
+Kind: city
+Parent: place:italy
+At: +43.78+011.25/
+
+Name: place:florianopolis
+Label: Florianópolis
+Alias: Florianopolis
+Kind: city
+Parent: place:brazil
+At: -27.58-048.52/
+
+Name: place:formosa
+Label: Formosa
+Kind: city
+Parent: place:argentina
+At: -26.17-058.18/
+
+Name: place:fort-de-france
+Label: Fort-de-France
+Kind: city
+Parent: place:france
+At: +14.61-061.08/
+
+Name: place:fort-good-hope
+Label: Fort Good Hope
+Kind: city
+Parent: place:canada
+At: +66.27-128.63/
+
+Name: place:fort-mcmurray
+Label: Fort McMurray
+Kind: city
+Parent: place:canada
+At: +56.73-111.38/
+
+Name: place:fort-portal
+Label: Fort Portal
+Kind: city
+Parent: place:uganda
+At: +00.67+030.28/
+
+Name: place:fort-severn
+Label: Fort Severn
+Kind: city
+Parent: place:canada
+At: +55.98-087.65/
+
+Name: place:fort-smith
+Label: Fort Smith
+Kind: city
+Parent: place:canada
+At: +60.00-111.88/
+
+Name: place:fort-st-john
+Label: Fort St. John
+Kind: city
+Parent: place:canada
+At: +56.25-120.83/
+
+Name: place:fortaleza
+Label: Fortaleza
+Kind: city
+Parent: place:brazil
+At: -03.75-038.58/
+
+Name: place:franceville
+Label: Franceville
+Alias: Masuku
+Kind: city
+Parent: place:gabon
+At: -01.63+013.58/
+
+Name: place:francistown
+Label: Francistown
+Kind: city
+Parent: place:botswana
+At: -21.17+027.50/
+
+Name: place:frankfurt
+Label: Frankfurt
+Alias: Frankfurt am Main
+Kind: city
+Parent: place:germany
+At: +50.10+008.68/
+
+Name: place:freeport
+Label: Freeport
+Kind: city
+Parent: place:the-bahamas
+At: +26.53-078.70/
+
+Name: place:freetown
+Label: Freetown
+Kind: city
+Parent: place:sierra-leone
+At: +08.47-013.24/
+
+Name: place:fresno
+Label: Fresno
+Kind: city
+Parent: place:united-states-of-america
+At: +36.75-119.77/
+
+Name: place:ft-worth
+Label: Ft.  Worth
+Alias: Ft. Worth
+Alias: Fort Worth
+Kind: city
+Parent: place:united-states-of-america
+At: +32.74-097.34/
+
+Name: place:fukuoka
+Label: Fukuoka
+Alias: Fukuoka-Kitakyushu
+Kind: city
+Parent: place:japan
+At: +33.60+130.41/
+
+Name: place:funafuti
+Label: Funafuti
+Kind: city
+Parent: place:tuvalu
+At: -08.52+179.22/
+
+Name: place:funchal
+Label: Funchal
+Kind: city
+Parent: place:portugal
+At: +32.65-016.88/
+
+Name: place:fuzhou
+Label: Fuzhou
+Alias: Fuzhou, Fujian
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +26.08+119.30/
+
+Name: place:gaborone
+Label: Gaborone
+Kind: city
+Parent: place:botswana
+At: -24.65+025.91/
+
+Name: place:gao
+Label: Gao
+Kind: city
+Parent: place:mali
+At: +16.27-000.05/
+
+Name: place:garoua
+Label: Garoua
+Kind: city
+Parent: place:cameroon
+At: +09.30+013.39/
+
+Name: place:gaza
+Label: Gaza City
+Alias: Gaza
+Kind: city
+Parent: place:palestine
+At: +31.53+034.45/
+
+Name: place:gdansk
+Label: Gdańsk
+Alias: Gdansk
+Alias: Danzig
+Kind: city
+Parent: place:poland
+At: +54.36+018.64/
+
+Name: place:gejiu
+Label: Gejiu
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +23.38+103.15/
+
+Name: place:gen-o-higgins-base
+Label: Gen. O'Higgins Base
+Alias: Base General Bernardo O'Higgins Riquelme
+Kind: city
+Parent: place:antarctica
+At: -63.33-057.89/
+
+Name: place:geneina
+Label: Geneina
+Kind: city
+Parent: place:sudan
+At: +13.45+022.44/
+
+Name: place:general-santos
+Label: General Santos
+Kind: city
+Parent: place:philippines
+At: +06.11+125.17/
+
+Name: place:geneva
+Label: Geneva
+Kind: city
+Parent: place:switzerland
+At: +46.21+006.14/
+
+Name: place:genoa
+Label: Genoa
+Kind: city
+Parent: place:italy
+At: +44.41+008.93/
+
+Name: place:george
+Label: George
+Kind: city
+Parent: place:south-africa
+At: -33.95+022.45/
+
+Name: place:george-town-ky
+Label: George Town
+Qualifier: Cayman Islands
+Kind: city
+Parent: place:cayman-islands
+At: +19.28-081.33/
+
+Name: place:george-town-my
+Label: George Town
+Alias: Pinang
+Alias: Penang
+Qualifier: Pulau Pinang, Malaysia
+Kind: city
+Parent: place:malaysia
+At: +05.41+100.33/
+
+Name: place:georgetown
+Label: Georgetown
+Kind: city
+Parent: place:guyana
+At: +06.80-058.17/
+
+Name: place:geraldton
+Label: Geraldton
+Kind: city
+Parent: place:australia
+At: -28.77+114.60/
+
+Name: place:ghardaia
+Label: Ghardaia
+Kind: city
+Parent: place:algeria
+At: +32.49+003.67/
+
+Name: place:ghaziabad
+Label: Ghaziabad
+Kind: city
+Parent: place:india
+At: +28.66+077.41/
+
+Name: place:gibraltar
+Label: Gibraltar
+Kind: city
+Parent: place:united-kingdom
+At: +36.13-005.38/
+
+Name: place:gifu
+Label: Gifu
+Kind: city
+Parent: place:japan
+At: +35.42+136.76/
+
+Name: place:glasgow
+Label: Glasgow
+Kind: city
+Parent: place:united-kingdom
+At: +55.88-004.25/
+
+Name: place:goiania
+Label: Goiânia
+Alias: Goiania
+Kind: city
+Parent: place:brazil
+At: -16.72-049.30/
+
+Name: place:gold-coast
+Label: Gold Coast
+Kind: city
+Parent: place:australia
+At: -28.08+153.45/
+
+Name: place:golmud
+Label: Golmud
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +36.42+094.88/
+
+Name: place:goma
+Label: Goma
+Alias: Gisenyi
+Kind: city
+Parent: place:democratic-republic-of-the-congo
+At: -01.68+029.22/
+
+Name: place:gonder
+Label: Gondar
+Alias: Gonder
+Kind: city
+Parent: place:ethiopia
+At: +12.61+037.46/
+
+Name: place:goroka
+Label: Goroka
+Kind: city
+Parent: place:papua-new-guinea
+At: -06.08+145.39/
+
+Name: place:gorontalo
+Label: Gorontalo
+Kind: city
+Parent: place:indonesia
+At: +00.55+123.07/
+
+Name: place:grand-turk
+Label: Grand Turk
+Kind: city
+Parent: place:turks-and-caicos-islands
+At: +21.47-071.14/
+
+Name: place:great-falls
+Label: Great Falls
+Kind: city
+Parent: place:united-states-of-america
+At: +47.50-111.30/
+
+Name: place:great-wall-station
+Label: Great Wall Station
+Kind: city
+Parent: place:antarctica
+At: -62.22-058.97/
+
+Name: place:griffith
+Label: Griffith
+Kind: city
+Parent: place:australia
+At: -34.29+146.04/
+
+Name: place:grootfontein
+Label: Grootfontein
+Kind: city
+Parent: place:namibia
+At: -19.57+018.12/
+
+Name: place:groznyy
+Label: Grozny
+Alias: Groznyy
+Kind: city
+Parent: place:russia
+At: +43.32+045.70/
+
+Name: place:guadalajara
+Label: Guadalajara
+Kind: city
+Parent: place:mexico
+At: +20.67-103.33/
+
+Name: place:guangzhou
+Label: Guangzhou
+Alias: Dongguan, Guangdong
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +23.15+113.32/
+
+Name: place:guatemala-gt
+Label: Guatemala City
+Alias: Guatemala
+Alias: Ciudad de Guatemala (Guatemala City)
+Qualifier: Guatemala, Guatemala
+Kind: city
+Parent: place:guatemala
+At: +14.62-090.53/
+
+Name: place:guayaquil
+Label: Guayaquil
+Kind: city
+Parent: place:ecuador
+At: -02.22-079.92/
+
+Name: place:guaymas
+Label: Guaymas
+Kind: city
+Parent: place:mexico
+At: +27.93-110.89/
+
+Name: place:guilin
+Label: Guilin
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +25.28+110.28/
+
+Name: place:guiyang
+Label: Guiyang
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +26.58+106.72/
+
+Name: place:gujranwala
+Label: Gujranwala
+Kind: city
+Parent: place:pakistan
+At: +32.16+074.18/
+
+Name: place:gulu
+Label: Gulu
+Kind: city
+Parent: place:uganda
+At: +02.78+032.28/
+
+Name: place:guwahati
+Label: Guwahati
+Alias: Gauhati
+Alias: Dispur
+Kind: city
+Parent: place:india
+At: +26.16+091.77/
+
+Name: place:gwalior
+Label: Gwalior
+Kind: city
+Parent: place:india
+At: +26.23+078.18/
+
+Name: place:gwangju
+Label: Gwangju
+Alias: Kwangju
+Kind: city
+Parent: place:south-korea
+At: +35.17+126.91/
+
+Name: place:hailar
+Label: Hailar
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +49.20+119.70/
+
+Name: place:haiphong
+Label: Haiphong
+Alias: Hai Phnng
+Kind: city
+Parent: place:vietnam
+At: +20.83+106.68/
+
+Name: place:hakodate
+Label: Hakodate
+Kind: city
+Parent: place:japan
+At: +41.79+140.74/
+
+Name: place:halifax
+Label: Halifax
+Kind: city
+Parent: place:canada
+At: +44.65-063.60/
+
+Name: place:halley-station
+Label: Halley Station
+Kind: city
+Parent: place:antarctica
+At: -76.09-026.47/
+
+Name: place:hamadan
+Label: Hamadan
+Kind: city
+Parent: place:iran
+At: +34.80+048.52/
+
+Name: place:hamburg
+Label: Hamburg
+Kind: city
+Parent: place:germany
+At: +53.55+010.00/
+
+Name: place:hami
+Label: Hami
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +42.83+093.52/
+
+Name: place:hamilton-bm
+Label: Hamilton
+Qualifier: Bermuda
+Kind: city
+Parent: place:bermuda
+At: +32.29-064.78/
+
+Name: place:hamilton-nz
+Label: Hamilton
+Qualifier: Waikato, New Zealand
+Kind: city
+Parent: place:new-zealand
+At: -37.78+175.29/
+
+Name: place:hammerfest
+Label: Hammerfest
+Kind: city
+Parent: place:norway
+At: +70.66+023.69/
+
+Name: place:handan
+Label: Handan
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +36.58+114.48/
+
+Name: place:hangzhou
+Label: Hangzhou
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +30.25+120.17/
+
+Name: place:hanoi
+Label: Hanoi
+Alias: H
+Kind: city
+Parent: place:vietnam
+At: +21.04+105.85/
+
+Name: place:harare
+Label: Harare
+Kind: city
+Parent: place:zimbabwe
+At: -17.82+031.04/
+
+Name: place:harbin
+Label: Harbin
+Alias: Haerbin
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +45.75+126.65/
+
+Name: place:hargeysa
+Label: Hargeisa
+Alias: Hargeysa
+Kind: city
+Parent: place:somaliland
+At: +09.56+044.07/
+
+Name: place:havana
+Label: Havana
+Alias: La Habana
+Kind: city
+Parent: place:cuba
+At: +23.13-082.37/
+
+Name: place:hefei
+Label: Hefei
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +31.85+117.28/
+
+Name: place:helena
+Label: Helena
+Kind: city
+Parent: place:united-states-of-america
+At: +46.59-112.04/
+
+Name: place:helsinki
+Label: Helsinki
+Kind: city
+Parent: place:finland
+At: +60.18+024.93/
+
+Name: place:hengyang
+Label: Hengyang
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +26.88+112.59/
+
+Name: place:herat
+Label: Herat
+Kind: city
+Parent: place:afghanistan
+At: +34.33+062.17/
+
+Name: place:hermosillo
+Label: Hermosillo
+Kind: city
+Parent: place:mexico
+At: +29.10-110.95/
+
+Name: place:hilo
+Label: Hilo
+Kind: city
+Parent: place:united-states-of-america
+At: +19.70-155.09/
+
+Name: place:hiroshima
+Label: Hiroshima
+Kind: city
+Parent: place:japan
+At: +34.39+132.44/
+
+Name: place:ho-chi-minh-city
+Label: Ho Chi Minh City
+Alias: Th nh Pho Ho Chy Minh
+Kind: city
+Parent: place:vietnam
+At: +10.78+106.69/
+
+Name: place:hobart
+Label: Hobart
+Kind: city
+Parent: place:australia
+At: -42.85+147.30/
+
+Name: place:hohhot
+Label: Hohhot
+Alias: Huhot
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +40.82+111.66/
+
+Name: place:hong-kong-hk
+Label: Hong Kong
+Qualifier: Hong Kong
+Kind: city
+Parent: place:hong-kong
+At: +22.31+114.18/
+
+Name: place:honiara
+Label: Honiara
+Kind: city
+Parent: place:solomon-islands
+At: -09.44+159.95/
+
+Name: place:honolulu
+Label: Honolulu
+Kind: city
+Parent: place:united-states-of-america
+At: +21.31-157.86/
+
+Name: place:hotan
+Label: Hotan
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +37.10+079.93/
+
+Name: place:houma
+Label: Houma
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +35.62+111.21/
+
+Name: place:houston
+Label: Houston
+Kind: city
+Parent: place:united-states-of-america
+At: +29.82-095.34/
+
+Name: place:huainan
+Label: Huainan
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +32.63+116.98/
+
+Name: place:huaiyin
+Label: Huaiyin
+Alias: Huai'an
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +33.58+119.03/
+
+Name: place:huambo
+Label: Huambo
+Kind: city
+Parent: place:angola
+At: -12.75+015.76/
+
+Name: place:huancayo
+Label: Huancayo
+Kind: city
+Parent: place:peru
+At: -12.08-075.20/
+
+Name: place:hubballi
+Label: Hubballi
+Kind: city
+Parent: place:india
+At: +15.36+075.12/
+
+Name: place:hyderabad-in
+Label: Hyderabad
+Qualifier: Telangana, India
+Kind: city
+Parent: place:india
+At: +17.40+078.48/
+
+Name: place:hyderabad-pk
+Label: Hyderabad
+Qualifier: Sind, Pakistan
+Kind: city
+Parent: place:pakistan
+At: +25.38+068.37/
+
+Name: place:iasi
+Label: Iași
+Alias: Iasi
+Kind: city
+Parent: place:romania
+At: +47.17+027.57/
+
+Name: place:ibadan
+Label: Ibadan
+Kind: city
+Parent: place:nigeria
+At: +07.38+003.93/
+
+Name: place:ica
+Label: Ica
+Kind: city
+Parent: place:peru
+At: -14.07-075.73/
+
+Name: place:igloolik
+Label: Igloolik
+Kind: city
+Parent: place:canada
+At: +69.26-081.79/
+
+Name: place:iloilo
+Label: Iloilo
+Kind: city
+Parent: place:philippines
+At: +10.71+122.55/
+
+Name: place:incheon
+Label: Incheon
+Alias: Inch`on
+Kind: city
+Parent: place:south-korea
+At: +37.48+126.64/
+
+Name: place:indianapolis
+Label: Indianapolis
+Kind: city
+Parent: place:united-states-of-america
+At: +39.75-086.17/
+
+Name: place:indore
+Label: Indore
+Kind: city
+Parent: place:india
+At: +22.72+075.86/
+
+Name: place:international-falls
+Label: International Falls
+Kind: city
+Parent: place:united-states-of-america
+At: +48.60-093.41/
+
+Name: place:iqaluit
+Label: Iqaluit
+Kind: city
+Parent: place:canada
+At: +63.75-068.50/
+
+Name: place:iquique
+Label: Iquique
+Kind: city
+Parent: place:chile
+At: -20.25-070.13/
+
+Name: place:iquitos
+Label: Iquitos
+Kind: city
+Parent: place:peru
+At: -03.75-073.25/
+
+Name: place:irkutsk
+Label: Irkutsk
+Kind: city
+Parent: place:russia
+At: +52.32+104.25/
+
+Name: place:isfahan
+Label: Isfahan
+Alias: Esfahan
+Kind: city
+Parent: place:iran
+At: +32.70+051.70/
+
+Name: place:islamabad
+Label: Islamabad
+Kind: city
+Parent: place:pakistan
+At: +33.70+073.16/
+
+Name: place:istanbul
+Label: Istanbul
+Kind: city
+Parent: place:turkey
+At: +41.11+029.01/
+
+Name: place:izmir
+Label: İzmir
+Alias: Izmir
+Kind: city
+Parent: place:turkey
+At: +38.44+027.15/
+
+Name: place:jabalpur
+Label: Jabalpur
+Kind: city
+Parent: place:india
+At: +23.18+079.95/
+
+Name: place:jackson
+Label: Jackson
+Kind: city
+Parent: place:united-states-of-america
+At: +32.30-090.18/
+
+Name: place:jacksonville
+Label: Jacksonville
+Alias: Jacksonville, Florida
+Kind: city
+Parent: place:united-states-of-america
+At: +30.33-081.67/
+
+Name: place:jaipur
+Label: Jaipur
+Kind: city
+Parent: place:india
+At: +26.92+075.81/
+
+Name: place:jakarta
+Label: Jakarta
+Kind: city
+Parent: place:indonesia
+At: -06.17+106.83/
+
+Name: place:jammu
+Label: Jammu
+Kind: city
+Parent: place:india
+At: +32.71+074.84/
+
+Name: place:jamshedpur
+Label: Jamshedpur
+Kind: city
+Parent: place:india
+At: +22.79+086.20/
+
+Name: place:jayapura
+Label: Jayapura
+Kind: city
+Parent: place:indonesia
+At: -02.53+140.70/
+
+Name: place:jeddah
+Label: Jeddah
+Alias: Jiddah
+Kind: city
+Parent: place:saudi-arabia
+At: +21.52+039.22/
+
+Name: place:jerusalem
+Label: Jerusalem
+Kind: city
+Parent: place:israel
+At: +31.78+035.21/
+
+Name: place:ji-parana
+Label: Ji-Paraná
+Alias: Ji-Parana
+Kind: city
+Parent: place:brazil
+At: -10.83-061.97/
+
+Name: place:jiamusi
+Label: Jiamusi
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +46.83+130.35/
+
+Name: place:jiayuguan
+Label: Jiayuguan
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +39.82+098.30/
+
+Name: place:jilin
+Label: Jilin
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +43.85+126.55/
+
+Name: place:jinan
+Label: Jinan
+Alias: Jinan, Shandong
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +36.68+116.99/
+
+Name: place:jinja
+Label: Jinja
+Kind: city
+Parent: place:uganda
+At: +00.44+033.20/
+
+Name: place:jinxi
+Label: Jinxi
+Alias: Jinxi, Liaoning
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +40.75+120.83/
+
+Name: place:jixi
+Label: Jixi
+Alias: Jixi, Heilongjiang
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +45.30+130.97/
+
+Name: place:jodhpur
+Label: Jodhpur
+Kind: city
+Parent: place:india
+At: +26.29+073.01/
+
+Name: place:johannesburg
+Label: Johannesburg
+Kind: city
+Parent: place:south-africa
+At: -26.17+028.03/
+
+Name: place:juba
+Label: Juba
+Kind: city
+At: +04.83+031.58/
+
+Name: place:jullundur
+Label: Jullundur
+Alias: Jalandhar
+Kind: city
+Parent: place:india
+At: +31.34+075.57/
+
+Name: place:juneau
+Label: Juneau
+Kind: city
+Parent: place:united-states-of-america
+At: +58.31-134.42/
+
+Name: place:kabul
+Label: Kabul
+Kind: city
+Parent: place:afghanistan
+At: +34.52+069.18/
+
+Name: place:kabwe
+Label: Kabwe
+Kind: city
+Parent: place:zambia
+At: -14.44+028.45/
+
+Name: place:kaduna
+Label: Kaduna
+Kind: city
+Parent: place:nigeria
+At: +10.52+007.44/
+
+Name: place:kaedi
+Label: Kaédi
+Alias: Kaedi
+Kind: city
+Parent: place:senegal
+At: +16.15-013.50/
+
+Name: place:kalaburagi
+Label: Kalaburagi
+Kind: city
+Parent: place:india
+At: +17.35+076.82/
+
+Name: place:kalemie
+Label: Kalemie
+Kind: city
+Parent: place:democratic-republic-of-the-congo
+At: -05.93+029.20/
+
+Name: place:kalgoorlie
+Label: Kalgoorlie
+Kind: city
+Parent: place:australia
+At: -30.74+121.46/
+
+Name: place:kaliningrad
+Label: Kaliningrad
+Kind: city
+Parent: place:russia
+At: +54.70+020.50/
+
+Name: place:kampala
+Label: Kampala
+Kind: city
+Parent: place:uganda
+At: +00.32+032.58/
+
+Name: place:kananga
+Label: Kananga
+Kind: city
+Parent: place:democratic-republic-of-the-congo
+At: -05.89+022.40/
+
+Name: place:kandahar
+Label: Kandahar
+Kind: city
+Parent: place:afghanistan
+At: +31.61+065.69/
+
+Name: place:kandy
+Label: Kandy
+Kind: city
+Parent: place:sri-lanka
+At: +07.28+080.67/
+
+Name: place:kankan
+Label: Kankan
+Kind: city
+Parent: place:guinea
+At: +10.39-009.31/
+
+Name: place:kano
+Label: Kano
+Kind: city
+Parent: place:nigeria
+At: +12.00+008.52/
+
+Name: place:kanpur
+Label: Kanpur
+Kind: city
+Parent: place:india
+At: +26.46+080.32/
+
+Name: place:kansas-city
+Label: Kansas City
+Kind: city
+Parent: place:united-states-of-america
+At: +39.11-094.61/
+
+Name: place:kaohsiung
+Label: Kaohsiung
+Kind: city
+Parent: place:taiwan
+At: +22.63+120.27/
+
+Name: place:kaolack
+Label: Kaolack
+Kind: city
+Parent: place:senegal
+At: +14.15-016.10/
+
+Name: place:karachi
+Label: Karachi
+Kind: city
+Parent: place:pakistan
+At: +24.87+066.99/
+
+Name: place:karratha
+Label: Karratha
+Kind: city
+Parent: place:australia
+At: -20.73+116.87/
+
+Name: place:kashgar
+Label: Kashgar
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +39.48+075.97/
+
+Name: place:kasongo
+Label: Kasongo
+Kind: city
+Parent: place:democratic-republic-of-the-congo
+At: -04.45+026.66/
+
+Name: place:kassala
+Label: Kassala
+Kind: city
+Parent: place:sudan
+At: +15.46+036.39/
+
+Name: place:katherine
+Label: Katherine
+Kind: city
+Parent: place:australia
+At: -14.47+132.27/
+
+Name: place:kathmandu
+Label: Kathmandu
+Kind: city
+Parent: place:nepal
+At: +27.72+085.31/
+
+Name: place:kayes-cg
+Label: Kayes
+Qualifier: Bouenza, Republic of the Congo
+Kind: city
+Parent: place:republic-of-the-congo
+At: -04.18+013.28/
+
+Name: place:kayes-ml
+Label: Kayes
+Qualifier: Kayes, Mali
+Kind: city
+Parent: place:mali
+At: +14.45-011.44/
+
+Name: place:kazan
+Label: Kazan
+Alias: Kazan'
+Kind: city
+Parent: place:russia
+At: +55.75+049.12/
+
+Name: place:keetmanshoop
+Label: Keetmanshoop
+Kind: city
+Parent: place:namibia
+At: -26.57+018.13/
+
+Name: place:kemerovo
+Label: Kemerovo
+Kind: city
+Parent: place:russia
+At: +55.34+086.09/
+
+Name: place:khabarovsk
+Label: Khabarovsk
+Kind: city
+Parent: place:russia
+At: +48.45+135.12/
+
+Name: place:kharkiv
+Label: Kharkiv
+Kind: city
+Parent: place:ukraine
+At: +50.00+036.25/
+
+Name: place:khartoum
+Label: Khartoum
+Alias: Al-Khartum
+Kind: city
+Parent: place:sudan
+At: +15.59+032.53/
+
+Name: place:khatanga
+Label: Khatanga
+Kind: city
+Parent: place:russia
+At: +72.04+102.47/
+
+Name: place:khulna
+Label: Khulna
+Kind: city
+Parent: place:bangladesh
+At: +22.84+089.56/
+
+Name: place:kiev
+Label: Kyiv
+Alias: Kiev
+Kind: city
+Parent: place:ukraine
+At: +50.44+030.51/
+
+Name: place:kigali
+Label: Kigali
+Kind: city
+Parent: place:rwanda
+At: -01.95+030.06/
+
+Name: place:kikwit
+Label: Kikwit
+Kind: city
+Parent: place:democratic-republic-of-the-congo
+At: -05.03+018.85/
+
+Name: place:king-sejong-station
+Label: King Sejong Station
+Kind: city
+Parent: place:antarctica
+At: -62.22-058.77/
+
+Name: place:kingston
+Label: Kingston
+Kind: city
+Parent: place:jamaica
+At: +17.98-076.77/
+
+Name: place:kingstown
+Label: Kingstown
+Kind: city
+Parent: place:saint-vincent-and-the-grenadines
+At: +13.15-061.21/
+
+Name: place:kinshasa
+Label: Kinshasa
+Kind: city
+Parent: place:democratic-republic-of-the-congo
+At: -04.33+015.31/
+
+Name: place:kirkuk
+Label: Kirkuk
+Kind: city
+Parent: place:iraq
+At: +35.47+044.39/
+
+Name: place:kirov
+Label: Kirov
+Alias: Vyatka
+Kind: city
+Parent: place:russia
+At: +58.59+049.67/
+
+Name: place:kisangani
+Label: Kisangani
+Kind: city
+Parent: place:democratic-republic-of-the-congo
+At: +00.52+025.22/
+
+Name: place:kitwe
+Label: Kitwe
+Kind: city
+Parent: place:zambia
+At: -12.81+028.22/
+
+Name: place:knoxville
+Label: Knoxville
+Kind: city
+Parent: place:united-states-of-america
+At: +35.97-083.92/
+
+Name: place:kobenhavn
+Label: København
+Alias: Kobenhavn
+Alias: Kbenhavn
+Kind: city
+Parent: place:denmark
+At: +55.68+012.56/
+
+Name: place:kochi-in
+Label: Kochi
+Qualifier: Kerala, India
+Kind: city
+Parent: place:india
+At: +10.02+076.22/
+
+Name: place:kochi-jp
+Label: Kōchi
+Alias: Kochi
+Qualifier: Kochi, Japan
+Kind: city
+Parent: place:japan
+At: +33.56+133.54/
+
+Name: place:kodiak
+Label: Kodiak
+Kind: city
+Parent: place:united-states-of-america
+At: +57.79-152.41/
+
+Name: place:kolhapur
+Label: Kolhapur
+Kind: city
+Parent: place:india
+At: +16.70+074.22/
+
+Name: place:kolkata
+Label: Kolkata
+Kind: city
+Parent: place:india
+At: +22.50+088.32/
+
+Name: place:kolwezi
+Label: Kolwezi
+Kind: city
+Parent: place:democratic-republic-of-the-congo
+At: -10.72+025.47/
+
+Name: place:konya
+Label: Konya
+Kind: city
+Parent: place:turkey
+At: +37.88+032.47/
+
+Name: place:kota
+Label: Kota
+Kind: city
+Parent: place:india
+At: +25.18+075.83/
+
+Name: place:kozhikode
+Label: Kozhikode
+Kind: city
+Parent: place:india
+At: +11.25+075.77/
+
+Name: place:krakow
+Label: Kraków
+Alias: Krakow
+Kind: city
+Parent: place:poland
+At: +50.06+019.96/
+
+Name: place:krasnodar
+Label: Krasnodar
+Kind: city
+Parent: place:russia
+At: +45.02+039.00/
+
+Name: place:krasnoyarsk
+Label: Krasnoyarsk
+Kind: city
+Parent: place:russia
+At: +56.02+092.86/
+
+Name: place:kristiansand
+Label: Kristiansand
+Kind: city
+Parent: place:norway
+At: +58.17+008.00/
+
+Name: place:kuala-lumpur
+Label: Kuala Lumpur
+Kind: city
+Parent: place:malaysia
+At: +03.17+101.70/
+
+Name: place:kuching
+Label: Kuching
+Kind: city
+Parent: place:malaysia
+At: +01.53+110.33/
+
+Name: place:kugluktuk
+Label: Kugluktuk
+Kind: city
+Parent: place:canada
+At: +67.80-115.13/
+
+Name: place:kunming
+Label: Kunming
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +25.07+102.68/
+
+Name: place:kupang
+Label: Kupang
+Kind: city
+Parent: place:indonesia
+At: -10.18+123.58/
+
+Name: place:kushiro
+Label: Kushiro
+Kind: city
+Parent: place:japan
+At: +42.97+144.37/
+
+Name: place:kuujjuaq
+Label: Kuujjuaq
+Kind: city
+Parent: place:canada
+At: +58.10-068.40/
+
+Name: place:kuujjuarapik
+Label: Kuujjuarapik
+Kind: city
+Parent: place:canada
+At: +55.28-077.77/
+
+Name: place:kuwait-city
+Label: Kuwait City
+Alias: Al Kuwayt
+Alias: Kuwait
+Kind: city
+Parent: place:kuwait
+At: +29.37+047.98/
+
+Name: place:kyoto
+Label: Kyoto
+Kind: city
+Parent: place:japan
+At: +35.03+135.75/
+
+Name: place:kyzyl
+Label: Kyzyl
+Kind: city
+Parent: place:russia
+At: +51.71+094.38/
+
+Name: place:l-aquila
+Label: L'Aquila
+Alias: Aquila
+Kind: city
+Parent: place:italy
+At: +42.35+013.39/
+
+Name: place:la-paz-bo
+Label: La Paz
+Qualifier: La Paz, Bolivia
+Kind: city
+Parent: place:bolivia
+At: -16.50-068.15/
+
+Name: place:la-paz-mx
+Label: La Paz
+Qualifier: Baja California Sur, Mexico
+Kind: city
+Parent: place:mexico
+At: +24.14-110.32/
+
+Name: place:la-serena
+Label: La Serena
+Kind: city
+Parent: place:chile
+At: -29.90-071.25/
+
+Name: place:laayoune
+Label: Laayoune
+Kind: city
+Parent: place:morocco
+At: +27.15-013.20/
+
+Name: place:labrador-city
+Label: Labrador City
+Kind: city
+Parent: place:canada
+At: +52.94-066.92/
+
+Name: place:lae
+Label: Lae
+Kind: city
+Parent: place:papua-new-guinea
+At: -06.73+146.99/
+
+Name: place:lagos
+Label: Lagos
+Kind: city
+Parent: place:nigeria
+At: +06.45+003.39/
+
+Name: place:lahore
+Label: Lahore
+Kind: city
+Parent: place:pakistan
+At: +31.56+074.35/
+
+Name: place:lanzhou
+Label: Lanzhou
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +36.06+103.79/
+
+Name: place:laoag
+Label: Laoag
+Kind: city
+Parent: place:philippines
+At: +18.20+120.59/
+
+Name: place:laredo
+Label: Laredo
+Kind: city
+Parent: place:united-states-of-america
+At: +27.51-099.51/
+
+Name: place:larkana
+Label: Larkana
+Kind: city
+Parent: place:pakistan
+At: +27.56+068.21/
+
+Name: place:las-palmas
+Label: Las Palmas
+Kind: city
+Parent: place:spain
+At: +28.10-015.43/
+
+Name: place:las-vegas
+Label: Las Vegas
+Kind: city
+Parent: place:united-states-of-america
+At: +36.21-115.22/
+
+Name: place:le-havre
+Label: Le Havre
+Kind: city
+Parent: place:france
+At: +49.50+000.10/
+
+Name: place:leh
+Label: Leh
+Kind: city
+Parent: place:india
+At: +34.16+077.57/
+
+Name: place:lensk
+Label: Lensk
+Kind: city
+Parent: place:russia
+At: +60.73+114.95/
+
+Name: place:leon
+Label: León
+Alias: Leon
+Alias: Leon de los Aldamas
+Kind: city
+Parent: place:mexico
+At: +21.15-101.70/
+
+Name: place:leticia
+Label: Leticia
+Kind: city
+Parent: place:colombia
+At: -04.20-069.96/
+
+Name: place:lhasa
+Label: Lhasa
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +29.65+091.10/
+
+Name: place:libreville
+Label: Libreville
+Kind: city
+Parent: place:gabon
+At: +00.39+009.46/
+
+Name: place:lille
+Label: Lille
+Kind: city
+Parent: place:france
+At: +50.65+003.08/
+
+Name: place:lilongwe
+Label: Lilongwe
+Kind: city
+Parent: place:malawi
+At: -13.98+033.78/
+
+Name: place:lima
+Label: Lima
+Kind: city
+Parent: place:peru
+At: -12.05-077.05/
+
+Name: place:limoges
+Label: Limoges
+Kind: city
+Parent: place:france
+At: +45.83+001.25/
+
+Name: place:linyi
+Label: Linyi
+Alias: Linyi, Shandong
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +35.08+118.33/
+
+Name: place:lisbon
+Label: Lisbon
+Kind: city
+Parent: place:portugal
+At: +38.72-009.15/
+
+Name: place:liupanshui
+Label: Liupanshui
+Alias: Lupanshui
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +26.60+104.83/
+
+Name: place:livingstone
+Label: Livingstone
+Kind: city
+Parent: place:zambia
+At: -17.86+025.86/
+
+Name: place:ljubljana
+Label: Ljubljana
+Kind: city
+Parent: place:slovenia
+At: +46.06+014.51/
+
+Name: place:lobamba
+Label: Lobamba
+Kind: city
+Parent: place:eswatini
+At: -26.47+031.20/
+
+Name: place:lome
+Label: Lomé
+Alias: Lome
+Kind: city
+Parent: place:togo
+At: +06.13+001.22/
+
+Name: place:london
+Label: London
+Kind: city
+Parent: place:united-kingdom
+At: +51.50-000.12/
+
+Name: place:longyearbyen
+Label: Longyearbyen
+Kind: city
+Parent: place:norway
+At: +78.22+015.55/
+
+Name: place:los-angeles-cl
+Label: Los Angeles
+Qualifier: Bío-Bío, Chile
+Kind: city
+Parent: place:chile
+At: -37.46-072.36/
+
+Name: place:los-angeles-us
+Label: Los Angeles
+Alias: Los Angeles-Long Beach-Santa Ana
+Qualifier: California, United States of America
+Kind: city
+Parent: place:united-states-of-america
+At: +33.99-118.18/
+
+Name: place:luanda
+Label: Luanda
+Kind: city
+Parent: place:angola
+At: -08.84+013.23/
+
+Name: place:lubango
+Label: Lubango
+Kind: city
+Parent: place:angola
+At: -14.91+013.49/
+
+Name: place:lubumbashi
+Label: Lubumbashi
+Alias: Lumumbashi
+Kind: city
+Parent: place:democratic-republic-of-the-congo
+At: -11.68+027.48/
+
+Name: place:lucknow
+Label: Lucknow
+Kind: city
+Parent: place:india
+At: +26.86+080.91/
+
+Name: place:luderitz
+Label: Lüderitz
+Alias: Luderitz
+Kind: city
+Parent: place:namibia
+At: -26.65+015.16/
+
+Name: place:ludhiana
+Label: Ludhiana
+Kind: city
+Parent: place:india
+At: +30.93+075.87/
+
+Name: place:lulea
+Label: Luleå
+Alias: Lulea
+Kind: city
+Parent: place:sweden
+At: +65.60+022.16/
+
+Name: place:lusaka
+Label: Lusaka
+Kind: city
+Parent: place:zambia
+At: -15.41+028.28/
+
+Name: place:luxembourg-lu
+Label: Luxembourg
+Qualifier: Luxembourg, Luxembourg
+Kind: city
+Parent: place:luxembourg
+At: +49.61+006.13/
+
+Name: place:luxor
+Label: Luxor
+Kind: city
+Parent: place:egypt
+At: +25.70+032.65/
+
+Name: place:lvov
+Label: Lviv
+Alias: Lvov
+Alias: L'viv
+Kind: city
+Parent: place:ukraine
+At: +49.83+024.03/
+
+Name: place:lyon
+Label: Lyon
+Kind: city
+Parent: place:france
+At: +45.77+004.83/
+
+Name: place:macapa
+Label: Macapá
+Alias: Macapa
+Kind: city
+Parent: place:brazil
+At: +00.03-051.05/
+
+Name: place:macau-mo
+Label: Macau
+Qualifier: Macau
+Kind: city
+Parent: place:macau
+At: +22.20+113.55/
+
+Name: place:maceio
+Label: Maceió
+Alias: Maceio
+Kind: city
+Parent: place:brazil
+At: -09.62-035.73/
+
+Name: place:madrid
+Label: Madrid
+Kind: city
+Parent: place:spain
+At: +40.40-003.69/
+
+Name: place:madurai
+Label: Madurai
+Kind: city
+Parent: place:india
+At: +09.92+078.12/
+
+Name: place:magadan
+Label: Magadan
+Kind: city
+Parent: place:russia
+At: +59.57+150.81/
+
+Name: place:magnitogorsk
+Label: Magnitogorsk
+Kind: city
+Parent: place:russia
+At: +53.42+058.98/
+
+Name: place:mahajanga
+Label: Mahajanga
+Kind: city
+Parent: place:madagascar
+At: -15.67+046.35/
+
+Name: place:mahalapye
+Label: Mahalapye
+Kind: city
+Parent: place:botswana
+At: -23.10+026.82/
+
+Name: place:maiduguri
+Label: Maiduguri
+Kind: city
+Parent: place:nigeria
+At: +11.85+013.16/
+
+Name: place:maitri-station
+Label: Maitri Station
+Kind: city
+Parent: place:antarctica
+At: -70.78+011.73/
+
+Name: place:majuro
+Label: Majuro
+Kind: city
+Parent: place:marshall-islands
+At: +07.10+171.38/
+
+Name: place:makassar
+Label: Makassar
+Alias: Kota Makassar
+Alias: Ujung Pandang
+Kind: city
+Parent: place:indonesia
+At: -05.14+119.43/
+
+Name: place:makkah
+Label: Makkah
+Kind: city
+Parent: place:saudi-arabia
+At: +21.43+039.82/
+
+Name: place:makurdi
+Label: Makurdi
+Kind: city
+Parent: place:nigeria
+At: +07.73+008.53/
+
+Name: place:malabo
+Label: Malabo
+Kind: city
+Parent: place:equatorial-guinea
+At: +03.75+008.78/
+
+Name: place:malakal
+Label: Malakal
+Kind: city
+At: +09.54+031.66/
+
+Name: place:malang
+Label: Malang
+Kind: city
+Parent: place:indonesia
+At: -07.98+112.61/
+
+Name: place:malanje
+Label: Malanje
+Alias: Malange
+Kind: city
+Parent: place:angola
+At: -09.54+016.34/
+
+Name: place:male
+Label: Malé
+Alias: Male
+Kind: city
+Parent: place:maldives
+At: +04.17+073.50/
+
+Name: place:malmo
+Label: Malmö
+Alias: Malmo
+Kind: city
+Parent: place:sweden
+At: +55.58+013.03/
+
+Name: place:managua
+Label: Managua
+Kind: city
+Parent: place:nicaragua
+At: +12.15-086.27/
+
+Name: place:manama
+Label: Manama
+Kind: city
+Parent: place:bahrain
+At: +26.24+050.58/
+
+Name: place:manaus
+Label: Manaus
+Kind: city
+Parent: place:brazil
+At: -03.10-060.00/
+
+Name: place:manchester
+Label: Manchester
+Kind: city
+Parent: place:united-kingdom
+At: +53.50-002.25/
+
+Name: place:mandalay
+Label: Mandalay
+Kind: city
+Parent: place:myanmar
+At: +21.97+096.08/
+
+Name: place:mandurah
+Label: Mandurah
+Kind: city
+Parent: place:australia
+At: -32.52+115.75/
+
+Name: place:mangaluru
+Label: Mangaluru
+Kind: city
+Parent: place:india
+At: +12.90+074.85/
+
+Name: place:manila
+Label: Manila
+Kind: city
+Parent: place:philippines
+At: +14.61+120.98/
+
+Name: place:manizales
+Label: Manizales
+Kind: city
+Parent: place:colombia
+At: +05.06-075.52/
+
+Name: place:manukau
+Label: Manukau
+Alias: Southern Auckland
+Kind: city
+Parent: place:new-zealand
+At: -37.00+174.88/
+
+Name: place:maputo
+Label: Maputo
+Kind: city
+Parent: place:mozambique
+At: -25.95+032.59/
+
+Name: place:mar-del-plata
+Label: Mar del Plata
+Kind: city
+Parent: place:argentina
+At: -38.00-057.58/
+
+Name: place:maraba
+Label: Marabá
+Alias: Maraba
+Kind: city
+Parent: place:brazil
+At: -05.35-049.12/
+
+Name: place:maracaibo
+Label: Maracaibo
+Kind: city
+Parent: place:venezuela
+At: +10.73-071.66/
+
+Name: place:maradi
+Label: Niamey
+Alias: Maradi
+Kind: city
+Parent: place:niger
+At: +13.49+007.10/
+
+Name: place:marambio-base
+Label: Marambio Base
+Alias: Vicecomodoro Marambio Base
+Kind: city
+Parent: place:antarctica
+At: -64.23-056.65/
+
+Name: place:mariehamn
+Label: Mariehamn
+Kind: city
+Parent: place:aland
+At: +60.10+019.95/
+
+Name: place:maroua
+Label: Maroua
+Kind: city
+Parent: place:cameroon
+At: +10.60+014.32/
+
+Name: place:marrakesh
+Label: Marrakesh
+Alias: Marrakech
+Kind: city
+Parent: place:morocco
+At: +31.63-008.00/
+
+Name: place:marseille
+Label: Marseille
+Alias: Marseille-Aix-en-Provence
+Kind: city
+Parent: place:france
+At: +43.29+005.37/
+
+Name: place:mary
+Label: Mary
+Kind: city
+Parent: place:turkmenistan
+At: +37.60+061.83/
+
+Name: place:masaka
+Label: Masaka
+Kind: city
+Parent: place:uganda
+At: -00.33+031.73/
+
+Name: place:maseru
+Label: Maseru
+Kind: city
+Parent: place:lesotho
+At: -29.32+027.48/
+
+Name: place:mashhad
+Label: Mashhad
+Kind: city
+Parent: place:iran
+At: +36.27+059.57/
+
+Name: place:matadi
+Label: Matadi
+Kind: city
+Parent: place:democratic-republic-of-the-congo
+At: -05.82+013.45/
+
+Name: place:matamoros
+Label: Matamoros
+Kind: city
+Parent: place:mexico
+At: +25.88-097.50/
+
+Name: place:matsuyama
+Label: Matsuyama
+Kind: city
+Parent: place:japan
+At: +33.85+132.77/
+
+Name: place:mawson-station
+Label: Mawson Station
+Kind: city
+Parent: place:antarctica
+At: -67.61+062.88/
+
+Name: place:mazar-e-sharif
+Label: Mazar-i-Sharif
+Alias: Mazar-e Sharif
+Alias: Mazar-E Sharif
+Kind: city
+Parent: place:afghanistan
+At: +36.70+067.10/
+
+Name: place:mazatlan
+Label: Mazatlán
+Alias: Mazatlan
+Kind: city
+Parent: place:mexico
+At: +23.22-106.42/
+
+Name: place:mbabane
+Label: Mbabane
+Kind: city
+Parent: place:eswatini
+At: -26.32+031.13/
+
+Name: place:mbale
+Label: Mbale
+Kind: city
+Parent: place:uganda
+At: +01.09+034.17/
+
+Name: place:mbandaka
+Label: Mbandaka
+Kind: city
+Parent: place:democratic-republic-of-the-congo
+At: +00.04+018.26/
+
+Name: place:mbarara
+Label: Mbarara
+Kind: city
+Parent: place:uganda
+At: -00.60+030.65/
+
+Name: place:mbeya
+Label: Mbeya
+Kind: city
+Parent: place:tanzania
+At: -08.89+033.43/
+
+Name: place:mbuji-mayi
+Label: Mbuji-Mayi
+Kind: city
+Parent: place:democratic-republic-of-the-congo
+At: -06.15+023.60/
+
+Name: place:mcmurdo-station
+Label: McMurdo Station
+Kind: city
+Parent: place:antarctica
+At: -77.73+166.87/
+
+Name: place:medan
+Label: Medan
+Kind: city
+Parent: place:indonesia
+At: +03.58+098.65/
+
+Name: place:medellin
+Label: Medellín
+Alias: Medellin
+Kind: city
+Parent: place:colombia
+At: +06.28-075.58/
+
+Name: place:medina
+Label: Medina
+Alias: Al-Madinah
+Kind: city
+Parent: place:saudi-arabia
+At: +24.50+039.58/
+
+Name: place:meerut
+Label: Meerut
+Kind: city
+Parent: place:india
+At: +29.00+077.70/
+
+Name: place:mekele
+Label: Mekele
+Alias: Mek'ele
+Kind: city
+Parent: place:ethiopia
+At: +13.50+039.47/
+
+Name: place:melbourne
+Label: Melbourne
+Kind: city
+Parent: place:australia
+At: -37.82+144.97/
+
+Name: place:melekeok
+Label: Melekeok
+Kind: city
+Parent: place:palau
+At: +07.49+134.63/
+
+Name: place:memphis
+Label: Memphis
+Kind: city
+Parent: place:united-states-of-america
+At: +35.12-090.00/
+
+Name: place:mendoza
+Label: Mendoza
+Kind: city
+Parent: place:argentina
+At: -32.88-068.82/
+
+Name: place:menongue
+Label: Menongue
+Kind: city
+Parent: place:angola
+At: -14.67+017.70/
+
+Name: place:merida-mx
+Label: Mérida
+Alias: Merida
+Qualifier: Yucatán, Mexico
+Kind: city
+Parent: place:mexico
+At: +20.97-089.62/
+
+Name: place:merida-ve
+Label: Mérida
+Alias: Merida
+Qualifier: Mérida, Venezuela
+Kind: city
+Parent: place:venezuela
+At: +08.40-071.13/
+
+Name: place:meru
+Label: Meru
+Kind: city
+Parent: place:kenya
+At: +00.06+037.64/
+
+Name: place:mexicali
+Label: Mexicali
+Kind: city
+Parent: place:mexico
+At: +32.65-115.48/
+
+Name: place:mexico-city
+Label: Mexico City
+Alias: Ciudad de M
+Kind: city
+Parent: place:mexico
+At: +19.44-099.13/
+
+Name: place:miami
+Label: Miami
+Kind: city
+Parent: place:united-states-of-america
+At: +25.79-080.23/
+
+Name: place:mianyang
+Label: Mianyang
+Alias: Mianyang, Sichuan
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +31.47+104.77/
+
+Name: place:middelburg
+Label: Middelburg
+Kind: city
+Parent: place:south-africa
+At: -31.50+025.01/
+
+Name: place:milan
+Label: Milan
+Kind: city
+Parent: place:italy
+At: +45.47+009.20/
+
+Name: place:milwaukee
+Label: Milwaukee
+Kind: city
+Parent: place:united-states-of-america
+At: +43.05-087.92/
+
+Name: place:minneapolis
+Label: Minneapolis
+Alias: Minneapolis-St. Paul
+Kind: city
+Parent: place:united-states-of-america
+At: +44.98-093.25/
+
+Name: place:minot
+Label: Minot
+Kind: city
+Parent: place:united-states-of-america
+At: +48.23-101.30/
+
+Name: place:minsk
+Label: Minsk
+Kind: city
+Parent: place:belarus
+At: +53.90+027.56/
+
+Name: place:mirny-station
+Label: Mirny Station
+Kind: city
+Parent: place:antarctica
+At: -66.58+093.01/
+
+Name: place:mirnyy
+Label: Mirny
+Alias: Mirnyy
+Kind: city
+Parent: place:russia
+At: +62.54+113.96/
+
+Name: place:misratah
+Label: Misrata
+Alias: Misratah
+Kind: city
+Parent: place:libya
+At: +32.38+015.10/
+
+Name: place:missoula
+Label: Missoula
+Kind: city
+Parent: place:united-states-of-america
+At: +46.87-113.99/
+
+Name: place:mitu
+Label: Mitú
+Alias: Mitu
+Kind: city
+Parent: place:colombia
+At: +01.20-070.17/
+
+Name: place:miyazaki
+Label: Miyazaki
+Kind: city
+Parent: place:japan
+At: +31.92+131.42/
+
+Name: place:mogadishu
+Label: Mogadishu
+Alias: Muqdisho
+Kind: city
+Parent: place:somalia
+At: +02.07+045.36/
+
+Name: place:mombasa
+Label: Mombasa
+Kind: city
+Parent: place:kenya
+At: -04.04+039.69/
+
+Name: place:monaco-mc
+Label: Monaco
+Qualifier: Monaco
+Kind: city
+Parent: place:monaco
+At: +43.74+007.41/
+
+Name: place:monrovia
+Label: Monrovia
+Kind: city
+Parent: place:liberia
+At: +06.31-010.80/
+
+Name: place:monterrey
+Label: Monterrey
+Kind: city
+Parent: place:mexico
+At: +25.67-100.33/
+
+Name: place:montes-claros
+Label: Montes Claros
+Kind: city
+Parent: place:brazil
+At: -16.72-043.86/
+
+Name: place:montevideo
+Label: Montevideo
+Kind: city
+Parent: place:uruguay
+At: -34.86-056.17/
+
+Name: place:montgomery
+Label: Montgomery
+Kind: city
+Parent: place:united-states-of-america
+At: +32.36-086.28/
+
+Name: place:montpellier
+Label: Montpellier
+Kind: city
+Parent: place:france
+At: +43.61+003.87/
+
+Name: place:montreal
+Label: Montréal
+Alias: Montreal
+Kind: city
+Parent: place:canada
+At: +45.50-073.59/
+
+Name: place:moradabad
+Label: Moradabad
+Kind: city
+Parent: place:india
+At: +28.84+078.75/
+
+Name: place:morogoro
+Label: Morogoro
+Kind: city
+Parent: place:tanzania
+At: -06.82+037.66/
+
+Name: place:moroni
+Label: Moroni
+Kind: city
+Parent: place:comoros
+At: -11.70+043.24/
+
+Name: place:moroto
+Label: Moroto
+Kind: city
+Parent: place:uganda
+At: +02.54+034.64/
+
+Name: place:moscow
+Label: Moscow
+Kind: city
+Parent: place:russia
+At: +55.75+037.61/
+
+Name: place:mosul
+Label: Mosul
+Alias: Al-Mawsil
+Kind: city
+Parent: place:iraq
+At: +36.35+043.14/
+
+Name: place:moundou
+Label: Moundou
+Kind: city
+Parent: place:chad
+At: +08.55+016.09/
+
+Name: place:mount-isa
+Label: Mount Isa
+Kind: city
+Parent: place:australia
+At: -20.72+139.49/
+
+Name: place:mt-hagen
+Label: Mt.  Hagen
+Alias: Mt. Hagen
+Alias: Mount Hagen
+Kind: city
+Parent: place:papua-new-guinea
+At: -05.86+144.22/
+
+Name: place:mufulira
+Label: Mufulira
+Kind: city
+Parent: place:zambia
+At: -12.55+028.26/
+
+Name: place:multan
+Label: Multan
+Kind: city
+Parent: place:pakistan
+At: +30.20+071.45/
+
+Name: place:mumbai
+Label: Mumbai
+Kind: city
+Parent: place:india
+At: +19.02+072.86/
+
+Name: place:munich
+Label: Munich
+Kind: city
+Parent: place:germany
+At: +48.13+011.57/
+
+Name: place:murmansk
+Label: Murmansk
+Kind: city
+Parent: place:russia
+At: +68.97+033.10/
+
+Name: place:muscat
+Label: Muscat
+Kind: city
+Parent: place:oman
+At: +23.61+058.59/
+
+Name: place:mwanza
+Label: Mwanza
+Kind: city
+Parent: place:tanzania
+At: -02.52+032.93/
+
+Name: place:mysuru
+Label: Mysuru
+Kind: city
+Parent: place:india
+At: +12.31+076.66/
+
+Name: place:mzuzu
+Label: Mzuzu
+Kind: city
+Parent: place:malawi
+At: -11.46+034.02/
+
+Name: place:nacala
+Label: Nacala
+Kind: city
+Parent: place:mozambique
+At: -14.52+040.72/
+
+Name: place:nagano
+Label: Nagano
+Kind: city
+Parent: place:japan
+At: +36.65+138.17/
+
+Name: place:nagasaki
+Label: Nagasaki
+Kind: city
+Parent: place:japan
+At: +32.76+129.89/
+
+Name: place:nagoya
+Label: Nagoya
+Kind: city
+Parent: place:japan
+At: +35.16+136.91/
+
+Name: place:nagpur
+Label: Nagpur
+Kind: city
+Parent: place:india
+At: +21.17+079.09/
+
+Name: place:naha
+Label: Naha
+Kind: city
+Parent: place:japan
+At: +26.21+127.67/
+
+Name: place:nain
+Label: Nain
+Kind: city
+Parent: place:canada
+At: +56.55-061.69/
+
+Name: place:nairobi
+Label: Nairobi
+Kind: city
+Parent: place:kenya
+At: -01.28+036.81/
+
+Name: place:nakhon-ratchasima
+Label: Nakhon Ratchasima
+Kind: city
+Parent: place:thailand
+At: +15.00+102.10/
+
+Name: place:naltchik
+Label: Nalchik
+Alias: Naltchik
+Kind: city
+Parent: place:russia
+At: +43.50+043.62/
+
+Name: place:namibe
+Label: Moçâmedes
+Alias: Namibe
+Alias: Mocamedes
+Kind: city
+Parent: place:angola
+At: -15.19+012.16/
+
+Name: place:nampula
+Label: Nampula
+Kind: city
+Parent: place:mozambique
+At: -15.14+039.29/
+
+Name: place:nanchang
+Label: Nanchang
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +28.68+115.88/
+
+Name: place:nanchong
+Label: Nanchong
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +30.78+106.13/
+
+Name: place:nancy
+Label: Nancy
+Kind: city
+Parent: place:france
+At: +48.68+006.20/
+
+Name: place:nanded
+Label: Nanded
+Kind: city
+Parent: place:india
+At: +19.17+077.30/
+
+Name: place:nanjing
+Label: Nanjing
+Alias: Nanjing, Jiangsu
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +32.05+118.78/
+
+Name: place:nanning
+Label: Nanning
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +22.82+108.32/
+
+Name: place:nantes
+Label: Nantes
+Kind: city
+Parent: place:france
+At: +47.21-001.59/
+
+Name: place:nanyang
+Label: Nanyang
+Alias: Nanyang, Henan
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +33.00+112.53/
+
+Name: place:napier
+Label: Napier
+Kind: city
+Parent: place:new-zealand
+At: -39.49+176.93/
+
+Name: place:naples
+Label: Naples
+Kind: city
+Parent: place:italy
+At: +40.84+014.24/
+
+Name: place:narsarsuaq
+Label: Narsarsuaq
+Kind: city
+Parent: place:greenland
+At: +61.17-045.42/
+
+Name: place:nashville
+Label: Nashville
+Alias: Nashville-Davidson
+Kind: city
+Parent: place:united-states-of-america
+At: +36.17-086.78/
+
+Name: place:nasik
+Label: Nasik
+Alias: Nashik
+Kind: city
+Parent: place:india
+At: +20.00+073.78/
+
+Name: place:nassau
+Label: Nassau
+Kind: city
+Parent: place:the-bahamas
+At: +25.08-077.35/
+
+Name: place:natal
+Label: Natal
+Kind: city
+Parent: place:brazil
+At: -05.78-035.24/
+
+Name: place:naypyidaw
+Label: Naypyidaw
+Alias: Nay Pyi Taw
+Kind: city
+Parent: place:myanmar
+At: +19.77+096.12/
+
+Name: place:ndele
+Label: N'Délé
+Alias: Ndele
+Alias: N'Dele
+Kind: city
+Parent: place:central-african-republic
+At: +08.41+020.65/
+
+Name: place:ndjamena
+Label: N'Djamena
+Alias: Ndjamena
+Alias: N'Djamnna
+Kind: city
+Parent: place:chad
+At: +12.12+015.05/
+
+Name: place:neijiang
+Label: Neijiang
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +29.58+105.05/
+
+Name: place:neumayer-station-iii
+Label: Neumayer Station III
+Kind: city
+Parent: place:antarctica
+At: -70.89-007.84/
+
+Name: place:neuquen
+Label: Neuquén
+Alias: Neuquen
+Kind: city
+Parent: place:argentina
+At: -38.95-068.06/
+
+Name: place:new-delhi
+Label: New Delhi
+Kind: city
+Parent: place:india
+At: +28.60+077.20/
+
+Name: place:new-orleans
+Label: New Orleans
+Kind: city
+Parent: place:united-states-of-america
+At: +30.00-090.04/
+
+Name: place:new-york
+Label: New York
+Alias: New York-Newark
+Kind: city
+Parent: place:united-states-of-america
+At: +40.75-073.98/
+
+Name: place:newcastle
+Label: Newcastle
+Kind: city
+Parent: place:australia
+At: -32.85+151.82/
+
+Name: place:niamey
+Label: Niamey
+Kind: city
+Parent: place:niger
+At: +13.52+002.11/
+
+Name: place:nicosia
+Label: Nicosia
+Kind: city
+Parent: place:cyprus
+At: +35.17+033.37/
+
+Name: place:ningbo
+Label: Ningbo
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +29.88+121.55/
+
+Name: place:niyala
+Label: Nyala
+Alias: Niyala
+Kind: city
+Parent: place:sudan
+At: +12.06+024.89/
+
+Name: place:nizhneyansk
+Label: Nizhneyansk
+Kind: city
+Parent: place:russia
+At: +71.43+136.07/
+
+Name: place:nizhny-novgorod
+Label: Nizhny Novgorod
+Alias: Gor'kiy
+Alias: Nizhniy Novgorod
+Alias: Novgorod
+Kind: city
+Parent: place:russia
+At: +56.33+044.00/
+
+Name: place:nizhny-tagil
+Label: Nizhny Tagil
+Kind: city
+Parent: place:russia
+At: +57.92+059.97/
+
+Name: place:nogales
+Label: Nogales
+Kind: city
+Parent: place:mexico
+At: +31.30-110.94/
+
+Name: place:nome
+Label: Nome
+Kind: city
+Parent: place:united-states-of-america
+At: +64.51-165.41/
+
+Name: place:norfolk
+Label: Norfolk
+Kind: city
+Parent: place:united-states-of-america
+At: +36.85-076.28/
+
+Name: place:norilsk
+Label: Norilsk
+Kind: city
+Parent: place:russia
+At: +69.34+088.22/
+
+Name: place:north-bay
+Label: North Bay
+Kind: city
+Parent: place:canada
+At: +46.30-079.45/
+
+Name: place:nouadhibou
+Label: Nouadhibou
+Kind: city
+Parent: place:mauritania
+At: +20.90-017.06/
+
+Name: place:nouakchott
+Label: Nouakchott
+Kind: city
+Parent: place:mauritania
+At: +18.09-015.98/
+
+Name: place:noumea
+Label: Nouméa
+Alias: Noumea
+Kind: city
+Parent: place:new-caledonia
+At: -22.26+166.44/
+
+Name: place:novi-sad
+Label: Novi Sad
+Kind: city
+Parent: place:serbia
+At: +45.25+019.85/
+
+Name: place:novokuznetsk
+Label: Novokuznetsk
+Kind: city
+Parent: place:russia
+At: +53.75+087.11/
+
+Name: place:novolazarevskaya-station
+Label: Novolazarevskaya Station
+Kind: city
+Parent: place:antarctica
+At: -71.30-011.85/
+
+Name: place:novosibirsk
+Label: Novosibirsk
+Kind: city
+Parent: place:russia
+At: +55.03+082.96/
+
+Name: place:nuevo-laredo
+Label: Nuevo Laredo
+Kind: city
+Parent: place:mexico
+At: +27.50-099.55/
+
+Name: place:nukualofa
+Label: Nuku'alofa
+Alias: Nukualofa
+Kind: city
+Parent: place:tonga
+At: -21.14-175.22/
+
+Name: place:nukus
+Label: Nukus
+Kind: city
+Parent: place:uzbekistan
+At: +42.47+059.62/
+
+Name: place:nuuk
+Label: Nuuk
+Kind: city
+Parent: place:greenland
+At: +64.20-051.73/
+
+Name: place:nzerekore
+Label: Nzérékoré
+Alias: Nzerekore
+Kind: city
+Parent: place:guinea
+At: +07.76-008.83/
+
+Name: place:oaxaca
+Label: Oaxaca
+Alias: Oaxaca de Juárez
+Kind: city
+Parent: place:mexico
+At: +17.08-096.67/
+
+Name: place:obo
+Label: Obo
+Kind: city
+Parent: place:central-african-republic
+At: +05.40+026.50/
+
+Name: place:odessa
+Label: Odessa
+Alias: Odesa
+Kind: city
+Parent: place:ukraine
+At: +46.49+030.71/
+
+Name: place:ogbomosho
+Label: Ogbomosho
+Kind: city
+Parent: place:nigeria
+At: +08.13+004.24/
+
+Name: place:okha
+Label: Okha
+Kind: city
+Parent: place:russia
+At: +53.57+142.95/
+
+Name: place:okhotsk
+Label: Okhotsk
+Kind: city
+Parent: place:russia
+At: +59.38+143.22/
+
+Name: place:oklahoma-city
+Label: Oklahoma City
+Kind: city
+Parent: place:united-states-of-america
+At: +35.47-097.52/
+
+Name: place:olympia
+Label: Olympia
+Kind: city
+Parent: place:united-states-of-america
+At: +47.04-122.90/
+
+Name: place:omaha
+Label: Omaha
+Kind: city
+Parent: place:united-states-of-america
+At: +41.24-096.01/
+
+Name: place:omdurman
+Label: Omdurman
+Kind: city
+Parent: place:sudan
+At: +15.62+032.48/
+
+Name: place:omsk
+Label: Omsk
+Kind: city
+Parent: place:russia
+At: +54.99+073.40/
+
+Name: place:oran
+Label: Oran
+Alias: Wahran
+Kind: city
+Parent: place:algeria
+At: +35.71-000.62/
+
+Name: place:orange
+Label: Orange
+Kind: city
+Parent: place:australia
+At: -33.28+149.10/
+
+Name: place:oranjestad
+Label: Oranjestad
+Kind: city
+Parent: place:aruba
+At: +12.53-070.03/
+
+Name: place:orcadas-station
+Label: Orcadas Station
+Kind: city
+Parent: place:antarctica
+At: -60.73-044.73/
+
+Name: place:orenburg
+Label: Orenburg
+Kind: city
+Parent: place:russia
+At: +51.78+055.11/
+
+Name: place:orlando
+Label: Orlando
+Kind: city
+Parent: place:united-states-of-america
+At: +28.51-081.38/
+
+Name: place:orleans
+Label: Orléans
+Alias: Orleans
+Kind: city
+Parent: place:france
+At: +47.90+001.90/
+
+Name: place:osaka
+Label: Ōsaka
+Alias: Osaka
+Alias: Osaka-Kobe
+Kind: city
+Parent: place:japan
+At: +34.75+135.46/
+
+Name: place:oskemen
+Label: Oskemen
+Alias: Ust'-Kamenogorsk
+Kind: city
+Parent: place:kazakhstan
+At: +49.99+082.61/
+
+Name: place:oslo
+Label: Oslo
+Kind: city
+Parent: place:norway
+At: +59.92+010.75/
+
+Name: place:otjiwarongo
+Label: Otjiwarongo
+Kind: city
+Parent: place:namibia
+At: -20.46+016.64/
+
+Name: place:ottawa
+Label: Ottawa
+Alias: Ottawa-Gatineau
+Kind: city
+Parent: place:canada
+At: +45.42-075.70/
+
+Name: place:ouagadougou
+Label: Ouagadougou
+Kind: city
+Parent: place:burkina-faso
+At: +12.37-001.53/
+
+Name: place:oujda
+Label: Oujda
+Kind: city
+Parent: place:morocco
+At: +34.69-001.91/
+
+Name: place:padang
+Label: Padang
+Kind: city
+Parent: place:indonesia
+At: -00.96+100.36/
+
+Name: place:pago-pago
+Label: Pago Pago
+Kind: city
+Parent: place:american-samoa
+At: -14.28-170.71/
+
+Name: place:palana
+Label: Palana
+Kind: city
+Parent: place:russia
+At: +59.08+159.95/
+
+Name: place:palembang
+Label: Palembang
+Kind: city
+Parent: place:indonesia
+At: -02.98+104.75/
+
+Name: place:palermo
+Label: Palermo
+Kind: city
+Parent: place:italy
+At: +38.13+013.35/
+
+Name: place:palikir
+Label: Palikir
+Kind: city
+Parent: place:federated-states-of-micronesia
+At: +06.92+158.15/
+
+Name: place:palmer-station
+Label: Palmer Station
+Kind: city
+Parent: place:antarctica
+At: -64.76-064.05/
+
+Name: place:panama-city
+Label: Panama City
+Alias: Ciudad de Panam
+Alias: Panama
+Kind: city
+Parent: place:panama
+At: +08.97-079.53/
+
+Name: place:papeete
+Label: Papeete
+Kind: city
+Parent: place:french-polynesia
+At: -17.53-149.57/
+
+Name: place:parakou
+Label: Parakou
+Kind: city
+Parent: place:benin
+At: +09.34+002.62/
+
+Name: place:paramaribo
+Label: Paramaribo
+Kind: city
+Parent: place:suriname
+At: +05.84-055.17/
+
+Name: place:parepare
+Label: Parepare
+Kind: city
+Parent: place:indonesia
+At: -04.02+119.63/
+
+Name: place:paris
+Label: Paris
+Kind: city
+Parent: place:france
+At: +48.87+002.33/
+
+Name: place:pasto
+Label: Pasto
+Kind: city
+Parent: place:colombia
+At: +01.21-077.28/
+
+Name: place:patna
+Label: Patna
+Kind: city
+Parent: place:india
+At: +25.63+085.13/
+
+Name: place:pavlodar
+Label: Pavlodar
+Kind: city
+Parent: place:kazakhstan
+At: +52.30+076.95/
+
+Name: place:peace-river
+Label: Peace River
+Kind: city
+Parent: place:canada
+At: +56.23-117.28/
+
+Name: place:pelotas
+Label: Pelotas
+Kind: city
+Parent: place:brazil
+At: -31.75-052.33/
+
+Name: place:pemba
+Label: Pemba
+Kind: city
+Parent: place:mozambique
+At: -12.98+040.53/
+
+Name: place:penza
+Label: Penza
+Kind: city
+Parent: place:russia
+At: +53.18+045.00/
+
+Name: place:perm
+Label: Perm
+Alias: Perm'
+Kind: city
+Parent: place:russia
+At: +58.00+056.25/
+
+Name: place:perth
+Label: Perth
+Kind: city
+Parent: place:australia
+At: -31.95+115.84/
+
+Name: place:perugia
+Label: Perugia
+Kind: city
+Parent: place:italy
+At: +43.11+012.39/
+
+Name: place:peshawar
+Label: Peshawar
+Kind: city
+Parent: place:pakistan
+At: +34.01+071.53/
+
+Name: place:peter-i-island
+Label: Peter I Island
+Kind: city
+Parent: place:antarctica
+At: -68.80-090.58/
+
+Name: place:petrolina
+Label: Petrolina
+Kind: city
+Parent: place:brazil
+At: -09.38-040.51/
+
+Name: place:petropavlovsk-kamchatskiy
+Label: Petropavlovsk-Kamchatsky
+Alias: Petropavlovsk Kamchatskiy
+Kind: city
+Parent: place:russia
+At: +53.06+158.62/
+
+Name: place:petrozavodsk
+Label: Petrozavodsk
+Kind: city
+Parent: place:russia
+At: +61.85+034.28/
+
+Name: place:philadelphia
+Label: Philadelphia
+Kind: city
+Parent: place:united-states-of-america
+At: +40.00-075.17/
+
+Name: place:phnom-penh
+Label: Phnom Penh
+Alias: Phnum Penh
+Kind: city
+Parent: place:cambodia
+At: +11.55+104.91/
+
+Name: place:phoenix
+Label: Phoenix
+Alias: Phoenix-Mesa
+Kind: city
+Parent: place:united-states-of-america
+At: +33.54-112.07/
+
+Name: place:pierre
+Label: Pierre
+Kind: city
+Parent: place:united-states-of-america
+At: +44.37-100.35/
+
+Name: place:pingxiang
+Label: Pingxiang
+Alias: Pingxiang, Jiangxi
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +27.62+113.85/
+
+Name: place:pittsburgh
+Label: Pittsburgh
+Kind: city
+Parent: place:united-states-of-america
+At: +40.43-080.00/
+
+Name: place:piura
+Label: Piura
+Kind: city
+Parent: place:peru
+At: -05.21-080.63/
+
+Name: place:podgorica
+Label: Podgorica
+Kind: city
+Parent: place:montenegro
+At: +42.47+019.27/
+
+Name: place:point-hope
+Label: Point Hope
+Kind: city
+Parent: place:united-states-of-america
+At: +68.35-166.81/
+
+Name: place:pointe-noire
+Label: Pointe-Noire
+Kind: city
+Parent: place:republic-of-the-congo
+At: -04.77+011.88/
+
+Name: place:poitier
+Label: Poitier
+Alias: Poitiers
+Kind: city
+Parent: place:france
+At: +46.58+000.33/
+
+Name: place:ponta-delgada
+Label: Ponta Delgada
+Kind: city
+Parent: place:portugal
+At: +37.75-025.67/
+
+Name: place:ponta-grossa
+Label: Ponta Grossa
+Kind: city
+Parent: place:brazil
+At: -25.09-050.16/
+
+Name: place:port-au-prince
+Label: Port-au-Prince
+Kind: city
+Parent: place:haiti
+At: +18.54-072.34/
+
+Name: place:port-elizabeth
+Label: Port Elizabeth
+Kind: city
+Parent: place:south-africa
+At: -33.97+025.60/
+
+Name: place:port-gentil
+Label: Port-Gentil
+Alias: Port Gentil
+Kind: city
+Parent: place:gabon
+At: -00.72+008.78/
+
+Name: place:port-harcourt
+Label: Port Harcourt
+Kind: city
+Parent: place:nigeria
+At: +04.81+007.01/
+
+Name: place:port-hedland
+Label: Port Hedland
+Kind: city
+Parent: place:australia
+At: -20.31+118.61/
+
+Name: place:port-lincoln
+Label: Port Lincoln
+Kind: city
+Parent: place:australia
+At: -34.73+135.87/
+
+Name: place:port-louis
+Label: Port Louis
+Kind: city
+Parent: place:mauritius
+At: -20.17+057.50/
+
+Name: place:port-moresby
+Label: Port Moresby
+Kind: city
+Parent: place:papua-new-guinea
+At: -09.46+147.19/
+
+Name: place:port-of-spain
+Label: Port-of-Spain
+Kind: city
+Parent: place:trinidad-and-tobago
+At: +10.65-061.52/
+
+Name: place:port-sudan
+Label: Port Sudan
+Kind: city
+Parent: place:sudan
+At: +19.62+037.22/
+
+Name: place:port-vila
+Label: Port Vila
+Kind: city
+Parent: place:vanuatu
+At: -17.73+168.32/
+
+Name: place:portland-au
+Label: Portland
+Qualifier: Victoria, Australia
+Kind: city
+Parent: place:australia
+At: -38.34+141.59/
+
+Name: place:portland-us
+Label: Portland
+Qualifier: Oregon, United States of America
+Kind: city
+Parent: place:united-states-of-america
+At: +45.52-122.68/
+
+Name: place:porto-alegre
+Label: Porto Alegre
+Kind: city
+Parent: place:brazil
+At: -30.05-051.20/
+
+Name: place:porto-novo
+Label: Porto-Novo
+Kind: city
+Parent: place:benin
+At: +06.48+002.62/
+
+Name: place:porto-velho
+Label: Porto Velho
+Kind: city
+Parent: place:brazil
+At: -08.75-063.90/
+
+Name: place:posadas
+Label: Posadas
+Kind: city
+Parent: place:argentina
+At: -27.36-055.89/
+
+Name: place:potenza
+Label: Potenza
+Kind: city
+Parent: place:italy
+At: +40.64+015.80/
+
+Name: place:prague
+Label: Prague
+Kind: city
+Parent: place:czech-republic
+At: +50.09+014.46/
+
+Name: place:praia
+Label: Praia
+Kind: city
+Parent: place:cape-verde
+At: +14.92-023.52/
+
+Name: place:pretoria
+Label: Pretoria
+Kind: city
+Parent: place:south-africa
+At: -25.70+028.23/
+
+Name: place:prince-rupert
+Label: Prince Rupert
+Kind: city
+Parent: place:canada
+At: +54.32-130.33/
+
+Name: place:pristina
+Label: Pristina
+Kind: city
+Parent: place:kosovo
+At: +42.67+021.17/
+
+Name: place:prudhoe-bay
+Label: Prudhoe Bay
+Kind: city
+Parent: place:united-states-of-america
+At: +70.29-148.67/
+
+Name: place:pskov
+Label: Pskov
+Kind: city
+Parent: place:russia
+At: +57.83+028.33/
+
+Name: place:pucallpa
+Label: Pucallpa
+Kind: city
+Parent: place:peru
+At: -08.37-074.53/
+
+Name: place:puducherry
+Label: Puducherry
+Kind: city
+Parent: place:india
+At: +11.93+079.83/
+
+Name: place:puebla
+Label: Puebla
+Kind: city
+Parent: place:mexico
+At: +19.05-098.20/
+
+Name: place:puerto-ayacucho
+Label: Puerto Ayacucho
+Kind: city
+Parent: place:venezuela
+At: +05.66-067.62/
+
+Name: place:puerto-deseado
+Label: Puerto Deseado
+Kind: city
+Parent: place:argentina
+At: -47.75-065.90/
+
+Name: place:puerto-limon
+Label: Limón
+Alias: Puerto Limon
+Alias: Limon
+Kind: city
+Parent: place:costa-rica
+At: +10.00-083.03/
+
+Name: place:puerto-montt
+Label: Puerto Montt
+Kind: city
+Parent: place:chile
+At: -41.47-072.93/
+
+Name: place:pune
+Label: Pune
+Alias: Poona
+Kind: city
+Parent: place:india
+At: +18.53+073.85/
+
+Name: place:punta-arenas
+Label: Punta Arenas
+Kind: city
+Parent: place:chile
+At: -53.16-070.94/
+
+Name: place:putrajaya
+Label: Putrajaya
+Kind: city
+Parent: place:malaysia
+At: +02.91+101.70/
+
+Name: place:pyongyang
+Label: Pyongyang
+Alias: P'yongyang
+Kind: city
+Parent: place:north-korea
+At: +39.02+125.75/
+
+Name: place:qaanaaq
+Label: Qaanaaq
+Kind: city
+Parent: place:greenland
+At: +77.48-069.33/
+
+Name: place:qaraghandy
+Label: Qaraghandy
+Kind: city
+Parent: place:kazakhstan
+At: +49.88+073.12/
+
+Name: place:qingdao
+Label: Qingdao
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +36.09+120.33/
+
+Name: place:qiqihar
+Label: Qiqihar
+Alias: Qiqihaer
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +47.35+123.99/
+
+Name: place:quanzhou
+Label: Quanzhou
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +24.90+118.58/
+
+Name: place:quebec
+Label: Québec
+Alias: Quebec
+Kind: city
+Parent: place:canada
+At: +46.84-071.25/
+
+Name: place:quelimane
+Label: Quelimane
+Kind: city
+Parent: place:mozambique
+At: -17.88+036.89/
+
+Name: place:quetta
+Label: Quetta
+Kind: city
+Parent: place:pakistan
+At: +30.22+067.02/
+
+Name: place:quetzaltenango
+Label: Quetzaltenango
+Alias: Quezaltenango
+Kind: city
+Parent: place:guatemala
+At: +14.83-091.52/
+
+Name: place:quito
+Label: Quito
+Kind: city
+Parent: place:ecuador
+At: -00.21-078.50/
+
+Name: place:qyzylorda
+Label: Qyzylorda
+Alias: Qyzlorda
+Alias: Kyzylorda
+Kind: city
+Parent: place:kazakhstan
+At: +44.80+065.46/
+
+Name: place:raba
+Label: Raba
+Kind: city
+Parent: place:indonesia
+At: -08.45+118.77/
+
+Name: place:rabat
+Label: Rabat
+Kind: city
+Parent: place:morocco
+At: +34.03-006.84/
+
+Name: place:rabaul
+Label: Rabaul
+Kind: city
+Parent: place:papua-new-guinea
+At: -04.21+152.14/
+
+Name: place:raipur
+Label: Raipur
+Kind: city
+Parent: place:india
+At: +21.24+081.63/
+
+Name: place:rajkot
+Label: Rajkot
+Kind: city
+Parent: place:india
+At: +22.31+070.80/
+
+Name: place:rajshahi
+Label: Rajshahi
+Kind: city
+Parent: place:bangladesh
+At: +24.38+088.60/
+
+Name: place:raleigh
+Label: Raleigh
+Kind: city
+Parent: place:united-states-of-america
+At: +35.82-078.64/
+
+Name: place:ramallah
+Label: Ramallah
+Kind: city
+Parent: place:palestine
+At: +31.90+035.21/
+
+Name: place:ranchi
+Label: Ranchi
+Kind: city
+Parent: place:india
+At: +23.37+085.33/
+
+Name: place:rangoon
+Label: Yangon
+Alias: Rangoon
+Kind: city
+Parent: place:myanmar
+At: +16.79+096.16/
+
+Name: place:rawson
+Label: Rawson
+Kind: city
+Parent: place:argentina
+At: -43.30-065.10/
+
+Name: place:recife
+Label: Recife
+Kind: city
+Parent: place:brazil
+At: -08.07-034.92/
+
+Name: place:regina
+Label: Regina
+Kind: city
+Parent: place:canada
+At: +50.45-104.62/
+
+Name: place:reims
+Label: Reims
+Kind: city
+Parent: place:france
+At: +49.25+004.03/
+
+Name: place:rennes
+Label: Rennes
+Kind: city
+Parent: place:france
+At: +48.10-001.67/
+
+Name: place:reno
+Label: Reno
+Kind: city
+Parent: place:united-states-of-america
+At: +39.53-119.82/
+
+Name: place:repulse-bay
+Label: Naujaat
+Alias: Repulse Bay
+Kind: city
+Parent: place:canada
+At: +66.53-086.28/
+
+Name: place:resolute
+Label: Resolute
+Kind: city
+Parent: place:canada
+At: +74.68-094.90/
+
+Name: place:reykjavik
+Label: Reykjavík
+Alias: Reykjavik
+Kind: city
+Parent: place:iceland
+At: +64.15-021.95/
+
+Name: place:ribeirao-preto
+Label: Ribeirão Preto
+Alias: Ribeirao Preto
+Kind: city
+Parent: place:brazil
+At: -21.17-047.83/
+
+Name: place:riberalta
+Label: Riberalta
+Kind: city
+Parent: place:bolivia
+At: -10.98-066.10/
+
+Name: place:richmond
+Label: Richmond
+Kind: city
+Parent: place:united-states-of-america
+At: +37.55-077.45/
+
+Name: place:riga
+Label: Riga
+Kind: city
+Parent: place:latvia
+At: +56.95+024.10/
+
+Name: place:rio-branco
+Label: Rio Branco
+Kind: city
+Parent: place:brazil
+At: -09.97-067.80/
+
+Name: place:rio-de-janeiro
+Label: Rio de Janeiro
+Kind: city
+Parent: place:brazil
+At: -22.92-043.23/
+
+Name: place:rio-gallegos
+Label: Río Gallegos
+Alias: Rio Gallegos
+Kind: city
+Parent: place:argentina
+At: -51.63-069.22/
+
+Name: place:riyadh
+Label: Riyadh
+Alias: Ar-Riyadh
+Kind: city
+Parent: place:saudi-arabia
+At: +24.64+046.77/
+
+Name: place:rochester
+Label: Rochester
+Kind: city
+Parent: place:united-states-of-america
+At: +43.17-077.62/
+
+Name: place:rockhampton
+Label: Rockhampton
+Kind: city
+Parent: place:australia
+At: -23.36+150.52/
+
+Name: place:rome
+Label: Rome
+Kind: city
+Parent: place:italy
+At: +41.90+012.48/
+
+Name: place:rosario
+Label: Rosario
+Kind: city
+Parent: place:argentina
+At: -32.95-060.67/
+
+Name: place:roseau
+Label: Roseau
+Kind: city
+Parent: place:dominica
+At: +15.30-061.39/
+
+Name: place:rostov
+Label: Rostov
+Alias: Rostov-on-Don
+Alias: Rostov-na-Donu
+Kind: city
+Parent: place:russia
+At: +47.24+039.71/
+
+Name: place:rothera-station
+Label: Rothera Station
+Kind: city
+Parent: place:antarctica
+At: -67.56-068.12/
+
+Name: place:rouen
+Label: Rouen
+Kind: city
+Parent: place:france
+At: +49.43+001.08/
+
+Name: place:rovaniemi
+Label: Rovaniemi
+Kind: city
+Parent: place:finland
+At: +66.50+025.72/
+
+Name: place:rudny
+Label: Rudniy
+Alias: Rudny
+Kind: city
+Parent: place:kazakhstan
+At: +52.95+063.13/
+
+Name: place:ryazan
+Label: Ryazan
+Kind: city
+Parent: place:russia
+At: +54.62+039.72/
+
+Name: place:sabha
+Label: Sabha
+Kind: city
+Parent: place:libya
+At: +27.03+014.43/
+
+Name: place:sacramento
+Label: Sacramento
+Kind: city
+Parent: place:united-states-of-america
+At: +38.58-121.47/
+
+Name: place:safi
+Label: Safi
+Kind: city
+Parent: place:morocco
+At: +32.32-009.24/
+
+Name: place:saharanpur
+Label: Saharanpur
+Kind: city
+Parent: place:india
+At: +29.97+077.55/
+
+Name: place:saint-george-s
+Label: Saint George's
+Kind: city
+Parent: place:grenada
+At: +12.05-061.74/
+
+Name: place:saint-john-s
+Label: Saint John's
+Kind: city
+Parent: place:antigua-and-barbuda
+At: +17.12-061.85/
+
+Name: place:saint-laurent-du-maroni
+Label: Saint-Laurent-du-Maroni
+Alias: Albina
+Kind: city
+Parent: place:france
+At: +05.50-054.03/
+
+Name: place:sakata
+Label: Sakata
+Kind: city
+Parent: place:japan
+At: +38.92+139.85/
+
+Name: place:salem-in
+Label: Salem
+Qualifier: Tamil Nadu, India
+Kind: city
+Parent: place:india
+At: +11.67+078.18/
+
+Name: place:salem-us
+Label: Salem
+Qualifier: Oregon, United States of America
+Kind: city
+Parent: place:united-states-of-america
+At: +44.93-123.02/
+
+Name: place:salt-lake-city
+Label: Salt Lake City
+Kind: city
+Parent: place:united-states-of-america
+At: +40.78-111.93/
+
+Name: place:salta
+Label: Salta
+Kind: city
+Parent: place:argentina
+At: -24.78-065.42/
+
+Name: place:salvador
+Label: Salvador
+Kind: city
+Parent: place:brazil
+At: -12.97-038.48/
+
+Name: place:samara
+Label: Samara
+Alias: Kuybyskev
+Kind: city
+Parent: place:russia
+At: +53.20+050.15/
+
+Name: place:samarqand
+Label: Samarkand
+Alias: Samarqand
+Kind: city
+Parent: place:uzbekistan
+At: +39.67+066.94/
+
+Name: place:samsun
+Label: Samsun
+Kind: city
+Parent: place:turkey
+At: +41.28+036.34/
+
+Name: place:san-antonio
+Label: San Antonio
+Kind: city
+Parent: place:united-states-of-america
+At: +29.49-098.51/
+
+Name: place:san-bernardino
+Label: San Bernardino
+Alias: Riverside-San Bernardino
+Kind: city
+Parent: place:united-states-of-america
+At: +34.12-117.30/
+
+Name: place:san-carlos-de-bariloche
+Label: Bariloche
+Alias: San Carlos de Bariloche
+Kind: city
+Parent: place:argentina
+At: -41.15-071.30/
+
+Name: place:san-cristobal
+Label: San Cristóbal
+Alias: San Cristobal
+Kind: city
+Parent: place:venezuela
+At: +07.77-072.25/
+
+Name: place:san-diego
+Label: San Diego
+Kind: city
+Parent: place:united-states-of-america
+At: +32.82-117.18/
+
+Name: place:san-francisco
+Label: San Francisco
+Alias: San Francisco-Oakland
+Kind: city
+Parent: place:united-states-of-america
+At: +37.77-122.42/
+
+Name: place:san-jose-cr
+Label: San José
+Alias: San Jose
+Qualifier: San José, Costa Rica
+Kind: city
+Parent: place:costa-rica
+At: +09.94-084.09/
+
+Name: place:san-jose-us
+Label: San Jose
+Qualifier: California, United States of America
+Kind: city
+Parent: place:united-states-of-america
+At: +37.30-121.85/
+
+Name: place:san-juan-ar
+Label: San Juan
+Qualifier: San Juan, Argentina
+Kind: city
+Parent: place:argentina
+At: -31.55-068.52/
+
+Name: place:san-juan-pr
+Label: San Juan
+Qualifier: Puerto Rico
+Kind: city
+Parent: place:puerto-rico
+At: +18.44-066.13/
+
+Name: place:san-luis-potosi
+Label: San Luis Potosí
+Alias: San Luis Potosi
+Kind: city
+Parent: place:mexico
+At: +22.17-101.00/
+
+Name: place:san-marino-sm
+Label: San Marino
+Qualifier: San Marino
+Kind: city
+Parent: place:san-marino
+At: +43.94+012.44/
+
+Name: place:san-martin-base
+Label: San Martín Base
+Alias: San Martin Base
+Kind: city
+Parent: place:antarctica
+At: -68.12-067.10/
+
+Name: place:san-salvador
+Label: San Salvador
+Kind: city
+Parent: place:el-salvador
+At: +13.71-089.20/
+
+Name: place:sanaa
+Label: Sanaa
+Alias: Sana'a'
+Kind: city
+Parent: place:yemen
+At: +15.36+044.20/
+
+Name: place:santa-barbara
+Label: Santa Barbara
+Kind: city
+Parent: place:united-states-of-america
+At: +34.43-119.72/
+
+Name: place:santa-cruz-bo
+Label: Santa Cruz
+Alias: Santa Cruz de La Sierra
+Qualifier: Santa Cruz, Bolivia
+Kind: city
+Parent: place:bolivia
+At: -17.75-063.23/
+
+Name: place:santa-cruz-ec
+Label: Santa Cruz
+Qualifier: Gal, Ecuador
+Kind: city
+Parent: place:ecuador
+At: -00.53-090.35/
+
+Name: place:santa-fe-ar
+Label: Santa Fe
+Qualifier: Santa Fe, Argentina
+Kind: city
+Parent: place:argentina
+At: -31.62-060.69/
+
+Name: place:santa-fe-us
+Label: Santa Fe
+Qualifier: New Mexico, United States of America
+Kind: city
+Parent: place:united-states-of-america
+At: +35.69-105.94/
+
+Name: place:santa-rosa
+Label: Santa Rosa
+Kind: city
+Parent: place:argentina
+At: -36.62-064.30/
+
+Name: place:santarem
+Label: Santarém
+Alias: Santarem
+Kind: city
+Parent: place:brazil
+At: -02.43-054.70/
+
+Name: place:santiago-cl
+Label: Santiago
+Qualifier: Región Metropolitana de Santiago, Chile
+Kind: city
+Parent: place:chile
+At: -33.45-070.67/
+
+Name: place:santiago-de-cuba
+Label: Santiago de Cuba
+Alias: Santiago De Cuba
+Kind: city
+Parent: place:cuba
+At: +20.03-075.82/
+
+Name: place:santiago-do
+Label: Santiago
+Alias: Santiago de los Caballeros
+Qualifier: Santiago, Dominican Republic
+Kind: city
+Parent: place:dominican-republic
+At: +19.50-070.67/
+
+Name: place:santo-domingo
+Label: Santo Domingo
+Kind: city
+Parent: place:dominican-republic
+At: +18.47-069.90/
+
+Name: place:sao-luis
+Label: São Luís
+Alias: Sao Luis
+Alias: Grande S
+Kind: city
+Parent: place:brazil
+At: -02.51-044.27/
+
+Name: place:sao-paulo
+Label: São Paulo
+Alias: Sao Paulo
+Alias: Sio Paulo
+Kind: city
+Parent: place:brazil
+At: -23.56-046.63/
+
+Name: place:sao-tome
+Label: São Tomé
+Alias: Sao Tome
+Kind: city
+Parent: place:sao-tome-and-principe
+At: +00.33+006.73/
+
+Name: place:sapporo
+Label: Sapporo
+Kind: city
+Parent: place:japan
+At: +43.08+141.34/
+
+Name: place:sarajevo
+Label: Sarajevo
+Kind: city
+Parent: place:bosnia-and-herzegovina
+At: +43.85+018.38/
+
+Name: place:saratov
+Label: Saratov
+Kind: city
+Parent: place:russia
+At: +51.58+046.03/
+
+Name: place:saskatoon
+Label: Saskatoon
+Kind: city
+Parent: place:canada
+At: +52.17-106.67/
+
+Name: place:sault-ste-marie
+Label: Sault Ste. Marie
+Kind: city
+Parent: place:united-states-of-america
+At: +46.50-084.35/
+
+Name: place:savannah
+Label: Savannah
+Kind: city
+Parent: place:united-states-of-america
+At: +32.02-081.11/
+
+Name: place:scott-base
+Label: Scott Base
+Kind: city
+Parent: place:antarctica
+At: -77.85+166.75/
+
+Name: place:seattle
+Label: Seattle
+Kind: city
+Parent: place:united-states-of-america
+At: +47.57-122.34/
+
+Name: place:segou
+Label: Ségou
+Alias: Segou
+Kind: city
+Parent: place:mali
+At: +13.44-006.26/
+
+Name: place:semarang
+Label: Semarang
+Kind: city
+Parent: place:indonesia
+At: -06.96+110.42/
+
+Name: place:semey
+Label: Semey
+Alias: Semipalatinsk
+Kind: city
+Parent: place:kazakhstan
+At: +50.43+080.28/
+
+Name: place:sendai
+Label: Sendai
+Kind: city
+Parent: place:japan
+At: +38.29+141.02/
+
+Name: place:seoul
+Label: Seoul
+Kind: city
+Parent: place:south-korea
+At: +37.57+127.00/
+
+Name: place:serowe
+Label: Serowe
+Kind: city
+Parent: place:botswana
+At: -22.39+026.71/
+
+Name: place:sevastapol
+Label: Sevastopol
+Alias: Sevastapol
+Kind: city
+Parent: place:russia
+At: +44.60+033.46/
+
+Name: place:seville
+Label: Seville
+Kind: city
+Parent: place:spain
+At: +37.41-005.98/
+
+Name: place:shache
+Label: Shache
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +38.43+077.25/
+
+Name: place:shanghai
+Label: Shanghai
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +31.22+121.43/
+
+Name: place:shantou
+Label: Shantou
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +23.37+116.67/
+
+Name: place:shaoguan
+Label: Shaoguan
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +24.80+113.58/
+
+Name: place:shenyeng
+Label: Shenyeng
+Alias: Shenyang
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +41.81+123.45/
+
+Name: place:shenzhen
+Label: Shenzhen
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +22.55+114.12/
+
+Name: place:shijiazhuang
+Label: Shijiazhuang
+Alias: Shijianzhuang
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +38.05+114.48/
+
+Name: place:shiraz
+Label: Shiraz
+Kind: city
+Parent: place:iran
+At: +29.63+052.57/
+
+Name: place:shizuishan
+Label: Shizuishan
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +39.23+106.77/
+
+Name: place:sholapur
+Label: Sholapur
+Alias: Solapur
+Kind: city
+Parent: place:india
+At: +17.67+075.90/
+
+Name: place:showa-station
+Label: Showa Station
+Kind: city
+Parent: place:antarctica
+At: -69.03+039.75/
+
+Name: place:shreveport
+Label: Shreveport
+Kind: city
+Parent: place:united-states-of-america
+At: +32.50-093.77/
+
+Name: place:shymkent
+Label: Shymkent
+Kind: city
+Parent: place:kazakhstan
+At: +42.32+069.60/
+
+Name: place:siem-reap
+Label: Siem Reap
+Alias: Siemreab
+Kind: city
+Parent: place:cambodia
+At: +13.37+103.85/
+
+Name: place:signy-research-station
+Label: Signy Research Station
+Kind: city
+Parent: place:antarctica
+At: -60.63-045.60/
+
+Name: place:singapore-sg
+Label: Singapore
+Qualifier: Singapore
+Kind: city
+Parent: place:singapore
+At: +01.29+103.85/
+
+Name: place:sinuiju
+Label: Sinuiju
+Kind: city
+Parent: place:north-korea
+At: +40.09+124.42/
+
+Name: place:sioux-falls
+Label: Sioux Falls
+Kind: city
+Parent: place:united-states-of-america
+At: +43.55-096.73/
+
+Name: place:sisimiut
+Label: Sisimiut
+Kind: city
+Parent: place:greenland
+At: +66.95-053.67/
+
+Name: place:sitka
+Label: Sitka
+Kind: city
+Parent: place:united-states-of-america
+At: +57.06-135.33/
+
+Name: place:sittwe
+Label: Sittwe
+Kind: city
+Parent: place:myanmar
+At: +20.14+092.88/
+
+Name: place:skopje
+Label: Skopje
+Kind: city
+Parent: place:north-macedonia
+At: +42.00+021.43/
+
+Name: place:smolensk
+Label: Smolensk
+Kind: city
+Parent: place:russia
+At: +54.78+032.05/
+
+Name: place:sobral-base
+Label: Sobral Base
+Alias: Sobral Scientific Base
+Kind: city
+Parent: place:antarctica
+At: -81.18-040.50/
+
+Name: place:sochi
+Label: Sochi
+Kind: city
+Parent: place:russia
+At: +43.59+039.73/
+
+Name: place:sofia
+Label: Sofia
+Kind: city
+Parent: place:bulgaria
+At: +42.69+023.31/
+
+Name: place:sokoto
+Label: Sokoto
+Kind: city
+Parent: place:nigeria
+At: +13.06+005.24/
+
+Name: place:sorocaba
+Label: Sorocaba
+Kind: city
+Parent: place:brazil
+At: -23.49-047.47/
+
+Name: place:sousse
+Label: Sousse
+Kind: city
+Parent: place:tunisia
+At: +35.83+010.63/
+
+Name: place:spokane
+Label: Spokane
+Kind: city
+Parent: place:united-states-of-america
+At: +47.67-117.42/
+
+Name: place:springbok
+Label: Springbok
+Kind: city
+Parent: place:south-africa
+At: -29.67+017.88/
+
+Name: place:sri-jawewardenepura-kotte
+Label: Sri Jayawardenepura Kotte
+Alias: Sri Jawewardenepura Kotte
+Kind: city
+Parent: place:sri-lanka
+At: +06.90+079.95/
+
+Name: place:srinagar
+Label: Srinagar
+Kind: city
+Parent: place:india
+At: +34.10+074.81/
+
+Name: place:st-denis
+Label: St.-Denis
+Kind: city
+Parent: place:france
+At: -20.88+055.45/
+
+Name: place:st-john-s
+Label: St. John's
+Alias: Saint John's
+Kind: city
+Parent: place:canada
+At: +47.58-052.68/
+
+Name: place:st-louis
+Label: St. Louis
+Kind: city
+Parent: place:united-states-of-america
+At: +38.64-090.24/
+
+Name: place:st-paul
+Label: St.  Paul
+Alias: St. Paul
+Alias: Saint Paul
+Kind: city
+Parent: place:united-states-of-america
+At: +44.94-093.08/
+
+Name: place:st-petersburg
+Label: St.  Petersburg
+Alias: St. Petersburg
+Alias: Sankt Peterburg
+Alias: Saint Petersburg
+Kind: city
+Parent: place:russia
+At: +59.94+030.31/
+
+Name: place:stanley
+Label: Stanley
+Kind: city
+Parent: place:falkland-islands
+At: -51.70-057.85/
+
+Name: place:stavropol
+Label: Stavropol
+Kind: city
+Parent: place:russia
+At: +45.05+041.98/
+
+Name: place:stockholm
+Label: Stockholm
+Kind: city
+Parent: place:sweden
+At: +59.35+018.10/
+
+Name: place:strasbourg
+Label: Strasbourg
+Kind: city
+Parent: place:france
+At: +48.58+007.75/
+
+Name: place:sucre
+Label: Sucre
+Kind: city
+Parent: place:bolivia
+At: -19.04-065.26/
+
+Name: place:suez
+Label: Suez
+Kind: city
+Parent: place:egypt
+At: +30.00+032.55/
+
+Name: place:sukhumi
+Label: Sukhumi
+Alias: Sokhumi
+Kind: city
+Parent: place:georgia
+At: +43.02+041.02/
+
+Name: place:sundsvall
+Label: Sundsvall
+Kind: city
+Parent: place:sweden
+At: +62.40+017.32/
+
+Name: place:surabaya
+Label: Surabaya
+Alias: Surabaja
+Kind: city
+Parent: place:indonesia
+At: -07.25+112.75/
+
+Name: place:surakarta
+Label: Surakarta
+Kind: city
+Parent: place:indonesia
+At: -07.56+110.83/
+
+Name: place:surat
+Label: Surat
+Kind: city
+Parent: place:india
+At: +21.20+072.84/
+
+Name: place:surat-thani
+Label: Surat Thani
+Kind: city
+Parent: place:thailand
+At: +09.15+099.34/
+
+Name: place:surgut
+Label: Surgut
+Kind: city
+Parent: place:russia
+At: +61.26+073.43/
+
+Name: place:suva
+Label: Suva
+Kind: city
+Parent: place:fiji
+At: -18.13+178.44/
+
+Name: place:suzhou-cn-anhui
+Label: Suzhou
+Alias: Suzhou, Anhui
+Qualifier: Anhui, People's Republic of China
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +33.64+116.98/
+
+Name: place:suzhou-cn-jiangsu
+Label: Suzhou
+Alias: Suzhou, Jiangsu
+Qualifier: Jiangsu, People's Republic of China
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +31.30+120.62/
+
+Name: place:svea-station
+Label: Svea Station
+Kind: city
+Parent: place:antarctica
+At: -74.58-011.22/
+
+Name: place:swakopmund
+Label: Swakopmund
+Kind: city
+Parent: place:namibia
+At: -22.67+014.54/
+
+Name: place:sydney-au
+Label: Sydney
+Qualifier: New South Wales, Australia
+Kind: city
+Parent: place:australia
+At: -33.92+151.18/
+
+Name: place:sydney-ca
+Label: Sydney
+Qualifier: Nova Scotia, Canada
+Kind: city
+Parent: place:canada
+At: +46.07-060.18/
+
+Name: place:syracuse
+Label: Syracuse
+Kind: city
+Parent: place:united-states-of-america
+At: +43.05-076.15/
+
+Name: place:tabriz
+Label: Tabriz
+Kind: city
+Parent: place:iran
+At: +38.09+046.30/
+
+Name: place:tabuk
+Label: Tabuk
+Kind: city
+Parent: place:saudi-arabia
+At: +28.38+036.55/
+
+Name: place:tacna
+Label: Tacna
+Kind: city
+Parent: place:peru
+At: -18.00-070.25/
+
+Name: place:tahoua
+Label: Tahoua
+Kind: city
+Parent: place:niger
+At: +14.90+005.26/
+
+Name: place:taichung
+Label: Taichung
+Alias: T'aichung
+Kind: city
+Parent: place:taiwan
+At: +24.15+120.68/
+
+Name: place:taipei
+Label: Taipei
+Kind: city
+Parent: place:taiwan
+At: +25.04+121.57/
+
+Name: place:taiyuan
+Label: Taiyuan
+Alias: Taiyuan, Shanxi
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +37.88+112.54/
+
+Name: place:taizz
+Label: Taizz
+Alias: Ta'izz
+Kind: city
+Parent: place:yemen
+At: +13.61+044.04/
+
+Name: place:tallahassee
+Label: Tallahassee
+Kind: city
+Parent: place:united-states-of-america
+At: +30.45-084.28/
+
+Name: place:tallinn
+Label: Tallinn
+Kind: city
+Parent: place:estonia
+At: +59.43+024.73/
+
+Name: place:taloyoak
+Label: Taloyoak
+Kind: city
+Parent: place:canada
+At: +69.53-093.53/
+
+Name: place:tamanrasset
+Label: Tamanrasset
+Kind: city
+Parent: place:algeria
+At: +22.79+005.52/
+
+Name: place:tampa
+Label: Tampa
+Alias: Tampa-St. Petersburg
+Kind: city
+Parent: place:united-states-of-america
+At: +27.95-082.46/
+
+Name: place:tampere
+Label: Tampere
+Kind: city
+Parent: place:finland
+At: +61.50+023.75/
+
+Name: place:tampico
+Label: Tampico
+Kind: city
+Parent: place:mexico
+At: +22.30-097.87/
+
+Name: place:tanjungpandan
+Label: Tanjung Pandan
+Alias: Tanjungpandan
+Kind: city
+Parent: place:indonesia
+At: -02.75+107.65/
+
+Name: place:tarakan
+Label: Tarakan
+Kind: city
+Parent: place:indonesia
+At: +03.30+117.63/
+
+Name: place:tarawa
+Label: Tarawa
+Kind: city
+Parent: place:kiribati
+At: +01.34+173.02/
+
+Name: place:taraz
+Label: Taraz
+Alias: Dzhambul
+Kind: city
+Parent: place:kazakhstan
+At: +42.90+071.36/
+
+Name: place:tarija
+Label: Tarija
+Kind: city
+Parent: place:bolivia
+At: -21.52-064.75/
+
+Name: place:tashkent
+Label: Tashkent
+Kind: city
+Parent: place:uzbekistan
+At: +41.31+069.29/
+
+Name: place:tbilisi
+Label: Tbilisi
+Alias: T'Bilisi
+Kind: city
+Parent: place:georgia
+At: +41.73+044.79/
+
+Name: place:tegucigalpa
+Label: Tegucigalpa
+Kind: city
+Parent: place:honduras
+At: +14.10-087.22/
+
+Name: place:tehran
+Label: Tehran
+Kind: city
+Parent: place:iran
+At: +35.67+051.42/
+
+Name: place:tel-aviv-yafo
+Label: Tel Aviv
+Alias: Tel Aviv-Yafo
+Alias: Tel Aviv-Jaffa
+Kind: city
+Parent: place:israel
+At: +32.08+034.77/
+
+Name: place:teresina
+Label: Teresina
+Kind: city
+Parent: place:brazil
+At: -05.09-042.78/
+
+Name: place:ternate
+Label: Ternate
+Kind: city
+Parent: place:indonesia
+At: +00.79+127.36/
+
+Name: place:tete
+Label: Tete
+Kind: city
+Parent: place:mozambique
+At: -16.17+033.58/
+
+Name: place:the-hague
+Label: The Hague
+Kind: city
+Parent: place:netherlands
+At: +52.08+004.27/
+
+Name: place:thessaloniki
+Label: Thessaloniki
+Kind: city
+Parent: place:greece
+At: +40.70+022.88/
+
+Name: place:thimphu
+Label: Thimphu
+Kind: city
+Parent: place:bhutan
+At: +27.47+089.64/
+
+Name: place:thiruvananthapuram
+Label: Thiruvananthapuram
+Kind: city
+Parent: place:india
+At: +08.50+076.95/
+
+Name: place:thompson
+Label: Thompson
+Kind: city
+Parent: place:canada
+At: +55.75-097.87/
+
+Name: place:thunder-bay
+Label: Thunder Bay
+Kind: city
+Parent: place:canada
+At: +48.45-089.27/
+
+Name: place:tianjin
+Label: Tianjin
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +39.13+117.20/
+
+Name: place:tianshui
+Label: Tianshui
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +34.60+105.92/
+
+Name: place:tijuana
+Label: Tijuana
+Kind: city
+Parent: place:mexico
+At: +32.50-117.08/
+
+Name: place:tiksi
+Label: Tiksi
+Kind: city
+Parent: place:russia
+At: +71.63+128.83/
+
+Name: place:timbuktu
+Label: Timbuktu
+Kind: city
+Parent: place:mali
+At: +16.77-003.02/
+
+Name: place:timmins
+Label: Timmins
+Kind: city
+Parent: place:canada
+At: +48.47-081.33/
+
+Name: place:tirana
+Label: Tirana
+Kind: city
+Parent: place:albania
+At: +41.33+019.82/
+
+Name: place:tiruchirappalli
+Label: Tiruchirappalli
+Alias: Trichinopoly
+Kind: city
+Parent: place:india
+At: +10.81+078.69/
+
+Name: place:tmassah
+Label: Tmassa
+Alias: Tmassah
+Kind: city
+Parent: place:libya
+At: +26.37+015.80/
+
+Name: place:tokyo
+Label: Tokyo
+Kind: city
+Parent: place:japan
+At: +35.69+139.75/
+
+Name: place:toliara
+Label: Toliara
+Kind: city
+Parent: place:madagascar
+At: -23.36+043.69/
+
+Name: place:tomsk
+Label: Tomsk
+Kind: city
+Parent: place:russia
+At: +56.49+084.98/
+
+Name: place:tongliao
+Label: Tongliao
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +43.62+122.27/
+
+Name: place:topeka
+Label: Topeka
+Kind: city
+Parent: place:united-states-of-america
+At: +39.05-095.67/
+
+Name: place:toronto
+Label: Toronto
+Kind: city
+Parent: place:canada
+At: +43.70-079.42/
+
+Name: place:torreon
+Label: Torreón
+Alias: Torreon
+Kind: city
+Parent: place:mexico
+At: +25.57-103.42/
+
+Name: place:toulouse
+Label: Toulouse
+Kind: city
+Parent: place:france
+At: +43.62+001.45/
+
+Name: place:townsville
+Label: Townsville
+Kind: city
+Parent: place:australia
+At: -19.25+146.77/
+
+Name: place:trento
+Label: Trento
+Kind: city
+Parent: place:italy
+At: +46.08+011.12/
+
+Name: place:trieste
+Label: Trieste
+Kind: city
+Parent: place:italy
+At: +45.65+013.80/
+
+Name: place:trinidad
+Label: Trinidad
+Kind: city
+Parent: place:bolivia
+At: -14.83-064.90/
+
+Name: place:tripoli
+Label: Tripoli
+Kind: city
+Parent: place:libya
+At: +32.89+013.18/
+
+Name: place:troll-station
+Label: Troll Station
+Kind: city
+Parent: place:antarctica
+At: -72.02+002.53/
+
+Name: place:tromso
+Label: Tromsø
+Alias: Tromso
+Alias: Troms
+Kind: city
+Parent: place:norway
+At: +69.64+018.99/
+
+Name: place:trondheim
+Label: Trondheim
+Kind: city
+Parent: place:norway
+At: +63.42+010.42/
+
+Name: place:trujillo
+Label: Trujillo
+Kind: city
+Parent: place:peru
+At: -08.12-079.02/
+
+Name: place:tucson
+Label: Tucson
+Kind: city
+Parent: place:united-states-of-america
+At: +32.21-110.89/
+
+Name: place:tucuman
+Label: Tucumán
+Alias: Tucuman
+Alias: San Miguel De Tucuman
+Alias: San Miguel de Tucumnn
+Kind: city
+Parent: place:argentina
+At: -26.81-065.22/
+
+Name: place:tulsa
+Label: Tulsa
+Kind: city
+Parent: place:united-states-of-america
+At: +36.12-095.93/
+
+Name: place:tunis
+Label: Tunis
+Kind: city
+Parent: place:tunisia
+At: +36.80+010.18/
+
+Name: place:turin
+Label: Turin
+Alias: Torino
+Kind: city
+Parent: place:italy
+At: +45.07+007.67/
+
+Name: place:turkmenabat
+Label: Türkmenabat
+Alias: Turkmenabat
+Alias: Chardzhev
+Kind: city
+Parent: place:turkmenistan
+At: +39.11+063.58/
+
+Name: place:turkmenbasy
+Label: Türkmenbaşy
+Alias: Turkmenbasy
+Alias: Turkmenbashi
+Kind: city
+Parent: place:turkmenistan
+At: +40.02+052.97/
+
+Name: place:tuxtla-gutierrez
+Label: Tuxtla Gutiérrez
+Alias: Tuxtla Gutierrez
+Kind: city
+Parent: place:mexico
+At: +16.75-093.15/
+
+Name: place:tver
+Label: Tver
+Kind: city
+Parent: place:russia
+At: +56.86+035.89/
+
+Name: place:tyumen
+Label: Tyumen
+Kind: city
+Parent: place:russia
+At: +57.14+065.53/
+
+Name: place:uberlandia
+Label: Uberlândia
+Alias: Uberlandia
+Kind: city
+Parent: place:brazil
+At: -18.90-048.28/
+
+Name: place:ufa
+Label: Ufa
+Kind: city
+Parent: place:russia
+At: +54.79+056.04/
+
+Name: place:ugolnye-kopi
+Label: Ugolnye Kopi
+Kind: city
+Parent: place:russia
+At: +64.73+177.70/
+
+Name: place:ulaanbaatar
+Label: Ulaanbaatar
+Kind: city
+Parent: place:mongolia
+At: +47.92+106.91/
+
+Name: place:ulan-ude
+Label: Ulan-Ude
+Alias: Ulan Ude
+Kind: city
+Parent: place:russia
+At: +51.82+107.62/
+
+Name: place:ulanhot
+Label: Ulan Hot
+Alias: Ulanhot
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +46.08+122.08/
+
+Name: place:ulyanovsk
+Label: Ulyanovsk
+Alias: Ul'yanovsk
+Kind: city
+Parent: place:russia
+At: +54.33+048.41/
+
+Name: place:upernavik
+Label: Upernavik
+Kind: city
+Parent: place:greenland
+At: +72.71-056.14/
+
+Name: place:upington
+Label: Upington
+Kind: city
+Parent: place:south-africa
+At: -28.46+021.23/
+
+Name: place:urumqi
+Label: Ürümqi
+Alias: Urumqi
+Alias: rumqi
+Alias: Wulumqi
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +43.81+087.57/
+
+Name: place:ust-nera
+Label: Ust-Nera
+Alias: Ust Nera
+Kind: city
+Parent: place:russia
+At: +64.57+143.20/
+
+Name: place:ust-ulimsk
+Label: Ust-Ilimsk
+Alias: Ust-Ulimsk
+Kind: city
+Parent: place:russia
+At: +57.99+102.63/
+
+Name: place:utqiagvik
+Label: Utqiaġvik
+Alias: Utqiagvik
+Kind: city
+Parent: place:united-states-of-america
+At: +71.29-156.79/
+
+Name: place:vaasa
+Label: Vaasa
+Kind: city
+Parent: place:finland
+At: +63.10+021.60/
+
+Name: place:vadodara
+Label: Vadodara
+Alias: Baroda
+Kind: city
+Parent: place:india
+At: +22.31+073.18/
+
+Name: place:vaduz
+Label: Vaduz
+Kind: city
+Parent: place:liechtenstein
+At: +47.13+009.52/
+
+Name: place:valdez
+Label: Valdez
+Kind: city
+Parent: place:united-states-of-america
+At: +61.14-146.35/
+
+Name: place:valdivia
+Label: Valdivia
+Kind: city
+Parent: place:chile
+At: -39.80-073.25/
+
+Name: place:valencia-es
+Label: Valencia
+Qualifier: Comunidad Valenciana, Spain
+Kind: city
+Parent: place:spain
+At: +39.49-000.40/
+
+Name: place:valencia-ve
+Label: Valencia
+Qualifier: Carabobo, Venezuela
+Kind: city
+Parent: place:venezuela
+At: +10.23-067.98/
+
+Name: place:valletta
+Label: Valletta
+Kind: city
+Parent: place:malta
+At: +35.90+014.51/
+
+Name: place:valparaiso
+Label: Valparaíso
+Alias: Valparaiso
+Kind: city
+Parent: place:chile
+At: -33.05-071.62/
+
+Name: place:vancouver-ca
+Label: Vancouver
+Qualifier: British Columbia, Canada
+Kind: city
+Parent: place:canada
+At: +49.28-123.12/
+
+Name: place:vancouver-us
+Label: Vancouver
+Qualifier: Washington, United States of America
+Kind: city
+Parent: place:united-states-of-america
+At: +45.63-122.64/
+
+Name: place:varanasi
+Label: Varanasi
+Alias: Benares
+Kind: city
+Parent: place:india
+At: +25.33+083.00/
+
+Name: place:vatican-city-va
+Label: Vatican City
+Qualifier: Lazio, Vatican City
+Kind: city
+Parent: place:vatican-city
+At: +41.90+012.45/
+
+Name: place:venice
+Label: Venice
+Kind: city
+Parent: place:italy
+At: +45.44+012.33/
+
+Name: place:veracruz
+Label: Veracruz
+Kind: city
+Parent: place:mexico
+At: +19.18-096.16/
+
+Name: place:victoria-ca
+Label: Victoria
+Qualifier: British Columbia, Canada
+Kind: city
+Parent: place:canada
+At: +48.43-123.35/
+
+Name: place:victoria-sc
+Label: Victoria
+Qualifier: Seychelles
+Kind: city
+Parent: place:seychelles
+At: -04.62+055.45/
+
+Name: place:vienna
+Label: Vienna
+Kind: city
+Parent: place:austria
+At: +48.20+016.36/
+
+Name: place:vientiane
+Label: Vientiane
+Kind: city
+Parent: place:laos
+At: +17.97+102.60/
+
+Name: place:vigo
+Label: Vigo
+Kind: city
+Parent: place:spain
+At: +42.22-008.73/
+
+Name: place:vijayawada
+Label: Vijayawada
+Alias: Bezwada
+Alias: Bezawada
+Kind: city
+Parent: place:india
+At: +16.52+080.63/
+
+Name: place:vila-velha
+Label: Vila Velha
+Kind: city
+Parent: place:brazil
+At: -20.37-040.32/
+
+Name: place:vilhena
+Label: Vilhena
+Kind: city
+Parent: place:brazil
+At: -12.72-060.12/
+
+Name: place:vilnius
+Label: Vilnius
+Kind: city
+Parent: place:lithuania
+At: +54.68+025.32/
+
+Name: place:vishakhapatnam
+Label: Vishakhapatnam
+Alias: Visakhapatnam
+Kind: city
+Parent: place:india
+At: +17.73+083.30/
+
+Name: place:vitoria-da-conquista
+Label: Vitória da Conquista
+Alias: Vitoria da Conquista
+Kind: city
+Parent: place:brazil
+At: -14.85-040.84/
+
+Name: place:vladivostok
+Label: Vladivostok
+Kind: city
+Parent: place:russia
+At: +43.13+131.91/
+
+Name: place:volgograd
+Label: Volgograd
+Kind: city
+Parent: place:russia
+At: +48.71+044.50/
+
+Name: place:vologda
+Label: Vologda
+Kind: city
+Parent: place:russia
+At: +59.21+039.92/
+
+Name: place:vorkuta
+Label: Vorkuta
+Kind: city
+Parent: place:russia
+At: +67.50+064.01/
+
+Name: place:voronezh
+Label: Voronezh
+Kind: city
+Parent: place:russia
+At: +51.73+039.27/
+
+Name: place:vostok
+Label: Vostok Station
+Alias: Vostok
+Kind: city
+Parent: place:antarctica
+At: -78.47+106.80/
+
+Name: place:walvis-bay
+Label: Walvis Bay
+Kind: city
+Parent: place:namibia
+At: -22.96+014.51/
+
+Name: place:wangaratta
+Label: Wangaratta
+Kind: city
+Parent: place:australia
+At: -36.36+146.30/
+
+Name: place:warri
+Label: Warri
+Kind: city
+Parent: place:nigeria
+At: +05.52+005.76/
+
+Name: place:warsaw
+Label: Warsaw
+Kind: city
+Parent: place:poland
+At: +52.25+021.00/
+
+Name: place:wasa-station
+Label: Wasa Station
+Kind: city
+Parent: place:antarctica
+At: -73.05-013.42/
+
+Name: place:washington-d-c
+Label: Washington,  D.C.
+Alias: Washington, D.C.
+Alias: Washington D.C.
+Kind: city
+Parent: place:united-states-of-america
+At: +38.90-077.01/
+
+Name: place:wau
+Label: Wau
+Kind: city
+At: +07.70+027.99/
+
+Name: place:welkom
+Label: Welkom
+Kind: city
+Parent: place:south-africa
+At: -27.97+026.73/
+
+Name: place:wellington
+Label: Wellington
+Kind: city
+Parent: place:new-zealand
+At: -41.30+174.78/
+
+Name: place:wenzhou
+Label: Wenzhou
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +28.02+120.65/
+
+Name: place:whitehorse
+Label: Whitehorse
+Kind: city
+Parent: place:canada
+At: +60.72-135.05/
+
+Name: place:whyalla
+Label: Whyalla
+Kind: city
+Parent: place:australia
+At: -33.03+137.56/
+
+Name: place:willemstad
+Label: Willemstad
+Kind: city
+Parent: place:curacao
+At: +12.20-069.02/
+
+Name: place:wilmington
+Label: Wilmington
+Kind: city
+Parent: place:united-states-of-america
+At: +34.23-077.95/
+
+Name: place:windhoek
+Label: Windhoek
+Kind: city
+Parent: place:namibia
+At: -22.57+017.08/
+
+Name: place:windorah
+Label: Windorah
+Kind: city
+Parent: place:australia
+At: -25.43+142.65/
+
+Name: place:winnipeg
+Label: Winnipeg
+Kind: city
+Parent: place:canada
+At: +49.88-097.17/
+
+Name: place:wonsan
+Label: Wonsan
+Kind: city
+Parent: place:north-korea
+At: +39.16+127.43/
+
+Name: place:worcester
+Label: Worcester
+Kind: city
+Parent: place:south-africa
+At: -33.64+019.44/
+
+Name: place:wuhan
+Label: Wuhan
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +30.58+114.27/
+
+Name: place:wuwei
+Label: Wuwei
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +37.93+102.64/
+
+Name: place:wuxi
+Label: Wuxi
+Alias: Wuxi, Jiangsu
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +31.58+120.30/
+
+Name: place:wuzhou
+Label: Wuzhou
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +23.48+111.32/
+
+Name: place:xai-xai
+Label: Xai-Xai
+Kind: city
+Parent: place:mozambique
+At: -25.04+033.64/
+
+Name: place:xiamen
+Label: Xiamen
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +24.45+118.08/
+
+Name: place:xian
+Label: Xian
+Alias: Xi'an, Shaanxi
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +34.28+108.89/
+
+Name: place:xichang
+Label: Xichang
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +27.88+102.30/
+
+Name: place:xigaze
+Label: Xigaze
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +29.25+088.88/
+
+Name: place:xining
+Label: Xining
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +36.62+101.77/
+
+Name: place:xuzhou
+Label: Xuzhou
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +34.28+117.18/
+
+Name: place:yakutsk
+Label: Yakutsk
+Kind: city
+Parent: place:russia
+At: +62.03+129.74/
+
+Name: place:yamoussoukro
+Label: Yamoussoukro
+Kind: city
+Parent: place:ivory-coast
+At: +06.82-005.28/
+
+Name: place:yantai
+Label: Yantai
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +37.53+121.40/
+
+Name: place:yaounde
+Label: Yaoundé
+Alias: Yaounde
+Kind: city
+Parent: place:cameroon
+At: +03.87+011.51/
+
+Name: place:yaroslavl
+Label: Yaroslavl
+Kind: city
+Parent: place:russia
+At: +57.62+039.87/
+
+Name: place:yazd
+Label: Yazd
+Kind: city
+Parent: place:iran
+At: +31.92+054.37/
+
+Name: place:yekaterinburg
+Label: Yekaterinburg
+Alias: Sverdlovsk
+Kind: city
+Parent: place:russia
+At: +56.85+060.60/
+
+Name: place:yellowknife
+Label: Yellowknife
+Kind: city
+Parent: place:canada
+At: +62.44-114.40/
+
+Name: place:yerevan
+Label: Yerevan
+Kind: city
+Parent: place:armenia
+At: +40.18+044.51/
+
+Name: place:yinchuan
+Label: Yinchuan
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +38.47+106.27/
+
+Name: place:yining
+Label: Yining
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +43.90+081.35/
+
+Name: place:yueyang
+Label: Yueyang
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +29.38+113.10/
+
+Name: place:yulin-cn-guangxi
+Label: Yulin
+Alias: Yulin, Guangxi
+Qualifier: Guangxi, People's Republic of China
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +22.63+110.15/
+
+Name: place:yulin-cn-shaanxi
+Label: Yulin
+Qualifier: Shaanxi, People's Republic of China
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +38.28+109.73/
+
+Name: place:yuzhno-sakhalinsk
+Label: Yuzhno Sakhalinsk
+Alias: Yuzhno-Sakhalinsk
+Kind: city
+Parent: place:russia
+At: +46.96+142.74/
+
+Name: place:zagreb
+Label: Zagreb
+Kind: city
+Parent: place:croatia
+At: +45.80+016.00/
+
+Name: place:zamboanga
+Label: Zamboanga
+Kind: city
+Parent: place:philippines
+At: +06.92+122.08/
+
+Name: place:zanzibar
+Label: Zanzibar
+Kind: city
+Parent: place:tanzania
+At: -06.16+039.20/
+
+Name: place:zaozhuang
+Label: Zaozhuang
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +34.88+117.57/
+
+Name: place:zhangye
+Label: Zhangye
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +38.93+100.45/
+
+Name: place:zhanjiang
+Label: Zhanjiang
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +21.20+110.38/
+
+Name: place:zhengzhou
+Label: Zhengzhou
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +34.76+113.66/
+
+Name: place:zhigansk
+Label: Zhigansk
+Kind: city
+Parent: place:russia
+At: +66.77+123.37/
+
+Name: place:zhongshan-station
+Label: Zhongshan Station
+Alias: Formerly Sun Yat-Sen Station
+Kind: city
+Parent: place:antarctica
+At: -69.43+076.34/
+
+Name: place:zhytomyr
+Label: Zhytomyr
+Alias: Zhytomyra
+Kind: city
+Parent: place:ukraine
+At: +50.25+028.66/
+
+Name: place:zibo
+Label: Zibo
+Kind: city
+Parent: place:people-s-republic-of-china
+At: +36.80+118.05/
+
+Name: place:zinder
+Label: Zinder
+Kind: city
+Parent: place:niger
+At: +13.80+008.98/
+
+Name: place:zucchelli-station
+Label: Zucchelli Station
+Alias: Formerly Terra Nova Bay
+Kind: city
+Parent: place:antarctica
+At: -74.62+164.22/
+
+Name: place:zurich
+Label: Zürich
+Alias: Zurich
+Kind: city
+Parent: place:switzerland
+At: +47.38+008.55/
+
+Name: place:zuwarah
+Label: Zuwara
+Alias: Zuwarah
+Kind: city
+Parent: place:libya
+At: +32.93+012.08/

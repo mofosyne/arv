@@ -68,9 +68,13 @@ keep() {   # keep FILE DEST: the normalised copy, at DEST under OUT
     mkdir -p "$(dirname "$out/$2")"
     norm "$1" > "$out/$2"
 }
-keep_tree() {   # keep_tree DIR DEST: every text file under DIR but tools/, tag manifests and extents
-    (cd "$1" && find . -type f -not -path './tools/*' -not -name 'tagmanifest-*' -not -name extents.tsv | sort) |
+keep_tree() {   # keep_tree DIR DEST: every text file under DIR but tools/, tag manifests and extents; the gazetteer counted
+    (cd "$1" && find . -type f -not -path './tools/*' -not -name 'tagmanifest-*' -not -name extents.tsv -not -name places.rec | sort) |
     while IFS= read -r f; do keep "$1/$f" "$2/${f#./}"; done
+    (cd "$1" && find . -type f -name places.rec -not -path './tools/*' | sort) | while IFS= read -r f; do
+        mkdir -p "$(dirname "$out/$2/${f#./}")"
+        echo "$(grep -c '^Name: ' "$1/$f") places" > "$out/$2/${f#./}.count"
+    done
     if [ -d "$1/tools" ]; then
         mkdir -p "$out/$2"
         (cd "$1/tools" && find . -maxdepth 2 | sort) > "$out/$2/tools.list"

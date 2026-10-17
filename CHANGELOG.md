@@ -21,6 +21,72 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**In the GUI: the questions, the names, the places**
+- "Ask me (no model)" in the describe panels asks `--ask`'s questions in the page: the likely answers
+  ticked, with why, a box to type others. `arv describe --answers FILE|-` is how: the answers so far
+  in, the next question out as JSON, or the draft when none is left; what is learned (names,
+  examples, rules) is kept only with the last answer.
+- A Names view (Record): the known names made here, with rename, another form, merge, split (tick
+  the uses that are the other one) and retire. `arv tags names [--json]` lists them;
+  `arv tags show KEY --json` gives each use, in the order split asks about them.
+- The Map view's form takes a place's box and reach.
+
+**Places: a gazetteer, the photos' GPS, and a map**
+- `config/places.rec`, copied into the home on first use: Natural Earth's 242 countries and 1,251
+  populated places (public domain; `dev-tools/places.py` makes it), as known names of `place`, each
+  with `Kind`, `Parent` (the place it is in), `Country` and `At` (ISO 6709). Discs carry it with the
+  other vocabularies; a public disc leaves out the private places.
+- `arv tags add place:KEY --parent PLACE --at LAT,LON --extent 'LAT,LON LAT,LON' --reach 2km --kind
+  site`: a place of your own, its point, the box it covers (a park, a farm) and how near a photo must
+  be to be there. One with a position or a box is private unless `--public`; they stay in the
+  gazetteer, never in the record.
+- `arv describe --ask` offers the gazetteer's places found in a folder's names (marked) or text
+  (unmarked), saying which ("Lima, Peru"), and the place its photos' GPS is in (`exiftool`): a place
+  of your own whose box holds it or within its reach (3 km unless it says), else a city within 40 km
+  in the same country, else the country itself, by its outline (Natural Earth's 1:110m countries,
+  built into arv-assist), so a photo across a border from a city is not put in it, and an enclave
+  (Lesotho) is itself. A place you type becomes an entry, in the known place named with it or the
+  place the GPS gives. Descriptions use labels.
+- `arv map [--json | --geojson | --svg]`: the places the tags name, where each is (its own position
+  or a broader place's), on how many paths and discs. Each disc's `index.html` shows its places on
+  a map drawn from Natural Earth's land, with nothing to load; the GUI has a Map view.
+- `describe --ask`: an answer can mix numbers and typed values (`1, fushimi-inari`).
+
+**Known names: what --ask learns, kept as entries (authority control)**
+- A namespaced tag can be an entry of the vocabulary: its key (made once), `Label`, `Alias`,
+  `Qualifier` (two of one name), `Related`, `Same` (wikidata, viaf, isni), `Basis`, `Private`,
+  `Retired`. `arv describe --ask` makes one when you confirm a person, family, organisation,
+  software or work, offers known ones it finds in a folder's names and text, and takes one without
+  asking when it is unambiguous, used before and its context agrees.
+- `arv tags show|add|label|alias|merge|split|retire KEY`: each change an event about `name:KEY`;
+  merge and split move the uses with ordinary tag changes (split asks about each). `arv tags` shows
+  labels and qualifiers.
+- People's and families' entries are private by default: left out of a public disc's vocabulary.
+- The default vocabulary gains the namespaces `family`, `organisation`, `software` and `work`.
+
+**Describing without a model: arv describe --ask**
+- `arv describe FOLDER|DISC-ID|OBJECT --ask` asks a few questions instead of a model: the topics
+  your vocabulary has, the event, places, people, what made it and when. Each offers the answers
+  the files point to, marked: dates from their names or EXIF (`exiftool`, when it is there), a
+  camera's model, the vocabulary's tags and aliases in the folders' names, values used before in
+  the archive. Enter takes the marked one; a number picks; anything else is the answer. At most 20
+  questions; it can go through the first-level folders too. The title and description are made
+  from the answers, to accept or edit, and kept as the person's (`Authorship: human`).
+- `--clues` takes the clues alone, as a draft (`automatic`); the GUI's describe panels have "Fill
+  from the files (no model)".
+- **It learns, by counting:** a word of a folder's names that went with a tag before marks that tag
+  ("'kicad' in 9 of 10 folders tagged electronics"), and rare words are offered first, common ones
+  left out (`cache/words.tsv`, from the record). Text files and PDFs are read too (`pdftotext`,
+  `pdfinfo` when installed), their most telling words counted and a PDF's title put in the
+  description; what `--ask` is told is kept (`config/word-examples.tsv`). A word that keeps going
+  with a tag is offered as a rule, a `Match` in `tags.rec`.
+- In text, the language's commonest words are left out (a built-in list of 1,500 English words, then
+  the words most of the archive's described texts share), your vocabulary's words are kept, pairs
+  that go together count as phrases ("self assessment"), and words written as names are ("Anne
+  Smith") are offered as people and places.
+- A draft applied to a data object now sets its own tags too (as `arv retag` would, a one-valued
+  namespace's new value replacing the old).
+
 **Packed objects: a plan can keep an object as one file**
 - `arv plan pack NAME PATH tar+zstd` keeps that object on its disc as one file
   (`data/PATH.tar.zst`); `--disc N PACKING` packs each object of a disc, and `--together` puts a

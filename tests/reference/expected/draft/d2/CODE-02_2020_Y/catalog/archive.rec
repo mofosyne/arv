@@ -163,7 +163,7 @@ Date: 2026-01-01
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
 + Disc names the disc; a change to a location or a data object names it in Object
-+ (location:CODE, object:UUID) instead.
++ (location:CODE, object:UUID; name:KEY for an entry of the known names, kept at home) instead.
 + Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion

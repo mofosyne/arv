@@ -1919,3 +1919,321 @@ with the files' times and modes, and restores a damaged pack (or one whose compr
 as it is, saying so. `plan show --packed` makes each pack in a temporary folder and measures it,
 and the disc's fill uses the sizes: no estimate, since what is compressed already does not shrink
 and only the compressor knows by how much the rest does.
+
+## Decision (2026-10-16): describing without a model, by questions; thumbnails later
+
+The owner wanted a way to describe that needs no AI. Twenty questions works because each answer
+splits a set of known possibilities; arv has that set, its own vocabulary: the tags and aliases
+in `tags.rec`, the namespaces (event, place, person, project, source, date) and the values the
+archive has used. So `arv describe --ask` (arv-assist, `ask.c`) asks over the vocabulary, not in
+the open:
+
+- **Clues first, with no question:** the kinds of files (by extension), dates in their names
+  (`IMG_20190712`, `2019-07 Kyoto`) or EXIF (`exiftool`, sampled, when installed; principle 7),
+  a camera's model, names made by a camera or phone, the words of the folders' names. A word that
+  is a tag or an alias marks that tag; a Match pattern that claims a tenth of the files marks its
+  tag; a value used before whose words are in the names marks it.
+- **Then a question for each thing still unknown,** in an order that narrows (topics, then event or
+  project, places, people, what made it, when), with the likely answers marked: Enter takes them,
+  a number picks, anything else is typed. A place's words are not offered again as a person. A
+  typed date must be EDTF. At most 20 questions; '.' stops and keeps the clues for the rest. The
+  first-level folders can be gone through too, asking only what may differ (places, people, a
+  date outside the whole's).
+- **Free text is made, not asked:** the title and description come from the answers by template
+  ("Kyoto trip, 11 to 13 July 2019"; "6 photos, from a Pixel 7, in Kyoto, with Ann, of the Kyoto
+  trip, ..."), to accept or edit.
+- **Authorship:** `--ask` is the person's (`human`); `--clues`, the clues alone, is `automatic`.
+  Both write the same draft as the model's path, so applying, events and the GUI are shared.
+
+It lives in arv-assist, next to `--answer` and `--apply` (also model-free), because it shares the
+draft and applying code; arv-assist is always built and installed.
+
+**Later, in this order:** learned rules (an answer that the clues did not foresee becomes an
+Alias or a Match in the vocabulary, so the question is not asked next time); the questions in the
+GUI (a JSON question protocol, buttons for the choices; for now the GUI has "Fill from the files");
+a small model only to rank each question's choices, never to write: text through arv-assist's
+embeddings (`llama-embedding`, bge-small, about 37 MB), images through llama.cpp's `llama-server`
+with a small vision model whose answer is held to the choices by a JSON schema. The smallest
+vision models llama.cpp runs are a few hundred MB, not under 100; a CLIP-style encoder would be
+smaller but needs a second runtime, and a model is on the computer, never on a disc.
+
+**Thumbnails on discs (designed, not built).** Each disc could carry thumbnails of its own photos,
+videos (a frame) and documents (a first page), so a found disc, the home and the GUI show what a
+disc holds without reading it, and the questions above can show them. About 256 px JPEG, 6 to 10
+KB each: 10,000 photos is about 80 MB of a 25 GB disc. Named by the content's SHA-256 (one per
+picture, whatever its names), plain files under `catalog/thumbs/` with an index TSV, so
+`index.html` and any file browser show them with no reader. Made by tools built for it
+(`vipsthumbnail`, ImageMagick, `ffmpeg`, `pdftoppm`) when present; none otherwise. A disc carries
+its own thumbnails, not every other disc's (100,000 photos would put about a gigabyte on every
+disc): those stay at home. They follow the disc's access level, since a thumbnail shows content.
+
+## Done (2026-10-16): words and tags, counted; text and PDFs; rules offered
+
+Learned rules from the entry above, done by counting, so that each answer makes the next folder's
+questions shorter. No model: every suggestion says the counts behind it.
+
+- **Rarity:** every folder of every disc's listing, its name and its files' names, gives how many
+  folders each word is in. "img", "final" and "2019" are everywhere and say nothing; "kicad" and
+  "fushimi" are rare and say a lot. `--ask` offers the rare words first, and leaves out a word in
+  more than a fifth of the archive's folders.
+- **Words with tags:** every tagged path (the discs' tags now, and objects' own tags where their
+  disc has none for their path) counts its names' words, and each two in a row ("birthday party"),
+  against its tags. A word seen in 3 tagged paths or more, 80% of them with a tag, marks that tag:
+  "'kicad' in 9 of 10 folders tagged electronics". Kept in `cache/words.tsv`, rebuilt when the
+  catalogue changes (its size and time), never on a disc.
+- **Text and PDFs:** a folder's text files (the first 64 KB) and PDFs (`pdftotext`, the first three
+  pages, when installed) are sampled, 20 a folder, and their 30 most telling words kept: frequent
+  there, in two files or more, rare in the archive's names, with a short list of common English words
+  left out (rarity alone cannot judge a short text). The text is never kept, only those words. A
+  PDF's own Title (`pdfinfo`) goes into the description. Text words weigh half a name's: a word in a
+  folder's name was chosen, one in a letter is incidental.
+- **What was told:** each `--ask` answer is kept in `config/word-examples.tsv` (home only, not
+  rebuildable: the text's words are in no record), with the words of the names and of the text, and
+  counted with the rest.
+- **Rules:** a word that has been with a tag in 3 or more of the folders it was in, 90% of them,
+  counting this answer, is offered as a rule: `Match: *kicad*` under the tag in `tags.rec`, inserted
+  after its Name line so the file keeps its comments (a new Tag record, before the Namespace records,
+  when there is none). Then the vocabulary has it, on discs too, and anyone can read and edit it.
+
+Limits: it starts empty and learns habits, mistakes too, so it only marks answers and never tags
+alone (`--clues` takes what is marked, as `automatic`). Names written without spaces (京都旅行) are
+one word to it; short runs of characters would split them, later. Office files and scanned PDFs
+are not read yet (`pandoc`, `tesseract`). Contents are not searched: `arv find` stays on names,
+tags and descriptions, and full-text search is for tools built for it (Recoll, ripgrep).
+
+**Later: a model as a reader, not a writer.** With this in place a model's work can shrink to what
+counting cannot do, reading: pulling the markers out of a letter or a photo (a place, a person, an
+organisation, a date), which the counts and the vocabulary then turn into questions, and the person
+confirms. A model that extracts names is a smaller job, easier to check, than one that writes
+descriptions. Places come next, as their own vocabulary (`places.rec`, Natural Earth's populated
+places, public domain, with the nearest place to a photo's EXIF GPS as a clue); its format goes here
+when it is built.
+
+**Common words, phrases and names in text** (the same day). Rarity is counted over names, which
+hardly ever hold "hello", "name" or "address", so those came through from forms and letters; and a
+dictionary is the wrong test, since "invoice", "wedding" and "tax" are dictionary words and among the
+best clues. What says nothing is the language's commonest words, so:
+
+- **A list to start from:** `src/arv-assist/data/common-words.txt`, the 1,500 most frequent English
+  words of three letters or more over 24 public-domain books (Project Gutenberg), each in half of
+  them at least so no character's name gets in, and a short list of today's letter, form and email
+  words the books lack. Made by `dev-tools/common-words.sh`; built into arv-assist at each build
+  (`dev-tools/embed.c`), never as generated code in the repository. A word of the vocabulary (a tag
+  or an alias) is never common: "family" stays a clue though the list has it.
+- **Then the archive's own texts:** once ten described folders have kept their text's words, a word
+  in more than half of them is common too, in any language, which a fixed list cannot be.
+- **Phrases:** two words in a row, nothing but a space or a hyphen between them, count as a phrase
+  when the pair is seen twice or more and mostly where its rarer word is ("self assessment", "anne
+  smith"); a common word may be half of a phrase ("self") though never a clue alone. A phrase
+  replaces its words in the folder's 30 when they are mostly in it. Three words in a row add little
+  for the cost, and are not counted.
+- **Names:** a word written with a capital where no sentence starts (not after `.`, `!`, `?`, `:` or
+  a line break), not common, seen twice, mostly so written, is likely a name; a pair of them is one
+  name ("Anne Smith"). `--ask` offers them in the place and person questions ("a name in the text"),
+  never marked. A crude finder of names, with no model, for the markers a model would read better.
+
+## Design (2026-10-16): known names, as authority control
+
+What `--ask` finds by counting (a word written as a name, a rare word that keeps going with a tag)
+is a suggestion. Once a person confirms it, it should be known: recognised the next time by plain
+matching, with no model and no question when nothing is ambiguous. Libraries and archives have done
+this for over a century as **authority control** (Wikipedia, "Authority control"): one agreed form
+for each person, organisation, place, work and subject, with its variants, kept in authority files
+(the Library of Congress's, the national files joined by VIAF; for archives ISAAR(CPF), encoded as
+EAC-CPF; for places the Getty TGN and GeoNames), and persistent identifiers (VIAF, ISNI, GND,
+Wikidata). It is done by cataloguers, increasingly with a machine suggesting: ePADD finds names in
+email archives for the archivist to confirm, OpenRefine reconciles lists against Wikidata. arv's
+version is the same loop at one person's scale: counting suggests, a person (or a model, as a
+suggestion) confirms, the confirmed entry is matched after; the authority list grows as a side
+effect of describing, not as a task of its own.
+
+### An entry
+
+Known names are entries of the tag vocabulary (namespaced `Tag` records in `config/tags.rec`), and
+places of the gazetteer (`config/places.rec`, below). The fields follow SKOS, which arv's set
+vocabulary already uses (`Parent` for broader):
+
+```
+Name: person:anne-smith          the key: made once, never made again from the label
+Label: Anne Smith                the preferred form now (SKOS prefLabel)
+Alias: Anne                      other forms it is found as: "see" references (altLabel), repeatable
+Alias: A. Smith
+Qualifier: b. 1931               what tells two of one name apart (dates, "grandmother", a place)
+Related: organisation:acme       "see also" (related), repeatable
+Same: wikidata:Q...              the same entity elsewhere (exactMatch): wikidata, viaf, isni, geonames
+Basis: confirmed by a person in arv describe of 2019-07 Kyoto trip, 2026-10-16
+Private: yes                     stays home: never on a disc whose access is wider (see Places)
+```
+
+- **The key is an identifier, the label is a name.** Authority files keep the two apart because
+  names change (marriage, a pen name, a renamed city or company). A key is made once from the
+  first label and kept; a later name becomes the `Label` and the earlier one an `Alias`, and every
+  tag already naming the key stays right.
+- **The basis** is the authority record's statement of justification: where and when the name was
+  confirmed, by whom (a person, or a model's suggestion accepted), in what form.
+
+### What a name can be: the namespaces
+
+A name is not always a person or a place: "KiCad" is software, "Weather station" a project of your
+own, "Acme" a company. Libraries control persons, families, corporate bodies, works and places; the
+default vocabulary's namespaces become, with four added. Software has its own, not `work`: it is
+what a personal archive holds most of among things others made, and what one looks for by name
+(and a layout's `software/kicad/` reads better than `work/kicad/`); `work` holds the rest until one
+kind is common enough to earn its own:
+
+| Namespace | What | Values |
+|---|---|---|
+| `person` | someone in it, or who made it | many |
+| `family` | a family as a whole (its papers, its house) | many |
+| `organisation` | a company, school, club, authority (HMRC) | many |
+| `place` | where (the gazetteer) | many |
+| `event` | an occasion | one |
+| `project` | a piece of your own work | one |
+| `software` | a program it is made with or about: KiCad, Blender, a game | many |
+| `work` | anything else made by others that it is about: a book, a film, an album | many |
+| `source` | what made the files: a camera, a scanner, an account | many |
+
+One form may be several entries ("Jordan" a country and a person; "KiCad" the software, and a word
+that goes with the topic electronics): a form names an entry for certain only when it names one
+alone. A topic and an entry are linked by `Related` ("software:kicad" related to "electronics"), so
+confirming one offers the other.
+
+### When a known name is taken without asking
+
+Recognised by its label or an alias, in the names (a folder named "Anne's 80th") or the text
+(written as a name is, as now). Taken without a question, as `automatic` with its reason ("Anne
+Smith: known, person:anne-smith, in 5 family folders before"), only when the form is one entry's
+alone, it is written as a name where it is found, and its context agrees (the tags its folders had
+before go with this folder's, by the counts of words and tags). Otherwise marked and asked: a form
+of two entries, a context unlike its others, or an entry confirmed only once. A model's proposals
+are entries too, but `suggested` until a person accepts them: a model's mistake must not be
+matched for ever after.
+
+### Changing them later
+
+The record is appended to, never edited; entries change as the archive learns, and each change is
+an event (`Object: name:KEY`, `Type: metadata modification`), so the record says when an entry was
+made, merged, split or renamed, and why, as authority files keep their decisions.
+
+- **Rename** (a new preferred form): `Label` changes, the old one becomes an `Alias`; nothing else.
+- **Merge** (two entries were one person; a misspelling, as authority files gather over time):
+  every use of the second key moves to the first, each an ordinary tag change (an event with
+  `Sets` and `Replaces`), and the second is kept, retired, its key, label and aliases now aliases
+  of the first, so anything typed or found as the old later means the new. Moving the uses, not only
+  aliasing the key, keeps what is read (find, layouts, discs made later) right without every reader
+  having to look through aliases; nothing earlier is rewritten. Likely duplicates (close labels, few
+  uses, the same context) are to be offered for merging.
+- **Split** (two people of one name, found later): a new entry is made with a `Qualifier` to tell
+  them apart, and every place the old key is used (discs' paths, objects) is asked about in turn, in
+  the questions' way ("this Anne Smith: b. 1931, or the colleague?"), with the clues of each place
+  marked; each answer that moves a use is an ordinary tag change, an event with `Sets` and
+  `Replaces`. Uses not yet answered stay with the old entry, which gets its own `Qualifier`. From then
+  on the form names two entries, so it is never taken without asking.
+- **Retire** (a mistake): the entry is kept, marked `Retired: yes` with why, and no longer offered;
+  tags naming it stay readable. Nothing in the vocabulary is deleted, as nothing in the record is.
+
+### Places
+
+The gazetteer is the same kind of entry with a position: `config/places.rec`, `%rec: Place`, with
+`Name`, `Label`, `Alias`, `Qualifier`, `Same`, `Basis`, `Private`, and `At` (ISO 6709, WGS84
+decimal degrees: `+35.0116+135.7681/`), `Kind` (country, region, city, site), `Parent` (broader:
+fushimi-inari, kyoto, japan), `Country` (ISO 3166-1). The default list is Natural Earth's populated
+places and countries (public domain, about 150 KB), copied into the home like the other
+vocabularies and carried on discs with them. A photo's EXIF GPS is a clue for the nearest place
+within reach, never kept in the record itself: the record keeps the place, at the level of a city,
+so no catalogue holds where anyone lives to the metre. Mapping is for map tools (`arv places
+--geojson`) and an offline outline in the GUI and on each disc's `index.html`.
+
+### Private entries
+
+People's names are personal data, and the vocabulary goes on discs. An entry with `Private: yes`
+(the default for `person` and `family`, and for a place you add with exact coordinates) stays in the
+home's vocabulary and goes on a disc only when the disc's access is `private` or narrower; a tag
+naming it still goes on the disc, as the key alone (`person:anne-smith`), so a disc says no more
+than its own tags do.
+
+### Order of building
+
+1. The fields, read and written: `Label`, `Qualifier`, `Related`, `Same`, `Basis`, `Private`,
+   `Retired`, and the four new namespaces (`family`, `organisation`, `software`, `work`); `--ask` confirming a name makes or extends an entry, with
+   the questions for one form of two entries.
+2. Taking a known name without asking, by the rule above.
+3. Changing them: `arv names` to list, rename, merge, split and retire, each an event.
+4. Places: the gazetteer, EXIF GPS, the GeoJSON export and the map (done, below).
+5. Later: export of people and organisations as EAC-CPF; a model proposing entries in bulk.
+
+**Done (2026-10-16): steps 1 to 3.** `src/arv/known.c` reads and edits the entries in
+`config/tags.rec` (a field set or added after the record's lines, a new record before the Namespace
+records, the file's comments kept) and records each change as an event about `name:KEY` (at home:
+snapshots carry the events of the objects and places on them only). `arv tags show|add|label|alias|
+merge|split|retire KEY` make the changes; split asks about each use in turn (a disc's path, or a
+data object at its own path, as `describe --apply` treats it). `arv describe --ask` makes an entry
+when a person confirms a `person`, `family`, `organisation`, `software` or `work` value
+(`Private: yes` for people and families), and offers known entries found among a folder's clues
+(its names, its text's names and words) by their key's value, label or aliases: marked when the
+form is one entry's alone; taken without a question when, besides, the entry was used twice or
+more, it is in the names or written as a name, a word of the folder went with it twice before,
+and nothing else as strong is offered; never when two entries share the form. A name that is also
+a common word (Rose, Grace) counts as a name when it is mostly written with a capital. `arv tags`
+shows each entry's label, qualifier and whether it is private or retired; a public disc's
+vocabulary leaves the private entries out. The four namespaces are in the default vocabulary.
+Not yet: places (step 4), likely duplicates offered for merging, EAC-CPF export.
+
+**Done (2026-10-16): step 4, places.** The gazetteer is `config/places.rec` (`%rec: Place`), its
+own file beside `tags.rec` so the vocabulary stays readable: Natural Earth's 242 countries and its
+1,251 populated places of the 1:50m scale (about 150 KB; the 1:10m list's 7,000 would be a
+megabyte on every disc for villages a person adds better themselves), written by
+`dev-tools/places.py`, compiled into arv and copied into a home on first use like the other
+vocabularies. Keys come from the English name in ASCII; a name two places share takes the country's
+ISO code, then the region (`place:portland-us`, `place:victoria-ca`) and a `Qualifier`, so the form
+names two entries and is asked about, never taken. A city's `Parent` is its country; positions are
+to two decimals. `known.c` reads both files as one list and writes a place to the gazetteer (unless
+`tags.rec` has it); `arv tags add place:KEY` takes `--parent`, `--at` (ISO 6709, or `lat,lon`),
+`--kind` and `--country`, and a place given a position is private unless `--public` (it may be a
+house). The position is written to the gazetteer, never as an event: the record keeps places, not
+coordinates.
+
+`describe --ask` reads the photos' GPS with `exiftool -n` and takes the median, so one photo from
+elsewhere does not move it; the nearest place within reach is offered, marked: a place of your own
+within 3 km (it is a site), a city within 40 km (the 1:50m list is sparse), else, within 400 km of a
+city, its country. The gazetteer's places found in a folder's names are offered marked, those its
+text mentions unmarked (a letter naming Lima is not from Lima), each saying where it is ("Lima,
+Peru"). A city that is also a word was first left out by the common-words list, but that list holds
+London and Paris (they are common in books), so the person sees where instead. A place typed in
+answer becomes an entry, in a known place named with it or the city nearest the GPS.
+
+`arv map` lists the places the tags name with their positions (own, or the nearest broader
+place's), uses and discs; `--json`, `--geojson` (for QGIS, uMap, geojson.io: Principle 7) and
+`--svg`. The picture is an equirectangular outline of Natural Earth's 1:110m land as one path (23
+KB, `data/world.txt`), framed to the places shown, dots sized by use; each disc's `index.html` has it
+inline when its tags name places (a public disc shows a private place's tag only), and the GUI has a
+Map view.
+
+**GPS by outlines and boxes (2026-10-17).** The nearest point within a radius put a photo taken in
+Kehl in Strasbourg (the nearest city, across the Rhine) and one far from any city of the sparse
+1:50m list in the wrong country, or none. Now: a place of your own may have an `Extent` (a box: two
+ISO 6709 corners) and a `Reach` (`2km`); a photo inside the box, or within reach (3 km unless it
+says), is there, the smallest box first. Then a city within 40 km, but only of the country the
+point is in; then that country. Which country is a point-in-polygon test (a ray's crossings) over
+Natural Earth's 1:110m outlines, 96 KB built into arv-assist (`data/countries.txt`, from
+`dev-tools/places.py`; arv does not need it), the smallest ring holding the point winning, so
+Lesotho is not South Africa.
+
+**The questions in the GUI (2026-10-17).** `--ask` reads a terminal; the GUI's server only runs
+commands and returns what they print. So the questions became replayable: `describe --answers`
+takes the answers given so far, runs the same questions with them (the flow is the same each time,
+given the files and the answers), and stops at the first one without an answer, returning it as
+JSON (its options, which are marked, why). A run is dry until no question is left: nothing learned is
+kept (examples, rules, known names), and then it runs once more with every answer to keep them, so a
+person who leaves halfway leaves nothing behind, and nothing is kept twice. Reading the clues again
+each round costs a second or so; keeping a session in the server was the alternative, and the
+server knows no features (2026-10-15). Names got a view of their own, split as a list of uses to
+tick rather than one question each. A country too small for 1:110m (Singapore, Malta) has no outline: its
+cities are trusted whatever outline holds them. Off every outline (a coast drawn coarsely, a small
+island), the old rule stays: the country of a city within 400 km, said as "perhaps". A size-scaled
+reach for cities (Tokyo is not a town) was left: population is a poor guess at extent, and real city
+boundaries are megabytes. Positions given by a person keep four decimals (about 11 m); the
+gazetteer's cities stay at two. Not yet: `arv find place:japan` finding what is tagged with places inside Japan; regions
+(admin-1) as places; a larger list (GeoNames) as an optional download; offering likely duplicates
+for merging; EAC-CPF export.
+

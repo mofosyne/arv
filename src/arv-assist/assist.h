@@ -114,7 +114,33 @@ int assist_llm_status(int argc, char **argv);
 int assist_tag(int argc, char **argv);
 
 /* shared by describe and tag */
-char *ask(const char *prompt);                          /* a line from the terminal; "" at the end */
+const char *kind_of(const char *ext);           /* tag.c: ".jpg" -> "photos" ("files": none of the kinds) */
+int generic_name(const char *base);              /* tag.c: a camera's or phone's name: DSC_4001.JPG */
+char *ask(const char *prompt);
+/* words.c: which words are rare in the archive's names, and which go with which tags (counted) */
+#define WORD_MIN 3              /* a word says a tag once seen in this many tagged paths ... */
+#define WORD_SHARE 80           /* ... and with the tag in this many percent of them */
+typedef struct word_stats word_stats;
+word_stats *word_stats_load(const arv_home *h, const archive *cat);   /* cache/words.tsv, and the answers kept */
+void word_stats_free(word_stats *ws);
+void name_word_list(const char *name, strlist *out);  /* a name's words, and each two in a row */
+double word_rarity(const word_stats *ws, const char *w);
+int word_common(const word_stats *ws, const char *w);
+int word_plain(const char *w);                         /* one of the language's commonest words */  /* in a fifth of the archive's folders or more */
+void word_tags(const word_stats *ws, const strlist *names, const strlist *text, strlist *tags, strlist *why);
+void word_counts(const word_stats *ws, const char *w, const char *tag, size_t *with, size_t *all);
+size_t word_tag_uses(const word_stats *ws, const char *tag);   /* tagged paths (and answers) with it */
+void text_clues(const word_stats *ws, const char *root, const items *l, strlist *out, strlist *titles, strlist *names);
+void word_stats_vocab(word_stats *ws, const strlist *names, const strlist *aliases);   /* never common */
+void word_example_add(const arv_home *h, const strlist *tags, const strlist *names, const strlist *text);
+int word_rule_add(const arv_home *h, const char *tag, const char *word);
+
+/* ask.c: a suggestion without a model: the files' clues, and with interactive, the person's answers
+ * to questions over the vocabulary (per_folder: offer to ask about each first-level folder too) */
+void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *name, const char *root, int interactive,
+                 int per_folder, suggestion *out);                          /* a line from the terminal; "" at the end */
+void ask_replay(const strlist *answers, int dry_run);   /* answers given ahead (NULL: the terminal); dry: keep nothing */
+jv *ask_pending(void);                  /* the question the given answers ran out at, or NULL */
 void read_tags_file(const char *path, ftags *out);      /* catalog.read_tag_info */
 void read_tags_now(const archive *cat, const char *disc_id, const char *burned, ftags *out);   /* as burned, and since */
 size_t record_tag_changes(archive *cat, rec_record *ev, const char *disc_id, const ftags *before, const ftags *after);

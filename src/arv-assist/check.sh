@@ -130,7 +130,7 @@ grep -q "^Archive name: Trip" oinv.txt && grep -q "  Description: Pictures from 
 printf '{"title": "Our trip", "description": "Photos, one folder a day.", "notes": ["Kept by Mum"], "subjects": ["x"], "agent": "human:me"}\n' \
     | "$tool" --home home describe Trip --apply - > oapply.out 2> oapply.err || { cat oapply.err; no "describe OBJECT --apply"; }
 uuid=$(sed -n '/^%rec: Object/,$p' home/catalog/archive.rec | grep -m1 '^Uuid: ' | cut -d' ' -f2)
-grep -qx "Trip: updated Title, Description, Note" oapply.out && grep -q "Subjects and folder tags are a disc's" oapply.err \
+grep -qx "Trip: updated Title, Description, Note" oapply.out && grep -q "Subjects, captions and the tags of folders within are a disc's" oapply.err \
     && grep -A3 "^Object: object:$uuid" home/catalog/archive.rec | grep -q "^Type: metadata modification" \
     && grep -q "^Note: updated Title, Description, Note of version 1 (written by a person)" home/catalog/archive.rec \
     && "$arv" --home home objects Trip | grep -qx '    "Our trip": Photos, one folder a day.' \
@@ -316,4 +316,175 @@ if "$tool" --home th tag Stuff --model-file model.gguf > /dev/null 2>&1; then no
 if "$tool" --home th tag Stuff --llama-embedding llama-embedding > /dev/null 2>&1; then no "--llama-embedding accepted"; fi
 if "$tool" --home th models status > /dev/null 2>&1; then no "models command accepted"; fi
 ok "tag accepts only server embeddings or rules-only; models command removed"
+
+# ------------------------------------------------------------------ describing without a model: --clues and --ask
+"$arv" init askh >/dev/null 2>&1
+put "ask/2019-07 Kyoto trip/day1/IMG_20190711_120000.jpg" a
+put "ask/2019-07 Kyoto trip/day1/IMG_20190712_120000.jpg" b
+put "ask/2019-07 Kyoto trip/fushimi/PXL_20190713_130000.jpg" c
+put "ask/2019-07 Kyoto trip/notes.txt" d
+"$tool" --home askh describe "ask/2019-07 Kyoto trip" --clues > clues.json 2> clues.err || { cat clues.err; no "describe --clues"; }
+grep -q '^Clues: 4 files: 3 photos, 1 text document; dates 2019-07 (from names); named by a camera or phone' clues.err \
+    && tr -d '\n ' < clues.json | grep -q '"tags":{".":\["travel","date:2019-07"\]}' \
+    && grep -q '"title": "Kyoto trip, July 2019"' clues.json && grep -q '"authorship": "automatic"' clues.json \
+    && grep -q '"description": "3 photos and 1 text document, July 2019."' clues.json \
+    && ok "describe --clues: no model, no questions: dates from the names, a tag from an alias in them ('trip'), a title made from them" \
+    || { cat clues.err clues.json; no "describe --clues"; }
+# topics, event, place, person (typed), source, date (not EDTF, then EDTF), the folders too (fushimi: place, person), title, description
+printf '\n\nkyoto\nann, bo\nsoon\n2019-07-11/2019-07-13\ny\n\n\nKyoto, July 2019\n\n' \
+    | "$tool" --home askh describe "ask/2019-07 Kyoto trip" --ask --save ask.json > ask.out 2> ask.err || { cat ask.err; no "describe --ask"; }
+tr -d '\n ' < ask.json | grep -q '"tags":{".":\["travel","event:kyoto-trip","place:kyoto","person:ann","person:bo","date:2019-07-11/2019-07-13"\]}' \
+    && grep -q '"title": "Kyoto, July 2019"' ask.json \
+    && grep -q '"description": "3 photos and 1 text document, in Kyoto, with Ann and Bo, of the Kyoto trip, 11 to 13 July 2019."' ask.json \
+    && grep -q '"authorship": "human"' ask.json && grep -q 'soon is not an EDTF date' ask.err \
+    && grep -q "^  \*1 travel  ('trip' is in the names)" ask.err && grep -q '^  \*1 kyoto-trip  (from the name)' ask.err \
+    && ok "describe --ask: the clues' answers marked, a number or a typed answer each; a date must be EDTF; the description made from the answers" \
+    || { cat ask.err ask.json; no "describe --ask"; }
+"$arv" -C askh make -y --no-ecc --no-formats --set TRIP --output-dir askout "ask/2019-07 Kyoto trip" >/dev/null 2>&1 || no "make (ask)"
+id=$("$arv" -C askh list | awk '{ print $1; exit }')
+printf '\n\n\nann\n\n\n\n\n' | "$tool" --home askh describe "$id" --ask --no-folders --save disc.json >/dev/null 2>&1 \
+    && "$tool" --home askh describe "$id" --apply disc.json > askapply.out 2>&1 \
+    && grep -q "updated Title, Description, Subject, tags" askapply.out && "$arv" -C askh find 'person:ann' | grep -q "$id" \
+    && ok "describe --ask on a disc, then --apply: its title, description and tags" || { cat askapply.out; no "describe --ask on a disc"; }
+uuid=$("$arv" -C askh objects --json | tr ',' '\n' | sed -n 's/.*"uuid": "\([^"]*\)".*/\1/p' | head -1)
+printf '\n2\n\n\n\n\n\n' | "$tool" --home askh describe "$uuid" --ask --save obj.json >/dev/null 2>&1 \
+    && "$tool" --home askh describe "$uuid" --apply obj.json > objapply.out 2>&1 && grep -q "tags" objapply.out \
+    && "$arv" -C askh objects --json | grep -q '"tags": "[^"]*event:' \
+    && [ "$("$arv" -C askh objects --json | grep -o 'event:[a-z0-9-]*' | sort -u | wc -l)" -eq 1 ] \
+    && ok "describe --ask on a data object: its own tags too, a one-valued namespace's new value replacing the old" \
+    || { cat objapply.out; "$arv" -C askh objects --json; no "describe --ask on an object"; }
+mkdir -p fakebin && printf '#!/bin/sh\necho %s\n' "'[{\"SourceFile\": \"a\", \"DateTimeOriginal\": \"2021:12:24 18:00:00\", \"Model\": \"Pixel 7\"}, {\"SourceFile\": \"b\", \"CreateDate\": \"2021:12:25 09:00:00\", \"Model\": \"Pixel 7\"}]'" > fakebin/exiftool
+chmod +x fakebin/exiftool
+put ex/a.jpg x
+put ex/b.jpg y
+PATH="$dir/fakebin:$PATH" "$tool" --home askh describe ex --clues > ex.json 2> ex.err || no "describe --clues with EXIF"
+grep -q 'dates 2021-12 (from EXIF); camera Pixel 7 (EXIF)' ex.err && tr -d '\n ' < ex.json | grep -q '"source:pixel-7"' \
+    && grep -q '"description": "2 photos, from a Pixel 7, December 2021."' ex.json \
+    && ok "describe --clues: EXIF dates and camera, through exiftool when it is there" || { cat ex.err ex.json; no "EXIF clues"; }
+# the same questions for a program (the GUI): the answers so far in, the next question out; nothing kept until the last
+"$arv" init qh >/dev/null 2>&1
+put "q/2019-07 Kyoto trip/IMG_20190711_120000.jpg" a
+echo '{"answers": ["", "", "", "zed"]}' | "$tool" --home qh describe "q/2019-07 Kyoto trip" --answers - > q1.json 2>/dev/null
+grep -q '"done": false' q1.json && grep -q '"number": 5' q1.json && grep -q '"kind": "choose"' q1.json \
+    && ! grep -q 'person:zed' qh/config/tags.rec && [ ! -e qh/config/word-examples.tsv ] \
+    && echo '{"answers": ["", "", "", "zed", "", "", ""]}' | "$tool" --home qh describe "q/2019-07 Kyoto trip" --answers - > q2.json 2>/dev/null \
+    && grep -q '"done": true' q2.json && tr -d '\n ' < q2.json | grep -q '"person:zed"' \
+    && grep -q '^Name: person:zed$' qh/config/tags.rec && [ "$(grep -vc '^#' qh/config/word-examples.tsv)" -eq 1 ] \
+    && ok "describe --answers: one question at a time as JSON for the GUI; names, examples and rules kept only with the last answer" \
+    || { cat q1.json q2.json; no "describe --answers"; }
+# places: the GPS of the photos (the nearest place of the gazetteer), a typed place made an entry in it, a city in the names
+mkdir -p gpsbin && printf '#!/bin/sh\necho %s\n' "'[{\"SourceFile\": \"a\", \"DateTimeOriginal\": \"2019:07:13 10:00:00\", \"GPSLatitude\": 34.9671, \"GPSLongitude\": 135.7727}, {\"SourceFile\": \"b\", \"GPSLatitude\": 34.968, \"GPSLongitude\": 135.773}]'" > gpsbin/exiftool
+chmod +x gpsbin/exiftool
+put "shrine visit/a.jpg" x
+put "shrine visit/b.jpg" y
+PATH="$dir/gpsbin:$PATH" "$tool" --home askh describe "shrine visit" --clues > gps.json 2> gps.err || no "describe --clues with GPS"
+grep -q '; GPS in 2 photos, near Kyoto;' gps.err && tr -d '\n ' < gps.json | grep -q '"place:kyoto"' \
+    && ok "describe --clues: the photos' GPS gives the nearest place of the gazetteer (the place kept, never the position)" \
+    || { cat gps.err gps.json; no "GPS clues"; }
+printf '\n\n1, fushimi-inari\n-\n\n\n\n' | PATH="$dir/gpsbin:$PATH" "$tool" --home askh describe "shrine visit" --ask --save gps2.json > /dev/null 2> gps2.err \
+    || { cat gps2.err; no "describe --ask with GPS"; }
+grep -q '^  \*1 kyoto  (the GPS of 2 photos: 7 km from Kyoto)' gps2.err \
+    && grep -q 'Known from now on: place:fushimi-inari (Fushimi Inari), in Kyoto' gps2.err \
+    && grep -q '"description": "2 photos, in Kyoto and Fushimi Inari, ' gps2.json \
+    && "$arv" -C askh tags show place:fushimi-inari | grep -q '^  in: Kyoto, Japan (place:kyoto)' \
+    && "$arv" -C askh tags show place:fushimi-inari | grep -q '^  kind: site' \
+    && ok "describe --ask: a place typed becomes an entry of the gazetteer, in the known place named with it" \
+    || { cat gps2.err gps2.json; no "a new place from --ask"; }
+# where the GPS is: inside a place's box, within its reach, a city of the country it is in (not across a border), a
+# country by its outline (an enclave: the smaller), a country too small to have one (its city trusted)
+printf '#!/bin/sh\necho "[{\\"SourceFile\\": \\"a\\", \\"GPSLatitude\\": $LAT, \\"GPSLongitude\\": $LON}]"\n' > gpsbin/exiftool
+"$arv" -C askh tags add place:fushimi-inari --extent "34.960,135.765 34.975,135.780" >/dev/null \
+    && "$arv" -C askh tags add place:my-farm --parent japan --at 36.5,138.0 --reach 1km >/dev/null || no "tags add --extent, --reach"
+put gpsw/a.jpg x
+where() { LAT=$1 LON=$2 PATH="$dir/gpsbin:$PATH" "$tool" --home askh describe gpsw --clues 2>&1 >/dev/null | grep -o 'GPS in [^;]*'; }
+[ "$(where 34.97 135.77)" = "GPS in 1 photo, in Fushimi Inari" ] && [ "$(where 36.505 138.0)" = "GPS in 1 photo, near My Farm" ] \
+    && [ "$(where 36.52 138.0)" = "GPS in 1 photo, near Nagano" ] && [ "$(where 48.57 7.81)" = "GPS in 1 photo, in Germany" ] \
+    && [ "$(where 48.58 7.75)" = "GPS in 1 photo, near Strasbourg" ] && [ "$(where -29.5 28.2)" = "GPS in 1 photo, in Lesotho" ] \
+    && [ "$(where 39.0 140.5)" = "GPS in 1 photo, in Japan" ] && [ "$(where 1.35 103.82)" = "GPS in 1 photo, near Singapore" ] \
+    && [ "$(where 0 -150)" = "GPS in 1 photo" ] \
+    && ok "GPS: a place's own box or reach first, then a city of the country its outline holds (Kehl is not Strasbourg), else the country" \
+    || { for p in "34.97 135.77" "36.505 138.0" "36.52 138.0" "48.57 7.81" "48.58 7.75" "-29.5 28.2" "39.0 140.5" "1.35 103.82" "0 -150"; do
+             echo "$p: $(eval where $p)"; done; no "GPS: boxes, reaches and borders"; }
+put "osaka/a.txt" "Letters about Lima and Lima again"
+printf '\n\n\n\n\n\n\n\n' | "$tool" --home askh describe osaka --ask --save oo.json > /dev/null 2> oo.err || { cat oo.err; no "describe --ask (cities)"; }
+grep -q '^  \*[0-9] osaka  (known: Ōsaka, Japan)' oo.err && grep -q '^   [0-9] lima  (known: Lima, Peru)' oo.err \
+    && ok "describe --ask: a city of the gazetteer in the names is offered, marked, saying where it is; one its text only mentions, unmarked" \
+    || { cat oo.err; no "cities in the names"; }
+# ------------------------------------------------------------------ words and tags, counted: from the record, the answers, the text
+"$arv" init wh >/dev/null 2>&1
+for n in 1 2 3; do
+    put "kicad-board-$n/main.kicad_pcb" "x$n"
+    "$arv" -C wh make -y --no-ecc --no-formats --set PROJ --output-dir wout "kicad-board-$n" >/dev/null 2>&1 || no "make (words)"
+done
+for id in $("$arv" -C wh list | awk '{ print $1 }'); do
+    printf '{"tags": {".": ["electronics"]}, "authorship": "human", "agent": "human:t"}' | "$tool" --home wh describe "$id" --apply - >/dev/null || no "apply (words)"
+done
+put "new kicad thing/a.kicad_sch" z
+"$tool" --home wh describe "new kicad thing" --clues > w.json 2> w.err || no "describe --clues (learned)"
+grep -qx "  points to electronics: 'kicad' in 3 of 3 folders tagged electronics" w.err \
+    && tr -d '\n ' < w.json | grep -q '"tags":{".":\["electronics"' && [ -s wh/cache/words.tsv ] \
+    && ok "words and tags, counted from the record: a word of the names that went with a tag before marks it, saying how often (cache/words.tsv)" \
+    || { cat w.err w.json; no "learned from the record"; }
+for n in 1 2 3; do
+    put "papers$n/a.txt" "Invoice for VAT. HMRC reference. Invoice total. HMRC VAT return."
+    put "papers$n/b.txt" "Another invoice from HMRC about VAT."
+    answer=n; [ "$n" = 3 ] && answer=y
+    printf 'finance\n-\n\n\n\n%s\n\n\n' "$answer" | "$tool" --home wh describe "papers$n" --ask --no-folders > /dev/null 2> "p$n.err" \
+        || { cat "p$n.err"; no "describe --ask (text)"; }
+done
+grep -q "words in the text: hmrc, invoice, vat" p1.err \
+    && grep -q "^'papers' has been in 3 of 3 folders tagged finance: make it a rule (Match: \*papers\*)" p3.err \
+    && grep -q "Added to the vocabulary" p3.err && grep -A1 '^Name: finance$' wh/config/tags.rec | grep -qx 'Match: \*papers\*' \
+    && [ "$(grep -c 'finance.papers.hmrc,invoice,vat$' wh/config/word-examples.tsv)" -eq 3 ] \
+    && ok "describe --ask keeps what it was told (config/word-examples.tsv), the text's words too; a word that keeps going with a tag is offered as a rule, put in tags.rec" \
+    || { cat p1.err p3.err; no "answers kept, a rule offered"; }
+put letters/x.txt "Dear sir, the HMRC invoice and VAT."
+put letters/y.txt "HMRC VAT invoice again."
+"$tool" --home wh describe letters --clues > l.json 2> l.err || no "describe --clues (text)"
+grep -q "  points to finance: '[a-z]*' in 3 of 3 folders tagged finance, from the files' text" l.err \
+    && tr -d '\n ' < l.json | grep -q '"finance"' \
+    && ok "the words of text files point to tags too (weighed less than names'), learned from the answers" || { cat l.err; no "text words"; }
+put forms/a.txt "Dear Sir,
+Hello. Please find attached the self assessment for Anne Smith. Your name and address are below.
+We met Anne Smith in Fushimi last week, and Fushimi was lovely. The family garden."
+put forms/b.txt "Hello again. The self assessment is due. Anne Smith will visit Fushimi with the family.
+Name: Bob
+Address: 1 Lane"
+"$tool" --home wh describe forms --clues > /dev/null 2> f.err || no "describe --clues (forms)"
+grep -q "words in the text: anne smith, self assessment, fushimi, family" f.err && grep -q "names in the text: Anne Smith, Fushimi" f.err \
+    && ! grep "words in the text" f.err | grep -q "hello\|name,\|address\|garden" \
+    && ok "text: the language's commonest words left out (a built-in list), a vocabulary word kept ('family'); pairs that go together as phrases ('self assessment'); words written as names found" \
+    || { cat f.err; no "common words, phrases, names"; }
+printf '\n\n\n\n\n\n\n\n' | "$tool" --home wh describe forms --ask --no-folders > /dev/null 2> fa.err || no "describe --ask (forms)"
+grep -A4 '^person:' fa.err | grep -q ' anne-smith  (a name in the text)' \
+    && ok "describe --ask offers the text's names as people and places" || { cat fa.err; no "names offered"; }
+"$arv" init rh >/dev/null 2>&1
+for n in 1 2 3 4; do
+    put "rose$n/a.txt" "We visited Rose at the farm. Then Rose made jam."
+    put "rose$n/b.txt" "With Rose at the farm again."
+    printf '\n\n\nrose\n\n\n\n\n\n' | "$tool" --home rh describe "rose$n" --ask --no-folders > /dev/null 2> "r$n.err" || { cat "r$n.err"; no "describe --ask (known)"; }
+done
+grep -q "Known from now on: person:rose (Rose), private" r1.err && grep -A2 '^Name: person:rose$' rh/config/tags.rec | grep -qx 'Label: Rose' \
+    && grep -q '^  \*1 rose  (known: Rose)$' r2.err \
+    && grep -q 'person: rose (known: Rose, in 3 folders before; taken without asking)' r4.err \
+    && grep -q '^Object: name:person:rose$' rh/catalog/archive.rec \
+    && ok "known names: a name confirmed in --ask becomes an entry; next time it is offered, marked; once used and in the same context, taken without asking (a common word too: 'Rose' written as a name)" \
+    || { cat r1.err r2.err r4.err; no "known names in --ask"; }
+if command -v pdftotext >/dev/null && command -v pdfinfo >/dev/null; then
+    mkdir -p pdfs
+    for f in a:"Tax return 2021":"HMRC self assessment" b:"Invoice 0042":"Invoice from HMRC"; do
+        name=${f%%:*}; rest=${f#*:}; title=${rest%%:*}; text=${rest#*:}
+        stream="BT /F1 12 Tf 10 100 Td ($text) Tj ET"
+        { printf '%%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n'
+          printf '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n'
+          printf '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 300 144] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj\n'
+          printf '4 0 obj << /Length %d >> stream\n%s\nendstream endobj\n' "${#stream}" "$stream"
+          printf '5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n'
+          printf '6 0 obj << /Title (%s) >> endobj\n' "$title"
+          printf 'trailer << /Root 1 0 R /Info 6 0 R >>\n%%%%EOF\n'; } > "pdfs/$name.pdf"
+    done
+    "$tool" --home wh describe pdfs --clues > pdf.json 2> pdf.err || no "describe --clues (PDF)"
+    grep -q '"description": "2 PDF documents (Tax return 2021, Invoice 0042)' pdf.json && grep -q "words in the text: hmrc" pdf.err \
+        && ok "PDFs: their text through pdftotext, their titles through pdfinfo, in the description" || { cat pdf.err pdf.json; no "PDF clues"; }
+fi
 echo "all checks passed"

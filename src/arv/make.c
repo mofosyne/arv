@@ -1480,7 +1480,14 @@ static void stage_plan(maker *mk, size_t idx)
         if (!access(from, F_OK)) {
             char *to = join(dir, HOME_VOCABULARIES[k]);
             if (mkdirs(dir)) die("cannot create %s", dir);
-            copy_file(from, to);
+            if (strcmp(HOME_VOCABULARIES[k], "sets.rec") && !strcmp(disc_access(p->disc), "public")) {
+                char *text = read_text(from), *kept = text ? known_strip_private(text) : NULL;   /* known names kept home */
+                write_text(to, kept ? kept : "");
+                free(text);
+                free(kept);
+            } else {
+                copy_file(from, to);
+            }
             free(to);
         }
         free(from);
@@ -1580,10 +1587,12 @@ static void stage_plan(maker *mk, size_t idx)
         free(plain.s); free(size_check.s); free(underline.s); free(plain_text); free(size_text);
     }
     {
-        char *html = render_index(p->disc, p->binding, &p->files, &snap, archive_where), *path = join(p->stage, "index.html");
+        char *places = map_disc_html(mk->h, p->b_tags, !strcmp(disc_access(p->disc), "public"));
+        char *html = render_index(p->disc, p->binding, &p->files, &snap, archive_where, places), *path = join(p->stage, "index.html");
         write_text(path, html);
         free(path);
         free(html);
+        free(places);
     }
 
     /* catalog.rec: the Archive entry record, then this disc's own records */

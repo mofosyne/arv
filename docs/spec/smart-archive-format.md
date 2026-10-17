@@ -111,7 +111,7 @@ catalogue rebuilt from a disc takes the disc's archive identity.
 | `catalog/volumes/<id>/packed.tsv` | TSV | Every file inside the disc's packs: its SHA-256, its path under `data/` as unpacked, its pack and how it is packed (see [Packed objects](#object-records-data-objects-format-05)); only when the disc has packs |
 | `catalog/volumes/<id>/manifest.sha256` | BagIt manifest | Copy of the disc's `manifest-sha256.txt` |
 | `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Binding`, `Location`, `Collection`, `Revision`, `Event` and `Appraisal` records (limited by [Access](#access)) |
-| `catalog/config/sets.rec`, `catalog/config/tags.rec` | recfile | The archive's vocabularies at burn time: the set codes (`Set`, `Category`) and the tag words its records use, with their names, parents and aliases. Full snapshots only; optional (format 0.5) |
+| `catalog/config/sets.rec`, `catalog/config/tags.rec`, `catalog/config/places.rec` | recfile | The archive's vocabularies at burn time: the set codes (`Set`, `Category`), the tag words its records use, with their names, parents and aliases, and the gazetteer (the places `place:` tags name). Full snapshots only; optional (format 0.5) |
 | `catalog/volumes/<other-id>/` | as above | The same per-volume index files for the other discs in the snapshot: one folder per volume, as LTFS keeps one index per tape |
 | `index.html` | HTML | Offline viewer (for people; readers can ignore) |
 | `README.txt` | text | How to browse, search, verify, restore and repair the disc, for people |
@@ -555,8 +555,8 @@ own. A version's copies have the same fields.
 
 ### `Event` records (recfile)
 
-`EventId` (format 0.5), then `Disc` (or, for a change to a place or a data object,
-`Object`: `location:CODE` or `object:UUID`), `Type` (PREMIS event type:
+`EventId` (format 0.5), then `Disc` (or, for a change to a place, a data object or a known
+name, `Object`: `location:CODE`, `object:UUID` or `name:KEY`), `Type` (PREMIS event type:
 `message digest calculation`, `creation`,
 `fixity check`, `format identification`, `metadata modification`, `ingestion`,
 `replication`), `Date`, `Outcome` (`success` / `failure` / `warning`), `Authorship`,
@@ -731,10 +731,32 @@ where, which occasion, which device. Any single word works; the tag vocabulary
 `file-date`, the file's own date). A one-valued namespace has one value a path, and a path's
 own value replaces the one it has from its folder: `date` (the date of the content, one EDTF
 date or range, as `Coverage`), `event` and `project`. `person`, `place` (places nest: `kyoto`
-and `fushimi-inari`) and `source` take many. The
+and `fushimi-inari`) and `source` take many, as do `family`, `organisation`, `software`
+(a program it is made with or about) and `work` (a book, a film, an album). The
 hierarchical keyword form used by XMP `lr:hierarchicalSubject` (Lightroom,
 digiKam) replaces the colon with `|`: `place|kyoto`; set paths become
 `MEMORIES|PHOTO|TRIP`.
+
+**Known names** (authority control; format 0.5). A namespaced tag may be an entry of its own in
+the vocabulary, a `Tag` record whose `Name` is the key (`person:anne-smith`, made once and kept
+whatever the name becomes), with `Label` (its preferred form now), `Alias`* (other forms it is
+found as, and the keys of entries merged into it), `Qualifier` (what tells two of one name
+apart), `Related`*, `Same`* (the same entity elsewhere: `wikidata:Q...`, `viaf:...`,
+`isni:...`, `geonames:...`), `Basis` (why it was made: by whom, where, when), `Private: yes` and
+`Retired` (why it was withdrawn; kept, no longer offered). A change to an entry is an event about
+`name:KEY`, kept at home; a change to where it is used is an ordinary tag change. An entry with
+`Private: yes` (people's and families' by default) is left out of the vocabulary a `public` disc
+carries; the disc's own tags still name it by its key.
+
+**Places** are the known names of the `place` namespace, kept in their own file, the gazetteer
+(`catalog/config/places.rec`, `%rec: Place`): the same fields, and `Kind` (`country`, `region`,
+`city`, `site`), `Parent` (the place it is in: `place:kyoto` in `place:japan`), `Country` (ISO
+3166-1 alpha-2, for a country), `At` (where: ISO 6709 in decimal degrees, WGS84,
+`+35.03+135.75/`), `Extent` (the box it covers: two opposite corners, `+34.96+135.76/+34.98+135.78/`)
+and `Reach` (how near to `At` a photo must be to be there: `2km`, `500m`). The default list is Natural Earth's countries and populated places (public
+domain), to two decimals. A place with a position of a person's own is private by default. The
+catalogue keeps tags, never coordinates; a reader finds a tag's position in the gazetteer, or a
+broader place's. `index.html` shows a disc's places on a map (an inline SVG, with nothing to load).
 
 ### Git repositories
 

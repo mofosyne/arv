@@ -73,6 +73,8 @@ static const char USAGE_ARCHIVE[] =
           "         or a disc's source (--past: an older state, kept for reference); logged, nothing written in it\n"
           "  arv names [--limit N] FOLDER   names a disc cannot hold, or Windows would show changed\n"
           "  arv describe FOLDER|DISC-ID|OBJECT [--save|--apply DRAFT|--answer] ...   title, description, tags (*)\n"
+          "         --ask: no model, questions over your vocabulary from the files' clues (names, dates, EXIF); --clues: the\n"
+          "         clues alone, as a draft\n"
           "  arv tag FOLDER|DISC-ID [--save DRAFT] ...   folder tags from your vocabulary (*)\n"
           "\n";
 static const char USAGE_RECORD[] =
@@ -109,6 +111,8 @@ static const char USAGE_RECORD[] =
           "  arv appraise [TARGET] [--importance 'LEVEL for AUDIENCE']... [--basis TEXT] [--review DATE] [--due [DATE]]\n"
           "         how much something matters and to whom (essential, important, useful); TARGET: DISC-ID,\n"
           "         DISC-ID:folder/, DISC-ID:file or set:CODE; --due: the appraisals due for review by DATE\n"
+          ;
+static const char USAGE_RECORD_MORE[] =     /* the same group, apart: C99 strings may be 4095 characters */
           "  arv log [COLLECTION]   a collection's editions, and what changed in each\n"
           "  arv diff REV [REV]   what changed between two revisions, or from one to the folder now\n"
           "         (REV: a revision's first digits, or CODE/N for edition N)\n"
@@ -117,6 +121,15 @@ static const char USAGE_RECORD[] =
           "  arv sets [-v]   the set codes and categories, as a tree\n"
           "  arv tags [--namespace NS]   the tags in use, by namespace, on how many paths and discs; and the\n"
           "         paths to correct: two values of a one-valued namespace, a date that is not EDTF\n"
+          "  arv tags names [--json]   the known names made here, with their uses (tags show KEY --json: each use)\n"
+          "  arv tags show|add|label|alias|merge|split|retire KEY ...   known names (person:anne-smith, software:kicad):\n"
+          "         add KEY [--label L] [--alias A] [--qualifier Q] [--same ID] [--private|--public]; label KEY LABEL (the old\n"
+          "         one kept as an alias); alias KEY FORM; merge KEY INTO (its uses moved); split KEY [--new KEY2] (two of one\n"
+          "         name: each use asked about); retire KEY [--why TEXT]; each change an event\n"
+          "         a place's: add place:KEY [--parent PLACE] [--at LAT,LON] [--extent 'LAT,LON LAT,LON'] [--reach 2km]\n"
+          "         [--kind site] (the gazetteer, config/places.rec; a photo's GPS inside the box or within reach is there)\n"
+          "  arv map [--json | --geojson | --svg]   the places the tags name: where each is (the gazetteer's position, or\n"
+          "         a broader place's), on how many paths and discs; --geojson for map tools, --svg a picture\n"
           "  arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files\n"
           "\n";
 static const char USAGE_REST[] =
@@ -146,7 +159,7 @@ static const char USAGE_REST[] =
           "DISC: the root of a mounted arv disc or an extracted image (the folder with catalog.rec)\n"
           "CATALOG: a disc root, its catalog/ folder or a home (.arv); default: $ARV_HOME, or the\n"
           "first .arv folder or disc root from here up\n";
-static const char *const USAGE[] = { USAGE_ARCHIVE, USAGE_RECORD, USAGE_REST, NULL };
+static const char *const USAGE[] = { USAGE_ARCHIVE, USAGE_RECORD, USAGE_RECORD_MORE, USAGE_REST, NULL };
 
 /* arv alone: where you are, the commands to start with, and how to find the rest */
 /* --json on a command that changes the record: the events it made, as JSON on standard output, and
@@ -520,7 +533,7 @@ static const char *const MANUAL_NOTES[] = {      /* in parts: C99 strings may be
     "## Reading and changing the record\n"
     "\n"
     "These only read: `list`, `find`, `objects`, `todo`, `status`, `log`, `diff`,\n"
-    "`sets`, `tags`, `keywords`, `info`, `audit`, `inventory`, `drives` (without\n"
+    "`sets`, `tags`, `map`, `keywords`, `info`, `audit`, `inventory`, `drives` (without\n"
     "`--check`), `where` (without `--here`), `names`, `plan list|show`, `collection list|show`, `location\n"
     "list`, `appraise --due`, and `retire` without `--yes` (a preview). `restore`\n"
     "writes only the files it restores, where it is told, and records where (when the home knows the disc).\n"
@@ -528,7 +541,8 @@ static const char *const MANUAL_NOTES[] = {      /* in parts: C99 strings may be
     "These change the record, each leaving an event that says who and when: `init`, `make`, `plan make`,\n"
     "`collection init|keep`, `link`, `burned`, `stored`, `identify`,\n"
     "`relabel`, `note`, `rename`, `retag`, `same`, `locate`, `access`, `location add|move`, `appraise`,\n"
-    "`retire --yes`, `rebuild`, `check` and `drives --check` (a check is logged), `describe` and `tag`\n"
+    "`retire --yes`, `rebuild`, `check` and `drives --check` (a check is logged), `tags add|label|alias|merge|split|retire`\n"
+    "(the known names; `tags`, `tags names` and `tags show` only read), `describe` and `tag`\n"
     "(when a draft is applied). `where --here` changes only where the catalogue may be written.\n"
     "arv never deletes a file, an image or a disc.\n"
     "\n"
@@ -825,7 +839,7 @@ int main(int argc, char **argv)
                  { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
                  { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit }, { "drives", cmd_drives }, { "relabel", cmd_relabel }, { "inventory", cmd_inventory }, { "identify", cmd_identify },
-                 { "tags", cmd_tags }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
+                 { "tags", cmd_tags }, { "map", cmd_map }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
     arv_argv0 = argv[0];
     if (argc >= 2 && !strcmp(argv[1], "__complete")) {     /* for the shell's completion (completion/) */
         const char *names[sizeof cmds / sizeof *cmds + 5];

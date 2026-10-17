@@ -404,6 +404,15 @@ Record: what exists, and where
   arv sets [-v]   the set codes and categories, as a tree
   arv tags [--namespace NS]   the tags in use, by namespace, on how many paths and discs; and the
          paths to correct: two values of a one-valued namespace, a date that is not EDTF
+  arv tags names [--json]   the known names made here, with their uses (tags show KEY --json: each use)
+  arv tags show|add|label|alias|merge|split|retire KEY ...   known names (person:anne-smith, software:kicad):
+         add KEY [--label L] [--alias A] [--qualifier Q] [--same ID] [--private|--public]; label KEY LABEL (the old
+         one kept as an alias); alias KEY FORM; merge KEY INTO (its uses moved); split KEY [--new KEY2] (two of one
+         name: each use asked about); retire KEY [--why TEXT]; each change an event
+         a place's: add place:KEY [--parent PLACE] [--at LAT,LON] [--extent 'LAT,LON LAT,LON'] [--reach 2km]
+         [--kind site] (the gazetteer, config/places.rec; a photo's GPS inside the box or within reach is there)
+  arv map [--json | --geojson | --svg]   the places the tags name: where each is (the gazetteer's position, or
+         a broader place's), on how many paths and discs; --geojson for map tools, --svg a picture
   arv keywords DISC-ID   a disc's folder tags as an exiftool argument file, to write into the files
 (arv record COMMAND or arv COMMAND; arv COMMAND --help says more; arv --help lists every group)
 rc=0

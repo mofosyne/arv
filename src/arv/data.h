@@ -8,5 +8,7 @@ extern const char DATA_README[];        /* readme.txt: README.txt on every disc 
 extern const char DATA_DEFAULT_SETS[];  /* default_sets.rec: the starting set vocabulary */
 extern const char DATA_INDEX_CSS[];     /* index.css: the style of index.html on every disc */
 extern const char DATA_DEFAULT_TAGS[];  /* default_tags.rec: the starting tag vocabulary */
+extern const char DATA_DEFAULT_PLACES[];   /* default_places.rec: the gazetteer (Natural Earth) */
+extern const char DATA_WORLD[];            /* world.txt: the land as an SVG path, 720 by 360 */
 
 #endif

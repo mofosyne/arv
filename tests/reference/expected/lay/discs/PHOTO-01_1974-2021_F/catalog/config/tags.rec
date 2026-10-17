@@ -18,11 +18,23 @@
 # hierarchical keywords (place|kyoto) with `arv keywords`. The Namespace records
 # at the end declare them: what each holds, and whether a file has one value
 # (Values: one, which a disc's layout can make folders of) or many.
+#
+# Known names (authority control): a namespaced tag can be an entry of its own,
+# so that once confirmed it is recognised again (arv describe --ask makes them;
+# arv tags show|add|label|alias|merge|split|retire KEY changes them, each an event):
+#   Label      the preferred form now ("Anne Smith"); the key (Name) stays as made
+#   Alias      other forms it is found as (also a merged entry's key)
+#   Qualifier  what tells two of one name apart: dates, a relation, a place
+#   Related    another entry or tag it goes with (software:kicad, electronics)
+#   Same       the same entity elsewhere: wikidata:Q..., viaf:..., isni:..., geonames:...
+#   Basis      why the entry was made: by whom, where, when
+#   Private    yes: stays home, never on a public disc (people and families by default)
+#   Retired    why it is withdrawn (kept, no longer offered)
 
 %rec: Tag
 %key: Name
-%mandatory: Name Description
-%allowed: Name Description Alias Match
+%mandatory: Name
+%allowed: Name Description Alias Match Label Qualifier Related Same Basis Private Retired
 
 Name: family
 Description: family life: relatives, children, babies, parents, grandparents, family gatherings at home
@@ -202,6 +214,22 @@ Values: one
 
 Name: person
 Description: who is in it, or who made it
+Values: many
+
+Name: family
+Description: a family as a whole: its papers, its house, its gatherings
+Values: many
+
+Name: organisation
+Description: a company, school, club, authority or charity it is from or about
+Values: many
+
+Name: software
+Description: a program it is made with or about: an editor, a CAD tool, a game
+Values: many
+
+Name: work
+Description: anything else made by others that it is about: a book, a film, an album
 Values: many
 
 Name: source

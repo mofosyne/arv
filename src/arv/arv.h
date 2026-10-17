@@ -67,6 +67,37 @@ int cmd_init(int argc, char **argv);
 int cmd_tags(int argc, char **argv);
 void tags_canonical(const arv_home *h, strlist *tags);
 int tag_namespaces(const arv_home *h, strlist *one, strlist *declared, int *date_from_file);
+typedef struct {
+    strlist names, alias_from, alias_to, ns_names, ns_desc, ns_one, rule_tag, rule_glob;
+} tag_words_t;
+int tag_words(const arv_home *h, tag_words_t *out);   /* the tag vocabulary's words (tags.c) */
+
+/* known.c: known names, entries of the tag vocabulary (authority control; research/plan.md) */
+typedef struct {
+    char *key, *label, *qualifier, *basis, *retired;   /* retired: why, or NULL */
+    strlist aliases, related, same;
+    int private_;
+    char *kind, *parent, *country, *at;                 /* a place (the gazetteer, config/places.rec) */
+    int has_at, has_extent;
+    double lat, lon;                                    /* from at: ISO 6709, decimal degrees */
+    double south, west, north, east;                    /* Extent: the box it covers (two ISO 6709 corners) */
+    double reach_km;                                    /* Reach: how far a photo may be from At (0: the default) */
+} known_entry;
+size_t known_load(const arv_home *h, known_entry **out);   /* tags.rec's entries, then places.rec's */
+const known_entry *known_find(const known_entry *v, size_t n, const char *key);
+int known_position(const known_entry *v, size_t n, const known_entry *e, double *lat, double *lon);   /* its own, or a parent's: 2, 1 */
+char *known_where(const known_entry *v, size_t n, const known_entry *e);   /* "Kyoto, Japan" */
+int iso6709_parse(const char *s, double *lat, double *lon);   /* +35.03+135.75/ or 35.03,135.75; 0 when it is one */
+int extent_parse(const char *s, double *south, double *west, double *north, double *east);   /* two corners, any order */
+double reach_parse(const char *s);         /* "2km", "500 m", "1.5 km": kilometres, or -1 */
+char *iso6709(double lat, double lon);
+void known_free(known_entry *v, size_t n);
+char *known_label_of(const char *key);      /* person:anne-smith -> "Anne Smith" */
+int known_field(const arv_home *h, const char *key, const char *field, const char *value, int add);
+char *known_strip_private(const char *text);   /* tags.rec or places.rec without its Private: yes entries */
+int known_cmd(const char *sub, int argc, char **argv, const char *given);
+int cmd_map(int argc, char **argv);                                      /* map.c */
+char *map_disc_html(const arv_home *h, const char *tags_tsv, int public_);   /* a disc's places, for index.html */
 int cmd_keywords(int argc, char **argv);
 int cmd_make(int argc, char **argv);
 long medium_budget(const char *medium, const char **label);
@@ -179,6 +210,7 @@ const rec_record *object_at_uuid(const archive *a, const char *uuid);    /* its 
 char *object_tags_now(const arv_home *h, const archive *a, const rec_record *o);
 rec_record *object_event_like(const rec_record *ev, const char *uuid);   /* an event about it, as ev is */
 const rec_record *object_at(const archive *a, const char *disc_id, const char *path);   /* the object at path on a disc */
+void known_made(const arv_home *h, archive *cat, const char *key, const char *label, const char *basis);   /* known.c */
 /* the Uuid of the data object a word names (its Uuid or 8+ characters of it, or its name); dies
  * when it names none or several (listed) */
 const char *object_by_word(const archive *a, const char *text);
@@ -407,7 +439,7 @@ void html_esc(sbuf *b, const char *s);     /* html.escape */
 void url_quote(sbuf *b, const char *s);    /* urllib.parse.quote */
 void hash_both(const char *path, char sha256[65], char sha512[129]);
 char *render_index(const rec_record *disc, const rec_record *binding, const entries *files,
-                   const archive *snapshot, char *(*where_fn)(const archive *, const rec_record *));
+                   const archive *snapshot, char *(*where_fn)(const archive *, const rec_record *), const char *places);
 
 /* names.c: file names a disc image cannot keep exactly; volume labels */
 typedef struct {

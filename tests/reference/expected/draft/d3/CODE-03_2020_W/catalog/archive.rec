@@ -118,7 +118,7 @@ Protection: none
 Media: M-DISC BD-R 25GB
 Filesystem: UDF 2.50, BD-ROM layout with metadata partition and a real mirror (arv udfwrite)
 Ecc: none
-ImageSectors: 882
+ImageSectors: 946
 ImageSha256: SHA256
 
 Volume: CODE-03_2020_W
@@ -200,7 +200,7 @@ Date: 2026-01-01
 %doc: Preservation actions and metadata changes, appended and never edited. Type uses
 + the PREMIS eventType vocabulary: https://id.loc.gov/vocabulary/preservation/eventType
 + Disc names the disc; a change to a location or a data object names it in Object
-+ (location:CODE, object:UUID) instead.
++ (location:CODE, object:UUID; name:KEY for an entry of the known names, kept at home) instead.
 + Agent (one or more) is software (arv@COMMIT), a model (llm:MODEL, embeddings:MODEL) or a person (human:LOGIN).
 + Authorship says how people and machines shared the work: automatic (software
 + following rules), suggested (a model, not reviewed), accepted (a model's suggestion
@@ -296,7 +296,7 @@ Date: 2026-01-01
 Outcome: success
 Authorship: automatic
 Agent: SW
-Note: image CODE-02_2020_Y.noecc.iso, 882 sectors
+Note: image CODE-02_2020_Y.noecc.iso, 946 sectors
 
 EventId: ID
 Disc: CODE-03_2020_W

@@ -272,6 +272,77 @@ class GuiTest(unittest.TestCase):
         self.job("describe", disc["Id"], "--apply", "-",
                  stdin=json.dumps({"title": "Spring photos", "authorship": "human", "agent": "owner"}))
         self.assertEqual(self.ok("list", "--json")["discs"][0]["Title"], "Spring photos")
+        trip = os.path.join(self.tmp, "2019-07 Kyoto trip")     # "Fill from the files": the clues, no model
+        write(os.path.join(trip, "IMG_20190711_120000.jpg"), "jpeg", 2019)
+        clues = json.loads(self.run_arv("describe", trip, "--clues")["out"])   # a draft, on standard output
+        self.assertEqual((clues["title"], clues["tags"]["."], clues["authorship"]),
+                         ("Kyoto trip, 11 July 2019", ["travel", "date:2019-07-11"], "automatic"))
+
+    @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
+    def test_map(self):
+        """The Map view: the places the tags name, from the gazetteer, as the page reads them (arv map), and one added."""
+        self.start()
+        src = os.path.join(self.tmp, "Trip")
+        write(os.path.join(src, "temple", "a.jpg"), "jpeg", 2019)
+        draft = json.dumps({"tags": {".": ["place:kyoto"], "temple": ["place:fushimi-inari"]}, "authorship": "human", "agent": "owner"})
+        self.job("make", "-y", src, "--set", "TRIP", "--medium", "auto", "--no-ecc",
+                 "--output-dir", os.path.join(self.tmp, "out"), "--draft", "-", stdin=draft)
+        places = {p["key"]: p for p in self.ok("map", "--json")["places"]}
+        self.assertEqual((places["place:kyoto"]["where"], places["place:kyoto"]["position"]), ("Kyoto, Japan", "own"))
+        self.assertFalse(places["place:fushimi-inari"]["inGazetteer"])
+        self.job("tags", "add", "place:fushimi-inari", "--label", "Fushimi Inari", "--parent", "place:kyoto")
+        place = [p for p in self.ok("map", "--json")["places"] if p["key"] == "place:fushimi-inari"][0]
+        self.assertEqual((place["where"], place["position"]), ("Fushimi Inari, Kyoto, Japan", "broader"))
+        self.assertIn("<title>Kyoto, Japan: 1 path or object</title>", self.run_arv("map", "--svg")["out"])
+        self.assertIn('id="tab-map"', self.request("/?t=" + self.token, token=False)[1])
+
+    @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
+    def test_questions_and_names(self):
+        """Describe by questions as the page asks them (the answers so far in, the next question out), a name
+        confirmed becoming known, then the Names view: rename, split by ticking uses, merge."""
+        self.start()
+        trip = os.path.join(self.tmp, "2019-07 Kyoto trip")
+        write(os.path.join(trip, "IMG_20190711_120000.jpg"), "jpeg", 2019)
+        answers, seen = [], []
+        for _ in range(25):
+            r = self.run_arv("describe", trip, "--answers", "-", stdin=json.dumps({"answers": answers}), program="arv-assist")
+            res = json.loads(r["out"])
+            if res["done"]:
+                break
+            q = res["question"]
+            seen.append(q["text"].split(":")[0])
+            if q["text"].startswith("place"):
+                self.assertEqual([(o["value"], o["marked"]) for o in q["options"]][:1], [("kyoto", True)])
+            answers.append("ann" if q["text"].startswith("person") else "")
+        self.assertTrue(res["done"])
+        self.assertEqual(res["draft"]["tags"]["."], ["travel", "event:kyoto-trip", "place:kyoto", "person:ann", "date:2019-07-11"])
+        self.assertEqual(seen[:4], ["Topics", "event", "place", "person"])
+        names = self.ok("tags", "names", "--json")["names"]          # kept only once the last answer was given
+        self.assertEqual([(n["key"], n["label"], n["private"]) for n in names], [("person:ann", "Ann", True)])
+
+        src = os.path.join(self.tmp, "Letters")
+        for d in ("one", "two"):
+            write(os.path.join(src, d, "a.txt"), d, 2001)
+        draft = json.dumps({"tags": {"one": ["person:ann"], "two": ["person:ann"]}, "authorship": "human", "agent": "owner"})
+        self.job("make", "-y", src, "--set", "LETTERS", "--medium", "auto", "--no-ecc",
+                 "--output-dir", os.path.join(self.tmp, "out"), "--draft", "-", stdin=draft)
+        self.ok("tags", "label", "person:ann", "Ann Smith")
+        uses = self.ok("tags", "show", "person:ann", "--json")["uses"]
+        self.assertEqual([u["path"] for u in uses], ["one", "two"])
+        out = self.ok("tags", "split", "person:ann", "--qualifier", "b. 1931", "--new-qualifier", "colleague",
+                      stdin="\n".join("2" if u["path"] == "two" else "" for u in uses) + "\n")
+        self.assertIn("1 of 2 uses moved to person:ann-2", out)
+        names = {n["key"]: n for n in self.ok("tags", "names", "--json")["names"]}
+        self.assertEqual((names["person:ann"]["label"], names["person:ann"]["qualifier"], names["person:ann-2"]["qualifier"]),
+                         ("Ann Smith", "b. 1931", "colleague"))
+        self.ok("tags", "merge", "person:ann-2", "person:ann")
+        names = {n["key"]: n for n in self.ok("tags", "names", "--json")["names"]}
+        self.assertEqual((names["person:ann"]["paths"], names["person:ann-2"]["retired"]), (2, "merged into person:ann"))
+        self.ok("tags", "add", "place:a-park", "--parent", "kyoto", "--extent", "35.0105,135.7495 35.02,135.76", "--reach", "500m")
+        self.assertIn("reach: 0.5 km", self.ok("tags", "show", "place:a-park"))
+        page = self.request("/?t=" + self.token, token=False)[1]
+        self.assertIn('id="tab-names"', page)
+        self.assertIn("Ask me (no model)", page)
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
     def test_copies(self):

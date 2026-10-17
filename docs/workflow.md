@@ -173,9 +173,14 @@ kinds, the folders that are not (a repository's own tree is left alone):
 - **Ingest at once, curate virtually.** The layout on disc changes only when a new edition is
   made for its content, never by burning again just to reorganise.
 
-Optional: `arv tag FOLDER --save d.json` suggests folder tags from your vocabulary, and `arv
-describe FOLDER --save d.json` asks a local language model for a title, description and
-questions; `arv make --draft d.json` takes either.
+Optional: `arv describe FOLDER --ask --save d.json` asks you, with no model: a few questions
+(topics, the event, places, people, when), each with the answer the files' names, dates and EXIF
+point to marked, so most are Enter; the title and description are made from the answers. It
+learns from what you tag: a word that went with a tag before marks it next time (names, and the
+words of text files and PDFs), and one that always does is offered as a rule in `tags.rec`. `arv
+tag FOLDER --save d.json` suggests folder tags from your vocabulary, and `arv describe FOLDER
+--save d.json` asks a local language model for a title, description and questions; `arv make
+--draft d.json` takes any of them.
 
 ### 2. Sort, and see what changed
 
@@ -473,6 +478,7 @@ arv location list -v                                 # places, their temperature
 | Everything under a category or a place | `arv list --in MEMORIES`, `arv list --at PARENTS` |
 | What has this collection been through? | `arv collection show FAMILY`, `arv log FAMILY` |
 | Which tags do I use? | `arv tags`; `arv find place:kyoto` |
+| Where is it all from? | `arv map` (`--geojson` for a map tool, `--svg` for a picture) |
 | Without this tool installed? | every disc carries it: `tools/arv.com find PATTERN` from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
 | Changes after burning | `arv note`, `arv locate`, `arv access` (home catalogue; later discs carry them) |
 | How important is it, and to whom? | `arv appraise` (the archivist's log; `make --importance` at the start) |

@@ -98,7 +98,7 @@ Each layer does its own job:
 | `src/udfwrite/` | arv's UDF 2.50 writer (library, built into arv, and a program): [docs/spec/archival-udf.md](docs/spec/archival-udf.md) |
 | `src/rs03/` | dvdisaster's RS03 error correction: add, test, repair (library, built into arv, and a program): [docs/spec/rs03-format.md](docs/spec/rs03-format.md) |
 | `src/bagit/` | BagIt (RFC 8493) checking and the digests (library, built into arv, and a `bagit` program for any bag) |
-| `src/arv-assist/` | **arv-assist**, optional, in C: the AI helpers (`arv describe`, `arv tag`) for OpenAI-compatible local services |
+| `src/arv-assist/` | **arv-assist**, optional, in C: describing and tagging (`arv describe`, `arv tag`): with OpenAI-compatible local services, or by asking you (`describe --ask`) |
 | `src/arv-gui/` | **arv-gui**, optional, in C: `arv gui`, the interface in your web browser; a small local server that runs arv for every action |
 | `arv` | runs `src/arv/build/arv` in a checkout (and `tools/arv/arv` on a disc), building it with `make` first if needed |
 | `docs/` | For users: concepts, workflow, burning, shelving, architecture, philosophy, and the website |
@@ -387,7 +387,7 @@ an embedding service. For suggestions, point `--embed-url` at an OpenAI-compatib
 server. arv does not download or build a model or runtime. See `arv tag --help` and
 [src/arv-assist/README.md](src/arv-assist/README.md).
 
-`arv tags` lists tags in use; `arv keywords DISC` writes hierarchical keywords in exiftool format.
+`arv tags` lists tags in use; `arv map` the places they name; `arv keywords DISC` writes hierarchical keywords in exiftool format.
 A reviewed tag draft can be applied to `arv make` as `--draft FILE`.
 
 ## Optional: local LLM help with descriptions and tags
@@ -397,6 +397,34 @@ ask you specific questions ("Who is in the Kyoto photos?"). Nothing is written
 until you accept it, your answers are kept verbatim as notes, and each accepted
 change is logged as a PREMIS `metadata modification` event naming the model.
 This is arv-assist (`src/arv-assist`, optional, in C): everything works without it.
+
+**Without a model**, `arv describe NAME --ask` asks you instead, twenty-questions style: the
+files' clues (dates in their names or EXIF, the kinds of files, a camera, the words of the folders'
+names that your vocabulary knows) mark the likely answer to each question, so most answers are
+Enter or a number. The title and description are made from your answers. It learns by counting:
+a word that went with a tag before marks it next time, saying how often ("'kicad' in 9 of 10
+folders tagged electronics"), the words of text files and PDFs count too (`pdftotext`), and a
+word that keeps going with a tag is offered as a rule in your vocabulary. A person, family,
+organisation, software or work you confirm becomes a known name: offered next time, and taken
+without asking once it is certain. `arv tags show|label|alias|merge|split|retire KEY` keeps them
+right (two people of one name: `split`, each use asked about). `--clues` takes the clues alone, as
+a draft to edit; the GUI's "Fill from the files" does the same, and its "Ask me (no model)" asks the
+same questions in the page. Its Names view keeps the known names right (rename, merge, split by
+ticking the uses that are the other person, retire), and its Map view shows the places.
+
+**Places** come from a gazetteer, `config/places.rec`: Natural Earth's countries and cities
+(public domain), and the places you add (`arv tags add place:fushimi-inari --parent kyoto`, with
+`--extent` for the box it covers or `--reach 2km`). `--ask` offers the cities a folder's names or
+text mention, saying which ("Lima, Peru"), and the place its photos' GPS is in: one of yours, a
+city of the same country, or the country by its outline. The record keeps the place, never the
+coordinates. `arv map` lists
+the places your tags name and where each is; `--geojson` gives them to map tools, `--svg` draws
+them, and each disc's `index.html` shows its places on a small map that needs nothing installed.
+
+```sh
+./arv describe ./2019-07_Kyoto --ask --save d.json     # then arv make ./2019-07_Kyoto --draft d.json
+./arv describe PERSONAL-01_2018-2022_Y --ask            # a disc already made: asks, then applies
+```
 
 ```sh
 ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM Studio, vLLM
