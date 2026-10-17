@@ -295,6 +295,9 @@ class GuiTest(unittest.TestCase):
         self.assertEqual((place["where"], place["position"]), ("Fushimi Inari, Kyoto, Japan", "broader"))
         self.assertIn("<title>Kyoto, Japan: 1 path or object</title>", self.run_arv("map", "--svg")["out"])
         self.assertIn('id="tab-map"', self.request("/?t=" + self.token, token=False)[1])
+        programs = {p["name"]: p for p in self.ok("programs", "--json")["programs"]}   # the Programs view's
+        self.assertTrue(programs["arv-gui"]["found"])
+        self.assertEqual(programs["exiftool"]["group"], "describing")
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
     def test_questions_and_names(self):

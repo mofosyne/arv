@@ -13,7 +13,15 @@ checkdepends=('python' '7zip')
 optdepends=('xdg-utils: arv gui opens the interface in your web browser'
             '7zip: reading disc images in checks'
             'xorriso: burning images'
-            'ddrescue: reading damaged discs into images')
+            'ddrescue: reading damaged discs into images'
+            'zstd: packed objects (tar+zstd)'
+            'zip: packed objects (zip)'
+            'unzip: zip packed objects read back'
+            'perl-image-exiftool: photos dates, camera and GPS as clues for arv describe'
+            'poppler: PDFs words and titles as clues for arv describe'
+            'ffmpeg: a video frame for arv describe --vision'
+            'ocrmypdf: a text layer for scanned PDFs, before describing'
+            'tesseract: text beside scanned images, before describing')
 provides=('arv')
 conflicts=('arv')
 source=("arv::git+https://github.com/mofosyne/arv.git")

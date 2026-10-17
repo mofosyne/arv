@@ -382,3 +382,19 @@ char *abs_path(const char *p)
     free(joined);
     return out;
 }
+
+/* a helper program: $ENV, next to this arv (an installed bin/), or in the checkout this arv was
+ * built in (src/arv/build/arv -> src/<name>/...); NULL: look on PATH */
+char *helper_program(const char *env, const char *name, const char *in_checkout)
+{
+    if (getenv(env) && *getenv(env)) return xstrdup(getenv(env));
+    char *dir = exe_dir();
+    if (!dir) return NULL;
+    char *beside = join(dir, name), *built = xprintf("%s/../../%s", dir, in_checkout);
+    char *found = !access(beside, X_OK) ? beside : !access(built, X_OK) ? built : NULL;
+    found = found ? xstrdup(found) : NULL;
+    free(beside);
+    free(built);
+    free(dir);
+    return found;
+}

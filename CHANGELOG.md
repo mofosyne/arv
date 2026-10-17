@@ -21,6 +21,13 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**arv programs: which optional programs are here**
+- `arv programs [--json]` lists every program arv can use (its helpers; git, Siegfried and the
+  compressors for making; exiftool, poppler and ffmpeg for describing; the browser opener; and the
+  tools for work arv leaves to others: burning, ddrescue, OCR), which are found, what each is for,
+  what is missing without it, and the packages to install (Debian, Arch). None is needed for a
+  disc. The GUI has a Programs view; the Debian and Arch packages suggest the same programs.
+
 **In the GUI: the questions, the names, the places**
 - "Ask me (no model)" in the describe panels asks `--ask`'s questions in the page: the likely answers
   ticked, with why, a box to type others. `arv describe --answers FILE|-` is how: the answers so far

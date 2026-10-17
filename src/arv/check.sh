@@ -329,6 +329,14 @@ printf 'b. 1931\ncolleague\n2\n\n' | "$tool" -C kn/home tags split person:anne-s
     && grep -q '^Name: family$' kn/disc/catalog/config/tags.rec \
     && ok "known names: a public disc's vocabulary leaves the private entries out (software:kicad goes, person:anne-smith stays home)" \
     || no "known names: private entries on a public disc"
+# the programs arv can use: each found or not, from PATH; none needed for a disc
+mkdir -p progbin && printf '#!/bin/sh\n' > progbin/zstd && chmod +x progbin/zstd
+PATH="$PWD/progbin:/usr/bin/nonexistent" "$tool" programs > prog.out \
+    && grep -q '^  ok       zstd  ' prog.out && grep -q '^  missing  exiftool ' prog.out \
+    && grep -q 'sudo apt install .*libimage-exiftool-perl' prog.out && grep -q '^  sf: Siegfried: ' prog.out \
+    && PATH="$PWD/progbin" "$tool" programs --json | grep -q '"name": "zstd", "group": "making", "found": true' \
+    && ok "arv programs: which programs arv can use are here (PATH), what each is for, and the packages for the missing ones" \
+    || { cat prog.out; no "arv programs"; }
 # places: the gazetteer (Natural Earth's countries and cities), a place of your own in one, arv map, a disc's index.html
 "$tool" -C kn/home tags show place:kyoto | grep -q '^  in: Japan (place:japan)$' \
     && "$tool" -C kn/home tags add place:fushimi-inari --label "Fushimi Inari" --parent kyoto --at 34.9671,135.7727 > kn/place.out \

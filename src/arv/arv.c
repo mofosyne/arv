@@ -155,9 +155,11 @@ static const char USAGE_REST[] =
           "         for arv --archive NAME; --default: the one used when no other is found)\n"
           "  arv where [--here]   which home arv uses, and why (--here: this copy of it may be written here too)\n"
           "  arv gui   the interface, in your web browser (*)\n"
+          "  arv programs [--json]   which of the programs arv can use are here (none is needed for a disc), what\n"
+          "         each is for, and how to install the missing ones\n"
           "  arv help [--all | --man | --json | COMMAND]   --all: the whole manual (markdown), for people and agents alike\n"
           "\n"
-          "(*) when installed: arv-assist (the local AI helpers), arv-gui (the interface)\n"
+          "(*) when installed: arv-assist (the local AI helpers), arv-gui (the interface); arv programs says\n"
           "DISC: the root of a mounted arv disc or an extracted image (the folder with catalog.rec)\n"
           "CATALOG: a disc root, its catalog/ folder or a home (.arv); default: $ARV_HOME, or the\n"
           "first .arv folder or disc root from here up\n";
@@ -474,28 +476,12 @@ static const char *command_word(int argc, char **argv)
     return i < argc ? argv[i] : NULL;
 }
 
-/* a helper program: $ENV, next to this arv (an installed bin/), or in the checkout this arv was
- * built in (src/arv/build/arv -> src/<name>/...); NULL: look on PATH */
-static char *helper(const char *env, const char *name, const char *in_checkout)
-{
-    if (getenv(env) && *getenv(env)) return xstrdup(getenv(env));
-    char *dir = exe_dir();
-    if (!dir) return NULL;
-    char *beside = join(dir, name), *built = xprintf("%s/../../%s", dir, in_checkout);
-    char *found = !access(beside, X_OK) ? beside : !access(built, X_OK) ? built : NULL;
-    found = found ? xstrdup(found) : NULL;
-    free(beside);
-    free(built);
-    free(dir);
-    return found;
-}
-
 /* arv describe|tag runs arv-assist; arv gui runs arv-gui (with the home this arv finds) */
 static void run_helper(int argc, char **argv, const char *word)
 {
     int gui = !strcmp(word, "gui");
-    char *assist = helper("ARV_ASSIST", "arv-assist", "arv-assist/build/arv-assist");
-    char *program = gui ? helper("ARV_GUI", "arv-gui", "arv-gui/build/arv-gui") : assist;
+    char *assist = helper_program("ARV_ASSIST", "arv-assist", "arv-assist/build/arv-assist");
+    char *program = gui ? helper_program("ARV_GUI", "arv-gui", "arv-gui/build/arv-gui") : assist;
     char *self = exe_dir(), *me = self ? join(self, strrchr(argv[0], '/') ? strrchr(argv[0], '/') + 1 : argv[0]) : NULL;
     if (me && !access(me, X_OK)) setenv("ARV", me, 1);          /* arv-gui runs this arv */
     if (assist) setenv("ARV_ASSIST", assist, 1);
@@ -535,7 +521,7 @@ static const char *const MANUAL_NOTES[] = {      /* in parts: C99 strings may be
     "## Reading and changing the record\n"
     "\n"
     "These only read: `list`, `find`, `objects`, `todo`, `status`, `log`, `diff`,\n"
-    "`sets`, `tags`, `map`, `keywords`, `info`, `audit`, `inventory`, `drives` (without\n"
+    "`sets`, `tags`, `map`, `programs`, `keywords`, `info`, `audit`, `inventory`, `drives` (without\n"
     "`--check`), `where` (without `--here`), `names`, `plan list|show`, `collection list|show`, `location\n"
     "list`, `appraise --due`, and `retire` without `--yes` (a preview). `restore`\n"
     "writes only the files it restores, where it is told, and records where (when the home knows the disc).\n"
@@ -841,7 +827,7 @@ int main(int argc, char **argv)
                  { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },
                  { "appraise", cmd_appraise }, { "sets", cmd_sets }, { "names", cmd_names },
                  { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit }, { "drives", cmd_drives }, { "relabel", cmd_relabel }, { "inventory", cmd_inventory }, { "identify", cmd_identify },
-                 { "tags", cmd_tags }, { "map", cmd_map }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
+                 { "tags", cmd_tags }, { "map", cmd_map }, { "programs", cmd_programs }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
     arv_argv0 = argv[0];
     if (argc >= 2 && !strcmp(argv[1], "__complete")) {     /* for the shell's completion (completion/) */
         const char *names[sizeof cmds / sizeof *cmds + 5];

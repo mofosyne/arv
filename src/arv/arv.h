@@ -99,6 +99,8 @@ int known_field(const arv_home *h, const char *key, const char *field, const cha
 char *known_strip_private(const char *text);   /* tags.rec or places.rec without its Private: yes entries */
 int known_cmd(const char *sub, int argc, char **argv, const char *given);
 int cmd_map(int argc, char **argv);                                      /* map.c */
+int cmd_programs(int argc, char **argv);                                 /* programs.c */
+char *helper_program(const char *env, const char *name, const char *in_checkout);   /* arv.c: arv-assist, arv-gui */
 char *map_disc_html(const arv_home *h, const char *tags_tsv, int public_);   /* a disc's places, for index.html */
 int cmd_keywords(int argc, char **argv);
 int cmd_make(int argc, char **argv);

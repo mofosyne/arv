@@ -87,7 +87,7 @@ projects, records ...): see "Laying the folder out" in step 1.
 | `arv` | everything below | `make install PREFIX=~/.local` (or `just install`) in this repository, or a package (`just deb`, `just arch`: [packaging/](../packaging/README.md)), or run `./arv` from it; tab completion comes with it. `make uninstall PREFIX=~/.local` (`just uninstall`) removes it and leaves your archives alone |
 | `7z`, `git` | reading images in checks; arv's source in each disc's `tools/` | your distribution |
 | a burning program | burning images (arv never burns) | `xorriso`, or your system's own: see [burning.md](burning.md) |
-| optional | reading damaged discs; format ids; AI help; the interface | GNU ddrescue or [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light); Siegfried (`sf`); arv-assist (`arv describe`, `arv tag`); a web browser for `arv gui` |
+| optional | reading damaged discs; format ids; AI help; the interface | GNU ddrescue or [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light); Siegfried (`sf`); arv-assist (`arv describe`, `arv tag`); a web browser for `arv gui`. `arv programs` lists every one arv can use, which are here, and the packages for the rest |
 
 Make the **archive** (its home catalogue) at the root of the tree it describes, for example the
 NAS share above your photos and projects:

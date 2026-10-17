@@ -146,6 +146,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   <button data-tab="make">From a folder</button>
   <button data-tab="master">Mastering: discs by hand</button>
   <button data-tab="status">What changed</button>
+  <button data-tab="programs">Programs</button>
 </nav>
 <nav class="sub" data-group="record" hidden>
   <button data-tab="objects">Objects</button>
@@ -300,6 +301,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     </form>
     <pre id="map-out" class="log" hidden></pre>
   </div>
+</section>
+
+<section id="tab-programs" hidden>
+  <p class="muted">The programs arv can use, and which are here. None is needed to make, read, check or repair a
+    disc: arv does that itself. The others add to it, or do work arv leaves to tools built for it.</p>
+  <div id="programs-list"></div>
 </section>
 
 <section id="tab-names" hidden>
@@ -555,7 +562,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // ---------------------------------------------------------------- tabs
   // Archive, Record, Verify: each view belongs to one of the three
   var GROUP = { master: "archive", make: "archive", status: "archive", objects: "record", collections: "record", discs: "record",
-                places: "record", map: "record", names: "record", search: "record",
+                places: "record", map: "record", names: "record", search: "record", programs: "archive",
                 owed: "verify", tools: "verify", inventory: "verify", audit: "verify", restore: "verify" };
   var lastView = { archive: "make", record: "objects", verify: "owed" };
   function showTab(name) {
@@ -576,6 +583,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (name === "places") loadPlacesView();
     if (name === "map") loadMap();
     if (name === "names") loadNames();
+    if (name === "programs") loadPrograms();
   }
   document.querySelectorAll("nav.sub button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
   document.querySelectorAll("nav.groups button").forEach(function (b) { b.onclick = function () { showTab(lastView[b.dataset.group]); }; });
@@ -1585,6 +1593,36 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     opt(opt(argv, "--extent", $("map-extent").value), "--reach", $("map-reach").value);
     act(argv, $("map-out"), function () { $("map-add").reset(); loadMap(); });
   };
+  // ---------------------------------------------------------------- archive: the programs arv can use (arv programs)
+  var PROGRAM_GROUPS = [["helpers", "arv's own helpers"], ["making", "Making discs"], ["describing", "Describing"],
+                        ["interface", "The interface"], ["beside", "Beside arv: work it leaves to other tools (it never runs them)"]];
+  function loadPrograms() {
+    return arvJson(["programs", "--json"]).then(function (res) {
+      var box = $("programs-list"); box.textContent = "";
+      var missing = res.programs.filter(function (p) { return !p.found; });
+      box.appendChild(el("p", { text: (res.programs.length - missing.length) + " of " + res.programs.length + " found." }));
+      PROGRAM_GROUPS.forEach(function (g) {
+        box.appendChild(el("h3", { text: g[1] }));
+        var t = el("table");
+        res.programs.filter(function (p) { return p.group === g[0]; }).forEach(function (p) {
+          t.appendChild(el("tr", {}, [el("td", {}, [el("span", { class: "chip " + (p.found ? "cold" : "none"), text: p.found ? "here" : "missing" })]),
+            el("td", { class: "mono", text: p.name, title: p.path }), el("td", { text: p.for + (p.found ? "" : ". Without it: " + p.without) })]));
+        });
+        box.appendChild(el("div", { class: "scroll" }, [t]));
+      });
+      var deb = [], arch = [], other = [];
+      missing.forEach(function (p) {
+        if (p.debian) { if (deb.indexOf(p.debian) < 0) deb.push(p.debian); if (arch.indexOf(p.arch) < 0) arch.push(p.arch); }
+        else other.push(p.name + ": " + p.from);
+      });
+      if (!missing.length) return;
+      box.appendChild(el("h3", { text: "To install the missing ones" }));
+      var lines = [];
+      if (deb.length) lines.push("sudo apt install " + deb.join(" "), "sudo pacman -S " + arch.join(" ") + "    (Arch)");
+      box.appendChild(el("pre", { class: "log", text: lines.concat(other).join("\n") }));
+    }).catch(function (e) { $("programs-list").textContent = "Error: " + e.message; });
+  }
+
   // ---------------------------------------------------------------- record: known names (arv tags names|label|alias|merge|split|retire)
   function loadNames() {
     return arvJson(["tags", "names", "--json"]).then(function (res) {
