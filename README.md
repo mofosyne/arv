@@ -387,7 +387,8 @@ an embedding service. For suggestions, point `--embed-url` at an OpenAI-compatib
 server. arv does not download or build a model or runtime. See `arv tag --help` and
 [src/arv-assist/README.md](src/arv-assist/README.md).
 
-`arv tags` lists tags in use; `arv map` the places they name; `arv keywords DISC` writes hierarchical keywords in exiftool format.
+`arv programs` says which of the optional programs arv can use are installed (the GUI's Programs
+view too). `arv tags` lists tags in use; `arv map` the places they name; `arv keywords DISC` writes hierarchical keywords in exiftool format.
 A reviewed tag draft can be applied to `arv make` as `--draft FILE`.
 
 ## Optional: local LLM help with descriptions and tags
@@ -413,7 +414,9 @@ same questions in the page. Its Names view keeps the known names right (rename, 
 ticking the uses that are the other person, retire), and its Map view shows the places.
 
 **Places** come from a gazetteer, `config/places.rec`: Natural Earth's countries and cities
-(public domain), and the places you add (`arv tags add place:fushimi-inari --parent kyoto`, with
+(public domain), regions (states, prefectures) from `iso-codes` when it is installed, towns from
+GeoNames if you fetch them (`sh docs/examples/places-geonames.sh`), and the places you add
+(`arv tags add place:fushimi-inari --parent kyoto`, with
 `--extent` for the box it covers or `--reach 2km`). `--ask` offers the cities a folder's names or
 text mention, saying which ("Lima, Peru"), and the place its photos' GPS is in: one of yours, a
 city of the same country, or the country by its outline. The record keeps the place, never the

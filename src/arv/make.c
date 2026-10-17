@@ -1475,6 +1475,7 @@ static void stage_plan(maker *mk, size_t idx)
         free(n);
         free(all.v);
     }
+    known_keep_tags(mk->h, p->b_tags);       /* a place from extra data its tags name: home first, then on the disc */
     for (int k = 0; !strcmp(o->snapshot, "full") && HOME_VOCABULARIES[k]; k++) {   /* the words it uses: catalog/config/ */
         char *from = join(mk->h->config_dir, HOME_VOCABULARIES[k]), *dir = join(cat_dir, "config");
         if (!access(from, F_OK)) {

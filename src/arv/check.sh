@@ -24,6 +24,7 @@ mkdir -p "$dir"
 cd "$dir"
 ok() { echo "ok: $*"; }
 no() { echo "FAILED: $*"; exit 1; }
+export ARV_NO_EXTRA_PLACES=1      # the built-in places only, whatever this machine has installed (one test below adds some)
 command -v 7z >/dev/null || no "7z is needed to read disc images (p7zip-full)"
 unset ARV_APE ARV_SOURCE    # the real-disc checks use what a user has: the checkout, its arv.com
 
@@ -312,6 +313,14 @@ printf 'b. 1931\ncolleague\n2\n\n' | "$tool" -C kn/home tags split person:anne-s
     && "$tool" -C kn/home tags retire person:anne-smith-2 --why "a mistake" >/dev/null \
     && ok "known names: merge moves the uses back, the other kept, retired, its key an alias; retire keeps the entry" \
     || { cat kn/merge.out; no "known names: merge"; }
+"$tool" -C kn/home tags add person:ann-smith --label "Ann Smith" >/dev/null && "$tool" -C kn/home tags add person:a-smith --label "A. Smith" >/dev/null \
+    && "$tool" -C kn/home tags add person:jo --label Jo >/dev/null && "$tool" -C kn/home tags add person:jon --label Jon >/dev/null \
+    && "$tool" -C kn/home tags names > kn/names.out \
+    && grep -q '^  person:ann-smith and person:a-smith: "ann smith" and "a smith": initials$' kn/names.out \
+    && ! grep -q 'person:anne-smith and\|person:jo and' kn/names.out \
+    && "$tool" -C kn/home tags names --json | grep -q '"likelySame": \[' \
+    && ok "known names: likely the same offered (a letter apart, initials, a form in common); never a short name, nor one told apart by a qualifier" \
+    || { cat kn/names.out; no "known names: likely the same"; }
 "$tool" -C kn/home tags add software:kicad --related electronics >/dev/null 2>&1 && no "tags add takes an unknown option"
 "$tool" -C kn/home tags add software:kicad --label KiCad --same wikidata:Q1141917 > /dev/null \
     && ! grep -A5 '^Name: software:kicad$' kn/home/config/tags.rec | grep -q '^Private' \
@@ -321,6 +330,14 @@ printf 'b. 1931\ncolleague\n2\n\n' | "$tool" -C kn/home tags split person:anne-s
     && grep -q '^Name: family$' kn/disc/catalog/config/tags.rec \
     && ok "known names: a public disc's vocabulary leaves the private entries out (software:kicad goes, person:anne-smith stays home)" \
     || no "known names: private entries on a public disc"
+# the programs arv can use: each found or not, from PATH; none needed for a disc
+mkdir -p progbin && printf '#!/bin/sh\n' > progbin/zstd && chmod +x progbin/zstd
+PATH="$PWD/progbin:/usr/bin/nonexistent" "$tool" programs > prog.out \
+    && grep -q '^  ok       zstd  ' prog.out && grep -q '^  missing  exiftool ' prog.out \
+    && grep -q 'sudo apt install .*libimage-exiftool-perl' prog.out && grep -q '^  sf: Siegfried: ' prog.out \
+    && PATH="$PWD/progbin" "$tool" programs --json | grep -q '"name": "zstd", "group": "making", "found": true' \
+    && ok "arv programs: which programs arv can use are here (PATH), what each is for, and the packages for the missing ones" \
+    || { cat prog.out; no "arv programs"; }
 # places: the gazetteer (Natural Earth's countries and cities), a place of your own in one, arv map, a disc's index.html
 "$tool" -C kn/home tags show place:kyoto | grep -q '^  in: Japan (place:japan)$' \
     && "$tool" -C kn/home tags add place:fushimi-inari --label "Fushimi Inari" --parent kyoto --at 34.9671,135.7727 > kn/place.out \
@@ -329,6 +346,29 @@ printf 'b. 1931\ncolleague\n2\n\n' | "$tool" -C kn/home tags split person:anne-s
     && ! grep -q '135.77' kn/home/catalog/archive.rec \
     && ok "places: the gazetteer's entries (a city in its country); one of your own in one, private with a position, never in the record" \
     || { cat kn/place.out kn/place.txt; no "places: the gazetteer"; }
+# extra place data: iso-codes' regions and a places/NAME.rec in the data folders; one a tag uses is copied home
+mkdir -p xdata/iso-codes/json xhome/arv/places
+printf '{"3166-2": [{"code": "JP-26", "name": "Kyoto", "type": "Prefecture"}, {"code": "JP-01", "name": "Hokkaido", "type": "Prefecture"}]}\n' \
+    > xdata/iso-codes/json/iso_3166-2.json
+printf '%%rec: Place\n\nName: place:uji\nLabel: Uji\nKind: city\nCountry: JP\nRegion: JP-01\nRegion: Kyoto\nAt: +34.89+135.80/\nSame: geonames:1849372\n' > xhome/arv/places/test.rec
+xp() { ARV_NO_EXTRA_PLACES= XDG_DATA_DIRS="$dir/xdata" XDG_DATA_HOME="$dir/xhome" "$tool" "$@"; }
+xp -C kn/home tags show place:kyoto-prefecture > kn/x1.out && grep -q '^  in: Japan (place:japan)$' kn/x1.out \
+    && grep -q '^  same as: iso3166-2:JP-26$' kn/x1.out && xp -C kn/home tags show place:hokkaido | grep -q '(Prefecture)' \
+    && xp -C kn/home tags show place:uji | grep -q '^  in: Kyoto, Japan (place:kyoto-prefecture)$' \
+    && xp -C kn/home tags show place:kyoto | grep -q '^  in: Kyoto, Japan (place:kyoto-prefecture)$' \
+    && ! grep -q '^Name: place:hokkaido$' kn/home/config/places.rec \
+    && xp -C kn/home tags add place:a-ryokan --parent hokkaido >/dev/null \
+    && grep -A8 '^Name: place:hokkaido$' kn/home/config/places.rec | grep -q '^Basis: from iso-codes (ISO 3166-2), copied when first used' \
+    && mkdir -p kn/uji && echo 6 > kn/uji/u.jpg \
+    && printf '{"tags": {".": ["place:uji"]}, "authorship": "human", "agent": "human:t"}\n' > kn/uji.json \
+    && xp -C kn/home make -y --no-ecc --no-formats --set KN --access public --draft kn/uji.json --output-dir kn/out4 kn/uji >/dev/null 2>&1 \
+    && grep -A12 '^Name: place:uji$' kn/home/config/places.rec | grep -q '^Basis: from test.rec, copied when first used' \
+    && "$tool" -C kn/home tags show place:uji | grep -q '^  at: +34.89+135.80/$' \
+    && 7z x -okn/disc4 kn/out4/*.iso catalog/config/places.rec >/dev/null && grep -q '^Name: place:uji$' kn/disc4/catalog/config/places.rec \
+    && xp programs | grep -q '^  ok       iso-codes ' && "$tool" -C kn/home tags names | grep -qv 'place:hokkaido' \
+    && xp -C kn/home find place:kyoto-prefecture | grep -q '  data/  (place:uji)$' \
+    && ok "extra place data: iso-codes' regions in their countries, a place's Region by name (not a code when a name is given), places/NAME.rec from the data folders; one a tag uses is copied home (and onto the disc)" \
+    || { cat kn/x1.out; no "extra place data"; }
 "$tool" -C kn/home tags add place:kyoto --at nowhere >/dev/null 2>&1 && no "a position that is not ISO 6709 was taken"
 "$tool" -C kn/home tags add place:kyoto --extent "34.9,135.7" >/dev/null 2>&1 && no "an extent of one corner was taken"
 "$tool" -C kn/home tags add place:kyoto --reach far >/dev/null 2>&1 && no "a reach that is not a distance was taken"
@@ -351,7 +391,9 @@ printf '{"tags": {".": ["place:kyoto"], "temple": ["place:fushimi-inari"], "cast
     && grep -q '"coordinates": \[135.4600, 34.7500\]}, "properties": {"key": "place:osaka"' kn/map.geojson && ! grep -q nowhere-known kn/map.geojson \
     && "$tool" -C kn/home map --json | grep -q '"key": "place:nowhere-known", .*"position": "none", "inGazetteer": false' \
     && "$tool" -C kn/home map --svg | grep -q '<title>Ōsaka, Japan: 1 path or object</title>' \
-    && ok "arv map: the places the tags name, where each is (the gazetteer's, or a broader place's), as text, JSON, GeoJSON and SVG" \
+    && "$tool" -C kn/home find place:japan > kn/find.out && grep -q 'data/castle/  (place:osaka' kn/find.out \
+    && grep -q 'data/temple/  (place:fushimi-inari)' kn/find.out && ! "$tool" -C kn/home find place:osaka | grep -q temple \
+    && ok "arv map: the places the tags name, where each is (the gazetteer's, or a broader place's), as text, JSON, GeoJSON and SVG; find place:japan finds the places in it" \
     || { cat kn/map.out kn/map.geojson; no "arv map"; }
 7z x -okn/disc3 kn/out3/*.iso index.html catalog/config/places.rec >/dev/null \
     && grep -q '<h2>Places</h2>' kn/disc3/index.html && grep -q '<svg xmlns=' kn/disc3/index.html \

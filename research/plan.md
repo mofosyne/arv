@@ -1997,8 +1997,13 @@ questions shorter. No model: every suggestion says the counts behind it.
 
 Limits: it starts empty and learns habits, mistakes too, so it only marks answers and never tags
 alone (`--clues` takes what is marked, as `automatic`). Names written without spaces (京都旅行) are
-one word to it; short runs of characters would split them, later. Office files and scanned PDFs
-are not read yet (`pandoc`, `tesseract`). Contents are not searched: `arv find` stays on names,
+one word to it; short runs of characters would split them, later. Office files are not read yet
+(`pandoc`). OCR is not arv's (decided 2026-10-17): it is slow (seconds a page, again on every
+round of the GUI's questions), often wrong on handwriting and old type (bad words make bad clues),
+and needs choices (languages, page layout) made once with the tool built for it. Run before
+describing, `ocrmypdf` gives a PDF a text layer and `tesseract` a `.txt` beside an image, which arv
+already reads; the text is then kept on the disc too, searchable with `grep` when no OCR tool is
+at hand, rather than worked out and thrown away while describing. Contents are not searched: `arv find` stays on names,
 tags and descriptions, and full-text search is for tools built for it (Recoll, ripgrep).
 
 **Later: a model as a reader, not a writer.** With this in place a model's work can shrink to what
@@ -2233,7 +2238,37 @@ cities are trusted whatever outline holds them. Off every outline (a coast drawn
 island), the old rule stays: the country of a city within 400 km, said as "perhaps". A size-scaled
 reach for cities (Tokyo is not a town) was left: population is a poor guess at extent, and real city
 boundaries are megabytes. Positions given by a person keep four decimals (about 11 m); the
-gazetteer's cities stay at two. Not yet: `arv find place:japan` finding what is tagged with places inside Japan; regions
-(admin-1) as places; a larger list (GeoNames) as an optional download; offering likely duplicates
-for merging; EAC-CPF export.
+gazetteer's cities stay at two. `arv find place:japan` finds what is tagged with places inside Japan
+too (done 2026-10-17: the tag's chain of `Parent`s in the gazetteer of the catalogue searched, a
+disc's own when it is a disc's, else the built-in one). Likely duplicates are offered (done
+2026-10-17, `arv tags names`, the Names view): in one namespace, a form in common, an edit distance
+of one (two from eight letters; nothing under four, so Jo and Jon are two people), or initials
+("A. Smith"). Keys are compared only without a label (`anne-smith-2` is a key, not a name), and a
+name with a qualifier is left out: it was told apart on purpose, and "Not the same" records that by
+giving each a qualifier, so a refusal is kept in the vocabulary rather than in a list of its own.
+arv never merges by itself.
+
+**Regions and towns, from data the machine has (2026-10-17).** Bundling GeoNames (25 MB) or
+Natural Earth's regions (500 KB on every disc) was weighed against what Linux already ships:
+`iso-codes`, a dependency of package managers and desktops, holds ISO 3166-2's 5,046 subdivisions
+by name (no positions), at `/usr/share/iso-codes/json/iso_3166-2.json`. So arv reads it when it is
+there, and reads `places/NAME.rec` from the XDG data folders (the standard place for such data:
+`$XDG_DATA_HOME`, `$XDG_DATA_DIRS`), which `docs/examples/places-geonames.sh` fills from GeoNames
+for those who want towns; arv itself never downloads (principle 7). Keys follow the gazetteer's:
+the name (`place:hokkaido`), then with its type when the name is taken (`place:kyoto-prefecture`),
+then the country's code. The home's entries win over extra data, and an entry a tag uses is copied
+into the home's `places.rec` with its places above, so what a disc names it carries: removing the
+extra data later changes nothing written. A region and a city of the same name in one country (Osaka)
+are one choice, the city, not two. Lookups went from a list to a hash (34,000 places load in about
+0.2 s). The tests run with `ARV_NO_EXTRA_PLACES=1`, the same places on every machine.
+
+GPS within a region, without outlines (the same day): a photo's GPS gives its nearest town, and the
+town is in its region, so the region comes with it. Natural Earth and GeoNames name each place's
+region (`Region`); arv matches the name against the regions it knows in that country (iso-codes',
+or one copied home, recognised by its ISO code) and puts the place there. Natural Earth's names match
+ISO 3166-2's for about 60% of its cities (France's regions before 2016, Uganda's districts, for one,
+do not); those stay in their country. GeoNames' region codes look like ISO's but often are not
+(Japan's are FIPS numbers: its 26 is Shizuoka, not Kyoto), so a code counts only when no name is
+given. Region outlines (Natural Earth's admin-1, tens of MB at a useful scale) were not needed. Not
+yet: EAC-CPF export. Pushing for such data as distribution packages: issue #53.
 

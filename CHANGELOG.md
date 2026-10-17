@@ -21,6 +21,30 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**More places: regions and towns, from data the machine has**
+- Regions: ISO 3166-2's 5,046 subdivisions (states, prefectures, counties) from `iso-codes` when it
+  is installed (it usually is), each in its country, keyed by name (`place:hokkaido`,
+  `place:kyoto-prefecture` beside Kyoto the city, `place:georgia-state` beside the country).
+- More places: any `places/NAME.rec` in the XDG data folders (`~/.local/share/arv/places/`,
+  `/usr/share/arv/places/`). `docs/examples/places-geonames.sh` writes GeoNames' towns there
+  (CC BY 4.0; 26,000 to 220,000 places, with positions); arv never downloads.
+- A place from extra data that a tag uses is copied into the home's `places.rec` (describing,
+  making a disc, `--parent`), so the record and its discs never depend on what is installed.
+- `--ask`: a region and a city of one name (Osaka) are not two choices: the city is offered.
+- Cities in their regions: the gazetteer's cities and GeoNames' places carry `Region` (the region's
+  name, as their source writes it), and with iso-codes' regions arv puts each in its region: a
+  photo's GPS near Uji gives Uji, in Kyoto Prefecture, in Japan, and `arv find place:kyoto-prefecture`
+  finds it. A name decides; a code only when no name is given (GeoNames' codes are not all ISO's).
+  Keys made from names fold accents (`place:ile-de-france`).
+- `arv programs` lists the place data too; the packages suggest `iso-codes`.
+
+**arv programs: which optional programs are here**
+- `arv programs [--json]` lists every program arv can use (its helpers; git, Siegfried and the
+  compressors for making; exiftool, poppler and ffmpeg for describing; the browser opener; and the
+  tools for work arv leaves to others: burning, ddrescue, OCR), which are found, what each is for,
+  what is missing without it, and the packages to install (Debian, Arch). None is needed for a
+  disc. The GUI has a Programs view; the Debian and Arch packages suggest the same programs.
+
 **In the GUI: the questions, the names, the places**
 - "Ask me (no model)" in the describe panels asks `--ask`'s questions in the page: the likely answers
   ticked, with why, a box to type others. `arv describe --answers FILE|-` is how: the answers so far
@@ -30,6 +54,12 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   the uses that are the other one) and retire. `arv tags names [--json]` lists them;
   `arv tags show KEY --json` gives each use, in the order split asks about them.
 - The Map view's form takes a place's box and reach.
+- Likely duplicates offered for merging: `arv tags names` lists pairs of names in one namespace a
+  letter or two apart ("Ann Smith", "Anne Smith"), initials ("A. Smith") or found as the same form
+  ("Bob"); a name with a qualifier was told apart on purpose and is left out. The Names view offers
+  each with merge either way, or "Not the same" (a qualifier each).
+- `arv find place:japan` finds what is tagged with places in Japan too (Kyoto, Fushimi Inari), by the
+  gazetteer's parents: the home's, a disc's own, or the built-in one.
 
 **Places: a gazetteer, the photos' GPS, and a map**
 - `config/places.rec`, copied into the home on first use: Natural Earth's 242 countries and 1,251
