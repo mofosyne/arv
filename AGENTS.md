@@ -13,6 +13,7 @@ a recfile catalogue, its own source in `tools/`), and keeps the record of what e
 - `docs/spec/smart-archive-format.md`: the disc format. `docs/concepts.md`: the words.
 - `docs/philosophy.md`: the principles. The test for anything new (principle 7): does it keep the
   record, or do the work? Work belongs to tools built for it (burners, rsync, mtx, find).
+- `ROADMAP.md`: what is next, later and done, a line each, linked to issues; update it with the plan.
 - `research/plan.md`: decisions and designs, dated, with what was built and what was not, and why.
   Read the relevant entry before changing a design; add one when a decision is made.
 

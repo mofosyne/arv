@@ -2690,9 +2690,10 @@ checksums and the catalogue on every disc show changes; a small business can kee
 records the same way. They also say what it is not: disaster recovery (getting systems running
 again quickly is the backups' job), and that discs are not encrypted.
 
-**Not built: encryption.** Anyone holding a disc reads it; `sealed` only keeps a disc out of other
+**Not built: encryption** (issue #21). Anyone holding a disc reads it; `sealed` only keeps a disc out of other
 discs' snapshots. Encrypting a disc's payload would protect a stolen copy, but costs the founding
 promise that any computer can read a disc decades on without arv (a lost key, or a cipher tool gone,
 loses the archive). If it is wanted: per object, with a standard tool (age, or OpenPGP), the key's
 fingerprint in the record and the steps in the disc's README.txt; never arv's own cryptography.
 Also for an organisation, later if ever: more than one person writing the record, with accounts.
+Signing discs (proof of origin, not secrecy) is issue #55.

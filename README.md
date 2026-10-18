@@ -588,32 +588,10 @@ and how BagIt and recfiles split the work.
 
 ## Roadmap
 
-- [x] Single `arv` CLI: bag → catalog.rec → image → ECC → verify; `make install`; first in Python,
-      then ported to C command by command against the same outputs, then the Python core removed
-- [x] `catalog.rec` per disc (Dublin Core-named `Disc` fields, PREMIS-typed `Event` records) and the home `archive.rec`
-- [x] ~~`archive.sqlite` search index (`arv index`)~~ retired: `find` in C scans the plain-text
-      lists as fast as Python searched the index (2 million paths in 0.3 s)
-- [x] PRONOM format IDs via Siegfried (`catalog/volumes/<id>/formats.csv`)
-- [x] Cumulative catalogue snapshot (`catalog/`) on every disc; access levels decide what it shows
-- [x] `Location` records, short disc ids with a check character, collections across discs
-- [x] Multi-disc splitting for sets larger than one disc (`Bag-Count: n of N`)
-- [x] `README.txt` and the tool's source on each disc
-- [x] Target medium size, minimum redundancy, defect-management sizes for RS03
-- [x] UDF 2.50 through arv's own writer (`src/udfwrite`)
-- [x] GUI front end over the CLI (`arv gui`, a local web interface; its server in C)
-- [x] Describing without a model (questions over your vocabulary), known names, places and a map
-- [x] The assistant (`arv chat`, and a panel in the GUI): reads on its own, proposes changes
-- [x] `.arv` homes, change events, `Binding` records (format 0.3)
-- [x] ~~dvdisaster sources (and static binaries) on each disc for self-contained repair~~ superseded: arv repairs RS03 itself
-- [ ] File extents per volume, so files can be cut out of a raw image
-- [x] RS03 in arv itself: encoder, image test and repair in plain C ([src/rs03](src/rs03/)), byte-identical to dvdisaster Light,
-      so `tools/arv.com` can repair a disc image anywhere
-- [x] A man page generated from the command's own help (`arv help --man`)
-- [ ] Thumbnails on discs, for people and for models (designed: research/plan.md)
-- [ ] First real burns, and reading them back after time on the shelf
-
-The detailed plan and the reasons behind each decision: [research/plan.md](research/plan.md).
-What changed, and what 1.0 waits for: [CHANGELOG.md](CHANGELOG.md).
+[ROADMAP.md](ROADMAP.md): now (the first real burns, before 1.0), next (thumbnails on discs, the
+assistant's next steps), later if wanted (disc signatures, encryption, more), and what is done.
+The reasons behind each decision: [research/plan.md](research/plan.md). What changed, and what 1.0
+waits for: [CHANGELOG.md](CHANGELOG.md).
 
 ## Talk about it
 
