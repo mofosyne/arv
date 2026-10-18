@@ -2313,7 +2313,7 @@ size is chosen for both, and the design keeps what a model needs in view:
 - **At home, for discs on the shelf:** `arv describe --vision` (a local model; arv-assist sends
   pictures to local servers only, whatever the options say) can describe a disc that is not in the
   drive, from its thumbnails, instead of reading the originals. Captions go where they go now, the
-  caption column of `tags.tsv`, as `automatic`.
+  caption column of `tags.tsv`, as `suggested` (a model's, unreviewed).
 - **Cheaper and faster:** a thumbnail costs a model about 150 image tokens, where the 768 px pictures
   arv-assist sends now cost about 600, and a full photo more. So a folder's thumbnails can go in one
   request, several images to a message (llama.cpp's server and the common APIs take that), and the
@@ -2404,7 +2404,8 @@ leaves"), so a search finds a photo by what is in it, not only by its folder's w
   and it stays a plain picture.
 - **Where captions already go:** the caption column of `tags.tsv`, which `arv find` searches on
   every disc without reading one. One made after burning is an event, `Caption: PATH<TAB>text` with
-  `Sets: Caption:PATH`, as now; its `Authorship` is `automatic`, and it names the model. A better
+  `Sets: Caption:PATH`, as now; its `Authorship` is `suggested`, its `Agent` the model (`accepted`
+  or `edited` once a person looks). A better
   model years later writes a new event over it, and the history keeps both.
 - **A person's caption wins:** a model never replaces a caption a person wrote, only offers its own
   beside it.
