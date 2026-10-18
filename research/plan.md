@@ -2461,10 +2461,24 @@ and what will change is data:
   facts the manual's "Reading and changing the record" states. A read runs; anything else becomes a
   proposal, whatever the model asked. A new command needs nothing in the harness.
 - **What it knows is a text file:** the instructions (the record's rules, the principles, how to
-  sort) in `src/arv-assist/data/`, put in by `arv help --all` and the vocabulary at the start;
-  a home's own copy in `config/` overrides it, so it can be tuned without a release.
-- **Output is cut, not summarised:** a read's JSON is truncated to a budget with a note saying so;
-  older reads are dropped from the conversation before the person's words are.
+  sort) in `src/arv-assist/data/`, about a thousand tokens; a home's own copy in `config/`
+  overrides it, so it can be tuned without a release.
+- **A small context, by design.** It runs on a local model, and most are used with 8k to 32k tokens
+  of context, under 40k. So nothing large goes in at the start: not `arv help --all` (about 5,000
+  tokens) nor the vocabulary, only the instructions and the reads it may make, a line each (about
+  1,000 more). It reads what it needs when it needs it: `arv help COMMAND` for a command's options,
+  `arv tags` for the vocabulary, a disc's `info` rather than every disc.
+- **A budget, from the model:** the context size is asked of the server (llama.cpp's `/props`,
+  Ollama's `/api/show`), else `--llm-context N`, else 8,192. Ollama silently cuts a conversation
+  to its own default (a few thousand tokens) unless told, so the request names the size
+  (`num_ctx`). Tokens are counted roughly (bytes / 3.5) with a margin, not by a tokeniser. About a
+  quarter for the instructions and the reads, a thousand kept for the reply, the rest the
+  conversation.
+- **Output is cut, not summarised:** a read's output may take at most an eighth of the budget; past
+  that it is truncated, with a note saying how much was left out and how to narrow the read (a disc,
+  a path, a namespace). When the conversation is full, older reads' output goes first, then older
+  turns, never the instructions or the person's latest words. Thumbnails, about 150 tokens each,
+  count the same way.
 - **Tested without a model:** `dev-tools/fake-llm.c`, which the describe checks already use, plays
   scripted replies; the checks cover a read, a proposal, a write asked for as a read (made a
   proposal), and a reply that breaks the schema (shown, not run).
