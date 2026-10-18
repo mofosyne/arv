@@ -2487,6 +2487,17 @@ is; each front end only draws them:
     it talks about show as thumbnails.
   - A proposal is a card: the command, what it changes, Apply, Edit (the command's own form, filled
     in, so the GUI builds it as now) and Dismiss. The result of Apply comes back into the chat.
+  - **Every step shows as its command,** as Android Studio's agent shows what it runs: a status line
+    in the chat for each read (`arv find place:kyoto --json`), opened to show its output, and the
+    command to copy. It is the same command the shell takes, so watching the assistant teaches the
+    command line, and a person can run any step again by hand.
+  - **It does not drive the page.** No clicking on buttons and no jumping between views on its own:
+    clicks would tie the assistant to the page's layout (each change to the page would break it), put
+    features into the page that the server and the commands should hold, and hide behind animation
+    what the command line shows plainly; and a view changing under a person who is working in it
+    loses their place. Instead each step's line has "Open" (the view that shows it: Search for a
+    find, the disc for an info), and a "Follow" switch in the panel, off by default, lets the view
+    on the left open what the assistant last looked at, for someone who wants to watch it work.
 - **The terminal: lines,** a question and an answer at a time; a proposal is shown as its command
   and applied on `y`. No full-screen interface: it would need ncurses (a library, against arv's
   rule and TinyCC) or terminal codes by hand, it would be a third front end to keep in step, and
