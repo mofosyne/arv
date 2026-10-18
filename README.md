@@ -13,6 +13,10 @@
 > mature project: read the code before relying on it, check what it produces, and expect
 > bugs. Provided as is, with no warranty (see [LICENSE](LICENSE)).
 
+![arv gui on the sample archive: Record › Discs, with the Assistant open on the right. Asked whether the Kyoto trip is safe, it ran two commands that only read (arv find place:kyoto, arv todo --json), answered where both copies are and that neither has been read back, then proposed a check of copy A, which waits for Apply](docs/screenshots/assistant.png)
+<sub>`arv gui` on the sample archive, with the Assistant open. Its reads are real; the model's
+replies are scripted for this picture (`dev-tools/screenshots.sh`).</sub>
+
 **ARV** (`arv`; also Norwegian for "inheritance") is for **long-term archiving, not backup**.
 
 | | A backup | An archive |
