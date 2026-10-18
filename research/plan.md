@@ -2328,6 +2328,15 @@ bytes, whatever their names, and the join to a file is the manifest, so the TSV 
 files are in the tag manifest like the rest of the catalogue, so `arv check` and any BagIt
 validator check them.
 
+**In the disc's `index.html`.** Still no JavaScript and no network, so it works from `file://`. In
+the Files tree, a file with a thumbnail gets one before its name, linked to the file:
+`<img src="catalog/volumes/<id>/thumbs/<sha256>.jpg" width=.. height=.. loading="lazy" alt="">`, its
+size from `thumbs.tsv` so the page does not jump as they load. A folder holding mostly pictures lists
+them as a grid of thumbnails with their names under them, a contact sheet. The tree's folders start
+closed below the top level, and lazy images inside a closed `<details>` are not fetched, so a disc
+of 10,000 photos opens as fast as it does now; the page grows by about 150 bytes a thumbnail (1.5 MB
+for 10,000). A browser that ignores `loading` still shows the page, only slower to open.
+
 **Katalog.** It shows no thumbnails today, but it keeps each file's SHA-256 when a catalogue is made
 with checksums, and the mapping already takes the manifest's hashes into that column (the spec's
 "Mapping to Katalog"). So a Katalog import copies the `thumbs/` folder into its collection, and a
