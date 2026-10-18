@@ -57,7 +57,10 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   tools for work arv leaves to others: burning, ddrescue, OCR), which are found, what each is for,
   what is missing without it, and each group's install command for this system (Debian and Ubuntu,
   Fedora, Arch, macOS with Homebrew, found from os-release; every system's when it is none of
-  those). None is needed for a disc. The GUI shows them in its Settings; the Debian and Arch packages suggest the same programs.
+  those). Siegfried gets its project's own steps for this system. `--install [GROUP]` hands the
+  missing packages to PackageKit, which asks for the password (arv gets no rights, downloads
+  nothing); the GUI has Copy beside every command, and Install where PackageKit is here. None is
+  needed for a disc. The GUI shows them in its Settings; the Debian and Arch packages suggest the same programs.
 
 **Models: found, chosen, and your own key**
 - The GUI's Settings (in the header, beside Jobs) list the model servers on this computer (Ollama,

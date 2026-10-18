@@ -2610,3 +2610,21 @@ a shell's variables; the page says so.
 principle 7). curl is on nearly every system; its options go on standard input (`curl -K -`), so the
 key is in no command line, and the body on a descriptor of its own. Without curl, an external
 provider says it needs it; `arv programs` lists curl.
+
+## Decision (2026-10-18): installing the programs arv can use, without arv installing anything
+
+Settings › Programs says what is missing, by group, with this system's command (Debian and Ubuntu,
+Fedora, Arch, macOS with Homebrew, found from os-release). The owner asked for an Install button,
+Siegfried especially. arv does not install anything itself: it would need root from a page in a
+browser (the most dangerous thing the interface's server could do), and arv never downloads
+(principle 7: work belongs to tools built for it). So:
+
+- **Copy** beside every command: one paste into a terminal.
+- **Install, through PackageKit,** where it is here: `arv programs --install [GROUP]` hands the
+  group's packages to `pkcon`, the system's own installer, which asks for the password itself. arv
+  gets no rights and downloads nothing; without PackageKit (Arch by default, macOS) the command is
+  printed instead. The GUI asks first and runs it as a job, its output in Jobs.
+- **Siegfried's own steps,** never run: it is in no distribution's own packages, and its project's
+  Debian route adds its own package source and signing key, a trust that is the person's to give.
+  Each system's steps (an apt source, the AUR, a Homebrew tap, FreeBSD's pkg, `go install`) are
+  shown with Copy, then `sf -update` for its signatures.

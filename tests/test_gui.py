@@ -300,6 +300,8 @@ class GuiTest(unittest.TestCase):
         programs = {p["name"]: p for p in self.ok("programs", "--json")["programs"]}   # Settings' Programs
         self.assertTrue(programs["arv-gui"]["found"])
         self.assertEqual(programs["exiftool"]["group"], "describing")
+        self.assertIn("sudo apt-get install siegfried", programs["sf"]["steps"]["debian"])   # Siegfried's own steps
+        self.assertIn("packagekit", self.ok("programs", "--json"))                         # Install, where it is here
         self.assertEqual(programs["exiftool"]["packages"], {"debian": "libimage-exiftool-perl", "fedora": "perl-Image-ExifTool",
                                                             "arch": "perl-image-exiftool", "macos": "exiftool"})
 

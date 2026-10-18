@@ -5,7 +5,7 @@
  * ids, packed objects, clues for describing), or do the work arv leaves to tools built for it
  * (burning, reading a damaged disc, OCR), which arv never runs.
  *
- *   arv programs [--json]
+ *   arv programs [--json] [--install [GROUP]]
  */
 #define _XOPEN_SOURCE 700
 #include "arv.h"
@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/utsname.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 typedef struct {
@@ -33,11 +34,34 @@ static const char *const SYSTEMS[][3] = {
 
 static const char *from(const program *p)   /* where one with no package comes from */
 {
-    if (!strcmp(p->name, "sf")) return "Siegfried: github.com/richardlehane/siegfried (a release, or its own .deb)";
+    if (!strcmp(p->name, "sf")) return "Siegfried: in no distribution's own packages; its project's steps below";
     if (!strcmp(p->name, "places"))
         return "sh docs/examples/places-geonames.sh (in arv's source, or share/arv): writes ~/.local/share/arv/places/";
     return "make install in arv's source puts it beside arv";
 }
+
+/* Siegfried is in no distribution's own packages: its project's steps for each system (SYSTEMS'
+ * order, then any other), from github.com/richardlehane/siegfried. arv shows them; it runs none,
+ * since most add a package source of Siegfried's own, a trust that is the person's to give. */
+static const char *const SF_STEPS[] = {
+    "curl -sL \"http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x20F802FE798E6857\" | gpg --dearmor \\\n"
+    "  | sudo tee /usr/share/keyrings/siegfried-archive-keyring.gpg >/dev/null\n"
+    "echo \"deb [signed-by=/usr/share/keyrings/siegfried-archive-keyring.gpg] https://www.itforarchivists.com/ buster main\" \\\n"
+    "  | sudo tee -a /etc/apt/sources.list.d/siegfried.list\n"
+    "sudo apt-get update && sudo apt-get install siegfried\n"
+    "sf -update",
+    "sudo dnf install golang\n"
+    "go install github.com/richardlehane/siegfried/cmd/sf@latest   # into ~/go/bin: add it to PATH\n"
+    "sf -update",
+    "git clone https://aur.archlinux.org/siegfried.git\n"
+    "cd siegfried && makepkg -si\n"
+    "sf -update",
+    "brew install richardlehane/digipres/siegfried\n"
+    "sf -update",
+    "go install github.com/richardlehane/siegfried/cmd/sf@latest   # needs Go; or a release from\n"
+    "                                                          # github.com/richardlehane/siegfried/releases\n"
+    "sf -update                                                # FreeBSD: pkg install siegfried",
+};
 
 #define SAME(x) { x, x, x, x }
 static const program PROGRAMS[] = {
@@ -185,11 +209,68 @@ static char *install_line(size_t k, const char *group, char **at, size_t n)
     return b.s;
 }
 
+/* arv programs --install [GROUP]: the missing ones' packages, handed to PackageKit (pkcon), which asks
+ * for the password itself; arv gets no rights and downloads nothing. Never Siegfried (no package). */
+static int install(const char *group, int sys, char **at, size_t n)
+{
+    if (sys < 0) {
+        fputs("Error: this system is not one arv knows the packages of; arv programs shows each system's commands\n", stderr);
+        return 1;
+    }
+    char *line = install_line((size_t)sys, group, at, n);
+    if (!line) {
+        printf("Nothing to install%s%s from this system's packages.\n", group ? " for " : "", group ? group : "");
+        return 0;
+    }
+    if (!on_path("pkcon")) {
+        printf("PackageKit (pkcon) is not here, so arv cannot hand this to your system's installer. In a terminal:\n  %s\n", line);
+        free(line);
+        return 1;
+    }
+    strlist args = { 0 };
+    strlist_add(&args, "pkcon");
+    strlist_add(&args, "install");
+    if (!isatty(0)) strlist_add(&args, "--noninteractive");    /* from the interface: it asked already */
+    for (const char *w = strchr(line + strlen(SYSTEMS[sys][2]), ' '); w && *w; ) {
+        w++;
+        size_t len = strcspn(w, " ");
+        char *pkg = xprintf("%.*s", (int)len, w);
+        strlist_add(&args, pkg);
+        free(pkg);
+        w += len;
+    }
+    free(line);
+    printf("Handing to PackageKit (it asks for your password):");
+    for (size_t i = 0; i < args.n; i++) printf(" %s", args.v[i]);
+    puts("");
+    fflush(stdout);
+    char **av = xmalloc((args.n + 1) * sizeof *av);
+    for (size_t i = 0; i < args.n; i++) av[i] = args.v[i];
+    av[args.n] = NULL;
+    pid_t pid = fork();
+    if (!pid) {
+        execvp(av[0], av);
+        _exit(127);
+    }
+    int st = 1;
+    if (pid > 0) waitpid(pid, &st, 0);
+    free(av);
+    strlist_free(&args);
+    int ok = pid > 0 && WIFEXITED(st) && !WEXITSTATUS(st);
+    puts(ok ? "Installed. arv programs shows what is here now." : "PackageKit did not install them (see above).");
+    return ok ? 0 : 1;
+}
+
 int cmd_programs(int argc, char **argv)
 {
-    int as_json = 0;
+    int as_json = 0, installing = 0;
+    const char *group = NULL;
     for (int i = 0; i < argc; i++) {
         if (!strcmp(argv[i], "--json")) as_json = 1;
+        else if (!strcmp(argv[i], "--install")) {
+            installing = 1;
+            if (i + 1 < argc && argv[i + 1][0] != '-') group = argv[++i];
+        }
         else if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) i++;   /* the same for any home */
         else return 2;
     }
@@ -197,6 +278,15 @@ int cmd_programs(int argc, char **argv)
     char **at = xmalloc(n * sizeof *at), *pretty = NULL;
     for (size_t i = 0; i < n; i++) found += (at[i] = real_where(&PROGRAMS[i])) != NULL;
     int sys = this_system(&pretty);
+    if (installing) {
+        int known = !group;
+        for (size_t g = 0; group && g < sizeof GROUPS / sizeof *GROUPS; g++) known |= !strcmp(GROUPS[g][0], group);
+        int rc = known ? install(group, sys, at, n) : (fprintf(stderr, "Error: no group %s (helpers, making, describing, interface, beside, data)\n", group), 1);
+        for (size_t i = 0; i < n; i++) free(at[i]);
+        free(at);
+        free(pretty);
+        return rc;
+    }
     sbuf b = { 0 };
     if (as_json) {
         sb_puts(&b, "{" JSON_FORMAT ", \"system\": ");
@@ -207,7 +297,7 @@ int cmd_programs(int argc, char **argv)
         } else {
             sb_puts(&b, "null");
         }
-        sb_puts(&b, ", \"systems\": [");
+        sb_printf(&b, ", \"packagekit\": %s, \"systems\": [", on_path("pkcon") ? "true" : "false");
         for (size_t k = 0; k < NSYSTEMS; k++) {
             sb_puts(&b, k ? ", {\"id\": " : "{\"id\": "); json_str(&b, SYSTEMS[k][0]);
             sb_puts(&b, ", \"name\": "); json_str(&b, SYSTEMS[k][1]);
@@ -235,6 +325,16 @@ int cmd_programs(int argc, char **argv)
                     first = 0;
                 }
             sb_puts(&b, "}, \"from\": "); json_str(&b, p->pkg[0] ? "" : from(p));
+            if (!strcmp(p->name, "sf")) {               /* its own steps, each system's */
+                sb_puts(&b, ", \"steps\": {");
+                for (size_t k = 0; k <= NSYSTEMS; k++) {
+                    sb_puts(&b, k ? ", " : "");
+                    json_str(&b, k < NSYSTEMS ? SYSTEMS[k][0] : "other");
+                    sb_puts(&b, ": ");
+                    json_str(&b, SF_STEPS[k]);
+                }
+                sb_puts(&b, "}");
+            }
             sb_puts(&b, "}");
         }
         sb_puts(&b, "\n]}\n");
@@ -256,9 +356,16 @@ int cmd_programs(int argc, char **argv)
                 if (line) sb_printf(&b, "  to install%s%s: %s\n", sys >= 0 ? "" : ", on ", sys >= 0 ? "" : SYSTEMS[k][1], line);
                 free(line);
             }
-            for (size_t i = 0; i < n; i++)
-                if (!at[i] && !PROGRAMS[i].pkg[0] && !strcmp(PROGRAMS[i].group, GROUPS[g][0]))
-                    sb_printf(&b, "  %s: %s\n", PROGRAMS[i].name, from(&PROGRAMS[i]));
+            for (size_t i = 0; i < n; i++) {
+                if (at[i] || PROGRAMS[i].pkg[0] || strcmp(PROGRAMS[i].group, GROUPS[g][0])) continue;
+                sb_printf(&b, "  %s: %s\n", PROGRAMS[i].name, from(&PROGRAMS[i]));
+                if (strcmp(PROGRAMS[i].name, "sf")) continue;
+                const char *st = SF_STEPS[sys >= 0 ? (size_t)sys : NSYSTEMS];
+                for (const char *l = st, *e; *l; l = *e ? e + 1 : e) {
+                    e = l + strcspn(l, "\n");
+                    sb_printf(&b, "      %.*s\n", (int)(e - l), l);
+                }
+            }
         }
         sb_printf(&b, "\n%zu of %zu found.", found, n);
         for (size_t k = 0; k < NSYSTEMS; k++) {

@@ -1799,12 +1799,36 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       var box = $("programs-list"); box.textContent = "";
       var missing = res.programs.filter(function (p) { return !p.found; });
       box.appendChild(el("p", { text: (res.programs.length - missing.length) + " of " + res.programs.length + " found. This system: " +
-        (res.system ? res.system.name : "not one arv knows the packages of; each system's commands are shown") + "." }));
+        (res.system ? res.system.name : "not one arv knows the packages of; each system's commands are shown") + "." +
+        (res.system ? (res.packagekit ? " Install hands a group's packages to PackageKit, which asks for your password."
+          : " Copy a command into a terminal (with PackageKit installed, an Install button does it here).") : "") }));
       // "sudo apt install a b" for these programs on one system, or null
       function line(list, sys) {
         var pk = [];
         list.forEach(function (p) { var k = p.packages[sys.id]; if (k && pk.indexOf(k) < 0) pk.push(k); });
         return pk.length ? sys.install + " " + pk.join(" ") : null;
+      }
+      // a command to paste into a terminal, with Copy beside it (and Install, through PackageKit, when given)
+      function commandBox(text, installGroup) {
+        var pre = el("pre", { class: "log", text: text }), msg = el("span", { class: "muted" });
+        var copy = action("Copy", function () {
+          var done = function () { msg.textContent = "Copied: paste it into a terminal."; };
+          if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, function () { msg.textContent = "Select it and copy it by hand."; });
+          else { var r = document.createRange(); r.selectNodeContents(pre); getSelection().removeAllRanges(); getSelection().addRange(r);
+                 msg.textContent = document.execCommand("copy") ? "Copied: paste it into a terminal." : "Selected: copy it by hand."; }
+        });
+        var acts = [copy];
+        if (installGroup) {
+          var inst = action("Install", function () {
+            if (!confirm("Install these with your system's installer (PackageKit)?\n\n" + text + "\n\nIt asks for your password " +
+                "itself; arv gets no rights and downloads nothing. Its output shows in Jobs.")) return;
+            run(["programs", "--install", installGroup], false);
+          });
+          inst.title = "Hands these packages to PackageKit (pkcon), which asks for your password";
+          acts.push(inst);
+        }
+        acts.push(msg);
+        return el("div", {}, [pre, el("div", { class: "acts" }, acts)]);
       }
       PROGRAM_GROUPS.forEach(function (g) {
         var progs = res.programs.filter(function (p) { return p.group === g[0]; }), gone = progs.filter(function (p) { return !p.found; });
@@ -1820,7 +1844,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         var here = res.system ? res.systems.filter(function (s) { return s.id === res.system.id; }) : res.systems;
         here.forEach(function (sys) {
           var l = line(gone, sys);
-          if (l) box.appendChild(el("pre", { class: "log", text: (res.system ? "" : "# " + sys.name + "\n") + l }));
+          if (l) box.appendChild(commandBox((res.system ? "" : "# " + sys.name + "\n") + l, res.system && res.packagekit ? g[0] : null));
         });
         var others = res.system ? res.systems.filter(function (s) { return s.id !== res.system.id; }).map(function (sys) {
           var l = line(gone, sys); return l ? "# " + sys.name + "\n" + l : null; }).filter(Boolean) : [];
@@ -1828,6 +1852,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
           el("pre", { class: "log", text: others.join("\n") })]));
         gone.filter(function (p) { return p.from; }).forEach(function (p) {
           box.appendChild(el("p", { class: "muted" }, [el("span", { class: "mono", text: p.name }), document.createTextNode(": " + p.from)]));
+          if (!p.steps) return;
+          box.appendChild(commandBox(p.steps[res.system ? res.system.id : "other"], null));
+          var rest = Object.keys(p.steps).filter(function (k) { return !res.system || k !== res.system.id; });
+          if (res.system) box.appendChild(el("details", {}, [el("summary", { class: "muted", text: p.name + " on other systems" }),
+            el("pre", { class: "log", text: rest.map(function (k) { var sy = res.systems.filter(function (x) { return x.id === k; })[0];
+              return "# " + (sy ? sy.name : "Any other (Go, a release, or FreeBSD)") + "\n" + p.steps[k]; }).join("\n\n") })]));
         });
       });
     }).catch(function (e) { $("programs-list").textContent = "Error: " + e.message; });

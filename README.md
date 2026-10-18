@@ -389,8 +389,12 @@ server. arv does not download or build a model or runtime. See `arv tag --help` 
 
 `arv programs` says which of the optional programs arv can use are installed, and for each group
 the command that installs the missing ones on this system: Debian and Ubuntu, Fedora, Arch, or
-macOS with Homebrew (every one's when it is none of those). The GUI shows the same in Settings ›
-Programs. `arv tags` lists tags in use; `arv map` the places they name; `arv keywords DISC` writes hierarchical keywords in exiftool format.
+macOS with Homebrew (every one's when it is none of those). Siegfried, in no distribution's own
+packages, gets its project's own steps for this system. `arv programs --install [GROUP]` hands a
+group's packages to PackageKit (`pkcon`), which asks for the password: arv gets no rights and
+downloads nothing. The GUI shows the same in Settings › Programs, each command with Copy, and
+Install where PackageKit is here (never for Siegfried, whose steps add a package source of its own:
+that trust is yours to give). `arv tags` lists tags in use; `arv map` the places they name; `arv keywords DISC` writes hierarchical keywords in exiftool format.
 A reviewed tag draft can be applied to `arv make` as `--draft FILE`.
 
 ## Optional: local LLM help with descriptions and tags

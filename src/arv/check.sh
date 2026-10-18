@@ -346,7 +346,16 @@ ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin:/usr/bin/nonexistent" "$tool" prog
     && grep -q '^  to install, on macOS (Homebrew): brew install exiftool poppler ffmpeg$' prog2.out \
     && ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin" "$tool" programs --json | grep -q '"system": {"id": "debian", "name": "Debian GNU/Linux 13 (trixie)"}' \
     && PATH="$PWD/progbin" "$tool" programs --json | grep -q '"name": "zstd", "group": "making", "found": true' \
-    && ok "arv programs: which programs arv can use are here (PATH), what each is for, and each group's install command for this system (every system's when it is not one arv knows)" \
+    && grep -q '^      sudo apt-get update && sudo apt-get install siegfried$' prog.out \
+    && ARV_OS_RELEASE=$PWD/fed.os PATH="$PWD/progbin" "$tool" programs | grep -q '^      go install github.com/richardlehane/siegfried/cmd/sf@latest' \
+    && ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin" "$tool" programs --install describing </dev/null | grep -q '^PackageKit (pkcon) is not here' \
+    && printf '#!/bin/sh\necho "$*" > "%s/pkcon.args"\n' "$PWD" > progbin/pkcon && chmod +x progbin/pkcon \
+    && ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin" "$tool" programs --install describing </dev/null | grep -q '^Installed\.' \
+    && grep -qx 'install --noninteractive libimage-exiftool-perl poppler-utils ffmpeg curl' pkcon.args \
+    && ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin" "$tool" programs --install making </dev/null > /dev/null \
+    && grep -qx 'install --noninteractive git tar xz-utils gzip zip unzip' pkcon.args \
+    && ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin" "$tool" programs --json | grep -q '"packagekit": true' && rm progbin/pkcon \
+    && ok "arv programs: which programs arv can use are here (PATH), what each is for, each group's install command for this system (every system's when it is not one arv knows), Siegfried's own steps, and --install through PackageKit (never Siegfried)" \
     || { cat prog.out; no "arv programs"; }
 # places: the gazetteer (Natural Earth's countries and cities), a place of your own in one, arv map, a disc's index.html
 "$tool" -C kn/home tags show place:kyoto | grep -q '^  in: Japan (place:japan)$' \
