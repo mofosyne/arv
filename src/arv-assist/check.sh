@@ -306,6 +306,34 @@ grep -q "pictures go only to a model on this computer, and the text model is not
     && ok "an external provider: refused unless chosen with --external, then said at each use; pictures never sent to one" \
     || { cat ext.out pic.out ext.json ext.err vis.out; no "an external provider"; }
 
+# ------------------------------------------------------------------ the assistant (arv chat)
+cp text.reply saved.reply
+printf '%s\n===\n%s\n===\n%s\n===\n%s\n' '{"read": ["find", "travel"]}' 'Sure! {"say": "One disc has travel: see above."}' \
+    '{"read": ["tags", "merge", "person:a", "person:b"]}' '{"propose": ["retag", "trip", "travel, place:kyoto"], "why": "it is a trip"}' > text.reply
+printf 'what is about travel?\nmerge a and b\ntag the trip\n' | "$tool" --home home chat $llm > chat.out 2> chat.err || no "chat"
+grep -q '^  \$ arv find travel   (exit 0, ' chat.err && grep -q '^One disc has travel: see above\.$' chat.out \
+    && grep -q '^Proposed (high risk): arv tags merge person:a person:b$' chat.out \
+    && grep -q '^Proposed (low risk): arv retag trip '"'"'travel, place:kyoto'"'"'$' chat.out && grep -q '^  it is a trip$' chat.out \
+    && grep -q 'not applied' chat.out && grep -q 'Commands (reads: run it' log \
+    && grep -q -- '- find \[-C CATALOG\] \[--limit N\] PATTERN  \[reads\]' log && grep -q -- '- tags \[--namespace NS\]  \[reads; names: reads' log \
+    && grep -q 'Output of `arv find travel` (exit 0)' log \
+    && ok "arv chat: reads run on its own (shown as commands), a write asked as a read becomes a proposal, proposals carry their risk, nothing applied unasked" \
+    || { cat chat.out chat.err; no "arv chat"; }
+printf '%s\n' '{"read": ["todo", "--json"]}' > text.reply
+printf '{"messages": [{"role": "user", "content": "what is owed?"}], "context": "Verify / Owed"}' \
+    | "$tool" --home home chat --json $llm --llm-context 4096 > gui.json || no "chat --json"
+tr -d '\n' < gui.json | grep -q '"steps": \[{"command": \["todo", "--json"\], "shown": "arv todo --json", "risk": "none", "exit": 0' \
+    && grep -q 'That is enough reading: answer now' log && grep -q '(On screen: Verify / Owed)' log \
+    && tr -d '\n' < gui.json | grep -q '"reply": {"say": "{\\"read' \
+    && ok "arv chat --json (the GUI's): the conversation in, the steps and the reply out; at most 6 reads a turn, then an answer is asked for" \
+    || { cat gui.json; no "chat --json"; }
+mkdir -p home/config && echo "Answer only in French." > home/config/assistant.txt
+printf '{"say": "Oui."}' > text.reply
+printf 'hello\n' | "$tool" --home home chat $llm > /dev/null 2>&1 && grep -q 'Answer only in French' log \
+    && ok "arv chat: a home's config/assistant.txt in place of the built-in instructions" || no "chat instructions"
+rm home/config/assistant.txt
+cp saved.reply text.reply
+
 # ------------------------------------------------------------------ tag
 cat > tags.rec <<'EOF'
 %rec: Tag

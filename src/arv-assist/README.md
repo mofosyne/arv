@@ -11,6 +11,11 @@ arv tag FOLDER|DISC-ID [--save DRAFT] [--apply] ...   folder tags from your voca
 ```
 
 `arv-assist --help` lists every option; the top-level [README](../../README.md) explains them.
+`arv chat` runs `arv-assist chat` (`chat.c`): the assistant, a loop around the chosen model whose
+replies are one JSON object each (read, propose or say). It runs arv itself for reads, those `arv
+help --json` gives risk none; anything else is a proposal. `--json` is the GUI's: the conversation
+in on standard input, the steps, the reply and the conversation out.
+
 arv-gui also runs `arv-assist suggest` (one round of suggestions, JSON in and out),
 `arv-assist llm-status [--all]` and `arv-assist llm-use` (its Settings).
 

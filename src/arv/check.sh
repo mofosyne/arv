@@ -110,8 +110,20 @@ fi
     && ok "a catalogue command on a home that does not exist yet creates it" || no "location add on a new home"
 "$tool" --home fresh-home todo --json | grep -qx '{"format": "arv-json 1", "overdueBefore": "[0-9-]*", "discs": 0, "owed": \[\], "questions": \[\]}' \
     || no "todo --json with nothing owed"
-"$tool" help --json | grep -q '{"name": "todo", "usage": "arv todo \[--overdue AGE\] \[--tsv | --json\]", "summary": "what is owed' \
+"$tool" help --json | grep -q '{"name": "todo", "reads": true, "risk": "none", "risks": \[\], "usage": "arv todo \[--overdue AGE\] \[--tsv | --json\]", "summary": "what is owed' \
     || no "help --json"
+# each command's risk (src/arv/risk.c) agrees with the manual's list of those that only read
+"$tool" help --json > risk.json
+reads=$("$tool" help --all | sed -n '/^These only read:/,/^$/p' | tr '\n' ' ' | sed 's/(a preview).*//; s/(without[^)]*)//g; s/`[a-z]* --[a-z]*`//g' | grep -o '`[a-z]*`' | tr -d '`' | sort -u)
+for c in $reads; do
+    grep -q "{\"name\": \"$c\", \"reads\": true, \"risk\": \"none\"" risk.json || no "help --json: $c only reads, the manual says"
+done
+[ "$(grep -o '"name": "[a-z]*", "reads"' risk.json | wc -l)" -eq "$(grep -o '"usage": ' risk.json | wc -l)" ] || no "help --json: a command without a risk"
+grep -q '"name": "plan", "reads": false, "risk": "medium", "risks": \[{"when": "list", "risk": "none"}' risk.json \
+    && grep -q '"name": "access", "reads": false, "risk": "high"' risk.json \
+    && grep -q '"name": "collection", "reads": false, "risk": "medium", "risks": \[{"when": "list", "risk": "none"}, {"when": "show", "risk": "none"}' risk.json \
+    && grep -q '{"when": "merge", "risk": "high"}' risk.json && grep -q '{"when": "--check", "risk": "medium"}' risk.json \
+    && ok "help --json: each command's risk (none: it only reads; low, medium, high), as the manual lists them" || no "help --json risks"
 mkdir -p loose && echo x > loose/f.txt
 "$tool" --home fresh-home status --json loose 2>/dev/null \
     | grep -q '"is": "folder", "files": 1, "onDiscs": 0, "mostLike": \[\], "onNone": \["f.txt"\], "notes": \[\]}$' || no "status --json"

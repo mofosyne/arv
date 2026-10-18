@@ -2653,3 +2653,31 @@ browser (the most dangerous thing the interface's server could do), and arv neve
   Debian route adds its own package source and signing key, a trust that is the person's to give.
   Each system's steps (an apt source, the AUR, a Homebrew tap, FreeBSD's pkg, `go install`) are
   shown with Copy, then `sf -update` for its signatures.
+
+## Done (2026-10-18): the assistant, first version
+
+As designed above ("an assistant for archival work"), the first version:
+
+- **Risk in `arv help --json`:** `reads`, `risk` (none, low, medium, high) and `risks` for the
+  subcommands and options that differ, from one table, `src/arv/risk.c` (`command_risk`), which
+  arv-assist uses too. `src/arv/check.sh` holds it to the manual's list of commands that only read.
+- **The loop, `arv chat` (arv-assist `chat.c`):** each model reply one JSON object, read, propose or
+  say, asked for with the server's JSON mode and read even when fenced. A read of risk none runs at
+  once, as arv itself, with the home; its output goes back cut to an eighth of the budget. A read
+  of anything else becomes a proposal. At most 6 reads a turn, then an answer is asked for.
+- **The budget:** llama.cpp's `n_ctx` from `/props`, else `--llm-context N`, else 8,192 tokens; a
+  conversation too long drops old outputs, then old turns, never the instructions or the latest.
+- **What it knows:** `src/arv-assist/data/assistant.txt` (about 400 tokens, built in), or a home's
+  `config/assistant.txt`, then the command list from `arv help --json`, a line each with its risk.
+- **At a terminal:** each read shown as `$ arv ...`; a proposal with its risk and "Apply it? [y/N]";
+  piped, nothing is applied. **In the GUI:** the Assistant panel on the right, open across tabs
+  (remembered), the open view sent as context; reads as status lines with their output and Open;
+  a proposal as a card with its risk, Apply (asked again when high) and Dismiss; the view reloads
+  after Apply. The conversation lives in the page; New starts again.
+- **Tested** against the fake server, which now answers a conversation in parts (lines `===`).
+
+Not yet, from the design: Edit on a proposal (the command's own form, filled in), rules learned from
+repeated acceptances, the low-risk "apply without asking" switch, confidence from token
+probabilities, Follow, the record-changed poll, conversations kept across sessions, and the MCP
+server. A proposal applied is recorded as the person's (they ran the command); naming the model as
+its agent (`accepted`) waits on a way to pass an agent to every command.

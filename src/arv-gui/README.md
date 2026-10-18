@@ -55,6 +55,10 @@ arv gui                       # the home arv finds from here
 arv-gui --home PATH [--port N] [--no-browser] [--idle MINUTES] [--llm-url URL] [--llm-model NAME]
 ```
 
+The Assistant panel (on the right, from the header) runs `arv-assist chat --json` for each turn, the
+conversation kept in the page; a proposal it shows is applied as any other command, through
+`/api/run`. The server knows nothing of it.
+
 Its options for models (`--llm-url` and the rest) are given to every arv-assist command it runs,
 and win over the choice made in its Settings, which is kept for this computer by `arv-assist
 llm-use`. While an external provider is chosen, the header says so ("External AI: HOST").

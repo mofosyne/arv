@@ -86,6 +86,7 @@ char *models_blocked(const char *url);      /* why a server or provider may not 
 int assist_llm_use(int argc, char **argv);
 int assist_llm_models(int argc, char **argv);      /* llm-status --all */
 int assist_llm_test(int argc, char **argv);
+int assist_chat(int argc, char **argv);              /* chat.c: the assistant */
 
 typedef struct {
     char *title, *description;

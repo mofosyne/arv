@@ -13,8 +13,8 @@ $(BUILD)/embed: ../../dev-tools/embed.c
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(WARN) -o $@ ../../dev-tools/embed.c
 
-$(BUILD)/words-data.c: data/common-words.txt data/countries.txt $(BUILD)/embed
-	$(BUILD)/embed $@ COMMON_WORDS=data/common-words.txt COUNTRIES=data/countries.txt
+$(BUILD)/words-data.c: data/common-words.txt data/countries.txt data/assistant.txt $(BUILD)/embed
+	$(BUILD)/embed $@ COMMON_WORDS=data/common-words.txt COUNTRIES=data/countries.txt ASSISTANT=data/assistant.txt
 
 $(BUILD)/arv-assist: *.c *.h $(BUILD)/words-data.c $(ARV) ../arv/*.h
 	@mkdir -p $(BUILD)

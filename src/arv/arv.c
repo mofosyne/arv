@@ -155,6 +155,8 @@ static const char USAGE_REST[] =
           "         for arv --archive NAME; --default: the one used when no other is found)\n"
           "  arv where [--here]   which home arv uses, and why (--here: this copy of it may be written here too)\n"
           "  arv gui   the interface, in your web browser (*)\n"
+          "  arv chat [--llm-context N]   the assistant: ask about the archive; it reads on its own, and a change\n"
+          "         it proposes is yours to apply (*)\n"
           "  arv programs [--json] [--install [GROUP]]   which of the programs arv can use are here (none is needed\n"
           "         for a disc), what each is for, and how to install the missing ones; --install hands their packages\n"
           "         to PackageKit (pkcon), which asks for the password\n"
@@ -477,7 +479,7 @@ static const char *command_word(int argc, char **argv)
     return i < argc ? argv[i] : NULL;
 }
 
-/* arv describe|tag runs arv-assist; arv gui runs arv-gui (with the home this arv finds) */
+/* arv describe|tag|chat runs arv-assist; arv gui runs arv-gui (with the home this arv finds) */
 static void run_helper(int argc, char **argv, const char *word)
 {
     int gui = !strcmp(word, "gui");
@@ -526,6 +528,7 @@ static const char *const MANUAL_NOTES[] = {      /* in parts: C99 strings may be
     "`--check`), `where` (without `--here`), `names`, `plan list|show`, `collection list|show`, `location\n"
     "list`, `appraise --due`, and `retire` without `--yes` (a preview). `restore`\n"
     "writes only the files it restores, where it is told, and records where (when the home knows the disc).\n"
+    "`chat` changes nothing itself: it reads, and what it proposes you apply, as the command it names.\n"
     "`programs --install` changes no record: it hands the missing programs' packages to PackageKit, which asks\n"
     "for the password.\n"
     "\n"
@@ -559,7 +562,8 @@ static const char *const MANUAL_NOTES[] = {      /* in parts: C99 strings may be
     "  `kind`, what it is about, `text` and `heading`; `questions` apart), `status` (`is`, then\n"
     "  `changes`, or `onDiscs` and `onNone`; `notes`), `info` (`is`: `disc`, `image` or `id`), `where`,\n"
     "  `plan list|show`, `collection list`, `location list`, and `help` (every command: `name`,\n"
-    "  `usage`, `summary`).\n"
+    "  `usage`, `summary`, and how much it changes: `reads`, and `risk` none, low, medium or high, with `risks`\n"
+    "  for the subcommands and options that differ; a program running arv for someone runs `none` on its own).\n"
     "- `arv todo --tsv`: what is owed, one copy a line, with a header line.\n"
     "- `arv keywords --format tsv|exiftool DISC-ID`: a disc's folder tags.\n"
     "- Lines that start with a fixed word: `find` (`DISC`, `OBJECT`, `COPY`, `GIT`, `TAG`, `LOST`, or a\n"
@@ -758,6 +762,7 @@ static void help_json(void)
                 first = 0;
                 char *name = xprintf("%.*s", (int)(name_end - (line + 6)), line + 6);
                 json_str(&b, name);
+                command_risks_json(&b, name);
                 free(name);
                 char *use = gap ? xprintf("%.*s", (int)(gap - (line + 2)), line + 2) : xstrdup(line + 2);
                 sb_puts(&b, ", \"usage\": ");
@@ -878,7 +883,7 @@ int main(int argc, char **argv)
     }
     /* the local AI helpers and the interface are programs of their own */
     const char *word = command_word(argc, argv);
-    if (word && (!strcmp(word, "describe") || !strcmp(word, "tag") || !strcmp(word, "gui")))
+    if (word && (!strcmp(word, "describe") || !strcmp(word, "tag") || !strcmp(word, "chat") || !strcmp(word, "gui")))
         run_helper(argc, argv, word);
     if (argc < 2) return orientation();
     if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) {

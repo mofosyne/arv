@@ -62,6 +62,20 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   nothing); the GUI has Copy beside every command, and Install where PackageKit is here. None is
   needed for a disc. The GUI shows them in its Settings; the Debian and Arch packages suggest the same programs.
 
+**The assistant: arv chat, and a panel in the GUI**
+- `arv chat` asks the chosen model about the archive. It runs commands that only read on its own
+  (shown as `$ arv find travel`), and everything else comes back as a proposal: at a terminal
+  "Apply it? [y/N]", in the GUI's Assistant panel (on the right, beside every view) a card with
+  its risk, Apply and Dismiss. A write asked for as a read becomes a proposal. The view reloads
+  after Apply.
+- Each command's risk is in `arv help --json` (`reads`, `risk` none, low, medium or high, and
+  `risks` for subcommands and options), from one table (`src/arv/risk.c`) that the checks hold to
+  the manual.
+- Sized for local models: the context is a budget (llama.cpp's own, `--llm-context N`, else
+  8,192 tokens), a read's output is cut to an eighth of it, old outputs go first, at most 6 reads
+  a turn. Its instructions are `src/arv-assist/data/assistant.txt`, or a home's
+  `config/assistant.txt`.
+
 **Models: found, chosen, and your own key**
 - The GUI's Settings (in the header, beside Jobs) list the model servers on this computer (Ollama,
   llama.cpp's llama-server, LM Studio, vLLM, Jan) with their models and what each can do (pictures,

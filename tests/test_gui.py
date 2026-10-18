@@ -462,6 +462,14 @@ class GuiTest(unittest.TestCase):
         self.assertEqual((status["available"], status["model"], status["external"]), (True, "fake-model", False))
         with open(os.path.join(self.tmp, "config", "arv", "models.rec")) as f:
             self.assertIn("Url: " + url, f.read())
+        with open(replies, "w") as f:                                          # the assistant: a read, then a proposal
+            f.write('{"read": ["todo", "--json"]}\n===\n{"propose": ["tags", "add", "person:ann"], "why": "a name"}\n')
+        self.assertIn('<aside class="chat" id="chat" hidden', page)
+        turn = json.loads(self.run_arv("chat", "--json", program="arv-assist",
+                                       stdin=json.dumps({"messages": [{"role": "user", "content": "anything?"}], "context": "Owed"}))["out"])
+        self.assertEqual([s["shown"] for s in turn["steps"]], ["arv todo --json"])
+        self.assertEqual((turn["reply"]["propose"], turn["reply"]["risk"]), (["tags", "add", "person:ann"], "medium"))
+        self.assertEqual([m["role"] for m in turn["messages"]], ["user", "assistant", "user", "assistant"])
         test = json.loads(self.run_arv("llm-test", "--url", url, "--model", "fake-model", program="arv-assist")["out"])
         self.assertEqual((test["ok"], test["model"]), (True, "fake-model"))                # the Test button's
         self.run_arv("llm-use", "--off", program="arv-assist")                              # Model help: Off

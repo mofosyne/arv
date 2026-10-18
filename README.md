@@ -397,6 +397,15 @@ Install where PackageKit is here (never for Siegfried, whose steps add a package
 that trust is yours to give). `arv tags` lists tags in use; `arv map` the places they name; `arv keywords DISC` writes hierarchical keywords in exiftool format.
 A reviewed tag draft can be applied to `arv make` as `--draft FILE`.
 
+## Optional: the assistant
+
+`arv chat` (and the Assistant panel on the right of `arv gui`) answers questions about the archive
+with the model chosen in Settings: what is owed, where something is, which names are missing. It
+reads on its own, each step shown as the arv command it ran; a change comes as a proposal with its
+risk (none, low, medium, high: `arv help --json`), which you apply or not. It never deletes,
+never moves your files, and never changes anything you have not applied. A home's
+`config/assistant.txt` replaces its instructions.
+
 ## Optional: local LLM help with descriptions and tags
 
 A local model can draft the title, description, subjects and **folder tags**, and

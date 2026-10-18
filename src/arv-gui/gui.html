@@ -40,8 +40,26 @@ header button.ext { font:inherit; font-size:13px; background:none; border:1px so
 .owed h3 { font-size:15px; margin:16px 0 4px; }
 #disc-detail h3 { font-size:15px; margin:14px 0 4px; }
 .owed li { font-family:ui-monospace, monospace; font-size:13px; overflow-wrap:anywhere; }
-main button.link { font:inherit; background:none; border:none; padding:0; color:var(--accent); text-decoration:underline; cursor:pointer; }
+main button.link, aside button.link { font:inherit; background:none; border:none; padding:0; color:var(--accent); text-decoration:underline; cursor:pointer; }
 main { max-width:1100px; margin:0 auto; padding:16px 16px 64px; }
+/* the assistant: a panel on the right, beside every view (under 760px it covers the page) */
+body.chatting main, body.chatting > header, body.chatting > nav { margin-right:384px; }
+aside.chat { position:fixed; top:0; right:0; bottom:0; width:384px; display:flex; flex-direction:column; background:var(--bg);
+             border-left:1px solid var(--line); z-index:5; }
+aside.chat[hidden] { display:none; }
+aside.chat header { align-items:center; flex-wrap:nowrap; }
+aside.chat header button.plain { margin-top:0; padding:4px 10px; }
+aside.chat .talk { flex:1 1 auto; overflow-y:auto; padding:8px 12px; }
+aside.chat .msg { margin:8px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+aside.chat .msg.you { background:var(--panel); border-radius:8px; padding:6px 10px; }
+aside.chat details.step { font-size:13px; margin:4px 0; }
+aside.chat details.step summary { font-family:ui-monospace, monospace; color:var(--muted); cursor:pointer; overflow-wrap:anywhere; }
+aside.chat details.step pre { max-height:240px; overflow:auto; }
+aside.chat .card { border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin:8px 0; }
+aside.chat .card pre { margin:6px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+aside.chat form { border-top:1px solid var(--line); padding:8px 12px; display:flex; gap:6px; }
+aside.chat textarea { flex:1 1 auto; min-height:3em; }
+@media (max-width: 760px) { body.chatting main, body.chatting > header, body.chatting > nav { margin-right:0; } aside.chat { width:100%; } }
 section[hidden] { display:none; }
 h2 { font-size:1.05rem; margin:24px 0 8px; }
 table { border-collapse:collapse; width:100%; }
@@ -150,6 +168,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 <header><h1 title="Archive, Record, Verify">arv</h1><span class="home" id="home"></span><span class="spacer"></span>
   <button class="link" type="button" id="owed-line" title="What arv todo says is owed">…</button>
   <button class="ext" type="button" id="ai-external" hidden title="Describing asks an external inference provider: open Settings"></button>
+  <button class="link" type="button" id="chat-btn" title="The assistant: it reads on its own; a change it proposes is yours to apply">Assistant</button>
   <button class="link" type="button" id="settings-btn">Settings</button>
   <button class="link" type="button" id="jobs-btn">Jobs</button></header>
 <nav role="tablist" class="groups">
@@ -506,6 +525,14 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 </section>
 
 </main>
+<aside class="chat" id="chat" hidden aria-label="The assistant">
+  <header><strong>Assistant</strong><span class="muted" id="chat-model"></span><span class="spacer"></span>
+    <button class="plain" type="button" id="chat-new" title="Start a new conversation">New</button>
+    <button class="plain" type="button" id="chat-close" aria-label="Close the assistant">Close</button></header>
+  <div class="talk" id="chat-talk"></div>
+  <form id="chat-form"><textarea id="chat-input" aria-label="Ask the assistant" placeholder="Ask about the archive: what is owed, where something is, how to tag a folder..."></textarea>
+    <button class="primary" type="submit">Send</button></form>
+</aside>
 <script>
 (function () {
   "use strict";
@@ -591,7 +618,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
                 places: "record", map: "record", names: "record", search: "record", models: "settings", programs: "settings",
                 owed: "verify", tools: "verify", inventory: "verify", audit: "verify", restore: "verify" };
   var lastView = { archive: "make", record: "objects", verify: "owed", settings: "models" };
+  var currentTab = "owed";
   function showTab(name) {
+    currentTab = name;
     var group = GROUP[name];
     if (group) lastView[group] = name;
     document.querySelectorAll("nav.groups button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.group === group); });
@@ -1629,6 +1658,94 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     opt(opt(argv, "--extent", $("map-extent").value), "--reach", $("map-reach").value);
     act(argv, $("map-out"), function () { $("map-add").reset(); loadMap(); });
   };
+  // ---------------------------------------------------------------- the assistant (arv-assist chat --json)
+  // The conversation is kept here, in the page; each turn sends it with what is on screen. Its reads
+  // come back as steps, shown as their commands; a change comes back as a proposal, applied here
+  // only when the person says so. It never clicks or changes the view on its own.
+  var chatMessages = [], OPEN_FOR = { find: "search", todo: "owed", status: "status", map: "map", tags: "names",
+    objects: "objects", plan: "master", collection: "collections", list: "discs", info: "discs", programs: "programs" };
+  function chatOpen(on) {
+    $("chat").hidden = !on; document.body.classList.toggle("chatting", on);
+    $("chat-btn").setAttribute("aria-pressed", on);
+    try { localStorage.setItem("arv-chat-open", on ? "1" : ""); } catch (e) {}
+    if (on) {
+      $("chat-model").textContent = llmStatus && llmStatus.available ? " " + llmStatus.model + (llmStatus.external ? " (external: " + hostOf(llmStatus.url) + ")" : "") : "";
+      if (!$("chat-talk").childNodes.length) chatNote();
+      $("chat-input").focus();
+    }
+  }
+  function chatNote() {
+    var talk = $("chat-talk");
+    if (!llmStatus || !llmStatus.available) {
+      var go = el("button", { class: "link", type: "button", text: "Settings" });
+      go.onclick = function () { showTab("models"); };
+      talk.appendChild(el("p", { class: "muted" }, [document.createTextNode("No model to ask: " + (llmStatus && llmStatus.error ? llmStatus.error : "none found") +
+        ". Choose one in "), go, document.createTextNode(". Without one, Describe's \u201cAsk me\u201d still works.")]));
+      return;
+    }
+    talk.appendChild(el("p", { class: "muted", text: "Ask about the archive. It reads on its own, each step shown as the command it ran; " +
+      "a change comes as a proposal, which you apply or not." + (llmStatus.external ? " This model is an external provider (" +
+      hostOf(llmStatus.url) + "): what it reads is sent there." : "") }));
+  }
+  function chatStep(step) {
+    var open = OPEN_FOR[step.command[0]], acts = [];
+    if (open) { var o = el("button", { class: "link", type: "button", text: "Open" }); o.onclick = function () { showTab(open); }; acts.push(o); }
+    return el("details", { class: "step" }, [el("summary", { text: "$ " + step.shown + "  (exit " + step.exit + ")" }),
+      el("div", { class: "acts" }, acts), el("pre", { class: "log", text: step.output })]);
+  }
+  function chatProposal(r) {
+    var card = el("div", { class: "card" }), out = el("pre", { class: "log" }), msg = el("span", { class: "muted" });
+    out.hidden = true;
+    var chip = el("span", { class: "chip " + (r.risk === "high" ? "hot" : r.risk === "medium" ? "warm" : "cold"), text: r.risk + " risk" });
+    function done(text) { apply.disabled = dismiss.disabled = true; chatMessages.push({ role: "user", content: text }); }
+    var apply = action("Apply", function () {
+      if (r.risk === "high" && !confirm("Apply this?\n\n" + r.shown + "\n\n" + (r.why || "") + "\n\nIt is hard to undo.")) return;
+      apply.disabled = true; msg.textContent = "Running\u2026";
+      arvText(r.propose).then(function (res) {
+        out.hidden = false; out.textContent = res.output; out.className = "log" + (res.returncode ? " bad" : "");
+        msg.textContent = res.returncode ? "It did not work (exit " + res.returncode + ")." : "Applied.";
+        done("I applied it: exit " + res.returncode + ".\n" + res.output.slice(0, 2000));
+        if (!res.returncode) showTab(currentTab);           // the view on the left, again
+      });
+    });
+    var dismiss = action("Dismiss", function () { msg.textContent = "Not applied."; done("I did not apply it."); });
+    card.appendChild(el("div", { class: "acts" }, [el("strong", { text: "Proposed" }), chip]));
+    card.appendChild(el("pre", { class: "mono", text: r.shown }));
+    if (r.why) card.appendChild(el("p", { text: r.why }));
+    card.appendChild(el("div", { class: "acts" }, [apply, dismiss, msg]));
+    card.appendChild(out);
+    return card;
+  }
+  function chatSend(text) {
+    var talk = $("chat-talk"), wait = el("p", { class: "muted", text: "Thinking\u2026 (a local model can take a minute)" });
+    chatMessages.push({ role: "user", content: text });
+    talk.appendChild(el("div", { class: "msg you", text: text }));
+    talk.appendChild(wait); talk.scrollTop = talk.scrollHeight;
+    var view = document.querySelector("nav.sub button[aria-selected=true]");
+    assistJson(["chat", "--json"], { messages: chatMessages, context: (view ? view.textContent : currentTab) }).then(function (res) {
+      wait.remove();
+      if (res.error) { talk.appendChild(el("p", { class: "bad", text: "Error: " + res.error })); chatMessages.pop(); return; }
+      chatMessages = res.messages;
+      (res.steps || []).forEach(function (s) { talk.appendChild(chatStep(s)); });
+      var r = res.reply || {};
+      if (r.error) talk.appendChild(el("p", { class: "bad", text: "Error: " + r.error }));
+      else if (r.propose) talk.appendChild(chatProposal(r));
+      else if (r.say) talk.appendChild(el("div", { class: "msg", text: r.say }));
+      talk.scrollTop = talk.scrollHeight;
+    });
+  }
+  $("chat-btn").onclick = function () { chatOpen($("chat").hidden); };
+  $("chat-close").onclick = function () { chatOpen(false); };
+  $("chat-new").onclick = function () { chatMessages = []; $("chat-talk").textContent = ""; chatNote(); };
+  $("chat-form").onsubmit = function (e) {
+    e.preventDefault();
+    var t = $("chat-input").value.trim();
+    if (!t) return;
+    $("chat-input").value = "";
+    chatSend(t);
+  };
+  $("chat-input").onkeydown = function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("chat-form").requestSubmit(); } };
+
   // ---------------------------------------------------------------- settings: which model (arv-assist llm-status --all, llm-use)
   function hostOf(url) { var m = /^[a-z]+:\/\/(\[[^\]]*\]|[^\/:]+)/.exec(url || ""); return m ? m[1] : url; }
   function externalBadge() {        // in the header, while describing asks an external provider
@@ -2171,6 +2288,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         var want = location.hash.slice(1);
         if (want === "settings") want = "models";
         externalBadge(); setupMakeLLM(); loadDiscs(); loadOwed(); showTab(GROUP[want] ? want : "owed");
+        try { if (localStorage.getItem("arv-chat-open")) chatOpen(true); } catch (e) {}
         // while the page is open it says so, once a minute: started from a menu (--idle), the server
         // stops some time after the page is closed
         setInterval(function () { api("/api/setup").catch(function () {}); }, 60000);

@@ -25,6 +25,8 @@ static const char USAGE[] =
     "                    [...]} in, the next question out as JSON, or the draft when none is left (kept only then)\n"
     "                    [--show-inventory] [--llm-url URL] [--llm-model NAME] [--llm-allow-remote]\n"
     "                    [--vision [--vision-model NAME] [--vision-url URL] [--vision-per-folder N] [--vision-max N]]\n"
+    "       arv chat [--json] [--llm-context N] [--llm-url URL] [--llm-model NAME] [--llm-allow-remote]   the assistant:\n"
+    "                    it reads on its own (arv help --json: risk none); a change it proposes is yours to apply\n"
     "       arv tag FOLDER|DISC-ID [--save DRAFT] [--apply] [--top N] [--vocab FILE] [--disc-root DIR] [--rules-only]\n"
     "               [--show-summaries] [--embed-url URL [--embed-model NAME] [--llm-allow-remote]]\n"
     "Model servers are local by default (Ollama: " LLM_DEFAULT_URL "); --llm-allow-remote permits remote URLs.\n"
@@ -83,7 +85,8 @@ int main(int argc, char **argv)
            : !strcmp(cmd, "suggest") ? assist_suggest(n, rest)
            : !strcmp(cmd, "llm-status") ? assist_llm_status(n, rest)
            : !strcmp(cmd, "llm-use") ? assist_llm_use(n, rest)
-           : !strcmp(cmd, "llm-test") ? assist_llm_test(n, rest) : 2;
+           : !strcmp(cmd, "llm-test") ? assist_llm_test(n, rest)
+           : !strcmp(cmd, "chat") ? assist_chat(n, rest) : 2;
     if (rc == 2) fputs(USAGE, stderr);
     return rc;
 }
