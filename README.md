@@ -28,6 +28,13 @@ replies are scripted for this picture (`dev-tools/screenshots.sh`).</sub>
 | Read with | the backup program that wrote it | anything: plain files, open formats, the steps on the disc itself |
 | Knows | file contents | what each thing is, where every copy is, when it was last checked, why it matters |
 
+A burned disc is offline and cannot be rewritten, so it is also the copy that ransomware, a
+hacked account or a mistaken delete cannot reach; every file's checksum, and the catalogue each
+disc carries, show if anything was changed. A small business can keep the records it must hold for
+years (accounts, contracts, designs, source code) the same way. It is not disaster recovery:
+getting systems running again quickly is the backups' job. And the discs are not encrypted:
+anyone holding one can read it, so keep them as you would the papers.
+
 Keep your backups (the NAS, restic, Borg, the cloud): arv sits on top of them, for the photos,
 video, documents and source code that should outlive them, and puts them in cold storage
 (write-once discs today) whenever it can. It is a personal archivist's tool, and its name is

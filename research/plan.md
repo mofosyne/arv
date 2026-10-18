@@ -2681,3 +2681,18 @@ repeated acceptances, the low-risk "apply without asking" switch, confidence fro
 probabilities, Follow, the record-changed poll, conversations kept across sessions, and the MCP
 server. A proposal applied is recorded as the person's (they ran the command); naming the model as
 its agent (`accepted`) waits on a way to pass an agent to every command.
+
+## Note (2026-10-18): what arv says about security and business use, and the encryption gap
+
+The README and the website now say, without more: a burned disc is offline and cannot be
+rewritten, so it is the copy ransomware, a hacked account or a mistaken delete cannot reach;
+checksums and the catalogue on every disc show changes; a small business can keep its long-held
+records the same way. They also say what it is not: disaster recovery (getting systems running
+again quickly is the backups' job), and that discs are not encrypted.
+
+**Not built: encryption.** Anyone holding a disc reads it; `sealed` only keeps a disc out of other
+discs' snapshots. Encrypting a disc's payload would protect a stolen copy, but costs the founding
+promise that any computer can read a disc decades on without arv (a lost key, or a cipher tool gone,
+loses the archive). If it is wanted: per object, with a standard tool (age, or OpenPGP), the key's
+fingerprint in the record and the steps in the disc's README.txt; never arv's own cryptography.
+Also for an organisation, later if ever: more than one person writing the record, with accounts.
