@@ -332,11 +332,21 @@ printf 'b. 1931\ncolleague\n2\n\n' | "$tool" -C kn/home tags split person:anne-s
     || no "known names: private entries on a public disc"
 # the programs arv can use: each found or not, from PATH; none needed for a disc
 mkdir -p progbin && printf '#!/bin/sh\n' > progbin/zstd && chmod +x progbin/zstd
-PATH="$PWD/progbin:/usr/bin/nonexistent" "$tool" programs > prog.out \
+printf 'NAME="Debian GNU/Linux"\nID=debian\nPRETTY_NAME="Debian GNU/Linux 13 (trixie)"\n' > deb.os
+printf 'ID=fedora\nPRETTY_NAME="Fedora Linux 42"\n' > fed.os
+printf 'ID=plan9\n' > other.os
+ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin:/usr/bin/nonexistent" "$tool" programs > prog.out \
+    && grep -q '^This system: Debian GNU/Linux 13 (trixie)\.$' prog.out \
     && grep -q '^  ok       zstd  ' prog.out && grep -q '^  missing  exiftool ' prog.out \
-    && grep -q 'sudo apt install .*libimage-exiftool-perl' prog.out && grep -q '^  sf: Siegfried: ' prog.out \
+    && grep -q '^  to install: sudo apt install libimage-exiftool-perl poppler-utils ffmpeg curl$' prog.out \
+    && grep -q '^  sf: Siegfried: ' prog.out && grep -q '^  Every missing one: sudo apt install ' prog.out \
+    && ARV_OS_RELEASE=$PWD/fed.os PATH="$PWD/progbin" "$tool" programs | grep -q '^  to install: sudo dnf install perl-Image-ExifTool poppler-utils ffmpeg-free curl$' \
+    && ARV_OS_RELEASE=$PWD/other.os PATH="$PWD/progbin" "$tool" programs > prog2.out \
+    && grep -q '^  to install, on Arch: sudo pacman -S perl-image-exiftool poppler ffmpeg curl$' prog2.out \
+    && grep -q '^  to install, on macOS (Homebrew): brew install exiftool poppler ffmpeg$' prog2.out \
+    && ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin" "$tool" programs --json | grep -q '"system": {"id": "debian", "name": "Debian GNU/Linux 13 (trixie)"}' \
     && PATH="$PWD/progbin" "$tool" programs --json | grep -q '"name": "zstd", "group": "making", "found": true' \
-    && ok "arv programs: which programs arv can use are here (PATH), what each is for, and the packages for the missing ones" \
+    && ok "arv programs: which programs arv can use are here (PATH), what each is for, and each group's install command for this system (every system's when it is not one arv knows)" \
     || { cat prog.out; no "arv programs"; }
 # places: the gazetteer (Natural Earth's countries and cities), a place of your own in one, arv map, a disc's index.html
 "$tool" -C kn/home tags show place:kyoto | grep -q '^  in: Japan (place:japan)$' \

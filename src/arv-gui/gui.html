@@ -137,6 +137,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 .acts button.plain, .segs button.plain { margin-top:0; padding:4px 12px; }
 .acts input { width:12em; flex:0 1 auto; }
 #models-list td, #models-list th { vertical-align:middle; }
+#programs-list table { table-layout:fixed; width:100%; } #programs-list td:nth-child(1) { width:6em; } #programs-list td:nth-child(2) { width:8em; }
 .kept td { font-size:13px; }
 .kept td.mono { white-space:nowrap; }
 @media (max-width: 600px) {      /* each row a wrapped line: version, disc, path, copies, place */
@@ -169,6 +170,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   <button data-tab="map">Map</button>
   <button data-tab="names">Names</button>
   <button data-tab="search">Search</button>
+</nav>
+<nav class="sub" data-group="settings" hidden>
+  <button data-tab="models">Models</button>
+  <button data-tab="programs">Programs: what arv can use, and how to install it</button>
 </nav>
 <nav class="sub" data-group="verify" hidden>
   <button data-tab="owed">Owed</button>
@@ -316,14 +321,15 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   </div>
 </section>
 
-<section id="tab-settings" hidden>
-  <h2>Models</h2>
+<section id="tab-models" hidden>
   <p class="muted">Which model helps with describing, and which looks at pictures. A model on this computer is used
     as it is: what it is asked stays here. An external inference provider (your own key) is used only when you
     choose it, and sees what it is asked. Pictures go only to a model on this computer. Keys are read from the
     environment arv gui was started in, and never kept.</p>
   <div id="models-list"></div>
-  <h2>Programs</h2>
+</section>
+
+<section id="tab-programs" hidden>
   <p class="muted">The programs arv can use, and which are here. None is needed to make, read, check or repair a
     disc: arv does that itself. The others add to it, or do work arv leaves to tools built for it.</p>
   <div id="programs-list"></div>
@@ -582,9 +588,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // ---------------------------------------------------------------- tabs
   // Archive, Record, Verify: each view belongs to one of the three
   var GROUP = { master: "archive", make: "archive", status: "archive", objects: "record", collections: "record", discs: "record",
-                places: "record", map: "record", names: "record", search: "record",
+                places: "record", map: "record", names: "record", search: "record", models: "settings", programs: "settings",
                 owed: "verify", tools: "verify", inventory: "verify", audit: "verify", restore: "verify" };
-  var lastView = { archive: "make", record: "objects", verify: "owed" };
+  var lastView = { archive: "make", record: "objects", verify: "owed", settings: "models" };
   function showTab(name) {
     var group = GROUP[name];
     if (group) lastView[group] = name;
@@ -592,7 +598,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     document.querySelectorAll("nav.sub").forEach(function (n) { n.hidden = n.dataset.group !== group; });
     document.querySelectorAll("nav.sub button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.tab === name); });
     $("jobs-btn").setAttribute("aria-pressed", name === "jobs");
-    $("settings-btn").setAttribute("aria-pressed", name === "settings");
+    $("settings-btn").setAttribute("aria-pressed", group === "settings");
     document.querySelectorAll("main > section").forEach(function (s) { s.hidden = s.id !== "tab-" + name; });
     if (name === "owed") loadOwed();
     if (name === "discs") loadDiscs();
@@ -604,13 +610,14 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (name === "places") loadPlacesView();
     if (name === "map") loadMap();
     if (name === "names") loadNames();
-    if (name === "settings") { loadModels(); loadPrograms(); }
+    if (name === "models") loadModels();
+    if (name === "programs") loadPrograms();
   }
   document.querySelectorAll("nav.sub button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
   document.querySelectorAll("nav.groups button").forEach(function (b) { b.onclick = function () { showTab(lastView[b.dataset.group]); }; });
   $("jobs-btn").onclick = function () { showTab("jobs"); };
-  $("settings-btn").onclick = function () { showTab("settings"); };
-  $("ai-external").onclick = function () { showTab("settings"); };
+  $("settings-btn").onclick = function () { showTab(lastView.settings); };
+  $("ai-external").onclick = function () { showTab("models"); };
   $("owed-line").onclick = function () { showTab("owed"); };
 
   // ---------------------------------------------------------------- verify: what is owed (arv todo)
@@ -972,7 +979,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     box.appendChild(askBox);
     if (!llmStatus || !llmStatus.available) {
       var choose = el("button", { class: "link", type: "button", text: "Settings" });
-      choose.onclick = function () { showTab("settings"); };
+      choose.onclick = function () { showTab("models"); };
       box.appendChild(el("p", { class: "muted" }, [document.createTextNode("Model help (optional): not available" +
         (llmStatus && llmStatus.error ? " \u2014 " + llmStatus.error : "") + ". Start a model server on this computer " +
         "(Ollama, llama.cpp's llama-server, LM Studio), or choose one in "), choose, document.createTextNode(".")]));
@@ -1791,28 +1798,41 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     return arvJson(["programs", "--json"]).then(function (res) {
       var box = $("programs-list"); box.textContent = "";
       var missing = res.programs.filter(function (p) { return !p.found; });
-      box.appendChild(el("p", { text: (res.programs.length - missing.length) + " of " + res.programs.length + " found." }));
+      box.appendChild(el("p", { text: (res.programs.length - missing.length) + " of " + res.programs.length + " found. This system: " +
+        (res.system ? res.system.name : "not one arv knows the packages of; each system's commands are shown") + "." }));
+      // "sudo apt install a b" for these programs on one system, or null
+      function line(list, sys) {
+        var pk = [];
+        list.forEach(function (p) { var k = p.packages[sys.id]; if (k && pk.indexOf(k) < 0) pk.push(k); });
+        return pk.length ? sys.install + " " + pk.join(" ") : null;
+      }
       PROGRAM_GROUPS.forEach(function (g) {
-        box.appendChild(el("h3", { text: g[1] }));
+        var progs = res.programs.filter(function (p) { return p.group === g[0]; }), gone = progs.filter(function (p) { return !p.found; });
+        box.appendChild(el("h3", {}, [document.createTextNode(g[1] + " "), gone.length ? el("span", { class: "chip notready", text: gone.length + " missing" })
+          : el("span", { class: "chip ready", text: "Ready" })]));
         var t = el("table");
-        res.programs.filter(function (p) { return p.group === g[0]; }).forEach(function (p) {
+        progs.forEach(function (p) {
           t.appendChild(el("tr", {}, [el("td", {}, [el("span", { class: "chip " + (p.found ? "cold" : "none"), text: p.found ? "here" : "missing" })]),
             el("td", { class: "mono", text: p.name, title: p.path }), el("td", { text: p.for + (p.found ? "" : ". Without it: " + p.without) })]));
         });
         box.appendChild(el("div", { class: "scroll" }, [t]));
+        if (!gone.length) return;
+        var here = res.system ? res.systems.filter(function (s) { return s.id === res.system.id; }) : res.systems;
+        here.forEach(function (sys) {
+          var l = line(gone, sys);
+          if (l) box.appendChild(el("pre", { class: "log", text: (res.system ? "" : "# " + sys.name + "\n") + l }));
+        });
+        var others = res.system ? res.systems.filter(function (s) { return s.id !== res.system.id; }).map(function (sys) {
+          var l = line(gone, sys); return l ? "# " + sys.name + "\n" + l : null; }).filter(Boolean) : [];
+        if (others.length) box.appendChild(el("details", {}, [el("summary", { class: "muted", text: "Other systems" }),
+          el("pre", { class: "log", text: others.join("\n") })]));
+        gone.filter(function (p) { return p.from; }).forEach(function (p) {
+          box.appendChild(el("p", { class: "muted" }, [el("span", { class: "mono", text: p.name }), document.createTextNode(": " + p.from)]));
+        });
       });
-      var deb = [], arch = [], other = [];
-      missing.forEach(function (p) {
-        if (p.debian) { if (deb.indexOf(p.debian) < 0) deb.push(p.debian); if (arch.indexOf(p.arch) < 0) arch.push(p.arch); }
-        else other.push(p.name + ": " + p.from);
-      });
-      if (!missing.length) return;
-      box.appendChild(el("h3", { text: "To install the missing ones" }));
-      var lines = [];
-      if (deb.length) lines.push("sudo apt install " + deb.join(" "), "sudo pacman -S " + arch.join(" ") + "    (Arch)");
-      box.appendChild(el("pre", { class: "log", text: lines.concat(other).join("\n") }));
     }).catch(function (e) { $("programs-list").textContent = "Error: " + e.message; });
   }
+
 
   // ---------------------------------------------------------------- record: known names (arv tags names|label|alias|merge|split|retire)
   function loadNames() {
@@ -2119,7 +2139,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     assistJson(["llm-status"]).then(function (st) { llmStatus = st; }).catch(function () { llmStatus = null; })
       .then(function () {           // a view named in the address (#discs, #master...), else Verify's Owed
         var want = location.hash.slice(1);
-        externalBadge(); setupMakeLLM(); loadDiscs(); loadOwed(); showTab(GROUP[want] || want === "settings" ? want : "owed");
+        if (want === "settings") want = "models";
+        externalBadge(); setupMakeLLM(); loadDiscs(); loadOwed(); showTab(GROUP[want] ? want : "owed");
         // while the page is open it says so, once a minute: started from a menu (--idle), the server
         // stops some time after the page is closed
         setInterval(function () { api("/api/setup").catch(function () {}); }, 60000);

@@ -55,8 +55,9 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - `arv programs [--json]` lists every program arv can use (its helpers; git, Siegfried and the
   compressors for making; exiftool, poppler and ffmpeg for describing; the browser opener; and the
   tools for work arv leaves to others: burning, ddrescue, OCR), which are found, what each is for,
-  what is missing without it, and the packages to install (Debian, Arch). None is needed for a
-  disc. The GUI shows them in its Settings; the Debian and Arch packages suggest the same programs.
+  what is missing without it, and each group's install command for this system (Debian and Ubuntu,
+  Fedora, Arch, macOS with Homebrew, found from os-release; every system's when it is none of
+  those). None is needed for a disc. The GUI shows them in its Settings; the Debian and Arch packages suggest the same programs.
 
 **Models: found, chosen, and your own key**
 - The GUI's Settings (in the header, beside Jobs) list the model servers on this computer (Ollama,
@@ -69,7 +70,7 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   may see what describing asks). Each row says Ready or Not ready (and why), what is in use is marked, Model help has one On/Off for every
   model, and Test asks a fixed question, nothing from any file (`arv-assist llm-test`): did it
   answer, how fast, in JSON, or for a pictures model, did it see the red square. The Programs view
-  moved there.
+  moved there, beside Models.
 - Your own key: OpenAI, Anthropic, Google Gemini, Mistral, OpenRouter, Groq and DeepSeek through their
   OpenAI-compatible addresses, the key from the provider's usual variable or `ARCHIVE_LLM_KEY`, sent
   as a bearer token, never written down, never over plain http to another computer. https goes

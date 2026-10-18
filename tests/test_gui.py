@@ -300,6 +300,8 @@ class GuiTest(unittest.TestCase):
         programs = {p["name"]: p for p in self.ok("programs", "--json")["programs"]}   # Settings' Programs
         self.assertTrue(programs["arv-gui"]["found"])
         self.assertEqual(programs["exiftool"]["group"], "describing")
+        self.assertEqual(programs["exiftool"]["packages"], {"debian": "libimage-exiftool-perl", "fedora": "perl-Image-ExifTool",
+                                                            "arch": "perl-image-exiftool", "macos": "exiftool"})
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
     def test_questions_and_names(self):
@@ -446,8 +448,8 @@ class GuiTest(unittest.TestCase):
             url = "http://127.0.0.1:%s/v1" % f.read().strip()
         self.start(ARV_LLM_PROBE="Fake=" + url, OPENAI_API_KEY="sk-not-shown")
         page = self.request("/?t=" + self.token, token=False)[1]
-        self.assertIn('id="tab-settings"', page)
-        self.assertNotIn('data-tab="programs"', page)
+        self.assertIn('<nav class="sub" data-group="settings" hidden>\n  <button data-tab="models">', page)   # Settings: Models, Programs
+        self.assertIn('id="tab-programs"', page)
         found = json.loads(self.run_arv("llm-status", "--all", "--json", program="arv-assist")["out"])
         self.assertEqual([(s["name"], s["found"], [m["id"] for m in s["models"]]) for s in found["servers"]], [("Fake", True, ["fake-model"])])
         self.assertEqual([p["name"] for p in found["providers"] if p["set"]], ["OpenAI"])

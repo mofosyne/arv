@@ -387,8 +387,10 @@ an embedding service. For suggestions, point `--embed-url` at an OpenAI-compatib
 server. arv does not download or build a model or runtime. See `arv tag --help` and
 [src/arv-assist/README.md](src/arv-assist/README.md).
 
-`arv programs` says which of the optional programs arv can use are installed (in the GUI's
-Settings too). `arv tags` lists tags in use; `arv map` the places they name; `arv keywords DISC` writes hierarchical keywords in exiftool format.
+`arv programs` says which of the optional programs arv can use are installed, and for each group
+the command that installs the missing ones on this system: Debian and Ubuntu, Fedora, Arch, or
+macOS with Homebrew (every one's when it is none of those). The GUI shows the same in Settings ›
+Programs. `arv tags` lists tags in use; `arv map` the places they name; `arv keywords DISC` writes hierarchical keywords in exiftool format.
 A reviewed tag draft can be applied to `arv make` as `--draft FILE`.
 
 ## Optional: local LLM help with descriptions and tags
