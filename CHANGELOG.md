@@ -63,8 +63,11 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   llama.cpp's llama-server, LM Studio, vLLM, Jan) with their models and what each can do (pictures,
   embeddings, context), and the external providers whose keys are set (never the key). One is
   chosen for describing, and one for pictures, with a click; the choice is kept for this computer
-  in `~/.config/arv/models.rec` (`arv-assist llm-status --all`, `arv-assist llm-use`). The Programs
-  view moved there.
+  in `~/.config/arv/models.rec` (`arv-assist llm-status --all`, `arv-assist llm-use`). Each row says
+  Ready or Not ready (and why), what is in use is marked, Model help has one On/Off for every
+  model, and Test asks a fixed question, nothing from any file (`arv-assist llm-test`): did it
+  answer, how fast, in JSON, or for a pictures model, did it see the red square. The Programs view
+  moved there.
 - Your own key: OpenAI, Anthropic, Google Gemini, Mistral, OpenRouter, Groq and DeepSeek through their
   OpenAI-compatible addresses, the key from the provider's usual variable or `ARCHIVE_LLM_KEY`, sent
   as a bearer token, never written down, never over plain http to another computer. https goes

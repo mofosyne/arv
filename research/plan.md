@@ -2579,6 +2579,14 @@ there. Now its **Settings** (in the header, beside Jobs; the Programs view moved
 draws and the terminal has the same. The choice is this computer's (`$XDG_CONFIG_HOME/arv/models.rec`),
 not an archive's; an option or `$ARCHIVE_LLM_URL` still wins over it.
 
+**Clear to read and to check:** each row says Ready or Not ready (a server answering with models; a
+provider's key set, with curl), what is in use is marked "In use: describing" or "In use: pictures"
+with Stop using beside it, and Model help has one On/Off (`Help: off` in the settings: no model is
+asked unless a command names one, and describing by questions still works). Test (`arv-assist
+llm-test`) asks a fixed question, nothing from any file: did it answer, how fast, and in JSON, which
+describing needs; for a pictures model, a 16-pixel red square, and whether it said red. Testing an
+external provider sends its key and that question only, so it asks nothing first.
+
 **Local is trusted, external is said.** A server on this computer is used as it is. An external
 provider sees what describing asks (names, dates, sizes, words from text files), so it is used only
 when chosen (`--llm-allow-remote`, `llm-use --external`, or Settings, which asks first and says what

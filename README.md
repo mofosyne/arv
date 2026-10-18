@@ -445,8 +445,12 @@ ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM S
   (default: the server's first model).
 - **Choosing one:** the GUI's Settings list the model servers on this computer (Ollama,
   llama.cpp's llama-server, LM Studio, vLLM, Jan) with their models, and the external providers
-  whose keys are set; the choice is kept for this computer (`~/.config/arv/models.rec`), in no
-  archive. `arv-assist llm-status --all` and `arv-assist llm-use` do the same at a terminal.
+  whose keys are set, each Ready or Not ready, with a Test button (a fixed question, nothing from
+  your files: does it answer, how fast, in JSON; a red square for a pictures model). One is marked
+  in use for describing and one for pictures; Model help On/Off turns every model off at once
+  (describing by questions still works). The choice is kept for this computer
+  (`~/.config/arv/models.rec`), in no archive. `arv-assist llm-status --all`, `llm-use` and
+  `llm-test` do the same at a terminal.
 - **Privacy:** the model sees an inventory (folder and file names, counts, sizes,
   dates, types, and up to 6 short README-style text files), never file contents.
   A model on this computer is used as it is. Another computer only when you choose it

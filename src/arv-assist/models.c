@@ -8,8 +8,10 @@
  * writes one down, and never sends one over plain http to another computer.
  *
  *   arv-assist llm-status --all [--json]   the servers here, the providers whose keys are set, and the choice
- *   arv-assist llm-use [--url URL [--model NAME] [--external]] [--pictures URL [--pictures-model NAME]]
- *                      [--clear]   the choice, kept in $XDG_CONFIG_HOME/arv/models.rec
+ *   arv-assist llm-use [--on|--off] [--url URL [--model NAME] [--external]] [--pictures URL [--pictures-model NAME]]
+ *                      [--forget describing|pictures] [--clear]   the choice, kept in $XDG_CONFIG_HOME/arv/models.rec
+ *   arv-assist llm-test --url URL [--model NAME] [--external] [--pictures]   a fixed question, nothing
+ *                      from any file: does it answer, how fast, and in JSON (or, for pictures, about a red square)
  *
  * llm-use has options of its own: arv gui adds the --llm-... options it was started with to every
  * arv-assist command, and they are ignored here.
@@ -22,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <time.h>
 
 /* model servers that run on this computer, at their usual ports */
 static const char *const LOCAL[][2] = {
@@ -178,6 +181,7 @@ static jv *probe(const char *name, const char *url)
     free(reply);
     const jv *data = json_get(list, "data");
     jput(s, "found", jbool(data && data->kind == 'a'));
+    jput(s, "ready", jbool(data && data->kind == 'a' && data->n));
     if (!data || data->kind != 'a') {
         jput(s, "error", jstr(err ? err : status ? "not a model server" : "no answer"));
         free(err);
@@ -272,6 +276,7 @@ static int status_all(int as_json, const given *g)
     jv *d = jobj();
     char *path = models_settings_path();
     jput(d, "settings", jstr(path));
+    jput(d, "help", jstr(models_setting("Help") && !strcmp(models_setting("Help"), "off") ? "off" : "on"));
     jput(d, "curl", jbool(on_path("curl")));
     jput(d, "text", chosen(0, g));
     if (g->vision_url || models_setting("VisionUrl")) jput(d, "vision", chosen(1, g));
@@ -308,6 +313,9 @@ static int status_all(int as_json, const given *g)
         jput(p, "url", jstr(provider_url(i)));
         jput(p, "key", jstr(PROVIDERS[i][2]));
         jput(p, "set", jbool(env(PROVIDERS[i][2]) != NULL));
+        jput(p, "ready", jbool(env(PROVIDERS[i][2]) && on_path("curl")));
+        if (!env(PROVIDERS[i][2]) || !on_path("curl"))
+            jput(p, "why", jstr(!env(PROVIDERS[i][2]) ? "no key in the environment" : "needs curl"));
         jpush(prov, p);
     }
     jput(d, "providers", prov);
@@ -377,13 +385,15 @@ int assist_llm_models(int argc, char **argv)
 
 int assist_llm_use(int argc, char **argv)
 {
-    const char *url = NULL, *model = NULL, *vurl = NULL, *vmodel = NULL;
+    const char *url = NULL, *model = NULL, *vurl = NULL, *vmodel = NULL, *help = NULL, *forget = NULL;
     int remote = 0, clear = 0;
     given ignored = { 0 };
     for (int i = 0; i < argc; i++) {
         const char *a = argv[i], *v = i + 1 < argc ? argv[i + 1] : NULL;
         if (!strcmp(a, "--external")) remote = 1;
         else if (!strcmp(a, "--clear")) clear = 1;
+        else if (!strcmp(a, "--on") || !strcmp(a, "--off")) help = a + 2;
+        else if (!strcmp(a, "--forget") && v && (!strcmp(v, "describing") || !strcmp(v, "pictures"))) forget = argv[++i];
         else if (!strcmp(a, "--home") && v) i++;
         else if (!strcmp(a, "--url") && v) url = argv[++i];
         else if (!strcmp(a, "--model") && v) model = argv[++i];
@@ -391,7 +401,7 @@ int assist_llm_use(int argc, char **argv)
         else if (!strcmp(a, "--pictures-model") && v) vmodel = argv[++i];
         else if (!given_option(argc, argv, &i, &ignored)) return 2;
     }
-    if (!clear && !url && !model && !vurl && !vmodel) return 2;
+    if (!clear && !url && !model && !vurl && !vmodel && !help && !forget) return 2;
     char host[256];
     if ((url && url_host(url, host, sizeof host)) || (vurl && url_host(vurl, host, sizeof host))) {
         fprintf(stderr, "Error: not an http:// or https:// address: %s\n", url && url_host(url, host, sizeof host) ? url : vurl);
@@ -409,7 +419,7 @@ int assist_llm_use(int argc, char **argv)
     rec_file f = { 0 };
     rec_record *r = rec_new(&f, "Models");
     const rec_record *old = clear ? NULL : settings_record();
-    static const char *const fields[] = { "Url", "Model", "Remote", "VisionUrl", "VisionModel" };
+    static const char *const fields[] = { "Help", "Url", "Model", "Remote", "VisionUrl", "VisionModel" };
     for (size_t i = 0; old && i < sizeof fields / sizeof *fields; i++)
         if (rec_get(old, fields[i])) rec_add(r, fields[i], rec_get(old, fields[i]));
     if (url) {
@@ -418,6 +428,16 @@ int assist_llm_use(int argc, char **argv)
         rec_set(r, "Remote", url_is_loopback(url) ? "" : "yes");
     } else if (model) {
         rec_set(r, "Model", model);
+    }
+    if (help) rec_set(r, "Help", !strcmp(help, "off") ? "off" : "");
+    if (forget && !strcmp(forget, "describing")) {
+        rec_set(r, "Url", "");
+        rec_set(r, "Model", "");
+        rec_set(r, "Remote", "");
+    }
+    if (forget && !strcmp(forget, "pictures")) {
+        rec_set(r, "VisionUrl", "");
+        rec_set(r, "VisionModel", "");
     }
     if (vurl) {
         rec_set(r, "VisionUrl", vurl);
@@ -434,7 +454,8 @@ int assist_llm_use(int argc, char **argv)
     sbuf b = { 0 };
     sb_puts(&b, "# The models arv-assist asks, on this computer (arv gui's Settings, or arv-assist llm-use).\n"
                 "# Not part of any archive. Keys are never kept here: they stay in the environment.\n"
-                "# Remote: yes is the choice of an external provider, which sees what it is asked.\n\n");
+                "# Remote: yes is the choice of an external provider, which sees what it is asked.\n"
+                "# Help: off asks no model at all.\n\n");
     char *text = NULL;
     size_t len = 0;
     if (kept.nfields) rec_format(&kept, &text, &len);
@@ -445,7 +466,8 @@ int assist_llm_use(int argc, char **argv)
     }
     write_text(path, b.s);
     int rc = 0;
-    if (!kept.nfields) printf("No model chosen: the default (%s), unless ARCHIVE_LLM_URL says otherwise. %s\n", LLM_DEFAULT_URL, path);
+    if (rec_get(&kept, "Help")) printf("Model help is off: no model is asked, unless a command names one (--llm-url). %s\n", path);
+    else if (!kept.nfields) printf("No model chosen: the default (%s), unless ARCHIVE_LLM_URL says otherwise. %s\n", LLM_DEFAULT_URL, path);
     else printf("Chosen: %s%s%s%s. Kept in %s\n", rec_get(&kept, "Url") ? rec_get(&kept, "Url") : "",
                 rec_get(&kept, "Model") ? " " : "", rec_get(&kept, "Model") ? rec_get(&kept, "Model") : "",
                 rec_get(&kept, "Remote") ? " (an external provider: each use says so)" : "", path);
@@ -456,4 +478,88 @@ int assist_llm_use(int argc, char **argv)
     rec_clear(&kept);
     rec_free(&f);
     return rc ? 1 : 0;
+}
+
+/* ------------------------------------------------------------------ llm-test */
+
+/* a red square, 16 by 16 (PNG): what a pictures model is shown */
+static const char RED_SQUARE[] = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR42mO4oKBA"
+                                 "EmIY1TCqYfhqAABLfxAQegypMgAAAABJRU5ErkJggg==";
+
+static double now(void)
+{
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
+}
+
+/* one fixed question, nothing from any file: does the model answer, how fast, and as asked */
+int assist_llm_test(int argc, char **argv)
+{
+    const char *url = NULL, *model = NULL;
+    int external = 0, pictures = 0;
+    given ignored = { 0 };
+    for (int i = 0; i < argc; i++) {
+        const char *a = argv[i], *v = i + 1 < argc ? argv[i + 1] : NULL;
+        if (!strcmp(a, "--external")) external = 1;
+        else if (!strcmp(a, "--pictures")) pictures = 1;
+        else if (!strcmp(a, "--home") && v) i++;
+        else if (!strcmp(a, "--url") && v) url = argv[++i];
+        else if (!strcmp(a, "--model") && v) model = argv[++i];
+        else if (!given_option(argc, argv, &i, &ignored)) return 2;
+    }
+    if (!url) return 2;
+    jv *d = jobj();
+    llm_client c;
+    char *err = NULL, *reply = NULL;
+    double t0 = now();
+    int ok = 0, as_json = 0;
+    if (!llm_open(&c, url, model, pictures ? 0 : external, &err) && llm_model(&c, &err)) {
+        jv *messages = jarr(), *msg = jobj();
+        jput(msg, "role", jstr("user"));
+        if (pictures) {
+            jv *content = jarr(), *text = jobj(), *image = jobj(), *iu = jobj();
+            jput(text, "type", jstr("text"));
+            jput(text, "text", jstr("What colour is this square? Answer with one word."));
+            jput(iu, "url", jstr(RED_SQUARE));
+            jput(image, "type", jstr("image_url"));
+            jput(image, "image_url", iu);
+            jpush(content, text);
+            jpush(content, image);
+            jput(msg, "content", content);
+        } else {
+            jput(msg, "content", jstr("This is a test. Reply with this JSON object and nothing else: {\"ok\": true}"));
+        }
+        jpush(messages, msg);
+        reply = llm_chat(&c, messages, "0", !pictures, &err);
+        ok = reply && *reply;
+        if (ok && !pictures) {
+            jv *j = json_parse(reply);
+            as_json = j && j->kind == 'o';
+            jfree(j);
+        }
+    }
+    char secs[32];
+    snprintf(secs, sizeof secs, "%.1f", now() - t0);
+    jput(d, "ok", jbool(ok));
+    jput(d, "url", jstr(url));
+    jput(d, "model", jstr(c.model ? c.model : model ? model : ""));
+    jput(d, "external", jbool(!url_is_loopback(url)));
+    jput(d, "seconds", jnum(secs));
+    if (reply) jput(d, "reply", jstr(reply));
+    if (ok && !pictures) jput(d, "json", jbool(as_json));
+    if (ok && pictures) {
+        char *low = lower(reply);
+        jput(d, "saw_red", jbool(strstr(low, "red") != NULL));
+        free(low);
+    }
+    if (!ok) jput(d, "error", jstr(err ? err : "an empty reply"));
+    sbuf b = { 0 };
+    json_dump(&b, d, -1);
+    printf("%s\n", b.s);
+    free(b.s);
+    free(reply);
+    free(err);
+    jfree(d);
+    return 0;
 }

@@ -128,6 +128,15 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 .chip.warm { border-color:var(--warn); color:var(--warn); }
 .chip.hot { border-color:var(--bad); color:var(--bad); }
 .chip.none { color:var(--muted); border-style:dashed; }
+.chip.ready { border-color:var(--ok); color:var(--ok); } .chip.notready { color:var(--muted); border-style:dashed; }
+.segs { display:inline-flex; } .segs button.seg { border-radius:0; margin:0; }
+.segs button.seg:first-child { border-radius:6px 0 0 6px; } .segs button.seg:last-child { border-radius:0 6px 6px 0; }
+.segs button.seg[aria-pressed="true"] { background:var(--accent); color:var(--bg); border-color:var(--accent); }
+.test-out { font-size:13px; }
+.acts { display:flex; gap:6px 8px; align-items:center; flex-wrap:wrap; margin:6px 0; }
+.acts button.plain, .segs button.plain { margin-top:0; padding:4px 12px; }
+.acts input { width:12em; flex:0 1 auto; }
+#models-list td, #models-list th { vertical-align:middle; }
 .kept td { font-size:13px; }
 .kept td.mono { white-space:nowrap; }
 @media (max-width: 600px) {      /* each row a wrapped line: version, disc, path, copies, place */
@@ -1640,59 +1649,113 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     b.disabled = !!off;
     return b;
   }
+  function ready(on, why) {         // a Ready / Not ready chip, the reason as its tooltip and after it
+    var c = el("span", { class: "chip " + (on ? "ready" : "notready"), text: on ? "Ready" : "Not ready" });
+    if (!on && why) c.title = why;
+    return c;
+  }
+  // a Test button: a fixed question, nothing from any file (arv-assist llm-test), the answer beside it
+  function tester(label, argv, getModel) {
+    var out = el("span", { class: "muted test-out" });
+    var b = action(label, function () {
+      var model = getModel ? getModel() : null;
+      if (getModel && !model) { out.textContent = "Type the model's name first."; return; }
+      b.disabled = true; out.className = "muted test-out"; out.textContent = "Asking…";
+      assistJson(argv.concat(model ? ["--model", model] : [])).then(function (r) {
+        b.disabled = false;
+        if (r.ok) {
+          out.className = "ok test-out";
+          out.textContent = "Answered in " + r.seconds + " s" + (r.model ? " (" + r.model + ")" : "") +
+            (r.json === false ? ", but not in JSON: describing may not work" : "") +
+            (r.saw_red === false ? ": “" + r.reply.slice(0, 40) + "” (the square was red)" : r.saw_red ? ": saw the red square" : "");
+        } else { out.className = "bad test-out"; out.textContent = r.error || "No answer"; }
+      });
+    });
+    b.title = "Sends a fixed test question, nothing from your files" + (argv.indexOf("--pictures") >= 0 ? " (a red square)" : "");
+    return [b, out];
+  }
+  function inUse(text) { return el("span", { class: "chip cold", text: text }); }
   function loadModels() {
     return assistJson(["llm-status", "--all", "--json"]).then(function (res) {
       var box = $("models-list"); box.textContent = "";
       if (res.error) { box.textContent = "Error: " + res.error; return; }
-      var t = res.text, line = [el("strong", { text: "Describing: " }),
-        el("span", { class: "mono", text: (t.model ? t.model + " at " : "") + t.url })];
-      line.push(el("span", { class: "muted", text: " (" + (t.from === "settings" ? "chosen here" : t.from === "option" ?
-        "given to arv gui, which wins over a choice here" : t.from === "environment" ? "ARCHIVE_LLM_URL" : "the default") + ")" }));
-      box.appendChild(el("p", {}, line));
-      if (!t.available) box.appendChild(el("p", { class: "muted", text: "Not available: " + (t.error || "no answer") }));
-      if (t.external) box.appendChild(el("p", { class: "banner warn", text: "An external inference provider: " + hostOf(t.url) +
+      var on = res.help !== "off", t = res.text, v = res.vision;
+      // the master switch
+      var bOn = action("On", function () { useModel(["llm-use", "--on"], false); });
+      var bOff = action("Off", function () { useModel(["llm-use", "--off"], false); });
+      bOn.setAttribute("aria-pressed", on); bOff.setAttribute("aria-pressed", !on); bOn.className = bOff.className = "plain seg";
+      box.appendChild(el("div", { class: "acts" }, [el("strong", { text: "Model help" }), el("span", { class: "segs" }, [bOn, bOff]),
+        el("span", { class: "muted", text: on ? "Suggestions from the model in use below; you review everything." :
+          "Off: no model is asked. Describing by questions (Ask me) and from the files still works." })]));
+      // what is in use
+      var uses = el("table");
+      var describing = t.from === "option" ? "given to arv gui (wins over a choice here)" : t.from === "environment" ? "ARCHIVE_LLM_URL"
+        : t.from === "settings" ? "chosen here" : "the default";
+      uses.appendChild(el("tr", {}, [el("th", { text: "Describing" }), el("td", {}, [ready(t.available, t.error)]),
+        el("td", { class: "mono", text: (t.model ? t.model + " at " : "") + t.url }), el("td", { class: "muted", text: describing }),
+        el("td", {}, [el("div", { class: "acts" }, (t.from === "settings" ? [action("Stop using", function () { useModel(["llm-use", "--forget", "describing"], false); })] : [])
+          .concat(t.url && on ? tester("Test", ["llm-test", "--url", t.url].concat(t.external ? ["--external"] : []), t.model ? function () { return t.model; } : null) : []))])]));
+      if (!t.available && t.error) uses.appendChild(el("tr", {}, [el("td"), el("td", { colspan: "4", class: "muted", text: t.error })]));
+      uses.appendChild(el("tr", {}, v ? [el("th", { text: "Pictures" }), el("td", {}, [ready(v.available, v.error)]),
+        el("td", { class: "mono", text: (v.model ? v.model + " at " : "") + v.url }), el("td", { class: "muted", text: "chosen here" }),
+        el("td", {}, [el("div", { class: "acts" }, [action("Stop using", function () { useModel(["llm-use", "--forget", "pictures"], false); })]
+          .concat(tester("Test pictures", ["llm-test", "--pictures", "--url", v.url], v.model ? function () { return v.model; } : null)))])]
+        : [el("th", { text: "Pictures" }), el("td"), el("td", { class: "muted", colspan: "3",
+          text: t.external ? "None: pictures never go to an external provider. Choose a model on this computer that takes pictures."
+            : "The describing model, if it takes pictures. Or choose one below." })]));
+      box.appendChild(el("div", { class: "scroll" }, [uses]));
+      if (t.external && on) box.appendChild(el("p", { class: "banner warn", text: "An external inference provider: " + hostOf(t.url) +
         " sees what describing asks (file and folder names, dates, sizes, words from text files). Pictures are never sent to it." }));
-      var v = res.vision;
-      box.appendChild(el("p", {}, [el("strong", { text: "Pictures: " }), el("span", { class: "mono",
-        text: v ? (v.model ? v.model + " at " : "") + v.url : "the describing model, when it is on this computer" })]));
+      // on this computer
       box.appendChild(el("h3", { text: "On this computer" }));
       var st = el("table");
       res.servers.forEach(function (sv) {
         if (!sv.found) {
-          st.appendChild(el("tr", {}, [el("td", {}, [el("span", { class: "chip none", text: "none" })]),
-            el("td", { text: sv.name }), el("td", { class: "mono muted", text: sv.url }), el("td")]));
+          st.appendChild(el("tr", {}, [el("td", { text: sv.name }), el("td", {}, [ready(false, sv.error)]),
+            el("td", { class: "mono muted", colspan: "3", text: sv.url + ": not running" })]));
           return;
         }
-        (sv.models.length ? sv.models : [{ id: "" }]).forEach(function (m, i) {
+        if (!sv.models.length) st.appendChild(el("tr", {}, [el("td", { text: sv.name }), el("td", {}, [ready(false, "no models")]),
+          el("td", { class: "muted", colspan: "3", text: "running, with no models: add one to it first" })]));
+        sv.models.forEach(function (m, i) {
           var can = [m.vision ? "pictures" : "", m.embedding ? "embeddings" : "", m.context ? "context " + m.context : ""].filter(Boolean);
+          var useText = t.from === "settings" && t.url === sv.url && t.model === m.id, usePic = v && v.url === sv.url && v.model === m.id;
           var acts = [];
-          if (!m.embedding) acts.push(action("Use for describing", function () {
-            useModel(["llm-use", "--url", sv.url].concat(m.id ? ["--model", m.id] : []), false); }));
-          if (m.vision) acts.push(action("Use for pictures", function () {
+          if (!m.embedding) acts.push(useText ? inUse("In use: describing") : action("Use for describing", function () {
+            useModel(["llm-use", "--url", sv.url, "--model", m.id], false); }));
+          if (usePic) acts.push(inUse("In use: pictures"));
+          else if (m.vision) acts.push(action("Use for pictures", function () {
             useModel(["llm-use", "--pictures", sv.url, "--pictures-model", m.id], false); }));
-          st.appendChild(el("tr", {}, [el("td", {}, i ? [] : [el("span", { class: "chip cold", text: "here" })]),
-            el("td", { text: i ? "" : sv.name, title: sv.url }), el("td", { class: "mono", text: m.id + (can.length ? "  (" + can.join(", ") + ")" : "") }),
-            el("td", {}, acts)]));
+          var tests = m.embedding ? [] : tester("Test", ["llm-test", "--url", sv.url, "--model", m.id]);
+          if (m.vision) tests = tests.concat(tester("Test pictures", ["llm-test", "--pictures", "--url", sv.url, "--model", m.id]));
+          st.appendChild(el("tr", {}, [el("td", { text: i ? "" : sv.name, title: sv.url }), el("td", {}, i ? [] : [ready(true)]),
+            el("td", { class: "mono", text: m.id + (can.length ? "  (" + can.join(", ") + ")" : "") }),
+            el("td", {}, [el("div", { class: "acts" }, acts)]), el("td", {}, [el("div", { class: "acts" }, tests)])]));
         });
       });
       box.appendChild(el("div", { class: "scroll" }, [st]));
+      // external providers
       box.appendChild(el("h3", { text: "External providers (your own key)" }));
-      box.appendChild(el("p", { class: "muted", text: "Used only when you choose one here. Its key comes from the environment " +
-        "arv gui was started in (or ARCHIVE_LLM_KEY); a desktop menu may not have a shell's variables." +
-        (res.curl ? "" : " These need curl, which is not installed.") }));
+      box.appendChild(el("p", { class: "muted", text: "Off unless you choose one: it then sees what describing asks. Its key comes " +
+        "from the environment arv gui was started in (or ARCHIVE_LLM_KEY); a desktop menu may not have a shell's variables." }));
       var pt = el("table");
       res.providers.forEach(function (p) {
+        var current = t.external && t.url === p.url;
         var model = el("input", { type: "text", placeholder: "model name", "aria-label": p.name + " model" });
-        var use = action("Use for describing", function () {
-          if (!model.value.trim()) { model.focus(); return; }
-          useModel(["llm-use", "--url", p.url, "--model", model.value.trim(), "--external"], true, hostOf(p.url));
-        }, !res.curl);
-        pt.appendChild(el("tr", {}, [el("td", {}, [el("span", { class: "chip " + (p.set ? "warm" : "none"), text: p.set ? "key set" : "no key" })]),
-          el("td", { text: p.name }), el("td", { class: "mono", text: p.key }),
-          el("td", {}, p.set ? [el("div", { class: "inline" }, [model, use])] : [])]));
+        if (current) model.value = t.model || "";
+        var name = function () { return model.value.trim(); };
+        var use = current ? inUse("In use: describing") : action("Use for describing", function () {
+          if (!name()) { model.focus(); return; }
+          useModel(["llm-use", "--url", p.url, "--model", name(), "--external"], true, hostOf(p.url));
+        }, !p.ready);
+        var chip = ready(p.ready, p.why);
+        if (p.ready) chip.title = "Its key is set and curl is here; Test asks it a question to be sure";
+        pt.appendChild(el("tr", {}, [el("td", { text: p.name }), el("td", {}, [chip]),
+          el("td", { class: "mono" + (p.set ? "" : " muted"), text: p.key + (p.set ? "" : ": not set") }),
+          el("td", {}, p.ready ? [el("div", { class: "acts" }, [model, use].concat(tester("Test", ["llm-test", "--url", p.url, "--external"], name)))] : [])]));
       });
       box.appendChild(el("div", { class: "scroll" }, [pt]));
-      box.appendChild(el("div", { class: "inline" }, [action("Back to the default", function () { useModel(["llm-use", "--clear"], false); }),
+      box.appendChild(el("div", { class: "acts" }, [action("Forget every choice", function () { useModel(["llm-use", "--clear"], false); }),
         el("span", { class: "muted mono", text: res.settings })]));
       var out = el("pre", { id: "models-out", class: "log" });
       out.hidden = true;

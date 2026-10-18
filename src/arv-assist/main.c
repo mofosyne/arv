@@ -31,8 +31,9 @@ static const char USAGE[] =
     "An external provider (bring your own key: OPENAI_API_KEY ..., or ARCHIVE_LLM_KEY) sees what it is asked; https\n"
     "goes through curl. Pictures go only to a model on this computer.\n"
     "Which model: arv-assist llm-status --all [--json] lists the servers on this computer, the providers whose keys\n"
-    "are set, and the choice; arv-assist llm-use --url URL [--model NAME] [--external] [--pictures URL [--pictures-model\n"
-    "NAME]] | --clear keeps a choice (arv gui's Settings do the same).\n"
+    "are set, and the choice; arv-assist llm-use [--on|--off] [--url URL [--model NAME] [--external]] [--pictures URL\n"
+    "[--pictures-model NAME]] [--forget describing|pictures] [--clear] keeps a choice; arv-assist llm-test --url URL\n"
+    "[--model NAME] [--external] [--pictures] asks a fixed question, nothing from any file (arv gui's Settings do all three).\n"
     "Tag embeddings use an OpenAI-compatible /v1/embeddings endpoint. Drafts (--save) are JSON that arv make --draft takes.\n";
 
 /* arv COMMAND --help: that command's lines of the usage, then the note on local models */
@@ -81,7 +82,8 @@ int main(int argc, char **argv)
     int rc = !strcmp(cmd, "describe") ? assist_describe(n, rest) : !strcmp(cmd, "tag") ? assist_tag(n, rest)
            : !strcmp(cmd, "suggest") ? assist_suggest(n, rest)
            : !strcmp(cmd, "llm-status") ? assist_llm_status(n, rest)
-           : !strcmp(cmd, "llm-use") ? assist_llm_use(n, rest) : 2;
+           : !strcmp(cmd, "llm-use") ? assist_llm_use(n, rest)
+           : !strcmp(cmd, "llm-test") ? assist_llm_test(n, rest) : 2;
     if (rc == 2) fputs(USAGE, stderr);
     return rc;
 }

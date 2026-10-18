@@ -246,8 +246,8 @@ grep -q '"title": "Family trip photos 2019"' s.json && grep -q '"agent": "llm:fa
 # ------------------------------------------------------------------ which model: found, chosen, and an external one
 ARV_LLM_PROBE="Fake=$url;Nothing=http://127.0.0.1:1/v1" OPENAI_API_KEY=sk-not-shown "$tool" llm-status --all --json > all.json \
     || no "llm-status --all"
-tr -d '\n ' < all.json | grep -q '"name":"Fake","url":"'"$url"'","found":true,"models":\[{"id":"fake-model"' \
-    && tr -d '\n ' < all.json | grep -q '"name":"Nothing","url":"http://127.0.0.1:1/v1","found":false' \
+tr -d '\n ' < all.json | grep -q '"name":"Fake","url":"'"$url"'","found":true,"ready":true,"models":\[{"id":"fake-model"' \
+    && tr -d '\n ' < all.json | grep -q '"name":"Nothing","url":"http://127.0.0.1:1/v1","found":false,"ready":false' \
     && tr -d '\n ' < all.json | grep -q '"name":"OpenAI","url":"https://api.openai.com/v1","key":"OPENAI_API_KEY","set":true' \
     && tr -d '\n ' < all.json | grep -q '"name":"Anthropic","url":"https://api.anthropic.com/v1","key":"ANTHROPIC_API_KEY","set":false' \
     && ! grep -q sk-not-shown all.json \
@@ -261,6 +261,20 @@ grep -q "^Url: $url" userhome/.config/arv/models.rec && grep -q "^Model: fake-mo
     && "$tool" describe Trip --save chosen.json </dev/null 2>/dev/null && grep -q '"agent": "llm:fake-model"' chosen.json \
     && ok "llm-use keeps the choice in the XDG config's arv/models.rec, and describe uses it with no options" \
     || { cat use.out userhome/.config/arv/models.rec; no "llm-use"; }
+"$tool" llm-test --url "$url" > test.json && "$tool" llm-test --url "$url" --pictures > testpic.json \
+    && grep -q '"ok": true, "url": "'"$url"'", "model": "fake-model", "external": false' test.json && grep -q '"json": true' test.json \
+    && grep -q '"saw_red": false' testpic.json && tail -1 log | grep -q 'iVBORw0KGgo' \
+    && "$tool" llm-test --url http://127.0.0.1:1/v1 | grep -q '"ok": false' \
+    && ok "llm-test: a fixed question (a red square for pictures), nothing from any file: answered, how fast, in JSON" \
+    || { cat test.json testpic.json; no "llm-test"; }
+"$tool" llm-use --off > /dev/null && "$tool" llm-status | grep -q '"available": false, "error": "model help is turned off' \
+    && "$tool" describe Trip --save off.json </dev/null 2>&1 | grep -q "model help is turned off" \
+    && "$tool" llm-status $llm | grep -q '"available": true' \
+    && "$tool" llm-use --on > /dev/null && "$tool" llm-status | grep -q '"available": true' \
+    && "$tool" llm-use --pictures "$url" --pictures-model fake-model > /dev/null && "$tool" llm-use --forget pictures > /dev/null \
+    && grep -q "^Url: $url" userhome/.config/arv/models.rec && ! grep -q "^Vision" userhome/.config/arv/models.rec \
+    && ok "model help off: no model asked unless a command names one; on again; a choice forgotten alone" \
+    || { cat userhome/.config/arv/models.rec; no "on and off"; }
 ARCHIVE_LLM_KEY=sekrit "$tool" llm-status $llm > /dev/null && grep -q "^auth: Bearer sekrit" log \
     && ok "a key from the environment goes to the server as a bearer token" || no "the key"
 "$tool" llm-use --url https://llm.example.invalid/v1 > ext.out 2>&1 && no "an external provider chosen without --external"

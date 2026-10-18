@@ -23,8 +23,11 @@ arv-gui also runs `arv-assist suggest` (one round of suggestions, JSON in and ou
   `$XDG_CONFIG_HOME/arv/models.rec` (`~/.config/arv/`, this computer's, in no archive), then Ollama's
   address. `llm-status --all` lists the servers on this computer (Ollama, llama.cpp, LM Studio,
   vLLM and Jan at their usual ports, with each model's pictures, embeddings and context where the
-  server says) and the external providers whose keys are set; `llm-use --url URL [--model NAME]
-  [--external] [--pictures URL [--pictures-model NAME]] | --clear` keeps a choice.
+  server says) and the external providers whose keys are set, each ready or not; `llm-use [--on|--off]
+  [--url URL [--model NAME] [--external]] [--pictures URL [--pictures-model NAME]] [--forget
+  describing|pictures] [--clear]` keeps a choice (`--off`: no model is asked unless a command names
+  one); `llm-test --url URL [--model NAME] [--external] [--pictures]` asks a fixed question, nothing
+  from any file, and says whether it answered, how fast, and in JSON (for pictures, a red square).
 - **Your own key (an external provider).** OpenAI, Anthropic, Google Gemini, Mistral, OpenRouter,
   Groq and DeepSeek by their OpenAI-compatible addresses, the key from their usual variable
   (`OPENAI_API_KEY` ...) or `ARCHIVE_LLM_KEY`, read at each request and never written down, and never

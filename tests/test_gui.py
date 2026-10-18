@@ -458,6 +458,12 @@ class GuiTest(unittest.TestCase):
         self.assertEqual((status["available"], status["model"], status["external"]), (True, "fake-model", False))
         with open(os.path.join(self.tmp, "config", "arv", "models.rec")) as f:
             self.assertIn("Url: " + url, f.read())
+        test = json.loads(self.run_arv("llm-test", "--url", url, "--model", "fake-model", program="arv-assist")["out"])
+        self.assertEqual((test["ok"], test["model"]), (True, "fake-model"))                # the Test button's
+        self.run_arv("llm-use", "--off", program="arv-assist")                              # Model help: Off
+        self.assertEqual(json.loads(self.run_arv("llm-status", "--all", "--json", program="arv-assist")["out"])["help"], "off")
+        self.assertFalse(json.loads(self.run_arv("llm-status", program="arv-assist")["out"])["available"])
+        self.run_arv("llm-use", "--on", program="arv-assist")
         r = self.run_arv("llm-use", "--url", "https://api.openai.com/v1", "--model", "m", program="arv-assist")
         self.assertEqual(r["returncode"], 1)
         self.assertIn("is not this computer", r["err"])

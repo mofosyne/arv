@@ -69,6 +69,11 @@ int llm_open(llm_client *c, const char *url, const char *model, int allow_remote
 {
     memset(c, 0, sizeof *c);
     const char *env = getenv("ARCHIVE_LLM_URL"), *set = models_setting("Url"), *u = LLM_DEFAULT_URL, *m = NULL;
+    if (!(url && *url) && models_setting("Help") && !strcmp(models_setting("Help"), "off")) {
+        *err = xstrdup("model help is turned off (arv gui's Settings, or arv-assist llm-use --on); "
+                       "describing without a model still works: arv describe --ask");
+        return -1;
+    }
     if (url && *url) u = url;                   /* an option, then the environment, then the settings */
     else if (env && *env) u = env;
     else if (set) {

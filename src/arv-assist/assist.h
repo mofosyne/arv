@@ -84,6 +84,7 @@ char *models_key(const char *url);          /* ARCHIVE_LLM_KEY, else the provide
 void models_say_external(const char *url);  /* once: tells standard error the questions go to another computer */
 int assist_llm_use(int argc, char **argv);
 int assist_llm_models(int argc, char **argv);      /* llm-status --all */
+int assist_llm_test(int argc, char **argv);
 
 typedef struct {
     char *title, *description;
