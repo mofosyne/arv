@@ -2446,6 +2446,34 @@ The owner wanted a chat assistant in the GUI. An outside harness (any agent read
 --all`) can already drive arv, but one made for archival work and sorting knows the record's rules
 and the archive's vocabulary, and never changes anything without the person.
 
+**Lean, so it can change (agreed 2026-10-18).** Models, their formats and what they are good at
+move every few months; arv's record does not. So the harness holds no archival knowledge in code,
+and what will change is data:
+
+- **The loop is small and dumb:** send the conversation, read one reply, do what it says, repeat. A
+  few hundred lines of C, no planner, no memory beyond the conversation, no retrieval layer.
+- **One reply format, not each server's tool calling:** every reply is one JSON object held to one
+  schema, `{"read": [argv]}`, `{"propose": [argv], "why": "..."}` or `{"say": "..."}`. Any
+  OpenAI-compatible server that takes a JSON schema (llama.cpp's, Ollama) can follow it, small models
+  too; native tool-calling formats differ between servers and change.
+- **Which commands it may read is arv's own split,** not a second list: `arv help --json` gains a
+  `reads` flag per command (and per subcommand where they differ: `plan list|show`), from the same
+  facts the manual's "Reading and changing the record" states. A read runs; anything else becomes a
+  proposal, whatever the model asked. A new command needs nothing in the harness.
+- **What it knows is a text file:** the instructions (the record's rules, the principles, how to
+  sort) in `src/arv-assist/data/`, put in by `arv help --all` and the vocabulary at the start;
+  a home's own copy in `config/` overrides it, so it can be tuned without a release.
+- **Output is cut, not summarised:** a read's JSON is truncated to a budget with a note saying so;
+  older reads are dropped from the conversation before the person's words are.
+- **Tested without a model:** `dev-tools/fake-llm.c`, which the describe checks already use, plays
+  scripted replies; the checks cover a read, a proposal, a write asked for as a read (made a
+  proposal), and a reply that breaks the schema (shown, not run).
+
+**First version:** the loop, the reply schema, `reads` in `help --json`, the instructions file, the
+terminal face, the GUI panel with status lines and proposal cards, and views reloading after
+Apply. **Later, each when wanted:** the record-changed poll, Follow, conversation kept across
+sessions, thumbnails and `chafa`, the MCP server.
+
 **The loop is arv-assist's,** beside `describe` and `tag`, which already talk to local models
 (OpenAI-compatible, loopback unless `--llm-allow-remote`). The GUI's server stays without features:
 the chat is one more arv-assist command the page runs as a job, its replies streamed.
@@ -2517,5 +2545,5 @@ is; each front end only draws them:
 **The conversation is not the record.** It is kept in the home's cache, for picking up where it
 stopped, never on a disc; what reaches the record is what was applied, as events.
 
-**Order of building:** the tool set and the proposal JSON; the loop in arv-assist with the terminal
-face; the GUI panel; thumbnails in replies (after "thumbnails on discs"); the MCP server.
+**Order of building:** `reads` in `help --json` and the reply schema; the loop in arv-assist with the
+terminal face and its checks; the GUI panel; then the later items above.
