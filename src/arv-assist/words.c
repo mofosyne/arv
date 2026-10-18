@@ -202,7 +202,9 @@ static void words_of(const char *text, size_t len, int pairs, strlist *out)
 
 void name_word_list(const char *name, strlist *out)
 {
-    words_of(name, strlen(name), 1, out);
+    char *folded = text_fold(name);         /* as tags are: "Zürich" is "zurich" */
+    words_of(folded, strlen(folded), 1, out);
+    free(folded);
 }
 
 /* ------------------------------------------------------------------ counting the record */

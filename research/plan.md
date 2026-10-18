@@ -2270,5 +2270,16 @@ ISO 3166-2's for about 60% of its cities (France's regions before 2016, Uganda's
 do not); those stay in their country. GeoNames' region codes look like ISO's but often are not
 (Japan's are FIPS numbers: its 26 is Shizuoka, not Kyoto), so a code counts only when no name is
 given. Region outlines (Natural Earth's admin-1, tens of MB at a useful scale) were not needed. Not
-yet: EAC-CPF export. Pushing for such data as distribution packages: issue #53.
+yet: EAC-CPF export.
+
+**Tags in any script, one spelling each (2026-10-18).** Tags were UTF-8 with only ASCII lowered, so
+`place:Zürich` typed and `Zu\u0308rich` from a macOS file name were two tags that look alike, neither
+the gazetteer's `place:zurich`, and `person:Ålice` and `person:ålice` two people. ASCII-only keys
+were rejected: other scripts would need romanising, which loses information and is contested (Kyoto,
+Kyōto, Kioto). So a key is folded (`text_fold`, util.c): Latin, Greek and Cyrillic lowered, Latin
+accents to ASCII by a table (Latin-1, Extended-A and -B, Extended Additional), combining accents
+dropped, which makes composed and decomposed Latin alike; everything else as written. A key is an
+identifier: the spelling to read is the known name's `Label`; a plain tag (`cafe`) has none, the
+cost. Full Unicode normalisation (NFC) would need tables of tens of KB; Hangul in jamo is the case it
+would fix, left until wanted. Pushing for such data as distribution packages: issue #53.
 

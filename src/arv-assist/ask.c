@@ -146,7 +146,8 @@ static const char *const STOP[] = { "the", "and", "of", "a", "an", "to", "in", "
 static void name_words(const char *name, strlist *out)
 {
     sbuf w = { 0 };
-    for (const char *p = name;; p++) {
+    char *folded = text_fold(name);
+    for (const char *p = folded;; p++) {
         unsigned char c = (unsigned char)*p;
         if (c && (isalpha(c) || c >= 0x80)) {
             char l = (char)tolower(c);
@@ -162,6 +163,7 @@ static void name_words(const char *name, strlist *out)
         if (w.s) w.s[0] = 0;
         if (!c) break;
     }
+    free(folded);
     free(w.s);
 }
 
@@ -663,7 +665,8 @@ static char *form_of(const char *s)
 {
     sbuf b = { 0 };
     int gap = 0;
-    for (const unsigned char *p = (const unsigned char *)s; *p; p++) {
+    char *folded = text_fold(s);            /* "Zürich" and "Zurich", composed or not: one form */
+    for (const unsigned char *p = (const unsigned char *)folded; *p; p++) {
         if (isalnum(*p) || *p >= 0x80) {
             if (gap && b.len) sb_puts(&b, " ");
             char ch = (char)tolower(*p);
@@ -673,6 +676,7 @@ static char *form_of(const char *s)
             gap = 1;
         }
     }
+    free(folded);
     return b.s ? b.s : xstrdup("");
 }
 

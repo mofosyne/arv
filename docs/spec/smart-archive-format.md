@@ -722,7 +722,11 @@ a place, since where an object goes on a disc is its tags' (a layout) or a plan'
 on stay as burned; their paths are facts about those discs. An object whose name on a disc is not
 the one it was read as records `Slug` too.
 
-A tag is either a plain word or phrase (`travel`) or `namespace:value`
+A tag is UTF-8, written with one spelling for one meaning: lower case for Latin, Greek and Cyrillic,
+Latin letters without accents (a composed or decomposed `ü` alike is `u`: `place:zurich`), and every
+other script as it is (`place:京都`); the spelling to read is a known name's `Label` ("Zürich"). A
+reader folds a tag the same way before comparing, so a disc written otherwise is still found. A tag
+is either a plain word or phrase (`travel`) or `namespace:value`
 (`person:alice`, `place:kyoto`, `event:wedding-2019`, `source:pixel-7`,
 `project:weather-station`), as in Hydrus. Namespaces keep facets apart: who,
 where, which occasion, which device. Any single word works; the tag vocabulary

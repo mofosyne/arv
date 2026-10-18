@@ -236,53 +236,22 @@ static long index_get(const key_index *x, const char *key)
 
 /* ------------------------------------------------------------------ extra place data */
 
-/* U+00C0 to U+017F (Latin-1 and Latin Extended-A) as ASCII: keys made from names are plain
- * ("Île-de-France" -> ile-de-france), as tags are typed */
-static const char *const FOLD[] = {
-    "a", "a", "a", "a", "a", "a", "ae", "c", "e", "e", "e", "e", "i", "i", "i", "i",
-    "d", "n", "o", "o", "o", "o", "o", "", "o", "u", "u", "u", "u", "y", "th", "ss",
-    "a", "a", "a", "a", "a", "a", "ae", "c", "e", "e", "e", "e", "i", "i", "i", "i",
-    "d", "n", "o", "o", "o", "o", "o", "", "o", "u", "u", "u", "u", "y", "th", "y",
-    "a", "a", "a", "a", "a", "a", "c", "c", "c", "c", "c", "c", "c", "c", "d", "d",
-    "d", "d", "e", "e", "e", "e", "e", "e", "e", "e", "e", "e", "g", "g", "g", "g",
-    "g", "g", "g", "g", "h", "h", "h", "h", "i", "i", "i", "i", "i", "i", "i", "i",
-    "i", "i", "ij", "ij", "j", "j", "k", "k", "k", "l", "l", "l", "l", "l", "l", "l",
-    "l", "l", "l", "n", "n", "n", "n", "n", "n", "n", "n", "n", "o", "o", "o", "o",
-    "o", "o", "oe", "oe", "r", "r", "r", "r", "r", "r", "s", "s", "s", "s", "s", "s",
-    "s", "s", "t", "t", "t", "t", "t", "t", "u", "u", "u", "u", "u", "u", "u", "u",
-    "u", "u", "u", "u", "w", "w", "y", "y", "y", "z", "z", "z", "z", "z", "z", "s",
-};
-
-/* "Kyoto Prefecture" -> "kyoto-prefecture": lower case, Latin accents folded, other letters kept */
+/* "Kyoto Prefecture" -> "kyoto-prefecture": folded (text_fold), words joined by '-' */
 static char *key_slug(const char *s)
 {
+    char *f = text_fold(s);
     sbuf b = { 0 };
     int dash = 0;
-    for (const unsigned char *p = (const unsigned char *)s; *p; p++) {
-        const char *plain = NULL;
-        size_t len = 1;
-        if (p[0] >= 0xC3 && p[0] <= 0xC5 && (p[1] & 0xC0) == 0x80) {   /* U+00C0..U+017F */
-            unsigned cp = ((unsigned)(p[0] & 0x1F) << 6) | (p[1] & 0x3F);
-            if (cp >= 0xC0 && cp < 0x180) plain = FOLD[cp - 0xC0], len = 2;
-        }
-        if (plain && !*plain) {             /* × ÷: not letters */
-            dash = 1;
-            p += len - 1;
-            continue;
-        }
-        if (plain || isalnum(*p) || *p >= 0x80) {
+    for (const unsigned char *p = (const unsigned char *)f; *p; p++) {
+        if (isalnum(*p) || *p >= 0x80) {
             if (dash && b.len) sb_puts(&b, "-");
-            if (plain) sb_puts(&b, plain);
-            else {
-                char c = (char)tolower(*p);
-                sb_add(&b, &c, 1);
-            }
+            sb_add(&b, (const char *)p, 1);
             dash = 0;
-            p += len - 1;
         } else {
             dash = 1;
         }
     }
+    free(f);
     return b.s ? b.s : xstrdup("");
 }
 

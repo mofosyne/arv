@@ -38,6 +38,13 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   Keys made from names fold accents (`place:ile-de-france`).
 - `arv programs` lists the place data too; the packages suggest `iso-codes`.
 
+**Tags in any script, one spelling each**
+- A tag is folded as it comes in (drafts, `plan tag`, `retag`, `describe`, `tags add`): Latin,
+  Greek and Cyrillic in lower case, Latin accents folded (`place:Zürich` and a decomposed
+  `Zu\u0308rich` are both `place:zurich`, the gazetteer's), other scripts kept (`place:京都`). The
+  spelling to read stays in a known name's `Label`. `arv find` folds the same way: "Zürich" finds
+  `zurich`. Not done: Hangul written as separate jamo is not composed.
+
 **arv programs: which optional programs are here**
 - `arv programs [--json]` lists every program arv can use (its helpers; git, Siegfried and the
   compressors for making; exiftool, poppler and ffmpeg for describing; the browser opener; and the

@@ -156,11 +156,9 @@ static void json_disc(sbuf *b, const catalogue *c, const rec_record *d)
     sb_puts(b, "]}");
 }
 
-char *lower(const char *s)
+char *lower(const char *s)                 /* as text_fold: find "zürich" finds zurich, and the other way */
 {
-    char *p = xstrdup(s);
-    for (char *q = p; *q; q++) *q = (char)tolower((unsigned char)*q);
-    return p;
+    return text_fold(s);
 }
 
 /* substring, or a glob when the pattern has * ? [; ASCII letters match either case */

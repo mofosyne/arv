@@ -25,6 +25,7 @@ void sb_printf(sbuf *b, const char *fmt, ...);
 char *xprintf(const char *fmt, ...);
 unsigned long utf8_next(const char **s);
 size_t utf8_chars(const char *s);
+char *text_fold(const char *s);     /* lower case, Latin accents folded ("Zürich" -> "zurich"), other scripts kept */
 struct tm;
 void today_tm(struct tm *tm);
 char *age_cutoff(const char *ago);

@@ -346,6 +346,19 @@ PATH="$PWD/progbin:/usr/bin/nonexistent" "$tool" programs > prog.out \
     && ! grep -q '135.77' kn/home/catalog/archive.rec \
     && ok "places: the gazetteer's entries (a city in its country); one of your own in one, private with a position, never in the record" \
     || { cat kn/place.out kn/place.txt; no "places: the gazetteer"; }
+# tags in any script, one spelling a key: Latin accents folded (composed or decomposed alike), Latin,
+# Greek and Cyrillic in lower case, other scripts kept; find folds the same way
+mkdir -p u8/a u8/b u8/c && echo 1 > u8/a/x && echo 2 > u8/b/y && echo 3 > u8/c/z
+printf '{"tags": {"a": ["place:Zürich", "Café"], "b": ["place:Zu\314\210rich"], "c": ["place:京都", "person:Ålice", "Αθήνα", "МОСКВА"]}, "authorship": "human", "agent": "t"}\n' > u8.json
+"$tool" init u8h >/dev/null 2>&1
+"$tool" -C u8h make -y --no-ecc --no-formats --set T --draft u8.json --output-dir u8out u8 >/dev/null 2>&1 || no "make (UTF-8 tags)"
+"$tool" -C u8h tags > u8.out \
+    && grep -q '^  zurich  *2 folders on 1 disc   Zürich$' u8.out && grep -q '^  京都 ' u8.out && grep -q '^  alice ' u8.out \
+    && grep -q '^  cafe ' u8.out && grep -q '^  αθηνα ' u8.out && grep -q '^  москва ' u8.out \
+    && "$tool" -C u8h map | grep -q '^  place:zurich  *Zürich, Switzerland ' \
+    && [ "$("$tool" -C u8h find 'Zürich' | grep -c '^TAG')" -eq 2 ] && "$tool" -C u8h find 'ÅLICE' | grep -q 'person:alice' \
+    && ok "tags in any script: one spelling a key (Zürich, decomposed or not, is place:zurich, the gazetteer's; Ålice is alice; 京都 kept); find folds alike" \
+    || { cat u8.out; no "UTF-8 tags"; }
 # extra place data: iso-codes' regions and a places/NAME.rec in the data folders; one a tag uses is copied home
 mkdir -p xdata/iso-codes/json xhome/arv/places
 printf '{"3166-2": [{"code": "JP-26", "name": "Kyoto", "type": "Prefecture"}, {"code": "JP-01", "name": "Hokkaido", "type": "Prefecture"}]}\n' \
