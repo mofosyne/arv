@@ -57,6 +57,7 @@ aside.chat details.step summary { font-family:ui-monospace, monospace; color:var
 aside.chat details.step pre { max-height:240px; overflow:auto; }
 aside.chat .card { border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin:8px 0; }
 aside.chat .card pre { margin:6px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+aside.chat .card textarea { width:100%; box-sizing:border-box; min-height:4em; margin:6px 0; }
 aside.chat form { border-top:1px solid var(--line); padding:8px 12px; display:flex; gap:6px; }
 aside.chat textarea { flex:1 1 auto; min-height:3em; }
 @media (max-width: 760px) { body.chatting main, body.chatting > header, body.chatting > nav { margin-right:0; } aside.chat { width:100%; } }
@@ -1659,17 +1660,43 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     act(argv, $("map-out"), function () { $("map-add").reset(); loadMap(); });
   };
   // ---------------------------------------------------------------- the assistant (arv-assist chat --json)
-  // The conversation is kept here, in the page; each turn sends it with what is on screen. Its reads
-  // come back as steps, shown as their commands; a change comes back as a proposal, applied here
-  // only when the person says so. It never clicks or changes the view on its own.
-  var chatMessages = [], OPEN_FOR = { find: "search", todo: "owed", status: "status", map: "map", tags: "names",
+  // The conversation is kept here, in the page, and in this browser (localStorage) across reloads
+  // until New; each turn sends it with what is on screen. Its reads come back as steps, shown as
+  // their commands; a change comes back as a proposal, applied here only when the person says so,
+  // as it came or as they edited it (its risk judged again). It never clicks or changes the view.
+  var chatMessages = [], chatLog = [], OPEN_FOR = { find: "search", todo: "owed", status: "status", map: "map", tags: "names",
     objects: "objects", plan: "master", collection: "collections", list: "discs", info: "discs", programs: "programs" };
+  function chatSave() {
+    try { localStorage.setItem("arv-chat", JSON.stringify({ messages: chatMessages, log: chatLog })); } catch (e) {}
+  }
+  function chatLoad() {
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem("arv-chat") || "null"); } catch (e) {}
+    if (!saved || !Array.isArray(saved.log) || !saved.log.length) return;
+    chatMessages = Array.isArray(saved.messages) ? saved.messages : [];
+    chatLog = saved.log;
+    var talk = $("chat-talk");
+    chatLog.forEach(function (item) { talk.appendChild(chatItem(item)); });
+  }
+  function chatAdd(item) {              // one thing in the conversation: kept, and shown
+    chatLog.push(item); chatSave();
+    var talk = $("chat-talk");
+    talk.appendChild(chatItem(item)); talk.scrollTop = talk.scrollHeight;
+  }
+  function chatItem(item) {
+    if (item.you) return el("div", { class: "msg you", text: item.you });
+    if (item.say) return el("div", { class: "msg", text: item.say });
+    if (item.error) return el("p", { class: "bad", text: "Error: " + item.error });
+    if (item.step) return chatStep(item.step);
+    return chatProposal(item);
+  }
   function chatOpen(on) {
     $("chat").hidden = !on; document.body.classList.toggle("chatting", on);
     $("chat-btn").setAttribute("aria-pressed", on);
     try { localStorage.setItem("arv-chat-open", on ? "1" : ""); } catch (e) {}
     if (on) {
       $("chat-model").textContent = llmStatus && llmStatus.available ? " " + llmStatus.model + (llmStatus.external ? " (external: " + hostOf(llmStatus.url) + ")" : "") : "";
+      if (!$("chat-talk").childNodes.length) chatLoad();
       if (!$("chat-talk").childNodes.length) chatNote();
       $("chat-input").focus();
     }
@@ -1684,7 +1711,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       return;
     }
     talk.appendChild(el("p", { class: "muted", text: "Ask about the archive. It reads on its own, each step shown as the command it ran; " +
-      "a change comes as a proposal, which you apply or not." + (llmStatus.external ? " This model is an external provider (" +
+      "a change comes as a proposal, which you apply, edit or dismiss." + (llmStatus.external ? " This model is an external provider (" +
       hostOf(llmStatus.url) + "): what it reads is sent there." : "") }));
   }
   function chatStep(step) {
@@ -1693,50 +1720,107 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     return el("details", { class: "step" }, [el("summary", { text: "$ " + step.shown + "  (exit " + step.exit + ")" }),
       el("div", { class: "acts" }, acts), el("pre", { class: "log", text: step.output })]);
   }
-  function chatProposal(r) {
-    var card = el("div", { class: "card" }), out = el("pre", { class: "log" }), msg = el("span", { class: "muted" });
-    out.hidden = true;
-    var chip = el("span", { class: "chip " + (r.risk === "high" ? "hot" : r.risk === "medium" ? "warm" : "cold"), text: r.risk + " risk" });
-    function done(text) { apply.disabled = dismiss.disabled = true; chatMessages.push({ role: "user", content: text }); }
-    var apply = action("Apply", function () {
-      if (r.risk === "high" && !confirm("Apply this?\n\n" + r.shown + "\n\n" + (r.why || "") + "\n\nIt is hard to undo.")) return;
-      apply.disabled = true; msg.textContent = "Running\u2026";
-      arvText(r.propose).then(function (res) {
-        out.hidden = false; out.textContent = res.output; out.className = "log" + (res.returncode ? " bad" : "");
-        msg.textContent = res.returncode ? "It did not work (exit " + res.returncode + ")." : "Applied.";
-        done("I applied it: exit " + res.returncode + ".\n" + res.output.slice(0, 2000));
+  function shellWords(line) {           // a command line as a shell splits it: quotes, backslashes; null if unfinished
+    var words = [], w = null, q = null;
+    for (var i = 0; i < line.length; i++) {
+      var c = line[i];
+      if (q === "'") { if (c === "'") q = null; else w += c; continue; }
+      if (q === '"') {
+        if (c === '"') q = null;
+        else if (c === "\\" && i + 1 < line.length && '"\\$`'.indexOf(line[i + 1]) >= 0) w += line[++i];
+        else w += c;
+        continue;
+      }
+      if (/\s/.test(c)) { if (w !== null) { words.push(w); w = null; } continue; }
+      if (w === null) w = "";
+      if (c === "'" || c === '"') q = c;
+      else if (c === "\\" && i + 1 < line.length) w += line[++i];
+      else w += c;
+    }
+    if (q) return null;
+    if (w !== null) words.push(w);
+    if (words[0] === "arv") words.shift();
+    return words;
+  }
+  function chatProposal(r) {            // r: the reply {propose, why, risk, shown}, and what became of it (r.done)
+    var card = el("div", { class: "card" }), out = el("pre", { class: "log" }), msg = el("span", { class: "muted" }),
+      cmd = el("pre", { class: "mono", text: r.shown }), edit = el("textarea", { class: "mono", "aria-label": "The command, to edit" }),
+      chip = el("span", {});
+    function risky(risk) {
+      chip.className = "chip " + (risk === "high" ? "hot" : risk === "medium" ? "warm" : "cold");
+      chip.textContent = risk + " risk";
+    }
+    risky(r.risk);
+    out.hidden = edit.hidden = true;
+    function done(state, text) {
+      apply.disabled = dismiss.disabled = change.disabled = true; edit.hidden = true; cmd.hidden = false;
+      r.done = state; msg.textContent = state.msg;
+      if (state.output !== undefined) { out.hidden = false; out.textContent = state.output; out.className = "log" + (state.rc ? " bad" : ""); }
+      if (text) { chatMessages.push({ role: "user", content: text }); chatSave(); }
+    }
+    function run(p) {                   // p: the proposal as it is now
+      if (p.risk === "high" && !confirm("Apply this?\n\n" + p.shown + "\n\n" + (p.why || "") + "\n\nIt is hard to undo.")) return;
+      apply.disabled = change.disabled = true; msg.textContent = "Running\u2026";
+      arvText(p.propose).then(function (res) {
+        var edited = p.shown !== r.shown;
+        if (edited) { r.propose = p.propose; r.shown = p.shown; r.risk = p.risk; cmd.textContent = p.shown; }
+        done({ msg: res.returncode ? "It did not work (exit " + res.returncode + ")." : edited ? "Applied, as you edited it." : "Applied.",
+          output: res.output, rc: res.returncode },
+          (edited ? "I edited it, and applied: " + p.shown + "\nExit " : "I applied it: exit ") + res.returncode + ".\n" + res.output.slice(0, 2000));
         if (!res.returncode) showTab(currentTab);           // the view on the left, again
       });
+    }
+    var judged = null;                  // the edit, its risk judged and changed: the next Apply runs it
+    var apply = action("Apply", function () {
+      if (edit.hidden) { run(r); return; }
+      if (judged) { run(judged); return; }
+      var words = shellWords(edit.value.trim());
+      if (!words || !words.length) { msg.textContent = words ? "No command." : "A quote is not closed."; return; }
+      if (words.join("\u0000") === r.propose.join("\u0000")) { run(r); return; }
+      msg.textContent = "Judging its risk\u2026";
+      assistJson(["chat", "--risk"], { command: words }).then(function (p) {
+        if (p.error) { msg.textContent = p.error; return; }
+        p.why = r.why;
+        if (p.risk === r.risk) { run(p); return; }
+        judged = p; risky(p.risk);
+        msg.textContent = "Edited: its risk is now " + p.risk + ". Apply again to run it.";
+      });
     });
-    var dismiss = action("Dismiss", function () { msg.textContent = "Not applied."; done("I did not apply it."); });
+    var change = action("Edit", function () {
+      edit.value = r.shown; edit.hidden = false; cmd.hidden = true; edit.focus();
+    });
+    edit.oninput = function () { if (judged) { judged = null; risky(r.risk); msg.textContent = ""; } };
+    var dismiss = action("Dismiss", function () { done({ msg: "Not applied." }, "I did not apply it."); });
     card.appendChild(el("div", { class: "acts" }, [el("strong", { text: "Proposed" }), chip]));
-    card.appendChild(el("pre", { class: "mono", text: r.shown }));
+    card.appendChild(cmd);
+    card.appendChild(edit);
     if (r.why) card.appendChild(el("p", { text: r.why }));
-    card.appendChild(el("div", { class: "acts" }, [apply, dismiss, msg]));
+    card.appendChild(el("div", { class: "acts" }, [apply, change, dismiss, msg]));
     card.appendChild(out);
+    if (r.done) done(r.done);
     return card;
   }
   function chatSend(text) {
     var talk = $("chat-talk"), wait = el("p", { class: "muted", text: "Thinking\u2026 (a local model can take a minute)" });
     chatMessages.push({ role: "user", content: text });
-    talk.appendChild(el("div", { class: "msg you", text: text }));
+    chatAdd({ you: text });
     talk.appendChild(wait); talk.scrollTop = talk.scrollHeight;
     var view = document.querySelector("nav.sub button[aria-selected=true]");
     assistJson(["chat", "--json"], { messages: chatMessages, context: (view ? view.textContent : currentTab) }).then(function (res) {
       wait.remove();
-      if (res.error) { talk.appendChild(el("p", { class: "bad", text: "Error: " + res.error })); chatMessages.pop(); return; }
+      if (res.error) { chatMessages.pop(); chatAdd({ error: res.error }); return; }
       chatMessages = res.messages;
-      (res.steps || []).forEach(function (s) { talk.appendChild(chatStep(s)); });
+      (res.steps || []).forEach(function (s) { chatAdd({ step: s }); });
       var r = res.reply || {};
-      if (r.error) talk.appendChild(el("p", { class: "bad", text: "Error: " + r.error }));
-      else if (r.propose) talk.appendChild(chatProposal(r));
-      else if (r.say) talk.appendChild(el("div", { class: "msg", text: r.say }));
-      talk.scrollTop = talk.scrollHeight;
+      if (r.error) chatAdd({ error: r.error });
+      else if (r.propose) chatAdd(r);
+      else if (r.say) chatAdd({ say: r.say });
+      chatSave();
     });
   }
   $("chat-btn").onclick = function () { chatOpen($("chat").hidden); };
   $("chat-close").onclick = function () { chatOpen(false); };
-  $("chat-new").onclick = function () { chatMessages = []; $("chat-talk").textContent = ""; chatNote(); };
+  $("chat-new").onclick = function () { chatMessages = []; chatLog = []; chatSave(); $("chat-talk").textContent = ""; chatNote(); };
   $("chat-form").onsubmit = function (e) {
     e.preventDefault();
     var t = $("chat-input").value.trim();

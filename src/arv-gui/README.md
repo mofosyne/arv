@@ -56,8 +56,9 @@ arv-gui --home PATH [--port N] [--no-browser] [--idle MINUTES] [--llm-url URL] [
 ```
 
 The Assistant panel (on the right, from the header) runs `arv-assist chat --json` for each turn, the
-conversation kept in the page; a proposal it shows is applied as any other command, through
-`/api/run`. The server knows nothing of it.
+conversation kept in the page (and in the browser's localStorage, until New); a proposal it shows
+is applied as any other command, through `/api/run`, as it came or as the person edited it (its risk
+judged again by `arv-assist chat --risk`). The server knows nothing of it.
 
 Its options for models (`--llm-url` and the rest) are given to every arv-assist command it runs,
 and win over the choice made in its Settings, which is kept for this computer by `arv-assist

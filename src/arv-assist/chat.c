@@ -10,6 +10,8 @@
  *   arv-assist chat [--llm-context N] [LLM options]        at a terminal: lines in, lines out
  *   arv-assist chat --json [--llm-context N] [LLM options] for the GUI: {"messages": [...],
  *       "context": "what is on screen"} in; {"steps": [...], "reply": {...}, "messages": [...]} out
+ *   arv-assist chat --risk                                 a proposal the person edited, {"command":
+ *       [...]} in, judged again: {"propose": [...], "risk": ..., "shown": ...} out; no model needed
  */
 #define _XOPEN_SOURCE 700
 #include "assist.h"
@@ -396,14 +398,44 @@ static int for_gui(chat *ch)
     return 0;
 }
 
+/* --risk: a command as the GUI's Edit left it ({"command": [...]} on stdin), judged again, with no
+ * model: {"risk": ..., "shown": ...}, or {"error": ...} */
+static int risk_of_stdin(void)
+{
+    sbuf in = { 0 };
+    char buf[65536];
+    size_t r;
+    while ((r = fread(buf, 1, sizeof buf, stdin)) > 0) sb_add(&in, buf, r);
+    jv *req = in.s ? json_parse(in.s) : NULL, *d = jobj();
+    free(in.s);
+    strlist argv = { 0 };
+    if (!argv_of(json_get(req, "command"), &argv) && argv.n) {
+        jput(d, "propose", jstrings(&argv));
+        jput(d, "risk", jstr(command_risk((int)argv.n, argv.v)));
+        char *cmd = shown(&argv);
+        jput(d, "shown", jstr(cmd));
+        free(cmd);
+    } else
+        jput(d, "error", jstr("no command: a list of its words, as {\"command\": [\"retag\", ...]}"));
+    strlist_free(&argv);
+    sbuf b = { 0 };
+    json_dump(&b, d, -1);
+    printf("%s\n", b.s);
+    free(b.s);
+    jfree(d);
+    jfree(req);
+    return 0;
+}
+
 int assist_chat(int argc, char **argv)
 {
     chat ch = { 0 };
     const char *url = NULL, *model = NULL;
-    int remote = 0, as_json = 0;
+    int remote = 0, as_json = 0, risk = 0;
     for (int i = 0; i < argc; i++) {
         const char *a = argv[i], *v = i + 1 < argc ? argv[i + 1] : NULL;
         if (!strcmp(a, "--json")) as_json = 1;
+        else if (!strcmp(a, "--risk")) risk = 1;
         else if (!strcmp(a, "--llm-allow-remote")) remote = 1;
         else if (!strcmp(a, "--home") && v) ch.home = argv[++i];
         else if (!strcmp(a, "--llm-url") && v) url = argv[++i];
@@ -412,6 +444,7 @@ int assist_chat(int argc, char **argv)
         else if ((!strcmp(a, "--vision-url") || !strcmp(a, "--vision-model")) && v) i++;   /* arv gui passes them on */
         else return 2;
     }
+    if (risk) return risk_of_stdin();
     char *err = NULL;
     if (llm_open(&ch.c, url, model, remote, &err) || !llm_model(&ch.c, &err)) {
         if (as_json) {

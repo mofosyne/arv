@@ -17,7 +17,7 @@ mkdir -p "$dir"
 cd "$dir"
 ok() { echo "ok: $*"; }
 no() { echo "FAILED: $*"; [ -f log ] && tail -c 600 log; exit 1; }
-export ARV_NO_EXTRA_PLACES=1 ARV_APE=none HOME="$dir/userhome" XDG_CONFIG_HOME="$dir/userhome/.config" XDG_DATA_HOME="$dir/userhome/.local/share"
+export ARV_NO_EXTRA_PLACES=1 ARV_NO_THUMBS=1 ARV_APE=none HOME="$dir/userhome" XDG_CONFIG_HOME="$dir/userhome/.config" XDG_DATA_HOME="$dir/userhome/.local/share"
 unset ARV_HOME ARCHIVE_LLM_URL ARCHIVE_LLM_MODEL
 put() { mkdir -p "$(dirname "$1")"; printf '%s' "$2" > "$1"; touch -d "@${3:-1560000000}" "$1"; }
 
@@ -327,6 +327,11 @@ tr -d '\n' < gui.json | grep -q '"steps": \[{"command": \["todo", "--json"\], "s
     && tr -d '\n' < gui.json | grep -q '"reply": {"say": "{\\"read' \
     && ok "arv chat --json (the GUI's): the conversation in, the steps and the reply out; at most 6 reads a turn, then an answer is asked for" \
     || { cat gui.json; no "chat --json"; }
+printf '{"command": ["arv", "tags", "merge", "a b", "c"]}' | "$tool" chat --risk > risk.json \
+    && grep -q '"risk": "high", "shown": "arv tags merge '"'"'a b'"'"' c"' risk.json \
+    && printf '{"command": ["--home", "/x", "find", "a"]}' | "$tool" chat --risk | grep -q '"error": "no command' \
+    && ok "arv chat --risk (the GUI's Edit): a proposal as the person edited it, its risk judged again, no model needed; no other home" \
+    || { cat risk.json; no "chat --risk"; }
 mkdir -p home/config && echo "Answer only in French." > home/config/assistant.txt
 printf '{"say": "Oui."}' > text.reply
 printf 'hello\n' | "$tool" --home home chat $llm > /dev/null 2>&1 && grep -q 'Answer only in French' log \
