@@ -45,6 +45,8 @@ static const program PROGRAMS[] = {
     { "pdftotext", NULL, "describing", "a PDF's words as clues", "PDFs' words not read", "poppler-utils", "poppler" },
     { "pdfinfo", NULL, "describing", "a PDF's own title, in the description", "PDFs' titles not read", "poppler-utils", "poppler" },
     { "ffmpeg", NULL, "describing", "a frame of a video, for a local vision model (describe --vision)", "videos not looked at", "ffmpeg", "ffmpeg" },
+    { "curl", NULL, "describing", "https to an external inference provider you choose, with your own key (Settings)",
+      "model servers on this computer only", "curl", "curl" },
     { "xdg-open", "open", "interface", "arv gui opens your browser", "open the address arv gui prints", "xdg-utils", "xdg-utils" },
     { "xorriso", NULL, "beside", "burning images (arv never burns; see docs/burning.md)", "another burning program, or your system's own",
       "xorriso", "libisoburn" },

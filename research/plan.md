@@ -2561,3 +2561,36 @@ stopped, never on a disc; what reaches the record is what was applied, as events
 
 **Order of building:** `reads` in `help --json` and the reply schema; the loop in arv-assist with the
 terminal face and its checks; the GUI panel; then the later items above.
+
+## Done (2026-10-18): models found and chosen; your own key, said at each use
+
+The GUI had one model address (`$ARCHIVE_LLM_URL`, else Ollama's) and no way to see what else was
+there. Now its **Settings** (in the header, beside Jobs; the Programs view moved there too) list:
+
+- **the model servers on this computer:** Ollama, llama.cpp's llama-server, LM Studio, vLLM and Jan
+  at their usual ports, with their models and, where the server says, which take pictures, which
+  make embeddings and their context (Ollama's `/api/show`, llama.cpp's `/props`, LM Studio's
+  `/api/v0/models`);
+- **the external providers whose keys are set:** OpenAI, Anthropic, Google Gemini, Mistral,
+  OpenRouter, Groq and DeepSeek, through their OpenAI-compatible addresses, the key from each one's
+  usual variable (or `ARCHIVE_LLM_KEY` for any).
+
+`arv-assist llm-status --all` finds them and `arv-assist llm-use` keeps the choice, so the page only
+draws and the terminal has the same. The choice is this computer's (`$XDG_CONFIG_HOME/arv/models.rec`),
+not an archive's; an option or `$ARCHIVE_LLM_URL` still wins over it.
+
+**Local is trusted, external is said.** A server on this computer is used as it is. An external
+provider sees what describing asks (names, dates, sizes, words from text files), so it is used only
+when chosen (`--llm-allow-remote`, `llm-use --external`, or Settings, which asks first and says what
+it will see), and every use says so: on standard error, in the describe panels, and as "External
+AI: HOST" in the header for as long as it is chosen. Pictures only ever go to a model on this
+computer, whatever is chosen.
+
+**Keys:** read from the environment at each request, never written down (the settings file names no
+key), and never sent over plain http to another computer. A desktop menu may not start arv gui with
+a shell's variables; the page says so.
+
+**https through curl.** arv has no TLS and will not take a library for it (C99, no libraries;
+principle 7). curl is on nearly every system; its options go on standard input (`curl -K -`), so the
+key is in no command line, and the body on a descriptor of its own. Without curl, an external
+provider says it needs it; `arv programs` lists curl.

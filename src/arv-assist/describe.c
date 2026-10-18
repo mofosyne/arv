@@ -619,9 +619,21 @@ static int look_at_images(const llm_opts *o, llm_client *c, const target *t, see
         return -1;
     }
     llm_client v;
-    const char *model = o->vision_model;
-    if (!model && !(model = llm_model(c, err))) return -1;
-    if (llm_open(&v, o->vision_url ? o->vision_url : c->url, model, 0, err)) return -1;
+    const char *url = o->vision_url, *model = o->vision_model;
+    int chosen = 0;                             /* the vision model chosen in the settings */
+    if (!url && (url = models_setting("VisionUrl"))) {
+        chosen = 1;
+        if (!model) model = models_setting("VisionModel");
+    }
+    if (!url && c->external) {
+        *err = xstrdup("pictures go only to a model on this computer, and the text model is not one: "
+                       "choose a local vision model (--vision-url, or arv gui's Settings)");
+        return -1;
+    }
+    if (!model && !chosen && !(model = llm_model(c, err))) return -1;
+    if (llm_open(&v, url ? url : c->url, model, 0, err)) return -1;
+    if (!llm_model(&v, err)) return -1;
+    model = v.model;
     fprintf(stderr, "Looking at sample images with %s (local only) ...\n", model);
     int rc = vision_analyse(&v, t->image_root, &t->files, o->per_folder, o->max_total, out, err);
     if (!rc && !out->n) log_line("No images that could be shown (install ffmpeg for TIFF/HEIC/RAW and video).");
@@ -1043,10 +1055,13 @@ static int print_error(const char *msg)
     return print_json(d);
 }
 
-/* arv-assist llm-status [--llm-url U] [--llm-model M] [--llm-allow-remote]: is a model there? */
+/* arv-assist llm-status [--llm-url U] [--llm-model M] [--llm-allow-remote]: is a model there?
+ * With --all, what is found and chosen (models.c). */
 int assist_llm_status(int argc, char **argv)
 {
     llm_opts o = { 0 };
+    for (int i = 0; i < argc; i++)
+        if (!strcmp(argv[i], "--all")) return assist_llm_models(argc, argv);
     for (int i = 0; i < argc; i++) {
         if (!strcmp(argv[i], "--home") && i + 1 < argc) {       /* given by main(); not needed here */
             i++;
@@ -1057,13 +1072,18 @@ int assist_llm_status(int argc, char **argv)
     llm_client c;
     char *err = NULL;
     jv *d = jobj();
-    if (!llm_open(&c, o.url, o.model, o.allow_remote, &err) && llm_model(&c, &err)) {
+    if (!llm_open(&c, o.url, o.model, o.allow_remote, &err) && !llm_check(&c, &err)) {
         jput(d, "available", jnum("true"));
         jput(d, "url", jstr(c.url));
         jput(d, "model", jstr(c.model));
+        jput(d, "external", jnum(c.external ? "true" : "false"));
     } else {
         jput(d, "available", jnum("false"));
         jput(d, "error", jstr(err));
+        if (c.url) {
+            jput(d, "url", jstr(c.url));
+            jput(d, "external", jnum(c.external ? "true" : "false"));
+        }
     }
     return print_json(d);
 }

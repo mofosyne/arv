@@ -3,8 +3,9 @@
  * folder or disc (names, counts, sizes, dates, file types, short README-style text files) and
  * returns a suggested title, description, subjects and folder tags, plus questions only the owner
  * can answer. Any OpenAI-compatible chat server works: Ollama (http://127.0.0.1:11434/v1),
- * llama.cpp's llama-server, LM Studio, vLLM. Only loopback servers are used unless remote ones
- * are allowed explicitly, because the inventory describes private files.
+ * llama.cpp's llama-server, LM Studio, vLLM, or an external provider's (models.c). Only loopback
+ * servers are used unless remote ones are allowed explicitly, because the inventory describes
+ * private files.
  */
 #define _XOPEN_SOURCE 700
 #include "assist.h"
@@ -67,17 +68,32 @@ static const char SYSTEM_PROMPT[] =
 int llm_open(llm_client *c, const char *url, const char *model, int allow_remote, char **err)
 {
     memset(c, 0, sizeof *c);
-    const char *u = url && *url ? url : getenv("ARCHIVE_LLM_URL") && *getenv("ARCHIVE_LLM_URL") ? getenv("ARCHIVE_LLM_URL") : LLM_DEFAULT_URL;
+    const char *env = getenv("ARCHIVE_LLM_URL"), *set = models_setting("Url"), *u = LLM_DEFAULT_URL, *m = NULL;
+    if (url && *url) u = url;                   /* an option, then the environment, then the settings */
+    else if (env && *env) u = env;
+    else if (set) {
+        u = set;
+        m = models_setting("Model");
+        allow_remote |= models_setting("Remote") && !strcmp(models_setting("Remote"), "yes");
+    }
     c->url = xstrdup(u);
     for (size_t n = strlen(c->url); n && c->url[n - 1] == '/'; n--) c->url[n - 1] = 0;
-    const char *m = model && *model ? model : getenv("ARCHIVE_LLM_MODEL");
+    if (model && *model) m = model;
+    else if (getenv("ARCHIVE_LLM_MODEL") && *getenv("ARCHIVE_LLM_MODEL")) m = getenv("ARCHIVE_LLM_MODEL");
     c->model = m && *m ? xstrdup(m) : NULL;
     c->timeout = 600;
-    if (!allow_remote && !url_is_loopback(c->url)) {
-        *err = xprintf("refusing to send the inventory to %s: not a local address "
-                       "(use --llm-allow-remote for a server you trust)", c->url);
+    c->external = !url_is_loopback(c->url);
+    if (c->external && !allow_remote) {
+        *err = xprintf("refusing to send anything to %s: it is not this computer. An external inference provider "
+                       "sees what it is asked (names, dates, words from your files); use --llm-allow-remote, or "
+                       "choose it in arv gui's Settings, only for one you trust", c->url);
+        free(c->url);
+        free(c->model);
+        memset(c, 0, sizeof *c);                /* nothing chosen */
         return -1;
     }
+    c->key = models_key(c->url);
+    if (c->external) models_say_external(c->url);
     return 0;
 }
 
@@ -88,8 +104,9 @@ jv *llm_call(llm_client *c, const char *path, const jv *body, char **err)
     if (body) json_dump(&b, body, -1);
     int status = 0;
     jv *out = NULL;
-    if (http_request(url, body ? "POST" : "GET", b.s, c->timeout, &status, &reply, &e)) {
-        *err = xprintf("cannot reach the LLM server at %s (%s). Is it running?", c->url, e);
+    if (http_request(url, body ? "POST" : "GET", b.s, c->key, c->timeout, &status, &reply, &e)) {
+        *err = c->external ? xprintf("cannot reach %s (%s)", c->url, e)
+                           : xprintf("cannot reach the LLM server at %s (%s). Is it running?", c->url, e);
     } else if (status != 200) {
         *err = xprintf("%d from %s: %.300s", status, url, reply ? reply : "");
     } else if (!(out = json_parse(reply))) {
@@ -113,6 +130,14 @@ const char *llm_model(llm_client *c, char **err)
     else *err = xprintf("the server at %s lists no models; pass --llm-model", c->url);
     jfree(r);
     return c->model;
+}
+
+int llm_check(llm_client *c, char **err)
+{
+    if (!c->model) return llm_model(c, err) ? 0 : -1;
+    jv *r = llm_call(c, "/models", NULL, err);         /* the model named: is the server there? */
+    jfree(r);
+    return r ? 0 : -1;
 }
 
 char *llm_chat(llm_client *c, jv *messages, const char *temperature, int json_mode, char **err)

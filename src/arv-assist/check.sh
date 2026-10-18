@@ -65,7 +65,7 @@ if "$tool" describe Trip $llm </dev/null >/dev/null 2>err.txt; then no "a reply 
 grep -q "did not return JSON" err.txt || no "no-JSON message"
 cp plain.reply text.reply
 if "$tool" describe Trip --llm-url http://203.0.113.5:11434/v1 </dev/null >/dev/null 2>err.txt; then no "remote server used"; fi
-grep -q "not a local address" err.txt && ok "fenced JSON is read, prose is refused, a remote server is refused" || no "remote refusal"
+grep -q "it is not this computer" err.txt && ok "fenced JSON is read, prose is refused, a remote server is refused" || no "remote refusal"
 
 # interactive: answer one question, skip the other; then accept title, description, subjects; drop the tags
 printf 'Kyoto, Japan\n\n\n\n\nn\n' > answers
@@ -242,6 +242,40 @@ printf '{"source": "%s", "answers": [["Where?", "Kyoto"], ["Who?", " "]]}' "$dir
 grep -q '"title": "Family trip photos 2019"' s.json && grep -q '"agent": "llm:fake-model"' s.json && grep -q '"seen": {}' s.json \
     && tail -1 log | grep -q 'Q: Where?\\nA: Kyoto' && ! tail -1 log | grep -q 'Q: Who?' \
     && ok "suggest and llm-status for arv-gui: JSON in and out, blank answers left out" || { cat s.json; no "suggest"; }
+
+# ------------------------------------------------------------------ which model: found, chosen, and an external one
+ARV_LLM_PROBE="Fake=$url;Nothing=http://127.0.0.1:1/v1" OPENAI_API_KEY=sk-not-shown "$tool" llm-status --all --json > all.json \
+    || no "llm-status --all"
+tr -d '\n ' < all.json | grep -q '"name":"Fake","url":"'"$url"'","found":true,"models":\[{"id":"fake-model"' \
+    && tr -d '\n ' < all.json | grep -q '"name":"Nothing","url":"http://127.0.0.1:1/v1","found":false' \
+    && tr -d '\n ' < all.json | grep -q '"name":"OpenAI","url":"https://api.openai.com/v1","key":"OPENAI_API_KEY","set":true' \
+    && tr -d '\n ' < all.json | grep -q '"name":"Anthropic","url":"https://api.anthropic.com/v1","key":"ANTHROPIC_API_KEY","set":false' \
+    && ! grep -q sk-not-shown all.json \
+    && ok "llm-status --all: the servers on this computer and their models, and which providers' keys are set (never the key)" \
+    || { cat all.json; no "llm-status --all"; }
+"$tool" llm-use --url "$url" --model fake-model > use.out || no "llm-use"
+grep -q "^Url: $url" userhome/.config/arv/models.rec && grep -q "^Model: fake-model" userhome/.config/arv/models.rec \
+    && ! grep -q "^Remote" userhome/.config/arv/models.rec \
+    && "$tool" llm-status | grep -q '"available": true, "url": "'"$url"'", "model": "fake-model", "external": false' \
+    && "$tool" llm-status --all --json | tr -d '\n ' | grep -q '"text":{"url":"'"$url"'","model":"fake-model","from":"settings","external":false,"available":true}' \
+    && "$tool" describe Trip --save chosen.json </dev/null 2>/dev/null && grep -q '"agent": "llm:fake-model"' chosen.json \
+    && ok "llm-use keeps the choice in the XDG config's arv/models.rec, and describe uses it with no options" \
+    || { cat use.out userhome/.config/arv/models.rec; no "llm-use"; }
+ARCHIVE_LLM_KEY=sekrit "$tool" llm-status $llm > /dev/null && grep -q "^auth: Bearer sekrit" log \
+    && ok "a key from the environment goes to the server as a bearer token" || no "the key"
+"$tool" llm-use --url https://llm.example.invalid/v1 > ext.out 2>&1 && no "an external provider chosen without --external"
+grep -q "is not this computer" ext.out && ! grep -q invalid userhome/.config/arv/models.rec \
+    && "$tool" llm-use --pictures http://192.0.2.1/v1 > pic.out 2>&1 && no "a remote pictures model"
+grep -q "pictures go only to a model on this computer" pic.out \
+    && "$tool" llm-use --url https://llm.example.invalid/v1 --model m --external > /dev/null \
+    && grep -q "^Remote: yes" userhome/.config/arv/models.rec \
+    && "$tool" llm-status > ext.json 2> ext.err; grep -q '"available": false' ext.json \
+    && grep -q "Using llm.example.invalid, an external inference provider" ext.err \
+    && "$tool" describe Trip --vision > vis.out 2>&1 && no "pictures with an external text model"
+grep -q "pictures go only to a model on this computer, and the text model is not one" vis.out \
+    && "$tool" llm-use --clear > /dev/null && ! grep -q "^Url" userhome/.config/arv/models.rec \
+    && ok "an external provider: refused unless chosen with --external, then said at each use; pictures never sent to one" \
+    || { cat ext.out pic.out ext.json ext.err vis.out; no "an external provider"; }
 
 # ------------------------------------------------------------------ tag
 cat > tags.rec <<'EOF'

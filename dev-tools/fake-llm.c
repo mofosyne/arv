@@ -9,7 +9,8 @@
  *                               else of TEXT-REPLY-FILE (both read afresh for each request)
  *   POST /v1/embeddings         bag-of-words vectors: each word (a-z) adds 1 to one of 64 numbers,
  *                               chosen by a hash of the word; then L2-normalised
- * Every request body is appended to LOG-FILE, one per line.
+ * Every request body is appended to LOG-FILE, one per line, and an Authorization header as
+ * "auth: VALUE" before it.
  */
 #define _XOPEN_SOURCE 700
 #include <arpa/inet.h>
@@ -138,6 +139,14 @@ int main(int argc, char **argv)
         }
         char *body = strstr(req, "\r\n\r\n");
         body = body ? body + 4 : req + len;
+        char *auth = strstr(req, "\r\nAuthorization: ");
+        if (auth && auth < body) {
+            FILE *log = fopen(argv[2], "a");
+            if (log) {
+                fprintf(log, "auth: %.*s\n", (int)strcspn(auth + 17, "\r\n"), auth + 17);
+                fclose(log);
+            }
+        }
         if (!strncmp(req, "GET", 3)) {
             reply(c, "{\"data\": [{\"id\": \"fake-model\"}]}");
         } else {

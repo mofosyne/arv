@@ -13,7 +13,7 @@ Package: arv
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: 7zip | p7zip-full, git, xorriso, xdg-utils
-Suggests: iso-codes, gddrescue, zstd, zip, unzip, libimage-exiftool-perl, poppler-utils, ffmpeg, ocrmypdf, tesseract-ocr
+Suggests: iso-codes, gddrescue, zstd, zip, unzip, libimage-exiftool-perl, poppler-utils, ffmpeg, curl, ocrmypdf, tesseract-ocr
 Description: Archive, Record, Verify: long-term personal archiving on discs
  arv keeps a personal archive's record over decades: collections with their
  history, what is archived on which disc, every copy's place, and when it was

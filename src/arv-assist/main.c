@@ -5,8 +5,8 @@
  *                                         subjects and folder tags from a local LLM, reviewed by you
  *   arv tag FOLDER|DISC-ID [--save DRAFT] [--apply] ...   folder tags from your tag vocabulary
  *
- * and arv-gui runs `arv-assist suggest` and `arv-assist llm-status`. --home and --archive work as
- * in arv.
+ * and arv-gui runs `arv-assist suggest`, `arv-assist llm-status [--all]` and `arv-assist llm-use`.
+ * --home and --archive work as in arv.
  */
 #define _XOPEN_SOURCE 700
 #include "assist.h"
@@ -28,6 +28,11 @@ static const char USAGE[] =
     "       arv tag FOLDER|DISC-ID [--save DRAFT] [--apply] [--top N] [--vocab FILE] [--disc-root DIR] [--rules-only]\n"
     "               [--show-summaries] [--embed-url URL [--embed-model NAME] [--llm-allow-remote]]\n"
     "Model servers are local by default (Ollama: " LLM_DEFAULT_URL "); --llm-allow-remote permits remote URLs.\n"
+    "An external provider (bring your own key: OPENAI_API_KEY ..., or ARCHIVE_LLM_KEY) sees what it is asked; https\n"
+    "goes through curl. Pictures go only to a model on this computer.\n"
+    "Which model: arv-assist llm-status --all [--json] lists the servers on this computer, the providers whose keys\n"
+    "are set, and the choice; arv-assist llm-use --url URL [--model NAME] [--external] [--pictures URL [--pictures-model\n"
+    "NAME]] | --clear keeps a choice (arv gui's Settings do the same).\n"
     "Tag embeddings use an OpenAI-compatible /v1/embeddings endpoint. Drafts (--save) are JSON that arv make --draft takes.\n";
 
 /* arv COMMAND --help: that command's lines of the usage, then the note on local models */
@@ -75,7 +80,8 @@ int main(int argc, char **argv)
         }
     int rc = !strcmp(cmd, "describe") ? assist_describe(n, rest) : !strcmp(cmd, "tag") ? assist_tag(n, rest)
            : !strcmp(cmd, "suggest") ? assist_suggest(n, rest)
-           : !strcmp(cmd, "llm-status") ? assist_llm_status(n, rest) : 2;
+           : !strcmp(cmd, "llm-status") ? assist_llm_status(n, rest)
+           : !strcmp(cmd, "llm-use") ? assist_llm_use(n, rest) : 2;
     if (rc == 2) fputs(USAGE, stderr);
     return rc;
 }

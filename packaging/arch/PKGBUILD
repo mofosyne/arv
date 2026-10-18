@@ -21,6 +21,7 @@ optdepends=('xdg-utils: arv gui opens the interface in your web browser'
             'perl-image-exiftool: photos dates, camera and GPS as clues for arv describe'
             'poppler: PDFs words and titles as clues for arv describe'
             'ffmpeg: a video frame for arv describe --vision'
+            'curl: an external inference provider over https (your own key)'
             'ocrmypdf: a text layer for scanned PDFs, before describing'
             'tesseract: text beside scanned images, before describing')
 provides=('arv')

@@ -44,8 +44,11 @@ void ftags_free(ftags *f);
 /* ------------------------------------------------------------------ http.c: a small HTTP/1.1 client */
 
 int url_is_loopback(const char *url);
-/* method "GET" or "POST" (body: JSON). 0 with *status and *reply (NUL-terminated), or -1 with *err */
-int http_request(const char *url, const char *method, const char *body, int timeout, int *status, char **reply, char **err);
+int url_host(const char *url, char *host, size_t size);     /* 0, or -1 for a bad address */
+/* method "GET" or "POST" (body: JSON), auth a bearer key or NULL. 0 with *status and *reply
+ * (NUL-terminated), or -1 with *err. https goes through curl. */
+int http_request(const char *url, const char *method, const char *body, const char *auth, int timeout,
+                 int *status, char **reply, char **err);
 
 /* ------------------------------------------------------------------ json helpers */
 
@@ -59,16 +62,28 @@ char *jstr_of(const jv *v);                             /* a string's text, else
 typedef struct {
     char *url;              /* without a trailing slash, e.g. http://127.0.0.1:11434/v1 */
     char *model;            /* NULL until resolved */
-    int timeout;
+    char *key;              /* a bearer key from the environment (models.c), or NULL */
+    int timeout, external;  /* external: not this computer */
 } llm_client;
 
 #define LLM_DEFAULT_URL "http://127.0.0.1:11434/v1"
 
 int llm_open(llm_client *c, const char *url, const char *model, int allow_remote, char **err);
 const char *llm_model(llm_client *c, char **err);
+int llm_check(llm_client *c, char **err);         /* 0 when the server answers (and the model is known) */
 jv *llm_call(llm_client *c, const char *path, const jv *body, char **err);     /* body NULL: GET */
 char *llm_chat(llm_client *c, jv *messages, const char *temperature, int json_mode, char **err);
 char *llm_agent(const llm_client *c);
+
+/* ------------------------------------------------------------------ models.c: which model, found how */
+
+/* the models settings (XDG config arv/models.rec): Url, Model, Remote, VisionUrl, VisionModel; NULL if unset */
+const char *models_setting(const char *field);
+char *models_settings_path(void);
+char *models_key(const char *url);          /* ARCHIVE_LLM_KEY, else the provider's own variable, or NULL */
+void models_say_external(const char *url);  /* once: tells standard error the questions go to another computer */
+int assist_llm_use(int argc, char **argv);
+int assist_llm_models(int argc, char **argv);      /* llm-status --all */
 
 typedef struct {
     char *title, *description;

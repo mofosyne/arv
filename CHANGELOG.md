@@ -56,7 +56,23 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   compressors for making; exiftool, poppler and ffmpeg for describing; the browser opener; and the
   tools for work arv leaves to others: burning, ddrescue, OCR), which are found, what each is for,
   what is missing without it, and the packages to install (Debian, Arch). None is needed for a
-  disc. The GUI has a Programs view; the Debian and Arch packages suggest the same programs.
+  disc. The GUI shows them in its Settings; the Debian and Arch packages suggest the same programs.
+
+**Models: found, chosen, and your own key**
+- The GUI's Settings (in the header, beside Jobs) list the model servers on this computer (Ollama,
+  llama.cpp's llama-server, LM Studio, vLLM, Jan) with their models and what each can do (pictures,
+  embeddings, context), and the external providers whose keys are set (never the key). One is
+  chosen for describing, and one for pictures, with a click; the choice is kept for this computer
+  in `~/.config/arv/models.rec` (`arv-assist llm-status --all`, `arv-assist llm-use`). The Programs
+  view moved there.
+- Your own key: OpenAI, Anthropic, Google Gemini, Mistral, OpenRouter, Groq and DeepSeek through their
+  OpenAI-compatible addresses, the key from the provider's usual variable or `ARCHIVE_LLM_KEY`, sent
+  as a bearer token, never written down, never over plain http to another computer. https goes
+  through curl (arv has no TLS), its options on standard input.
+- A model on this computer is used as it is; an external provider only when chosen (the GUI asks
+  first, and says what it will see), and then every use says so: on standard error, in the
+  describe panels, and as "External AI" in the GUI's header. Pictures go only to a model on this
+  computer.
 
 **In the GUI: the questions, the names, the places**
 - "Ask me (no model)" in the describe panels asks `--ask`'s questions in the page: the likely answers

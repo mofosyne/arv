@@ -387,8 +387,8 @@ an embedding service. For suggestions, point `--embed-url` at an OpenAI-compatib
 server. arv does not download or build a model or runtime. See `arv tag --help` and
 [src/arv-assist/README.md](src/arv-assist/README.md).
 
-`arv programs` says which of the optional programs arv can use are installed (the GUI's Programs
-view too). `arv tags` lists tags in use; `arv map` the places they name; `arv keywords DISC` writes hierarchical keywords in exiftool format.
+`arv programs` says which of the optional programs arv can use are installed (in the GUI's
+Settings too). `arv tags` lists tags in use; `arv map` the places they name; `arv keywords DISC` writes hierarchical keywords in exiftool format.
 A reviewed tag draft can be applied to `arv make` as `--draft FILE`.
 
 ## Optional: local LLM help with descriptions and tags
@@ -443,9 +443,19 @@ ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM S
 - Any OpenAI-compatible server works: `--llm-url` / `$ARCHIVE_LLM_URL` (default
   `http://127.0.0.1:11434/v1`, Ollama), `--llm-model` / `$ARCHIVE_LLM_MODEL`
   (default: the server's first model).
+- **Choosing one:** the GUI's Settings list the model servers on this computer (Ollama,
+  llama.cpp's llama-server, LM Studio, vLLM, Jan) with their models, and the external providers
+  whose keys are set; the choice is kept for this computer (`~/.config/arv/models.rec`), in no
+  archive. `arv-assist llm-status --all` and `arv-assist llm-use` do the same at a terminal.
 - **Privacy:** the model sees an inventory (folder and file names, counts, sizes,
   dates, types, and up to 6 short README-style text files), never file contents.
-  Only loopback servers are allowed unless you pass `--llm-allow-remote`.
+  A model on this computer is used as it is. Another computer only when you choose it
+  (`--llm-allow-remote`, or Settings, which ask first), and every use says so: the GUI's header
+  shows "External AI" while one is chosen. Pictures (`--vision`) only ever go to a model on this
+  computer.
+- **Your own key:** OpenAI, Anthropic, Google Gemini, Mistral, OpenRouter, Groq and DeepSeek through
+  their OpenAI-compatible addresses, the key from their usual variable (`OPENAI_API_KEY` ...) or
+  `ARCHIVE_LLM_KEY`. arv never writes a key down. https goes through `curl`.
 - Folder tags (and image captions) go in `catalog/volumes/<disc-id>/tags.tsv` and are searched by
   `arv find` and the GUI.
 - **Questions that wait:** a model's questions are asked at once at a terminal; from a draft made

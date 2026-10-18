@@ -11,14 +11,26 @@ arv tag FOLDER|DISC-ID [--save DRAFT] [--apply] ...   folder tags from your voca
 ```
 
 `arv-assist --help` lists every option; the top-level [README](../../README.md) explains them.
-arv-gui also runs `arv-assist suggest` (one round of suggestions, JSON in and out) and
-`arv-assist llm-status`.
+arv-gui also runs `arv-assist suggest` (one round of suggestions, JSON in and out),
+`arv-assist llm-status [--all]` and `arv-assist llm-use` (its Settings).
 
-- **Local only.** `describe` talks to an OpenAI-compatible server (Ollama, llama.cpp's
+- **Local by default.** `describe` talks to an OpenAI-compatible server (Ollama, llama.cpp's
   llama-server, LM Studio, vLLM) on this machine; a remote URL is refused unless
   `--llm-allow-remote`. The model sees an inventory (names, counts, sizes, dates, types, a few
   short README-style files), never file contents; `--vision` sends sampled images, resized with
-  ffmpeg when it is installed, to a local vision model.
+  ffmpeg when it is installed, to a local vision model, and never to another computer.
+- **Which model** (`models.c`): an option, then `$ARCHIVE_LLM_URL`, then the choice kept in
+  `$XDG_CONFIG_HOME/arv/models.rec` (`~/.config/arv/`, this computer's, in no archive), then Ollama's
+  address. `llm-status --all` lists the servers on this computer (Ollama, llama.cpp, LM Studio,
+  vLLM and Jan at their usual ports, with each model's pictures, embeddings and context where the
+  server says) and the external providers whose keys are set; `llm-use --url URL [--model NAME]
+  [--external] [--pictures URL [--pictures-model NAME]] | --clear` keeps a choice.
+- **Your own key (an external provider).** OpenAI, Anthropic, Google Gemini, Mistral, OpenRouter,
+  Groq and DeepSeek by their OpenAI-compatible addresses, the key from their usual variable
+  (`OPENAI_API_KEY` ...) or `ARCHIVE_LLM_KEY`, read at each request and never written down, and never
+  sent over plain http to another computer. One is used only when chosen (`--llm-allow-remote`, or
+  `llm-use --external`), and each use says so on standard error. https goes through curl, given
+  its options on standard input so the key is in no command line.
 - `tag` uses an OpenAI-compatible `/v1/embeddings` server selected with `--embed-url`; remote
   endpoints also need `--llm-allow-remote`. Use `--rules-only` to tag from vocabulary match rules
   without a server. It does not download or build models or runtimes.
