@@ -2393,6 +2393,38 @@ does format ids. They count against the disc like the catalogue does, and `arv p
 much. They are at most 2% of the disc; past that, the largest folders' are left out and the event
 says how many.
 
+**A caption for every picture, from its thumbnail.** `--vision` now looks at a few samples per
+folder (`--vision-per-folder`, `--vision-max`); with thumbnails, a local model can look at every
+picture and write one short sentence of what it shows ("Two people at a red temple gate in autumn
+leaves"), so a search finds a photo by what is in it, not only by its folder's words.
+
+- **In the catalogue, never in the file.** Writing into the original changes its bytes: its SHA-256
+  no longer matches the manifest, and fixity, duplicates and the thumbnail's name all rest on it; a
+  burned disc cannot change anyway. Nor in the thumbnail: a revised caption would change its bytes,
+  and it stays a plain picture.
+- **Where captions already go:** the caption column of `tags.tsv`, which `arv find` searches on
+  every disc without reading one. One made after burning is an event, `Caption: PATH<TAB>text` with
+  `Sets: Caption:PATH`, as now; its `Authorship` is `automatic`, and it names the model. A better
+  model years later writes a new event over it, and the history keeps both.
+- **A person's caption wins:** a model never replaces a caption a person wrote, only offers its own
+  beside it.
+- **Once per picture:** the model looks at a SHA-256 once; one event gives the caption to every path
+  with those bytes.
+- **Held to what a model can know:** what is seen, in one sentence, no names of people or places
+  (those come from the vocabulary, as tags, through the questions or the model's choices among
+  known names), nothing read from text too small to read.
+- **At home, in the background:** a few seconds a picture on a computer's processor, so 10,000
+  photos is an evening's run; `--vision` keeps its place and resumes where it stopped, since the
+  captions already written are in the record.
+- **Into the files, when wanted:** photo software (digiKam, Lightroom, darktable) reads captions from
+  XMP. `arv keywords`, which already writes a disc's tags as an exiftool argument file, adds each
+  caption as `-XMP-dc:Description=`, for exiftool to write into a working copy or into XMP sidecars;
+  never the payload on a disc. A photo copied out of the archive otherwise leaves its caption behind:
+  the one cost of keeping it outside.
+- **Searching by meaning, later:** words match words, so "beach" does not find "seaside".
+  arv-assist's embedding model (bge-small) could index the captions for that, kept at home and made
+  again when the model changes; the captions are what is kept, since they belong to no model.
+
 **At home.** Every disc's thumbnails are kept at home (`<home>/thumbs/`, by SHA-256), so the GUI and
 `arv describe --ask` show them for discs on the shelf. A disc carries its own only: other discs'
 would put about a gigabyte on every disc of a 100,000-photo archive. Discs for other people carry
@@ -2404,5 +2436,5 @@ into a computer's thumbnail cache (`~/.cache/thumbnails`, by the file's URI on o
 manager's job. A contact sheet per folder: fewer files, but a picture is no longer found by its hash.
 
 **Order of building:** a disc's bag through Archivematica as it is; thumbnails of pictures on the
-disc and in `index.html`; the home's copy and the GUI; video frames and PDF pages; the proposal to
-Katalog.
+disc and in `index.html`; the home's copy and the GUI; a caption for every picture, and captions in
+`arv keywords`; video frames and PDF pages; the proposal to Katalog; searching by meaning.
