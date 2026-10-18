@@ -2498,6 +2498,13 @@ is; each front end only draws them:
     loses their place. Instead each step's line has "Open" (the view that shows it: Search for a
     find, the disc for an info), and a "Follow" switch in the panel, off by default, lets the view
     on the left open what the assistant last looked at, for someone who wants to watch it work.
+  - **The views keep up.** An applied proposal goes through the page's own path for a command
+    (`act`, or `run` as a job), so the view open on the left reloads when it ends, as after a form.
+    The record can also change elsewhere (the shell, a job, another machine's catalogue merged), so
+    while the page is visible it asks every few seconds for the record's newest event id, one cheap
+    `--json` read (the server stays without features), and when it has moved reloads the open view
+    in place, keeping the selection and the scroll. A view with a form half filled in is not
+    reloaded under the person: a bar says the record changed, with Reload.
 - **The terminal: lines,** a question and an answer at a time; a proposal is shown as its command
   and applied on `y`. No full-screen interface: it would need ncurses (a library, against arv's
   rule and TinyCC) or terminal codes by hand, it would be a third front end to keep in step, and
