@@ -2439,3 +2439,65 @@ manager's job. A contact sheet per folder: fewer files, but a picture is no long
 **Order of building:** a disc's bag through Archivematica as it is; thumbnails of pictures on the
 disc and in `index.html`; the home's copy and the GUI; a caption for every picture, and captions in
 `arv keywords`; video frames and PDF pages; the proposal to Katalog; searching by meaning.
+
+## Design (2026-10-18, not built): an assistant for archival work, in the GUI and the terminal
+
+The owner wanted a chat assistant in the GUI. An outside harness (any agent reading `arv help
+--all`) can already drive arv, but one made for archival work and sorting knows the record's rules
+and the archive's vocabulary, and never changes anything without the person.
+
+**The loop is arv-assist's,** beside `describe` and `tag`, which already talk to local models
+(OpenAI-compatible, loopback unless `--llm-allow-remote`). The GUI's server stays without features:
+the chat is one more arv-assist command the page runs as a job, its replies streamed.
+
+**Its tools are arv's commands.** `arv help --json` lists them, and every read has `--json`. The
+model calls a small fixed set of reads on its own (`find`, `status`, `todo`, `tags`, `info`, `map`,
+`plan show`, `objects`). Few tools, and replies held to a JSON schema (llama.cpp's server takes one),
+because small models fumble long tool lists.
+
+**It never writes.** A change comes back as a proposal: the exact command or draft (tag these
+folders, merge these two names, put these folders on a plan), what it changes, and Apply. Applying
+runs it as the GUI or the shell would; the event says `accepted`, or `edited` when the person
+changed it first, with the model and the person as agents (the spec's `Authorship`). A model's
+work that no one applied is not in the record.
+
+**What it knows, in its instructions:** the rules for scripts and agents from `arv help --all`; the
+vocabulary and known names; what `arv todo` says is outstanding; and the principles: the payload is
+never rearranged, nothing is deleted, events are appended, names and places come from the
+vocabulary and are not guessed.
+
+**Sorting is proposing, not moving files:** a plan (the next disc), tags, known names, likely
+duplicates to merge, folders still to describe. Arrangement in the record; the original order kept
+(research/organising.md).
+
+**Local by default.** The catalogue is private: a remote model only with `--llm-allow-remote`, and
+pictures never leave the computer, as now. Tool calling needs about a 7 to 8B model (a few GB, slow
+without a GPU); without one, the panel says so and offers the questions (`describe --ask`).
+
+**One protocol, several faces.** Questions, choices and proposals are JSON, as `--answers` already
+is; each front end only draws them:
+
+- **The GUI: a panel on the right,** as most chat windows are, beside whatever view is open and
+  across every tab, opened and closed from the header (remembered per browser). The page's views
+  are laid out by the room they have (container queries), so a master and detail pair goes to one
+  column when the panel takes the space. Under 760 px the panel covers the page, as a drawer.
+  - It knows what is on screen: the open view and what is selected (a disc, a folder, a plan) go
+    with each message, so "describe this" and "what else is like it" need no names.
+  - A disc id, a path or a tag in a reply is a link that opens it in the view on the left; pictures
+    it talks about show as thumbnails.
+  - A proposal is a card: the command, what it changes, Apply, Edit (the command's own form, filled
+    in, so the GUI builds it as now) and Dismiss. The result of Apply comes back into the chat.
+- **The terminal: lines,** a question and an answer at a time; a proposal is shown as its command
+  and applied on `y`. No full-screen interface: it would need ncurses (a library, against arv's
+  rule and TinyCC) or terminal codes by hand, it would be a third front end to keep in step, and
+  lines work over ssh, in a rescue shell, piped and with a screen reader. Pictures, which a terminal
+  lacks, by `chafa` when present (sixel, kitty or character art, as the terminal allows), else their
+  paths; `describe --ask` can show a folder's thumbnails the same way.
+- **Other harnesses, later:** the same tools and the same rule (changes come back as proposals) as an
+  MCP server, so an outside client gets them too: one definition, two front ends.
+
+**The conversation is not the record.** It is kept in the home's cache, for picking up where it
+stopped, never on a disc; what reaches the record is what was applied, as events.
+
+**Order of building:** the tool set and the proposal JSON; the loop in arv-assist with the terminal
+face; the GUI panel; thumbnails in replies (after "thumbnails on discs"); the MCP server.
