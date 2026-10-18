@@ -38,6 +38,12 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   Keys made from names fold accents (`place:ile-de-france`).
 - `arv programs` lists the place data too; the packages suggest `iso-codes`.
 
+**Scans told apart**
+- `describe --ask` and `--clues` say how many of the PDFs they read have no text (scans), with what
+  to do: `ocrmypdf --skip-text` (only the pages with no text), then describe again. Scans are tagged
+  `source:scan`: the folder, when most of its PDFs are, else each scan, so `arv find source:scan`
+  lists what is left to OCR.
+
 **Tags in any script, one spelling each**
 - A tag is folded as it comes in (drafts, `plan tag`, `retag`, `describe`, `tags add`): Latin,
   Greek and Cyrillic in lower case, Latin accents folded (`place:Zürich` and a decomposed

@@ -130,7 +130,8 @@ int word_plain(const char *w);                         /* one of the language's 
 void word_tags(const word_stats *ws, const strlist *names, const strlist *text, strlist *tags, strlist *why);
 void word_counts(const word_stats *ws, const char *w, const char *tag, size_t *with, size_t *all);
 size_t word_tag_uses(const word_stats *ws, const char *tag);   /* tagged paths (and answers) with it */
-void text_clues(const word_stats *ws, const char *root, const items *l, strlist *out, strlist *titles, strlist *names);
+void text_clues(const word_stats *ws, const char *root, const items *l, strlist *out, strlist *titles, strlist *names,
+                size_t *pdfs_read, strlist *scans);     /* the PDFs read, and those with no text: scans */
 void word_stats_vocab(word_stats *ws, const strlist *names, const strlist *aliases);   /* never common */
 void word_example_add(const arv_home *h, const strlist *tags, const strlist *names, const strlist *text);
 int word_rule_add(const arv_home *h, const char *tag, const char *word);

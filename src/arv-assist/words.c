@@ -676,9 +676,12 @@ static void scan_text(const word_stats *ws, const char *text, counts *tf, counts
     free(w.s);
 }
 
-void text_clues(const word_stats *ws, const char *root, const items *l, strlist *out, strlist *titles, strlist *names)
+void text_clues(const word_stats *ws, const char *root, const items *l, strlist *out, strlist *titles, strlist *names,
+                size_t *pdfs_read, strlist *scans)
 {
     memset(out, 0, sizeof *out);
+    memset(scans, 0, sizeof *scans);
+    *pdfs_read = 0;
     if (!root) return;
     int pdf = on_path("pdftotext"), info = on_path("pdfinfo");
     size_t readable = 0;
@@ -702,6 +705,12 @@ void text_clues(const word_stats *ws, const char *root, const items *l, strlist 
             if (run(argv, &text) != 0) {
                 free(text);
                 text = NULL;
+            }
+            if (text) {                     /* no letter on its first pages: pictures of paper, a scan */
+                int letters = 0;
+                for (const unsigned char *q = (const unsigned char *)text; *q && !letters; q++) letters = isalnum(*q) || *q >= 0x80;
+                (*pdfs_read)++;
+                if (!letters) strlist_add(scans, l->v[i].path);
             }
             if (info && titles) {           /* its own Title, when it has one */
                 char *meta = NULL;

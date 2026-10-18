@@ -2003,7 +2003,10 @@ round of the GUI's questions), often wrong on handwriting and old type (bad word
 and needs choices (languages, page layout) made once with the tool built for it. Run before
 describing, `ocrmypdf` gives a PDF a text layer and `tesseract` a `.txt` beside an image, which arv
 already reads; the text is then kept on the disc too, searchable with `grep` when no OCR tool is
-at hand, rather than worked out and thrown away while describing. Contents are not searched: `arv find` stays on names,
+at hand, rather than worked out and thrown away while describing. Most PDFs need no OCR; to tell
+the scans (no letter on their first pages, as pdftotext reads them) `--ask` says how many it read
+and tags them `source:scan` (the folder's when most are, else each file's), so they can be found
+and OCRed later (2026-10-18). Contents are not searched: `arv find` stays on names,
 tags and descriptions, and full-text search is for tools built for it (Recoll, ripgrep).
 
 **Later: a model as a reader, not a writer.** With this in place a model's work can shrink to what

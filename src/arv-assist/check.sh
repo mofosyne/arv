@@ -490,5 +490,24 @@ if command -v pdftotext >/dev/null && command -v pdfinfo >/dev/null; then
     "$tool" --home wh describe pdfs --clues > pdf.json 2> pdf.err || no "describe --clues (PDF)"
     grep -q '"description": "2 PDF documents (Tax return 2021, Invoice 0042)' pdf.json && grep -q "words in the text: hmrc" pdf.err \
         && ok "PDFs: their text through pdftotext, their titles through pdfinfo, in the description" || { cat pdf.err pdf.json; no "PDF clues"; }
+    mkpdf() {   # mkpdf FILE TEXT: one page with TEXT on it; no TEXT: a page with nothing to read, as a scan has
+        stream=${2:+"BT /F1 12 Tf 10 100 Td ($2) Tj ET"}
+        { printf '%%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n'
+          printf '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n'
+          printf '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 300 144] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj\n'
+          printf '4 0 obj << /Length %d >> stream\n%s\nendstream endobj\n' "${#stream}" "$stream"
+          printf '5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n'
+          printf 'trailer << /Root 1 0 R >>\n%%%%EOF\n'; } > "$1"
+    }
+    mkdir -p mixed scans
+    mkpdf mixed/a.pdf "Council tax bill"; mkpdf mixed/b.pdf "Water bill"; mkpdf mixed/c.pdf ""
+    mkpdf scans/1.pdf ""; mkpdf scans/2.pdf ""
+    "$tool" --home wh describe mixed --clues > mixed.json 2> mixed.err || no "describe --clues (a scan among PDFs)"
+    "$tool" --home wh describe scans --clues > scans.json 2> scans.err || no "describe --clues (scans)"
+    grep -q '; 1 of 3 PDFs read with no text (scans: source:scan; ocrmypdf --skip-text, then describe again)' mixed.err \
+        && tr -d '\n ' < mixed.json | grep -q '"c.pdf":\["source:scan"\]' && ! tr -d '\n ' < mixed.json | grep -q '".":\[[^]]*source:scan' \
+        && tr -d '\n ' < scans.json | grep -q '".":\[[^]]*"source:scan"' \
+        && ok "PDFs with no text are scans: said, with what to do (ocrmypdf --skip-text), and tagged source:scan (the folder's when most are, else each)" \
+        || { cat mixed.err mixed.json scans.err scans.json; no "scans"; }
 fi
 echo "all checks passed"

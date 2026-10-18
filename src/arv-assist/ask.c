@@ -29,6 +29,8 @@ typedef struct {
     const char *date_from;      /* "EXIF", "names" or "file times" */
     char *camera;               /* EXIF's most common Model, or NULL */
     size_t camera_names;        /* files named by a camera or phone (DSC_0001.JPG) */
+    size_t pdfs_read;           /* PDFs read for their words, and those with none: scans (OCR them first) */
+    strlist scans;
     size_t gps;                 /* photos with a position in their EXIF, and where most were (the median) */
     double lat, lon;
     strlist words;              /* the words of the name and the folders' names, the most telling first */
@@ -372,7 +374,7 @@ static void gather(const word_stats *ws, const items *l, const char *name, const
         strlist_free(&c->terms);
         c->terms = u;
     }
-    text_clues(ws, root, l, &c->text, &c->titles, &c->text_names);
+    text_clues(ws, root, l, &c->text, &c->titles, &c->text_names, &c->pdfs_read, &c->scans);
     if (ws) word_tags(ws, &c->terms, &c->text, &c->learned, &c->learned_why);
     strlist_free(&kinds);
     strlist_free(&name_dates);
@@ -388,6 +390,7 @@ static void clues_free(clues *c)
     strlist_free(&c->text);
     strlist_free(&c->titles);
     strlist_free(&c->text_names);
+    strlist_free(&c->scans);
     strlist_free(&c->learned);
     strlist_free(&c->learned_why);
     free(c->camera);
@@ -983,6 +986,14 @@ static void ask_namespace(asking *a, const arv_home *h, const archive *cat, cons
                 free(wy);
                 if (!marked.n || !one) strlist_add(&marked, used.v[i]);
             }
+    if (!strcmp(ns, "source") && c->scans.n && c->scans.n * 2 >= c->pdfs_read && !strlist_has(&opts, "scan")) {
+        char *y = xprintf("%zu of %zu PDF%s read have no text", c->scans.n, c->pdfs_read, c->pdfs_read == 1 ? "" : "s");
+        strlist_add(&opts, "scan");         /* mostly scans: the folder's; else each scan's own (ask_suggest) */
+        strlist_add(&why, y);
+        strong++;
+        if (!marked.n || !one) strlist_add(&marked, "scan");
+        free(y);
+    }
     if (!strcmp(ns, "source") && c->camera) {   /* what made the photos, from their EXIF */
         char *v = slug(c->camera);
         if (!strlist_has(&opts, v)) {
@@ -1143,7 +1154,8 @@ static char *ask_folder(asking *a, const arv_home *h, const archive *cat, const 
         if (!strlist_has(&order, tw->ns_names.v[i])) strlist_add(&order, tw->ns_names.v[i]);
     for (size_t i = 0; i < order.n; i++) {
         int one = strlist_has(&tw->ns_one, order.v[i]);
-        if (!asks(c->kind, order.v[i]) || (sub && (one || !strcmp(order.v[i], "source")))) continue;
+        int scanned = !strcmp(order.v[i], "source") && c->scans.n && c->scans.n * 2 >= c->pdfs_read;   /* documents, but scans */
+        if ((!asks(c->kind, order.v[i]) && !scanned) || (sub && (one || !strcmp(order.v[i], "source")))) continue;
         ask_namespace(a, h, cat, tw, c, name, order.v[i], one, sub, &taken, tags);
     }
     strlist_free(&order);
@@ -1236,6 +1248,9 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
         }
         if (c.camera) sb_printf(&b, "; camera %s (EXIF)", c.camera);
         else if (c.camera_names * 2 > c.files) sb_puts(&b, "; named by a camera or phone");
+        if (c.scans.n)                  /* scans: their words come once they have a text layer */
+            sb_printf(&b, "; %zu of %zu PDF%s read with no text (scans: source:scan; ocrmypdf --skip-text, then describe again)",
+                      c.scans.n, c.pdfs_read, c.pdfs_read == 1 ? "" : "s");
         if (c.gps) {
             int how;
             double km;
@@ -1284,6 +1299,11 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
     char *clue_date = c.first ? edtf_of(c.first, c.last) : NULL;
     ftags_get(&out->folders, ".", 1);
     for (size_t i = 0; i < tags.n; i++) strlist_add(ftags_get(&out->folders, ".", 1), tags.v[i]);
+    if (c.scans.n && !strlist_has(&tags, "source:scan"))   /* some scans among PDFs with text: each its own tag, */
+        for (size_t i = 0; i < c.scans.n; i++) {          /* so arv find source:scan lists what still needs OCR */
+            strlist *t = ftags_get(&out->folders, c.scans.v[i], 1);
+            if (!strlist_has(t, "source:scan")) strlist_add(t, "source:scan");
+        }
     for (size_t i = 0; i < tags.n; i++)
         if (!strchr(tags.v[i], ':')) strlist_add(&out->subjects, tags.v[i]);
     /* its folders, each in turn (first level, with files of their own) */

@@ -182,11 +182,14 @@ tag FOLDER --save d.json` suggests folder tags from your vocabulary, and `arv de
 --save d.json` asks a local language model for a title, description and questions; `arv make
 --draft d.json` takes any of them.
 
-Scans: arv reads a PDF's text layer and any `.txt` beside the files, but does no OCR itself. Do it
-first, with the tools built for it, and the text becomes both a clue and part of what is kept:
+Scans: arv reads a PDF's text layer and any `.txt` beside the files, but does no OCR itself. Most
+PDFs need none (anything saved from a program has its text); only scans, pictures of paper, do.
+`describe --ask` says how many of the PDFs it read have no text, and tags them `source:scan` (the
+folder, when most are), so `arv find source:scan` lists what is left to OCR. Do it with the tools
+built for it, and the text becomes both a clue and part of what is kept:
 
 ```sh
-ocrmypdf letter.pdf letter-ocr.pdf      # a text layer in a copy of the PDF
+ocrmypdf --skip-text letter.pdf letter-ocr.pdf   # a text layer in a copy, on the pages with none
 tesseract scan-0042.jpg scan-0042       # scan-0042.txt beside the image: a clue, and searchable on the disc
 ```
 
