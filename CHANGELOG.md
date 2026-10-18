@@ -51,9 +51,21 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   spelling to read stays in a known name's `Label`. `arv find` folds the same way: "Zürich" finds
   `zurich`. Not done: Hangul written as separate jamo is not composed.
 
+**Thumbnails on discs**
+- Each disc carries a small picture (JPEG, 384 px, metadata stripped) of its photos, a frame of
+  its videos and the first page of its PDFs, in `catalog/volumes/<id>/thumbs/<sha256>.jpg`, named
+  by the SHA-256 of the file shown, so every copy of the same bytes shares one; `thumbs.tsv` lists
+  them (size, what each shows, the tool), and the `Thumbs` pointer in `catalog.rec` names it.
+- The disc's `index.html` shows each beside its file, and its `README.txt` says where they are.
+  The home keeps every disc's, in its `volumes/<id>/`; a disc carries only its own.
+- Made by `vipsthumbnail`, else ImageMagick, else `ffmpeg` for pictures, `ffmpeg` for a video's
+  frame, `pdftoppm` for a PDF's page, when installed (`arv programs` lists them). None without
+  them, or with `arv make --no-thumbs`. At most a fiftieth of the medium; the make's event says how
+  many were made and by what.
+
 **arv programs: which optional programs are here**
 - `arv programs [--json]` lists every program arv can use (its helpers; git, Siegfried and the
-  compressors for making; exiftool, poppler and ffmpeg for describing; the browser opener; and the
+  compressors and the thumbnail makers for making; exiftool, poppler and ffmpeg for describing; the browser opener; and the
   tools for work arv leaves to others: burning, ddrescue, OCR), which are found, what each is for,
   what is missing without it, and each group's install command for this system (Debian and Ubuntu,
   Fedora, Arch, macOS with Homebrew, found from os-release; every system's when it is none of
@@ -66,8 +78,12 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - `arv chat` asks the chosen model about the archive. It runs commands that only read on its own
   (shown as `$ arv find travel`), and everything else comes back as a proposal: at a terminal
   "Apply it? [y/N]", in the GUI's Assistant panel (on the right, beside every view) a card with
-  its risk, Apply and Dismiss. A write asked for as a read becomes a proposal. The view reloads
-  after Apply.
+  its risk, Apply, Edit and Dismiss. A write asked for as a read becomes a proposal. The view
+  reloads after Apply.
+- Edit: the proposed command in a box, to change before applying; its risk is judged again
+  (`arv-assist chat --risk`), and when it has risen, Apply asks a second time. The model is told
+  what was run.
+- The GUI keeps the conversation in the browser across reloads, until New.
 - Each command's risk is in `arv help --json` (`reads`, `risk` none, low, medium or high, and
   `risks` for subcommands and options), from one table (`src/arv/risk.c`) that the checks hold to
   the manual.

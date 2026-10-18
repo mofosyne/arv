@@ -2298,7 +2298,7 @@ Wanted by no one yet; each waits until someone needs it.
   It needs Unicode's composition tables (see "Tags in any script, one spelling each").
 - **`arv tags` columns lined up for wide characters** (京 takes two columns, counted as one).
 
-## Design (2026-10-18, not built): thumbnails on discs
+## Design (2026-10-18, built: see the Done entry below): thumbnails on discs
 
 A disc carries small pictures of its own photos, videos and documents, so a found disc, the home,
 the GUI, `index.html` and the describing questions show what it holds without reading it. They are
@@ -2697,3 +2697,50 @@ loses the archive). If it is wanted: per object, with a standard tool (age, or O
 fingerprint in the record and the steps in the disc's README.txt; never arv's own cryptography.
 Also for an organisation, later if ever: more than one person writing the record, with accounts.
 Signing discs (proof of origin, not secrecy) is issue #55.
+
+## Done (2026-10-18): thumbnails on discs
+
+As designed above ("thumbnails on discs"), with these choices:
+
+- **Made once a make, before the layout** (`src/arv/thumbs.c`, `thumbs_prepare`), into the make's
+  work folder, one for each SHA-256 among the files and the packed members; each disc then takes
+  those of its own files (`thumbs_for_disc`), in the order they are listed, until a fiftieth of the
+  medium is used, and the rest are left out. The design said "the largest folders' are left out";
+  in order is simpler and no disc has come near the limit.
+- **The tools,** tried in order: `vipsthumbnail` (`[Q=75,strip]`), `magick`, `convert`
+  (`-auto-orient -thumbnail 384x384> -strip`), `ffmpeg` for pictures; `ffmpeg` 3 s in for a video,
+  else its first frame; `pdftoppm -singlefile` for a PDF. The size comes from the JPEG's frame
+  header, read by arv. `arv programs` lists vipsthumbnail, ImageMagick and pdftoppm under making.
+- **On the disc and at home:** `thumbs/` and `thumbs.tsv` under `catalog/volumes/<id>/`, the
+  `Thumbs` pointer, and the same written to the home's `volumes/<id>/`. Later discs' snapshots
+  leave other discs' thumbnails out. The creation event's note ends "; N thumbnails by TOOL".
+- **index.html:** each file with one shows it at 96 px before its name, with its size so the page
+  does not jump. `README.txt` says where they are.
+- **Off:** `--no-thumbs`, or `ARV_NO_THUMBS` in the environment (the checks set it, so their
+  outputs do not depend on the tools installed; one check makes them with a stand-in).
+
+Not yet: the contact-sheet grid for a folder of pictures, `arv plan show` saying how much room they
+take, the GUI showing them, the describing questions and `--vision` using them, and a caption for
+every picture.
+
+## Done (2026-10-18): the assistant's Edit, and its conversation kept
+
+Two of the first version's "not yet" (the Done entry above, "the assistant, first version"):
+
+- **Edit on a proposal:** the card's Edit puts the command in a box, as a shell line. On Apply the
+  page splits it as a shell would (quotes, backslashes) and, when it differs from the proposal,
+  asks `arv-assist chat --risk` (the command as `{"command": [...]}` on stdin, no model needed) for
+  its risk, from the same table as every proposal (`command_risk`). The same risk or lower: it
+  runs. Higher: the card shows the new risk and Apply must be pressed again (and confirmed, when
+  high). An edit naming another home (`--home`, `-C`) is refused, as a proposal's is. The model is
+  told "I edited it, and applied: ...", with the exit and output.
+  The design said "the command's own form, filled in": a box is simpler, works for every command,
+  and a form can come later from the command's options in `arv help --json`.
+- **The conversation kept:** the transcript (what was said, each step, each proposal and what
+  became of it) and the messages sent to the model are kept in the browser's localStorage and
+  shown again on a reload; New clears them. Per browser, not per home: one conversation at a time.
+
+Still not built: rules learned from repeated acceptances, the low-risk "apply without asking"
+switch, confidence (each waits on enough use to tell what is worth it), Follow, the record-changed
+poll and the MCP server.
+

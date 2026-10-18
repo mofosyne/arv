@@ -52,6 +52,9 @@ data stored after the filesystem.
 BROWSE
   Open index.html in any web browser. It lists every file on this disc
   and{other_discs}.
+  Small pictures of its photos, videos and PDFs, when it has them, are in
+  catalog/volumes/*/thumbs/, each named by the SHA-256 of the file it
+  shows (as in manifest-sha256.txt); thumbs.tsv beside it lists them.
 
 SEARCH
   Catalogue software that reads this format can search every disc (the

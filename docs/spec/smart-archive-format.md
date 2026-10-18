@@ -83,6 +83,7 @@ Listing: catalog/volumes/2020-2025_PROJECTS_01/listing.tsv
 Tags: catalog/volumes/2020-2025_PROJECTS_01/tags.tsv
 Formats: catalog/volumes/2020-2025_PROJECTS_01/formats.csv
 Packed: catalog/volumes/2020-2025_PROJECTS_01/packed.tsv    only when the disc has packs
+Thumbs: catalog/volumes/2020-2025_PROJECTS_01/thumbs.tsv    only when the disc has thumbnails
 Snapshot: catalog/archive.rec
 Viewer: index.html
 Payload: data/
@@ -110,6 +111,8 @@ catalogue rebuilt from a disc takes the disc's archive identity.
 | `catalog/volumes/<id>/formats.csv` | CSV | PRONOM format identification per file (optional) |
 | `catalog/volumes/<id>/packed.tsv` | TSV | Every file inside the disc's packs: its SHA-256, its path under `data/` as unpacked, its pack and how it is packed (see [Packed objects](#object-records-data-objects-format-05)); only when the disc has packs |
 | `catalog/volumes/<id>/manifest.sha256` | BagIt manifest | Copy of the disc's `manifest-sha256.txt` |
+| `catalog/volumes/<id>/thumbs/<sha256>.jpg` | JPEG | A small picture of a photo, a video's frame or a PDF's first page on this disc: 384 px on its longer side, its metadata stripped, named by the SHA-256 of the file it shows (in the manifest, or `packed.tsv`), so every copy of the same bytes shares one. At most a fiftieth of the medium. Optional: made only where a tool for it was installed |
+| `catalog/volumes/<id>/thumbs.tsv` | TSV | The thumbnails: a header `# arv thumbs 1`, then for each its SHA-256, width, height, what it shows (`picture`, `frame`, `page 1`) and the tool that made it; only when the disc has thumbnails. A disc carries its own thumbnails only, never other discs' |
 | `catalog/archive.rec` | recfile | Snapshot of the **whole archive** at burn time: every disc's `Disc`, `Binding`, `Location`, `Collection`, `Revision`, `Event` and `Appraisal` records (limited by [Access](#access)) |
 | `catalog/config/sets.rec`, `catalog/config/tags.rec`, `catalog/config/places.rec` | recfile | The archive's vocabularies at burn time: the set codes (`Set`, `Category`), the tag words its records use, with their names, parents and aliases, and the gazetteer (the places `place:` tags name). Full snapshots only; optional (format 0.5) |
 | `catalog/volumes/<other-id>/` | as above | The same per-volume index files for the other discs in the snapshot: one folder per volume, as LTFS keeps one index per tape |

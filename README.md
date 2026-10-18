@@ -291,6 +291,12 @@ in its snapshot.
 - With [Siegfried](https://www.itforarchivists.com/siegfried) (`sf`) installed, each file's
   PRONOM format is recorded in `catalog/volumes/<disc-id>/formats.csv`; arv skips this when
   Siegfried is not installed, or with `--no-formats`.
+- Thumbnails: a small picture of each photo, a frame of each video and the first page of each
+  PDF, in `catalog/volumes/<disc-id>/thumbs/`, named by the SHA-256 of the file each shows, and
+  shown in the disc's `index.html` beside the file. Made by `vipsthumbnail`, ImageMagick, `ffmpeg`
+  or `pdftoppm`, whichever is installed (`arv programs`); none without them, or with
+  `--no-thumbs`. At most a fiftieth of the disc. A disc carries its own; the home keeps every
+  disc's.
 - The source folder is never modified: tag files are staged separately and the
   folder is grafted into the image as `data/`.
 - Every image is the same kind: UDF 2.50 with a metadata partition and a real mirror, the
@@ -335,9 +341,10 @@ llm-status --all`) shows which are here and which is used.
 `arv chat` (and the Assistant panel on the right of `arv gui`) answers questions about the archive
 with the model chosen in Settings: what is owed, where something is, which names are missing. It
 reads on its own, each step shown as the arv command it ran; a change comes as a proposal with its
-risk (none, low, medium, high: `arv help --json`), which you apply or not. It never deletes,
-never moves your files, and never changes anything you have not applied. A home's
-`config/assistant.txt` replaces its instructions.
+risk (none, low, medium, high: `arv help --json`), which you apply, edit or dismiss (an edited
+command's risk is judged again before it runs). It never deletes, never moves your files, and never
+changes anything you have not applied. In the GUI the conversation stays across reloads until New.
+A home's `config/assistant.txt` replaces its instructions.
 
 ### Descriptions and tags with a model
 
@@ -427,7 +434,7 @@ ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM S
   captions ("a red VW Beetle on a cobblestone street") feed the description and folder
   tags, and are stored with the tags, so `find beetle` works even when the folder is
   called `folder_B`. Because this sends image contents, it only ever uses a server on
-  this computer; there is no remote override. Thumbnails use Pillow or ffmpeg when
+  this computer; there is no remote override. Pictures are scaled down by ffmpeg when
   installed, otherwise small JPEG/PNG/WebP/GIF files are sent as-is and others skipped.
   Use `--vision-model` if your text model can't see images (e.g. `qwen2.5vl`, `gemma3`,
   `llava`). Tested with SmolVLM-500M on llama.cpp: accurate one-line captions in ~5 s per

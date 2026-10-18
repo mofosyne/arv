@@ -15,12 +15,12 @@ Where arv is going, and what is waiting. The reasons behind each step are in
 
 ## Next: designed, not built
 
-- [ ] **Thumbnails on discs**, for people and for models: small pictures named by their file's
-      hash, shown in each disc's `index.html`, and a caption for every picture
-      (research/plan.md, "thumbnails on discs")
-- [ ] **The assistant, after its first version:** Edit on a proposal, conversations kept across
-      reloads, rules learned from what you accept, "apply tags without asking" for low-risk changes,
-      confidence from the model's own probabilities (research/plan.md, "an assistant for archival work")
+- [ ] **Thumbnails, after discs carry them:** shown in the GUI and used by describing, a contact
+      sheet for a folder of pictures, and a caption for every picture (research/plan.md,
+      "thumbnails on discs")
+- [ ] **The assistant, next:** rules learned from what you accept, "apply tags without asking" for
+      low-risk changes, confidence from the model's own probabilities (research/plan.md, "an
+      assistant for archival work")
 - [ ] **An interface for other software**, once the commands settle: stable machine output for
       Katalog and archival tools ([#31](https://github.com/mofosyne/arv/issues/31)); Katalog importing
       arv discs from their catalogue ([#16](https://github.com/mofosyne/arv/issues/16))
@@ -68,8 +68,11 @@ Each waits until someone needs it.
 - [x] Describing: with a model, or without one by questions over your vocabulary; known names;
       places, GPS and a map; tags in any script; scans told apart
 - [x] Models: found and chosen in Settings, each source on or off, your own key said at each use
-- [x] The assistant (`arv chat`, and a panel in the GUI): reads on its own, proposes changes with their risk
+- [x] The assistant (`arv chat`, and a panel in the GUI): reads on its own, proposes changes with their risk;
+      Edit on a proposal, and the conversation kept across reloads
 - [x] `arv programs`: which optional programs are here, and how to install the rest
+- [x] Thumbnails on discs: a small picture of each photo, video and PDF, named by its file's hash,
+      shown in `index.html`, kept at home
 - [x] A man page from the commands' own help (`arv help --man`), and tab completion
 - [x] ~~`archive.sqlite` search index~~ retired: `find` scans the plain-text lists fast enough
 - [x] ~~dvdisaster's source on each disc~~ superseded: arv repairs RS03 itself

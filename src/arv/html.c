@@ -98,6 +98,10 @@ static int by_tree_order(const void *a, const void *b)
     return lower_cmp(x->name, y->name);
 }
 
+/* the disc's thumbnails, by the SHA-256 of the file each shows, and where they are */
+static const thumbset *tree_thumbs;
+static const char *tree_thumb_dir;
+
 static void render_tree(tnode *n, sbuf *out, int depth)
 {
     char size[32];
@@ -117,6 +121,13 @@ static void render_tree(tnode *n, sbuf *out, int depth)
             url_quote(out, "data/");
             url_quote(out, k->file->path);
             sb_puts(out, "\">");
+            const thumb *t = thumbs_find(tree_thumbs, k->file->sha256);
+            if (t) {        /* fetched only once its folder is open (lazy, inside a closed <details>) */
+                int big = t->w > t->h ? t->w : t->h, w = t->w * 96 / big, h = t->h * 96 / big;
+                sb_puts(out, "<img src=\"");
+                url_quote(out, tree_thumb_dir);
+                sb_printf(out, "/%s.jpg\" width=\"%d\" height=\"%d\" loading=\"lazy\" alt=\"\">", t->sha, w ? w : 1, h ? h : 1);
+            }
             html_esc(out, k->name);
             sb_printf(out, "</a><span class=\"size\">%s</span></li>\n", size);
         }
@@ -153,8 +164,11 @@ static void line(sbuf *out, const char *s)
 }
 
 char *render_index(const rec_record *disc, const rec_record *binding, const entries *files,
-                   const archive *snapshot, char *(*where_fn)(const archive *, const rec_record *), const char *places_html)
+                   const archive *snapshot, char *(*where_fn)(const archive *, const rec_record *), const char *places_html,
+                   const thumbset *thumbs, const char *thumb_dir)
 {
+    tree_thumbs = thumbs;
+    tree_thumb_dir = thumb_dir;
     sbuf out = { 0 }, t = { 0 };
     const char *title = rec_get(disc, "Title") ? rec_get(disc, "Title") : rec_get(disc, "Id");
     line(&out, "<!doctype html>");

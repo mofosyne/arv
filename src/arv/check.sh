@@ -25,6 +25,7 @@ cd "$dir"
 ok() { echo "ok: $*"; }
 no() { echo "FAILED: $*"; exit 1; }
 export ARV_NO_EXTRA_PLACES=1      # the built-in places only, whatever this machine has installed (one test below adds some)
+export ARV_NO_THUMBS=1            # no thumbnails, whatever tools are here (one test below makes them, with a stand-in)
 command -v 7z >/dev/null || no "7z is needed to read disc images (p7zip-full)"
 unset ARV_APE ARV_SOURCE    # the real-disc checks use what a user has: the checkout, its arv.com
 
@@ -342,6 +343,38 @@ printf 'b. 1931\ncolleague\n2\n\n' | "$tool" -C kn/home tags split person:anne-s
     && grep -q '^Name: family$' kn/disc/catalog/config/tags.rec \
     && ok "known names: a public disc's vocabulary leaves the private entries out (software:kicad goes, person:anne-smith stays home)" \
     || no "known names: private entries on a public disc"
+# thumbnails: made by a tool built for it (a stand-in vipsthumbnail here), named by the file's hash, on the
+# disc and its index.html, at home, and never on other discs
+mkdir -p th/fake th/Trip/day1
+cat > th/fake/vipsthumbnail <<'EOF'
+#!/bin/sh
+# a stand-in: a 64 by 48 JPEG (its frame header only) at -o's path, its [options] dropped
+while [ $# -gt 0 ]; do [ "$1" = -o ] && out=${2%%\[*}; shift; done
+printf '\377\330\377\300\000\021\010\000\060\000\100\003\001\042\000\002\021\001\003\021\001\377\331' > "$out"
+EOF
+chmod +x th/fake/vipsthumbnail
+echo one > th/Trip/day1/a.jpg; echo two > th/Trip/day1/b.png; cp th/Trip/day1/a.jpg th/Trip/same.jpg; echo text > th/Trip/notes.txt
+"$tool" init th/home --name th > /dev/null
+ARV_NO_THUMBS= PATH="$PWD/th/fake:$PATH" "$tool" -C th/home make -y --no-ecc --no-formats --set TH --output-dir th/out th/Trip > th/make.out 2>&1 \
+    || { cat th/make.out; no "make with thumbnails"; }
+sha=$(sha256sum th/Trip/day1/a.jpg | cut -c1-64); id=$(cut -f1 th/make.out | tail -1)
+7z x -oth/disc th/out/*.iso catalog catalog.rec index.html > /dev/null
+[ -s "th/disc/catalog/volumes/$id/thumbs/$sha.jpg" ] && [ "$(ls th/disc/catalog/volumes/$id/thumbs | wc -l)" -eq 2 ] \
+    && grep -q "^$sha	64	48	picture	vipsthumbnail$" "th/disc/catalog/volumes/$id/thumbs.tsv" \
+    && grep -q "<img src=\"catalog/volumes/$id/thumbs/$sha.jpg\" width=\"96\" height=\"72\" loading=\"lazy\" alt=\"\">a.jpg" th/disc/index.html \
+    && grep -q "^Thumbs: catalog/volumes/$id/thumbs.tsv$" th/disc/catalog.rec \
+    && [ -s "th/home/catalog/volumes/$id/thumbs/$sha.jpg" ] && [ -s "th/home/catalog/volumes/$id/thumbs.tsv" ] \
+    && grep -q "; 2 thumbnails by vipsthumbnail$" th/home/catalog/archive.rec \
+    && "$tool" -C th/home check th/out/*.iso > /dev/null \
+    && ok "thumbnails: of pictures, one for each content (by its SHA-256), on the disc with thumbs.tsv, in its index.html, at home; the disc checks" \
+    || { cat th/make.out; ls -R th/disc/catalog; no "thumbnails"; }
+echo three > th/Trip/c.jpg
+ARV_NO_THUMBS= PATH="$PWD/th/fake:$PATH" "$tool" -C th/home make -y --no-ecc --no-formats --set TH --output-dir th/out2 th/Trip > th/make2.out 2>&1 \
+    && ARV_NO_THUMBS= PATH="$PWD/th/fake:$PATH" "$tool" -C th/home make -y --no-ecc --no-formats --no-thumbs --set TH --output-dir th/out3 th/Trip > /dev/null 2>&1 \
+    && id2=$(cut -f1 th/make2.out | tail -1) && 7z l th/out2/*.iso > th/l2 && 7z l th/out3/*.iso > th/l3 \
+    && grep -q "catalog/volumes/$id2/thumbs.tsv" th/l2 && ! grep -q "catalog/volumes/$id/thumbs" th/l2 \
+    && ! grep -q "thumbs" th/l3 \
+    && ok "thumbnails: a disc carries its own, never an earlier disc's; --no-thumbs makes none" || no "thumbnails on later discs"
 # the programs arv can use: each found or not, from PATH; none needed for a disc
 mkdir -p progbin && printf '#!/bin/sh\n' > progbin/zstd && chmod +x progbin/zstd
 printf 'NAME="Debian GNU/Linux"\nID=debian\nPRETTY_NAME="Debian GNU/Linux 13 (trixie)"\n' > deb.os
@@ -365,7 +398,7 @@ ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin:/usr/bin/nonexistent" "$tool" prog
     && ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin" "$tool" programs --install describing </dev/null | grep -q '^Installed\.' \
     && grep -qx 'install --noninteractive libimage-exiftool-perl poppler-utils ffmpeg curl' pkcon.args \
     && ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin" "$tool" programs --install making </dev/null > /dev/null \
-    && grep -qx 'install --noninteractive git tar xz-utils gzip zip unzip' pkcon.args \
+    && grep -qx 'install --noninteractive git tar xz-utils gzip zip unzip libvips-tools imagemagick poppler-utils' pkcon.args \
     && ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin" "$tool" programs --json | grep -q '"packagekit": true' && rm progbin/pkcon \
     && ok "arv programs: which programs arv can use are here (PATH), what each is for, each group's install command for this system (every system's when it is not one arv knows), Siegfried's own steps, and --install through PackageKit (never Siegfried)" \
     || { cat prog.out; no "arv programs"; }

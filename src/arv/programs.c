@@ -76,12 +76,18 @@ static const program PROGRAMS[] = {
     { "gzip", NULL, "making", "packed objects: tar+gzip, gzip", "those packings refused", { "gzip", "gzip", "gzip", "" } },
     { "zip", NULL, "making", "packed objects: zip", "zip packing refused", { "zip", "zip", "zip", "" } },
     { "unzip", NULL, "making", "a zip packed object read back and restored", "zip objects not read back", { "unzip", "unzip", "unzip", "" } },
+    { "vipsthumbnail", NULL, "making", "thumbnails of pictures on discs (the fastest)", "ImageMagick's or ffmpeg's",
+      { "libvips-tools", "vips-tools", "libvips", "vips" } },
+    { "magick", "convert", "making", "thumbnails of pictures on discs: ImageMagick", "ffmpeg's, or none",
+      { "imagemagick", "ImageMagick", "imagemagick", "imagemagick" } },
+    { "pdftoppm", NULL, "making", "thumbnails of PDFs on discs (their first page)", "PDFs without thumbnails",
+      { "poppler-utils", "poppler-utils", "poppler", "poppler" } },
     { "exiftool", NULL, "describing", "photos' dates, camera and GPS as clues", "dates from names and file times only, no camera or place",
       { "libimage-exiftool-perl", "perl-Image-ExifTool", "perl-image-exiftool", "exiftool" } },
     { "pdftotext", NULL, "describing", "a PDF's words as clues", "PDFs' words not read", { "poppler-utils", "poppler-utils", "poppler", "poppler" } },
     { "pdfinfo", NULL, "describing", "a PDF's own title, in the description", "PDFs' titles not read",
       { "poppler-utils", "poppler-utils", "poppler", "poppler" } },
-    { "ffmpeg", NULL, "describing", "a frame of a video, for a local vision model (describe --vision)", "videos not looked at",
+    { "ffmpeg", NULL, "describing", "a frame of a video, for its thumbnail and a local vision model (describe --vision)", "videos not looked at",
       { "ffmpeg", "ffmpeg-free", "ffmpeg", "ffmpeg" } },
     { "curl", NULL, "describing", "https to an external inference provider you choose, with your own key (Settings)",
       "model servers on this computer only", { "curl", "curl", "curl", "" } },
@@ -346,9 +352,9 @@ int cmd_programs(int argc, char **argv)
             for (size_t i = 0; i < n; i++) {
                 const program *p = &PROGRAMS[i];
                 if (strcmp(p->group, GROUPS[g][0])) continue;
-                sb_printf(&b, "  %-8s %-11s %s\n", at[i] ? "ok" : "missing", p->name, p->use);
+                sb_printf(&b, "  %-8s %-13s %s\n", at[i] ? "ok" : "missing", p->name, p->use);
                 if (at[i]) continue;
-                sb_printf(&b, "  %-8s %-11s without it: %s\n", "", "", p->without);
+                sb_printf(&b, "  %-8s %-13s without it: %s\n", "", "", p->without);
             }
             for (size_t k = 0; k < NSYSTEMS; k++) {         /* this system's command, or every system's */
                 if (sys >= 0 && (int)k != sys) continue;
