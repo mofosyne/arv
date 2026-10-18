@@ -102,7 +102,7 @@ Each layer does its own job:
 | `src/udfwrite/` | arv's UDF 2.50 writer (library, built into arv, and a program): [docs/spec/archival-udf.md](docs/spec/archival-udf.md) |
 | `src/rs03/` | dvdisaster's RS03 error correction: add, test, repair (library, built into arv, and a program): [docs/spec/rs03-format.md](docs/spec/rs03-format.md) |
 | `src/bagit/` | BagIt (RFC 8493) checking and the digests (library, built into arv, and a `bagit` program for any bag) |
-| `src/arv-assist/` | **arv-assist**, optional, in C: describing and tagging (`arv describe`, `arv tag`): with OpenAI-compatible local services, or by asking you (`describe --ask`) |
+| `src/arv-assist/` | **arv-assist**, optional, in C: describing and tagging (`arv describe`, `arv tag`), with a model (on this computer, or a provider you choose) or by asking you (`describe --ask`); the assistant (`arv chat`); which model (`llm-status`, `llm-use`) |
 | `src/arv-gui/` | **arv-gui**, optional, in C: `arv gui`, the interface in your web browser; a small local server that runs arv for every action |
 | `arv` | runs `src/arv/build/arv` in a checkout (and `tools/arv/arv` on a disc), building it with `make` first if needed |
 | `docs/` | For users: concepts, workflow, burning, shelving, architecture, philosophy, and the website |
@@ -122,7 +122,7 @@ correction) are in the [`samples` release](https://github.com/mofosyne/arv/relea
 
 `research/plan.md` has the disc layout, phased plan and open decisions.
 
-`docs/spec/smart-archive-format.md` specifies the on-disc catalogue format (draft 0.4) so other
+`docs/spec/smart-archive-format.md` specifies the on-disc catalogue format (draft 0.5) so other
 cataloguing programs (e.g. Katalog) can read a disc and prefill their database without scanning it.
 
 `research/metadata-standards.md` surveys archival metadata standards (Dublin Core,
@@ -141,8 +141,9 @@ and how BagIt and recfiles split the work.
 
 `arv` (Archive, Record, Verify; also Norwegian for "inheritance") is a C program: C99 and POSIX,
 no libraries, built from any disc's `tools/` with one `cc` line. Two optional programs sit beside
-it: arv-assist (C) has the local AI helpers, and arv-gui (C) the interface in your web
-browser; arv runs them for `describe`, `tag`, `models` and `gui`. arv adds dvdisaster's RS03
+it: arv-assist (C) describes and tags, with a model or by asking you, and is the assistant;
+arv-gui (C) is the interface in your web browser. arv runs them for `describe`, `tag`, `chat` and
+`gui`. arv adds dvdisaster's RS03
 error correction itself ([src/rs03](src/rs03/): byte for byte what dvdisaster writes), and
 tests and repairs it, so making, checking and repairing discs needs nothing else. Reading a
 damaged disc into an image is for GNU ddrescue or
@@ -565,13 +566,16 @@ and links between items (folders already group files; no reader uses typed links
 - [x] `README.txt` and the tool's source on each disc
 - [x] Target medium size, minimum redundancy, defect-management sizes for RS03
 - [x] UDF 2.50 through arv's own writer (`src/udfwrite`)
-- [x] GUI front end over the CLI (`arv gui`, local web UI, standard library only)
+- [x] GUI front end over the CLI (`arv gui`, a local web interface; its server in C)
+- [x] Describing without a model (questions over your vocabulary), known names, places and a map
+- [x] The assistant (`arv chat`, and a panel in the GUI): reads on its own, proposes changes
 - [x] `.arv` homes, change events, `Binding` records (format 0.3)
 - [x] ~~dvdisaster sources (and static binaries) on each disc for self-contained repair~~ superseded: arv repairs RS03 itself
 - [ ] File extents per volume, so files can be cut out of a raw image
 - [x] RS03 in arv itself: encoder, image test and repair in plain C ([src/rs03](src/rs03/)), byte-identical to dvdisaster Light,
       so `tools/arv.com` can repair a disc image anywhere
-- [ ] A man page generated from the command's own help
+- [x] A man page generated from the command's own help (`arv help --man`)
+- [ ] Thumbnails on discs, for people and for models (designed: research/plan.md)
 - [ ] First real burns, and reading them back after time on the shelf
 
 The detailed plan and the reasons behind each decision: [research/plan.md](research/plan.md).
