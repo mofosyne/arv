@@ -722,7 +722,11 @@ a place, since where an object goes on a disc is its tags' (a layout) or a plan'
 on stay as burned; their paths are facts about those discs. An object whose name on a disc is not
 the one it was read as records `Slug` too.
 
-A tag is either a plain word or phrase (`travel`) or `namespace:value`
+A tag is UTF-8, written with one spelling for one meaning: lower case for Latin, Greek and Cyrillic,
+Latin letters without accents (a composed or decomposed `ü` alike is `u`: `place:zurich`), and every
+other script as it is (`place:京都`); the spelling to read is a known name's `Label` ("Zürich"). A
+reader folds a tag the same way before comparing, so a disc written otherwise is still found. A tag
+is either a plain word or phrase (`travel`) or `namespace:value`
 (`person:alice`, `place:kyoto`, `event:wedding-2019`, `source:pixel-7`,
 `project:weather-station`), as in Hydrus. Namespaces keep facets apart: who,
 where, which occasion, which device. Any single word works; the tag vocabulary
@@ -751,12 +755,16 @@ carries; the disc's own tags still name it by its key.
 **Places** are the known names of the `place` namespace, kept in their own file, the gazetteer
 (`catalog/config/places.rec`, `%rec: Place`): the same fields, and `Kind` (`country`, `region`,
 `city`, `site`), `Parent` (the place it is in: `place:kyoto` in `place:japan`), `Country` (ISO
-3166-1 alpha-2, for a country), `At` (where: ISO 6709 in decimal degrees, WGS84,
+3166-1 alpha-2: the country it is, or, for a place without a `Parent`, the country it is in), `At` (where: ISO 6709 in decimal degrees, WGS84,
 `+35.03+135.75/`), `Extent` (the box it covers: two opposite corners, `+34.96+135.76/+34.98+135.78/`)
-and `Reach` (how near to `At` a photo must be to be there: `2km`, `500m`). The default list is Natural Earth's countries and populated places (public
+`Reach` (how near to `At` a photo must be to be there: `2km`, `500m`) and `Region`* (the region it is
+in, by name or ISO 3166-2 code, as its source writes it: a reader with that region puts it there). The default list is Natural Earth's countries and populated places (public
 domain), to two decimals. A place with a position of a person's own is private by default. The
 catalogue keeps tags, never coordinates; a reader finds a tag's position in the gazetteer, or a
 broader place's. `index.html` shows a disc's places on a map (an inline SVG, with nothing to load).
+Extra place data a machine has (ISO 3166-2 regions from iso-codes, a GeoNames list in
+`$XDG_DATA_HOME/arv/places/`) is read beside it, never relied on: an entry a tag uses is copied into
+the gazetteer (`Basis: from SOURCE, copied when first used`), so a disc carries every place it names.
 
 ### Git repositories
 

@@ -1966,6 +1966,7 @@ picture, whatever its names), plain files under `catalog/thumbs/` with an index 
 (`vipsthumbnail`, ImageMagick, `ffmpeg`, `pdftoppm`) when present; none otherwise. A disc carries
 its own thumbnails, not every other disc's (100,000 photos would put about a gigabyte on every
 disc): those stay at home. They follow the disc's access level, since a thumbnail shows content.
+Designed in full in "Design (2026-10-18): thumbnails on discs".
 
 ## Done (2026-10-16): words and tags, counted; text and PDFs; rules offered
 
@@ -1997,8 +1998,16 @@ questions shorter. No model: every suggestion says the counts behind it.
 
 Limits: it starts empty and learns habits, mistakes too, so it only marks answers and never tags
 alone (`--clues` takes what is marked, as `automatic`). Names written without spaces (京都旅行) are
-one word to it; short runs of characters would split them, later. Office files and scanned PDFs
-are not read yet (`pandoc`, `tesseract`). Contents are not searched: `arv find` stays on names,
+one word to it; short runs of characters would split them, later. Office files are not read yet
+(`pandoc`). OCR is not arv's (decided 2026-10-17): it is slow (seconds a page, again on every
+round of the GUI's questions), often wrong on handwriting and old type (bad words make bad clues),
+and needs choices (languages, page layout) made once with the tool built for it. Run before
+describing, `ocrmypdf` gives a PDF a text layer and `tesseract` a `.txt` beside an image, which arv
+already reads; the text is then kept on the disc too, searchable with `grep` when no OCR tool is
+at hand, rather than worked out and thrown away while describing. Most PDFs need no OCR; to tell
+the scans (no letter on their first pages, as pdftotext reads them) `--ask` says how many it read
+and tags them `source:scan` (the folder's when most are, else each file's), so they can be found
+and OCRed later (2026-10-18). Contents are not searched: `arv find` stays on names,
 tags and descriptions, and full-text search is for tools built for it (Recoll, ripgrep).
 
 **Later: a model as a reader, not a writer.** With this in place a model's work can shrink to what
@@ -2233,7 +2242,442 @@ cities are trusted whatever outline holds them. Off every outline (a coast drawn
 island), the old rule stays: the country of a city within 400 km, said as "perhaps". A size-scaled
 reach for cities (Tokyo is not a town) was left: population is a poor guess at extent, and real city
 boundaries are megabytes. Positions given by a person keep four decimals (about 11 m); the
-gazetteer's cities stay at two. Not yet: `arv find place:japan` finding what is tagged with places inside Japan; regions
-(admin-1) as places; a larger list (GeoNames) as an optional download; offering likely duplicates
-for merging; EAC-CPF export.
+gazetteer's cities stay at two. `arv find place:japan` finds what is tagged with places inside Japan
+too (done 2026-10-17: the tag's chain of `Parent`s in the gazetteer of the catalogue searched, a
+disc's own when it is a disc's, else the built-in one). Likely duplicates are offered (done
+2026-10-17, `arv tags names`, the Names view): in one namespace, a form in common, an edit distance
+of one (two from eight letters; nothing under four, so Jo and Jon are two people), or initials
+("A. Smith"). Keys are compared only without a label (`anne-smith-2` is a key, not a name), and a
+name with a qualifier is left out: it was told apart on purpose, and "Not the same" records that by
+giving each a qualifier, so a refusal is kept in the vocabulary rather than in a list of its own.
+arv never merges by itself.
 
+**Regions and towns, from data the machine has (2026-10-17).** Bundling GeoNames (25 MB) or
+Natural Earth's regions (500 KB on every disc) was weighed against what Linux already ships:
+`iso-codes`, a dependency of package managers and desktops, holds ISO 3166-2's 5,046 subdivisions
+by name (no positions), at `/usr/share/iso-codes/json/iso_3166-2.json`. So arv reads it when it is
+there, and reads `places/NAME.rec` from the XDG data folders (the standard place for such data:
+`$XDG_DATA_HOME`, `$XDG_DATA_DIRS`), which `docs/examples/places-geonames.sh` fills from GeoNames
+for those who want towns; arv itself never downloads (principle 7). Keys follow the gazetteer's:
+the name (`place:hokkaido`), then with its type when the name is taken (`place:kyoto-prefecture`),
+then the country's code. The home's entries win over extra data, and an entry a tag uses is copied
+into the home's `places.rec` with its places above, so what a disc names it carries: removing the
+extra data later changes nothing written. A region and a city of the same name in one country (Osaka)
+are one choice, the city, not two. Lookups went from a list to a hash (34,000 places load in about
+0.2 s). The tests run with `ARV_NO_EXTRA_PLACES=1`, the same places on every machine.
+
+GPS within a region, without outlines (the same day): a photo's GPS gives its nearest town, and the
+town is in its region, so the region comes with it. Natural Earth and GeoNames name each place's
+region (`Region`); arv matches the name against the regions it knows in that country (iso-codes',
+or one copied home, recognised by its ISO code) and puts the place there. Natural Earth's names match
+ISO 3166-2's for about 60% of its cities (France's regions before 2016, Uganda's districts, for one,
+do not); those stay in their country. GeoNames' region codes look like ISO's but often are not
+(Japan's are FIPS numbers: its 26 is Shizuoka, not Kyoto), so a code counts only when no name is
+given. Region outlines (Natural Earth's admin-1, tens of MB at a useful scale) were not needed. Not
+yet: EAC-CPF export.
+
+**Tags in any script, one spelling each (2026-10-18).** Tags were UTF-8 with only ASCII lowered, so
+`place:Zürich` typed and `Zu\u0308rich` from a macOS file name were two tags that look alike, neither
+the gazetteer's `place:zurich`, and `person:Ålice` and `person:ålice` two people. ASCII-only keys
+were rejected: other scripts would need romanising, which loses information and is contested (Kyoto,
+Kyōto, Kioto). So a key is folded (`text_fold`, util.c): Latin, Greek and Cyrillic lowered, Latin
+accents to ASCII by a table (Latin-1, Extended-A and -B, Extended Additional), combining accents
+dropped, which makes composed and decomposed Latin alike; everything else as written. A key is an
+identifier: the spelling to read is the known name's `Label`; a plain tag (`cafe`) has none, the
+cost. Full Unicode normalisation (NFC) would need tables of tens of KB; Hangul in jamo is the case it
+would fix, left until wanted. Pushing for such data as distribution packages: issue #53.
+
+
+## Nice to have (2026-10-18)
+
+Wanted by no one yet; each waits until someone needs it.
+
+- **EAC-CPF export** of people and organisations, for handing names to an institution (step 5 of
+  "Design (2026-10-16): known names, as authority control").
+- **Korean written as separate jamo,** recombined into syllables, so the two spellings are one tag.
+  It needs Unicode's composition tables (see "Tags in any script, one spelling each").
+- **`arv tags` columns lined up for wide characters** (京 takes two columns, counted as one).
+
+## Design (2026-10-18, not built): thumbnails on discs
+
+A disc carries small pictures of its own photos, videos and documents, so a found disc, the home,
+the GUI, `index.html` and the describing questions show what it holds without reading it. They are
+made so that Katalog and Archivematica can take them, or keep out of their way, with no work.
+
+**For people and for models alike.** What a picture shows is most of what it is, and the words
+around it (names, dates, folders) seldom say it. A person looking along a shelf of discs and a
+multimodal model asked to describe or find something both need the pictures, not the originals:
+these are small enough to look at by the thousand, and they are there when the disc is not. So the
+size is chosen for both, and the design keeps what a model needs in view:
+
+- **At home, for discs on the shelf:** `arv describe --vision` (a local model; arv-assist sends
+  pictures to local servers only, whatever the options say) can describe a disc that is not in the
+  drive, from its thumbnails, instead of reading the originals. Captions go where they go now, the
+  caption column of `tags.tsv`, as `suggested` (a model's, unreviewed).
+- **Cheaper and faster:** a thumbnail costs a model about 150 image tokens, where the 768 px pictures
+  arv-assist sends now cost about 600, and a full photo more. So a folder's thumbnails can go in one
+  request, several images to a message (llama.cpp's server and the common APIs take that), and the
+  model describes the folder as a whole. No contact sheet is composited: separate images keep each
+  answer tied to its file.
+- **Once per picture:** named by SHA-256, the same bytes are looked at once, and a caption found for
+  them is offered for every copy.
+- **On a found disc,** a model given only the files (an agent reading the mount) finds the
+  thumbnails by the `Thumbs:` pointer and a file's hash in `manifest-sha256.txt`; the disc's
+  `README.txt` says so, in a THUMBNAILS section beside SEARCH.
+- **Not for reading text.** A page at this size cannot be read, by a person or a model; a PDF's words
+  come from `pdftotext`, and a scan's from OCR ("Scans told apart", above).
+
+**What gets one.** Pictures (JPEG, PNG, TIFF, WebP, HEIC and raw files where the tool reads them), a
+frame of a video (at a tenth of its length, past black openings), the first page of a PDF. Not
+text, audio or anything a tool cannot read; a file inside a packed object gets one from its unpacked
+bytes before packing, since those are the files hardest to see later.
+
+**Shape.** JPEG, 384 px on the longer side, quality 75, metadata stripped (no EXIF, so no GPS and no
+camera serial: a thumbnail tells less than its file). About 18 KB each: 10,000 photos is about 180
+MB of a 25 GB disc (0.7%). 384 px because it serves both: small vision models take 336 to 448 px as
+one tile, so it is neither enlarged nor cut up, and a grid in a browser shows it at 192 px, sharp on
+a high-density screen. 256 px (8 KB) was the first idea: too small for a model to tell faces or
+signs apart. Detail beyond that is the original's job, read when the disc is in (arv-assist scales
+those to 768 px now). JPEG because every browser, file manager, archive system and model reads it,
+and because Archivematica's own thumbnails are JPEG; WebP is smaller but not yet universal.
+
+**Where.** Outside the payload, in the volume's catalogue folder, one file per distinct content:
+
+```
+catalog/volumes/<id>/thumbs/<sha256>.jpg
+catalog/volumes/<id>/thumbs.tsv
+# arv thumbs 1	sha256	width	height	from (picture, frame at 12.5 s, page 1)	made by (tool and version)
+```
+
+and a `Thumbs:` pointer in the disc's `Archive` record. The name is the SHA-256 of the file it shows,
+as in the manifest (or `packed.tsv` for a file in a pack): one thumbnail for every copy of the same
+bytes, whatever their names, and the join to a file is the manifest, so the TSV needs no paths. The
+files are in the tag manifest like the rest of the catalogue, so `arv check` and any BagIt
+validator check them.
+
+**In the disc's `index.html`.** Still no JavaScript and no network, so it works from `file://`. In
+the Files tree, a file with a thumbnail gets one before its name, linked to the file:
+`<img src="catalog/volumes/<id>/thumbs/<sha256>.jpg" width=.. height=.. loading="lazy" alt="">`, its
+size from `thumbs.tsv` so the page does not jump as they load. A folder holding mostly pictures lists
+them as a grid of thumbnails with their names under them, a contact sheet. The tree's folders start
+closed below the top level, and lazy images inside a closed `<details>` are not fetched, so a disc
+of 10,000 photos opens as fast as it does now; the page grows by about 150 bytes a thumbnail (1.5 MB
+for 10,000). A browser that ignores `loading` still shows the page, only slower to open.
+
+**Katalog.** It shows no thumbnails today, but it keeps each file's SHA-256 when a catalogue is made
+with checksums, and the mapping already takes the manifest's hashes into that column (the spec's
+"Mapping to Katalog"). So a Katalog import copies the `thumbs/` folder into its collection, and a
+preview finds `<sha256>.jpg` for any file it lists, with no new table. The same picture found by
+Katalog on another drive, with the same bytes, finds the same thumbnail. To be added to the spec's
+list of what Katalog has no place for today, and put to its developer with the sample discs.
+
+**Archivematica.** It takes a bag as a transfer and makes the payload, `data/`, its objects. The
+thumbnails are outside `data/`, so they never become objects: nothing preserves or normalises a
+thumbnail as if it were part of the archive. Archivematica makes its own thumbnails from the
+originals (its format policy rules, JPEG, named by its own file UUIDs in the AIP and the DIP) and
+has no way to take a transfer's, so keeping out of its way is the import: the bag goes in as it is.
+Its place for a bag's metadata is `data/metadata/`, inside the payload, which arv never writes; a
+transfer with arv's descriptions as `metadata.csv` (titles, tags as `dc.subject`, coverage as
+`dc.coverage`) would be a separate export, as noted in "Decision (2026-10-13): other software reads
+the disc through its standards". Untested, and to test with a real Archivematica before thumbnails
+are built, since the whole catalogue rides on it: what it keeps of a bag's tag directories.
+
+**Made by tools built for it,** when present (principle 7): `vipsthumbnail` (fastest, least memory),
+else ImageMagick; `ffmpeg` for a frame; `pdftoppm` for a page. None present: no thumbnails, and the
+make event says so, as it does for format ids without Siegfried. `arv programs` lists them.
+Thumbnails are not reproducible across tool versions, so `thumbs.tsv` names the tool; they are
+checked by hash once written, like every other file on the disc.
+
+**Room.** On by default when a tool is present; `--no-thumbs` leaves them out, as `--no-formats`
+does format ids. They count against the disc like the catalogue does, and `arv plan show` says how
+much. They are at most 2% of the disc; past that, the largest folders' are left out and the event
+says how many.
+
+**A caption for every picture, from its thumbnail.** `--vision` now looks at a few samples per
+folder (`--vision-per-folder`, `--vision-max`); with thumbnails, a local model can look at every
+picture and write one short sentence of what it shows ("Two people at a red temple gate in autumn
+leaves"), so a search finds a photo by what is in it, not only by its folder's words.
+
+- **In the catalogue, never in the file.** Writing into the original changes its bytes: its SHA-256
+  no longer matches the manifest, and fixity, duplicates and the thumbnail's name all rest on it; a
+  burned disc cannot change anyway. Nor in the thumbnail: a revised caption would change its bytes,
+  and it stays a plain picture.
+- **Where captions already go:** the caption column of `tags.tsv`, which `arv find` searches on
+  every disc without reading one. One made after burning is an event, `Caption: PATH<TAB>text` with
+  `Sets: Caption:PATH`, as now; its `Authorship` is `suggested`, its `Agent` the model (`accepted`
+  or `edited` once a person looks). A better
+  model years later writes a new event over it, and the history keeps both.
+- **A person's caption wins:** a model never replaces a caption a person wrote, only offers its own
+  beside it.
+- **Once per picture:** the model looks at a SHA-256 once; one event gives the caption to every path
+  with those bytes.
+- **Held to what a model can know:** what is seen, in one sentence, no names of people or places
+  (those come from the vocabulary, as tags, through the questions or the model's choices among
+  known names), nothing read from text too small to read.
+- **At home, in the background:** a few seconds a picture on a computer's processor, so 10,000
+  photos is an evening's run; `--vision` keeps its place and resumes where it stopped, since the
+  captions already written are in the record.
+- **Into the files, when wanted:** photo software (digiKam, Lightroom, darktable) reads captions from
+  XMP. `arv keywords`, which already writes a disc's tags as an exiftool argument file, adds each
+  caption as `-XMP-dc:Description=`, for exiftool to write into a working copy or into XMP sidecars;
+  never the payload on a disc. A photo copied out of the archive otherwise leaves its caption behind:
+  the one cost of keeping it outside.
+- **Searching by meaning, later:** words match words, so "beach" does not find "seaside".
+  arv-assist's embedding model (bge-small) could index the captions for that, kept at home and made
+  again when the model changes; the captions are what is kept, since they belong to no model.
+
+**At home.** Every disc's thumbnails are kept at home (`<home>/thumbs/`, by SHA-256), so the GUI and
+`arv describe --ask` show them for discs on the shelf. A disc carries its own only: other discs'
+would put about a gigabyte on every disc of a 100,000-photo archive. Discs for other people carry
+none of other discs' (as their file lists), and each disc's own follow its access level.
+
+**Not chosen.** The freedesktop.org shared thumbnail folders (`.sh_thumbnails/` beside each file):
+inside the payload, which stays untouched, and Archivematica would take them as objects. Writing
+into a computer's thumbnail cache (`~/.cache/thumbnails`, by the file's URI on one mount) is a file
+manager's job. A contact sheet per folder: fewer files, but a picture is no longer found by its hash.
+
+**Order of building:** a disc's bag through Archivematica as it is; thumbnails of pictures on the
+disc and in `index.html`; the home's copy and the GUI; a caption for every picture, and captions in
+`arv keywords`; video frames and PDF pages; the proposal to Katalog; searching by meaning.
+
+## Design (2026-10-18, not built): an assistant for archival work, in the GUI and the terminal
+
+The owner wanted a chat assistant in the GUI. An outside harness (any agent reading `arv help
+--all`) can already drive arv, but one made for archival work and sorting knows the record's rules
+and the archive's vocabulary, and never changes anything without the person.
+
+**Lean, so it can change (agreed 2026-10-18).** Models, their formats and what they are good at
+move every few months; arv's record does not. So the harness holds no archival knowledge in code,
+and what will change is data:
+
+- **The loop is small and dumb:** send the conversation, read one reply, do what it says, repeat. A
+  few hundred lines of C, no planner, no memory beyond the conversation, no retrieval layer.
+- **One reply format, not each server's tool calling:** every reply is one JSON object held to one
+  schema, `{"read": [argv]}`, `{"propose": [argv], "why": "..."}` or `{"say": "..."}`. Any
+  OpenAI-compatible server that takes a JSON schema (llama.cpp's, Ollama) can follow it, small models
+  too; native tool-calling formats differ between servers and change.
+- **Which commands it may read is arv's own split,** not a second list: `arv help --json` gains a
+  `reads` flag per command (and per subcommand where they differ: `plan list|show`), from the same
+  facts the manual's "Reading and changing the record" states. A read runs; anything else becomes a
+  proposal, whatever the model asked. A new command needs nothing in the harness.
+- **What it knows is a text file:** the instructions (the record's rules, the principles, how to
+  sort) in `src/arv-assist/data/`, about a thousand tokens; a home's own copy in `config/`
+  overrides it, so it can be tuned without a release.
+- **A small context, by design.** It runs on a local model, and most are used with 8k to 32k tokens
+  of context, under 40k. So nothing large goes in at the start: not `arv help --all` (about 5,000
+  tokens) nor the vocabulary, only the instructions and the reads it may make, a line each (about
+  1,000 more). It reads what it needs when it needs it: `arv help COMMAND` for a command's options,
+  `arv tags` for the vocabulary, a disc's `info` rather than every disc.
+- **A budget, from the model:** the context size is asked of the server (llama.cpp's `/props`,
+  Ollama's `/api/show`), else `--llm-context N`, else 8,192. Ollama silently cuts a conversation
+  to its own default (a few thousand tokens) unless told, so the request names the size
+  (`num_ctx`). Tokens are counted roughly (bytes / 3.5) with a margin, not by a tokeniser. About a
+  quarter for the instructions and the reads, a thousand kept for the reply, the rest the
+  conversation.
+- **Output is cut, not summarised:** a read's output may take at most an eighth of the budget; past
+  that it is truncated, with a note saying how much was left out and how to narrow the read (a disc,
+  a path, a namespace). When the conversation is full, older reads' output goes first, then older
+  turns, never the instructions or the person's latest words. Thumbnails, about 150 tokens each,
+  count the same way.
+- **Tested without a model:** `dev-tools/fake-llm.c`, which the describe checks already use, plays
+  scripted replies; the checks cover a read, a proposal, a write asked for as a read (made a
+  proposal), and a reply that breaks the schema (shown, not run).
+
+**First version:** the loop, the reply schema, `reads` in `help --json`, the instructions file, the
+terminal face, the GUI panel with status lines and proposal cards, and views reloading after
+Apply. **Later, each when wanted:** the record-changed poll, Follow, conversation kept across
+sessions, thumbnails and `chafa`, the MCP server.
+
+**The loop is arv-assist's,** beside `describe` and `tag`, which already talk to local models
+(OpenAI-compatible, loopback unless `--llm-allow-remote`). The GUI's server stays without features:
+the chat is one more arv-assist command the page runs as a job, its replies streamed.
+
+**Its tools are arv's commands.** `arv help --json` lists them, and every read has `--json`. The
+model calls a small fixed set of reads on its own (`find`, `status`, `todo`, `tags`, `info`, `map`,
+`plan show`, `objects`). Few tools, and replies held to a JSON schema (llama.cpp's server takes one),
+because small models fumble long tool lists.
+
+**It never writes.** A change comes back as a proposal: the exact command or draft (tag these
+folders, merge these two names, put these folders on a plan), what it changes, and Apply. Applying
+runs it as the GUI or the shell would; the event says `accepted`, or `edited` when the person
+changed it first, with the model and the person as agents (the spec's `Authorship`). A model's
+work that no one applied is not in the record.
+
+**What it knows, in its instructions:** the rules for scripts and agents from `arv help --all`; the
+vocabulary and known names; what `arv todo` says is outstanding; and the principles: the payload is
+never rearranged, nothing is deleted, events are appended, names and places come from the
+vocabulary and are not guessed.
+
+**Sorting is proposing, not moving files:** a plan (the next disc), tags, known names, likely
+duplicates to merge, folders still to describe. Arrangement in the record; the original order kept
+(research/organising.md).
+
+**Local by default.** The catalogue is private: a remote model only with `--llm-allow-remote`, and
+pictures never leave the computer, as now. Tool calling needs about a 7 to 8B model (a few GB, slow
+without a GPU); without one, the panel says so and offers the questions (`describe --ask`).
+
+**One protocol, several faces.** Questions, choices and proposals are JSON, as `--answers` already
+is; each front end only draws them:
+
+- **The GUI: a panel on the right,** as most chat windows are, beside whatever view is open and
+  across every tab, opened and closed from the header (remembered per browser). The page's views
+  are laid out by the room they have (container queries), so a master and detail pair goes to one
+  column when the panel takes the space. Under 760 px the panel covers the page, as a drawer.
+  - It knows what is on screen: the open view and what is selected (a disc, a folder, a plan) go
+    with each message, so "describe this" and "what else is like it" need no names.
+  - A disc id, a path or a tag in a reply is a link that opens it in the view on the left; pictures
+    it talks about show as thumbnails.
+  - A proposal is a card: the command, what it changes, Apply, Edit (the command's own form, filled
+    in, so the GUI builds it as now) and Dismiss. The result of Apply comes back into the chat.
+  - **Every step shows as its command,** as Android Studio's agent shows what it runs: a status line
+    in the chat for each read (`arv find place:kyoto --json`), opened to show its output, and the
+    command to copy. It is the same command the shell takes, so watching the assistant teaches the
+    command line, and a person can run any step again by hand.
+  - **It does not drive the page.** No clicking on buttons and no jumping between views on its own:
+    clicks would tie the assistant to the page's layout (each change to the page would break it), put
+    features into the page that the server and the commands should hold, and hide behind animation
+    what the command line shows plainly; and a view changing under a person who is working in it
+    loses their place. Instead each step's line has "Open" (the view that shows it: Search for a
+    find, the disc for an info), and a "Follow" switch in the panel, off by default, lets the view
+    on the left open what the assistant last looked at, for someone who wants to watch it work.
+  - **The views keep up.** An applied proposal goes through the page's own path for a command
+    (`act`, or `run` as a job), so the view open on the left reloads when it ends, as after a form.
+    The record can also change elsewhere (the shell, a job, another machine's catalogue merged), so
+    while the page is visible it asks every few seconds for the record's newest event id, one cheap
+    `--json` read (the server stays without features), and when it has moved reloads the open view
+    in place, keeping the selection and the scroll. A view with a form half filled in is not
+    reloaded under the person: a bar says the record changed, with Reload.
+- **The terminal: lines,** a question and an answer at a time; a proposal is shown as its command
+  and applied on `y`. No full-screen interface: it would need ncurses (a library, against arv's
+  rule and TinyCC) or terminal codes by hand, it would be a third front end to keep in step, and
+  lines work over ssh, in a rescue shell, piped and with a screen reader. Pictures, which a terminal
+  lacks, by `chafa` when present (sixel, kitty or character art, as the terminal allows), else their
+  paths; `describe --ask` can show a folder's thumbnails the same way.
+- **Other harnesses, later:** the same tools and the same rule (changes come back as proposals) as an
+  MCP server, so an outside client gets them too: one definition, two front ends.
+
+**The conversation is not the record.** It is kept in the home's cache, for picking up where it
+stopped, never on a disc; what reaches the record is what was applied, as events.
+
+**What may happen without asking: by risk, not by the model's confidence (agreed 2026-10-18).** A
+model's own "95% sure" is not evidence: small local models are badly calibrated, and the cost of a
+mistake belongs to the change, not to the model's mood. So the gate is a risk matrix over what a
+change does, and the model's confidence only orders and colours what is shown:
+
+| Risk | Changes | How they are applied |
+|---|---|---|
+| None | reads (`find`, `status`, `info` ...) | run at once, shown as status lines |
+| Low: a value, easily set back | a tag, a caption, a folder's or object's title or description | a proposal; or by a rule you approved; or, with "Apply tags without asking" on (off by default), at once as `suggested`, listed under "Applied without asking" with Undo |
+| Medium: the record's shape | a known name added, labelled or aliased; a plan's items, tags or layout | a proposal; "Apply all" for a batch of the same kind |
+| High: hard to undo, or leaves the computer | merge, split or retire a name; access; make, burn, retire a disc; an external provider turned on | a proposal, one at a time, with what it changes said in full; never a rule, never a batch |
+
+- **Rules, from your own answers.** When the same kind of low-risk proposal has been accepted a few
+  times, the assistant offers it as a rule in the vocabulary arv has already (a `Match` pattern, an
+  alias): "folders named `IMG_*` from a phone get `source:camera`". Approved, it applies to what
+  matches without a question, recorded as `automatic` (software following your rule): honest and
+  repeatable, unlike a model's guess. Rules are listed and can be retired like any entry.
+- **Undo is a new event,** setting the value back (`Sets`/`Replaces`), as any change; the history
+  keeps both. Nothing reaches a burned disc without a new disc being made, which is high risk.
+- **Confidence, shown not trusted:** where the server gives token probabilities (llama.cpp, Ollama),
+  a proposal's measured probability, not a number the model writes, orders the cards and marks the
+  doubtful ones; a doubtful one becomes a question rather than a proposal.
+- **The matrix is data,** a table in arv-assist's instructions file and in arv's command list (each
+  command's risk beside its `reads` flag in `help --json`), so a new command is placed by one line.
+
+**Order of building:** `reads` and `risk` in `help --json` and the reply schema; the loop in arv-assist with the
+terminal face and its checks; the GUI panel; then the later items above.
+
+## Done (2026-10-18): models found and chosen; your own key, said at each use
+
+The GUI had one model address (`$ARCHIVE_LLM_URL`, else Ollama's) and no way to see what else was
+there. Now its **Settings** (in the header, beside Jobs; the Programs view moved there too) list:
+
+- **the model servers on this computer:** Ollama, llama.cpp's llama-server, LM Studio, vLLM and Jan
+  at their usual ports, with their models and, where the server says, which take pictures, which
+  make embeddings and their context (Ollama's `/api/show`, llama.cpp's `/props`, LM Studio's
+  `/api/v0/models`);
+- **the external providers whose keys are set:** OpenAI, Anthropic, Google Gemini, Mistral,
+  OpenRouter, Groq and DeepSeek, through their OpenAI-compatible addresses, the key from each one's
+  usual variable (or `ARCHIVE_LLM_KEY` for any).
+
+`arv-assist llm-status --all` finds them and `arv-assist llm-use` keeps the choice, so the page only
+draws and the terminal has the same. The choice is this computer's (`$XDG_CONFIG_HOME/arv/models.rec`),
+not an archive's; an option or `$ARCHIVE_LLM_URL` still wins over it.
+
+**Each source on or off.** With several servers and providers, a person may want only some: each
+has its own On/Off, kept as `On: ID` and `Off: ID` in the settings. A server on this computer is on
+until turned off, and off it is never asked, not even whether it is running. An external provider
+is off until turned on, and turning it on is the agreement (the GUI asks, saying what it will see);
+only then can it be tested or chosen, so choosing it asks nothing more. Turning off a source in use
+forgets what it was chosen for. A command that names an address (`--llm-url`) is not held back: it
+is a choice made there.
+
+**Clear to read and to check:** each row says Ready or Not ready (a server answering with models; a
+provider's key set, with curl), what is in use is marked "In use: describing" or "In use: pictures"
+with Stop using beside it, and Model help has one On/Off (`Help: off` in the settings: no model is
+asked unless a command names one, and describing by questions still works). Test (`arv-assist
+llm-test`) asks a fixed question, nothing from any file: did it answer, how fast, and in JSON, which
+describing needs; for a pictures model, a 16-pixel red square, and whether it said red. Testing an
+external provider sends its key and that question only, so it asks nothing first.
+
+**Local is trusted, external is said.** A server on this computer is used as it is. An external
+provider sees what describing asks (names, dates, sizes, words from text files), so it is used only
+when chosen (`--llm-allow-remote`, `llm-use --external`, or Settings, which asks first and says what
+it will see), and every use says so: on standard error, in the describe panels, and as "External
+AI: HOST" in the header for as long as it is chosen. Pictures only ever go to a model on this
+computer, whatever is chosen.
+
+**Keys:** read from the environment at each request, never written down (the settings file names no
+key), and never sent over plain http to another computer. A desktop menu may not start arv gui with
+a shell's variables; the page says so.
+
+**https through curl.** arv has no TLS and will not take a library for it (C99, no libraries;
+principle 7). curl is on nearly every system; its options go on standard input (`curl -K -`), so the
+key is in no command line, and the body on a descriptor of its own. Without curl, an external
+provider says it needs it; `arv programs` lists curl.
+
+## Decision (2026-10-18): installing the programs arv can use, without arv installing anything
+
+Settings › Programs says what is missing, by group, with this system's command (Debian and Ubuntu,
+Fedora, Arch, macOS with Homebrew, found from os-release). The owner asked for an Install button,
+Siegfried especially. arv does not install anything itself: it would need root from a page in a
+browser (the most dangerous thing the interface's server could do), and arv never downloads
+(principle 7: work belongs to tools built for it). So:
+
+- **Copy** beside every command: one paste into a terminal.
+- **Install, through PackageKit,** where it is here: `arv programs --install [GROUP]` hands the
+  group's packages to `pkcon`, the system's own installer, which asks for the password itself. arv
+  gets no rights and downloads nothing; without PackageKit (Arch by default, macOS) the command is
+  printed instead. The GUI asks first and runs it as a job, its output in Jobs.
+- **Siegfried's own steps,** never run: it is in no distribution's own packages, and its project's
+  Debian route adds its own package source and signing key, a trust that is the person's to give.
+  Each system's steps (an apt source, the AUR, a Homebrew tap, FreeBSD's pkg, `go install`) are
+  shown with Copy, then `sf -update` for its signatures.
+
+## Done (2026-10-18): the assistant, first version
+
+As designed above ("an assistant for archival work"), the first version:
+
+- **Risk in `arv help --json`:** `reads`, `risk` (none, low, medium, high) and `risks` for the
+  subcommands and options that differ, from one table, `src/arv/risk.c` (`command_risk`), which
+  arv-assist uses too. `src/arv/check.sh` holds it to the manual's list of commands that only read.
+- **The loop, `arv chat` (arv-assist `chat.c`):** each model reply one JSON object, read, propose or
+  say, asked for with the server's JSON mode and read even when fenced. A read of risk none runs at
+  once, as arv itself, with the home; its output goes back cut to an eighth of the budget. A read
+  of anything else becomes a proposal. At most 6 reads a turn, then an answer is asked for.
+- **The budget:** llama.cpp's `n_ctx` from `/props`, else `--llm-context N`, else 8,192 tokens; a
+  conversation too long drops old outputs, then old turns, never the instructions or the latest.
+- **What it knows:** `src/arv-assist/data/assistant.txt` (about 400 tokens, built in), or a home's
+  `config/assistant.txt`, then the command list from `arv help --json`, a line each with its risk.
+- **At a terminal:** each read shown as `$ arv ...`; a proposal with its risk and "Apply it? [y/N]";
+  piped, nothing is applied. **In the GUI:** the Assistant panel on the right, open across tabs
+  (remembered), the open view sent as context; reads as status lines with their output and Open;
+  a proposal as a card with its risk, Apply (asked again when high) and Dismiss; the view reloads
+  after Apply. The conversation lives in the page; New starts again.
+- **Tested** against the fake server, which now answers a conversation in parts (lines `===`).
+
+Not yet, from the design: Edit on a proposal (the command's own form, filled in), rules learned from
+repeated acceptances, the low-risk "apply without asking" switch, confidence from token
+probabilities, Follow, the record-changed poll, conversations kept across sessions, and the MCP
+server. A proposal applied is recorded as the person's (they ran the command); naming the model as
+its agent (`accepted`) waits on a way to pass an agent to every command.

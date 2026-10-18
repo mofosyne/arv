@@ -29,6 +29,8 @@ typedef struct {
     const char *date_from;      /* "EXIF", "names" or "file times" */
     char *camera;               /* EXIF's most common Model, or NULL */
     size_t camera_names;        /* files named by a camera or phone (DSC_0001.JPG) */
+    size_t pdfs_read;           /* PDFs read for their words, and those with none: scans (OCR them first) */
+    strlist scans;
     size_t gps;                 /* photos with a position in their EXIF, and where most were (the median) */
     double lat, lon;
     strlist words;              /* the words of the name and the folders' names, the most telling first */
@@ -146,7 +148,8 @@ static const char *const STOP[] = { "the", "and", "of", "a", "an", "to", "in", "
 static void name_words(const char *name, strlist *out)
 {
     sbuf w = { 0 };
-    for (const char *p = name;; p++) {
+    char *folded = text_fold(name);
+    for (const char *p = folded;; p++) {
         unsigned char c = (unsigned char)*p;
         if (c && (isalpha(c) || c >= 0x80)) {
             char l = (char)tolower(c);
@@ -162,6 +165,7 @@ static void name_words(const char *name, strlist *out)
         if (w.s) w.s[0] = 0;
         if (!c) break;
     }
+    free(folded);
     free(w.s);
 }
 
@@ -370,7 +374,7 @@ static void gather(const word_stats *ws, const items *l, const char *name, const
         strlist_free(&c->terms);
         c->terms = u;
     }
-    text_clues(ws, root, l, &c->text, &c->titles, &c->text_names);
+    text_clues(ws, root, l, &c->text, &c->titles, &c->text_names, &c->pdfs_read, &c->scans);
     if (ws) word_tags(ws, &c->terms, &c->text, &c->learned, &c->learned_why);
     strlist_free(&kinds);
     strlist_free(&name_dates);
@@ -386,6 +390,7 @@ static void clues_free(clues *c)
     strlist_free(&c->text);
     strlist_free(&c->titles);
     strlist_free(&c->text_names);
+    strlist_free(&c->scans);
     strlist_free(&c->learned);
     strlist_free(&c->learned_why);
     free(c->camera);
@@ -663,7 +668,8 @@ static char *form_of(const char *s)
 {
     sbuf b = { 0 };
     int gap = 0;
-    for (const unsigned char *p = (const unsigned char *)s; *p; p++) {
+    char *folded = text_fold(s);            /* "Zürich" and "Zurich", composed or not: one form */
+    for (const unsigned char *p = (const unsigned char *)folded; *p; p++) {
         if (isalnum(*p) || *p >= 0x80) {
             if (gap && b.len) sb_puts(&b, " ");
             char ch = (char)tolower(*p);
@@ -673,6 +679,7 @@ static char *form_of(const char *s)
             gap = 1;
         }
     }
+    free(folded);
     return b.s ? b.s : xstrdup("");
 }
 
@@ -707,15 +714,43 @@ static void entry_forms(const known_entry *e, strlist *out)
 }
 
 /* how many entries (not retired) a form names */
-static size_t entries_named(const asking *a, const char *form)
+/* the country (or the broadest place) a place is in */
+static const char *top_of(const asking *a, const known_entry *e)
+{
+    const char *key = e->key;
+    for (int depth = 0; e && e->parent && depth < 16; depth++) {
+        key = e->parent;
+        e = known_find(a->kv, a->kn, e->parent);
+    }
+    return key;
+}
+
+/* o holds e: o is one of the places e is in, or a region of e's country with e's name (Osaka the
+ * prefecture and Osaka the city: the gazetteer's cities are in their countries, not their regions) */
+static int holds(const asking *a, const known_entry *o, const known_entry *e)
+{
+    if (known_within(a->kv, a->kn, e->key, o->key)) return 1;
+    return o->kind && e->kind && !strcmp(o->kind, "region") && !strcmp(e->kind, "city") && !strcmp(top_of(a, o), top_of(a, e));
+}
+
+static size_t entries_named(const asking *a, const char *form, const known_entry *e, int *outer)
 {
     size_t n = 0;
+    *outer = 0;
     for (size_t i = 0; i < a->kn; i++) {
-        if (a->kv[i].retired) continue;
+        const known_entry *o = &a->kv[i];
+        if (o->retired) continue;
         strlist f;
-        entry_forms(&a->kv[i], &f);
-        n += strlist_has(&f, form);
+        entry_forms(o, &f);
+        int named = strlist_has(&f, form);
         strlist_free(&f);
+        if (!named) continue;
+        if (o != e && holds(a, e, o)) {
+            *outer = 1;                     /* Kyoto Prefecture, which Kyoto the city is in: the city is offered */
+            continue;
+        }
+        if (o != e && holds(a, o, e)) continue;   /* the other way: not two */
+        n++;
     }
     return n;
 }
@@ -740,9 +775,14 @@ static void known_choices(const asking *a, const clues *c, const char *ns, int o
             strlist_free(&forms);
             continue;
         }
-        two = entries_named(a, found) > 1;
+        int outer;
+        two = entries_named(a, found, e, &outer) > 1;
+        if (outer) {
+            strlist_free(&forms);
+            continue;
+        }
         size_t uses = word_tag_uses(a->ws, e->key), with = 0, all = 0;
-        int gazetteer = e->kind && (!strcmp(e->kind, "city") || !strcmp(e->kind, "country"));
+        int gazetteer = e->kind && (!strcmp(e->kind, "city") || !strcmp(e->kind, "country") || !strcmp(e->kind, "region"));
         if (gazetteer && !uses && ++places > 8) {
             strlist_free(&forms);           /* a text naming many cities: the first few, by where they are found */
             continue;
@@ -946,6 +986,14 @@ static void ask_namespace(asking *a, const arv_home *h, const archive *cat, cons
                 free(wy);
                 if (!marked.n || !one) strlist_add(&marked, used.v[i]);
             }
+    if (!strcmp(ns, "source") && c->scans.n && c->scans.n * 2 >= c->pdfs_read && !strlist_has(&opts, "scan")) {
+        char *y = xprintf("%zu of %zu PDF%s read have no text", c->scans.n, c->pdfs_read, c->pdfs_read == 1 ? "" : "s");
+        strlist_add(&opts, "scan");         /* mostly scans: the folder's; else each scan's own (ask_suggest) */
+        strlist_add(&why, y);
+        strong++;
+        if (!marked.n || !one) strlist_add(&marked, "scan");
+        free(y);
+    }
     if (!strcmp(ns, "source") && c->camera) {   /* what made the photos, from their EXIF */
         char *v = slug(c->camera);
         if (!strlist_has(&opts, v)) {
@@ -1106,7 +1154,8 @@ static char *ask_folder(asking *a, const arv_home *h, const archive *cat, const 
         if (!strlist_has(&order, tw->ns_names.v[i])) strlist_add(&order, tw->ns_names.v[i]);
     for (size_t i = 0; i < order.n; i++) {
         int one = strlist_has(&tw->ns_one, order.v[i]);
-        if (!asks(c->kind, order.v[i]) || (sub && (one || !strcmp(order.v[i], "source")))) continue;
+        int scanned = !strcmp(order.v[i], "source") && c->scans.n && c->scans.n * 2 >= c->pdfs_read;   /* documents, but scans */
+        if ((!asks(c->kind, order.v[i]) && !scanned) || (sub && (one || !strcmp(order.v[i], "source")))) continue;
         ask_namespace(a, h, cat, tw, c, name, order.v[i], one, sub, &taken, tags);
     }
     strlist_free(&order);
@@ -1199,6 +1248,9 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
         }
         if (c.camera) sb_printf(&b, "; camera %s (EXIF)", c.camera);
         else if (c.camera_names * 2 > c.files) sb_puts(&b, "; named by a camera or phone");
+        if (c.scans.n)                  /* scans: their words come once they have a text layer */
+            sb_printf(&b, "; %zu of %zu PDF%s read with no text (scans: source:scan; ocrmypdf --skip-text, then describe again)",
+                      c.scans.n, c.pdfs_read, c.pdfs_read == 1 ? "" : "s");
         if (c.gps) {
             int how;
             double km;
@@ -1247,6 +1299,11 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
     char *clue_date = c.first ? edtf_of(c.first, c.last) : NULL;
     ftags_get(&out->folders, ".", 1);
     for (size_t i = 0; i < tags.n; i++) strlist_add(ftags_get(&out->folders, ".", 1), tags.v[i]);
+    if (c.scans.n && !strlist_has(&tags, "source:scan"))   /* some scans among PDFs with text: each its own tag, */
+        for (size_t i = 0; i < c.scans.n; i++) {          /* so arv find source:scan lists what still needs OCR */
+            strlist *t = ftags_get(&out->folders, c.scans.v[i], 1);
+            if (!strlist_has(t, "source:scan")) strlist_add(t, "source:scan");
+        }
     for (size_t i = 0; i < tags.n; i++)
         if (!strchr(tags.v[i], ':')) strlist_add(&out->subjects, tags.v[i]);
     /* its folders, each in turn (first level, with files of their own) */
@@ -1321,6 +1378,9 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
             }
         }
     }
+    for (size_t f = 0; interactive && h && !dry && f < out->folders.n; f++)   /* a place from extra data, used: copied home */
+        for (size_t i = 0; i < out->folders.tags[f].n; i++)
+            if (!strncmp(out->folders.tags[f].v[i], "place:", 6)) known_keep(h, a.kv, a.kn, out->folders.tags[f].v[i]);
     if (interactive && h && cat && !dry) {  /* a name confirmed: known from now on (an entry, and an event) */
         static const char *const NAMED[] = { "person:", "family:", "organisation:", "software:", "work:", "place:", NULL };
         strlist made = { 0 };

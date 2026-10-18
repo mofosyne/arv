@@ -35,11 +35,31 @@ header button.link { font:inherit; font-size:13px; background:none; border:1px s
                      padding:3px 10px; color:var(--fg); cursor:pointer; }
 header button.link.owed { border-color:var(--warn); color:var(--warn); }
 header button.link.clear { border-color:var(--ok); color:var(--ok); }
+header button.ext { font:inherit; font-size:13px; background:none; border:1px solid var(--warn); color:var(--warn); border-radius:14px;
+                    padding:2px 10px; cursor:pointer; }
 .owed h3 { font-size:15px; margin:16px 0 4px; }
 #disc-detail h3 { font-size:15px; margin:14px 0 4px; }
 .owed li { font-family:ui-monospace, monospace; font-size:13px; overflow-wrap:anywhere; }
-main button.link { font:inherit; background:none; border:none; padding:0; color:var(--accent); text-decoration:underline; cursor:pointer; }
+main button.link, aside button.link { font:inherit; background:none; border:none; padding:0; color:var(--accent); text-decoration:underline; cursor:pointer; }
 main { max-width:1100px; margin:0 auto; padding:16px 16px 64px; }
+/* the assistant: a panel on the right, beside every view (under 760px it covers the page) */
+body.chatting main, body.chatting > header, body.chatting > nav { margin-right:384px; }
+aside.chat { position:fixed; top:0; right:0; bottom:0; width:384px; display:flex; flex-direction:column; background:var(--bg);
+             border-left:1px solid var(--line); z-index:5; }
+aside.chat[hidden] { display:none; }
+aside.chat header { align-items:center; flex-wrap:nowrap; }
+aside.chat header button.plain { margin-top:0; padding:4px 10px; }
+aside.chat .talk { flex:1 1 auto; overflow-y:auto; padding:8px 12px; }
+aside.chat .msg { margin:8px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+aside.chat .msg.you { background:var(--panel); border-radius:8px; padding:6px 10px; }
+aside.chat details.step { font-size:13px; margin:4px 0; }
+aside.chat details.step summary { font-family:ui-monospace, monospace; color:var(--muted); cursor:pointer; overflow-wrap:anywhere; }
+aside.chat details.step pre { max-height:240px; overflow:auto; }
+aside.chat .card { border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin:8px 0; }
+aside.chat .card pre { margin:6px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+aside.chat form { border-top:1px solid var(--line); padding:8px 12px; display:flex; gap:6px; }
+aside.chat textarea { flex:1 1 auto; min-height:3em; }
+@media (max-width: 760px) { body.chatting main, body.chatting > header, body.chatting > nav { margin-right:0; } aside.chat { width:100%; } }
 section[hidden] { display:none; }
 h2 { font-size:1.05rem; margin:24px 0 8px; }
 table { border-collapse:collapse; width:100%; }
@@ -111,6 +131,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 .files .list .on { color:var(--accent); }
 .files .here { font-family:ui-monospace, monospace; font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
 .banner { background:var(--panel); border-radius:6px; padding:8px 12px; margin-top:12px; }
+.banner.warn { color:inherit; border-left:4px solid var(--warn); }
 /* the objects tab: what is kept, and where every copy is */
 .kept h3 { font-size:15px; margin:0; display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; }
 .kept .facts { font-size:13px; color:var(--muted); }
@@ -125,6 +146,16 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 .chip.warm { border-color:var(--warn); color:var(--warn); }
 .chip.hot { border-color:var(--bad); color:var(--bad); }
 .chip.none { color:var(--muted); border-style:dashed; }
+.chip.ready { border-color:var(--ok); color:var(--ok); } .chip.notready { color:var(--muted); border-style:dashed; }
+.segs { display:inline-flex; } .segs button.seg { border-radius:0; margin:0; }
+.segs button.seg:first-child { border-radius:6px 0 0 6px; } .segs button.seg:last-child { border-radius:0 6px 6px 0; }
+.segs button.seg[aria-pressed="true"] { background:var(--accent); color:var(--bg); border-color:var(--accent); }
+.test-out { font-size:13px; }
+.acts { display:flex; gap:6px 8px; align-items:center; flex-wrap:wrap; margin:6px 0; }
+.acts button.plain, .segs button.plain { margin-top:0; padding:4px 12px; }
+.acts input { width:12em; flex:0 1 auto; }
+#models-list td, #models-list th { vertical-align:middle; }
+#programs-list table { table-layout:fixed; width:100%; } #programs-list td:nth-child(1) { width:6em; } #programs-list td:nth-child(2) { width:8em; }
 .kept td { font-size:13px; }
 .kept td.mono { white-space:nowrap; }
 @media (max-width: 600px) {      /* each row a wrapped line: version, disc, path, copies, place */
@@ -136,6 +167,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 </style></head><body>
 <header><h1 title="Archive, Record, Verify">arv</h1><span class="home" id="home"></span><span class="spacer"></span>
   <button class="link" type="button" id="owed-line" title="What arv todo says is owed">…</button>
+  <button class="ext" type="button" id="ai-external" hidden title="Describing asks an external inference provider: open Settings"></button>
+  <button class="link" type="button" id="chat-btn" title="The assistant: it reads on its own; a change it proposes is yours to apply">Assistant</button>
+  <button class="link" type="button" id="settings-btn">Settings</button>
   <button class="link" type="button" id="jobs-btn">Jobs</button></header>
 <nav role="tablist" class="groups">
   <button role="tab" data-group="archive">Archive<span class="hint">onto discs</span></button>
@@ -155,6 +189,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   <button data-tab="map">Map</button>
   <button data-tab="names">Names</button>
   <button data-tab="search">Search</button>
+</nav>
+<nav class="sub" data-group="settings" hidden>
+  <button data-tab="models">Models</button>
+  <button data-tab="programs">Programs: what arv can use, and how to install it</button>
 </nav>
 <nav class="sub" data-group="verify" hidden>
   <button data-tab="owed">Owed</button>
@@ -300,6 +338,20 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     </form>
     <pre id="map-out" class="log" hidden></pre>
   </div>
+</section>
+
+<section id="tab-models" hidden>
+  <p class="muted">Which model helps with describing, and which looks at pictures. A model on this computer is used
+    as it is: what it is asked stays here. An external inference provider (your own key) is used only when you
+    choose it, and sees what it is asked. Pictures go only to a model on this computer. Keys are read from the
+    environment arv gui was started in, and never kept.</p>
+  <div id="models-list"></div>
+</section>
+
+<section id="tab-programs" hidden>
+  <p class="muted">The programs arv can use, and which are here. None is needed to make, read, check or repair a
+    disc: arv does that itself. The others add to it, or do work arv leaves to tools built for it.</p>
+  <div id="programs-list"></div>
 </section>
 
 <section id="tab-names" hidden>
@@ -473,6 +525,14 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 </section>
 
 </main>
+<aside class="chat" id="chat" hidden aria-label="The assistant">
+  <header><strong>Assistant</strong><span class="muted" id="chat-model"></span><span class="spacer"></span>
+    <button class="plain" type="button" id="chat-new" title="Start a new conversation">New</button>
+    <button class="plain" type="button" id="chat-close" aria-label="Close the assistant">Close</button></header>
+  <div class="talk" id="chat-talk"></div>
+  <form id="chat-form"><textarea id="chat-input" aria-label="Ask the assistant" placeholder="Ask about the archive: what is owed, where something is, how to tag a folder..."></textarea>
+    <button class="primary" type="submit">Send</button></form>
+</aside>
 <script>
 (function () {
   "use strict";
@@ -555,16 +615,19 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // ---------------------------------------------------------------- tabs
   // Archive, Record, Verify: each view belongs to one of the three
   var GROUP = { master: "archive", make: "archive", status: "archive", objects: "record", collections: "record", discs: "record",
-                places: "record", map: "record", names: "record", search: "record",
+                places: "record", map: "record", names: "record", search: "record", models: "settings", programs: "settings",
                 owed: "verify", tools: "verify", inventory: "verify", audit: "verify", restore: "verify" };
-  var lastView = { archive: "make", record: "objects", verify: "owed" };
+  var lastView = { archive: "make", record: "objects", verify: "owed", settings: "models" };
+  var currentTab = "owed";
   function showTab(name) {
+    currentTab = name;
     var group = GROUP[name];
     if (group) lastView[group] = name;
     document.querySelectorAll("nav.groups button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.group === group); });
     document.querySelectorAll("nav.sub").forEach(function (n) { n.hidden = n.dataset.group !== group; });
     document.querySelectorAll("nav.sub button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.tab === name); });
     $("jobs-btn").setAttribute("aria-pressed", name === "jobs");
+    $("settings-btn").setAttribute("aria-pressed", group === "settings");
     document.querySelectorAll("main > section").forEach(function (s) { s.hidden = s.id !== "tab-" + name; });
     if (name === "owed") loadOwed();
     if (name === "discs") loadDiscs();
@@ -576,10 +639,14 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (name === "places") loadPlacesView();
     if (name === "map") loadMap();
     if (name === "names") loadNames();
+    if (name === "models") loadModels();
+    if (name === "programs") loadPrograms();
   }
   document.querySelectorAll("nav.sub button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
   document.querySelectorAll("nav.groups button").forEach(function (b) { b.onclick = function () { showTab(lastView[b.dataset.group]); }; });
   $("jobs-btn").onclick = function () { showTab("jobs"); };
+  $("settings-btn").onclick = function () { showTab(lastView.settings); };
+  $("ai-external").onclick = function () { showTab("models"); };
   $("owed-line").onclick = function () { showTab("owed"); };
 
   // ---------------------------------------------------------------- verify: what is owed (arv todo)
@@ -940,12 +1007,18 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     box.appendChild(el("div", { class: "inline" }, [clues, asker, clueStatus]));
     box.appendChild(askBox);
     if (!llmStatus || !llmStatus.available) {
-      box.appendChild(el("p", { class: "muted", text: "Local LLM help (optional): not available" +
-        (llmStatus && llmStatus.error ? " \u2014 " + llmStatus.error : "") +
-        ". Start a local server (e.g. Ollama) and run arv gui --llm-url \u2026" }));
+      var choose = el("button", { class: "link", type: "button", text: "Settings" });
+      choose.onclick = function () { showTab("models"); };
+      box.appendChild(el("p", { class: "muted" }, [document.createTextNode("Model help (optional): not available" +
+        (llmStatus && llmStatus.error ? " \u2014 " + llmStatus.error : "") + ". Start a model server on this computer " +
+        "(Ollama, llama.cpp's llama-server, LM Studio), or choose one in "), choose, document.createTextNode(".")]));
       return state;
     }
-    var status = el("span", { class: "muted", text: "Local LLM: " + llmStatus.model + " (suggestions only; you review everything)" });
+    if (llmStatus.external) box.appendChild(el("p", { class: "banner warn", text: "External inference provider: " +
+      hostOf(llmStatus.url) + ". Suggest sends it this folder's file and folder names, dates, sizes and words from its text " +
+      "files. Pictures are never sent. Change it in Settings." }));
+    var status = el("span", { class: "muted", text: (llmStatus.external ? "External model: " : "Local model: ") + llmStatus.model +
+      " (suggestions only; you review everything)" });
     var go = el("button", { class: "plain", type: "button", text: "Suggest title, description and tags" });
     var qbox = el("div");
     var visionBox = el("input", { type: "checkbox" });
@@ -1585,6 +1658,329 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     opt(opt(argv, "--extent", $("map-extent").value), "--reach", $("map-reach").value);
     act(argv, $("map-out"), function () { $("map-add").reset(); loadMap(); });
   };
+  // ---------------------------------------------------------------- the assistant (arv-assist chat --json)
+  // The conversation is kept here, in the page; each turn sends it with what is on screen. Its reads
+  // come back as steps, shown as their commands; a change comes back as a proposal, applied here
+  // only when the person says so. It never clicks or changes the view on its own.
+  var chatMessages = [], OPEN_FOR = { find: "search", todo: "owed", status: "status", map: "map", tags: "names",
+    objects: "objects", plan: "master", collection: "collections", list: "discs", info: "discs", programs: "programs" };
+  function chatOpen(on) {
+    $("chat").hidden = !on; document.body.classList.toggle("chatting", on);
+    $("chat-btn").setAttribute("aria-pressed", on);
+    try { localStorage.setItem("arv-chat-open", on ? "1" : ""); } catch (e) {}
+    if (on) {
+      $("chat-model").textContent = llmStatus && llmStatus.available ? " " + llmStatus.model + (llmStatus.external ? " (external: " + hostOf(llmStatus.url) + ")" : "") : "";
+      if (!$("chat-talk").childNodes.length) chatNote();
+      $("chat-input").focus();
+    }
+  }
+  function chatNote() {
+    var talk = $("chat-talk");
+    if (!llmStatus || !llmStatus.available) {
+      var go = el("button", { class: "link", type: "button", text: "Settings" });
+      go.onclick = function () { showTab("models"); };
+      talk.appendChild(el("p", { class: "muted" }, [document.createTextNode("No model to ask: " + (llmStatus && llmStatus.error ? llmStatus.error : "none found") +
+        ". Choose one in "), go, document.createTextNode(". Without one, Describe's \u201cAsk me\u201d still works.")]));
+      return;
+    }
+    talk.appendChild(el("p", { class: "muted", text: "Ask about the archive. It reads on its own, each step shown as the command it ran; " +
+      "a change comes as a proposal, which you apply or not." + (llmStatus.external ? " This model is an external provider (" +
+      hostOf(llmStatus.url) + "): what it reads is sent there." : "") }));
+  }
+  function chatStep(step) {
+    var open = OPEN_FOR[step.command[0]], acts = [];
+    if (open) { var o = el("button", { class: "link", type: "button", text: "Open" }); o.onclick = function () { showTab(open); }; acts.push(o); }
+    return el("details", { class: "step" }, [el("summary", { text: "$ " + step.shown + "  (exit " + step.exit + ")" }),
+      el("div", { class: "acts" }, acts), el("pre", { class: "log", text: step.output })]);
+  }
+  function chatProposal(r) {
+    var card = el("div", { class: "card" }), out = el("pre", { class: "log" }), msg = el("span", { class: "muted" });
+    out.hidden = true;
+    var chip = el("span", { class: "chip " + (r.risk === "high" ? "hot" : r.risk === "medium" ? "warm" : "cold"), text: r.risk + " risk" });
+    function done(text) { apply.disabled = dismiss.disabled = true; chatMessages.push({ role: "user", content: text }); }
+    var apply = action("Apply", function () {
+      if (r.risk === "high" && !confirm("Apply this?\n\n" + r.shown + "\n\n" + (r.why || "") + "\n\nIt is hard to undo.")) return;
+      apply.disabled = true; msg.textContent = "Running\u2026";
+      arvText(r.propose).then(function (res) {
+        out.hidden = false; out.textContent = res.output; out.className = "log" + (res.returncode ? " bad" : "");
+        msg.textContent = res.returncode ? "It did not work (exit " + res.returncode + ")." : "Applied.";
+        done("I applied it: exit " + res.returncode + ".\n" + res.output.slice(0, 2000));
+        if (!res.returncode) showTab(currentTab);           // the view on the left, again
+      });
+    });
+    var dismiss = action("Dismiss", function () { msg.textContent = "Not applied."; done("I did not apply it."); });
+    card.appendChild(el("div", { class: "acts" }, [el("strong", { text: "Proposed" }), chip]));
+    card.appendChild(el("pre", { class: "mono", text: r.shown }));
+    if (r.why) card.appendChild(el("p", { text: r.why }));
+    card.appendChild(el("div", { class: "acts" }, [apply, dismiss, msg]));
+    card.appendChild(out);
+    return card;
+  }
+  function chatSend(text) {
+    var talk = $("chat-talk"), wait = el("p", { class: "muted", text: "Thinking\u2026 (a local model can take a minute)" });
+    chatMessages.push({ role: "user", content: text });
+    talk.appendChild(el("div", { class: "msg you", text: text }));
+    talk.appendChild(wait); talk.scrollTop = talk.scrollHeight;
+    var view = document.querySelector("nav.sub button[aria-selected=true]");
+    assistJson(["chat", "--json"], { messages: chatMessages, context: (view ? view.textContent : currentTab) }).then(function (res) {
+      wait.remove();
+      if (res.error) { talk.appendChild(el("p", { class: "bad", text: "Error: " + res.error })); chatMessages.pop(); return; }
+      chatMessages = res.messages;
+      (res.steps || []).forEach(function (s) { talk.appendChild(chatStep(s)); });
+      var r = res.reply || {};
+      if (r.error) talk.appendChild(el("p", { class: "bad", text: "Error: " + r.error }));
+      else if (r.propose) talk.appendChild(chatProposal(r));
+      else if (r.say) talk.appendChild(el("div", { class: "msg", text: r.say }));
+      talk.scrollTop = talk.scrollHeight;
+    });
+  }
+  $("chat-btn").onclick = function () { chatOpen($("chat").hidden); };
+  $("chat-close").onclick = function () { chatOpen(false); };
+  $("chat-new").onclick = function () { chatMessages = []; $("chat-talk").textContent = ""; chatNote(); };
+  $("chat-form").onsubmit = function (e) {
+    e.preventDefault();
+    var t = $("chat-input").value.trim();
+    if (!t) return;
+    $("chat-input").value = "";
+    chatSend(t);
+  };
+  $("chat-input").onkeydown = function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("chat-form").requestSubmit(); } };
+
+  // ---------------------------------------------------------------- settings: which model (arv-assist llm-status --all, llm-use)
+  function hostOf(url) { var m = /^[a-z]+:\/\/(\[[^\]]*\]|[^\/:]+)/.exec(url || ""); return m ? m[1] : url; }
+  function externalBadge() {        // in the header, while describing asks an external provider
+    var b = $("ai-external"), on = !!(llmStatus && llmStatus.external);
+    b.hidden = !on;
+    if (on) b.textContent = "External AI: " + hostOf(llmStatus.url);
+  }
+  function modelsChanged() {        // the choice changed: the badge, the describe panels and this view again
+    return assistJson(["llm-status"]).then(function (st) { llmStatus = st; }).catch(function () { llmStatus = null; })
+      .then(function () { externalBadge(); setupMakeLLM(); loadModels(); });
+  }
+  function useModel(argv, external, host) {
+    if (external && !confirm("Use " + host + ", an external inference provider?\n\nDescribing then sends it what it is " +
+        "asked: file and folder names, dates, sizes and words from text files. Pictures are never sent. Choose it " +
+        "only if you trust it with that.")) return;
+    arvRun(argv, undefined, "arv-assist").then(function (r) {
+      var out = $("models-out");
+      if (out) { out.hidden = false; out.textContent = (r.out + r.err).trim(); out.className = "log" + (r.returncode ? " bad" : ""); }
+      if (!r.returncode) modelsChanged();
+    });
+  }
+  function action(text, fn, off) {   // a button that does fn, disabled when off
+    var b = el("button", { class: "plain", type: "button", text: text });
+    b.onclick = fn;
+    b.disabled = !!off;
+    return b;
+  }
+  function ready(on, why) {         // a Ready / Not ready chip, the reason as its tooltip and after it
+    var c = el("span", { class: "chip " + (on ? "ready" : "notready"), text: on ? "Ready" : "Not ready" });
+    if (!on && why) c.title = why;
+    return c;
+  }
+  // a Test button: a fixed question, nothing from any file (arv-assist llm-test), the answer beside it
+  function tester(label, argv, getModel) {
+    var out = el("span", { class: "muted test-out" });
+    var b = action(label, function () {
+      var model = getModel ? getModel() : null;
+      if (getModel && !model) { out.textContent = "Type the model's name first."; return; }
+      b.disabled = true; out.className = "muted test-out"; out.textContent = "Asking…";
+      assistJson(argv.concat(model ? ["--model", model] : [])).then(function (r) {
+        b.disabled = false;
+        if (r.ok) {
+          out.className = "ok test-out";
+          out.textContent = "Answered in " + r.seconds + " s" + (r.model ? " (" + r.model + ")" : "") +
+            (r.json === false ? ", but not in JSON: describing may not work" : "") +
+            (r.saw_red === false ? ": “" + r.reply.slice(0, 40) + "” (the square was red)" : r.saw_red ? ": saw the red square" : "");
+        } else { out.className = "bad test-out"; out.textContent = r.error || "No answer"; }
+      });
+    });
+    b.title = "Sends a fixed test question, nothing from your files" + (argv.indexOf("--pictures") >= 0 ? " (a red square)" : "");
+    return [b, out];
+  }
+  function inUse(text) { return el("span", { class: "chip cold", text: text }); }
+  // a source's own On/Off: a server here is on unless turned off; a provider off unless turned on,
+  // which is agreeing that it sees what describing asks
+  function sourceSwitch(src, external) {
+    var on = action("On", function () {
+      if (src.on) return;
+      if (external && !confirm("Turn on " + src.name + ", an external inference provider?\n\nOnce you choose it for " +
+          "describing, it is sent what describing asks: file and folder names, dates, sizes and words from text files. " +
+          "Pictures are never sent. Turn it on only if you trust it with that.")) return;
+      useModel(["llm-use", "--enable", src.id], false);
+    });
+    var off = action("Off", function () { if (src.on) useModel(["llm-use", "--disable", src.id], false); });
+    on.className = off.className = "plain seg";
+    on.setAttribute("aria-pressed", !!src.on); off.setAttribute("aria-pressed", !src.on);
+    on.title = external ? "Allow it to be chosen; it then sees what describing asks" : "Ask it what models it has";
+    off.title = external ? "Never ask it" : "Never ask it, not even whether it is running";
+    return el("span", { class: "segs" }, [on, off]);
+  }
+  function loadModels() {
+    return assistJson(["llm-status", "--all", "--json"]).then(function (res) {
+      var box = $("models-list"); box.textContent = "";
+      if (res.error) { box.textContent = "Error: " + res.error; return; }
+      var on = res.help !== "off", t = res.text, v = res.vision;
+      // the master switch
+      var bOn = action("On", function () { useModel(["llm-use", "--on"], false); });
+      var bOff = action("Off", function () { useModel(["llm-use", "--off"], false); });
+      bOn.setAttribute("aria-pressed", on); bOff.setAttribute("aria-pressed", !on); bOn.className = bOff.className = "plain seg";
+      box.appendChild(el("div", { class: "acts" }, [el("strong", { text: "Model help" }), el("span", { class: "segs" }, [bOn, bOff]),
+        el("span", { class: "muted", text: on ? "Suggestions from the model in use below; you review everything." :
+          "Off: no model is asked. Describing by questions (Ask me) and from the files still works." })]));
+      // what is in use
+      var uses = el("table");
+      var describing = t.from === "option" ? "given to arv gui (wins over a choice here)" : t.from === "environment" ? "ARCHIVE_LLM_URL"
+        : t.from === "settings" ? "chosen here" : "the default";
+      uses.appendChild(el("tr", {}, [el("th", { text: "Describing" }), el("td", {}, [ready(t.available, t.error)]),
+        el("td", { class: "mono", text: (t.model ? t.model + " at " : "") + t.url }), el("td", { class: "muted", text: describing }),
+        el("td", {}, [el("div", { class: "acts" }, (t.from === "settings" ? [action("Stop using", function () { useModel(["llm-use", "--forget", "describing"], false); })] : [])
+          .concat(t.url && on ? tester("Test", ["llm-test", "--url", t.url].concat(t.external ? ["--external"] : []), t.model ? function () { return t.model; } : null) : []))])]));
+      if (!t.available && t.error) uses.appendChild(el("tr", {}, [el("td"), el("td", { colspan: "4", class: "muted", text: t.error })]));
+      uses.appendChild(el("tr", {}, v ? [el("th", { text: "Pictures" }), el("td", {}, [ready(v.available, v.error)]),
+        el("td", { class: "mono", text: (v.model ? v.model + " at " : "") + v.url }), el("td", { class: "muted", text: "chosen here" }),
+        el("td", {}, [el("div", { class: "acts" }, [action("Stop using", function () { useModel(["llm-use", "--forget", "pictures"], false); })]
+          .concat(tester("Test pictures", ["llm-test", "--pictures", "--url", v.url], v.model ? function () { return v.model; } : null)))])]
+        : [el("th", { text: "Pictures" }), el("td"), el("td", { class: "muted", colspan: "3",
+          text: t.external ? "None: pictures never go to an external provider. Choose a model on this computer that takes pictures."
+            : "The describing model, if it takes pictures. Or choose one below." })]));
+      box.appendChild(el("div", { class: "scroll" }, [uses]));
+      if (t.external && on) box.appendChild(el("p", { class: "banner warn", text: "An external inference provider: " + hostOf(t.url) +
+        " sees what describing asks (file and folder names, dates, sizes, words from text files). Pictures are never sent to it." }));
+      // on this computer
+      box.appendChild(el("h3", { text: "On this computer" }));
+      box.appendChild(el("p", { class: "muted", text: "Each is on until you turn it off; off, it is never asked, not even whether it is running." }));
+      var st = el("table");
+      res.servers.forEach(function (sv) {
+        var sw = sv.id === "chosen" ? null : sourceSwitch(sv, false);
+        if (!sv.found) {
+          st.appendChild(el("tr", {}, [el("td", { text: sv.name }), el("td", {}, [sw]), el("td", {}, [ready(false, sv.error)]),
+            el("td", { class: "mono muted", colspan: "3", text: sv.url + (sv.on ? ": not running" : ": off, never asked") })]));
+          return;
+        }
+        if (!sv.models.length) st.appendChild(el("tr", {}, [el("td", { text: sv.name }), el("td", {}, [sw]), el("td", {}, [ready(false, "no models")]),
+          el("td", { class: "muted", colspan: "3", text: "running, with no models: add one to it first" })]));
+        sv.models.forEach(function (m, i) {
+          var can = [m.vision ? "pictures" : "", m.embedding ? "embeddings" : "", m.context ? "context " + m.context : ""].filter(Boolean);
+          var useText = t.from === "settings" && t.url === sv.url && t.model === m.id, usePic = v && v.url === sv.url && v.model === m.id;
+          var acts = [];
+          if (!m.embedding) acts.push(useText ? inUse("In use: describing") : action("Use for describing", function () {
+            useModel(["llm-use", "--url", sv.url, "--model", m.id], false); }));
+          if (usePic) acts.push(inUse("In use: pictures"));
+          else if (m.vision) acts.push(action("Use for pictures", function () {
+            useModel(["llm-use", "--pictures", sv.url, "--pictures-model", m.id], false); }));
+          var tests = m.embedding ? [] : tester("Test", ["llm-test", "--url", sv.url, "--model", m.id]);
+          if (m.vision) tests = tests.concat(tester("Test pictures", ["llm-test", "--pictures", "--url", sv.url, "--model", m.id]));
+          st.appendChild(el("tr", {}, [el("td", { text: i ? "" : sv.name, title: sv.url }), el("td", {}, i ? [] : [sw]), el("td", {}, i ? [] : [ready(true)]),
+            el("td", { class: "mono", text: m.id + (can.length ? "  (" + can.join(", ") + ")" : "") }),
+            el("td", {}, [el("div", { class: "acts" }, acts)]), el("td", {}, [el("div", { class: "acts" }, tests)])]));
+        });
+      });
+      box.appendChild(el("div", { class: "scroll" }, [st]));
+      // external providers
+      box.appendChild(el("h3", { text: "External providers (your own key)" }));
+      box.appendChild(el("p", { class: "muted", text: "Each is off until you turn it on: only then can it be tested or chosen, and " +
+        "once chosen it sees what describing asks. Its key comes from the environment arv gui was started in (or " +
+        "ARCHIVE_LLM_KEY); a desktop menu may not have a shell's variables." }));
+      var pt = el("table");
+      res.providers.forEach(function (p) {
+        var current = t.external && t.url === p.url;
+        var model = el("input", { type: "text", placeholder: "model name", "aria-label": p.name + " model" });
+        if (current) model.value = t.model || "";
+        var name = function () { return model.value.trim(); };
+        var use = current ? inUse("In use: describing") : action("Use for describing", function () {
+          if (!name()) { model.focus(); return; }
+          useModel(["llm-use", "--url", p.url, "--model", name()], false);
+        }, !p.ready);
+        var chip = ready(p.ready, p.why);
+        if (p.ready) chip.title = "Its key is set and curl is here; Test asks it a question to be sure";
+        pt.appendChild(el("tr", {}, [el("td", { text: p.name }), el("td", {}, [sourceSwitch(p, true)]), el("td", {}, [chip]),
+          el("td", { class: "mono" + (p.set ? "" : " muted"), text: p.key + (p.set ? "" : ": not set") }),
+          el("td", {}, p.ready ? [el("div", { class: "acts" }, [model, use].concat(tester("Test", ["llm-test", "--url", p.url, "--external"], name)))] : [])]));
+      });
+      box.appendChild(el("div", { class: "scroll" }, [pt]));
+      box.appendChild(el("div", { class: "acts" }, [action("Forget every choice", function () { useModel(["llm-use", "--clear"], false); }),
+        el("span", { class: "muted mono", text: res.settings })]));
+      var out = el("pre", { id: "models-out", class: "log" });
+      out.hidden = true;
+      box.appendChild(out);
+    });
+  }
+
+  // ---------------------------------------------------------------- settings: the programs arv can use (arv programs)
+  var PROGRAM_GROUPS = [["helpers", "arv's own helpers"], ["making", "Making discs"], ["describing", "Describing"],
+                        ["interface", "The interface"], ["beside", "Beside arv: work it leaves to other tools (it never runs them)"],
+                        ["data", "Place data (beside the built-in countries and cities)"]];
+  function loadPrograms() {
+    return arvJson(["programs", "--json"]).then(function (res) {
+      var box = $("programs-list"); box.textContent = "";
+      var missing = res.programs.filter(function (p) { return !p.found; });
+      box.appendChild(el("p", { text: (res.programs.length - missing.length) + " of " + res.programs.length + " found. This system: " +
+        (res.system ? res.system.name : "not one arv knows the packages of; each system's commands are shown") + "." +
+        (res.system ? (res.packagekit ? " Install hands a group's packages to PackageKit, which asks for your password."
+          : " Copy a command into a terminal (with PackageKit installed, an Install button does it here).") : "") }));
+      // "sudo apt install a b" for these programs on one system, or null
+      function line(list, sys) {
+        var pk = [];
+        list.forEach(function (p) { var k = p.packages[sys.id]; if (k && pk.indexOf(k) < 0) pk.push(k); });
+        return pk.length ? sys.install + " " + pk.join(" ") : null;
+      }
+      // a command to paste into a terminal, with Copy beside it (and Install, through PackageKit, when given)
+      function commandBox(text, installGroup) {
+        var pre = el("pre", { class: "log", text: text }), msg = el("span", { class: "muted" });
+        var copy = action("Copy", function () {
+          var done = function () { msg.textContent = "Copied: paste it into a terminal."; };
+          if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, function () { msg.textContent = "Select it and copy it by hand."; });
+          else { var r = document.createRange(); r.selectNodeContents(pre); getSelection().removeAllRanges(); getSelection().addRange(r);
+                 msg.textContent = document.execCommand("copy") ? "Copied: paste it into a terminal." : "Selected: copy it by hand."; }
+        });
+        var acts = [copy];
+        if (installGroup) {
+          var inst = action("Install", function () {
+            if (!confirm("Install these with your system's installer (PackageKit)?\n\n" + text + "\n\nIt asks for your password " +
+                "itself; arv gets no rights and downloads nothing. Its output shows in Jobs.")) return;
+            run(["programs", "--install", installGroup], false);
+          });
+          inst.title = "Hands these packages to PackageKit (pkcon), which asks for your password";
+          acts.push(inst);
+        }
+        acts.push(msg);
+        return el("div", {}, [pre, el("div", { class: "acts" }, acts)]);
+      }
+      PROGRAM_GROUPS.forEach(function (g) {
+        var progs = res.programs.filter(function (p) { return p.group === g[0]; }), gone = progs.filter(function (p) { return !p.found; });
+        box.appendChild(el("h3", {}, [document.createTextNode(g[1] + " "), gone.length ? el("span", { class: "chip notready", text: gone.length + " missing" })
+          : el("span", { class: "chip ready", text: "Ready" })]));
+        var t = el("table");
+        progs.forEach(function (p) {
+          t.appendChild(el("tr", {}, [el("td", {}, [el("span", { class: "chip " + (p.found ? "cold" : "none"), text: p.found ? "here" : "missing" })]),
+            el("td", { class: "mono", text: p.name, title: p.path }), el("td", { text: p.for + (p.found ? "" : ". Without it: " + p.without) })]));
+        });
+        box.appendChild(el("div", { class: "scroll" }, [t]));
+        if (!gone.length) return;
+        var here = res.system ? res.systems.filter(function (s) { return s.id === res.system.id; }) : res.systems;
+        here.forEach(function (sys) {
+          var l = line(gone, sys);
+          if (l) box.appendChild(commandBox((res.system ? "" : "# " + sys.name + "\n") + l, res.system && res.packagekit ? g[0] : null));
+        });
+        var others = res.system ? res.systems.filter(function (s) { return s.id !== res.system.id; }).map(function (sys) {
+          var l = line(gone, sys); return l ? "# " + sys.name + "\n" + l : null; }).filter(Boolean) : [];
+        if (others.length) box.appendChild(el("details", {}, [el("summary", { class: "muted", text: "Other systems" }),
+          el("pre", { class: "log", text: others.join("\n") })]));
+        gone.filter(function (p) { return p.from; }).forEach(function (p) {
+          box.appendChild(el("p", { class: "muted" }, [el("span", { class: "mono", text: p.name }), document.createTextNode(": " + p.from)]));
+          if (!p.steps) return;
+          box.appendChild(commandBox(p.steps[res.system ? res.system.id : "other"], null));
+          var rest = Object.keys(p.steps).filter(function (k) { return !res.system || k !== res.system.id; });
+          if (res.system) box.appendChild(el("details", {}, [el("summary", { class: "muted", text: p.name + " on other systems" }),
+            el("pre", { class: "log", text: rest.map(function (k) { var sy = res.systems.filter(function (x) { return x.id === k; })[0];
+              return "# " + (sy ? sy.name : "Any other (Go, a release, or FreeBSD)") + "\n" + p.steps[k]; }).join("\n\n") })]));
+        });
+      });
+    }).catch(function (e) { $("programs-list").textContent = "Error: " + e.message; });
+  }
+
+
   // ---------------------------------------------------------------- record: known names (arv tags names|label|alias|merge|split|retire)
   function loadNames() {
     return arvJson(["tags", "names", "--json"]).then(function (res) {
@@ -1619,6 +2015,21 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
           el("td", { text: String(n.paths + n.objects) }), acts]));
       });
       box.appendChild(el("div", { class: "scroll" }, [t]));
+      if (!res.likelySame.length) return;
+      box.appendChild(el("h3", { text: "Likely the same" }));
+      box.appendChild(el("p", { class: "muted", text: "Close names in one namespace. Merge them, or say they are different (a qualifier each, so they are not offered again)." }));
+      res.likelySame.forEach(function (p) {
+        var a = p.keys[0], b = p.keys[1], out = $("names-out");
+        function merge(from, into) { var x = el("button", { class: "plain", type: "button", text: "Merge into " + into }); x.onclick = function () { act(["tags", "merge", from, into], out, loadNames); }; return x; }
+        var differ = el("button", { class: "plain", type: "button", text: "Not the same" });
+        differ.onclick = function () {
+          var qa = prompt("What tells " + a + " apart (dates, a relation, a place)?"); if (!qa || !qa.trim()) return;
+          var qb = prompt("And " + b + "?"); if (!qb || !qb.trim()) return;
+          act(["tags", "add", a, "--qualifier", qa.trim()], out, function () { act(["tags", "add", b, "--qualifier", qb.trim()], out, loadNames); });
+        };
+        box.appendChild(el("div", { class: "inline" }, [el("span", { class: "mono", text: a + "  and  " + b }), el("span", { class: "muted", text: p.why }),
+          merge(b, a), merge(a, b), differ]));
+      });
     }).catch(function (e) { $("names-list").textContent = "Error: " + e.message; });
   }
   function splitName(n) {      // two of one name: tick the uses that are the other one
@@ -1875,7 +2286,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     assistJson(["llm-status"]).then(function (st) { llmStatus = st; }).catch(function () { llmStatus = null; })
       .then(function () {           // a view named in the address (#discs, #master...), else Verify's Owed
         var want = location.hash.slice(1);
-        setupMakeLLM(); loadDiscs(); loadOwed(); showTab(GROUP[want] ? want : "owed");
+        if (want === "settings") want = "models";
+        externalBadge(); setupMakeLLM(); loadDiscs(); loadOwed(); showTab(GROUP[want] ? want : "owed");
+        try { if (localStorage.getItem("arv-chat-open")) chatOpen(true); } catch (e) {}
         // while the page is open it says so, once a minute: started from a menu (--idle), the server
         // stops some time after the page is closed
         setInterval(function () { api("/api/setup").catch(function () {}); }, 60000);

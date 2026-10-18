@@ -382,3 +382,128 @@ char *abs_path(const char *p)
     free(joined);
     return out;
 }
+
+/* a helper program: $ENV, next to this arv (an installed bin/), or in the checkout this arv was
+ * built in (src/arv/build/arv -> src/<name>/...); NULL: look on PATH */
+char *helper_program(const char *env, const char *name, const char *in_checkout)
+{
+    if (getenv(env) && *getenv(env)) return xstrdup(getenv(env));
+    char *dir = exe_dir();
+    if (!dir) return NULL;
+    char *beside = join(dir, name), *built = xprintf("%s/../../%s", dir, in_checkout);
+    char *found = !access(beside, X_OK) ? beside : !access(built, X_OK) ? built : NULL;
+    found = found ? xstrdup(found) : NULL;
+    free(beside);
+    free(built);
+    free(dir);
+    return found;
+}
+
+/* ------------------------------------------------------------------ text folded, for keys and comparing */
+
+/* Latin letters with accents as ASCII (NULL: a letter kept as it is; "": not a letter): Latin-1,
+ * Extended-A and -B, and Extended Additional (Vietnamese) */
+static const char *const FOLD_LATIN[] = {   /* U+00C0 to U+024F */
+    "a", "a", "a", "a", "a", "a", "ae", "c", "e", "e", "e", "e", "i", "i", "i", "i",
+    "d", "n", "o", "o", "o", "o", "o", "", "o", "u", "u", "u", "u", "y", "th", "ss",
+    "a", "a", "a", "a", "a", "a", "ae", "c", "e", "e", "e", "e", "i", "i", "i", "i",
+    "d", "n", "o", "o", "o", "o", "o", "", "o", "u", "u", "u", "u", "y", "th", "y",
+    "a", "a", "a", "a", "a", "a", "c", "c", "c", "c", "c", "c", "c", "c", "d", "d",
+    "d", "d", "e", "e", "e", "e", "e", "e", "e", "e", "e", "e", "g", "g", "g", "g",
+    "g", "g", "g", "g", "h", "h", "h", "h", "i", "i", "i", "i", "i", "i", "i", "i",
+    "i", "i", "ij", "ij", "j", "j", "k", "k", "k", "l", "l", "l", "l", "l", "l", "l",
+    "l", "l", "l", "n", "n", "n", "n", "n", "n", "n", "n", "n", "o", "o", "o", "o",
+    "o", "o", "oe", "oe", "r", "r", "r", "r", "r", "r", "s", "s", "s", "s", "s", "s",
+    "s", "s", "t", "t", "t", "t", "t", "t", "u", "u", "u", "u", "u", "u", "u", "u",
+    "u", "u", "u", "u", "w", "w", "y", "y", "y", "z", "z", "z", "z", "z", "z", "s",
+    "b", "b", NULL, NULL, NULL, NULL, NULL, "c", "c", NULL, "d", NULL, NULL, NULL, NULL, NULL,
+    NULL, "f", "f", "g", NULL, NULL, NULL, "i", "k", "k", "l", NULL, NULL, "n", "n", "o",
+    "o", "o", NULL, NULL, "p", "p", NULL, NULL, NULL, NULL, NULL, "t", "t", "t", "t", "u",
+    "u", NULL, "v", "y", "y", "z", "z", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL, NULL, "dz", "dz", "dz", "lj", "lj", "lj", "nj", "nj", "nj", "a", "a", "i",
+    "i", "o", "o", "u", "u", "u", "u", "u", "u", "u", "u", "u", "u", NULL, "a", "a",
+    "a", "a", NULL, NULL, NULL, NULL, "g", "g", "k", "k", "o", "o", "o", "o", NULL, NULL,
+    "j", "dz", "dz", "dz", "g", "g", NULL, NULL, "n", "n", "a", "a", NULL, NULL, NULL, NULL,
+    "a", "a", "a", "a", "e", "e", "e", "e", "i", "i", "i", "i", "o", "o", "o", "o",
+    "r", "r", "r", "r", "u", "u", "u", "u", "s", "s", "t", "t", NULL, NULL, "h", "h",
+    NULL, "d", NULL, NULL, NULL, NULL, "a", "a", "e", "e", "o", "o", "o", "o", "o", "o",
+    "o", "o", "y", "y", "l", "n", "t", "j", NULL, NULL, "a", "c", "c", "l", "t", "s",
+    "z", NULL, NULL, "b", "u", NULL, "e", "e", "j", "j", "q", "q", "r", "r", "y", "y",
+};
+static const char *const FOLD_LATIN_MORE[] = {   /* U+1E00 to U+1EFF */
+    "a", "a", "b", "b", "b", "b", "b", "b", "c", "c", "d", "d", "d", "d", "d", "d",
+    "d", "d", "d", "d", "e", "e", "e", "e", "e", "e", "e", "e", "e", "e", "f", "f",
+    "g", "g", "h", "h", "h", "h", "h", "h", "h", "h", "h", "h", "i", "i", "i", "i",
+    "k", "k", "k", "k", "k", "k", "l", "l", "l", "l", "l", "l", "l", "l", "m", "m",
+    "m", "m", "m", "m", "n", "n", "n", "n", "n", "n", "n", "n", "o", "o", "o", "o",
+    "o", "o", "o", "o", "p", "p", "p", "p", "r", "r", "r", "r", "r", "r", "r", "r",
+    "s", "s", "s", "s", "s", "s", "s", "s", "s", "s", "t", "t", "t", "t", "t", "t",
+    "t", "t", "u", "u", "u", "u", "u", "u", "u", "u", "u", "u", "v", "v", "v", "v",
+    "w", "w", "w", "w", "w", "w", "w", "w", "w", "w", "x", "x", "x", "x", "y", "y",
+    "z", "z", "z", "z", "z", "z", "h", "t", "w", "y", "a", "s", NULL, NULL, "ss", NULL,
+    "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a",
+    "a", "a", "a", "a", "a", "a", "a", "a", "e", "e", "e", "e", "e", "e", "e", "e",
+    "e", "e", "e", "e", "e", "e", "e", "e", "i", "i", "i", "i", "o", "o", "o", "o",
+    "o", "o", "o", "o", "o", "o", "o", "o", "o", "o", "o", "o", "o", "o", "o", "o",
+    "o", "o", "o", "o", "u", "u", "u", "u", "u", "u", "u", "u", "u", "u", "u", "u",
+    "u", "u", "y", "y", "y", "y", "y", "y", "y", "y", NULL, NULL, NULL, NULL, NULL, NULL,
+};
+
+static void put_cp(sbuf *b, unsigned cp)
+{
+    char u[4];
+    size_t n = 0;
+    if (cp < 0x80) u[n++] = (char)cp;
+    else if (cp < 0x800) u[n++] = (char)(0xC0 | (cp >> 6)), u[n++] = (char)(0x80 | (cp & 0x3F));
+    else u[n++] = (char)(0xE0 | (cp >> 12)), u[n++] = (char)(0x80 | ((cp >> 6) & 0x3F)), u[n++] = (char)(0x80 | (cp & 0x3F));
+    sb_add(b, u, n);
+}
+
+/* "Zürich", "Zu\u0308rich", "ZÜRICH" -> "zurich"; "Ålice" -> "alice"; "Αθήνα" -> "αθηνα"; "京都" as it is.
+ * Lower case for Latin, Greek and Cyrillic; Latin accents folded to ASCII, and combining accents
+ * dropped (so a decomposed form, as macOS writes names, is the same as a composed one); other
+ * scripts kept. Not full Unicode normalisation: Hangul in jamo is not composed. */
+char *text_fold(const char *s)
+{
+    sbuf b = { 0 };
+    sb_puts(&b, "");
+    const unsigned char *p = (const unsigned char *)(s ? s : "");
+    while (*p) {
+        unsigned cp = *p;
+        size_t len = 1;
+        if (*p >= 0xC2 && *p < 0xE0 && (p[1] & 0xC0) == 0x80) cp = ((unsigned)(p[0] & 0x1F) << 6) | (p[1] & 0x3F), len = 2;
+        else if (*p >= 0xE0 && *p < 0xF0 && (p[1] & 0xC0) == 0x80 && (p[2] & 0xC0) == 0x80)
+            cp = ((unsigned)(p[0] & 0x0F) << 12) | ((unsigned)(p[1] & 0x3F) << 6) | (p[2] & 0x3F), len = 3;
+        const char *plain = NULL;
+        if (cp >= 0xC0 && cp < 0x250) plain = FOLD_LATIN[cp - 0xC0];
+        else if (cp >= 0x1E00 && cp < 0x1F00) plain = FOLD_LATIN_MORE[cp - 0x1E00];
+        if (cp < 0x80) {
+            char c = (char)tolower((int)cp);
+            sb_add(&b, &c, 1);
+        } else if (plain) {
+            sb_puts(&b, plain);
+        } else if (cp >= 0x300 && cp < 0x370) {
+            ;                               /* a combining accent: dropped */
+        } else if (cp >= 0x391 && cp <= 0x3A9 && cp != 0x3A2) {
+            put_cp(&b, cp + 0x20);          /* Greek capitals */
+        } else if (cp >= 0x386 && cp <= 0x38F) {
+            static const unsigned greek_tonos[] = { 0x3B1, 0, 0x3B5, 0x3B7, 0x3B9, 0, 0x3BF, 0, 0x3C5, 0x3C9 };
+            unsigned to = greek_tonos[cp - 0x386];
+            if (to) put_cp(&b, to);
+            else sb_add(&b, (const char *)p, len);
+        } else if (cp >= 0x3AC && cp <= 0x3CE) {
+            static const unsigned greek_lower[] = { 0x3B1, 0x3B5, 0x3B7, 0x3B9 };   /* ά έ ή ί; ΰ..ώ below */
+            unsigned to = cp <= 0x3AF ? greek_lower[cp - 0x3AC] : cp == 0x3CC ? 0x3BF : cp == 0x3CD ? 0x3C5 : cp == 0x3CE ? 0x3C9
+                        : cp == 0x3C2 ? 0x3C3 : cp == 0x3B0 ? 0x3C5 : cp;
+            put_cp(&b, to);                 /* tonos dropped, final sigma as sigma */
+        } else if (cp >= 0x410 && cp <= 0x42F) {
+            put_cp(&b, cp + 0x20);          /* Cyrillic capitals */
+        } else if (cp >= 0x400 && cp <= 0x40F) {
+            put_cp(&b, cp + 0x50);
+        } else {
+            sb_add(&b, (const char *)p, len);
+        }
+        p += len;
+    }
+    return b.s;
+}

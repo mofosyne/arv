@@ -87,7 +87,7 @@ projects, records ...): see "Laying the folder out" in step 1.
 | `arv` | everything below | `make install PREFIX=~/.local` (or `just install`) in this repository, or a package (`just deb`, `just arch`: [packaging/](../packaging/README.md)), or run `./arv` from it; tab completion comes with it. `make uninstall PREFIX=~/.local` (`just uninstall`) removes it and leaves your archives alone |
 | `7z`, `git` | reading images in checks; arv's source in each disc's `tools/` | your distribution |
 | a burning program | burning images (arv never burns) | `xorriso`, or your system's own: see [burning.md](burning.md) |
-| optional | reading damaged discs; format ids; AI help; the interface | GNU ddrescue or [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light); Siegfried (`sf`); arv-assist (`arv describe`, `arv tag`); a web browser for `arv gui` |
+| optional | reading damaged discs; format ids; AI help; the interface | GNU ddrescue or [dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light); Siegfried (`sf`); arv-assist (`arv describe`, `arv tag`); a web browser for `arv gui`. `arv programs` lists every one arv can use, which are here, and the packages for the rest |
 
 Make the **archive** (its home catalogue) at the root of the tree it describes, for example the
 NAS share above your photos and projects:
@@ -181,6 +181,17 @@ words of text files and PDFs), and one that always does is offered as a rule in 
 tag FOLDER --save d.json` suggests folder tags from your vocabulary, and `arv describe FOLDER
 --save d.json` asks a local language model for a title, description and questions; `arv make
 --draft d.json` takes any of them.
+
+Scans: arv reads a PDF's text layer and any `.txt` beside the files, but does no OCR itself. Most
+PDFs need none (anything saved from a program has its text); only scans, pictures of paper, do.
+`describe --ask` says how many of the PDFs it read have no text, and tags them `source:scan` (the
+folder, when most are), so `arv find source:scan` lists what is left to OCR. Do it with the tools
+built for it, and the text becomes both a clue and part of what is kept:
+
+```sh
+ocrmypdf --skip-text letter.pdf letter-ocr.pdf   # a text layer in a copy, on the pages with none
+tesseract scan-0042.jpg scan-0042       # scan-0042.txt beside the image: a clue, and searchable on the disc
+```
 
 ### 2. Sort, and see what changed
 
@@ -477,8 +488,9 @@ arv location list -v                                 # places, their temperature
 | What do I have from July 2019? | `arv list --covers 2019-07` |
 | Everything under a category or a place | `arv list --in MEMORIES`, `arv list --at PARENTS` |
 | What has this collection been through? | `arv collection show FAMILY`, `arv log FAMILY` |
-| Which tags do I use? | `arv tags`; `arv find place:kyoto` |
+| Which tags do I use? | `arv tags`; `arv find place:kyoto` (`place:japan` finds Kyoto's too) |
 | Where is it all from? | `arv map` (`--geojson` for a map tool, `--svg` for a picture) |
+| More places (regions, towns)? | `iso-codes` (regions, by name); `sh docs/examples/places-geonames.sh` (GeoNames' towns, with positions, into `~/.local/share/arv/places/`); `arv programs` says which are here |
 | Without this tool installed? | every disc carries it: `tools/arv.com find PATTERN` from the disc's root searches every disc it knows about; or `grep -ri PATTERN catalog/volumes/*/listing.tsv` |
 | Changes after burning | `arv note`, `arv locate`, `arv access` (home catalogue; later discs carry them) |
 | How important is it, and to whom? | `arv appraise` (the archivist's log; `make --importance` at the start) |

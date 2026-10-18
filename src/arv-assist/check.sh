@@ -17,7 +17,7 @@ mkdir -p "$dir"
 cd "$dir"
 ok() { echo "ok: $*"; }
 no() { echo "FAILED: $*"; [ -f log ] && tail -c 600 log; exit 1; }
-export ARV_APE=none HOME="$dir/userhome" XDG_CONFIG_HOME="$dir/userhome/.config" XDG_DATA_HOME="$dir/userhome/.local/share"
+export ARV_NO_EXTRA_PLACES=1 ARV_APE=none HOME="$dir/userhome" XDG_CONFIG_HOME="$dir/userhome/.config" XDG_DATA_HOME="$dir/userhome/.local/share"
 unset ARV_HOME ARCHIVE_LLM_URL ARCHIVE_LLM_MODEL
 put() { mkdir -p "$(dirname "$1")"; printf '%s' "$2" > "$1"; touch -d "@${3:-1560000000}" "$1"; }
 
@@ -65,7 +65,7 @@ if "$tool" describe Trip $llm </dev/null >/dev/null 2>err.txt; then no "a reply 
 grep -q "did not return JSON" err.txt || no "no-JSON message"
 cp plain.reply text.reply
 if "$tool" describe Trip --llm-url http://203.0.113.5:11434/v1 </dev/null >/dev/null 2>err.txt; then no "remote server used"; fi
-grep -q "not a local address" err.txt && ok "fenced JSON is read, prose is refused, a remote server is refused" || no "remote refusal"
+grep -q "it is not this computer" err.txt && ok "fenced JSON is read, prose is refused, a remote server is refused" || no "remote refusal"
 
 # interactive: answer one question, skip the other; then accept title, description, subjects; drop the tags
 printf 'Kyoto, Japan\n\n\n\n\nn\n' > answers
@@ -243,6 +243,97 @@ grep -q '"title": "Family trip photos 2019"' s.json && grep -q '"agent": "llm:fa
     && tail -1 log | grep -q 'Q: Where?\\nA: Kyoto' && ! tail -1 log | grep -q 'Q: Who?' \
     && ok "suggest and llm-status for arv-gui: JSON in and out, blank answers left out" || { cat s.json; no "suggest"; }
 
+# ------------------------------------------------------------------ which model: found, chosen, and an external one
+ARV_LLM_PROBE="Fake=$url;Nothing=http://127.0.0.1:1/v1" OPENAI_API_KEY=sk-not-shown "$tool" llm-status --all --json > all.json \
+    || no "llm-status --all"
+tr -d '\n ' < all.json | grep -q '"name":"Fake","url":"'"$url"'","id":"fake","on":true,"found":true,"ready":true,"models":\[{"id":"fake-model"' \
+    && tr -d '\n ' < all.json | grep -q '"name":"Nothing","url":"http://127.0.0.1:1/v1","id":"nothing","on":true,"found":false,"ready":false' \
+    && tr -d '\n ' < all.json | grep -q '"name":"OpenAI","url":"https://api.openai.com/v1","key":"OPENAI_API_KEY","id":"openai","on":false,"set":true,"ready":false' \
+    && tr -d '\n ' < all.json | grep -q '"name":"Anthropic","url":"https://api.anthropic.com/v1","key":"ANTHROPIC_API_KEY","id":"anthropic","on":false,"set":false' \
+    && ! grep -q sk-not-shown all.json \
+    && ok "llm-status --all: the servers on this computer and their models, and which providers' keys are set (never the key), each off until turned on" \
+    || { cat all.json; no "llm-status --all"; }
+"$tool" llm-use --url "$url" --model fake-model > use.out || no "llm-use"
+grep -q "^Url: $url" userhome/.config/arv/models.rec && grep -q "^Model: fake-model" userhome/.config/arv/models.rec \
+    && ! grep -q "^Remote" userhome/.config/arv/models.rec \
+    && "$tool" llm-status | grep -q '"available": true, "url": "'"$url"'", "model": "fake-model", "external": false' \
+    && "$tool" llm-status --all --json | tr -d '\n ' | grep -q '"text":{"url":"'"$url"'","model":"fake-model","from":"settings","external":false,"available":true}' \
+    && "$tool" describe Trip --save chosen.json </dev/null 2>/dev/null && grep -q '"agent": "llm:fake-model"' chosen.json \
+    && ok "llm-use keeps the choice in the XDG config's arv/models.rec, and describe uses it with no options" \
+    || { cat use.out userhome/.config/arv/models.rec; no "llm-use"; }
+"$tool" llm-test --url "$url" > test.json && "$tool" llm-test --url "$url" --pictures > testpic.json \
+    && grep -q '"ok": true, "url": "'"$url"'", "model": "fake-model", "external": false' test.json && grep -q '"json": true' test.json \
+    && grep -q '"saw_red": false' testpic.json && tail -1 log | grep -q 'iVBORw0KGgo' \
+    && "$tool" llm-test --url http://127.0.0.1:1/v1 | grep -q '"ok": false' \
+    && ok "llm-test: a fixed question (a red square for pictures), nothing from any file: answered, how fast, in JSON" \
+    || { cat test.json testpic.json; no "llm-test"; }
+"$tool" llm-use --off > /dev/null && "$tool" llm-status | grep -q '"available": false, "error": "model help is turned off' \
+    && "$tool" describe Trip --save off.json </dev/null 2>&1 | grep -q "model help is turned off" \
+    && "$tool" llm-status $llm | grep -q '"available": true' \
+    && "$tool" llm-use --on > /dev/null && "$tool" llm-status | grep -q '"available": true' \
+    && "$tool" llm-use --pictures "$url" --pictures-model fake-model > /dev/null && "$tool" llm-use --forget pictures > /dev/null \
+    && grep -q "^Url: $url" userhome/.config/arv/models.rec && ! grep -q "^Vision" userhome/.config/arv/models.rec \
+    && ok "model help off: no model asked unless a command names one; on again; a choice forgotten alone" \
+    || { cat userhome/.config/arv/models.rec; no "on and off"; }
+"$tool" llm-use --url https://api.openai.com/v1 --model m > prov.out 2>&1 && no "a provider chosen while off"
+grep -q "OpenAI is off" prov.out \
+    && "$tool" llm-use --enable openai > /dev/null && grep -q "^On: openai" userhome/.config/arv/models.rec \
+    && OPENAI_API_KEY=k "$tool" llm-status --all --json | tr -d '\n ' | grep -q '"key":"OPENAI_API_KEY","id":"openai","on":true,"set":true' \
+    && "$tool" llm-use --disable openai > /dev/null && ! grep -q "^On:" userhome/.config/arv/models.rec \
+    && ARV_LLM_PROBE="Fake=$url" "$tool" llm-use --disable fake > /dev/null && grep -q "^Off: fake" userhome/.config/arv/models.rec \
+    && ! grep -q "^Url" userhome/.config/arv/models.rec \
+    && ARV_LLM_PROBE="Fake=$url" "$tool" llm-status --all --json | tr -d '\n ' | grep -q '"id":"fake","on":false,"found":false' \
+    && "$tool" llm-use --disable ollama > /dev/null && "$tool" llm-status | grep -q "11434/v1 is turned off" \
+    && "$tool" llm-status $llm | grep -q '"available": true' \
+    && "$tool" llm-use --enable ollama > /dev/null && ARV_LLM_PROBE="Fake=$url" "$tool" llm-use --enable fake > /dev/null \
+    && ! grep -q "^Off:" userhome/.config/arv/models.rec && "$tool" llm-use --enable nosuch 2>&1 | grep -q "no model server or provider nosuch" \
+    && "$tool" llm-use --url "$url" --model fake-model > /dev/null \
+    && ok "each source on or off: a provider off until turned on, a server here on until turned off (never asked), what it was chosen for forgotten" \
+    || { cat prov.out userhome/.config/arv/models.rec; no "sources on and off"; }
+ARCHIVE_LLM_KEY=sekrit "$tool" llm-status $llm > /dev/null && grep -q "^auth: Bearer sekrit" log \
+    && ok "a key from the environment goes to the server as a bearer token" || no "the key"
+"$tool" llm-use --url https://llm.example.invalid/v1 > ext.out 2>&1 && no "an external provider chosen without --external"
+grep -q "is not this computer" ext.out && ! grep -q invalid userhome/.config/arv/models.rec \
+    && "$tool" llm-use --pictures http://192.0.2.1/v1 > pic.out 2>&1 && no "a remote pictures model"
+grep -q "pictures go only to a model on this computer" pic.out \
+    && "$tool" llm-use --url https://llm.example.invalid/v1 --model m --external > /dev/null \
+    && grep -q "^Remote: yes" userhome/.config/arv/models.rec \
+    && "$tool" llm-status > ext.json 2> ext.err; grep -q '"available": false' ext.json \
+    && grep -q "Using llm.example.invalid, an external inference provider" ext.err \
+    && "$tool" describe Trip --vision > vis.out 2>&1 && no "pictures with an external text model"
+grep -q "pictures go only to a model on this computer, and the text model is not one" vis.out \
+    && "$tool" llm-use --clear > /dev/null && ! grep -q "^Url" userhome/.config/arv/models.rec \
+    && ok "an external provider: refused unless chosen with --external, then said at each use; pictures never sent to one" \
+    || { cat ext.out pic.out ext.json ext.err vis.out; no "an external provider"; }
+
+# ------------------------------------------------------------------ the assistant (arv chat)
+cp text.reply saved.reply
+printf '%s\n===\n%s\n===\n%s\n===\n%s\n' '{"read": ["find", "travel"]}' 'Sure! {"say": "One disc has travel: see above."}' \
+    '{"read": ["tags", "merge", "person:a", "person:b"]}' '{"propose": ["retag", "trip", "travel, place:kyoto"], "why": "it is a trip"}' > text.reply
+printf 'what is about travel?\nmerge a and b\ntag the trip\n' | "$tool" --home home chat $llm > chat.out 2> chat.err || no "chat"
+grep -q '^  \$ arv find travel   (exit 0, ' chat.err && grep -q '^One disc has travel: see above\.$' chat.out \
+    && grep -q '^Proposed (high risk): arv tags merge person:a person:b$' chat.out \
+    && grep -q '^Proposed (low risk): arv retag trip '"'"'travel, place:kyoto'"'"'$' chat.out && grep -q '^  it is a trip$' chat.out \
+    && grep -q 'not applied' chat.out && grep -q 'Commands (reads: run it' log \
+    && grep -q -- '- find \[-C CATALOG\] \[--limit N\] PATTERN  \[reads\]' log && grep -q -- '- tags \[--namespace NS\]  \[reads; names: reads' log \
+    && grep -q 'Output of `arv find travel` (exit 0)' log \
+    && ok "arv chat: reads run on its own (shown as commands), a write asked as a read becomes a proposal, proposals carry their risk, nothing applied unasked" \
+    || { cat chat.out chat.err; no "arv chat"; }
+printf '%s\n' '{"read": ["todo", "--json"]}' > text.reply
+printf '{"messages": [{"role": "user", "content": "what is owed?"}], "context": "Verify / Owed"}' \
+    | "$tool" --home home chat --json $llm --llm-context 4096 > gui.json || no "chat --json"
+tr -d '\n' < gui.json | grep -q '"steps": \[{"command": \["todo", "--json"\], "shown": "arv todo --json", "risk": "none", "exit": 0' \
+    && grep -q 'That is enough reading: answer now' log && grep -q '(On screen: Verify / Owed)' log \
+    && tr -d '\n' < gui.json | grep -q '"reply": {"say": "{\\"read' \
+    && ok "arv chat --json (the GUI's): the conversation in, the steps and the reply out; at most 6 reads a turn, then an answer is asked for" \
+    || { cat gui.json; no "chat --json"; }
+mkdir -p home/config && echo "Answer only in French." > home/config/assistant.txt
+printf '{"say": "Oui."}' > text.reply
+printf 'hello\n' | "$tool" --home home chat $llm > /dev/null 2>&1 && grep -q 'Answer only in French' log \
+    && ok "arv chat: a home's config/assistant.txt in place of the built-in instructions" || no "chat instructions"
+rm home/config/assistant.txt
+cp saved.reply text.reply
+
 # ------------------------------------------------------------------ tag
 cat > tags.rec <<'EOF'
 %rec: Tag
@@ -407,7 +498,11 @@ where() { LAT=$1 LON=$2 PATH="$dir/gpsbin:$PATH" "$tool" --home askh describe gp
              echo "$p: $(eval where $p)"; done; no "GPS: boxes, reaches and borders"; }
 put "osaka/a.txt" "Letters about Lima and Lima again"
 printf '\n\n\n\n\n\n\n\n' | "$tool" --home askh describe osaka --ask --save oo.json > /dev/null 2> oo.err || { cat oo.err; no "describe --ask (cities)"; }
+mkdir -p xdata/iso-codes/json && printf '{"3166-2": [{"code": "JP-27", "name": "Osaka", "type": "Prefecture"}]}\n' > xdata/iso-codes/json/iso_3166-2.json
+printf '\n\n\n\n\n\n\n\n' | ARV_NO_EXTRA_PLACES= XDG_DATA_DIRS="$dir/xdata" "$tool" --home askh describe osaka --ask --save oo2.json > /dev/null 2> oo2.err \
+    || { cat oo2.err; no "describe --ask (a region of a city's name)"; }
 grep -q '^  \*[0-9] osaka  (known: Ōsaka, Japan)' oo.err && grep -q '^   [0-9] lima  (known: Lima, Peru)' oo.err \
+    && grep -q '^  \*[0-9] osaka  (known: Ōsaka, Japan)' oo2.err && ! grep -q 'osaka-prefecture' oo2.err \
     && ok "describe --ask: a city of the gazetteer in the names is offered, marked, saying where it is; one its text only mentions, unmarked" \
     || { cat oo.err; no "cities in the names"; }
 # ------------------------------------------------------------------ words and tags, counted: from the record, the answers, the text
@@ -486,5 +581,24 @@ if command -v pdftotext >/dev/null && command -v pdfinfo >/dev/null; then
     "$tool" --home wh describe pdfs --clues > pdf.json 2> pdf.err || no "describe --clues (PDF)"
     grep -q '"description": "2 PDF documents (Tax return 2021, Invoice 0042)' pdf.json && grep -q "words in the text: hmrc" pdf.err \
         && ok "PDFs: their text through pdftotext, their titles through pdfinfo, in the description" || { cat pdf.err pdf.json; no "PDF clues"; }
+    mkpdf() {   # mkpdf FILE TEXT: one page with TEXT on it; no TEXT: a page with nothing to read, as a scan has
+        stream=${2:+"BT /F1 12 Tf 10 100 Td ($2) Tj ET"}
+        { printf '%%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n'
+          printf '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n'
+          printf '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 300 144] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj\n'
+          printf '4 0 obj << /Length %d >> stream\n%s\nendstream endobj\n' "${#stream}" "$stream"
+          printf '5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n'
+          printf 'trailer << /Root 1 0 R >>\n%%%%EOF\n'; } > "$1"
+    }
+    mkdir -p mixed scans
+    mkpdf mixed/a.pdf "Council tax bill"; mkpdf mixed/b.pdf "Water bill"; mkpdf mixed/c.pdf ""
+    mkpdf scans/1.pdf ""; mkpdf scans/2.pdf ""
+    "$tool" --home wh describe mixed --clues > mixed.json 2> mixed.err || no "describe --clues (a scan among PDFs)"
+    "$tool" --home wh describe scans --clues > scans.json 2> scans.err || no "describe --clues (scans)"
+    grep -q '; 1 of 3 PDFs read with no text (scans: source:scan; ocrmypdf --skip-text, then describe again)' mixed.err \
+        && tr -d '\n ' < mixed.json | grep -q '"c.pdf":\["source:scan"\]' && ! tr -d '\n ' < mixed.json | grep -q '".":\[[^]]*source:scan' \
+        && tr -d '\n ' < scans.json | grep -q '".":\[[^]]*"source:scan"' \
+        && ok "PDFs with no text are scans: said, with what to do (ocrmypdf --skip-text), and tagged source:scan (the folder's when most are, else each)" \
+        || { cat mixed.err mixed.json scans.err scans.json; no "scans"; }
 fi
 echo "all checks passed"

@@ -25,6 +25,7 @@ void sb_printf(sbuf *b, const char *fmt, ...);
 char *xprintf(const char *fmt, ...);
 unsigned long utf8_next(const char **s);
 size_t utf8_chars(const char *s);
+char *text_fold(const char *s);     /* lower case, Latin accents folded ("Zürich" -> "zurich"), other scripts kept */
 struct tm;
 void today_tm(struct tm *tm);
 char *age_cutoff(const char *ago);
@@ -75,16 +76,22 @@ int tag_words(const arv_home *h, tag_words_t *out);   /* the tag vocabulary's wo
 /* known.c: known names, entries of the tag vocabulary (authority control; research/plan.md) */
 typedef struct {
     char *key, *label, *qualifier, *basis, *retired;   /* retired: why, or NULL */
-    strlist aliases, related, same;
+    strlist aliases, related, same, regions;   /* regions: Region, a place's region by name or ISO 3166-2 code */
     int private_;
     char *kind, *parent, *country, *at;                 /* a place (the gazetteer, config/places.rec) */
     int has_at, has_extent;
     double lat, lon;                                    /* from at: ISO 6709, decimal degrees */
     double south, west, north, east;                    /* Extent: the box it covers (two ISO 6709 corners) */
     double reach_km;                                    /* Reach: how far a photo may be from At (0: the default) */
+    const char *source;                                 /* NULL: the home's own; else extra data it came from */
 } known_entry;
-size_t known_load(const arv_home *h, known_entry **out);   /* tags.rec's entries, then places.rec's */
+size_t known_load(const arv_home *h, known_entry **out);   /* tags.rec's, places.rec's, then extra place data */
+int known_keep(const arv_home *h, const known_entry *v, size_t n, const char *key);   /* an extra place copied home: 1 */
+void known_keep_tags(const arv_home *h, const char *tags_tsv);
+void known_extra_files(char **iso, strlist *files);   /* the extra place data here: iso-codes, places/NAME.rec */   /* each extra place a disc's tags name, copied home */
 const known_entry *known_find(const known_entry *v, size_t n, const char *key);
+size_t known_places_of(const char *catalog_dir, known_entry **out);   /* a catalogue's gazetteer, home or disc */
+int known_within(const known_entry *v, size_t n, const char *place, const char *key);   /* place:kyoto within place:japan */
 int known_position(const known_entry *v, size_t n, const known_entry *e, double *lat, double *lon);   /* its own, or a parent's: 2, 1 */
 char *known_where(const known_entry *v, size_t n, const known_entry *e);   /* "Kyoto, Japan" */
 int iso6709_parse(const char *s, double *lat, double *lon);   /* +35.03+135.75/ or 35.03,135.75; 0 when it is one */
@@ -97,6 +104,11 @@ int known_field(const arv_home *h, const char *key, const char *field, const cha
 char *known_strip_private(const char *text);   /* tags.rec or places.rec without its Private: yes entries */
 int known_cmd(const char *sub, int argc, char **argv, const char *given);
 int cmd_map(int argc, char **argv);                                      /* map.c */
+int cmd_programs(int argc, char **argv);                                 /* programs.c */
+/* risk.c: how much a command changes: "none" (it only reads), "low", "medium" or "high" */
+const char *command_risk(int argc, char *const *argv);
+void command_risks_json(sbuf *b, const char *cmd);        /* , "reads", "risk", "risks" for help --json */
+char *helper_program(const char *env, const char *name, const char *in_checkout);   /* arv.c: arv-assist, arv-gui */
 char *map_disc_html(const arv_home *h, const char *tags_tsv, int public_);   /* a disc's places, for index.html */
 int cmd_keywords(int argc, char **argv);
 int cmd_make(int argc, char **argv);

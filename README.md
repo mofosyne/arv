@@ -13,6 +13,10 @@
 > mature project: read the code before relying on it, check what it produces, and expect
 > bugs. Provided as is, with no warranty (see [LICENSE](LICENSE)).
 
+![arv gui on the sample archive: Record › Discs, with the Assistant open on the right. Asked whether the Kyoto trip is safe, it ran two commands that only read (arv find place:kyoto, arv todo --json), answered where both copies are and that neither has been read back, then proposed a check of copy A, which waits for Apply](docs/screenshots/assistant.png)
+<sub>`arv gui` on the sample archive, with the Assistant open. Its reads are real; the model's
+replies are scripted for this picture (`dev-tools/screenshots.sh`).</sub>
+
 **ARV** (`arv`; also Norwegian for "inheritance") is for **long-term archiving, not backup**.
 
 | | A backup | An archive |
@@ -48,12 +52,6 @@ what it does:
 **See it**: a [recorded session](https://mofosyne.github.io/arv/#see-it) of all three, run for real
 ([docs/demo/arv.cast](docs/demo/arv.cast); `asciinema play docs/demo/arv.cast` in a terminal).
 
-What it writes are self-describing archive discs: your files untouched, a hash of every file,
-a catalogue of the whole archive so far, the source of the tools that made it, and the steps to
-check and repair it, with error correction filling the rest of the disc. All in open,
-well-documented formats that can be read decades from now without this tool. Blu-ray (M-DISC
-BD-R) is today's medium; the format does not depend on it.
-
 Why it works the way it does (curated discs on top of everyday storage, plain files, copies): [docs/philosophy.md](docs/philosophy.md). The model behind the commands — collections, archives, copies, and how objects and folders relate: [docs/concepts.md](docs/concepts.md).
 
 **Start with [docs/workflow.md](docs/workflow.md)**: the whole flow, from a folder to discs on a
@@ -62,88 +60,26 @@ shelf, finding and checking them over the years, and recovering from damage or l
 media); [docs/shelving.md](docs/shelving.md) covers arranging, labelling and storing the physical discs.
 How a disc is built, in one picture: [docs/architecture.md](docs/architecture.md).
 
-## Disc layout
+## Try it
 
-```
-<disc root>                  filesystem: UDF 2.50 (BD-ROM layout, metadata partition with a real mirror)
-├── bagit.txt                BagIt signature (RFC 8493)
-├── bag-info.txt             Bagging-Date, Bag-Group-Identifier, Bag-Count "n of N", Payload-Oxum
-├── manifest-sha256.txt      per-file checksums (`sha256sum -c` compatible)
-├── manifest-sha512.txt
-├── tagmanifest-sha256.txt   checksums of the files above + catalog.rec
-├── catalog.rec              GNU recutils catalogue for this disc
-├── catalog/                 snapshot of the whole archive catalogue at burn time
-│                            (archive.rec, volumes/<disc-id>/: manifest, listing, formats, tags)
-├── index.html               offline viewer (no JavaScript)
-├── README.txt               plain-text recovery instructions
-├── tools/                   this tool (its source and specs, as disc-tools.txt lists) and arv.com: the
-│                            reader ready to run on Linux, macOS, Windows and BSD (x86-64, ARM64)
-└── data/                    the payload
-[ dvdisaster RS03 ECC data appended after the filesystem ]
+You need Linux, `git` and a C compiler. Nothing is installed and nothing is burned.
+
+```sh
+git clone https://github.com/mofosyne/arv && cd arv
+make                                     # builds arv (C, no libraries)
+./arv --home samples/home gui            # the sample archive, in your web browser
+./arv --home samples/home find kyoto     # or at the command line: which disc holds it
+./arv --home samples/home todo           # what is owed: copies, read-backs, places, checks
+./arv --home /tmp/arv-try make ~/some/small/folder --no-ecc --output-dir /tmp   # a test image
 ```
 
-Each layer does its own job:
+The sample archive is six small discs made with the whole workflow (a collection with two
+editions, a git repository, a sealed disc, a copy on a NAS). Their images (105 MB, with error
+correction) are in the [`samples` release](https://github.com/mofosyne/arv/releases/tag/samples)
+(`samples/fetch-discs.sh` downloads and checks them): open one in a file manager and read its
+`README.txt` and `index.html`.
 
-| Layer | Purpose | Tool |
-|---|---|---|
-| dvdisaster RS03 (augmented image, [format](docs/spec/rs03-format.md)) | **Repair** unreadable sectors | `arv check --repair`, or any `dvdisaster` |
-| BagIt manifests | **Detect** corruption per file, portable off-disc | `arv check`, any BagIt tool ([note](docs/notes/bagit.md)), or plain `sha256sum -c` |
-| recfile catalogue | **Find** which disc holds what, without mounting | `recsel`, `recfix` ([note](docs/notes/recutils.md)) |
-
-## What's here
-
-| Path | What |
-|---|---|
-| `src/arv/` | **arv**, a C program (C99 and POSIX, no libraries): every command, from making a disc to restoring one: [src/arv/README.md](src/arv/README.md) |
-| `src/udfwrite/` | arv's UDF 2.50 writer (library, built into arv, and a program): [docs/spec/archival-udf.md](docs/spec/archival-udf.md) |
-| `src/rs03/` | dvdisaster's RS03 error correction: add, test, repair (library, built into arv, and a program): [docs/spec/rs03-format.md](docs/spec/rs03-format.md) |
-| `src/bagit/` | BagIt (RFC 8493) checking and the digests (library, built into arv, and a `bagit` program for any bag) |
-| `src/arv-assist/` | **arv-assist**, optional, in C: describing and tagging (`arv describe`, `arv tag`): with OpenAI-compatible local services, or by asking you (`describe --ask`) |
-| `src/arv-gui/` | **arv-gui**, optional, in C: `arv gui`, the interface in your web browser; a small local server that runs arv for every action |
-| `arv` | runs `src/arv/build/arv` in a checkout (and `tools/arv/arv` on a disc), building it with `make` first if needed |
-| `docs/` | For users: concepts, workflow, burning, shelving, architecture, philosophy, and the website |
-| `docs/spec/` | For implementers, and on every disc: the disc format, the UDF profile, the RS03 error correction |
-| `research/` | Why, and what next: research notes, the standards survey, organising lessons, the plan, RS03 experiments |
-| `samples/` | The sample discs' catalogue and the script that makes them (the images are release downloads) |
-| `tests/` | Unit and integration tests, and language-neutral fixtures |
-| `dev-tools/` | Not part of arv: build and test helpers, the spec cross-check, the diagram generators: [dev-tools/README.md](dev-tools/README.md) |
-| `upstream/` | Not part of arv: work offered to other projects (NetBSD makefs fixes, the RS03 code for dvdisaster Light; drafts, not sent), and bagit-python as a referee: [upstream/README.md](upstream/README.md) |
-| `justfile`, `Makefile` | `just` lists everyday commands (test, install, samples, site preview); `make` alone builds and installs |
-
-`samples/` has the catalogue of six small sample discs made with the full workflow (a
-collection with two editions, a git repository, a sealed disc, a warm NAS copy): try
-`./arv --home samples/home list` and `./arv --home samples/home todo`. The disc images themselves (105 MB, with RS03 error
-correction) are in the [`samples` release](https://github.com/mofosyne/arv/releases/tag/samples);
-`samples/fetch-discs.sh` downloads and checks them.
-
-`research/plan.md` has the disc layout, phased plan and open decisions.
-
-`docs/spec/smart-archive-format.md` specifies the on-disc catalogue format (draft 0.4) so other
-cataloguing programs (e.g. Katalog) can read a disc and prefill their database without scanning it.
-
-`research/metadata-standards.md` surveys archival metadata standards (Dublin Core,
-PREMIS, METS, E-ARK, RO-Crate, OCFL, NDSA Levels...) and existing disc-cataloguing
-software, and proposes this project's metadata profile.
-
-`research/organising.md` collects what Katalog, Hydrus, Lightroom/digiKam, Paperless-ngx,
-Johnny.Decimal and archival software teach about categories and structure, and what
-was adopted (aliases, match rules, access levels, namespaced tags, location records).
-
-`research/research-notes.md` explains the choices: why UDF 2.50/2.60 is hard to
-produce on Linux and adds little over RS03, why dvdisaster is not a library,
-and how BagIt and recfiles split the work.
-
-## The `arv` tool
-
-`arv` (Archive, Record, Verify; also Norwegian for "inheritance") is a C program: C99 and POSIX,
-no libraries, built from any disc's `tools/` with one `cc` line. Two optional programs sit beside
-it: arv-assist (C) has the local AI helpers, and arv-gui (C) the interface in your web
-browser; arv runs them for `describe`, `tag`, `models` and `gui`. arv adds dvdisaster's RS03
-error correction itself ([src/rs03](src/rs03/): byte for byte what dvdisaster writes), and
-tests and repairs it, so making, checking and repairing discs needs nothing else. Reading a
-damaged disc into an image is for GNU ddrescue or
-[dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the
-[speed47 fork](https://github.com/speed47/dvdisaster)), which can also repair it.
+## Install and use
 
 ### Install (Linux)
 
@@ -180,8 +116,8 @@ which builds with one `cc` line.
 `udfwrite` and `bagit` in `PREFIX/bin`, the completion where bash and zsh look for it, and **arv** in
 the desktop's menu (`arv gui`, which stops by itself 15 minutes after its page is closed).
 
-**`arv` does everything itself** ([src/arv/README.md](src/arv/README.md)) except four optional
-commands: `arv describe` and `arv tag` run arv-assist
+**`arv` does everything itself** ([src/arv/README.md](src/arv/README.md)) except a few optional
+commands: `arv describe`, `arv tag` and `arv chat` run arv-assist
 ([src/arv-assist/README.md](src/arv-assist/README.md)), whose drafts `arv make --draft` takes, and
 `arv gui` runs arv-gui ([src/arv-gui/README.md](src/arv-gui/README.md)). In a checkout, `./arv`
 works the same way (it runs `make` first when nothing is built).
@@ -231,7 +167,7 @@ arv make ~/photos/2019-kyoto
 | `~/photos/2019-kyoto` | **nothing:** the folder is read, never changed |
 
 Staging happens in a temporary folder that is removed afterwards (`--keep-stage` keeps it). The
-image holds the files under `data/` plus everything in [Disc layout](#disc-layout).
+image holds the files under `data/` plus everything in [What is on a disc](#what-is-on-a-disc).
 
 ### Uninstall
 
@@ -380,17 +316,23 @@ in its snapshot.
   reference outputs, a real disc and Siegfried when installed (`make -C src/arv check`),
   arv-assist against a fake model server, then arv-gui's tests (python3, over HTTP).
 
-## Optional: folder-tag suggestions (`arv tag`)
+## Describing and finding
 
-`arv tag` uses the vocabulary in `<home>/config/tags.rec`; aliases and `Match` rules work without
-an embedding service. For suggestions, point `--embed-url` at an OpenAI-compatible `/v1/embeddings`
-server. arv does not download or build a model or runtime. See `arv tag --help` and
-[src/arv-assist/README.md](src/arv-assist/README.md).
+Everything here works without a model: tags from your vocabulary, the questions of
+`arv describe --ask`, places from photos' GPS and a map, known names for people and places. A
+model, on this computer by default, can suggest more; Settings in `arv gui` (or `arv-assist
+llm-status --all`) shows which are here and which is used.
 
-`arv tags` lists tags in use; `arv map` the places they name; `arv keywords DISC` writes hierarchical keywords in exiftool format.
-A reviewed tag draft can be applied to `arv make` as `--draft FILE`.
+### The assistant
 
-## Optional: local LLM help with descriptions and tags
+`arv chat` (and the Assistant panel on the right of `arv gui`) answers questions about the archive
+with the model chosen in Settings: what is owed, where something is, which names are missing. It
+reads on its own, each step shown as the arv command it ran; a change comes as a proposal with its
+risk (none, low, medium, high: `arv help --json`), which you apply or not. It never deletes,
+never moves your files, and never changes anything you have not applied. A home's
+`config/assistant.txt` replaces its instructions.
+
+### Descriptions and tags with a model
 
 A local model can draft the title, description, subjects and **folder tags**, and
 ask you specific questions ("Who is in the Kyoto photos?"). Nothing is written
@@ -413,7 +355,9 @@ same questions in the page. Its Names view keeps the known names right (rename, 
 ticking the uses that are the other person, retire), and its Map view shows the places.
 
 **Places** come from a gazetteer, `config/places.rec`: Natural Earth's countries and cities
-(public domain), and the places you add (`arv tags add place:fushimi-inari --parent kyoto`, with
+(public domain), regions (states, prefectures) from `iso-codes` when it is installed, towns from
+GeoNames if you fetch them (`sh docs/examples/places-geonames.sh`), and the places you add
+(`arv tags add place:fushimi-inari --parent kyoto`, with
 `--extent` for the box it covers or `--reach 2km`). `--ask` offers the cities a folder's names or
 text mention, saying which ("Lima, Peru"), and the place its photos' GPS is in: one of yours, a
 city of the same country, or the country by its outline. The record keeps the place, never the
@@ -440,9 +384,24 @@ ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM S
 - Any OpenAI-compatible server works: `--llm-url` / `$ARCHIVE_LLM_URL` (default
   `http://127.0.0.1:11434/v1`, Ollama), `--llm-model` / `$ARCHIVE_LLM_MODEL`
   (default: the server's first model).
+- **Choosing one:** the GUI's Settings list the model servers on this computer (Ollama,
+  llama.cpp's llama-server, LM Studio, vLLM, Jan) with their models, and the external providers
+  whose keys are set, each with its own On/Off (servers here on until turned off, never asked once
+  off; providers off until turned on, which asks first), Ready or Not ready, and a Test button (a fixed question, nothing from
+  your files: does it answer, how fast, in JSON; a red square for a pictures model). One is marked
+  in use for describing and one for pictures; Model help On/Off turns every model off at once
+  (describing by questions still works). The choice is kept for this computer
+  (`~/.config/arv/models.rec`), in no archive. `arv-assist llm-status --all`, `llm-use` and
+  `llm-test` do the same at a terminal.
 - **Privacy:** the model sees an inventory (folder and file names, counts, sizes,
   dates, types, and up to 6 short README-style text files), never file contents.
-  Only loopback servers are allowed unless you pass `--llm-allow-remote`.
+  A model on this computer is used as it is. Another computer only when you choose it
+  (`--llm-allow-remote`, or Settings, which ask first), and every use says so: the GUI's header
+  shows "External AI" while one is chosen. Pictures (`--vision`) only ever go to a model on this
+  computer.
+- **Your own key:** OpenAI, Anthropic, Google Gemini, Mistral, OpenRouter, Groq and DeepSeek through
+  their OpenAI-compatible addresses, the key from their usual variable (`OPENAI_API_KEY` ...) or
+  `ARCHIVE_LLM_KEY`. arv never writes a key down. https goes through `curl`.
 - Folder tags (and image captions) go in `catalog/volumes/<disc-id>/tags.tsv` and are searched by
   `arv find` and the GUI.
 - **Questions that wait:** a model's questions are asked at once at a terminal; from a draft made
@@ -471,7 +430,7 @@ ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM S
   (qwen2.5-3b, about 1 minute per round) gave useful tags and good questions, and one
   answered question produced a specific title. Use a 7-8B model if your hardware allows.
 
-### Describing from anywhere: drafts
+#### Describing from anywhere: drafts
 
 A draft is plain JSON, and anything may write one: you, a script, or a model that is not
 arv's (one that goes through the archive disc by disc, say). `arv describe DISC-ID --apply`
@@ -513,6 +472,112 @@ What stays out of the catalogue on purpose: tags on single files (a photo's keyw
 file, where photo tools read them: `arv keywords --format exiftool` writes the folder tags there),
 and links between items (folders already group files; no reader uses typed links yet). research/plan.md, 2026-10-10, says why.
 
+### Folder-tag suggestions (`arv tag`)
+
+`arv tag` uses the vocabulary in `<home>/config/tags.rec`; aliases and `Match` rules work without
+an embedding service. For suggestions, point `--embed-url` at an OpenAI-compatible `/v1/embeddings`
+server. arv does not download or build a model or runtime. See `arv tag --help` and
+[src/arv-assist/README.md](src/arv-assist/README.md).
+
+`arv programs` says which of the optional programs arv can use are installed, and for each group
+the command that installs the missing ones on this system: Debian and Ubuntu, Fedora, Arch, or
+macOS with Homebrew (every one's when it is none of those). Siegfried, in no distribution's own
+packages, gets its project's own steps for this system. `arv programs --install [GROUP]` hands a
+group's packages to PackageKit (`pkcon`), which asks for the password: arv gets no rights and
+downloads nothing. The GUI shows the same in Settings › Programs, each command with Copy, and
+Install where PackageKit is here (never for Siegfried, whose steps add a package source of its own:
+that trust is yours to give). `arv tags` lists tags in use; `arv map` the places they name; `arv keywords DISC` writes hierarchical keywords in exiftool format.
+A reviewed tag draft can be applied to `arv make` as `--draft FILE`.
+
+## What is on a disc
+
+arv writes self-describing archive discs: your files untouched, a hash of every file,
+a catalogue of the whole archive so far, the source of the tools that made it, and the steps to
+check and repair it, with error correction filling the rest of the disc. All in open,
+well-documented formats that can be read decades from now without this tool. Blu-ray (M-DISC
+BD-R) is today's medium; the format does not depend on it.
+
+```
+<disc root>                  filesystem: UDF 2.50 (BD-ROM layout, metadata partition with a real mirror)
+├── bagit.txt                BagIt signature (RFC 8493)
+├── bag-info.txt             Bagging-Date, Bag-Group-Identifier, Bag-Count "n of N", Payload-Oxum
+├── manifest-sha256.txt      per-file checksums (`sha256sum -c` compatible)
+├── manifest-sha512.txt
+├── tagmanifest-sha256.txt   checksums of the files above + catalog.rec
+├── catalog.rec              GNU recutils catalogue for this disc
+├── catalog/                 snapshot of the whole archive catalogue at burn time
+│                            (archive.rec, volumes/<disc-id>/: manifest, listing, formats, tags)
+├── index.html               offline viewer (no JavaScript)
+├── README.txt               plain-text recovery instructions
+├── tools/                   this tool (its source and specs, as disc-tools.txt lists) and arv.com: the
+│                            reader ready to run on Linux, macOS, Windows and BSD (x86-64, ARM64)
+└── data/                    the payload
+[ dvdisaster RS03 ECC data appended after the filesystem ]
+```
+
+Each layer does its own job:
+
+| Layer | Purpose | Tool |
+|---|---|---|
+| dvdisaster RS03 (augmented image, [format](docs/spec/rs03-format.md)) | **Repair** unreadable sectors | `arv check --repair`, or any `dvdisaster` |
+| BagIt manifests | **Detect** corruption per file, portable off-disc | `arv check`, any BagIt tool ([note](docs/notes/bagit.md)), or plain `sha256sum -c` |
+| recfile catalogue | **Find** which disc holds what, without mounting | `recsel`, `recfix` ([note](docs/notes/recutils.md)) |
+
+## For contributors
+
+`arv` (Archive, Record, Verify; also Norwegian for "inheritance") is a C program: C99 and POSIX,
+no libraries, built from any disc's `tools/` with one `cc` line. Two optional programs sit beside
+it: arv-assist (C) describes and tags, with a model or by asking you, and is the assistant;
+arv-gui (C) is the interface in your web browser. arv runs them for `describe`, `tag`, `chat` and
+`gui`. arv adds dvdisaster's RS03
+error correction itself ([src/rs03](src/rs03/): byte for byte what dvdisaster writes), and
+tests and repairs it, so making, checking and repairing discs needs nothing else. Reading a
+damaged disc into an image is for GNU ddrescue or
+[dvdisaster Light](https://github.com/teaching-droid/dvdisaster-light) (or the
+[speed47 fork](https://github.com/speed47/dvdisaster)), which can also repair it.
+
+### What's here
+
+| Path | What |
+|---|---|
+| `src/arv/` | **arv**, a C program (C99 and POSIX, no libraries): every command, from making a disc to restoring one: [src/arv/README.md](src/arv/README.md) |
+| `src/udfwrite/` | arv's UDF 2.50 writer (library, built into arv, and a program): [docs/spec/archival-udf.md](docs/spec/archival-udf.md) |
+| `src/rs03/` | dvdisaster's RS03 error correction: add, test, repair (library, built into arv, and a program): [docs/spec/rs03-format.md](docs/spec/rs03-format.md) |
+| `src/bagit/` | BagIt (RFC 8493) checking and the digests (library, built into arv, and a `bagit` program for any bag) |
+| `src/arv-assist/` | **arv-assist**, optional, in C: describing and tagging (`arv describe`, `arv tag`), with a model (on this computer, or a provider you choose) or by asking you (`describe --ask`); the assistant (`arv chat`); which model (`llm-status`, `llm-use`) |
+| `src/arv-gui/` | **arv-gui**, optional, in C: `arv gui`, the interface in your web browser; a small local server that runs arv for every action |
+| `arv` | runs `src/arv/build/arv` in a checkout (and `tools/arv/arv` on a disc), building it with `make` first if needed |
+| `docs/` | For users: concepts, workflow, burning, shelving, architecture, philosophy, and the website |
+| `docs/spec/` | For implementers, and on every disc: the disc format, the UDF profile, the RS03 error correction |
+| `research/` | Why, and what next: research notes, the standards survey, organising lessons, the plan, RS03 experiments |
+| `samples/` | The sample discs' catalogue and the script that makes them (the images are release downloads) |
+| `tests/` | Unit and integration tests, and language-neutral fixtures |
+| `dev-tools/` | Not part of arv: build and test helpers, the spec cross-check, the diagram generators: [dev-tools/README.md](dev-tools/README.md) |
+| `upstream/` | Not part of arv: work offered to other projects (NetBSD makefs fixes, the RS03 code for dvdisaster Light; drafts, not sent), and bagit-python as a referee: [upstream/README.md](upstream/README.md) |
+| `justfile`, `Makefile` | `just` lists everyday commands (test, install, samples, site preview); `make` alone builds and installs |
+
+`samples/` has the catalogue of six small sample discs made with the full workflow (a
+collection with two editions, a git repository, a sealed disc, a warm NAS copy): try
+`./arv --home samples/home list` and `./arv --home samples/home todo`. The disc images themselves (105 MB, with RS03 error
+correction) are in the [`samples` release](https://github.com/mofosyne/arv/releases/tag/samples);
+`samples/fetch-discs.sh` downloads and checks them.
+
+`research/plan.md` has the disc layout, phased plan and open decisions.
+
+`docs/spec/smart-archive-format.md` specifies the on-disc catalogue format (draft 0.5) so other
+cataloguing programs (e.g. Katalog) can read a disc and prefill their database without scanning it.
+
+`research/metadata-standards.md` surveys archival metadata standards (Dublin Core,
+PREMIS, METS, E-ARK, RO-Crate, OCFL, NDSA Levels...) and existing disc-cataloguing
+software, and proposes this project's metadata profile.
+
+`research/organising.md` collects what Katalog, Hydrus, Lightroom/digiKam, Paperless-ngx,
+Johnny.Decimal and archival software teach about categories and structure, and what
+was adopted (aliases, match rules, access levels, namespaced tags, location records).
+
+`research/research-notes.md` explains the choices: why UDF 2.50/2.60 is hard to
+produce on Linux and adds little over RS03, why dvdisaster is not a library,
+and how BagIt and recfiles split the work.
 
 ## Roadmap
 
@@ -528,13 +593,16 @@ and links between items (folders already group files; no reader uses typed links
 - [x] `README.txt` and the tool's source on each disc
 - [x] Target medium size, minimum redundancy, defect-management sizes for RS03
 - [x] UDF 2.50 through arv's own writer (`src/udfwrite`)
-- [x] GUI front end over the CLI (`arv gui`, local web UI, standard library only)
+- [x] GUI front end over the CLI (`arv gui`, a local web interface; its server in C)
+- [x] Describing without a model (questions over your vocabulary), known names, places and a map
+- [x] The assistant (`arv chat`, and a panel in the GUI): reads on its own, proposes changes
 - [x] `.arv` homes, change events, `Binding` records (format 0.3)
 - [x] ~~dvdisaster sources (and static binaries) on each disc for self-contained repair~~ superseded: arv repairs RS03 itself
 - [ ] File extents per volume, so files can be cut out of a raw image
 - [x] RS03 in arv itself: encoder, image test and repair in plain C ([src/rs03](src/rs03/)), byte-identical to dvdisaster Light,
       so `tools/arv.com` can repair a disc image anywhere
-- [ ] A man page generated from the command's own help
+- [x] A man page generated from the command's own help (`arv help --man`)
+- [ ] Thumbnails on discs, for people and for models (designed: research/plan.md)
 - [ ] First real burns, and reading them back after time on the shelf
 
 The detailed plan and the reasons behind each decision: [research/plan.md](research/plan.md).

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>arv: personal archives that explain themselves</title>
 <link rel="icon" href="img/logo-mark.svg" type="image/svg+xml">
-<meta name="description" content="arv (Archive, Record, Verify): long-term archiving, not backup. It keeps a personal archive's record over decades: collections with their history, what is archived where, every copy's place and checks, and self-describing Blu-ray discs readable without this tool. Experimental.">
+<meta name="description" content="arv (Archive, Record, Verify): for the photos, letters, videos and work you want kept for decades. It helps you choose and describe them, keeps track of every copy, and writes discs that explain themselves. Local, open formats, experimental.">
 <style>
   :root {
     --bg: #ffffff; --fg: #1f2328; --muted: #57606a; --line: #d0d7de; --card: #f6f8fa;
@@ -48,9 +48,9 @@
 <main>
 
 <h1><img src="img/logo.svg" alt="arv" height="56"></h1>
-<p class="tagline">Archive, Record, Verify: long-term archiving, not backup. A personal archivist's
-tool: it keeps what you choose to keep, its history and every copy's whereabouts, and writes discs
-that explain themselves and can be read, checked and repaired decades from now without it.</p>
+<p class="tagline">Archive, Record, Verify. For the photos, letters, videos and work you want your
+family to still have in fifty years: it helps you choose them, keeps track of every copy, and writes
+discs that explain themselves.</p>
 
 <div class="warn">
   <p><strong>Experimental.</strong> No disc made with it has yet been read back after years on a
@@ -66,85 +66,54 @@ that explain themselves and can be read, checked and repaired decades from now w
   <a class="button" href="https://github.com/mofosyne/arv">Source on GitHub</a>
 </div>
 
-<h2>What it does</h2>
-<p><strong>Backups and archives are different jobs.</strong> A backup holds everything as it is
-now, so you can get back what you lost last week, and the next backup replaces it. An archive
-holds what is worth keeping, chosen, and must outlive the software and the person who made it.
-It is kept <strong>cold</strong> where possible: on offline, write-once media on a shelf, where no
-mistake, failure or ransomware on a connected computer can reach it. Keep your backups; arv is for
-the archive on top of them.</p>
-<p><strong>Its name is what it does.</strong> <em>Archive</em>: choose what goes on discs, from a
-folder you keep sorting or composed by hand from anywhere. <em>Record</em>: what exists and where:
-every copy, its place and temperature, and what is on which disc. <em>Verify</em>: that every copy
-still reads, what is owed, and getting things back. The commands and the interface are grouped the
-same way.</p>
-<ul>
-  <li><strong>It keeps the archive's record, not just discs.</strong> A folder you keep sorting
-  becomes a collection with a history, like git's for any files; each set of discs from it is an
-  edition. Point it at any folder and it tells you what is already on which disc, and what is on
-  none. It knows where every copy is kept and when it was last checked.</li>
-  <li><strong>Your files stay plain files.</strong> No packing, compression or proprietary
-  container: any computer can open the disc and copy them off.</li>
-  <li><strong>Every disc stands alone.</strong> Each one carries a hash of every file, a
-  catalogue of the whole archive so far, the source of the tools that made it, and a
-  <code>README.txt</code> with the steps to check and repair it.</li>
-  <li><strong>Damage can be repaired.</strong> dvdisaster's RS03 error correction fills the
-  rest of each disc, the arv on every disc can repair it, and two damaged copies can rebuild
-  each other.</li>
-  <li><strong>Open standards, plain text.</strong> BagIt, recfiles and TSV, and one kind of
-  image: UDF 2.50, the Blu-ray standard. Nothing on a disc needs this tool to be read.</li>
-</ul>
-
 <figure>
-  <a href="img/architecture.svg"><img src="img/architecture.svg" alt="Four layers on every disc: content and description above a boundary, container, protection and medium below it. Making a disc runs down the left side, reading and repairing it runs up the right side."></a>
-  <figcaption>How a disc is built, and how it is read back.
-  <a href="https://github.com/mofosyne/arv/blob/main/docs/architecture.md">More on the layers</a>.</figcaption>
+  <a href="screenshots/assistant.png"><img src="screenshots/assistant.png" alt="arv gui on the sample archive: the list of discs, with the Assistant open on the right. Asked whether the Kyoto trip is safe, it looked up the disc, answered where both copies are and that neither has been read back, then proposed checking copy A, which waits for Apply"></a>
+  <figcaption><code>arv gui</code> on the sample archive, with the Assistant open. Its look-ups are
+  real; the model's replies are scripted for this picture.</figcaption>
 </figure>
 
-<h2 id="copies">Copies</h2>
-<p>Every copy of a disc gets a letter, A, B, C, written on its hub and case after the disc's id
-(<code>FAMILY-04_2001-2025_X B</code>). The letter is how a check, a move or a missing copy names it;
-the copies are the same image, so nothing else tells them apart.</p>
-<ul>
-  <li><strong>Known by what is on it.</strong> A Blu-ray's factory serial (its BCA, which a drive
-  reads on Linux) and a barcode on its case can be recorded with the copy
-  (<code>arv identify ID B --barcode ARV-000123</code>). Scanning the case then finds it
-  (<code>arv find ARV-000123</code>), and a drive that reads the serial knows which copy is in it.
-  Two records with one serial or barcode are one physical disc, counted once.</li>
-  <li><strong>Carriers.</strong> A copy kept as an image on an LTO tape or a hard drive names that
-  carrier (its barcode or serial). Two copies on one tape are lost together, so they count as one.</li>
-  <li><strong>Places and temperature.</strong> Each copy is kept somewhere (a box, a friend's house,
-  the NAS), cold, warm or hot. <code>arv todo</code> says what is owed: a copy to make, one to read
-  back, a check overdue, no cold copy.</li>
-</ul>
+<h2>What it's for</h2>
+<p><strong>A backup and an archive are different jobs.</strong> A backup copies everything as it is
+now, so you can get back what you lost last week, and next week's backup replaces it. An archive
+holds what is worth keeping, chosen and described, and has to outlive the computer, the software and
+perhaps the person who made it. It is best kept <strong>cold</strong>: on discs on a shelf, where
+no mistake, failure or ransomware on a connected computer can reach it.</p>
+<p>Keep your backups. arv is for the archive on top of them.</p>
 
-<h2 id="two-machines">Two machines</h2>
-<p>The catalogue is a folder (<code>.arv</code>), written in one place: a copy of it refuses
-changes, so the record cannot drift into two.</p>
-<ul>
-  <li>Move it or keep a copy elsewhere with rsync or any sync tool. If it moved, or a share mounts
-  it at another path, <code>arv where --here</code> says this is the place now.</li>
-  <li>If the other machine did take changes, <code>arv rebuild OTHER/.arv</code> merges them by
-  event id. A disc id both gave out is not merged, two copies with one letter are named
-  (<code>arv relabel</code> gives one a new letter), and a field both changed is a conflict until
-  it is set again.</li>
-  <li><code>arv audit</code> checks every event is as written, and with discs, that the home
-  agrees with the catalogue each disc carries.</li>
-</ul>
+<h2>What it does for you</h2>
+<p><strong>Choose what to keep.</strong> Point it at a folder you keep sorting, and each time you
+archive it, it says what changed since the last time. Or put together a disc by hand from files
+anywhere, the way old burning programs did.</p>
+<p><strong>Know where everything is.</strong> Search the whole archive without a disc in the drive:
+which disc holds the Kyoto photos, where each copy is kept (a box in the study, your parents'
+house), and when it was last checked. It tells you what is owed: a copy to make, one to check, a
+second place to keep one.</p>
+<p><strong>Describe it, so it can be found later.</strong> Tags, the people and places in it, a
+map of where things were taken. It can ask you a few questions to fill them in, read dates and
+places from your photos, or use an AI model on your computer to suggest them. The Assistant answers
+questions about the archive and suggests changes; nothing changes until you say so.</p>
+<p><strong>Discs that explain themselves.</strong> Each disc opens on any computer as plain files,
+with a page describing what is on it and a catalogue of the whole archive so far. It can check
+itself and repair damage, and carries the program that made it, so it never depends on this
+website, or on arv still being around.</p>
 
-<h2 id="libraries">Jukeboxes and tape libraries</h2>
-<p>arv keeps the record; the changer moves the media. <code>arv todo --tsv</code> lists what is
-owed, one copy a line with its barcode or its tape's, for a script to load and check each one.
-<code>arv inventory PLACE</code> takes what <code>mtx status</code> reads (or a scanner, one barcode
-a line) and says which recorded copies are missing, which barcodes are unknown, and which copies
-are recorded elsewhere. An example loop:
-<a href="https://github.com/mofosyne/arv/blob/main/docs/examples/library-check.sh">library-check.sh</a>,
-not yet tried on a real library.</p>
+<h2>Your data stays yours</h2>
+<ul>
+  <li><strong>Your files are never changed, moved or deleted.</strong> arv copies them onto discs as
+  they are and keeps its records beside them. It never deletes anything, its own records
+  included: a change is added, never written over.</li>
+  <li><strong>No account, no cloud, no lock-in.</strong> It runs on your computer. Everything it writes
+  is plain text in open formats that other programs can read.</li>
+  <li><strong>AI is optional, and local by default.</strong> Describing works without any model. A model
+  on your computer is used if you have one; an online one only if you turn it on, and then every use
+  says so. Pictures never leave your computer.</li>
+</ul>
 
 <h2 id="see-it">See it</h2>
-<p>A typical session, run for real (about a minute and a half): a disc composed from a video and a
-camera card, its copies recorded by letter on the shelf and the NAS, then checked. <a href="demo/arv.cast">The recording</a>
-is plain text; <code>asciinema play docs/demo/arv.cast</code> plays it in a terminal.</p>
+<p>A typical session at the command line, run for real (about a minute and a half): a disc put together from a
+video and a camera card, its copies recorded on the shelf and the NAS, then checked.
+<a href="demo/arv.cast">The recording</a> is plain text; <code>asciinema play docs/demo/arv.cast</code>
+plays it in a terminal.</p>
 <div id="demo"></div>
 <script src="https://cdn.jsdelivr.net/npm/asciinema-player@3.17.0/dist/bundle/asciinema-player.min.js"></script>
 <script>
@@ -156,49 +125,35 @@ is plain text; <code>asciinema play docs/demo/arv.cast</code> plays it in a term
 <p>You need Linux, <code>git</code> and a C compiler. Nothing is installed and nothing is burned
 in the first two steps.</p>
 
-<p><strong>1. Look around the sample archive</strong>: six small sample discs (105 MB in all)
-and their catalogue.</p>
+<p><strong>1. Look around the sample archive</strong>: six small sample discs and their catalogue.</p>
 <pre><code>git clone https://github.com/mofosyne/arv
 cd arv
 make                                    # builds arv (C, no libraries)
-./arv                                   # where you are, and the commands to start with
-./arv --home samples/home list          # the discs, and where they are kept
-./arv --home samples/home find kyoto    # which disc holds it
-./arv --home samples/home gui           # the same, in your web browser</code></pre>
-<p>The disc images are release downloads (<code>samples/fetch-discs.sh</code> fetches and checks
-them, or take one from the <a href="https://github.com/mofosyne/arv/releases/tag/samples">samples
-release</a>): open one with your file manager or 7-Zip and read its <code>README.txt</code>.</p>
-
-<figure>
-  <a href="screenshots/gui.png"><img src="screenshots/gui.png" alt="arv gui, Record › Discs: the six sample discs, with where each is kept and when it was last checked, under the Archive, Record and Verify tabs"></a>
-  <figcaption><code>arv gui</code> on the sample catalogue.</figcaption>
-</figure>
+./arv --home samples/home gui           # the sample archive, in your web browser
+./arv --home samples/home find kyoto    # or at the command line: which disc holds it</code></pre>
+<p>The sample disc images are a download (<code>samples/fetch-discs.sh</code>, or the
+<a href="https://github.com/mofosyne/arv/releases/tag/samples">samples release</a>): open one in your
+file manager and read its <code>README.txt</code>, or its <code>index.html</code>:</p>
 <figure>
   <a href="screenshots/disc.png"><img src="screenshots/disc.png" alt="The index.html on the sample Kyoto trip disc: its title, description and record"></a>
-  <figcaption>The <code>index.html</code> every disc carries: open it in any browser, no software needed.</figcaption>
+  <figcaption>The page every disc carries: open it in any browser, no software needed.</figcaption>
 </figure>
 
-<p><strong>2. Make a test image of a small folder</strong>. <code>--no-ecc</code> skips error correction (quicker
-for a trial), and the image is named <code>&lt;disc-id&gt;.noecc.iso</code> to say so; a
-separate <code>--home</code> keeps the trial apart from anything real.</p>
+<p><strong>2. Make a test image of a small folder</strong>, in an archive of its own so it stays apart
+from anything real (<code>--no-ecc</code> skips the error correction, quicker for a trial).</p>
 <pre><code>./arv --home /tmp/arv-try make ~/some/small/folder --no-ecc --output-dir /tmp
-./arv --home /tmp/arv-try list</code></pre>
+./arv --home /tmp/arv-try gui</code></pre>
 
-<p><strong>3. When you want real discs</strong>: install it (arv adds, tests and repairs the
-error correction itself; GNU ddrescue or
-<a href="https://github.com/teaching-droid/dvdisaster-light">dvdisaster Light</a> reads a damaged
-disc into an image one day), and follow the
-<a href="https://github.com/mofosyne/arv/blob/main/docs/workflow.md">workflow guide</a>.</p>
-<pre><code>make install PREFIX=~/.local            # or, with just: just install
+<p><strong>3. When you want real discs</strong>: install it, and follow the
+<a href="https://github.com/mofosyne/arv/blob/main/docs/workflow.md">workflow guide</a>, from a folder to
+discs on a shelf, and back.</p>
+<pre><code>make install PREFIX=~/.local
 cd /path/above/your/files &amp;&amp; arv init --name home --default
-arv make /path/to/folder</code></pre>
-<p>Tab completion for bash and zsh comes with it (<code>arv re</code>&lt;Tab&gt;), and
-<code>arv record</code>, <code>arv archive</code> and <code>arv verify</code> list their commands.
-On Debian, Ubuntu or Arch Linux it can be a package instead (<code>just deb</code>, <code>just arch</code>:
-<a href="https://github.com/mofosyne/arv/blob/main/packaging/README.md">packaging</a>).
-To remove it again: <code>make uninstall PREFIX=~/.local</code> (or <code>just uninstall</code>) in the
-same folder. That removes the program only; your archives (<code>.arv</code> folders) and discs
-stay as they are.</p>
+arv gui</code></pre>
+<p>Debian, Ubuntu and Arch packages can be built too (<a href="https://github.com/mofosyne/arv/blob/main/packaging/README.md">packaging</a>).
+In the interface, Settings › Programs says which optional programs would help, and how to install
+them. To remove arv: <code>make uninstall PREFIX=~/.local</code>; your archives and discs stay as
+they are.</p>
 
 <h2>Tell us how it went</h2>
 <p>Feedback of any size helps: a step that confused you, something that broke, a disc that would
@@ -212,11 +167,14 @@ is a Telegram group.</p>
 
 <h2>Read more</h2>
 <ul>
-  <li><a href="https://github.com/mofosyne/arv#readme">README</a>: install and every command</li>
-  <li><a href="https://github.com/mofosyne/arv/blob/main/docs/concepts.md">Concepts</a>: collections, archives, copies, and how objects and folders relate</li>
   <li><a href="https://github.com/mofosyne/arv/blob/main/docs/workflow.md">Workflow</a>: from a folder to discs on a shelf, and back</li>
   <li><a href="https://github.com/mofosyne/arv/blob/main/docs/philosophy.md">Philosophy</a>: why it works this way</li>
-  <li><a href="https://github.com/mofosyne/arv/blob/main/docs/spec/smart-archive-format.md">Disc format</a>: for anyone who wants to read or write these discs with their own tools</li>
+  <li><a href="https://github.com/mofosyne/arv/blob/main/docs/concepts.md">Concepts</a>: collections, copies, and the words arv uses</li>
+  <li><a href="https://github.com/mofosyne/arv#readme">README</a>: install, and every command</li>
+  <li><strong>For archivists and the technically curious:</strong>
+    <a href="https://github.com/mofosyne/arv/blob/main/docs/architecture.md">how a disc is built</a> (its layers, error correction and repair),
+    <a href="https://github.com/mofosyne/arv/blob/main/docs/workflow.md#4-copies-burned-and-stored">copies, places and checks</a> (copy letters, barcodes and disc serials, two computers, tape libraries),
+    and <a href="https://github.com/mofosyne/arv/blob/main/docs/spec/smart-archive-format.md">the disc format</a>, for reading or writing these discs with other tools.</li>
 </ul>
 
 <footer>

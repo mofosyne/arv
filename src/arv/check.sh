@@ -24,6 +24,7 @@ mkdir -p "$dir"
 cd "$dir"
 ok() { echo "ok: $*"; }
 no() { echo "FAILED: $*"; exit 1; }
+export ARV_NO_EXTRA_PLACES=1      # the built-in places only, whatever this machine has installed (one test below adds some)
 command -v 7z >/dev/null || no "7z is needed to read disc images (p7zip-full)"
 unset ARV_APE ARV_SOURCE    # the real-disc checks use what a user has: the checkout, its arv.com
 
@@ -109,8 +110,20 @@ fi
     && ok "a catalogue command on a home that does not exist yet creates it" || no "location add on a new home"
 "$tool" --home fresh-home todo --json | grep -qx '{"format": "arv-json 1", "overdueBefore": "[0-9-]*", "discs": 0, "owed": \[\], "questions": \[\]}' \
     || no "todo --json with nothing owed"
-"$tool" help --json | grep -q '{"name": "todo", "usage": "arv todo \[--overdue AGE\] \[--tsv | --json\]", "summary": "what is owed' \
+"$tool" help --json | grep -q '{"name": "todo", "reads": true, "risk": "none", "risks": \[\], "usage": "arv todo \[--overdue AGE\] \[--tsv | --json\]", "summary": "what is owed' \
     || no "help --json"
+# each command's risk (src/arv/risk.c) agrees with the manual's list of those that only read
+"$tool" help --json > risk.json
+reads=$("$tool" help --all | sed -n '/^These only read:/,/^$/p' | tr '\n' ' ' | sed 's/(a preview).*//; s/(without[^)]*)//g; s/`[a-z]* --[a-z]*`//g' | grep -o '`[a-z]*`' | tr -d '`' | sort -u)
+for c in $reads; do
+    grep -q "{\"name\": \"$c\", \"reads\": true, \"risk\": \"none\"" risk.json || no "help --json: $c only reads, the manual says"
+done
+[ "$(grep -o '"name": "[a-z]*", "reads"' risk.json | wc -l)" -eq "$(grep -o '"usage": ' risk.json | wc -l)" ] || no "help --json: a command without a risk"
+grep -q '"name": "plan", "reads": false, "risk": "medium", "risks": \[{"when": "list", "risk": "none"}' risk.json \
+    && grep -q '"name": "access", "reads": false, "risk": "high"' risk.json \
+    && grep -q '"name": "collection", "reads": false, "risk": "medium", "risks": \[{"when": "list", "risk": "none"}, {"when": "show", "risk": "none"}' risk.json \
+    && grep -q '{"when": "merge", "risk": "high"}' risk.json && grep -q '{"when": "--check", "risk": "medium"}' risk.json \
+    && ok "help --json: each command's risk (none: it only reads; low, medium, high), as the manual lists them" || no "help --json risks"
 mkdir -p loose && echo x > loose/f.txt
 "$tool" --home fresh-home status --json loose 2>/dev/null \
     | grep -q '"is": "folder", "files": 1, "onDiscs": 0, "mostLike": \[\], "onNone": \["f.txt"\], "notes": \[\]}$' || no "status --json"
@@ -312,6 +325,14 @@ printf 'b. 1931\ncolleague\n2\n\n' | "$tool" -C kn/home tags split person:anne-s
     && "$tool" -C kn/home tags retire person:anne-smith-2 --why "a mistake" >/dev/null \
     && ok "known names: merge moves the uses back, the other kept, retired, its key an alias; retire keeps the entry" \
     || { cat kn/merge.out; no "known names: merge"; }
+"$tool" -C kn/home tags add person:ann-smith --label "Ann Smith" >/dev/null && "$tool" -C kn/home tags add person:a-smith --label "A. Smith" >/dev/null \
+    && "$tool" -C kn/home tags add person:jo --label Jo >/dev/null && "$tool" -C kn/home tags add person:jon --label Jon >/dev/null \
+    && "$tool" -C kn/home tags names > kn/names.out \
+    && grep -q '^  person:ann-smith and person:a-smith: "ann smith" and "a smith": initials$' kn/names.out \
+    && ! grep -q 'person:anne-smith and\|person:jo and' kn/names.out \
+    && "$tool" -C kn/home tags names --json | grep -q '"likelySame": \[' \
+    && ok "known names: likely the same offered (a letter apart, initials, a form in common); never a short name, nor one told apart by a qualifier" \
+    || { cat kn/names.out; no "known names: likely the same"; }
 "$tool" -C kn/home tags add software:kicad --related electronics >/dev/null 2>&1 && no "tags add takes an unknown option"
 "$tool" -C kn/home tags add software:kicad --label KiCad --same wikidata:Q1141917 > /dev/null \
     && ! grep -A5 '^Name: software:kicad$' kn/home/config/tags.rec | grep -q '^Private' \
@@ -321,6 +342,33 @@ printf 'b. 1931\ncolleague\n2\n\n' | "$tool" -C kn/home tags split person:anne-s
     && grep -q '^Name: family$' kn/disc/catalog/config/tags.rec \
     && ok "known names: a public disc's vocabulary leaves the private entries out (software:kicad goes, person:anne-smith stays home)" \
     || no "known names: private entries on a public disc"
+# the programs arv can use: each found or not, from PATH; none needed for a disc
+mkdir -p progbin && printf '#!/bin/sh\n' > progbin/zstd && chmod +x progbin/zstd
+printf 'NAME="Debian GNU/Linux"\nID=debian\nPRETTY_NAME="Debian GNU/Linux 13 (trixie)"\n' > deb.os
+printf 'ID=fedora\nPRETTY_NAME="Fedora Linux 42"\n' > fed.os
+printf 'ID=plan9\n' > other.os
+ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin:/usr/bin/nonexistent" "$tool" programs > prog.out \
+    && grep -q '^This system: Debian GNU/Linux 13 (trixie)\.$' prog.out \
+    && grep -q '^  ok       zstd  ' prog.out && grep -q '^  missing  exiftool ' prog.out \
+    && grep -q '^  to install: sudo apt install libimage-exiftool-perl poppler-utils ffmpeg curl$' prog.out \
+    && grep -q '^  sf: Siegfried: ' prog.out && grep -q '^  Every missing one: sudo apt install ' prog.out \
+    && ARV_OS_RELEASE=$PWD/fed.os PATH="$PWD/progbin" "$tool" programs | grep -q '^  to install: sudo dnf install perl-Image-ExifTool poppler-utils ffmpeg-free curl$' \
+    && ARV_OS_RELEASE=$PWD/other.os PATH="$PWD/progbin" "$tool" programs > prog2.out \
+    && grep -q '^  to install, on Arch: sudo pacman -S perl-image-exiftool poppler ffmpeg curl$' prog2.out \
+    && grep -q '^  to install, on macOS (Homebrew): brew install exiftool poppler ffmpeg$' prog2.out \
+    && ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin" "$tool" programs --json | grep -q '"system": {"id": "debian", "name": "Debian GNU/Linux 13 (trixie)"}' \
+    && PATH="$PWD/progbin" "$tool" programs --json | grep -q '"name": "zstd", "group": "making", "found": true' \
+    && grep -q '^      sudo apt-get update && sudo apt-get install siegfried$' prog.out \
+    && ARV_OS_RELEASE=$PWD/fed.os PATH="$PWD/progbin" "$tool" programs | grep -q '^      go install github.com/richardlehane/siegfried/cmd/sf@latest' \
+    && ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin" "$tool" programs --install describing </dev/null | grep -q '^PackageKit (pkcon) is not here' \
+    && printf '#!/bin/sh\necho "$*" > "%s/pkcon.args"\n' "$PWD" > progbin/pkcon && chmod +x progbin/pkcon \
+    && ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin" "$tool" programs --install describing </dev/null | grep -q '^Installed\.' \
+    && grep -qx 'install --noninteractive libimage-exiftool-perl poppler-utils ffmpeg curl' pkcon.args \
+    && ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin" "$tool" programs --install making </dev/null > /dev/null \
+    && grep -qx 'install --noninteractive git tar xz-utils gzip zip unzip' pkcon.args \
+    && ARV_OS_RELEASE=$PWD/deb.os PATH="$PWD/progbin" "$tool" programs --json | grep -q '"packagekit": true' && rm progbin/pkcon \
+    && ok "arv programs: which programs arv can use are here (PATH), what each is for, each group's install command for this system (every system's when it is not one arv knows), Siegfried's own steps, and --install through PackageKit (never Siegfried)" \
+    || { cat prog.out; no "arv programs"; }
 # places: the gazetteer (Natural Earth's countries and cities), a place of your own in one, arv map, a disc's index.html
 "$tool" -C kn/home tags show place:kyoto | grep -q '^  in: Japan (place:japan)$' \
     && "$tool" -C kn/home tags add place:fushimi-inari --label "Fushimi Inari" --parent kyoto --at 34.9671,135.7727 > kn/place.out \
@@ -329,6 +377,42 @@ printf 'b. 1931\ncolleague\n2\n\n' | "$tool" -C kn/home tags split person:anne-s
     && ! grep -q '135.77' kn/home/catalog/archive.rec \
     && ok "places: the gazetteer's entries (a city in its country); one of your own in one, private with a position, never in the record" \
     || { cat kn/place.out kn/place.txt; no "places: the gazetteer"; }
+# tags in any script, one spelling a key: Latin accents folded (composed or decomposed alike), Latin,
+# Greek and Cyrillic in lower case, other scripts kept; find folds the same way
+mkdir -p u8/a u8/b u8/c && echo 1 > u8/a/x && echo 2 > u8/b/y && echo 3 > u8/c/z
+printf '{"tags": {"a": ["place:Zürich", "Café"], "b": ["place:Zu\314\210rich"], "c": ["place:京都", "person:Ålice", "Αθήνα", "МОСКВА"]}, "authorship": "human", "agent": "t"}\n' > u8.json
+"$tool" init u8h >/dev/null 2>&1
+"$tool" -C u8h make -y --no-ecc --no-formats --set T --draft u8.json --output-dir u8out u8 >/dev/null 2>&1 || no "make (UTF-8 tags)"
+"$tool" -C u8h tags > u8.out \
+    && grep -q '^  zurich  *2 folders on 1 disc   Zürich$' u8.out && grep -q '^  京都 ' u8.out && grep -q '^  alice ' u8.out \
+    && grep -q '^  cafe ' u8.out && grep -q '^  αθηνα ' u8.out && grep -q '^  москва ' u8.out \
+    && "$tool" -C u8h map | grep -q '^  place:zurich  *Zürich, Switzerland ' \
+    && [ "$("$tool" -C u8h find 'Zürich' | grep -c '^TAG')" -eq 2 ] && "$tool" -C u8h find 'ÅLICE' | grep -q 'person:alice' \
+    && ok "tags in any script: one spelling a key (Zürich, decomposed or not, is place:zurich, the gazetteer's; Ålice is alice; 京都 kept); find folds alike" \
+    || { cat u8.out; no "UTF-8 tags"; }
+# extra place data: iso-codes' regions and a places/NAME.rec in the data folders; one a tag uses is copied home
+mkdir -p xdata/iso-codes/json xhome/arv/places
+printf '{"3166-2": [{"code": "JP-26", "name": "Kyoto", "type": "Prefecture"}, {"code": "JP-01", "name": "Hokkaido", "type": "Prefecture"}]}\n' \
+    > xdata/iso-codes/json/iso_3166-2.json
+printf '%%rec: Place\n\nName: place:uji\nLabel: Uji\nKind: city\nCountry: JP\nRegion: JP-01\nRegion: Kyoto\nAt: +34.89+135.80/\nSame: geonames:1849372\n' > xhome/arv/places/test.rec
+xp() { ARV_NO_EXTRA_PLACES= XDG_DATA_DIRS="$dir/xdata" XDG_DATA_HOME="$dir/xhome" "$tool" "$@"; }
+xp -C kn/home tags show place:kyoto-prefecture > kn/x1.out && grep -q '^  in: Japan (place:japan)$' kn/x1.out \
+    && grep -q '^  same as: iso3166-2:JP-26$' kn/x1.out && xp -C kn/home tags show place:hokkaido | grep -q '(Prefecture)' \
+    && xp -C kn/home tags show place:uji | grep -q '^  in: Kyoto, Japan (place:kyoto-prefecture)$' \
+    && xp -C kn/home tags show place:kyoto | grep -q '^  in: Kyoto, Japan (place:kyoto-prefecture)$' \
+    && ! grep -q '^Name: place:hokkaido$' kn/home/config/places.rec \
+    && xp -C kn/home tags add place:a-ryokan --parent hokkaido >/dev/null \
+    && grep -A8 '^Name: place:hokkaido$' kn/home/config/places.rec | grep -q '^Basis: from iso-codes (ISO 3166-2), copied when first used' \
+    && mkdir -p kn/uji && echo 6 > kn/uji/u.jpg \
+    && printf '{"tags": {".": ["place:uji"]}, "authorship": "human", "agent": "human:t"}\n' > kn/uji.json \
+    && xp -C kn/home make -y --no-ecc --no-formats --set KN --access public --draft kn/uji.json --output-dir kn/out4 kn/uji >/dev/null 2>&1 \
+    && grep -A12 '^Name: place:uji$' kn/home/config/places.rec | grep -q '^Basis: from test.rec, copied when first used' \
+    && "$tool" -C kn/home tags show place:uji | grep -q '^  at: +34.89+135.80/$' \
+    && 7z x -okn/disc4 kn/out4/*.iso catalog/config/places.rec >/dev/null && grep -q '^Name: place:uji$' kn/disc4/catalog/config/places.rec \
+    && xp programs | grep -q '^  ok       iso-codes ' && "$tool" -C kn/home tags names | grep -qv 'place:hokkaido' \
+    && xp -C kn/home find place:kyoto-prefecture | grep -q '  data/  (place:uji)$' \
+    && ok "extra place data: iso-codes' regions in their countries, a place's Region by name (not a code when a name is given), places/NAME.rec from the data folders; one a tag uses is copied home (and onto the disc)" \
+    || { cat kn/x1.out; no "extra place data"; }
 "$tool" -C kn/home tags add place:kyoto --at nowhere >/dev/null 2>&1 && no "a position that is not ISO 6709 was taken"
 "$tool" -C kn/home tags add place:kyoto --extent "34.9,135.7" >/dev/null 2>&1 && no "an extent of one corner was taken"
 "$tool" -C kn/home tags add place:kyoto --reach far >/dev/null 2>&1 && no "a reach that is not a distance was taken"
@@ -351,7 +435,9 @@ printf '{"tags": {".": ["place:kyoto"], "temple": ["place:fushimi-inari"], "cast
     && grep -q '"coordinates": \[135.4600, 34.7500\]}, "properties": {"key": "place:osaka"' kn/map.geojson && ! grep -q nowhere-known kn/map.geojson \
     && "$tool" -C kn/home map --json | grep -q '"key": "place:nowhere-known", .*"position": "none", "inGazetteer": false' \
     && "$tool" -C kn/home map --svg | grep -q '<title>Ōsaka, Japan: 1 path or object</title>' \
-    && ok "arv map: the places the tags name, where each is (the gazetteer's, or a broader place's), as text, JSON, GeoJSON and SVG" \
+    && "$tool" -C kn/home find place:japan > kn/find.out && grep -q 'data/castle/  (place:osaka' kn/find.out \
+    && grep -q 'data/temple/  (place:fushimi-inari)' kn/find.out && ! "$tool" -C kn/home find place:osaka | grep -q temple \
+    && ok "arv map: the places the tags name, where each is (the gazetteer's, or a broader place's), as text, JSON, GeoJSON and SVG; find place:japan finds the places in it" \
     || { cat kn/map.out kn/map.geojson; no "arv map"; }
 7z x -okn/disc3 kn/out3/*.iso index.html catalog/config/places.rec >/dev/null \
     && grep -q '<h2>Places</h2>' kn/disc3/index.html && grep -q '<svg xmlns=' kn/disc3/index.html \

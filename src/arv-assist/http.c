@@ -1,35 +1,37 @@
 /* A small HTTP/1.1 client, for local model servers (Ollama, llama.cpp's llama-server, LM Studio):
- * http:// only (they speak plain HTTP on loopback), one request per connection, no proxies. */
+ * plain http, as they speak on loopback, one request per connection, no proxies. https, for an
+ * external provider the person chose, goes through curl (a tool built for it: arv has no TLS). */
 #define _XOPEN_SOURCE 700
 #include "assist.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 typedef struct {
     char host[256], port[8], *path;
+    int tls;
 } url_parts;
 
-/* http://host[:port]/path, [::1] for IPv6 */
+/* http[s]://host[:port]/path, [::1] for IPv6 */
 static int parse_url(const char *url, url_parts *u, char **err)
 {
     memset(u, 0, sizeof *u);
-    if (!strncmp(url, "https://", 8)) {
-        *err = xprintf("%s: https is not supported; local model servers speak http", url);
+    u->tls = !strncmp(url, "https://", 8);
+    if (!u->tls && strncmp(url, "http://", 7)) {
+        *err = xprintf("%s: not an http:// or https:// address", url);
         return -1;
     }
-    if (strncmp(url, "http://", 7)) {
-        *err = xprintf("%s: not an http:// address", url);
-        return -1;
-    }
-    const char *h = url + 7, *end = h + strcspn(h, "/"), *colon = NULL;
+    const char *h = url + (u->tls ? 8 : 7), *end = h + strcspn(h, "/"), *colon = NULL;
     if (*h == '[') {
         const char *close = strchr(h, ']');
         if (!close || close > end) { *err = xprintf("%s: bad address", url); return -1; }
@@ -40,7 +42,7 @@ static int parse_url(const char *url, url_parts *u, char **err)
         snprintf(u->host, sizeof u->host, "%.*s", (int)((colon ? colon : end) - h), h);
     }
     if (colon) snprintf(u->port, sizeof u->port, "%.*s", (int)(end - colon - 1), colon + 1);
-    else strcpy(u->port, "80");
+    else strcpy(u->port, u->tls ? "443" : "80");
     u->path = xstrdup(*end ? end : "/");
     if (!*u->host) { *err = xprintf("%s: no host", url); free(u->path); return -1; }
     return 0;
@@ -103,12 +105,123 @@ static size_t unchunk(char *body, size_t len)
     return (size_t)(out - body);
 }
 
-int http_request(const char *url, const char *method, const char *body, int timeout, int *status, char **reply, char **err)
+int url_host(const char *url, char *host, size_t size)
+{
+    url_parts u;
+    char *err = NULL;
+    if (parse_url(url, &u, &err)) { free(err); return -1; }
+    free(u.path);
+    snprintf(host, size, "%s", u.host);
+    return 0;
+}
+
+/* s in a curl config file's double quotes */
+static void curl_quoted(sbuf *b, const char *s)
+{
+    sb_puts(b, "\"");
+    for (; *s; s++) {
+        if (*s == '"' || *s == '\\') sb_printf(b, "\\%c", *s);
+        else if (*s == '\n') sb_puts(b, "\\n");
+        else sb_printf(b, "%c", *s);
+    }
+    sb_puts(b, "\"\n");
+}
+
+static void write_all(int fd, const char *p, size_t n)
+{
+    while (n) {
+        ssize_t w = write(fd, p, n);
+        if (w < 0 && errno == EINTR) continue;
+        if (w <= 0) return;
+        p += w;
+        n -= (size_t)w;
+    }
+}
+
+/* https through curl. Its options come on standard input (curl -K -), so the key is never in a
+ * command line other users could see; the body on descriptor 3, read whole before the request. */
+static int curl_request(const char *url, const char *method, const char *body, const char *auth, int timeout,
+                        int *status, char **reply, char **err)
+{
+    if (!on_path("curl")) {
+        *err = xstrdup("https needs curl, which is not installed (arv has no TLS of its own)");
+        return -1;
+    }
+    sbuf cfg = { 0 };
+    sb_puts(&cfg, "url = ");
+    curl_quoted(&cfg, url);
+    sb_puts(&cfg, "request = ");
+    curl_quoted(&cfg, method);
+    sb_puts(&cfg, "proto = \"=https\"\nsilent\nshow-error\nheader = \"Accept: application/json\"\n");
+    sb_printf(&cfg, "max-time = %d\nwrite-out = \"\\n%%{http_code}\"\n", timeout);
+    if (auth) {
+        char *h = xprintf("Authorization: Bearer %s", auth);
+        sb_puts(&cfg, "header = ");
+        curl_quoted(&cfg, h);
+        free(h);
+    }
+    if (body) sb_puts(&cfg, "header = \"Content-Type: application/json\"\ndata-binary = \"@/dev/fd/3\"\n");
+    int in[2], data[2], out[2], errp[2];
+    if (pipe(in) || pipe(data) || pipe(out) || pipe(errp)) {
+        *err = xprintf("cannot run curl (%s)", strerror(errno));
+        free(cfg.s);
+        return -1;
+    }
+    pid_t pid = fork();
+    if (!pid) {
+        int a = dup(in[0]), b = dup(data[0]), c = dup(out[1]), d = dup(errp[1]);
+        int all[] = { in[0], in[1], data[0], data[1], out[0], out[1], errp[0], errp[1] };
+        for (size_t k = 0; k < sizeof all / sizeof *all; k++) close(all[k]);
+        dup2(a, 0); dup2(c, 1); dup2(d, 2); dup2(b, 3);
+        close(a); close(b); close(c); close(d);
+        execlp("curl", "curl", "-K", "-", (char *)NULL);
+        _exit(127);
+    }
+    close(in[0]); close(data[0]); close(out[1]); close(errp[1]);
+    void (*was)(int) = signal(SIGPIPE, SIG_IGN);       /* curl may stop reading early */
+    write_all(in[1], cfg.s, cfg.len);
+    close(in[1]);
+    if (body) write_all(data[1], body, strlen(body));
+    close(data[1]);
+    free(cfg.s);
+    sbuf o = { 0 }, e = { 0 };
+    char buf[65536];
+    ssize_t r;
+    while ((r = read(out[0], buf, sizeof buf)) > 0) sb_add(&o, buf, (size_t)r);
+    close(out[0]);
+    while ((r = read(errp[0], buf, sizeof buf)) > 0) sb_add(&e, buf, (size_t)r);
+    close(errp[0]);
+    int st;
+    waitpid(pid, &st, 0);
+    signal(SIGPIPE, was);
+    char *nl = o.s ? strrchr(o.s, '\n') : NULL;
+    if (!WIFEXITED(st) || WEXITSTATUS(st) || !nl) {
+        char *msg = e.s ? e.s : "";
+        size_t n = strlen(msg);
+        while (n && (msg[n - 1] == '\n' || msg[n - 1] == '\r')) msg[--n] = 0;
+        *err = xprintf("curl: %s", *msg ? msg : "failed");
+        free(o.s);
+        free(e.s);
+        return -1;
+    }
+    *nl = 0;
+    *status = atoi(nl + 1);
+    *reply = o.s;
+    free(e.s);
+    return 0;
+}
+
+int http_request(const char *url, const char *method, const char *body, const char *auth, int timeout,
+                 int *status, char **reply, char **err)
 {
     url_parts u;
     *reply = NULL;
     *status = 0;
     if (parse_url(url, &u, err)) return -1;
+    if (u.tls) {
+        free(u.path);
+        return curl_request(url, method, body, auth, timeout, status, reply, err);
+    }
     struct addrinfo hints = { 0 }, *res, *a;
     hints.ai_socktype = SOCK_STREAM;
     int rc = getaddrinfo(u.host, u.port, &hints, &res), fd = -1;
@@ -138,6 +251,7 @@ int http_request(const char *url, const char *method, const char *body, int time
     int v6 = strchr(u.host, ':') != NULL;
     sb_printf(&req, "%s %s HTTP/1.1\r\nHost: %s%s%s:%s\r\nAccept: application/json\r\nConnection: close\r\n", method, u.path,
               v6 ? "[" : "", u.host, v6 ? "]" : "", u.port);
+    if (auth) sb_printf(&req, "Authorization: Bearer %s\r\n", auth);
     if (body) sb_printf(&req, "Content-Type: application/json\r\nContent-Length: %zu\r\n", strlen(body));
     sb_puts(&req, "\r\n");
     if (body) sb_puts(&req, body);

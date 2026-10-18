@@ -25,7 +25,8 @@ char *tag_normalise(const char *tag)
 {
     sbuf b = { 0 };
     int space = 0;
-    for (const char *s = tag ? tag : ""; *s; s++) {
+    char *folded = text_fold(tag);          /* one spelling a key: place:Zürich is place:zurich */
+    for (const char *s = folded; *s; s++) {
         unsigned char c = (unsigned char)*s;
         if (c == ',' || isspace(c)) {
             space = b.len > 0;
@@ -33,9 +34,10 @@ char *tag_normalise(const char *tag)
         }
         if (space) sb_puts(&b, " ");
         space = 0;
-        char one[2] = { (char)tolower(c), 0 };
+        char one[2] = { (char)c, 0 };
         sb_puts(&b, one);
     }
+    free(folded);
     if (!b.s) return xstrdup("");
     char *colon = strchr(b.s, ':');
     if (colon) {

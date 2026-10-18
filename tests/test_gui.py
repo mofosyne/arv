@@ -18,6 +18,7 @@ import urllib.request
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.environ["ARV_APE"] = "none"   # the small test media have no room for tools/arv.com
+os.environ["ARV_NO_EXTRA_PLACES"] = "1"   # the built-in places only, whatever this machine has installed
 ARV = os.path.join(REPO, "src", "arv", "build", "arv")
 GUI = os.path.join(REPO, "src", "arv-gui", "build", "arv-gui")
 FAKE_LLM = os.path.join(REPO, "src", "arv-assist", "build", "fake-llm")
@@ -59,13 +60,14 @@ class GuiTest(unittest.TestCase):
         self.fake = None
         self.server = None
 
-    def start(self, llm_url=None, program=GUI):
-        """arv-gui, as arv gui starts it, on any free port: its first line says where"""
+    def start(self, llm_url=None, program=GUI, **env):
+        """arv-gui, as arv gui starts it, on any free port: its first line says where. Its models
+        settings are kept in the test's own config folder, never the user's."""
         argv = [program, "--no-browser", "--port", "0"] + (["--home", self.home] if self.home else [])
         self.jobs_tmp = os.path.join(self.tmp, "gui-tmp")       # where it keeps its jobs' output
         os.makedirs(self.jobs_tmp, exist_ok=True)
         self.server = subprocess.Popen(argv + (["--llm-url", llm_url] if llm_url else []), stdout=subprocess.PIPE, text=True,
-                                       env=dict(os.environ, TMPDIR=self.jobs_tmp))
+                                       env=dict(os.environ, TMPDIR=self.jobs_tmp, XDG_CONFIG_HOME=os.path.join(self.tmp, "config"), **env))
         self.url = self.server.stdout.readline().split(" at ")[1].split()[0]
         self.base = self.url.split("?")[0].rstrip("/")
         self.token = self.url.split("t=")[1]
@@ -295,6 +297,13 @@ class GuiTest(unittest.TestCase):
         self.assertEqual((place["where"], place["position"]), ("Fushimi Inari, Kyoto, Japan", "broader"))
         self.assertIn("<title>Kyoto, Japan: 1 path or object</title>", self.run_arv("map", "--svg")["out"])
         self.assertIn('id="tab-map"', self.request("/?t=" + self.token, token=False)[1])
+        programs = {p["name"]: p for p in self.ok("programs", "--json")["programs"]}   # Settings' Programs
+        self.assertTrue(programs["arv-gui"]["found"])
+        self.assertEqual(programs["exiftool"]["group"], "describing")
+        self.assertIn("sudo apt-get install siegfried", programs["sf"]["steps"]["debian"])   # Siegfried's own steps
+        self.assertIn("packagekit", self.ok("programs", "--json"))                         # Install, where it is here
+        self.assertEqual(programs["exiftool"]["packages"], {"debian": "libimage-exiftool-perl", "fedora": "perl-Image-ExifTool",
+                                                            "arch": "perl-image-exiftool", "macos": "exiftool"})
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
     def test_questions_and_names(self):
@@ -422,6 +431,69 @@ class GuiTest(unittest.TestCase):
         self.assertEqual((got["title"], got["subjects"], got["agent"]), ("Holiday photos", ["travel"], "llm:fake-model"))
         with open(os.path.join(self.tmp, "log")) as f:
             self.assertIn("Kyoto", f.read())
+
+    @unittest.skipUnless(os.path.exists(FAKE_LLM), "make -C src/arv-assist check builds the fake model server")
+    def test_settings_models(self):
+        """Settings: the models found (arv-assist llm-status --all), one chosen (llm-use), and an external
+        provider chosen only on purpose, then said wherever it is used."""
+        replies = os.path.join(self.tmp, "text.reply")
+        with open(replies, "w") as f:
+            f.write("{}")
+        port = os.path.join(self.tmp, "port")
+        self.fake = subprocess.Popen([FAKE_LLM, port, os.path.join(self.tmp, "log"), replies, replies])
+        for _ in range(50):
+            with open(port) if os.path.exists(port) else open(os.devnull) as f:
+                if f.read().strip():
+                    break
+            time.sleep(0.1)
+        with open(port) as f:
+            url = "http://127.0.0.1:%s/v1" % f.read().strip()
+        self.start(ARV_LLM_PROBE="Fake=" + url, OPENAI_API_KEY="sk-not-shown")
+        page = self.request("/?t=" + self.token, token=False)[1]
+        self.assertIn('<nav class="sub" data-group="settings" hidden>\n  <button data-tab="models">', page)   # Settings: Models, Programs
+        self.assertIn('id="tab-programs"', page)
+        found = json.loads(self.run_arv("llm-status", "--all", "--json", program="arv-assist")["out"])
+        self.assertEqual([(s["name"], s["found"], [m["id"] for m in s["models"]]) for s in found["servers"]], [("Fake", True, ["fake-model"])])
+        self.assertEqual([p["name"] for p in found["providers"] if p["set"]], ["OpenAI"])
+        self.assertNotIn("sk-not-shown", json.dumps(found))
+        r = self.run_arv("llm-use", "--url", url, "--model", "fake-model", program="arv-assist")
+        self.assertEqual(r["returncode"], 0, r["err"])
+        status = json.loads(self.run_arv("llm-status", program="arv-assist")["out"])
+        self.assertEqual((status["available"], status["model"], status["external"]), (True, "fake-model", False))
+        with open(os.path.join(self.tmp, "config", "arv", "models.rec")) as f:
+            self.assertIn("Url: " + url, f.read())
+        with open(replies, "w") as f:                                          # the assistant: a read, then a proposal
+            f.write('{"read": ["todo", "--json"]}\n===\n{"propose": ["tags", "add", "person:ann"], "why": "a name"}\n')
+        self.assertIn('<aside class="chat" id="chat" hidden', page)
+        turn = json.loads(self.run_arv("chat", "--json", program="arv-assist",
+                                       stdin=json.dumps({"messages": [{"role": "user", "content": "anything?"}], "context": "Owed"}))["out"])
+        self.assertEqual([s["shown"] for s in turn["steps"]], ["arv todo --json"])
+        self.assertEqual((turn["reply"]["propose"], turn["reply"]["risk"]), (["tags", "add", "person:ann"], "medium"))
+        self.assertEqual([m["role"] for m in turn["messages"]], ["user", "assistant", "user", "assistant"])
+        test = json.loads(self.run_arv("llm-test", "--url", url, "--model", "fake-model", program="arv-assist")["out"])
+        self.assertEqual((test["ok"], test["model"]), (True, "fake-model"))                # the Test button's
+        self.run_arv("llm-use", "--off", program="arv-assist")                              # Model help: Off
+        self.assertEqual(json.loads(self.run_arv("llm-status", "--all", "--json", program="arv-assist")["out"])["help"], "off")
+        self.assertFalse(json.loads(self.run_arv("llm-status", program="arv-assist")["out"])["available"])
+        self.run_arv("llm-use", "--on", program="arv-assist")
+        r = self.run_arv("llm-use", "--url", "https://api.openai.com/v1", "--model", "m", program="arv-assist")
+        self.assertEqual(r["returncode"], 1)                                   # a provider is off until turned on
+        self.assertIn("OpenAI is off", r["err"])
+        self.run_arv("llm-use", "--enable", "openai", program="arv-assist")       # its own On
+        found = json.loads(self.run_arv("llm-status", "--all", "--json", program="arv-assist")["out"])
+        self.assertEqual([(p["id"], p["on"], p["ready"]) for p in found["providers"] if p["on"]], [("openai", True, True)])
+        self.run_arv("llm-use", "--disable", "openai", program="arv-assist")
+        self.run_arv("llm-use", "--disable", "fake", program="arv-assist")        # a server here, off: never asked
+        found = json.loads(self.run_arv("llm-status", "--all", "--json", program="arv-assist")["out"])
+        self.assertEqual([(s["id"], s["on"], s["found"]) for s in found["servers"]], [("fake", False, False)])
+        self.assertFalse(found["text"]["available"])                           # what it was chosen for, forgotten
+        self.run_arv("llm-use", "--enable", "fake", program="arv-assist")
+        r = self.run_arv("llm-use", "--url", "https://llm.example.invalid/v1", "--model", "m", "--external", program="arv-assist")
+        self.assertEqual(r["returncode"], 0, r["err"])
+        r = self.run_arv("llm-status", program="arv-assist")
+        self.assertIn("Using llm.example.invalid, an external inference provider", r["err"])
+        self.assertIn("External AI: ", page)                                    # the header's reminder
+        self.assertIn("External inference provider: ", page)                    # the describe panel's
 
     @unittest.skipUnless(HAVE_ARV, "src/arv/build/arv (make) and 7z required")
     def test_mastering_plan(self):

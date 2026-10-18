@@ -6,10 +6,15 @@
  * Writes the port it listens on to PORT-FILE, then serves until killed:
  *   GET  /v1/models             {"data": [{"id": "fake-model"}]}
  *   POST /v1/chat/completions   the content of IMAGE-REPLY-FILE when the request shows an image,
- *                               else of TEXT-REPLY-FILE (both read afresh for each request)
+ *                               else of TEXT-REPLY-FILE (both read afresh for each request); a
+ *                               TEXT-REPLY-FILE in parts, separated by lines "===", gives its first
+ *                               part to the first request, its second to the second, and so on
+ *                               (the last part once they run out), for a conversation; counted
+ *                               afresh whenever the file changes
  *   POST /v1/embeddings         bag-of-words vectors: each word (a-z) adds 1 to one of 64 numbers,
  *                               chosen by a hash of the word; then L2-normalised
- * Every request body is appended to LOG-FILE, one per line.
+ * Every request body is appended to LOG-FILE, one per line, and an Authorization header as
+ * "auth: VALUE" before it.
  */
 #define _XOPEN_SOURCE 700
 #include <arpa/inet.h>
@@ -138,6 +143,14 @@ int main(int argc, char **argv)
         }
         char *body = strstr(req, "\r\n\r\n");
         body = body ? body + 4 : req + len;
+        char *auth = strstr(req, "\r\nAuthorization: ");
+        if (auth && auth < body) {
+            FILE *log = fopen(argv[2], "a");
+            if (log) {
+                fprintf(log, "auth: %.*s\n", (int)strcspn(auth + 17, "\r\n"), auth + 17);
+                fclose(log);
+            }
+        }
         if (!strncmp(req, "GET", 3)) {
             reply(c, "{\"data\": [{\"id\": \"fake-model\"}]}");
         } else {
@@ -151,7 +164,28 @@ int main(int argc, char **argv)
                 reply(c, out);
                 free(out);
             } else {
-                char *content = slurp(strstr(body, "image_url") ? argv[4] : argv[3]), *q = quoted(content);
+                static int asked;               /* text requests since the file changed: which part */
+                static char *before;
+                int image = strstr(body, "image_url") != NULL;
+                char *content = slurp(image ? argv[4] : argv[3]);
+                if (!image && (!before || strcmp(before, content))) {
+                    free(before);
+                    before = strdup(content);
+                    asked = 0;
+                }
+                if (!image) {
+                    char *part = content;
+                    for (int k = 0; k < asked; k++) {
+                        char *next = strstr(part, "\n===\n");
+                        if (!next) break;
+                        part = next + 5;
+                    }
+                    char *end = strstr(part, "\n===\n");
+                    if (end) *end = 0;
+                    memmove(content, part, strlen(part) + 1);
+                    asked++;
+                }
+                char *q = quoted(content);
                 size_t n = strlen(q) + 100;
                 char *out = malloc(n);
                 snprintf(out, n, "{\"choices\": [{\"message\": {\"role\": \"assistant\", \"content\": %s}}]}", q);
