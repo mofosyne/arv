@@ -82,6 +82,7 @@ const char *models_setting(const char *field);
 char *models_settings_path(void);
 char *models_key(const char *url);          /* ARCHIVE_LLM_KEY, else the provider's own variable, or NULL */
 void models_say_external(const char *url);  /* once: tells standard error the questions go to another computer */
+char *models_blocked(const char *url);      /* why a server or provider may not be asked (turned off), or NULL */
 int assist_llm_use(int argc, char **argv);
 int assist_llm_models(int argc, char **argv);      /* llm-status --all */
 int assist_llm_test(int argc, char **argv);

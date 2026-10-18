@@ -465,8 +465,17 @@ class GuiTest(unittest.TestCase):
         self.assertFalse(json.loads(self.run_arv("llm-status", program="arv-assist")["out"])["available"])
         self.run_arv("llm-use", "--on", program="arv-assist")
         r = self.run_arv("llm-use", "--url", "https://api.openai.com/v1", "--model", "m", program="arv-assist")
-        self.assertEqual(r["returncode"], 1)
-        self.assertIn("is not this computer", r["err"])
+        self.assertEqual(r["returncode"], 1)                                   # a provider is off until turned on
+        self.assertIn("OpenAI is off", r["err"])
+        self.run_arv("llm-use", "--enable", "openai", program="arv-assist")       # its own On
+        found = json.loads(self.run_arv("llm-status", "--all", "--json", program="arv-assist")["out"])
+        self.assertEqual([(p["id"], p["on"], p["ready"]) for p in found["providers"] if p["on"]], [("openai", True, True)])
+        self.run_arv("llm-use", "--disable", "openai", program="arv-assist")
+        self.run_arv("llm-use", "--disable", "fake", program="arv-assist")        # a server here, off: never asked
+        found = json.loads(self.run_arv("llm-status", "--all", "--json", program="arv-assist")["out"])
+        self.assertEqual([(s["id"], s["on"], s["found"]) for s in found["servers"]], [("fake", False, False)])
+        self.assertFalse(found["text"]["available"])                           # what it was chosen for, forgotten
+        self.run_arv("llm-use", "--enable", "fake", program="arv-assist")
         r = self.run_arv("llm-use", "--url", "https://llm.example.invalid/v1", "--model", "m", "--external", program="arv-assist")
         self.assertEqual(r["returncode"], 0, r["err"])
         r = self.run_arv("llm-status", program="arv-assist")

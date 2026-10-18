@@ -246,12 +246,12 @@ grep -q '"title": "Family trip photos 2019"' s.json && grep -q '"agent": "llm:fa
 # ------------------------------------------------------------------ which model: found, chosen, and an external one
 ARV_LLM_PROBE="Fake=$url;Nothing=http://127.0.0.1:1/v1" OPENAI_API_KEY=sk-not-shown "$tool" llm-status --all --json > all.json \
     || no "llm-status --all"
-tr -d '\n ' < all.json | grep -q '"name":"Fake","url":"'"$url"'","found":true,"ready":true,"models":\[{"id":"fake-model"' \
-    && tr -d '\n ' < all.json | grep -q '"name":"Nothing","url":"http://127.0.0.1:1/v1","found":false,"ready":false' \
-    && tr -d '\n ' < all.json | grep -q '"name":"OpenAI","url":"https://api.openai.com/v1","key":"OPENAI_API_KEY","set":true' \
-    && tr -d '\n ' < all.json | grep -q '"name":"Anthropic","url":"https://api.anthropic.com/v1","key":"ANTHROPIC_API_KEY","set":false' \
+tr -d '\n ' < all.json | grep -q '"name":"Fake","url":"'"$url"'","id":"fake","on":true,"found":true,"ready":true,"models":\[{"id":"fake-model"' \
+    && tr -d '\n ' < all.json | grep -q '"name":"Nothing","url":"http://127.0.0.1:1/v1","id":"nothing","on":true,"found":false,"ready":false' \
+    && tr -d '\n ' < all.json | grep -q '"name":"OpenAI","url":"https://api.openai.com/v1","key":"OPENAI_API_KEY","id":"openai","on":false,"set":true,"ready":false' \
+    && tr -d '\n ' < all.json | grep -q '"name":"Anthropic","url":"https://api.anthropic.com/v1","key":"ANTHROPIC_API_KEY","id":"anthropic","on":false,"set":false' \
     && ! grep -q sk-not-shown all.json \
-    && ok "llm-status --all: the servers on this computer and their models, and which providers' keys are set (never the key)" \
+    && ok "llm-status --all: the servers on this computer and their models, and which providers' keys are set (never the key), each off until turned on" \
     || { cat all.json; no "llm-status --all"; }
 "$tool" llm-use --url "$url" --model fake-model > use.out || no "llm-use"
 grep -q "^Url: $url" userhome/.config/arv/models.rec && grep -q "^Model: fake-model" userhome/.config/arv/models.rec \
@@ -275,6 +275,21 @@ grep -q "^Url: $url" userhome/.config/arv/models.rec && grep -q "^Model: fake-mo
     && grep -q "^Url: $url" userhome/.config/arv/models.rec && ! grep -q "^Vision" userhome/.config/arv/models.rec \
     && ok "model help off: no model asked unless a command names one; on again; a choice forgotten alone" \
     || { cat userhome/.config/arv/models.rec; no "on and off"; }
+"$tool" llm-use --url https://api.openai.com/v1 --model m > prov.out 2>&1 && no "a provider chosen while off"
+grep -q "OpenAI is off" prov.out \
+    && "$tool" llm-use --enable openai > /dev/null && grep -q "^On: openai" userhome/.config/arv/models.rec \
+    && OPENAI_API_KEY=k "$tool" llm-status --all --json | tr -d '\n ' | grep -q '"key":"OPENAI_API_KEY","id":"openai","on":true,"set":true' \
+    && "$tool" llm-use --disable openai > /dev/null && ! grep -q "^On:" userhome/.config/arv/models.rec \
+    && ARV_LLM_PROBE="Fake=$url" "$tool" llm-use --disable fake > /dev/null && grep -q "^Off: fake" userhome/.config/arv/models.rec \
+    && ! grep -q "^Url" userhome/.config/arv/models.rec \
+    && ARV_LLM_PROBE="Fake=$url" "$tool" llm-status --all --json | tr -d '\n ' | grep -q '"id":"fake","on":false,"found":false' \
+    && "$tool" llm-use --disable ollama > /dev/null && "$tool" llm-status | grep -q "11434/v1 is turned off" \
+    && "$tool" llm-status $llm | grep -q '"available": true' \
+    && "$tool" llm-use --enable ollama > /dev/null && ARV_LLM_PROBE="Fake=$url" "$tool" llm-use --enable fake > /dev/null \
+    && ! grep -q "^Off:" userhome/.config/arv/models.rec && "$tool" llm-use --enable nosuch 2>&1 | grep -q "no model server or provider nosuch" \
+    && "$tool" llm-use --url "$url" --model fake-model > /dev/null \
+    && ok "each source on or off: a provider off until turned on, a server here on until turned off (never asked), what it was chosen for forgotten" \
+    || { cat prov.out userhome/.config/arv/models.rec; no "sources on and off"; }
 ARCHIVE_LLM_KEY=sekrit "$tool" llm-status $llm > /dev/null && grep -q "^auth: Bearer sekrit" log \
     && ok "a key from the environment goes to the server as a bearer token" || no "the key"
 "$tool" llm-use --url https://llm.example.invalid/v1 > ext.out 2>&1 && no "an external provider chosen without --external"

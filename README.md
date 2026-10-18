@@ -445,7 +445,8 @@ ollama serve & ollama pull qwen2.5:7b          # or llama.cpp llama-server, LM S
   (default: the server's first model).
 - **Choosing one:** the GUI's Settings list the model servers on this computer (Ollama,
   llama.cpp's llama-server, LM Studio, vLLM, Jan) with their models, and the external providers
-  whose keys are set, each Ready or Not ready, with a Test button (a fixed question, nothing from
+  whose keys are set, each with its own On/Off (servers here on until turned off, never asked once
+  off; providers off until turned on, which asks first), Ready or Not ready, and a Test button (a fixed question, nothing from
   your files: does it answer, how fast, in JSON; a red square for a pictures model). One is marked
   in use for describing and one for pictures; Model help On/Off turns every model off at once
   (describing by questions still works). The choice is kept for this computer

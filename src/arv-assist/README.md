@@ -23,7 +23,9 @@ arv-gui also runs `arv-assist suggest` (one round of suggestions, JSON in and ou
   `$XDG_CONFIG_HOME/arv/models.rec` (`~/.config/arv/`, this computer's, in no archive), then Ollama's
   address. `llm-status --all` lists the servers on this computer (Ollama, llama.cpp, LM Studio,
   vLLM and Jan at their usual ports, with each model's pictures, embeddings and context where the
-  server says) and the external providers whose keys are set, each ready or not; `llm-use [--on|--off]
+  server says) and the external providers whose keys are set, each on or off and ready or not (a
+  server here is on until `llm-use --disable ID`, then never asked; a provider is off until
+  `llm-use --enable ID`, and only then can it be chosen); `llm-use [--on|--off] [--enable|--disable ID]
   [--url URL [--model NAME] [--external]] [--pictures URL [--pictures-model NAME]] [--forget
   describing|pictures] [--clear]` keeps a choice (`--off`: no model is asked unless a command names
   one); `llm-test --url URL [--model NAME] [--external] [--pictures]` asks a fixed question, nothing

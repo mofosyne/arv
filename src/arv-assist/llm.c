@@ -81,6 +81,13 @@ int llm_open(llm_client *c, const char *url, const char *model, int allow_remote
         m = models_setting("Model");
         allow_remote |= models_setting("Remote") && !strcmp(models_setting("Remote"), "yes");
     }
+    if (!(url && *url) && !(env && *env)) {          /* the settings' choice, or the default: each source on or off */
+        char *why = models_blocked(u);
+        if (why) {
+            *err = why;
+            return -1;
+        }
+    }
     c->url = xstrdup(u);
     for (size_t n = strlen(c->url); n && c->url[n - 1] == '/'; n--) c->url[n - 1] = 0;
     if (model && *model) m = model;

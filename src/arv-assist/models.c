@@ -8,7 +8,7 @@
  * writes one down, and never sends one over plain http to another computer.
  *
  *   arv-assist llm-status --all [--json]   the servers here, the providers whose keys are set, and the choice
- *   arv-assist llm-use [--on|--off] [--url URL [--model NAME] [--external]] [--pictures URL [--pictures-model NAME]]
+ *   arv-assist llm-use [--on|--off] [--enable|--disable ID] [--url URL [--model NAME] [--external]] [--pictures URL [--pictures-model NAME]]
  *                      [--forget describing|pictures] [--clear]   the choice, kept in $XDG_CONFIG_HOME/arv/models.rec
  *   arv-assist llm-test --url URL [--model NAME] [--external] [--pictures]   a fixed question, nothing
  *                      from any file: does it answer, how fast, and in JSON (or, for pictures, about a red square)
@@ -26,24 +26,27 @@
 #include <strings.h>
 #include <time.h>
 
-/* model servers that run on this computer, at their usual ports */
-static const char *const LOCAL[][2] = {
-    { "Ollama", "http://127.0.0.1:11434/v1" },
-    { "llama.cpp (llama-server)", "http://127.0.0.1:8080/v1" },
-    { "LM Studio", "http://127.0.0.1:1234/v1" },
-    { "vLLM", "http://127.0.0.1:8000/v1" },
-    { "Jan", "http://127.0.0.1:1337/v1" },
+/* model servers that run on this computer, at their usual ports: name, address, id. Each is on
+ * unless turned off (Off: ID in the settings): off, it is never asked, not even whether it is there. */
+static const char *const LOCAL[][3] = {
+    { "Ollama", "http://127.0.0.1:11434/v1", "ollama" },
+    { "llama.cpp (llama-server)", "http://127.0.0.1:8080/v1", "llama-cpp" },
+    { "LM Studio", "http://127.0.0.1:1234/v1", "lm-studio" },
+    { "vLLM", "http://127.0.0.1:8000/v1", "vllm" },
+    { "Jan", "http://127.0.0.1:1337/v1", "jan" },
 };
+#define NLOCAL (sizeof LOCAL / sizeof *LOCAL)
 
-/* external providers with an OpenAI-compatible endpoint: name, address, the variable holding the key */
-static const char *const PROVIDERS[][3] = {
-    { "OpenAI", "https://api.openai.com/v1", "OPENAI_API_KEY" },
-    { "Anthropic", "https://api.anthropic.com/v1", "ANTHROPIC_API_KEY" },
-    { "Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "GEMINI_API_KEY" },
-    { "Mistral", "https://api.mistral.ai/v1", "MISTRAL_API_KEY" },
-    { "OpenRouter", "https://openrouter.ai/api/v1", "OPENROUTER_API_KEY" },
-    { "Groq", "https://api.groq.com/openai/v1", "GROQ_API_KEY" },
-    { "DeepSeek", "https://api.deepseek.com/v1", "DEEPSEEK_API_KEY" },
+/* external providers with an OpenAI-compatible endpoint: name, address, the variable holding the
+ * key, id. Each is off unless turned on (On: ID): turning one on is agreeing that it sees what it is asked. */
+static const char *const PROVIDERS[][4] = {
+    { "OpenAI", "https://api.openai.com/v1", "OPENAI_API_KEY", "openai" },
+    { "Anthropic", "https://api.anthropic.com/v1", "ANTHROPIC_API_KEY", "anthropic" },
+    { "Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "GEMINI_API_KEY", "gemini" },
+    { "Mistral", "https://api.mistral.ai/v1", "MISTRAL_API_KEY", "mistral" },
+    { "OpenRouter", "https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "openrouter" },
+    { "Groq", "https://api.groq.com/openai/v1", "GROQ_API_KEY", "groq" },
+    { "DeepSeek", "https://api.deepseek.com/v1", "DEEPSEEK_API_KEY", "deepseek" },
 };
 #define NPROVIDERS (sizeof PROVIDERS / sizeof *PROVIDERS)
 
@@ -90,6 +93,70 @@ const char *models_setting(const char *field)
     const rec_record *r = settings_record();
     const char *v = r ? rec_get(r, field) : NULL;
     return v && *v ? v : NULL;
+}
+
+/* a repeated field holds this value (On: openai, Off: lm-studio) */
+static int setting_has(const char *field, const char *value)
+{
+    const rec_record *r = settings_record();
+    for (size_t i = 0; r && i < r->nfields; i++)
+        if (!strcmp(r->fields[i].name, field) && !strcmp(r->fields[i].value, value)) return 1;
+    return 0;
+}
+
+/* a test's servers (ARV_LLM_PROBE=NAME=URL;...), in place of the usual ports: their ids are their names, lowered */
+static char *probe_id(const char *name)
+{
+    char *id = xstrdup(name);
+    for (char *c = id; *c; c++) *c = (*c >= 'A' && *c <= 'Z') ? (char)(*c - 'A' + 'a') : ((*c >= 'a' && *c <= 'z') || (*c >= '0' && *c <= '9')) ? *c : '-';
+    return id;
+}
+
+static int same_url(const char *a, const char *b)
+{
+    size_t n = strlen(a), m = strlen(b);
+    while (n && a[n - 1] == '/') n--;
+    while (m && b[m - 1] == '/') m--;
+    return n == m && !strncasecmp(a, b, n);
+}
+
+/* the listed provider an address belongs to (by its host), or -1 */
+static int provider_of(const char *url)
+{
+    char host[256], h[256];
+    if (url_host(url, host, sizeof host)) return -1;
+    for (size_t i = 0; i < NPROVIDERS; i++)
+        if (!url_host(provider_url(i), h, sizeof h) && !strcasecmp(h, host)) return (int)i;
+    return -1;
+}
+
+/* the server here an address is, by its id (from the usual list or the test's), or NULL */
+static char *local_of(const char *url)
+{
+    const char *probes = env("ARV_LLM_PROBE");
+    if (probes) {
+        char *copy = xstrdup(probes), *found = NULL;
+        for (char *p = strtok(copy, ";"); p && !found; p = strtok(NULL, ";")) {
+            char *eq = strchr(p, '=');
+            if (eq && (*eq = 0, same_url(eq + 1, url))) found = probe_id(p);
+        }
+        free(copy);
+        return found;
+    }
+    for (size_t i = 0; i < NLOCAL; i++)
+        if (same_url(LOCAL[i][1], url)) return xstrdup(LOCAL[i][2]);
+    return NULL;
+}
+
+char *models_blocked(const char *url)
+{
+    int p = provider_of(url);
+    if (p >= 0 && !setting_has("On", PROVIDERS[p][3]))
+        return xprintf("%s is off (arv gui's Settings, or arv-assist llm-use --enable %s)", PROVIDERS[p][0], PROVIDERS[p][3]);
+    char *id = local_of(url), *why = NULL;
+    if (id && setting_has("Off", id)) why = xprintf("%s is turned off (arv gui's Settings, or arv-assist llm-use --enable %s)", url, id);
+    free(id);
+    return why;
 }
 
 /* ------------------------------------------------------------------ keys and the notice */
@@ -168,11 +235,19 @@ static long context_of(const jv *info)
 }
 
 /* what a server here offers: its models, with what each can do where the server says */
-static jv *probe(const char *name, const char *url)
+static jv *probe(const char *name, const char *url, const char *source)
 {
     jv *s = jobj();
     jput(s, "name", jstr(name));
     jput(s, "url", jstr(url));
+    jput(s, "id", jstr(source));
+    jput(s, "on", jbool(!setting_has("Off", source)));
+    if (setting_has("Off", source)) {                   /* off: not even asked whether it is there */
+        jput(s, "found", jbool(0));
+        jput(s, "ready", jbool(0));
+        jput(s, "error", jstr("turned off"));
+        return s;
+    }
     char *key = models_key(url), *reply = NULL, *err = NULL, *u = xprintf("%s/models", url);
     int status = 0;
     jv *list = NULL;
@@ -260,7 +335,8 @@ static jv *chosen(int vision, const given *g)
     llm_client c;
     char *err = NULL;
     int ok = !llm_open(&c, url, model, vision ? 0 : g->remote, &err) && !llm_check(&c, &err);
-    if (!url) url = c.url;
+    if (!url) url = c.url ? c.url : !strcmp(from, "settings") ? models_setting("Url") : !strcmp(from, "environment")
+                  ? env("ARCHIVE_LLM_URL") : LLM_DEFAULT_URL;
     jput(d, "url", jstr(url ? url : ""));
     jput(d, "model", jstr(c.model ? c.model : model ? model : ""));
     jput(d, "from", jstr(from));
@@ -289,20 +365,22 @@ static int status_all(int as_json, const given *g)
             char *eq = strchr(p, '=');
             if (!eq) continue;
             *eq = 0;
-            jpush(servers, probe(p, eq + 1));
+            char *id = probe_id(p);
+            jpush(servers, probe(p, eq + 1, id));
+            free(id);
             strlist_add(&probed, eq + 1);
         }
         free(copy);
     } else {
-        for (size_t i = 0; i < sizeof LOCAL / sizeof *LOCAL; i++) {
-            jpush(servers, probe(LOCAL[i][0], LOCAL[i][1]));
+        for (size_t i = 0; i < NLOCAL; i++) {
+            jpush(servers, probe(LOCAL[i][0], LOCAL[i][1], LOCAL[i][2]));
             strlist_add(&probed, LOCAL[i][1]);
         }
     }
     const char *mine[] = { g->url, g->vision_url, env("ARCHIVE_LLM_URL"), models_setting("Url"), models_setting("VisionUrl") };
     for (size_t i = 0; i < sizeof mine / sizeof *mine; i++)                  /* a server here at another address, as chosen */
         if (mine[i] && url_is_loopback(mine[i]) && !strlist_has(&probed, mine[i])) {
-            jpush(servers, probe("chosen", mine[i]));
+            jpush(servers, probe("chosen", mine[i], "chosen"));
             strlist_add(&probed, mine[i]);
         }
     jput(d, "servers", servers);
@@ -312,10 +390,13 @@ static int status_all(int as_json, const given *g)
         jput(p, "name", jstr(PROVIDERS[i][0]));
         jput(p, "url", jstr(provider_url(i)));
         jput(p, "key", jstr(PROVIDERS[i][2]));
+        jput(p, "id", jstr(PROVIDERS[i][3]));
+        int on = setting_has("On", PROVIDERS[i][3]);
+        jput(p, "on", jbool(on));
         jput(p, "set", jbool(env(PROVIDERS[i][2]) != NULL));
-        jput(p, "ready", jbool(env(PROVIDERS[i][2]) && on_path("curl")));
-        if (!env(PROVIDERS[i][2]) || !on_path("curl"))
-            jput(p, "why", jstr(!env(PROVIDERS[i][2]) ? "no key in the environment" : "needs curl"));
+        jput(p, "ready", jbool(on && env(PROVIDERS[i][2]) && on_path("curl")));
+        if (!on || !env(PROVIDERS[i][2]) || !on_path("curl"))
+            jput(p, "why", jstr(!on ? "off" : !env(PROVIDERS[i][2]) ? "no key in the environment" : "needs curl"));
         jpush(prov, p);
     }
     jput(d, "providers", prov);
@@ -332,8 +413,8 @@ static int status_all(int as_json, const given *g)
         puts("\nOn this computer:");
         for (size_t i = 0; i < servers->n; i++) {
             const jv *s = servers->vals[i], *ms = json_get(s, "models");
-            printf("  %-8s %-26s %s\n", strcmp(json_get(s, "found")->str, "true") ? "-" : "found", jstr_of(json_get(s, "name")),
-                   jstr_of(json_get(s, "url")));
+            printf("  %-8s %-26s %s  (%s)\n", strcmp(json_get(s, "on")->str, "true") ? "off" : strcmp(json_get(s, "found")->str, "true") ? "-" : "found",
+                   jstr_of(json_get(s, "name")), jstr_of(json_get(s, "url")), jstr_of(json_get(s, "id")));
             for (size_t k = 0; ms && k < ms->n; k++) {
                 const jv *m = ms->vals[k];
                 printf("           %s%s%s", jstr_of(json_get(m, "id")), !strcmp(json_get(m, "vision")->str, "true") ? " (vision)" : "",
@@ -342,11 +423,12 @@ static int status_all(int as_json, const given *g)
                 puts("");
             }
         }
-        puts("\nExternal providers (used only when chosen; what is asked is sent there):");
+        puts("\nExternal providers (off unless turned on; one that is on sees what it is asked):");
         for (size_t i = 0; i < prov->n; i++)
-            printf("  %-8s %-14s %s (%s)\n", strcmp(json_get(prov->vals[i], "set")->str, "true") ? "-" : "key set",
+            printf("  %-3s %-8s %-14s %s (%s; %s)\n", strcmp(json_get(prov->vals[i], "on")->str, "true") ? "off" : "on",
+                   strcmp(json_get(prov->vals[i], "set")->str, "true") ? "-" : "key set",
                    jstr_of(json_get(prov->vals[i], "name")), jstr_of(json_get(prov->vals[i], "url")),
-                   jstr_of(json_get(prov->vals[i], "key")));
+                   jstr_of(json_get(prov->vals[i], "key")), jstr_of(json_get(prov->vals[i], "id")));
         printf("\nSettings: %s\nChoose with: arv-assist llm-use --url URL [--model NAME] [--external] (or arv gui's Settings)\n", path);
     }
     free(b.s);
@@ -385,7 +467,7 @@ int assist_llm_models(int argc, char **argv)
 
 int assist_llm_use(int argc, char **argv)
 {
-    const char *url = NULL, *model = NULL, *vurl = NULL, *vmodel = NULL, *help = NULL, *forget = NULL;
+    const char *url = NULL, *model = NULL, *vurl = NULL, *vmodel = NULL, *help = NULL, *forget = NULL, *enable = NULL, *disable = NULL;
     int remote = 0, clear = 0;
     given ignored = { 0 };
     for (int i = 0; i < argc; i++) {
@@ -393,6 +475,8 @@ int assist_llm_use(int argc, char **argv)
         if (!strcmp(a, "--external")) remote = 1;
         else if (!strcmp(a, "--clear")) clear = 1;
         else if (!strcmp(a, "--on") || !strcmp(a, "--off")) help = a + 2;
+        else if (!strcmp(a, "--enable") && v) enable = argv[++i];
+        else if (!strcmp(a, "--disable") && v) disable = argv[++i];
         else if (!strcmp(a, "--forget") && v && (!strcmp(v, "describing") || !strcmp(v, "pictures"))) forget = argv[++i];
         else if (!strcmp(a, "--home") && v) i++;
         else if (!strcmp(a, "--url") && v) url = argv[++i];
@@ -401,12 +485,40 @@ int assist_llm_use(int argc, char **argv)
         else if (!strcmp(a, "--pictures-model") && v) vmodel = argv[++i];
         else if (!given_option(argc, argv, &i, &ignored)) return 2;
     }
-    if (!clear && !url && !model && !vurl && !vmodel && !help && !forget) return 2;
+    if (!clear && !url && !model && !vurl && !vmodel && !help && !forget && !enable && !disable) return 2;
+    const char *source = enable ? enable : disable;
+    int ext = -1, known = 0;                         /* the source turned on or off: a provider, or a server here */
+    for (size_t i = 0; source && i < NPROVIDERS; i++)
+        if (!strcmp(PROVIDERS[i][3], source)) ext = (int)i;
+    for (size_t i = 0; source && ext < 0 && i < NLOCAL; i++) known |= !strcmp(LOCAL[i][2], source);
+    if (source && ext < 0 && !known && env("ARV_LLM_PROBE")) {
+        char *copy = xstrdup(env("ARV_LLM_PROBE"));
+        for (char *p = strtok(copy, ";"); p; p = strtok(NULL, ";")) {
+            char *eq = strchr(p, '='), *id;
+            if (!eq) continue;
+            *eq = 0;
+            id = probe_id(p);
+            known |= !strcmp(id, source);
+            free(id);
+        }
+        free(copy);
+    }
+    if (source && ext < 0 && !known) {
+        fprintf(stderr, "Error: no model server or provider %s; arv-assist llm-status --all lists their ids\n", source);
+        return 1;
+    }
     char host[256];
     if ((url && url_host(url, host, sizeof host)) || (vurl && url_host(vurl, host, sizeof host))) {
         fprintf(stderr, "Error: not an http:// or https:// address: %s\n", url && url_host(url, host, sizeof host) ? url : vurl);
         return 1;
     }
+    if (url && provider_of(url) >= 0 && !setting_has("On", PROVIDERS[provider_of(url)][3])
+        && !(enable && !strcmp(enable, PROVIDERS[provider_of(url)][3]))) {
+        fprintf(stderr, "Error: %s is off. Turned on, it sees what describing asks (names, dates, words from your files): "
+                        "arv-assist llm-use --enable %s\n", PROVIDERS[provider_of(url)][0], PROVIDERS[provider_of(url)][3]);
+        return 1;
+    }
+    if (url && provider_of(url) >= 0) remote = 1;     /* a provider turned on: agreed to already */
     if (url && !url_is_loopback(url) && !remote) {
         fprintf(stderr, "Error: %s is not this computer. An external inference provider sees what it is asked (names, "
                         "dates, words from your files); add --external to choose it anyway.\n", url);
@@ -419,9 +531,23 @@ int assist_llm_use(int argc, char **argv)
     rec_file f = { 0 };
     rec_record *r = rec_new(&f, "Models");
     const rec_record *old = clear ? NULL : settings_record();
-    static const char *const fields[] = { "Help", "Url", "Model", "Remote", "VisionUrl", "VisionModel" };
-    for (size_t i = 0; old && i < sizeof fields / sizeof *fields; i++)
-        if (rec_get(old, fields[i])) rec_add(r, fields[i], rec_get(old, fields[i]));
+    for (size_t i = 0; old && i < old->nfields; i++) {
+        const rec_field *fl = &old->fields[i];
+        if (source && (!strcmp(fl->name, "On") || !strcmp(fl->name, "Off")) && !strcmp(fl->value, source)) continue;
+        rec_add(r, fl->name, fl->value);
+    }
+    if (enable && ext >= 0) rec_add(r, "On", enable);   /* a provider: off unless on */
+    if (disable && ext < 0) rec_add(r, "Off", disable); /* a server here: on unless off */
+    if (disable) {                                      /* what it was chosen for is forgotten */
+        const char *u = rec_get(r, "Url"), *vu = rec_get(r, "VisionUrl");
+        char *lu = u ? local_of(u) : NULL, *lv = vu ? local_of(vu) : NULL;
+        if (u && *u && ((ext >= 0 && provider_of(u) == ext) || (lu && !strcmp(lu, disable)))) {
+            rec_set(r, "Url", ""); rec_set(r, "Model", ""); rec_set(r, "Remote", "");
+        }
+        if (vu && *vu && lv && !strcmp(lv, disable)) { rec_set(r, "VisionUrl", ""); rec_set(r, "VisionModel", ""); }
+        free(lu);
+        free(lv);
+    }
     if (url) {
         rec_set(r, "Url", url);
         rec_set(r, "Model", model ? model : "");
@@ -455,7 +581,8 @@ int assist_llm_use(int argc, char **argv)
     sb_puts(&b, "# The models arv-assist asks, on this computer (arv gui's Settings, or arv-assist llm-use).\n"
                 "# Not part of any archive. Keys are never kept here: they stay in the environment.\n"
                 "# Remote: yes is the choice of an external provider, which sees what it is asked.\n"
-                "# Help: off asks no model at all.\n\n");
+                "# Help: off asks no model at all. On: an external provider turned on (it sees what it\n"
+                "# is asked); Off: a model server here turned off (never asked, not even if it is there).\n\n");
     char *text = NULL;
     size_t len = 0;
     if (kept.nfields) rec_format(&kept, &text, &len);
@@ -466,11 +593,15 @@ int assist_llm_use(int argc, char **argv)
     }
     write_text(path, b.s);
     int rc = 0;
-    if (rec_get(&kept, "Help")) printf("Model help is off: no model is asked, unless a command names one (--llm-url). %s\n", path);
-    else if (!kept.nfields) printf("No model chosen: the default (%s), unless ARCHIVE_LLM_URL says otherwise. %s\n", LLM_DEFAULT_URL, path);
-    else printf("Chosen: %s%s%s%s. Kept in %s\n", rec_get(&kept, "Url") ? rec_get(&kept, "Url") : "",
-                rec_get(&kept, "Model") ? " " : "", rec_get(&kept, "Model") ? rec_get(&kept, "Model") : "",
-                rec_get(&kept, "Remote") ? " (an external provider: each use says so)" : "", path);
+    if (source) printf("%s is %s. ", source, enable ? "on" : "off");
+    if (rec_get(&kept, "Help")) printf("Model help is off: no model is asked, unless a command names one (--llm-url).");
+    else if (!rec_get(&kept, "Url")) printf("Describing: the default (%s), unless ARCHIVE_LLM_URL says otherwise.", LLM_DEFAULT_URL);
+    else printf("Describing: %s%s%s%s.", rec_get(&kept, "Url"), rec_get(&kept, "Model") ? " " : "",
+                rec_get(&kept, "Model") ? rec_get(&kept, "Model") : "",
+                rec_get(&kept, "Remote") ? " (an external provider: each use says so)" : "");
+    if (rec_get(&kept, "VisionUrl")) printf(" Pictures: %s%s%s.", rec_get(&kept, "VisionUrl"), rec_get(&kept, "VisionModel") ? " " : "",
+                                            rec_get(&kept, "VisionModel") ? rec_get(&kept, "VisionModel") : "");
+    printf(" Kept in %s\n", path);
     free(text);
     free(b.s);
     free(dir);

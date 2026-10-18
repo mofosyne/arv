@@ -1675,6 +1675,23 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     return [b, out];
   }
   function inUse(text) { return el("span", { class: "chip cold", text: text }); }
+  // a source's own On/Off: a server here is on unless turned off; a provider off unless turned on,
+  // which is agreeing that it sees what describing asks
+  function sourceSwitch(src, external) {
+    var on = action("On", function () {
+      if (src.on) return;
+      if (external && !confirm("Turn on " + src.name + ", an external inference provider?\n\nOnce you choose it for " +
+          "describing, it is sent what describing asks: file and folder names, dates, sizes and words from text files. " +
+          "Pictures are never sent. Turn it on only if you trust it with that.")) return;
+      useModel(["llm-use", "--enable", src.id], false);
+    });
+    var off = action("Off", function () { if (src.on) useModel(["llm-use", "--disable", src.id], false); });
+    on.className = off.className = "plain seg";
+    on.setAttribute("aria-pressed", !!src.on); off.setAttribute("aria-pressed", !src.on);
+    on.title = external ? "Allow it to be chosen; it then sees what describing asks" : "Ask it what models it has";
+    off.title = external ? "Never ask it" : "Never ask it, not even whether it is running";
+    return el("span", { class: "segs" }, [on, off]);
+  }
   function loadModels() {
     return assistJson(["llm-status", "--all", "--json"]).then(function (res) {
       var box = $("models-list"); box.textContent = "";
@@ -1708,14 +1725,16 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         " sees what describing asks (file and folder names, dates, sizes, words from text files). Pictures are never sent to it." }));
       // on this computer
       box.appendChild(el("h3", { text: "On this computer" }));
+      box.appendChild(el("p", { class: "muted", text: "Each is on until you turn it off; off, it is never asked, not even whether it is running." }));
       var st = el("table");
       res.servers.forEach(function (sv) {
+        var sw = sv.id === "chosen" ? null : sourceSwitch(sv, false);
         if (!sv.found) {
-          st.appendChild(el("tr", {}, [el("td", { text: sv.name }), el("td", {}, [ready(false, sv.error)]),
-            el("td", { class: "mono muted", colspan: "3", text: sv.url + ": not running" })]));
+          st.appendChild(el("tr", {}, [el("td", { text: sv.name }), el("td", {}, [sw]), el("td", {}, [ready(false, sv.error)]),
+            el("td", { class: "mono muted", colspan: "3", text: sv.url + (sv.on ? ": not running" : ": off, never asked") })]));
           return;
         }
-        if (!sv.models.length) st.appendChild(el("tr", {}, [el("td", { text: sv.name }), el("td", {}, [ready(false, "no models")]),
+        if (!sv.models.length) st.appendChild(el("tr", {}, [el("td", { text: sv.name }), el("td", {}, [sw]), el("td", {}, [ready(false, "no models")]),
           el("td", { class: "muted", colspan: "3", text: "running, with no models: add one to it first" })]));
         sv.models.forEach(function (m, i) {
           var can = [m.vision ? "pictures" : "", m.embedding ? "embeddings" : "", m.context ? "context " + m.context : ""].filter(Boolean);
@@ -1728,7 +1747,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
             useModel(["llm-use", "--pictures", sv.url, "--pictures-model", m.id], false); }));
           var tests = m.embedding ? [] : tester("Test", ["llm-test", "--url", sv.url, "--model", m.id]);
           if (m.vision) tests = tests.concat(tester("Test pictures", ["llm-test", "--pictures", "--url", sv.url, "--model", m.id]));
-          st.appendChild(el("tr", {}, [el("td", { text: i ? "" : sv.name, title: sv.url }), el("td", {}, i ? [] : [ready(true)]),
+          st.appendChild(el("tr", {}, [el("td", { text: i ? "" : sv.name, title: sv.url }), el("td", {}, i ? [] : [sw]), el("td", {}, i ? [] : [ready(true)]),
             el("td", { class: "mono", text: m.id + (can.length ? "  (" + can.join(", ") + ")" : "") }),
             el("td", {}, [el("div", { class: "acts" }, acts)]), el("td", {}, [el("div", { class: "acts" }, tests)])]));
         });
@@ -1736,8 +1755,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       box.appendChild(el("div", { class: "scroll" }, [st]));
       // external providers
       box.appendChild(el("h3", { text: "External providers (your own key)" }));
-      box.appendChild(el("p", { class: "muted", text: "Off unless you choose one: it then sees what describing asks. Its key comes " +
-        "from the environment arv gui was started in (or ARCHIVE_LLM_KEY); a desktop menu may not have a shell's variables." }));
+      box.appendChild(el("p", { class: "muted", text: "Each is off until you turn it on: only then can it be tested or chosen, and " +
+        "once chosen it sees what describing asks. Its key comes from the environment arv gui was started in (or " +
+        "ARCHIVE_LLM_KEY); a desktop menu may not have a shell's variables." }));
       var pt = el("table");
       res.providers.forEach(function (p) {
         var current = t.external && t.url === p.url;
@@ -1746,11 +1766,11 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         var name = function () { return model.value.trim(); };
         var use = current ? inUse("In use: describing") : action("Use for describing", function () {
           if (!name()) { model.focus(); return; }
-          useModel(["llm-use", "--url", p.url, "--model", name(), "--external"], true, hostOf(p.url));
+          useModel(["llm-use", "--url", p.url, "--model", name()], false);
         }, !p.ready);
         var chip = ready(p.ready, p.why);
         if (p.ready) chip.title = "Its key is set and curl is here; Test asks it a question to be sure";
-        pt.appendChild(el("tr", {}, [el("td", { text: p.name }), el("td", {}, [chip]),
+        pt.appendChild(el("tr", {}, [el("td", { text: p.name }), el("td", {}, [sourceSwitch(p, true)]), el("td", {}, [chip]),
           el("td", { class: "mono" + (p.set ? "" : " muted"), text: p.key + (p.set ? "" : ": not set") }),
           el("td", {}, p.ready ? [el("div", { class: "acts" }, [model, use].concat(tester("Test", ["llm-test", "--url", p.url, "--external"], name)))] : [])]));
       });

@@ -2579,6 +2579,14 @@ there. Now its **Settings** (in the header, beside Jobs; the Programs view moved
 draws and the terminal has the same. The choice is this computer's (`$XDG_CONFIG_HOME/arv/models.rec`),
 not an archive's; an option or `$ARCHIVE_LLM_URL` still wins over it.
 
+**Each source on or off.** With several servers and providers, a person may want only some: each
+has its own On/Off, kept as `On: ID` and `Off: ID` in the settings. A server on this computer is on
+until turned off, and off it is never asked, not even whether it is running. An external provider
+is off until turned on, and turning it on is the agreement (the GUI asks, saying what it will see);
+only then can it be tested or chosen, so choosing it asks nothing more. Turning off a source in use
+forgets what it was chosen for. A command that names an address (`--llm-url`) is not held back: it
+is a choice made there.
+
 **Clear to read and to check:** each row says Ready or Not ready (a server answering with models; a
 provider's key set, with curl), what is in use is marked "In use: describing" or "In use: pictures"
 with Stop using beside it, and Model help has one On/Off (`Help: off` in the settings: no model is
