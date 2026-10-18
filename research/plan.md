@@ -1966,6 +1966,7 @@ picture, whatever its names), plain files under `catalog/thumbs/` with an index 
 (`vipsthumbnail`, ImageMagick, `ffmpeg`, `pdftoppm`) when present; none otherwise. A disc carries
 its own thumbnails, not every other disc's (100,000 photos would put about a gigabyte on every
 disc): those stay at home. They follow the disc's access level, since a thumbnail shows content.
+Designed in full in "Design (2026-10-18): thumbnails on discs".
 
 ## Done (2026-10-16): words and tags, counted; text and PDFs; rules offered
 
@@ -2286,3 +2287,86 @@ identifier: the spelling to read is the known name's `Label`; a plain tag (`cafe
 cost. Full Unicode normalisation (NFC) would need tables of tens of KB; Hangul in jamo is the case it
 would fix, left until wanted. Pushing for such data as distribution packages: issue #53.
 
+
+## Nice to have (2026-10-18)
+
+Wanted by no one yet; each waits until someone needs it.
+
+- **EAC-CPF export** of people and organisations, for handing names to an institution (step 5 of
+  "Design (2026-10-16): known names, as authority control").
+- **Korean written as separate jamo,** recombined into syllables, so the two spellings are one tag.
+  It needs Unicode's composition tables (see "Tags in any script, one spelling each").
+- **`arv tags` columns lined up for wide characters** (京 takes two columns, counted as one).
+
+## Design (2026-10-18, not built): thumbnails on discs
+
+A disc carries small pictures of its own photos, videos and documents, so a found disc, the home,
+the GUI, `index.html` and the describing questions show what it holds without reading it. They are
+made so that Katalog and Archivematica can take them, or keep out of their way, with no work.
+
+**What gets one.** Pictures (JPEG, PNG, TIFF, WebP, HEIC and raw files where the tool reads them), a
+frame of a video (at a tenth of its length, past black openings), the first page of a PDF. Not
+text, audio or anything a tool cannot read; a file inside a packed object gets one from its unpacked
+bytes before packing, since those are the files hardest to see later.
+
+**Shape.** JPEG, 256 px on the longer side, quality 75, metadata stripped (no EXIF, so no GPS and no
+camera serial: a thumbnail tells less than its file). About 8 KB each: 10,000 photos is about 80 MB
+of a 25 GB disc. JPEG because every browser, file manager and archive system reads it, and because
+Archivematica's own thumbnails are JPEG; WebP is smaller but not yet universal.
+
+**Where.** Outside the payload, in the volume's catalogue folder, one file per distinct content:
+
+```
+catalog/volumes/<id>/thumbs/<sha256>.jpg
+catalog/volumes/<id>/thumbs.tsv
+# arv thumbs 1	sha256	width	height	from (picture, frame at 12.5 s, page 1)	made by (tool and version)
+```
+
+and a `Thumbs:` pointer in the disc's `Archive` record. The name is the SHA-256 of the file it shows,
+as in the manifest (or `packed.tsv` for a file in a pack): one thumbnail for every copy of the same
+bytes, whatever their names, and the join to a file is the manifest, so the TSV needs no paths. The
+files are in the tag manifest like the rest of the catalogue, so `arv check` and any BagIt
+validator check them.
+
+**Katalog.** It shows no thumbnails today, but it keeps each file's SHA-256 when a catalogue is made
+with checksums, and the mapping already takes the manifest's hashes into that column (the spec's
+"Mapping to Katalog"). So a Katalog import copies the `thumbs/` folder into its collection, and a
+preview finds `<sha256>.jpg` for any file it lists, with no new table. The same picture found by
+Katalog on another drive, with the same bytes, finds the same thumbnail. To be added to the spec's
+list of what Katalog has no place for today, and put to its developer with the sample discs.
+
+**Archivematica.** It takes a bag as a transfer and makes the payload, `data/`, its objects. The
+thumbnails are outside `data/`, so they never become objects: nothing preserves or normalises a
+thumbnail as if it were part of the archive. Archivematica makes its own thumbnails from the
+originals (its format policy rules, JPEG, named by its own file UUIDs in the AIP and the DIP) and
+has no way to take a transfer's, so keeping out of its way is the import: the bag goes in as it is.
+Its place for a bag's metadata is `data/metadata/`, inside the payload, which arv never writes; a
+transfer with arv's descriptions as `metadata.csv` (titles, tags as `dc.subject`, coverage as
+`dc.coverage`) would be a separate export, as noted in "Decision (2026-10-13): other software reads
+the disc through its standards". Untested, and to test with a real Archivematica before thumbnails
+are built, since the whole catalogue rides on it: what it keeps of a bag's tag directories.
+
+**Made by tools built for it,** when present (principle 7): `vipsthumbnail` (fastest, least memory),
+else ImageMagick; `ffmpeg` for a frame; `pdftoppm` for a page. None present: no thumbnails, and the
+make event says so, as it does for format ids without Siegfried. `arv programs` lists them.
+Thumbnails are not reproducible across tool versions, so `thumbs.tsv` names the tool; they are
+checked by hash once written, like every other file on the disc.
+
+**Room.** On by default when a tool is present; `--no-thumbs` leaves them out, as `--no-formats`
+does format ids. They count against the disc like the catalogue does, and `arv plan show` says how
+much. They are at most 2% of the disc; past that, the largest folders' are left out and the event
+says how many.
+
+**At home.** Every disc's thumbnails are kept at home (`<home>/thumbs/`, by SHA-256), so the GUI and
+`arv describe --ask` show them for discs on the shelf. A disc carries its own only: other discs'
+would put about a gigabyte on every disc of a 100,000-photo archive. Discs for other people carry
+none of other discs' (as their file lists), and each disc's own follow its access level.
+
+**Not chosen.** The freedesktop.org shared thumbnail folders (`.sh_thumbnails/` beside each file):
+inside the payload, which stays untouched, and Archivematica would take them as objects. Writing
+into a computer's thumbnail cache (`~/.cache/thumbnails`, by the file's URI on one mount) is a file
+manager's job. A contact sheet per folder: fewer files, but a picture is no longer found by its hash.
+
+**Order of building:** a disc's bag through Archivematica as it is; thumbnails of pictures on the
+disc and in `index.html`; the home's copy and the GUI; video frames and PDF pages; the proposal to
+Katalog.
