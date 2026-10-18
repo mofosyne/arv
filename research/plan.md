@@ -2304,15 +2304,42 @@ A disc carries small pictures of its own photos, videos and documents, so a foun
 the GUI, `index.html` and the describing questions show what it holds without reading it. They are
 made so that Katalog and Archivematica can take them, or keep out of their way, with no work.
 
+**For people and for models alike.** What a picture shows is most of what it is, and the words
+around it (names, dates, folders) seldom say it. A person looking along a shelf of discs and a
+multimodal model asked to describe or find something both need the pictures, not the originals:
+these are small enough to look at by the thousand, and they are there when the disc is not. So the
+size is chosen for both, and the design keeps what a model needs in view:
+
+- **At home, for discs on the shelf:** `arv describe --vision` (a local model; arv-assist sends
+  pictures to local servers only, whatever the options say) can describe a disc that is not in the
+  drive, from its thumbnails, instead of reading the originals. Captions go where they go now, the
+  caption column of `tags.tsv`, as `automatic`.
+- **Cheaper and faster:** a thumbnail costs a model about 150 image tokens, where the 768 px pictures
+  arv-assist sends now cost about 600, and a full photo more. So a folder's thumbnails can go in one
+  request, several images to a message (llama.cpp's server and the common APIs take that), and the
+  model describes the folder as a whole. No contact sheet is composited: separate images keep each
+  answer tied to its file.
+- **Once per picture:** named by SHA-256, the same bytes are looked at once, and a caption found for
+  them is offered for every copy.
+- **On a found disc,** a model given only the files (an agent reading the mount) finds the
+  thumbnails by the `Thumbs:` pointer and a file's hash in `manifest-sha256.txt`; the disc's
+  `README.txt` says so, in a THUMBNAILS section beside SEARCH.
+- **Not for reading text.** A page at this size cannot be read, by a person or a model; a PDF's words
+  come from `pdftotext`, and a scan's from OCR ("Scans told apart", above).
+
 **What gets one.** Pictures (JPEG, PNG, TIFF, WebP, HEIC and raw files where the tool reads them), a
 frame of a video (at a tenth of its length, past black openings), the first page of a PDF. Not
 text, audio or anything a tool cannot read; a file inside a packed object gets one from its unpacked
 bytes before packing, since those are the files hardest to see later.
 
-**Shape.** JPEG, 256 px on the longer side, quality 75, metadata stripped (no EXIF, so no GPS and no
-camera serial: a thumbnail tells less than its file). About 8 KB each: 10,000 photos is about 80 MB
-of a 25 GB disc. JPEG because every browser, file manager and archive system reads it, and because
-Archivematica's own thumbnails are JPEG; WebP is smaller but not yet universal.
+**Shape.** JPEG, 384 px on the longer side, quality 75, metadata stripped (no EXIF, so no GPS and no
+camera serial: a thumbnail tells less than its file). About 18 KB each: 10,000 photos is about 180
+MB of a 25 GB disc (0.7%). 384 px because it serves both: small vision models take 336 to 448 px as
+one tile, so it is neither enlarged nor cut up, and a grid in a browser shows it at 192 px, sharp on
+a high-density screen. 256 px (8 KB) was the first idea: too small for a model to tell faces or
+signs apart. Detail beyond that is the original's job, read when the disc is in (arv-assist scales
+those to 768 px now). JPEG because every browser, file manager, archive system and model reads it,
+and because Archivematica's own thumbnails are JPEG; WebP is smaller but not yet universal.
 
 **Where.** Outside the payload, in the volume's catalogue folder, one file per distinct content:
 
