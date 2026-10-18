@@ -2559,7 +2559,32 @@ is; each front end only draws them:
 **The conversation is not the record.** It is kept in the home's cache, for picking up where it
 stopped, never on a disc; what reaches the record is what was applied, as events.
 
-**Order of building:** `reads` in `help --json` and the reply schema; the loop in arv-assist with the
+**What may happen without asking: by risk, not by the model's confidence (agreed 2026-10-18).** A
+model's own "95% sure" is not evidence: small local models are badly calibrated, and the cost of a
+mistake belongs to the change, not to the model's mood. So the gate is a risk matrix over what a
+change does, and the model's confidence only orders and colours what is shown:
+
+| Risk | Changes | How they are applied |
+|---|---|---|
+| None | reads (`find`, `status`, `info` ...) | run at once, shown as status lines |
+| Low: a value, easily set back | a tag, a caption, a folder's or object's title or description | a proposal; or by a rule you approved; or, with "Apply tags without asking" on (off by default), at once as `suggested`, listed under "Applied without asking" with Undo |
+| Medium: the record's shape | a known name added, labelled or aliased; a plan's items, tags or layout | a proposal; "Apply all" for a batch of the same kind |
+| High: hard to undo, or leaves the computer | merge, split or retire a name; access; make, burn, retire a disc; an external provider turned on | a proposal, one at a time, with what it changes said in full; never a rule, never a batch |
+
+- **Rules, from your own answers.** When the same kind of low-risk proposal has been accepted a few
+  times, the assistant offers it as a rule in the vocabulary arv has already (a `Match` pattern, an
+  alias): "folders named `IMG_*` from a phone get `source:camera`". Approved, it applies to what
+  matches without a question, recorded as `automatic` (software following your rule): honest and
+  repeatable, unlike a model's guess. Rules are listed and can be retired like any entry.
+- **Undo is a new event,** setting the value back (`Sets`/`Replaces`), as any change; the history
+  keeps both. Nothing reaches a burned disc without a new disc being made, which is high risk.
+- **Confidence, shown not trusted:** where the server gives token probabilities (llama.cpp, Ollama),
+  a proposal's measured probability, not a number the model writes, orders the cards and marks the
+  doubtful ones; a doubtful one becomes a question rather than a proposal.
+- **The matrix is data,** a table in arv-assist's instructions file and in arv's command list (each
+  command's risk beside its `reads` flag in `help --json`), so a new command is placed by one line.
+
+**Order of building:** `reads` and `risk` in `help --json` and the reply schema; the loop in arv-assist with the
 terminal face and its checks; the GUI panel; then the later items above.
 
 ## Done (2026-10-18): models found and chosen; your own key, said at each use
