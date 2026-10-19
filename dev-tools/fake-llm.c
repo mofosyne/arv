@@ -11,6 +11,9 @@
  *                               part to the first request, its second to the second, and so on
  *                               (the last part once they run out), for a conversation; counted
  *                               afresh whenever the file changes
+ *                               A part's first line "logprob: -0.1" is not sent: with "logprobs"
+ *                               asked for, the reply has them, every 4 characters a token of that
+ *                               log-probability
  *   POST /v1/embeddings         bag-of-words vectors: each word (a-z) adds 1 to one of 64 numbers,
  *                               chosen by a hash of the word; then L2-normalised
  * Every request body is appended to LOG-FILE, one per line, and an Authorization header as
@@ -185,10 +188,35 @@ int main(int argc, char **argv)
                     memmove(content, part, strlen(part) + 1);
                     asked++;
                 }
-                char *q = quoted(content);
-                size_t n = strlen(q) + 100;
+                double lp = 0;
+                int have_lp = !strncmp(content, "logprob: ", 9);
+                if (have_lp) {
+                    lp = atof(content + 9);
+                    char *nl = strchr(content, '\n');
+                    memmove(content, nl ? nl + 1 : content + strlen(content), strlen(nl ? nl + 1 : "") + 1);
+                }
+                char *q = quoted(content), *probs = strdup("");
+                if (have_lp && strstr(body, "\"logprobs\": true")) {
+                    size_t clen = strlen(content), at = 0, m = 64;
+                    free(probs);
+                    probs = malloc(m);
+                    strcpy(probs, ", \"logprobs\": {\"content\": [");
+                    for (size_t i = 0; i < clen; i += 4) {
+                        char piece[5] = { 0 };
+                        memcpy(piece, content + i, clen - i < 4 ? clen - i : 4);
+                        char *t = quoted(piece);
+                        size_t need = strlen(probs) + strlen(t) + 64;
+                        if (need > m) probs = realloc(probs, m = 2 * need);
+                        at = strlen(probs);
+                        snprintf(probs + at, m - at, "%s{\"token\": %s, \"logprob\": %g}", i ? ", " : "", t, lp);
+                        free(t);
+                    }
+                    strcat(probs, "]}");
+                }
+                size_t n = strlen(q) + strlen(probs) + 100;
                 char *out = malloc(n);
-                snprintf(out, n, "{\"choices\": [{\"message\": {\"role\": \"assistant\", \"content\": %s}}]}", q);
+                snprintf(out, n, "{\"choices\": [{\"message\": {\"role\": \"assistant\", \"content\": %s}%s}]}", q, probs);
+                free(probs);
                 reply(c, out);
                 free(out);
                 free(q);

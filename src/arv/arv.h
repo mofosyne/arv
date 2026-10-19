@@ -120,6 +120,7 @@ int cmd_burned(int argc, char **argv);
 int cmd_note(int argc, char **argv);
 int cmd_rename(int argc, char **argv);
 int cmd_retag(int argc, char **argv);
+int cmd_undo(int argc, char **argv);
 int cmd_same(int argc, char **argv);
 int cmd_locate(int argc, char **argv);
 int cmd_access(int argc, char **argv);
@@ -176,6 +177,9 @@ rec_record *sealed_view(const rec_record *d);
 void archive_shared_subset(const archive *a, const strlist *ids, archive *out);
 rec_record *object_disc_view(const rec_record *o);
 char *archive_where(const archive *a, const rec_record *d);
+/* --agent NAME --authorship KIND (before the command): a person's change made by a program for
+ * them, such as the assistant: its events name that agent, and the person too unless suggested */
+extern const char *event_agent, *event_authorship;
 rec_record *new_event(const char *disc_id, const char *type, const char *outcome, const char *agent,
                       const char *authorship, const char *note);
 char *person(void);

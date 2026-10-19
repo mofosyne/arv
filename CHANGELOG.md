@@ -84,6 +84,19 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   (`arv-assist chat --risk`), and when it has risen, Apply asks a second time. The model is told
   what was run.
 - The GUI keeps the conversation in the browser across reloads, until New.
+- Who a change is by: `arv --agent llm:MODEL --authorship suggested|accepted|edited COMMAND ...`,
+  for a program making a change for a person. The assistant's applied proposals are recorded as
+  `accepted` (or `edited`), naming the model and the person.
+- `arv undo EVENT-ID` sets back what one change set (a data object's tags or name, a path's tags or
+  caption on a disc) by a new change that replaces it, only while it is the latest. The GUI's cards
+  have Undo.
+- "Apply tags without asking" in the Assistant panel, off by default: a retag the model proposes is
+  applied at once as `suggested`, with Undo; never anything else, never one it was unsure of.
+- How sure the model was: from the server's token probabilities (`logprobs`), each proposal's least
+  sure token in the command, as `sure` (doubtful below half), shown on the card and at a terminal.
+- Rules from what you accept: a retag you apply is kept as an example (as `describe --ask` keeps
+  answers), and a word of the names that keeps coming with the tag is offered as a `Match` rule in
+  the vocabulary (`arv-assist chat --accepted`, `--rule`), at a terminal and in the GUI.
 - Each command's risk is in `arv help --json` (`reads`, `risk` none, low, medium or high, and
   `risks` for subcommands and options), from one table (`src/arv/risk.c`) that the checks hold to
   the manual.

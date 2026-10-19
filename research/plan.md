@@ -2744,3 +2744,47 @@ Still not built: rules learned from repeated acceptances, the low-risk "apply wi
 switch, confidence (each waits on enough use to tell what is worth it), Follow, the record-changed
 poll and the MCP server.
 
+## Done (2026-10-19): the assistant's Undo, apply without asking, confidence and rules
+
+The rest of "what may happen without asking" (the design above, "an assistant for archival work"):
+
+- **Who a change is by, for every command:** `--agent NAME --authorship suggested|accepted|edited`
+  before the command, taken off by `main` before anything else sees the arguments, so no command
+  needed changing. `new_event` applies them to the events a person's change would make (Authorship
+  `human`): the agent named, and for accepted or edited the person too, as `reviewed_event` already
+  did for describe. Machine events (a make's fixity, a check) stay `automatic`. The GUI's server
+  lets the two come before the command; arv checks their values. This closes the first version's
+  "naming the model as its agent waits on a way to pass an agent to every command".
+- **Undo is a new event:** `arv undo EVENT-ID` (low risk) for the fields whose value an event
+  carries: a data object's `Tags` and `Slug`, a disc path's `Tags:PATH` and `Caption:PATH`. The new
+  event replaces the undone one (`Sets`, `Replaces`) and carries the value of the events it had
+  replaced, the later of two; when it had replaced none, no value, so the field reads as before any
+  change (the burned tags, the object's own name). Only while the undone event is still the latest
+  of each field: a later change is undone first. Disc fields edited in place (a title, a label),
+  notes and the vocabulary's entries are set right by their own commands; a generic undo for them
+  would need the record to keep every old value in its events, which it does not yet.
+- **Apply tags without asking:** a switch in the GUI's panel, off by default, kept in the browser.
+  On, a proposal that is `retag`, low risk and not doubtful runs at once with `--authorship
+  suggested`, its card headed "Applied without asking", with Undo. Only retag, because Undo covers
+  it; tags are the design's "a value, easily set back". The model is told it was applied.
+- **Confidence, shown not trusted:** arv-assist asks for `logprobs` (dropped again if a server
+  refuses it) and keeps the reply's tokens. A proposal's `sure` is its least probable token within
+  the command's list: the weakest choice in what would run, not the whole reply, whose JSON
+  punctuation is always certain. Below 0.5 it is `doubtful`: the card says so and it is never applied
+  without asking. The design said a doubtful one "becomes a question"; it stays a proposal, marked,
+  since the person sees it anyway.
+- **Rules, from your own answers:** the rule-finding `describe --ask` had (a word in the names that
+  keeps coming with a tag, in three tagged paths or more, nine in ten) is now one function,
+  `word_rules_offered`. A retag the person applies is kept as an example (`config/word-examples.tsv`,
+  as `--ask` keeps answers: the object's name's words and the tags), and the rules it makes ripe
+  are offered: in the GUI under the card, at a terminal as a question. Approved, `Match: *WORD*` goes
+  into `config/tags.rec`, where `arv tag` and `describe` already apply Match rules as `automatic`.
+  A retag applied without asking is not an example: rules come from what a person chose.
+- **Tested** by `src/arv/check.sh` (provenance, undo and its refusals), arv-assist's checks (the fake
+  server now gives `logprobs` when a reply part starts with a `logprob:` line; rules after three
+  acceptances) and the GUI's tests; the panel was driven in Chromium: accept, rule, Undo, the
+  switch, an unsure proposal left alone, all kept across a reload.
+
+Not built: Follow, the record-changed poll, `chafa`, the MCP server, and the conversation kept in
+the home's cache (it is in the browser's localStorage).
+

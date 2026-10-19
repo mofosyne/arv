@@ -845,6 +845,48 @@ void word_example_add(const arv_home *h, const strlist *tags, const strlist *nam
     free(p);
 }
 
+/* the words of a path's names that keep going with one of its tags (in WORD_MIN tagged paths or more,
+ * nine in ten of them with it), not yet a rule for it, nor the tag's own word: rules to offer, at most
+ * max. pending: the tags given now are not yet in the counts. */
+size_t word_rules_offered(const word_stats *ws, const tag_words_t *tw, const strlist *tags, const strlist *terms, int pending,
+                          word_rule *out, size_t max)
+{
+    size_t n = 0;
+    for (size_t i = 0; ws && i < tags->n && n < max; i++) {
+        if (!strncmp(tags->v[i], "date:", 5)) continue;
+        for (size_t w = 0; w < terms->n && n < max; w++) {
+            const char *word = terms->v[w];
+            size_t with, all;
+            word_counts(ws, word, tags->v[i], &with, &all);
+            if (pending) with++, all++;     /* this answer too */
+            if (all < WORD_MIN || with * 100 < all * 90) continue;
+            const char *value = strchr(tags->v[i], ':') ? strchr(tags->v[i], ':') + 1 : tags->v[i];
+            if (strstr(value, word)) continue;          /* the tag's own word: no rule needed */
+            char *glob = xprintf("*%s*", word);
+            for (char *g = glob; *g; g++)
+                if (*g == ' ') *g = '*';
+            int have = 0;
+            for (size_t r = 0; r < tw->rule_tag.n && !have; r++)
+                have = !strcmp(tw->rule_tag.v[r], tags->v[i]) && !strcmp(tw->rule_glob.v[r], glob);
+            if (have) {
+                free(glob);
+                continue;
+            }
+            out[n++] = (word_rule){ xstrdup(tags->v[i]), xstrdup(word), glob, with, all };
+        }
+    }
+    return n;
+}
+
+void word_rules_free(word_rule *r, size_t n)
+{
+    for (size_t i = 0; i < n; i++) {
+        free(r[i].tag);
+        free(r[i].word);
+        free(r[i].glob);
+    }
+}
+
 /* a rule in the vocabulary: Match: *WORD* for TAG, in config/tags.rec, after its Name line (a new
  * record when the vocabulary has no such tag); the file kept as it is otherwise, comments too */
 int word_rule_add(const arv_home *h, const char *tag, const char *word)

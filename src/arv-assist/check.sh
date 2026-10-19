@@ -327,11 +327,31 @@ tr -d '\n' < gui.json | grep -q '"steps": \[{"command": \["todo", "--json"\], "s
     && tr -d '\n' < gui.json | grep -q '"reply": {"say": "{\\"read' \
     && ok "arv chat --json (the GUI's): the conversation in, the steps and the reply out; at most 6 reads a turn, then an answer is asked for" \
     || { cat gui.json; no "chat --json"; }
+printf 'logprob: -1.2\n{"propose": ["retag", "trip", "travel"], "why": "a guess"}\n' > text.reply
+printf '{"messages": [{"role": "user", "content": "tag it"}]}' | "$tool" --home home chat --json $llm > sure.json || no "chat --json sure"
+printf 'logprob: -0.01\n{"propose": ["retag", "trip", "travel"], "why": "sure"}\n' > text.reply
+grep -q '"logprobs": true' log && tr -d '\n' < sure.json | grep -q '"risk": "low", "sure": 0.30, "doubtful": true' \
+    && printf '{"messages": [{"role": "user", "content": "tag it"}]}' | "$tool" --home home chat --json $llm | grep -q '"sure": 0.99, "shown"' \
+    && printf 'logprob: -1.2\n{"propose": ["retag", "trip", "travel"], "why": "a guess"}\n' > text.reply \
+    && printf 'tag it\n' | "$tool" --home home chat $llm 2>&1 | grep -q '^  The model was unsure of it (its least sure word: 30%)' \
+    && ok "arv chat: how sure the model was of a proposal, from the server's token probabilities (its least sure token in the command); below half, doubtful" \
+    || { cat sure.json; no "chat: how sure"; }
 printf '{"command": ["arv", "tags", "merge", "a b", "c"]}' | "$tool" chat --risk > risk.json \
     && grep -q '"risk": "high", "shown": "arv tags merge '"'"'a b'"'"' c"' risk.json \
     && printf '{"command": ["--home", "/x", "find", "a"]}' | "$tool" chat --risk | grep -q '"error": "no command' \
     && ok "arv chat --risk (the GUI's Edit): a proposal as the person edited it, its risk judged again, no model needed; no other home" \
     || { cat risk.json; no "chat --risk"; }
+"$arv" init ah >/dev/null 2>&1 && put "osaka-castle/a.jpg" "c"
+"$arv" -C ah make -y --no-ecc --no-formats --set TRIP --output-dir ahout osaka-castle >/dev/null 2>&1 || no "make (rules)"
+for n in 1 2; do printf '{"command": ["retag", "osaka-castle", "travel"]}' | "$tool" chat --home ah --accepted > acc.json; done
+grep -q '"rules": \[\]' acc.json && printf '{"command": ["retag", "osaka-castle", "travel, best"]}' | "$tool" chat --home ah --accepted > acc.json \
+    && tr -d '\n' < acc.json | grep -q '{"tag": "travel", "word": "osaka", "glob": "\*osaka\*", "with": 3, "all": 3}' \
+    && ! grep -q '"tag": "best"' acc.json \
+    && printf '{"tag": "travel", "word": "osaka"}' | "$tool" chat --home ah --rule | grep -q '"added": "travel", "match": "\*osaka\*"' \
+    && grep -A1 '^Name: travel$' ah/config/tags.rec | grep -qx 'Match: \*osaka\*' \
+    && printf '{"command": ["retag", "osaka-castle", "travel"]}' | "$tool" chat --home ah --accepted | tr -d '\n' | grep -qv '"word": "osaka"' \
+    && ok "arv chat --accepted, --rule: a tag applied three times with the same word in the names is offered as a rule (Match: *WORD*), and once approved it is in the vocabulary" \
+    || { cat acc.json; no "chat rules"; }
 mkdir -p home/config && echo "Answer only in French." > home/config/assistant.txt
 printf '{"say": "Oui."}' > text.reply
 printf 'hello\n' | "$tool" --home home chat $llm > /dev/null 2>&1 && grep -q 'Answer only in French' log \

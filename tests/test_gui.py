@@ -471,6 +471,11 @@ class GuiTest(unittest.TestCase):
         self.assertEqual([s["shown"] for s in turn["steps"]], ["arv todo --json"])
         self.assertEqual((turn["reply"]["propose"], turn["reply"]["risk"]), (["tags", "add", "person:ann"], "medium"))
         self.assertEqual([m["role"] for m in turn["messages"]], ["user", "assistant", "user", "assistant"])
+        r = self.run_arv("--agent", "llm:fake-model", "--authorship", "accepted", "help", "undo")  # who a change is by
+        self.assertEqual(r["returncode"], 0, r["err"])
+        self.assertIn("arv undo EVENT-ID", r["out"])
+        status, text = self.request("/api/run", {"argv": ["--home", self.home, "--agent", "x"], "program": "arv"})
+        self.assertEqual(status, 400, text)                                    # no command after them
         edited = json.loads(self.run_arv("chat", "--risk", program="arv-assist",               # Edit: judged again
                                          stdin=json.dumps({"command": ["tags", "merge", "person:ann", "person:anne"]}))["out"])
         self.assertEqual((edited["risk"], edited["shown"]), ("high", "arv tags merge person:ann person:anne"))

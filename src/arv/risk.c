@@ -42,7 +42,7 @@ static const risk_rule RULES[] = {
     { "diff", NULL, NULL, "none" }, { "sets", NULL, NULL, "none" }, { "map", NULL, NULL, "none" },
     { "keywords", NULL, NULL, "none" }, { "info", NULL, NULL, "none" }, { "audit", NULL, NULL, "none" },
     { "inventory", NULL, NULL, "none" }, { "names", NULL, NULL, "none" }, { "help", NULL, NULL, "none" },
-    { "note", NULL, NULL, "low" }, { "retag", NULL, NULL, "low" }, { "describe", NULL, NULL, "low" },
+    { "note", NULL, NULL, "low" }, { "retag", NULL, NULL, "low" }, { "undo", NULL, NULL, "low" }, { "describe", NULL, NULL, "low" },
     { "tag", NULL, NULL, "low" },
     { "init", NULL, NULL, "medium" }, { "link", NULL, NULL, "medium" }, { "rename", NULL, NULL, "medium" },
     { "same", NULL, NULL, "medium" }, { "identify", NULL, NULL, "medium" }, { "relabel", NULL, NULL, "medium" },

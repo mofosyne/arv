@@ -314,6 +314,8 @@ static char **command_line(const char *program, const jv *args, const char **why
     for (size_t i = 0; i < args->n; i++)
         if (args->vals[i]->kind != 's') return *why = "argv: a list of strings", NULL;
     size_t at = args->n && (!strcmp(args->vals[0]->str, "--home") || !strcmp(args->vals[0]->str, "-C")) ? 2 : 0;
+    while (!assist && at + 1 < args->n && (!strcmp(args->vals[at]->str, "--agent") || !strcmp(args->vals[at]->str, "--authorship")))
+        at += 2;                                /* who a change is by: the assistant's (arv checks the values) */
     const char *word = at < args->n ? args->vals[at]->str : "";
     int command = word[0] >= 'a' && word[0] <= 'z';
     for (const char *c = word; command && *c; c++) command = (*c >= 'a' && *c <= 'z') || *c == '-';

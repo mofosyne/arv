@@ -373,8 +373,25 @@ ARV_NO_THUMBS= PATH="$PWD/th/fake:$PATH" "$tool" -C th/home make -y --no-ecc --n
     && ARV_NO_THUMBS= PATH="$PWD/th/fake:$PATH" "$tool" -C th/home make -y --no-ecc --no-formats --no-thumbs --set TH --output-dir th/out3 th/Trip > /dev/null 2>&1 \
     && id2=$(cut -f1 th/make2.out | tail -1) && 7z l th/out2/*.iso > th/l2 && 7z l th/out3/*.iso > th/l3 \
     && grep -q "catalog/volumes/$id2/thumbs.tsv" th/l2 && ! grep -q "catalog/volumes/$id/thumbs" th/l2 \
-    && ! grep -q "thumbs" th/l3 \
+    && ! grep -q "catalog/volumes/.*thumbs" th/l3 \
     && ok "thumbnails: a disc carries its own, never an earlier disc's; --no-thumbs makes none" || no "thumbnails on later discs"
+# who a change is by, when a program makes it for a person (--agent, --authorship); arv undo sets one back
+"$tool" -C th/home retag Trip "travel" > /dev/null \
+    && "$tool" -C th/home --agent llm:m --authorship suggested retag Trip "travel, best" --json > un1.json 2> /dev/null \
+    && id=$(grep -o '"EventId": "[0-9a-f]*' un1.json | cut -d'"' -f4) && grep -q '"Authorship": "suggested", "Agent": \["llm:m"\]' un1.json \
+    && "$tool" -C th/home --agent llm:m --authorship accepted note TH-01_2026_R "kept" --json 2> /dev/null \
+        | grep -q '"Authorship": "accepted", "Agent": \["llm:m", "human:' \
+    && "$tool" --agent llm:m --authorship guessed -C th/home note TH-01_2026_R x 2>&1 | grep -q '^Error: --authorship guessed: suggested' \
+    && "$tool" -C th/home undo "$(echo "$id" | cut -c1-10)" > un.out && grep -qx 'Tags: travel' un.out \
+    && ! "$tool" -C th/home find best | grep -q '^TAG' \
+    && ! "$tool" -C th/home undo "$id" > /dev/null 2> un.err && grep -q '^Error: Tags has changed since' un.err \
+    && ! "$tool" -C th/home undo "$(grep -o '"EventId": "[0-9a-f]*' un1.json | cut -d'"' -f4 | cut -c1-4)" > /dev/null 2>&1 \
+    && note=$(awk 'BEGIN { RS = "" } /Type: creation/ { id = $0 } END { print id }' th/home/catalog/archive.rec | sed -n 's/^EventId: //p') \
+    && ! "$tool" -C th/home undo "$note" > /dev/null 2> un.err && grep -q '^Error: .* set nothing arv undo can set back' un.err \
+    && grep -A1 "^Note: undid $id: tags of Trip: travel, best" th/home/catalog/archive.rec > /dev/null \
+    && "$tool" -C th/home audit > /dev/null \
+    && ok "a change for a person by a program: --agent and --authorship (suggested: the model alone; accepted: the person too); arv undo sets back what one change set, by a new change, and only while it is the latest" \
+    || { cat un1.json un.out un.err; no "provenance and undo"; }
 # the programs arv can use: each found or not, from PATH; none needed for a disc
 mkdir -p progbin && printf '#!/bin/sh\n' > progbin/zstd && chmod +x progbin/zstd
 printf 'NAME="Debian GNU/Linux"\nID=debian\nPRETTY_NAME="Debian GNU/Linux 13 (trixie)"\n' > deb.os
