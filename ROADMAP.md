@@ -34,7 +34,8 @@ Each waits until someone needs it.
       it trades away "any computer can read a disc", so only per item, and with a standard tool
 - [ ] **A disc's spare room** for second copies of the most valuable collections ([#20](https://github.com/mofosyne/arv/issues/20))
 - [ ] **Formats against a preservation list** (the National Archives of Australia's first): which files
-      are in formats outside it, per disc and in `arv todo` (research/plan.md, "formats against a preservation list")
+      are in formats outside it, per disc and in `arv todo`; and scans' raw files, masters and access
+      copies told apart (research/plan.md, "formats against a preservation list")
 - [ ] **Reference data as distribution packages:** gazetteers, outlines, word lists, format signatures ([#53](https://github.com/mofosyne/arv/issues/53))
 - [ ] **The embedding engine and its model** on every disc, so `arv tag` runs offline from a disc ([#1](https://github.com/mofosyne/arv/issues/1))
 - [ ] **Tape:** yatm (LTO through LTFS) alongside arv's tape support ([#45](https://github.com/mofosyne/arv/issues/45))

@@ -2714,9 +2714,14 @@ meets: open formats on the disc, checksums from the start, PRONOM ids for every 
       the page's date. The list is reference data (issue #53), not code. Not arv's part:
       converting (LibreOffice, ffmpeg, ImageMagick do that); a converted file is a new version
       of the object, the original kept, and its event says `migration`, the PREMIS term.
-- [ ] **Scans: masters and access copies.** The NAA keeps an uncompressed TIFF master and makes
-      JPEG or PDF copies from it. docs/workflow.md now points to its figures for anyone scanning;
-      nothing for arv to do beyond that, and the planned thumbnails are the access copies.
+- [ ] **Scans: masters, raw files and access copies.** The NAA keeps an uncompressed TIFF master
+      and makes JPEG copies from it; for a negative it keeps two masters, the raw DNG and the
+      inverted TIFF. A scanned family album has the same three files per picture. arv keeps them
+      all but cannot say which is which, or which came from which. The record's part: a tag per
+      file, `role:raw`, `role:master` or `role:access` (the tag words arv already keeps), and the
+      master's SHA-256 on its derivatives, so `arv find role:master` lists what must never be
+      lost and an access copy can be dropped from a full disc knowing it can be remade. How to
+      scan stays advice: docs/workflow.md points to the NAA's figures.
 
 The NAA itself says existing files are not to be converted: they are handed over as they are,
 and the archive decides. So a file outside the list is a fact to record, not a fault: a warning,

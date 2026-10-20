@@ -250,9 +250,8 @@ Two NAA pages, noted 2026-10-20 for an archive kept in Australia:
   ([2021 PDF](https://www.naa.gov.au/sites/default/files/2022-01/Preservation-Digitisation-Standards-2021.pdf)):
   how the NAA digitises its own holdings.
 
-The born-digital page was read in full (2026-10-20, from a copy of the page the owner supplied;
-the NAA site refused this session's connections). The digitisation figures further down come from
-search excerpts of the 2021 standards and their companions: check them before relying on one.
+Both pages were read in full on 2026-10-20, from copies of the pages the owner supplied (the NAA
+site refused this session's connections).
 
 **Born-digital formats.** The standard covers files *created* digitally from its date of issue.
 It does not cover scans (they follow the Agency Digitisation Specifications), social media, or
@@ -292,18 +291,32 @@ clear migration path); platform independent; uncompressed or lossless; supported
 community or third parties); and metadata friendly. No format meets every one; the more, the
 lower the risk.
 
-**Digitisation** (paper, photographs, audiovisual), from the 2021 standards and the agency
-specifications:
+**Digitisation** (February 2021, revised January 2022). For physical records of archival value,
+done by the NAA, its contractors and agencies; reviewed every year. Its principles: the digital
+copy is a long-term **surrogate** for the original, made use-neutral, at a capture ratio of 100%
+with no manipulation, and **complete** (every page, attachment and annotation; nothing cropped or
+redacted). Each item gets an **archival master** (uncompressed or lossless) and **access
+derivatives** made from it (lossy is fine: they are not archival). TIFF 6.0 is the master for
+everything but audiovisual; JPEG is the access copy. A file of many pages becomes single-page TIFFs,
+not one multi-page TIFF.
 
-- Two files per item: a **preservation master** (uncompressed TIFF 6.0 for everything but
-  audiovisual) and **access copies** made from it (JPEG, PDF).
-- Paper under A3: 400 ppi, 8-bit colour; larger: 600 ppi, 16-bit. Agencies' everyday scanning:
-  300 ppi TIFF 6.0 (uncompressed, or lossless LZW or ZIP), 8-bit sRGB, or 8-bit greyscale.
-- Negatives and transparencies up to 35 mm: 4000 to 5000 ppi, 16 bits a channel, ProPhoto RGB;
-  DNG for the raw capture and TIFF 6.0 for the master. Prints: 16-bit, Adobe RGB or ProPhoto RGB.
-- Audio: Broadcast WAV, 48 kHz, 16- or 24-bit PCM (IASA's guidelines). Video: 10-bit,
-  uncompressed or lossless.
-- Checksums made when the files are made, to show they are unchanged after each copy.
+| Original | Master | Access copy |
+|---|---|---|
+| Paper under A3, bound volumes | TIFF 6.0 uncompressed, 400 ppi, 8-bit colour, sRGB or Adobe RGB; **16-bit** when faded, stained, low in contrast or handwritten | JPEG (Photoshop level 10–12), 300 ppi, sRGB |
+| Paper over A3 (maps, plans) | 400 ppi, 8-bit; rare or finely detailed: 600 ppi, 16-bit, Adobe RGB or ProPhoto RGB | JPEG, 3000 px on the shortest edge |
+| Photographic prints | 16-bit, Adobe RGB or ProPhoto RGB: 2700 ppi under A6, 900 ppi A6 to A4, 600 ppi over A4 | JPEG, 1290 px on the shortest edge |
+| Negatives and transparencies | **two masters:** the raw scan as DNG (no cropping, 16-bit, ProPhoto RGB) and the inverted positive as TIFF (16-bit; ProPhoto RGB, or Grey Gamma 2.2 for black and white). Preferred: 5000 ppi up to 35 mm, 4000 ppi to 6×6 cm, 3000 ppi to 5×7", 1600 ppi to 8×10" | JPEG, 1290 px on the shortest edge |
+| Microfilm, microfiche, aperture cards | 400 ppi at the original's size, 8-bit Grey Gamma 2.2 | JPEG, 400 ppi |
+| Analogue audio (records, tape, cassettes, film sound) | Broadcast WAV, linear PCM, **96 kHz, 24-bit**; channels as the original *format* (a mono voice on a stereo cassette stays stereo) | MP3, 48 kHz, 192 kbit/s CBR |
+| Digital audio (DAT, CD) | Broadcast WAV, at the original's own rate and depth | MP3, 192 kbit/s CBR |
+| Video (VHS, Betacam, Mini DV, LaserDisc...) | MXF OP-1a, lossless Motion JPEG 2000, 10-bit, original frame size, rate, interlacing and aspect; sound BWF 48 kHz 16-bit | MP4, H.264 (AVC High), 8-bit, 5 Mbit/s HD or 1.5 Mbit/s SD |
+| Motion picture film | DPX (SMPTE 268M-2003) uncompressed, 10-bit RGB 4:4:4: 4K or 5K for 35 mm, 2K (4K for negatives) for 16 mm, 2K for 8 mm; at its true frame rate (24 or 25); sound BWF 48 kHz 24-bit | MP4, H.264, 1920×1080 |
+
+Also: negatives are scanned against a film target (white about 240–245, mid grey 110–115, black
+12–20 RGB), with a 5000 K light box and a camera of at least 14 stops. Audio follows IASA TC-04
+(2009); video is under review against IASA TC-06 (2018). The page says nothing of checksums or
+embedded metadata; the NAA's [Preserving the collection](https://www.naa.gov.au/about-us/preserving-collection)
+page says checksums are made when the files are created, to check them after every copy or move.
 
 **What arv already meets, and what it takes:**
 
@@ -314,7 +327,7 @@ specifications:
 | Checksums made at the start, checked at each copy | SHA-256 in every bag's manifest; `arv check`, `arv checked` |
 | Knowing each file's format | PRONOM ids through Siegfried (`formats.csv`) |
 | Format risk, and migration | **Not yet:** a disc's formats compared with a list such as this one (research/plan.md, "formats against a preservation list"). Converting stays with the tools built for it |
-| Masters and access copies | Archive the master; a smaller access copy is optional. Planned thumbnails are access copies, named by their master's hash |
+| Masters and access copies | Archive the master (and a negative's raw DNG beside it); the access copy is optional, and can be remade. Which file is which, and which it came from, is not yet recorded (research/plan.md, "formats against a preservation list"). Planned thumbnails are access copies, named by their master's hash |
 | How to scan | Not arv's work: the figures above are the advice to give (docs/workflow.md, "Scans") |
 
 ## Sources
@@ -326,4 +339,4 @@ specifications:
 - [OCFL 1.1](https://ocfl.io/1.1/spec/)
 - [ICA Records in Contexts](https://www.ica.org/ica-network/expert-groups/egad/records-in-contexts-ric/), [RiC-O 1.1](https://www.ica.org/standards/RiC/RiC-O_1-1.html)
 - [Preservation metadata (Wikipedia)](https://en.wikipedia.org/wiki/Preservation_metadata)
-- National Archives of Australia: [Born-digital file format standards](https://www.naa.gov.au/information-management/storing-and-preserving-information/preserving-information/born-digital-file-format-standards), [Preservation Digitisation Standards](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/preservation-digitisation-standards) ([2021 PDF](https://www.naa.gov.au/sites/default/files/2022-01/Preservation-Digitisation-Standards-2021.pdf)), [Digital Preservation Policy](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/digital-preservation-policy), [Digitisation specifications for paper records in agencies](https://www.naa.gov.au/information-management/capturing-information/digitisation-specifications-paper-records-agencies), [Technical specifications for digitising audiovisual records](https://www.naa.gov.au/information-management/store-and-preserve-information/preserving-information/preserving-digital-information/technical-specifications-digitising-audiovisual-records), [General Records Authority 31](https://www.naa.gov.au/node/784); ADRI: [Australasian Digital Recordkeeping Initiative](https://www.caara.org.au/index.php/working-groups/adri/)
+- National Archives of Australia: [Born-digital file format standards](https://www.naa.gov.au/information-management/storing-and-preserving-information/preserving-information/born-digital-file-format-standards), [Preservation Digitisation Standards](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/preservation-digitisation-standards) ([2021 PDF](https://www.naa.gov.au/sites/default/files/2022-01/Preservation-Digitisation-Standards-2021.pdf)), [Digital Preservation Policy](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/digital-preservation-policy), [Digitisation specifications for paper records in agencies](https://www.naa.gov.au/information-management/capturing-information/digitisation-specifications-paper-records-agencies), [Technical specifications for digitising audiovisual records](https://www.naa.gov.au/information-management/store-and-preserve-information/preserving-information/preserving-digital-information/technical-specifications-digitising-audiovisual-records), [IASA TC-04](https://www.iasa-web.org/tc04/audio-preservation), [General Records Authority 31](https://www.naa.gov.au/node/784); ADRI: [Australasian Digital Recordkeeping Initiative](https://www.caara.org.au/index.php/working-groups/adri/)

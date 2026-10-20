@@ -195,8 +195,10 @@ tesseract scan-0042.jpg scan-0042       # scan-0042.txt beside the image: a clue
 
 Before scanning, choose the settings once. The National Archives of Australia's
 [Preservation Digitisation Standards](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/preservation-digitisation-standards)
-are a good guide: an uncompressed TIFF master (paper at 400 ppi, photographic negatives at 4000 ppi
-or more, 16 bits a channel), and JPEG or PDF copies made from it for reading. Archive the master.
+are a good guide: a master in uncompressed TIFF (paper at 400 ppi, 16-bit when faded or handwritten;
+prints at 600 to 2700 ppi by size, 16-bit; 35 mm negatives at 5000 ppi, keeping the raw DNG as
+well as the inverted TIFF), and a JPEG made from it for reading. Tapes and records: Broadcast WAV
+at 96 kHz, 24-bit. Archive the masters; a JPEG can be made again.
 
 ### 2. Sort, and see what changed
 
