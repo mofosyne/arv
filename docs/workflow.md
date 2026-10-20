@@ -193,6 +193,11 @@ ocrmypdf --skip-text letter.pdf letter-ocr.pdf   # a text layer in a copy, on th
 tesseract scan-0042.jpg scan-0042       # scan-0042.txt beside the image: a clue, and searchable on the disc
 ```
 
+Before scanning, choose the settings once. The National Archives of Australia's
+[Preservation Digitisation Standards](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/preservation-digitisation-standards)
+are a good guide: an uncompressed TIFF master (paper at 400 ppi, photographic negatives at 4000 ppi
+or more, 16 bits a channel), and JPEG or PDF copies made from it for reading. Archive the master.
+
 ### 2. Sort, and see what changed
 
 Work in the folder as you like. arv tells you what changed since the last edition, and between

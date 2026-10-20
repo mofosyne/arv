@@ -2697,3 +2697,26 @@ loses the archive). If it is wanted: per object, with a standard tool (age, or O
 fingerprint in the record and the steps in the disc's README.txt; never arv's own cryptography.
 Also for an organisation, later if ever: more than one person writing the record, with accounts.
 Signing discs (proof of origin, not secrecy) is issue #55.
+
+## Design (2026-10-20, not built): formats against a preservation list
+
+The owner is in Australia, so the National Archives of Australia's standards are the first
+reference: its born-digital file format standards and its preservation digitisation standards
+(read, with the links, in research/metadata-standards.md, section 8). Most of it arv already
+meets: open formats on the disc, checksums from the start, PRONOM ids for every file. Two gaps:
+
+- [ ] **Formats against a list.** The NAA keeps a list of formats it trusts and migrates the
+      rest when their risk grows. arv records each file's PRONOM id (`formats.csv`) but says
+      nothing about it. The record's part: compare a disc's formats with a chosen list (PRONOM
+      ids, the NAA's first; another country's or the owner's own in its place) and say, per
+      disc and in `arv todo`, which files are in formats outside it, with the count. The list is
+      reference data (issue #53), not code. Not arv's part: converting (LibreOffice, ffmpeg,
+      ImageMagick do that); a converted file is a new version of the object, and its event says
+      `migration`, the PREMIS term.
+- [ ] **Scans: masters and access copies.** The NAA keeps an uncompressed TIFF master and makes
+      JPEG or PDF copies from it. docs/workflow.md now points to its figures for anyone scanning;
+      nothing for arv to do beyond that, and the planned thumbnails are the access copies.
+
+Not taken: the NAA's tiers of formats are for agencies handing records over; a personal archive
+keeps what it has, and a warning, not a refusal, is the most arv says.
+

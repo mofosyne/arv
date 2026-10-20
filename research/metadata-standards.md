@@ -240,6 +240,65 @@ catalog/                         BagIt tag directory (covered by tagmanifest)
 Events that happen *after* burning (later fixity checks, re-burns) can only
 live in the master `archive.rec` at home, because the disc is write-once.
 
+## 8. Australian standards (National Archives of Australia)
+
+Two NAA pages, noted 2026-10-20 for an archive kept in Australia:
+
+- [Born-digital file format standards](https://www.naa.gov.au/information-management/storing-and-preserving-information/preserving-information/born-digital-file-format-standards):
+  the formats Australian Government agencies should use for new born-digital records.
+- [Preservation Digitisation Standards](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/preservation-digitisation-standards)
+  ([2021 PDF](https://www.naa.gov.au/sites/default/files/2022-01/Preservation-Digitisation-Standards-2021.pdf)):
+  how the NAA digitises its own holdings.
+
+The NAA site refused this session's connections, so what follows comes from search excerpts of
+these pages and their companions, not a full read. Check the pages before relying on a figure.
+
+**Born-digital formats**, by category (the page names each; versions on the page):
+
+| Category | Formats |
+|---|---|
+| Documents | PDF/A, OpenDocument text, Word (OOXML) |
+| Spreadsheets | CSV, OpenDocument spreadsheet, Excel (OOXML) |
+| Presentations | OpenDocument presentation, PowerPoint (OOXML), PDF |
+| Email | EML, MSG, MBOX, PST |
+| Raster images | TIFF, JPEG 2000, PNG, JPEG, DNG, GIF |
+| Vector images | SVG, ODG |
+| Audio | WAV / Broadcast WAV, FLAC, MP3 |
+| Video | Motion JPEG 2000, MPEG-2, MPEG-4 AVC; in MXF or Matroska (MKV) |
+| Digital cinema | DPX |
+| Structured data | CSV, TSV, XML, JSON |
+| Websites | HTML, CSS, XML, XSD, DTD |
+| Also | CAD and geospatial formats |
+
+Its [Digital Preservation Policy](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/digital-preservation-policy)
+gives the reasons a format is chosen: a public specification, free of patents, widely supported,
+independent of a platform, and lossless or uncompressed. The NAA assesses each format's risk and
+plans to migrate a format once its risk passes a threshold.
+
+**Digitisation** (paper, photographs, audiovisual), from the 2021 standards and the agency
+specifications:
+
+- Two files per item: a **preservation master** (uncompressed TIFF 6.0 for everything but
+  audiovisual) and **access copies** made from it (JPEG, PDF).
+- Paper under A3: 400 ppi, 8-bit colour; larger: 600 ppi, 16-bit. Agencies' everyday scanning:
+  300 ppi TIFF 6.0 (uncompressed, or lossless LZW or ZIP), 8-bit sRGB, or 8-bit greyscale.
+- Negatives and transparencies up to 35 mm: 4000 to 5000 ppi, 16 bits a channel, ProPhoto RGB;
+  DNG for the raw capture and TIFF 6.0 for the master. Prints: 16-bit, Adobe RGB or ProPhoto RGB.
+- Audio: Broadcast WAV, 48 kHz, 16- or 24-bit PCM (IASA's guidelines). Video: 10-bit,
+  uncompressed or lossless.
+- Checksums made when the files are made, to show they are unchanged after each copy.
+
+**What arv already meets, and what it takes:**
+
+| NAA | arv |
+|---|---|
+| Open, documented, patent-free formats | The disc's own: UDF 2.50 (ECMA-167), BagIt (RFC 8493), recfiles and TSV, RS03 (dvdisaster's open layout) |
+| Checksums made at the start, checked at each copy | SHA-256 in every bag's manifest; `arv check`, `arv checked` |
+| Knowing each file's format | PRONOM ids through Siegfried (`formats.csv`) |
+| Format risk, and migration | **Not yet:** a disc's formats compared with a list such as this one (research/plan.md, "formats against a preservation list"). Converting stays with the tools built for it |
+| Masters and access copies | Archive the master; a smaller access copy is optional. Planned thumbnails are access copies, named by their master's hash |
+| How to scan | Not arv's work: the figures above are the advice to give (docs/workflow.md, "Scans") |
+
 ## Sources
 
 - [NDSA Levels of Digital Preservation](https://www.ndsa.org/publications/levels-of-digital-preservation/), [v2.1 announcement](https://www.ndsa.org/2026/03/23/announcing-version-2_1-of-the-ndsa-levels-of-digital-preservation.html), [DPC: introducing v2.0](https://www.dpconline.org/blog/introducing-the-new-ndsa-levels-of-preservation)
@@ -249,3 +308,4 @@ live in the master `archive.rec` at home, because the disc is write-once.
 - [OCFL 1.1](https://ocfl.io/1.1/spec/)
 - [ICA Records in Contexts](https://www.ica.org/ica-network/expert-groups/egad/records-in-contexts-ric/), [RiC-O 1.1](https://www.ica.org/standards/RiC/RiC-O_1-1.html)
 - [Preservation metadata (Wikipedia)](https://en.wikipedia.org/wiki/Preservation_metadata)
+- National Archives of Australia: [Born-digital file format standards](https://www.naa.gov.au/information-management/storing-and-preserving-information/preserving-information/born-digital-file-format-standards), [Preservation Digitisation Standards](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/preservation-digitisation-standards) ([2021 PDF](https://www.naa.gov.au/sites/default/files/2022-01/Preservation-Digitisation-Standards-2021.pdf)), [Digital Preservation Policy](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/digital-preservation-policy), [Digitisation specifications for paper records in agencies](https://www.naa.gov.au/information-management/capturing-information/digitisation-specifications-paper-records-agencies), [Technical specifications for digitising audiovisual records](https://www.naa.gov.au/information-management/store-and-preserve-information/preserving-information/preserving-digital-information/technical-specifications-digitising-audiovisual-records)
