@@ -250,30 +250,47 @@ Two NAA pages, noted 2026-10-20 for an archive kept in Australia:
   ([2021 PDF](https://www.naa.gov.au/sites/default/files/2022-01/Preservation-Digitisation-Standards-2021.pdf)):
   how the NAA digitises its own holdings.
 
-The NAA site refused this session's connections, so what follows comes from search excerpts of
-these pages and their companions, not a full read. Check the pages before relying on a figure.
+The born-digital page was read in full (2026-10-20, from a copy of the page the owner supplied;
+the NAA site refused this session's connections). The digitisation figures further down come from
+search excerpts of the 2021 standards and their companions: check them before relying on one.
 
-**Born-digital formats**, by category (the page names each; versions on the page):
+**Born-digital formats.** The standard covers files *created* digitally from its date of issue.
+It does not cover scans (they follow the Agency Digitisation Specifications), social media, or
+business systems and databases. **Existing files are not to be converted:** they go to the NAA in
+their current format, and the NAA assesses them and acts under its Digital Preservation Policy. A
+file converted for business use goes to a listed format, and the original is kept unless General
+Records Authority 31 allows its destruction. The list, by category (the page names formats and
+extensions, not versions or PRONOM ids):
 
 | Category | Formats |
 |---|---|
-| Documents | PDF/A, OpenDocument text, Word (OOXML) |
-| Spreadsheets | CSV, OpenDocument spreadsheet, Excel (OOXML) |
-| Presentations | OpenDocument presentation, PowerPoint (OOXML), PDF |
+| Word processing | Word (OOXML: docx, docm, dotx, dotm), OpenDocument text (odt, fodt), PDF/A, plain text in UTF-8 or UTF-16 |
+| Spreadsheets | CSV, Excel (OOXML: xlsx, xlsm), OpenDocument spreadsheet (ods, fods), PDF |
+| Presentations | PowerPoint (OOXML: pptx and its kin), OpenDocument presentation (odp, fodp), PDF |
 | Email | EML, MSG, MBOX, PST |
-| Raster images | TIFF, JPEG 2000, PNG, JPEG, DNG, GIF |
-| Vector images | SVG, ODG |
-| Audio | WAV / Broadcast WAV, FLAC, MP3 |
-| Video | Motion JPEG 2000, MPEG-2, MPEG-4 AVC; in MXF or Matroska (MKV) |
-| Digital cinema | DPX |
-| Structured data | CSV, TSV, XML, JSON |
-| Websites | HTML, CSS, XML, XSD, DTD |
-| Also | CAD and geospatial formats |
+| Raster images | DNG, GIF, JPEG 2000 (jp2), JPEG (JFIF), PNG, TIFF |
+| Vector images | OpenDocument graphic (odg, fodg), SVG |
+| Audio | AAC (m4a), AIFF, FLAC, MP3, WAVE / Broadcast Wave, WMA |
+| Digital cinema | DPX, TIFF |
+| Video codecs | FFV1, Motion JPEG 2000, MPEG-2, MPEG-4 AVC, WMV 9 |
+| Video containers | AVI, MXF, Matroska (mkv), QuickTime (mov) |
+| CAD | DWG, DXF, X3D, PDF/E, PRC, STEP, U3D |
+| Geospatial | ECW, ESRI shapefile and world file, GeoJSON, GML, GeoPackage, GeoTIFF, KML/KMZ, Motion JPEG 2000, SVG, TerraGo geospatial PDF |
+| Structured data | CSV, EBCDIC, XML, JSON, TSV |
+| Website | XML, HTML/XHTML, CSS (the page labels it "JavaScript Object Notation", a slip), XSD, DTD |
 
-Its [Digital Preservation Policy](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/digital-preservation-policy)
-gives the reasons a format is chosen: a public specification, free of patents, widely supported,
-independent of a platform, and lossless or uncompressed. The NAA assesses each format's risk and
-plans to migrate a format once its risk passes a threshold.
+Not on it, though common in a personal archive: WARC web archives, SQLite, ZIP and tar, HEIC
+and WebP, Opus and Ogg, source code and git repositories, disc images. The page says the list
+will be reviewed and extended.
+
+**Why these formats.** A format has a low risk of becoming obsolete, by the criteria of the
+[Australasian Digital Recordkeeping Initiative](https://www.caara.org.au/index.php/working-groups/adri/)
+(ADRI, of the Council of Australasian Archives and Records Authorities), when it is:
+widely adopted; unrestricted (free of patents, preferably open source); well documented (a public
+specification detailed enough to write a reader from); stable (rare versions, compatible, or a
+clear migration path); platform independent; uncompressed or lossless; supported (by vendors,
+community or third parties); and metadata friendly. No format meets every one; the more, the
+lower the risk.
 
 **Digitisation** (paper, photographs, audiovisual), from the 2021 standards and the agency
 specifications:
@@ -292,7 +309,8 @@ specifications:
 
 | NAA | arv |
 |---|---|
-| Open, documented, patent-free formats | The disc's own: UDF 2.50 (ECMA-167), BagIt (RFC 8493), recfiles and TSV, RS03 (dvdisaster's open layout) |
+| ADRI's criteria for formats | The disc's own meet them: UDF 2.50 (ECMA-167), BagIt (RFC 8493), RS03 (dvdisaster's open layout); every catalogue file is in a format on the list (UTF-8 text, TSV, CSV, HTML) |
+| Keep existing files as they are | arv never converts or deletes; a conversion would be a new version, the original kept |
 | Checksums made at the start, checked at each copy | SHA-256 in every bag's manifest; `arv check`, `arv checked` |
 | Knowing each file's format | PRONOM ids through Siegfried (`formats.csv`) |
 | Format risk, and migration | **Not yet:** a disc's formats compared with a list such as this one (research/plan.md, "formats against a preservation list"). Converting stays with the tools built for it |
@@ -308,4 +326,4 @@ specifications:
 - [OCFL 1.1](https://ocfl.io/1.1/spec/)
 - [ICA Records in Contexts](https://www.ica.org/ica-network/expert-groups/egad/records-in-contexts-ric/), [RiC-O 1.1](https://www.ica.org/standards/RiC/RiC-O_1-1.html)
 - [Preservation metadata (Wikipedia)](https://en.wikipedia.org/wiki/Preservation_metadata)
-- National Archives of Australia: [Born-digital file format standards](https://www.naa.gov.au/information-management/storing-and-preserving-information/preserving-information/born-digital-file-format-standards), [Preservation Digitisation Standards](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/preservation-digitisation-standards) ([2021 PDF](https://www.naa.gov.au/sites/default/files/2022-01/Preservation-Digitisation-Standards-2021.pdf)), [Digital Preservation Policy](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/digital-preservation-policy), [Digitisation specifications for paper records in agencies](https://www.naa.gov.au/information-management/capturing-information/digitisation-specifications-paper-records-agencies), [Technical specifications for digitising audiovisual records](https://www.naa.gov.au/information-management/store-and-preserve-information/preserving-information/preserving-digital-information/technical-specifications-digitising-audiovisual-records)
+- National Archives of Australia: [Born-digital file format standards](https://www.naa.gov.au/information-management/storing-and-preserving-information/preserving-information/born-digital-file-format-standards), [Preservation Digitisation Standards](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/preservation-digitisation-standards) ([2021 PDF](https://www.naa.gov.au/sites/default/files/2022-01/Preservation-Digitisation-Standards-2021.pdf)), [Digital Preservation Policy](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/digital-preservation-policy), [Digitisation specifications for paper records in agencies](https://www.naa.gov.au/information-management/capturing-information/digitisation-specifications-paper-records-agencies), [Technical specifications for digitising audiovisual records](https://www.naa.gov.au/information-management/store-and-preserve-information/preserving-information/preserving-digital-information/technical-specifications-digitising-audiovisual-records), [General Records Authority 31](https://www.naa.gov.au/node/784); ADRI: [Australasian Digital Recordkeeping Initiative](https://www.caara.org.au/index.php/working-groups/adri/)
