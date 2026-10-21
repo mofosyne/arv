@@ -10,11 +10,17 @@
  *   arv-assist chat [--llm-context N] [LLM options]        at a terminal: lines in, lines out
  *   arv-assist chat --json [--llm-context N] [LLM options] for the GUI: {"messages": [...],
  *       "context": "what is on screen"} in; {"steps": [...], "reply": {...}, "messages": [...]} out
+ *   arv-assist chat --risk                                 a proposal the person edited, {"command":
+ *       [...]} in, judged again: {"propose": [...], "risk": ..., "shown": ...} out; no model needed
+ *   arv-assist chat --accepted                             a retag the person applied, {"command": [...]}
+ *       in, kept as an example; {"rules": [...]} out, those it makes ripe (no model needed)
+ *   arv-assist chat --rule                                 one approved, {"tag": ..., "word": ...} in
  */
 #define _XOPEN_SOURCE 700
 #include "assist.h"
 
 #include <ctype.h>
+#include <math.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,6 +31,7 @@
 extern const char ASSISTANT[];              /* data/assistant.txt, built in */
 
 #define MAX_READS 6                         /* reads in one turn before an answer is asked for */
+#define SURE_ENOUGH 0.5                     /* a proposal's least sure token below this: doubtful */
 #define REPLY_TOKENS 1024                   /* kept free for the model's reply */
 
 typedef struct {
@@ -42,6 +49,8 @@ static int tokens_of(const char *s)         /* roughly: no tokeniser, a margin i
 /* ------------------------------------------------------------------ running arv */
 
 /* arv ARGV (after --home), standard input empty: its exit status, and what it printed in *out */
+static jv *rules_ripe(const char *home, const strlist *command);
+
 static int run_arv(const chat *ch, const strlist *argv, char **out)
 {
     int fds[2];
@@ -220,6 +229,54 @@ static int argv_of(const jv *a, strlist *out)          /* a list of strings, "ar
     return out->n ? 0 : -1;
 }
 
+/* How sure the model was of a command it gave: its least probable token within the list after KEY
+ * ("propose", "read"), from the server's log-probabilities; -1 when it gave none. Measured, never a
+ * number the model writes of itself (research/plan.md: confidence shown, not trusted). */
+static double sureness(const llm_client *c, const char *key)
+{
+    if (!c->ntok) return -1;
+    sbuf all = { 0 };
+    size_t *start = xmalloc((c->ntok + 1) * sizeof *start);
+    for (size_t i = 0; i < c->ntok; i++) {
+        start[i] = all.len;
+        sb_puts(&all, c->tok[i]);
+    }
+    char *quoted = xprintf("\"%s\"", key);
+    const char *at = all.s ? strstr(all.s, quoted) : NULL, *open = at ? strchr(at, '[') : NULL, *p = open;
+    free(quoted);
+    for (int depth = 0, str = 0; p && *p; p++) {            /* the list's closing ], strings skipped */
+        if (str) {
+            if (*p == '\\' && p[1]) p++;
+            else if (*p == '"') str = 0;
+        } else if (*p == '"') str = 1;
+        else if (*p == '[') depth++;
+        else if (*p == ']' && !--depth) break;
+    }
+    double least = -1;
+    if (open && p && *p) {
+        size_t from = (size_t)(open - all.s), to = (size_t)(p - all.s);
+        for (size_t i = 0; i < c->ntok; i++) {
+            size_t end = start[i] + strlen(c->tok[i]);
+            if (end <= from || start[i] > to) continue;
+            double pr = exp(c->lp[i]);
+            if (least < 0 || pr < least) least = pr;
+        }
+    }
+    free(start);
+    free(all.s);
+    return least;
+}
+
+static void put_sureness(jv *a, const llm_client *c, const char *key)
+{
+    double sure = sureness(c, key);
+    if (sure < 0) return;
+    char n[16];
+    snprintf(n, sizeof n, "%.2f", sure);
+    jput(a, "sure", jnum(n));
+    if (sure < SURE_ENOUGH) jput(a, "doubtful", jnum("true"));
+}
+
 /* One turn: the model reads until it proposes or says something. Each read is put in *steps;
  * the answer is returned ({"say": ...} or {"propose": [...], "why": ..., "risk": ...}). */
 static jv *turn(chat *ch, jv *messages, jv *steps, void (*progress)(const jv *step))
@@ -245,6 +302,7 @@ static jv *turn(chat *ch, jv *messages, jv *steps, void (*progress)(const jv *st
                 jput(a, "propose", jstrings(&argv));
                 jput(a, "why", jstr("asked to run this, which changes the record"));
                 jput(a, "risk", jstr(risk));
+                put_sureness(a, &ch->c, "read");
                 char *cmd = shown(&argv);
                 jput(a, "shown", jstr(cmd));
                 free(cmd);
@@ -284,6 +342,7 @@ static jv *turn(chat *ch, jv *messages, jv *steps, void (*progress)(const jv *st
             const char *why = jstr_of(json_get(j, "why"));
             jput(a, "why", jstr(why ? why : ""));
             jput(a, "risk", jstr(command_risk((int)argv.n, argv.v)));
+            put_sureness(a, &ch->c, "propose");
             char *cmd = shown(&argv);
             jput(a, "shown", jstr(cmd));
             free(cmd);
@@ -331,6 +390,9 @@ static int terminal(chat *ch)
         else if (json_get(a, "propose")) {
             const char *risk = jstr_of(json_get(a, "risk")), *why = jstr_of(json_get(a, "why"));
             printf("Proposed (%s risk): %s\n", risk, jstr_of(json_get(a, "shown")) ? jstr_of(json_get(a, "shown")) : "?");
+            if (json_get(a, "doubtful"))
+                printf("  The model was unsure of it (its least sure word: %.0f%%): check it, or ask again.\n",
+                       100 * atof(json_get(a, "sure")->str));
             if (why && *why) printf("  %s\n", why);
             char yes[16] = "";
             if (tty) {
@@ -341,13 +403,38 @@ static int terminal(chat *ch)
             }
             strlist argv;
             if ((yes[0] == 'y' || yes[0] == 'Y') && !argv_of(json_get(a, "propose"), &argv)) {
-                char *out = NULL;
-                int rc = run_arv(ch, &argv, &out);
+                char *out = NULL, *agent = llm_agent(&ch->c);
+                strlist by = { 0 };                     /* the model's proposal, a person's to take: the record says so */
+                strlist_add(&by, "--agent");
+                strlist_add(&by, agent);
+                strlist_add(&by, "--authorship");
+                strlist_add(&by, "accepted");
+                for (size_t i = 0; i < argv.n; i++) strlist_add(&by, argv.v[i]);
+                int rc = run_arv(ch, &by, &out);
                 fputs(out, stdout);
                 char *msg = xprintf("I applied it: exit %d.\n%.2000s", rc, out);
                 say_to(messages, "user", msg);
+                jv *rules = rc ? NULL : rules_ripe(ch->home, &argv);
+                for (size_t i = 0; rules && i < rules->n; i++) {    /* a word that keeps going with the tag */
+                    const jv *r = rules->vals[i];
+                    fprintf(stderr, "'%s' has been in %s of %s things tagged %s: make it a rule (Match: %s), so arv tag and "
+                            "describe tag them without asking? [y/N] ", jstr_of(json_get(r, "word")), json_get(r, "with")->str,
+                            json_get(r, "all")->str, jstr_of(json_get(r, "tag")), jstr_of(json_get(r, "glob")));
+                    char ans[16] = "";
+                    if (!fgets(ans, sizeof ans, stdin)) ans[0] = 0;
+                    if (ans[0] != 'y' && ans[0] != 'Y') continue;
+                    arv_home h;
+                    home_find(&h, ch->home, NULL);
+                    if (word_rule_add(&h, jstr_of(json_get(r, "tag")), jstr_of(json_get(r, "word"))))
+                        fprintf(stderr, "Could not write %s/tags.rec\n", h.config_dir);
+                    else fprintf(stderr, "Added to the vocabulary (%s/tags.rec): %s, Match: %s\n", h.config_dir,
+                                 jstr_of(json_get(r, "tag")), jstr_of(json_get(r, "glob")));
+                }
+                jfree(rules);
                 free(msg);
                 free(out);
+                free(agent);
+                strlist_free(&by);
                 strlist_free(&argv);
             } else {
                 say_to(messages, "user", "I did not apply it.");
@@ -396,14 +483,160 @@ static int for_gui(chat *ch)
     return 0;
 }
 
+/* --risk: a command as the GUI's Edit left it ({"command": [...]} on stdin), judged again, with no
+ * model: {"risk": ..., "shown": ...}, or {"error": ...} */
+static int risk_of_stdin(void)
+{
+    sbuf in = { 0 };
+    char buf[65536];
+    size_t r;
+    while ((r = fread(buf, 1, sizeof buf, stdin)) > 0) sb_add(&in, buf, r);
+    jv *req = in.s ? json_parse(in.s) : NULL, *d = jobj();
+    free(in.s);
+    strlist argv = { 0 };
+    if (!argv_of(json_get(req, "command"), &argv) && argv.n) {
+        jput(d, "propose", jstrings(&argv));
+        jput(d, "risk", jstr(command_risk((int)argv.n, argv.v)));
+        char *cmd = shown(&argv);
+        jput(d, "shown", jstr(cmd));
+        free(cmd);
+    } else
+        jput(d, "error", jstr("no command: a list of its words, as {\"command\": [\"retag\", ...]}"));
+    strlist_free(&argv);
+    sbuf b = { 0 };
+    json_dump(&b, d, -1);
+    printf("%s\n", b.s);
+    free(b.s);
+    jfree(d);
+    jfree(req);
+    return 0;
+}
+
+static jv *stdin_json(void)
+{
+    sbuf in = { 0 };
+    char buf[65536];
+    size_t r;
+    while ((r = fread(buf, 1, sizeof buf, stdin)) > 0) sb_add(&in, buf, r);
+    jv *j = in.s ? json_parse(in.s) : NULL;
+    free(in.s);
+    return j;
+}
+
+static int print_json(jv *d)
+{
+    sbuf b = { 0 };
+    json_dump(&b, d, -1);
+    printf("%s\n", b.s);
+    free(b.s);
+    jfree(d);
+    return 0;
+}
+
+/* --accepted: a retag the person applied ({"command": ["retag", OBJECT, TAGS]} on stdin), kept as an
+ * example of the words that go with tags (as describe --ask keeps its answers); out, the rules it
+ * makes ripe: a word of the object's name that keeps going with one of the tags (Match: *WORD*),
+ * {"rules": [{"tag", "word", "glob", "with", "all"}]}, for the person to approve or not */
+static jv *rules_ripe(const char *home, const strlist *command)
+{
+    jv *list = jarr();
+    const strlist argv = *command;
+    if (argv.n == 3 && !strcmp(argv.v[0], "retag")) {
+        arv_home h;
+        archive cat;
+        home_find(&h, home, NULL);
+        archive_load(&cat, h.rec_path);
+        const char *uuid = object_by_word(&cat, argv.v[1]);
+        const char *slug = object_slug(&cat, object_at_uuid(&cat, uuid));
+        strlist tags = { 0 }, names = { 0 }, terms = { 0 }, none = { 0 };
+        char *copy = xstrdup(argv.v[2]);
+        for (char *t = strtok(copy, ","); t; t = strtok(NULL, ",")) {
+            char *nt = tag_normalise(t);
+            if (*nt && !strlist_has(&tags, nt)) strlist_add(&tags, nt);
+            free(nt);
+        }
+        free(copy);
+        tags_canonical(&h, &tags);
+        name_word_list(slug ? slug : argv.v[1], &names);
+        word_example_add(&h, &tags, &names, &none);
+        tag_words_t tw;
+        if (tag_words(&h, &tw)) memset(&tw, 0, sizeof tw);
+        word_stats *ws = word_stats_load(&h, &cat);
+        word_stats_vocab(ws, &tw.names, &tw.alias_from);
+        for (size_t i = 0; i < names.n; i++)
+            if (!word_common(ws, names.v[i])) strlist_add(&terms, names.v[i]);
+        word_rule rules[3];
+        size_t n = word_rules_offered(ws, &tw, &tags, &terms, 0, rules, 3);
+        for (size_t i = 0; i < n; i++) {
+            jv *r = jobj();
+            char num[24];
+            jput(r, "tag", jstr(rules[i].tag));
+            jput(r, "word", jstr(rules[i].word));
+            jput(r, "glob", jstr(rules[i].glob));
+            snprintf(num, sizeof num, "%zu", rules[i].with);
+            jput(r, "with", jnum(num));
+            snprintf(num, sizeof num, "%zu", rules[i].all);
+            jput(r, "all", jnum(num));
+            jpush(list, r);
+        }
+        word_rules_free(rules, n);
+        word_stats_free(ws);
+        strlist_free(&tags);
+        strlist_free(&names);
+        strlist_free(&terms);
+    }
+    return list;
+}
+
+static int accepted_of_stdin(const char *home)
+{
+    jv *req = stdin_json(), *d = jobj();
+    strlist argv = { 0 };
+    int ok = !argv_of(json_get(req, "command"), &argv);
+    jput(d, "rules", ok ? rules_ripe(home, &argv) : jarr());
+    strlist_free(&argv);
+    jfree(req);
+    return print_json(d);
+}
+
+/* --rule: one the person approved ({"tag": ..., "word": ...}), into the vocabulary (config/tags.rec,
+ * Match: *WORD*), where describe and tag apply it without asking, as software following your rule */
+static int rule_of_stdin(const char *home)
+{
+    jv *req = stdin_json(), *d = jobj();
+    const char *tag = jstr_of(json_get(req, "tag")), *word = jstr_of(json_get(req, "word"));
+    if (!tag || !word || !*tag || !*word || strpbrk(tag, "\n\r") || strpbrk(word, "\n\r*?[]"))
+        jput(d, "error", jstr("a rule is a tag and a word: {\"tag\": ..., \"word\": ...}"));
+    else {
+        arv_home h;
+        home_find(&h, home, NULL);
+        if (word_rule_add(&h, tag, word)) jput(d, "error", jstr("could not write the vocabulary (config/tags.rec)"));
+        else {
+            char *glob = xprintf("*%s*", word), *where = join(h.config_dir, "tags.rec");
+            for (char *g = glob; *g; g++)
+                if (*g == ' ') *g = '*';
+            jput(d, "added", jstr(tag));
+            jput(d, "match", jstr(glob));
+            jput(d, "file", jstr(where));
+            free(glob);
+            free(where);
+        }
+    }
+    jfree(req);
+    return print_json(d);
+}
+
 int assist_chat(int argc, char **argv)
 {
     chat ch = { 0 };
     const char *url = NULL, *model = NULL;
-    int remote = 0, as_json = 0;
+    int remote = 0, as_json = 0, mode = 0;       /* mode: 1 --risk, 2 --accepted, 3 --rule */
     for (int i = 0; i < argc; i++) {
         const char *a = argv[i], *v = i + 1 < argc ? argv[i + 1] : NULL;
         if (!strcmp(a, "--json")) as_json = 1;
+        else if (!strcmp(a, "--risk")) mode = 1;
+        else if (!strcmp(a, "--accepted")) mode = 2;
+        else if (!strcmp(a, "--rule")) mode = 3;
         else if (!strcmp(a, "--llm-allow-remote")) remote = 1;
         else if (!strcmp(a, "--home") && v) ch.home = argv[++i];
         else if (!strcmp(a, "--llm-url") && v) url = argv[++i];
@@ -412,6 +645,9 @@ int assist_chat(int argc, char **argv)
         else if ((!strcmp(a, "--vision-url") || !strcmp(a, "--vision-model")) && v) i++;   /* arv gui passes them on */
         else return 2;
     }
+    if (mode == 1) return risk_of_stdin();
+    if (mode == 2) return accepted_of_stdin(ch.home);
+    if (mode == 3) return rule_of_stdin(ch.home);
     char *err = NULL;
     if (llm_open(&ch.c, url, model, remote, &err) || !llm_model(&ch.c, &err)) {
         if (as_json) {
@@ -428,6 +664,7 @@ int assist_chat(int argc, char **argv)
         return 1;
     }
     if (ch.budget < 2048) ch.budget = context_of_server(&ch.c);
+    ch.c.logprobs = 1;                      /* how sure it is of a proposal, where the server says */
     ch.arv = helper_program("ARV", "arv", "arv/build/arv");
     ch.system = system_text(&ch);
     int rc = as_json ? for_gui(&ch) : terminal(&ch);

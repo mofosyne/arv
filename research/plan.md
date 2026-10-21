@@ -2298,7 +2298,7 @@ Wanted by no one yet; each waits until someone needs it.
   It needs Unicode's composition tables (see "Tags in any script, one spelling each").
 - **`arv tags` columns lined up for wide characters** (京 takes two columns, counted as one).
 
-## Design (2026-10-18, not built): thumbnails on discs
+## Design (2026-10-18, built: see the Done entry below): thumbnails on discs
 
 A disc carries small pictures of its own photos, videos and documents, so a found disc, the home,
 the GUI, `index.html` and the describing questions show what it holds without reading it. They are
@@ -2697,6 +2697,96 @@ loses the archive). If it is wanted: per object, with a standard tool (age, or O
 fingerprint in the record and the steps in the disc's README.txt; never arv's own cryptography.
 Also for an organisation, later if ever: more than one person writing the record, with accounts.
 Signing discs (proof of origin, not secrecy) is issue #55.
+
+## Done (2026-10-18): thumbnails on discs
+
+As designed above ("thumbnails on discs"), with these choices:
+
+- **Made once a make, before the layout** (`src/arv/thumbs.c`, `thumbs_prepare`), into the make's
+  work folder, one for each SHA-256 among the files and the packed members; each disc then takes
+  those of its own files (`thumbs_for_disc`), in the order they are listed, until a fiftieth of the
+  medium is used, and the rest are left out. The design said "the largest folders' are left out";
+  in order is simpler and no disc has come near the limit.
+- **The tools,** tried in order: `vipsthumbnail` (`[Q=75,strip]`), `magick`, `convert`
+  (`-auto-orient -thumbnail 384x384> -strip`), `ffmpeg` for pictures; `ffmpeg` 3 s in for a video,
+  else its first frame; `pdftoppm -singlefile` for a PDF. The size comes from the JPEG's frame
+  header, read by arv. `arv programs` lists vipsthumbnail, ImageMagick and pdftoppm under making.
+- **On the disc and at home:** `thumbs/` and `thumbs.tsv` under `catalog/volumes/<id>/`, the
+  `Thumbs` pointer, and the same written to the home's `volumes/<id>/`. Later discs' snapshots
+  leave other discs' thumbnails out. The creation event's note ends "; N thumbnails by TOOL".
+- **index.html:** each file with one shows it at 96 px before its name, with its size so the page
+  does not jump. `README.txt` says where they are.
+- **Off:** `--no-thumbs`, or `ARV_NO_THUMBS` in the environment (the checks set it, so their
+  outputs do not depend on the tools installed; one check makes them with a stand-in).
+
+Not yet: the contact-sheet grid for a folder of pictures, `arv plan show` saying how much room they
+take, the GUI showing them, the describing questions and `--vision` using them, and a caption for
+every picture.
+
+## Done (2026-10-18): the assistant's Edit, and its conversation kept
+
+Two of the first version's "not yet" (the Done entry above, "the assistant, first version"):
+
+- **Edit on a proposal:** the card's Edit puts the command in a box, as a shell line. On Apply the
+  page splits it as a shell would (quotes, backslashes) and, when it differs from the proposal,
+  asks `arv-assist chat --risk` (the command as `{"command": [...]}` on stdin, no model needed) for
+  its risk, from the same table as every proposal (`command_risk`). The same risk or lower: it
+  runs. Higher: the card shows the new risk and Apply must be pressed again (and confirmed, when
+  high). An edit naming another home (`--home`, `-C`) is refused, as a proposal's is. The model is
+  told "I edited it, and applied: ...", with the exit and output.
+  The design said "the command's own form, filled in": a box is simpler, works for every command,
+  and a form can come later from the command's options in `arv help --json`.
+- **The conversation kept:** the transcript (what was said, each step, each proposal and what
+  became of it) and the messages sent to the model are kept in the browser's localStorage and
+  shown again on a reload; New clears them. Per browser, not per home: one conversation at a time.
+
+Still not built: rules learned from repeated acceptances, the low-risk "apply without asking"
+switch, confidence (each waits on enough use to tell what is worth it), Follow, the record-changed
+poll and the MCP server.
+
+## Done (2026-10-19): the assistant's Undo, apply without asking, confidence and rules
+
+The rest of "what may happen without asking" (the design above, "an assistant for archival work"):
+
+- **Who a change is by, for every command:** `--agent NAME --authorship suggested|accepted|edited`
+  before the command, taken off by `main` before anything else sees the arguments, so no command
+  needed changing. `new_event` applies them to the events a person's change would make (Authorship
+  `human`): the agent named, and for accepted or edited the person too, as `reviewed_event` already
+  did for describe. Machine events (a make's fixity, a check) stay `automatic`. The GUI's server
+  lets the two come before the command; arv checks their values. This closes the first version's
+  "naming the model as its agent waits on a way to pass an agent to every command".
+- **Undo is a new event:** `arv undo EVENT-ID` (low risk) for the fields whose value an event
+  carries: a data object's `Tags` and `Slug`, a disc path's `Tags:PATH` and `Caption:PATH`. The new
+  event replaces the undone one (`Sets`, `Replaces`) and carries the value of the events it had
+  replaced, the later of two; when it had replaced none, no value, so the field reads as before any
+  change (the burned tags, the object's own name). Only while the undone event is still the latest
+  of each field: a later change is undone first. Disc fields edited in place (a title, a label),
+  notes and the vocabulary's entries are set right by their own commands; a generic undo for them
+  would need the record to keep every old value in its events, which it does not yet.
+- **Apply tags without asking:** a switch in the GUI's panel, off by default, kept in the browser.
+  On, a proposal that is `retag`, low risk and not doubtful runs at once with `--authorship
+  suggested`, its card headed "Applied without asking", with Undo. Only retag, because Undo covers
+  it; tags are the design's "a value, easily set back". The model is told it was applied.
+- **Confidence, shown not trusted:** arv-assist asks for `logprobs` (dropped again if a server
+  refuses it) and keeps the reply's tokens. A proposal's `sure` is its least probable token within
+  the command's list: the weakest choice in what would run, not the whole reply, whose JSON
+  punctuation is always certain. Below 0.5 it is `doubtful`: the card says so and it is never applied
+  without asking. The design said a doubtful one "becomes a question"; it stays a proposal, marked,
+  since the person sees it anyway.
+- **Rules, from your own answers:** the rule-finding `describe --ask` had (a word in the names that
+  keeps coming with a tag, in three tagged paths or more, nine in ten) is now one function,
+  `word_rules_offered`. A retag the person applies is kept as an example (`config/word-examples.tsv`,
+  as `--ask` keeps answers: the object's name's words and the tags), and the rules it makes ripe
+  are offered: in the GUI under the card, at a terminal as a question. Approved, `Match: *WORD*` goes
+  into `config/tags.rec`, where `arv tag` and `describe` already apply Match rules as `automatic`.
+  A retag applied without asking is not an example: rules come from what a person chose.
+- **Tested** by `src/arv/check.sh` (provenance, undo and its refusals), arv-assist's checks (the fake
+  server now gives `logprobs` when a reply part starts with a `logprob:` line; rules after three
+  acceptances) and the GUI's tests; the panel was driven in Chromium: accept, rule, Undo, the
+  switch, an unsure proposal left alone, all kept across a reload.
+
+Not built: Follow, the record-changed poll, `chafa`, the MCP server, and the conversation kept in
+the home's cache (it is in the browser's localStorage).
 
 ## Design (2026-10-20, not built): formats against a preservation list
 

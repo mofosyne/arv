@@ -19,6 +19,7 @@ import urllib.request
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.environ["ARV_APE"] = "none"   # the small test media have no room for tools/arv.com
 os.environ["ARV_NO_EXTRA_PLACES"] = "1"   # the built-in places only, whatever this machine has installed
+os.environ["ARV_NO_THUMBS"] = "1"         # no thumbnails, whatever tools are here
 ARV = os.path.join(REPO, "src", "arv", "build", "arv")
 GUI = os.path.join(REPO, "src", "arv-gui", "build", "arv-gui")
 FAKE_LLM = os.path.join(REPO, "src", "arv-assist", "build", "fake-llm")
@@ -470,6 +471,14 @@ class GuiTest(unittest.TestCase):
         self.assertEqual([s["shown"] for s in turn["steps"]], ["arv todo --json"])
         self.assertEqual((turn["reply"]["propose"], turn["reply"]["risk"]), (["tags", "add", "person:ann"], "medium"))
         self.assertEqual([m["role"] for m in turn["messages"]], ["user", "assistant", "user", "assistant"])
+        r = self.run_arv("--agent", "llm:fake-model", "--authorship", "accepted", "help", "undo")  # who a change is by
+        self.assertEqual(r["returncode"], 0, r["err"])
+        self.assertIn("arv undo EVENT-ID", r["out"])
+        status, text = self.request("/api/run", {"argv": ["--home", self.home, "--agent", "x"], "program": "arv"})
+        self.assertEqual(status, 400, text)                                    # no command after them
+        edited = json.loads(self.run_arv("chat", "--risk", program="arv-assist",               # Edit: judged again
+                                         stdin=json.dumps({"command": ["tags", "merge", "person:ann", "person:anne"]}))["out"])
+        self.assertEqual((edited["risk"], edited["shown"]), ("high", "arv tags merge person:ann person:anne"))
         test = json.loads(self.run_arv("llm-test", "--url", url, "--model", "fake-model", program="arv-assist")["out"])
         self.assertEqual((test["ok"], test["model"]), (True, "fake-model"))                # the Test button's
         self.run_arv("llm-use", "--off", program="arv-assist")                              # Model help: Off

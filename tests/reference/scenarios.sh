@@ -36,7 +36,7 @@ mkdir -p "$root"
 cd "$root"
 export TZ=UTC LC_ALL=C USER=archivist LOGNAME=archivist HOME="$root/userhome" XDG_CONFIG_HOME="$root/userhome/.config" \
     XDG_DATA_HOME="$root/userhome/.local/share" SOURCE_DATE_EPOCH=1767225600 ARV_SOURCE="$root/arv-source" \
-    ARV_APE="$root/arv.com" ARV_NO_EXTRA_PLACES=1
+    ARV_APE="$root/arv.com" ARV_NO_EXTRA_PLACES=1 ARV_NO_THUMBS=1
 unset ARV_HOME
 mkdir -p "$HOME"
 

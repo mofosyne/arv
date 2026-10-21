@@ -1153,6 +1153,113 @@ int cmd_retag(int argc, char **argv)
     return 0;
 }
 
+/* the value an event gives KEY: an object's field (Tags: a, b), or one path's (Tags: PATH<TAB>a, b) */
+static const char *value_set(const rec_record *e, const char *key)
+{
+    const char *colon = strchr(key, ':');
+    if (!colon) return rec_get(e, key);
+    size_t fl = (size_t)(colon - key), pl = strlen(colon + 1);
+    for (size_t f = 0; f < e->nfields; f++)
+        if (strlen(e->fields[f].name) == fl && !strncmp(e->fields[f].name, key, fl) && !strncmp(e->fields[f].value, colon + 1, pl)
+            && e->fields[f].value[pl] == '\t')
+            return e->fields[f].value + pl + 1;
+    return NULL;
+}
+
+static int sets_key(const rec_record *e, const char *key)
+{
+    for (size_t f = 0; f < e->nfields; f++)
+        if (!strcmp(e->fields[f].name, "Sets") && !strcmp(e->fields[f].value, key)) return 1;
+    return 0;
+}
+
+/* arv undo EVENT-ID: what one change set (a data object's tags or name, a path's tags or caption on a
+ * disc) set back as it was before, by a new event that replaces it; the history keeps both. Only
+ * while it is still the latest change of each: a later one is undone first. */
+int cmd_undo(int argc, char **argv)
+{
+    const char *given = NULL, *id = NULL;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < argc && (!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home"))) given = argv[++i];
+        else if (argv[i][0] == '-') return 2;
+        else if (!id) id = argv[i];
+        else return 2;
+    }
+    if (!id) return 2;
+    arv_home h;
+    archive cat;
+    home_find(&h, given, NULL);
+    home_guard(h.path);
+    archive_load(&cat, h.rec_path);
+    const rec_record *e = NULL;
+    size_t idn = strlen(id);
+    for (size_t i = 0; idn >= 8 && i < cat.events.n; i++) {
+        const char *k = rec_get(cat.events.v[i], "EventId");
+        if (!k || strncmp(k, id, idn)) continue;
+        if (e) die("%s names more than one event: give more of its EventId (arv audit lists them)", id);
+        e = cat.events.v[i];
+    }
+    if (!e) die2("no event %s in %s (its EventId, 8 characters or more: --json on the change gives it)", id, h.rec_path);
+    char key[33];
+    event_key(e, key);
+    const char *thing = rec_get(e, "Object") ? rec_get(e, "Object") : rec_get(e, "Disc");
+    int object = thing && !strncmp(thing, "object:", 7);
+    strlist keys = { 0 };
+    for (size_t f = 0; f < e->nfields; f++) {
+        if (strcmp(e->fields[f].name, "Sets")) continue;
+        const char *k = e->fields[f].value;
+        int ok = object ? !strcmp(k, "Tags") || !strcmp(k, "Slug") : !strncmp(k, "Tags:", 5) || !strncmp(k, "Caption:", 8);
+        if (!ok)
+            die("arv undo sets back tags, captions and names; %s is set right by its own command, as a new change", k);
+        strlist_add(&keys, k);
+    }
+    if (!thing || !keys.n) die("%s set nothing arv undo can set back (tags, captions and names)", key);
+    for (size_t k = 0; k < keys.n; k++) {
+        strlist heads;
+        field_heads(&cat, thing, keys.v[k], &heads);
+        int latest = heads.n == 1 && !strcmp(heads.v[0], key);
+        if (!latest)
+            die("%s", xprintf("%s has changed since %s (by %s): undo that first, or set it with its own command", keys.v[k], key,
+                              heads.n ? heads.v[heads.n - 1] : "?"));
+        strlist_free(&heads);
+    }
+    char *who = person(), *note = xprintf("undid %s: %s", key, rec_get(e, "Note") ? rec_get(e, "Note") : "a change");
+    rec_record *ev = new_event(thing, "metadata modification", "success", who, "human", note);
+    if (object) {                           /* Object: object:UUID, not Disc */
+        free(ev->fields[0].name);
+        ev->fields[0].name = xstrdup("Object");
+    }
+    for (size_t k = 0; k < keys.n; k++) {
+        const char *was = NULL;             /* what the changes it replaced gave: the later; none, as before them */
+        for (size_t i = 0; i < cat.events.n; i++) {
+            char r[33];
+            event_key(cat.events.v[i], r);
+            int replaced = 0;
+            for (size_t f = 0; *r && f < e->nfields && !replaced; f++)
+                replaced = !strcmp(e->fields[f].name, "Replaces") && !strcmp(e->fields[f].value, r);
+            if (replaced && sets_key(cat.events.v[i], keys.v[k]) && value_set(cat.events.v[i], keys.v[k]))
+                was = value_set(cat.events.v[i], keys.v[k]);
+        }
+        const char *colon = strchr(keys.v[k], ':');
+        if (was && colon) {
+            char *field = xprintf("%.*s", (int)(colon - keys.v[k]), keys.v[k]);
+            tag_change(&cat, ev, thing, field, colon + 1, was);
+            free(field);
+        } else {
+            if (was) rec_add(ev, keys.v[k], was);
+            sets_field(&cat, ev, thing, keys.v[k]);
+        }
+        printf("%s: %s\n", keys.v[k], was ? (*was ? was : "(none)") : "as before any change");
+    }
+    recs_add(&cat.events, ev);
+    archive_save(&cat, h.rec_path);
+    printf("Set back what %s set, by a new change (the history keeps both).\n", key);
+    free(note);
+    free(who);
+    strlist_free(&keys);
+    return 0;
+}
+
 int cmd_locate(int argc, char **argv)
 {
     const char *given = NULL, *disc_id = NULL, *letter = NULL, *where = NULL;

@@ -120,6 +120,7 @@ int cmd_burned(int argc, char **argv);
 int cmd_note(int argc, char **argv);
 int cmd_rename(int argc, char **argv);
 int cmd_retag(int argc, char **argv);
+int cmd_undo(int argc, char **argv);
 int cmd_same(int argc, char **argv);
 int cmd_locate(int argc, char **argv);
 int cmd_access(int argc, char **argv);
@@ -176,6 +177,9 @@ rec_record *sealed_view(const rec_record *d);
 void archive_shared_subset(const archive *a, const strlist *ids, archive *out);
 rec_record *object_disc_view(const rec_record *o);
 char *archive_where(const archive *a, const rec_record *d);
+/* --agent NAME --authorship KIND (before the command): a person's change made by a program for
+ * them, such as the assistant: its events name that agent, and the person too unless suggested */
+extern const char *event_agent, *event_authorship;
 rec_record *new_event(const char *disc_id, const char *type, const char *outcome, const char *agent,
                       const char *authorship, const char *note);
 char *person(void);
@@ -450,8 +454,28 @@ void human_size(uint64_t n, char out[32]);
 void html_esc(sbuf *b, const char *s);     /* html.escape */
 void url_quote(sbuf *b, const char *s);    /* urllib.parse.quote */
 void hash_both(const char *path, char sha256[65], char sha512[129]);
+/* thumbs.c: thumbnails on discs, by the SHA-256 of the file each shows */
+typedef struct {
+    char sha[65];
+    int w, h;
+    const char *from, *tool;    /* "picture", "frame" or "page 1"; the tool that made it */
+    uint64_t bytes;
+} thumb;
+typedef struct {
+    thumb *v;
+    size_t n, failed, left_out;     /* failed: no tool could; left_out: over the disc's share */
+    char *dir;                      /* where the .jpg files are */
+    const char *tool;
+} thumbset;
+int thumbs_kind(const char *path);  /* a picture, a video or a PDF */
+void thumbs_prepare(const entries *files, const entries *members, const char *workdir, thumbset *out);
+void thumbs_for_disc(const thumbset *all, const entries *described, uint64_t budget, const char *vol_dir, thumbset *disc);
+const thumb *thumbs_find(const thumbset *t, const char *sha);
+void thumbs_free(thumbset *t);
+
 char *render_index(const rec_record *disc, const rec_record *binding, const entries *files,
-                   const archive *snapshot, char *(*where_fn)(const archive *, const rec_record *), const char *places);
+                   const archive *snapshot, char *(*where_fn)(const archive *, const rec_record *), const char *places,
+                   const thumbset *thumbs, const char *thumb_dir);   /* thumbs: NULL for none */
 
 /* names.c: file names a disc image cannot keep exactly; volume labels */
 typedef struct {

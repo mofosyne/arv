@@ -1343,40 +1343,22 @@ void ask_suggest(const arv_home *h, archive *cat, const items *l, const char *na
     }
     if (interactive && h) {                 /* what was told, kept: the next folder's questions are shorter */
         if (!dry) word_example_add(h, &tags, &c.terms, &c.text);
-        size_t offered = 0;                 /* a word that keeps going with a tag: offered as a rule */
-        for (size_t i = 0; i < tags.n && offered < 3 && !a.stopped; i++) {
-            if (!strncmp(tags.v[i], "date:", 5)) continue;
-            for (size_t w = 0; w < c.terms.n && offered < 3; w++) {
-                const char *word = c.terms.v[w];
-                size_t with, all;
-                word_counts(ws, word, tags.v[i], &with, &all);
-                with++, all++;              /* this answer too */
-                if (all < WORD_MIN || with * 100 < all * 90) continue;
-                const char *value = strchr(tags.v[i], ':') ? strchr(tags.v[i], ':') + 1 : tags.v[i];
-                if (strstr(value, word)) continue;      /* the tag's own word: no rule needed */
-                char *glob = xprintf("*%s*", word);
-                for (char *g = glob; *g; g++)
-                    if (*g == ' ') *g = '*';
-                int have = 0;
-                for (size_t r = 0; r < tw.rule_tag.n && !have; r++)
-                    have = !strcmp(tw.rule_tag.v[r], tags.v[i]) && !strcmp(tw.rule_glob.v[r], glob);
-                if (!have) {
-                    offered++;
-                    char *q = xprintf("\n'%s' has been in %zu of %zu folders tagged %s: make it a rule (Match: %s), so "
-                                      "folders with it are tagged without asking? [y/N] ", word, with, all, tags.v[i], glob);
-                    char *ans = reply(&a, q, qjson("yesno", q + 1));
-                    if ((ans[0] == 'y' || ans[0] == 'Y') && !dry) {
-                        if (word_rule_add(h, tags.v[i], word)) fprintf(stderr, "Could not write %s/tags.rec\n", h->config_dir);
-                        else fprintf(stderr, "Added to the vocabulary (%s/tags.rec): %s, Match: %s\n", h->config_dir, tags.v[i], glob);
-                        strlist_add(&tw.rule_tag, tags.v[i]);
-                        strlist_add(&tw.rule_glob, glob);
-                    }
-                    free(ans);
-                    free(q);
-                }
-                free(glob);
+        word_rule rules[3];                 /* a word that keeps going with a tag: offered as a rule */
+        size_t offered = word_rules_offered(ws, &tw, &tags, &c.terms, 1, rules, 3);
+        for (size_t i = 0; i < offered && !a.stopped; i++) {
+            char *q = xprintf("\n'%s' has been in %zu of %zu folders tagged %s: make it a rule (Match: %s), so "
+                              "folders with it are tagged without asking? [y/N] ", rules[i].word, rules[i].with, rules[i].all,
+                              rules[i].tag, rules[i].glob);
+            char *ans = reply(&a, q, qjson("yesno", q + 1));
+            if ((ans[0] == 'y' || ans[0] == 'Y') && !dry) {
+                if (word_rule_add(h, rules[i].tag, rules[i].word)) fprintf(stderr, "Could not write %s/tags.rec\n", h->config_dir);
+                else fprintf(stderr, "Added to the vocabulary (%s/tags.rec): %s, Match: %s\n", h->config_dir, rules[i].tag,
+                             rules[i].glob);
             }
+            free(ans);
+            free(q);
         }
+        word_rules_free(rules, offered);
     }
     for (size_t f = 0; interactive && h && !dry && f < out->folders.n; f++)   /* a place from extra data, used: copied home */
         for (size_t i = 0; i < out->folders.tags[f].n; i++)

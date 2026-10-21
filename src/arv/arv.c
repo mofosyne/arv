@@ -95,6 +95,8 @@ static const char USAGE_RECORD[] =
           "  arv note DISC-ID TEXT   a note on a disc\n"
           "  arv rename OBJECT NEWNAME   a data object's name on discs now (a name, not a place); the next disc uses it\n"
           "  arv retag OBJECT TAGS   a data object's tags now (\"\" for none): what a layout files it by, and find finds\n"
+          "  arv undo EVENT-ID   set back what one change set (an object's tags or name, a path's tags or caption):\n"
+          "         a new change; the history keeps both (EVENT-ID: from --json on the change, or arv audit)\n"
           "  arv same OBJECT OTHER   two data objects recorded apart are one (the same bytes, and the same thing)\n"
           "  arv access DISC-ID public|private|sealed   what later discs' catalogues may show of it\n"
           "  arv objects [NAME|DISC-ID] [--json]   what you keep and where every copy is (a disc: its copies)\n"
@@ -183,7 +185,7 @@ static int has_arg(int argc, char **argv, const char *word)
 
 static int records_events(const char *cmd, int argc, char **argv)
 {
-    static const char *const always[] = { "init", "make", "check", "burned", "note", "rename", "retag", "same", "locate",
+    static const char *const always[] = { "init", "make", "check", "burned", "note", "rename", "retag", "undo", "same", "locate",
                                           "access", "link", "stored", "appraise", "rebuild", "relabel", "identify",
                                           "retire", "drives", NULL };
     for (int k = 0; always[k]; k++)
@@ -534,7 +536,7 @@ static const char *const MANUAL_NOTES[] = {      /* in parts: C99 strings may be
     "\n"
     "These change the record, each leaving an event that says who and when: `init`, `make`, `plan make`,\n"
     "`collection init|keep`, `link`, `burned`, `stored`, `identify`,\n"
-    "`relabel`, `note`, `rename`, `retag`, `same`, `locate`, `access`, `location add|move`, `appraise`,\n"
+    "`relabel`, `note`, `rename`, `retag`, `undo`, `same`, `locate`, `access`, `location add|move`, `appraise`,\n"
     "`retire --yes`, `rebuild`, `check` and `drives --check` (a check is logged), `tags add|label|alias|merge|split|retire`\n"
     "(the known names; `tags`, `tags names` and `tags show` only read), `describe` and `tag`\n"
     "(when a draft is applied). `where --here` changes only where the catalogue may be written.\n"
@@ -581,6 +583,10 @@ static const char *const MANUAL_NOTES[] = {      /* in parts: C99 strings may be
     "- To describe discs, folders and data objects, write a draft (JSON; README.md, \"Describing from\n"
     "  anywhere\") and apply it: `arv describe ID --apply DRAFT` (`-` reads standard input). Add\n"
     "  `--suggested` when no person reviewed it, so the record says so.\n"
+    "- A change a program makes for a person says so, before the command: `arv --agent llm:MODEL\n"
+    "  --authorship suggested|accepted|edited COMMAND ...` (suggested: no person saw it; accepted or\n"
+    "  edited: a person took it, and is named too). `arv undo EVENT-ID` sets back a tag, caption or\n"
+    "  name change (its id from `--json` on the change), by a new change.\n"
     "- Ask the person before what cannot be taken back or changes who may see what: `retire --yes`\n"
     "  (above all with `--accept-loss`), `access ... public|sealed`, `relabel` (a label must be\n"
     "  rewritten by hand), `where --here`.\n"
@@ -821,6 +827,31 @@ static int cmd_help(int argc, char **argv)
     return 2;
 }
 
+/* --agent NAME --authorship suggested|accepted|edited, among the options before the command, taken
+ * off so the rest never sees them: who a change is by, when a program makes it for a person */
+static void provenance_options(int *argc, char **argv)
+{
+    int i = 1;
+    while (i < *argc && argv[i][0] == '-') {
+        if ((!strcmp(argv[i], "-C") || !strcmp(argv[i], "--home") || !strcmp(argv[i], "--archive")) && i + 1 < *argc) {
+            i += 2;
+            continue;
+        }
+        if ((strcmp(argv[i], "--agent") && strcmp(argv[i], "--authorship")) || i + 1 >= *argc) break;
+        const char *v = argv[i + 1];
+        if (!strcmp(argv[i], "--agent")) event_agent = v;
+        else event_authorship = v;
+        for (int k = i; k + 2 <= *argc; k++) argv[k] = argv[k + 2];
+        *argc -= 2;
+    }
+    if (!event_agent && !event_authorship) return;
+    if (!event_agent || !*event_agent || strpbrk(event_agent, "\r\n") || !event_authorship)
+        die("%s", "--agent NAME and --authorship KIND go together (KIND: suggested, accepted or edited)");
+    if (strcmp(event_authorship, "suggested") && strcmp(event_authorship, "accepted") && strcmp(event_authorship, "edited"))
+        die("--authorship %s: suggested (no person saw it), accepted or edited (a person took it, as it was or changed)",
+            event_authorship);
+}
+
 int main(int argc, char **argv)
 {
     static const struct {
@@ -829,7 +860,7 @@ int main(int argc, char **argv)
     } cmds[] = { { "info", cmd_info }, { "restore", cmd_restore },
                  { "find", cmd_find }, { "list", cmd_list },
                  { "init", cmd_init }, { "make", cmd_make }, { "check", cmd_check },
-                 { "burned", cmd_burned }, { "note", cmd_note }, { "rename", cmd_rename }, { "retag", cmd_retag }, { "same", cmd_same }, { "locate", cmd_locate },
+                 { "burned", cmd_burned }, { "note", cmd_note }, { "rename", cmd_rename }, { "retag", cmd_retag }, { "undo", cmd_undo }, { "same", cmd_same }, { "locate", cmd_locate },
                  { "access", cmd_access }, { "location", cmd_location }, { "collection", cmd_collection },
                  { "status", cmd_status }, { "log", cmd_log }, { "diff", cmd_diff },
                  { "link", cmd_link }, { "todo", cmd_todo }, { "objects", cmd_objects }, { "retire", cmd_retire }, { "stored", cmd_stored },
@@ -837,6 +868,7 @@ int main(int argc, char **argv)
                  { "where", cmd_where }, { "rebuild", cmd_rebuild }, { "audit", cmd_audit }, { "drives", cmd_drives }, { "relabel", cmd_relabel }, { "inventory", cmd_inventory }, { "identify", cmd_identify },
                  { "tags", cmd_tags }, { "map", cmd_map }, { "programs", cmd_programs }, { "keywords", cmd_keywords }, { "plan", cmd_plan } };
     arv_argv0 = argv[0];
+    provenance_options(&argc, argv);
     if (argc >= 2 && !strcmp(argv[1], "__complete")) {     /* for the shell's completion (completion/) */
         const char *names[sizeof cmds / sizeof *cmds + 5];
         size_t nnames = 0;

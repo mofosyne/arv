@@ -744,6 +744,8 @@ char *archive_where(const archive *a, const rec_record *d)
     return out.s;
 }
 
+const char *event_agent, *event_authorship;
+
 rec_record *new_event(const char *disc_id, const char *type, const char *outcome, const char *agent,
                              const char *authorship, const char *note)
 {
@@ -754,8 +756,10 @@ rec_record *new_event(const char *disc_id, const char *type, const char *outcome
     rec_add(r, "Type", type);
     rec_add(r, "Date", today);
     rec_add(r, "Outcome", outcome);
-    rec_add(r, "Authorship", authorship);
-    rec_add(r, "Agent", agent);
+    int on_behalf = event_agent && !strcmp(authorship, "human");   /* a person's change, by a program for them */
+    rec_add(r, "Authorship", on_behalf ? event_authorship : authorship);
+    rec_add(r, "Agent", on_behalf ? event_agent : agent);
+    if (on_behalf && strcmp(event_authorship, "suggested")) rec_add(r, "Agent", agent);   /* and the person who took it */
     if (note) rec_add(r, "Note", note);
     rec_add(r, "PendingId", "yes");
     return r;

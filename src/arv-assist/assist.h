@@ -64,6 +64,10 @@ typedef struct {
     char *model;            /* NULL until resolved */
     char *key;              /* a bearer key from the environment (models.c), or NULL */
     int timeout, external;  /* external: not this computer */
+    int logprobs;           /* ask for each token's log-probability (llama.cpp, Ollama, OpenAI) */
+    size_t ntok;            /* the last reply's tokens and their log-probabilities, when given */
+    char **tok;
+    double *lp;
 } llm_client;
 
 #define LLM_DEFAULT_URL "http://127.0.0.1:11434/v1"
@@ -153,6 +157,13 @@ void text_clues(const word_stats *ws, const char *root, const items *l, strlist 
 void word_stats_vocab(word_stats *ws, const strlist *names, const strlist *aliases);   /* never common */
 void word_example_add(const arv_home *h, const strlist *tags, const strlist *names, const strlist *text);
 int word_rule_add(const arv_home *h, const char *tag, const char *word);
+typedef struct {
+    char *tag, *word, *glob;
+    size_t with, all;       /* tagged paths with the word: with the tag, and in all */
+} word_rule;
+size_t word_rules_offered(const word_stats *ws, const tag_words_t *tw, const strlist *tags, const strlist *terms, int pending,
+                          word_rule *out, size_t max);
+void word_rules_free(word_rule *r, size_t n);
 
 /* ask.c: a suggestion without a model: the files' clues, and with interactive, the person's answers
  * to questions over the vocabulary (per_folder: offer to ask about each first-level folder too) */

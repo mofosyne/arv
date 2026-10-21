@@ -59,9 +59,21 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   spelling to read stays in a known name's `Label`. `arv find` folds the same way: "Zürich" finds
   `zurich`. Not done: Hangul written as separate jamo is not composed.
 
+**Thumbnails on discs**
+- Each disc carries a small picture (JPEG, 384 px, metadata stripped) of its photos, a frame of
+  its videos and the first page of its PDFs, in `catalog/volumes/<id>/thumbs/<sha256>.jpg`, named
+  by the SHA-256 of the file shown, so every copy of the same bytes shares one; `thumbs.tsv` lists
+  them (size, what each shows, the tool), and the `Thumbs` pointer in `catalog.rec` names it.
+- The disc's `index.html` shows each beside its file, and its `README.txt` says where they are.
+  The home keeps every disc's, in its `volumes/<id>/`; a disc carries only its own.
+- Made by `vipsthumbnail`, else ImageMagick, else `ffmpeg` for pictures, `ffmpeg` for a video's
+  frame, `pdftoppm` for a PDF's page, when installed (`arv programs` lists them). None without
+  them, or with `arv make --no-thumbs`. At most a fiftieth of the medium; the make's event says how
+  many were made and by what.
+
 **arv programs: which optional programs are here**
 - `arv programs [--json]` lists every program arv can use (its helpers; git, Siegfried and the
-  compressors for making; exiftool, poppler and ffmpeg for describing; the browser opener; and the
+  compressors and the thumbnail makers for making; exiftool, poppler and ffmpeg for describing; the browser opener; and the
   tools for work arv leaves to others: burning, ddrescue, OCR), which are found, what each is for,
   what is missing without it, and each group's install command for this system (Debian and Ubuntu,
   Fedora, Arch, macOS with Homebrew, found from os-release; every system's when it is none of
@@ -74,8 +86,25 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - `arv chat` asks the chosen model about the archive. It runs commands that only read on its own
   (shown as `$ arv find travel`), and everything else comes back as a proposal: at a terminal
   "Apply it? [y/N]", in the GUI's Assistant panel (on the right, beside every view) a card with
-  its risk, Apply and Dismiss. A write asked for as a read becomes a proposal. The view reloads
-  after Apply.
+  its risk, Apply, Edit and Dismiss. A write asked for as a read becomes a proposal. The view
+  reloads after Apply.
+- Edit: the proposed command in a box, to change before applying; its risk is judged again
+  (`arv-assist chat --risk`), and when it has risen, Apply asks a second time. The model is told
+  what was run.
+- The GUI keeps the conversation in the browser across reloads, until New.
+- Who a change is by: `arv --agent llm:MODEL --authorship suggested|accepted|edited COMMAND ...`,
+  for a program making a change for a person. The assistant's applied proposals are recorded as
+  `accepted` (or `edited`), naming the model and the person.
+- `arv undo EVENT-ID` sets back what one change set (a data object's tags or name, a path's tags or
+  caption on a disc) by a new change that replaces it, only while it is the latest. The GUI's cards
+  have Undo.
+- "Apply tags without asking" in the Assistant panel, off by default: a retag the model proposes is
+  applied at once as `suggested`, with Undo; never anything else, never one it was unsure of.
+- How sure the model was: from the server's token probabilities (`logprobs`), each proposal's least
+  sure token in the command, as `sure` (doubtful below half), shown on the card and at a terminal.
+- Rules from what you accept: a retag you apply is kept as an example (as `describe --ask` keeps
+  answers), and a word of the names that keeps coming with the tag is offered as a `Match` rule in
+  the vocabulary (`arv-assist chat --accepted`, `--rule`), at a terminal and in the GUI.
 - Each command's risk is in `arv help --json` (`reads`, `risk` none, low, medium or high, and
   `risks` for subcommands and options), from one table (`src/arv/risk.c`) that the checks hold to
   the manual.

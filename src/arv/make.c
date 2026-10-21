@@ -41,7 +41,7 @@ typedef struct {
     strlist categories, subjects, notes, importance;
     long medium_sectors;
     double min_redundancy;
-    int no_rules, no_ecc, no_formats, no_defect_management, keep_stage, label_given, redundancy_given, split, yes;
+    int no_rules, no_ecc, no_formats, no_thumbs, no_defect_management, keep_stage, label_given, redundancy_given, split, yes;
     int keep, access_given;
 } options;
 
@@ -71,6 +71,8 @@ const char MAKE_HELP[] =
     "  --snapshot full|set    the catalogue the disc carries (default: full)\n"
     "  --tools DIR            arv's source for tools/ (default: found next to this program)\n"
     "  --no-formats           skip PRONOM identification (otherwise auto when sf is on PATH)\n"
+    "  --no-thumbs            no thumbnails (otherwise of pictures, videos and PDFs, by vipsthumbnail,\n"
+    "                         ImageMagick, ffmpeg or pdftoppm when one is here; at most 2% of the medium)\n"
     "  --draft FILE           title, description, subjects, notes and folder tags from a draft (the JSON\n"
     "                         arv describe --save and arv tag --save write); options given win\n"
 
@@ -105,6 +107,7 @@ static int parse_options(int argc, char **argv, options *o)
         if (!strcmp(a, "--no-rules")) { o->no_rules = 1; continue; }
         if (!strcmp(a, "--no-ecc")) { o->no_ecc = 1; continue; }
         if (!strcmp(a, "--no-formats")) { o->no_formats = 1; continue; }
+        if (!strcmp(a, "--no-thumbs")) { o->no_thumbs = 1; continue; }
         if (!strcmp(a, "--no-defect-management")) { o->no_defect_management = 1; continue; }
         if (!strcmp(a, "--keep-stage")) { o->keep_stage = 1; continue; }
         if (!strcmp(a, "--split")) { o->split = 1; continue; }
@@ -884,6 +887,7 @@ typedef struct {
     recs objects;                   /* --plan: the data objects on this disc (with Source: home only) */
     strlist object_manifests;       /* and each one's manifest, for catalog/objects/ at home */
     uint64_t sectors;
+    thumbset thumbs;                /* its thumbnails (catalog/volumes/<id>/thumbs/) */
 } plan;
 
 typedef struct {
@@ -909,6 +913,7 @@ typedef struct {
     rec_record *revision;       /* this edition, once the discs are assigned */
     size_t left_out;            /* files arv keeps off the disc (its own .arv) */
     gitrepos git;               /* repositories in the folder, their .git compacted */
+    thumbset thumbs;            /* every thumbnail made for this make, in the work folder */
     plan *plans;
     size_t nplans;
 } maker;
@@ -1535,6 +1540,10 @@ static void stage_plan(maker *mk, size_t idx)
             copy_file(mk->plans[b].b_packed, pk);
             free(pk);
         }
+        if (b == idx) {                                 /* its thumbnails: its own, never other discs' */
+            thumbs_free(&p->thumbs);
+            thumbs_for_disc(&mk->thumbs, &p->described, mk->capacity ? (uint64_t)mk->capacity * SECTOR / 50 : 0, dir, &p->thumbs);
+        }
         char *gt = git_tsv_for(&mk->git, &mk->plans[b].files);     /* its repositories' commits */
         if (gt) {
             char *gp = join(dir, "git.tsv");
@@ -1589,7 +1598,10 @@ static void stage_plan(maker *mk, size_t idx)
     }
     {
         char *places = map_disc_html(mk->h, p->b_tags, !strcmp(disc_access(p->disc), "public"));
-        char *html = render_index(p->disc, p->binding, &p->files, &snap, archive_where, places), *path = join(p->stage, "index.html");
+        char *thumb_dir = xprintf("catalog/volumes/%s/thumbs", p->disc_id);
+        char *html = render_index(p->disc, p->binding, &p->files, &snap, archive_where, places, &p->thumbs, thumb_dir),
+             *path = join(p->stage, "index.html");
+        free(thumb_dir);
         write_text(path, html);
         free(path);
         free(html);
@@ -1607,9 +1619,9 @@ static void stage_plan(maker *mk, size_t idx)
         rec_add(arc, "HomeUuid", archive_home_uuid(cat));
         const char *pointers[][2] = { { "Manifest", "manifest-sha256.txt" }, { "Listing", "catalog/volumes/%s/listing.tsv" },
                                       { "Tags", "catalog/volumes/%s/tags.tsv" }, { "Formats", "catalog/volumes/%s/formats.csv" },
-                                      { "Packed", "catalog/volumes/%s/packed.tsv" }, { "Snapshot", "catalog/archive.rec" },
-                                      { "Viewer", "index.html" }, { "Payload", "data/" } };
-        for (int i = 0; i < 8; i++) {
+                                      { "Packed", "catalog/volumes/%s/packed.tsv" }, { "Thumbs", "catalog/volumes/%s/thumbs.tsv" },
+                                      { "Snapshot", "catalog/archive.rec" }, { "Viewer", "index.html" }, { "Payload", "data/" } };
+        for (int i = 0; i < 9; i++) {
             char *rel = strstr(pointers[i][1], "%s") ? xprintf(pointers[i][1], p->disc_id) : xstrdup(pointers[i][1]);
             if (!strcmp(pointers[i][0], "Payload") || has(p->stage, rel)) rec_add(arc, pointers[i][0], rel);
             free(rel);
@@ -1868,6 +1880,8 @@ static int make_discs(maker *mk)
         if (!mk->have_formats) fprintf(stderr, "Warning: skipping format identification, Siegfried failed: %s\n", error);
         free(error);
     }
+    if (!o->no_thumbs && !(getenv("ARV_NO_THUMBS") && *getenv("ARV_NO_THUMBS")))   /* once, before the discs are laid out */
+        thumbs_prepare(mk->files, &mk->members, mk->workdir, &mk->thumbs);
     if (getenv("ARV_TEST_AFTER_HASH") && *getenv("ARV_TEST_AFTER_HASH")   /* tests only: change a file mid-make */
         && system(getenv("ARV_TEST_AFTER_HASH")))
         die("%s", "ARV_TEST_AFTER_HASH failed");
@@ -1912,8 +1926,11 @@ static int make_discs(maker *mk)
             copy_file(p->built, p->out);
             unlink(p->built);
         }
-        char *note = xprintf("image %s, %llu sectors", strrchr(p->out, '/') ? strrchr(p->out, '/') + 1 : p->out,
-                             (unsigned long long)p->sectors);
+        char *thumbs = !p->thumbs.n ? xstrdup("") : xprintf("; %zu thumbnail%s by %s%s", p->thumbs.n, p->thumbs.n == 1 ? "" : "s",
+                                                            p->thumbs.tool, p->thumbs.left_out ? " (more left out: past 2% of the medium)" : "");
+        char *note = xprintf("image %s, %llu sectors%s", strrchr(p->out, '/') ? strrchr(p->out, '/') + 1 : p->out,
+                             (unsigned long long)p->sectors, thumbs);
+        free(thumbs);
         rec_record *creation = new_event(p->disc_id, "creation", "success", mk->software, "automatic", note);
         recs_add(&p->events, creation);
         if (o->no_ecc) { free(note); continue; }
@@ -1979,6 +1996,18 @@ static int make_discs(maker *mk)
                 free(to);
             }
             free(from[k]);
+        }
+        if (p->thumbs.n) {                  /* its thumbnails: kept at home too, for discs on the shelf */
+            char *tsv = join(own, "thumbs.tsv"), *to_tsv = join(home_vol, "thumbs.tsv"), *dir = join(home_vol, "thumbs");
+            if (mkdirs(dir)) die("cannot create %s", dir);
+            copy_file(tsv, to_tsv);
+            for (size_t k = 0; k < p->thumbs.n; k++) {
+                char *f = xprintf("%s/%s.jpg", p->thumbs.dir, p->thumbs.v[k].sha), *t = xprintf("%s/%s.jpg", dir, p->thumbs.v[k].sha);
+                copy_file(f, t);
+                free(f);
+                free(t);
+            }
+            free(tsv); free(to_tsv); free(dir);
         }
         free(own);
         free(home_vol);

@@ -161,24 +161,45 @@ char *llm_chat(llm_client *c, jv *messages, const char *temperature, int json_mo
     jput(body, "messages", messages);
     jput(body, "temperature", jnum(temperature));
     jput(body, "stream", jnum("false"));
+    if (c->logprobs) jput(body, "logprobs", jnum("true"));
     if (json_mode) {
         jv *fmt = jobj();
         jput(fmt, "type", jstr("json_object"));
         jput(body, "response_format", fmt);
     }
+    for (size_t i = 0; i < c->ntok; i++) free(c->tok[i]);
+    free(c->tok);
+    free(c->lp);
+    c->tok = NULL, c->lp = NULL, c->ntok = 0;
     jv *r = llm_call(c, "/chat/completions", body, err);
-    if (!r && json_mode && strstr(*err, "response_format")) {     /* older servers reject it */
+    for (int again = 0; !r && again < 2; again++) {         /* older servers reject one or the other */
+        const char *key = strstr(*err, "response_format") && json_mode ? "response_format"
+                        : strstr(*err, "logprobs") && c->logprobs ? "logprobs" : NULL;
+        size_t k = 0;
+        while (key && k < body->n && strcmp(body->keys[k], key)) k++;
+        if (!key || k == body->n) break;
         free(*err);
         *err = NULL;
-        body->n--;                                          /* response_format is the last key */
-        jfree(body->vals[body->n]);
-        free(body->keys[body->n]);
+        jfree(body->vals[k]);
+        free(body->keys[k]);
+        for (; k + 1 < body->n; k++) body->keys[k] = body->keys[k + 1], body->vals[k] = body->vals[k + 1];
+        body->n--;
         r = llm_call(c, "/chat/completions", body, err);
     }
     jfree(body);
     if (!r) return NULL;
     const jv *choices = json_get(r, "choices");
     const jv *msg = choices && choices->kind == 'a' && choices->n ? json_get(choices->vals[0], "message") : NULL;
+    const jv *toks = choices && choices->kind == 'a' && choices->n ? json_get(json_get(choices->vals[0], "logprobs"), "content") : NULL;
+    for (size_t i = 0; toks && toks->kind == 'a' && i < toks->n; i++) {
+        const char *t = jstr_of(json_get(toks->vals[i], "token"));
+        const jv *p = json_get(toks->vals[i], "logprob");
+        if (!t || !p || p->kind != 't') continue;
+        c->tok = xrealloc(c->tok, (c->ntok + 1) * sizeof *c->tok);
+        c->lp = xrealloc(c->lp, (c->ntok + 1) * sizeof *c->lp);
+        c->tok[c->ntok] = xstrdup(t);
+        c->lp[c->ntok++] = atof(p->str);
+    }
     const char *content = jstr_of(json_get(msg, "content"));
     char *out = content ? xstrdup(content) : NULL;
     if (!out) {
