@@ -240,6 +240,96 @@ catalog/                         BagIt tag directory (covered by tagmanifest)
 Events that happen *after* burning (later fixity checks, re-burns) can only
 live in the master `archive.rec` at home, because the disc is write-once.
 
+## 8. Australian standards (National Archives of Australia)
+
+Two NAA pages, noted 2026-10-20 for an archive kept in Australia:
+
+- [Born-digital file format standards](https://www.naa.gov.au/information-management/storing-and-preserving-information/preserving-information/born-digital-file-format-standards):
+  the formats Australian Government agencies should use for new born-digital records.
+- [Preservation Digitisation Standards](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/preservation-digitisation-standards)
+  ([2021 PDF](https://www.naa.gov.au/sites/default/files/2022-01/Preservation-Digitisation-Standards-2021.pdf)):
+  how the NAA digitises its own holdings.
+
+Both pages were read in full on 2026-10-20, from copies of the pages the owner supplied (the NAA
+site refused this session's connections).
+
+**Born-digital formats.** The standard covers files *created* digitally from its date of issue.
+It does not cover scans (they follow the Agency Digitisation Specifications), social media, or
+business systems and databases. **Existing files are not to be converted:** they go to the NAA in
+their current format, and the NAA assesses them and acts under its Digital Preservation Policy. A
+file converted for business use goes to a listed format, and the original is kept unless General
+Records Authority 31 allows its destruction. The list, by category (the page names formats and
+extensions, not versions or PRONOM ids):
+
+| Category | Formats |
+|---|---|
+| Word processing | Word (OOXML: docx, docm, dotx, dotm), OpenDocument text (odt, fodt), PDF/A, plain text in UTF-8 or UTF-16 |
+| Spreadsheets | CSV, Excel (OOXML: xlsx, xlsm), OpenDocument spreadsheet (ods, fods), PDF |
+| Presentations | PowerPoint (OOXML: pptx and its kin), OpenDocument presentation (odp, fodp), PDF |
+| Email | EML, MSG, MBOX, PST |
+| Raster images | DNG, GIF, JPEG 2000 (jp2), JPEG (JFIF), PNG, TIFF |
+| Vector images | OpenDocument graphic (odg, fodg), SVG |
+| Audio | AAC (m4a), AIFF, FLAC, MP3, WAVE / Broadcast Wave, WMA |
+| Digital cinema | DPX, TIFF |
+| Video codecs | FFV1, Motion JPEG 2000, MPEG-2, MPEG-4 AVC, WMV 9 |
+| Video containers | AVI, MXF, Matroska (mkv), QuickTime (mov) |
+| CAD | DWG, DXF, X3D, PDF/E, PRC, STEP, U3D |
+| Geospatial | ECW, ESRI shapefile and world file, GeoJSON, GML, GeoPackage, GeoTIFF, KML/KMZ, Motion JPEG 2000, SVG, TerraGo geospatial PDF |
+| Structured data | CSV, EBCDIC, XML, JSON, TSV |
+| Website | XML, HTML/XHTML, CSS (the page labels it "JavaScript Object Notation", a slip), XSD, DTD |
+
+Not on it, though common in a personal archive: WARC web archives, SQLite, ZIP and tar, HEIC
+and WebP, Opus and Ogg, source code and git repositories, disc images. The page says the list
+will be reviewed and extended.
+
+**Why these formats.** A format has a low risk of becoming obsolete, by the criteria of the
+[Australasian Digital Recordkeeping Initiative](https://www.caara.org.au/index.php/working-groups/adri/)
+(ADRI, of the Council of Australasian Archives and Records Authorities), when it is:
+widely adopted; unrestricted (free of patents, preferably open source); well documented (a public
+specification detailed enough to write a reader from); stable (rare versions, compatible, or a
+clear migration path); platform independent; uncompressed or lossless; supported (by vendors,
+community or third parties); and metadata friendly. No format meets every one; the more, the
+lower the risk.
+
+**Digitisation** (February 2021, revised January 2022). For physical records of archival value,
+done by the NAA, its contractors and agencies; reviewed every year. Its principles: the digital
+copy is a long-term **surrogate** for the original, made use-neutral, at a capture ratio of 100%
+with no manipulation, and **complete** (every page, attachment and annotation; nothing cropped or
+redacted). Each item gets an **archival master** (uncompressed or lossless) and **access
+derivatives** made from it (lossy is fine: they are not archival). TIFF 6.0 is the master for
+everything but audiovisual; JPEG is the access copy. A file of many pages becomes single-page TIFFs,
+not one multi-page TIFF.
+
+| Original | Master | Access copy |
+|---|---|---|
+| Paper under A3, bound volumes | TIFF 6.0 uncompressed, 400 ppi, 8-bit colour, sRGB or Adobe RGB; **16-bit** when faded, stained, low in contrast or handwritten | JPEG (Photoshop level 10–12), 300 ppi, sRGB |
+| Paper over A3 (maps, plans) | 400 ppi, 8-bit; rare or finely detailed: 600 ppi, 16-bit, Adobe RGB or ProPhoto RGB | JPEG, 3000 px on the shortest edge |
+| Photographic prints | 16-bit, Adobe RGB or ProPhoto RGB: 2700 ppi under A6, 900 ppi A6 to A4, 600 ppi over A4 | JPEG, 1290 px on the shortest edge |
+| Negatives and transparencies | **two masters:** the raw scan as DNG (no cropping, 16-bit, ProPhoto RGB) and the inverted positive as TIFF (16-bit; ProPhoto RGB, or Grey Gamma 2.2 for black and white). Preferred: 5000 ppi up to 35 mm, 4000 ppi to 6×6 cm, 3000 ppi to 5×7", 1600 ppi to 8×10" | JPEG, 1290 px on the shortest edge |
+| Microfilm, microfiche, aperture cards | 400 ppi at the original's size, 8-bit Grey Gamma 2.2 | JPEG, 400 ppi |
+| Analogue audio (records, tape, cassettes, film sound) | Broadcast WAV, linear PCM, **96 kHz, 24-bit**; channels as the original *format* (a mono voice on a stereo cassette stays stereo) | MP3, 48 kHz, 192 kbit/s CBR |
+| Digital audio (DAT, CD) | Broadcast WAV, at the original's own rate and depth | MP3, 192 kbit/s CBR |
+| Video (VHS, Betacam, Mini DV, LaserDisc...) | MXF OP-1a, lossless Motion JPEG 2000, 10-bit, original frame size, rate, interlacing and aspect; sound BWF 48 kHz 16-bit | MP4, H.264 (AVC High), 8-bit, 5 Mbit/s HD or 1.5 Mbit/s SD |
+| Motion picture film | DPX (SMPTE 268M-2003) uncompressed, 10-bit RGB 4:4:4: 4K or 5K for 35 mm, 2K (4K for negatives) for 16 mm, 2K for 8 mm; at its true frame rate (24 or 25); sound BWF 48 kHz 24-bit | MP4, H.264, 1920×1080 |
+
+Also: negatives are scanned against a film target (white about 240–245, mid grey 110–115, black
+12–20 RGB), with a 5000 K light box and a camera of at least 14 stops. Audio follows IASA TC-04
+(2009); video is under review against IASA TC-06 (2018). The page says nothing of checksums or
+embedded metadata; the NAA's [Preserving the collection](https://www.naa.gov.au/about-us/preserving-collection)
+page says checksums are made when the files are created, to check them after every copy or move.
+
+**What arv already meets, and what it takes:**
+
+| NAA | arv |
+|---|---|
+| ADRI's criteria for formats | The disc's own meet them: UDF 2.50 (ECMA-167), BagIt (RFC 8493), RS03 (dvdisaster's open layout); every catalogue file is in a format on the list (UTF-8 text, TSV, CSV, HTML) |
+| Keep existing files as they are | arv never converts or deletes; a conversion would be a new version, the original kept |
+| Checksums made at the start, checked at each copy | SHA-256 in every bag's manifest; `arv check`, `arv checked` |
+| Knowing each file's format | PRONOM ids through Siegfried (`formats.csv`) |
+| Format risk, and migration | The NAA's list, mapped to PRONOM ids: `src/arv/data/naa_born_digital.rec`. **Not yet:** a disc's formats compared with it (research/plan.md, "formats against a preservation list"). Converting stays with the tools built for it |
+| Masters and access copies | Archive the master (and a negative's raw DNG beside it); the access copy is optional, and can be remade. Which file is which: a `role:` tag (raw, master, access); which it came from is not yet recorded (research/plan.md, "formats against a preservation list"). Planned thumbnails are not access copies: an access copy stands in for the original (the NAA's is 1290 px or 300 ppi, legible); a thumbnail (384 px, unreadable as a page) is for finding it, lives in the catalogue, not `data/`, and never carries `role:` |
+| How to scan | Not arv's work: the figures above are the advice to give (docs/workflow.md, "Scans") |
+
 ## Sources
 
 - [NDSA Levels of Digital Preservation](https://www.ndsa.org/publications/levels-of-digital-preservation/), [v2.1 announcement](https://www.ndsa.org/2026/03/23/announcing-version-2_1-of-the-ndsa-levels-of-digital-preservation.html), [DPC: introducing v2.0](https://www.dpconline.org/blog/introducing-the-new-ndsa-levels-of-preservation)
@@ -249,3 +339,4 @@ live in the master `archive.rec` at home, because the disc is write-once.
 - [OCFL 1.1](https://ocfl.io/1.1/spec/)
 - [ICA Records in Contexts](https://www.ica.org/ica-network/expert-groups/egad/records-in-contexts-ric/), [RiC-O 1.1](https://www.ica.org/standards/RiC/RiC-O_1-1.html)
 - [Preservation metadata (Wikipedia)](https://en.wikipedia.org/wiki/Preservation_metadata)
+- National Archives of Australia: [Born-digital file format standards](https://www.naa.gov.au/information-management/storing-and-preserving-information/preserving-information/born-digital-file-format-standards), [Preservation Digitisation Standards](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/preservation-digitisation-standards) ([2021 PDF](https://www.naa.gov.au/sites/default/files/2022-01/Preservation-Digitisation-Standards-2021.pdf)), [Digital Preservation Policy](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/digital-preservation-policy), [Digitisation specifications for paper records in agencies](https://www.naa.gov.au/information-management/capturing-information/digitisation-specifications-paper-records-agencies), [Technical specifications for digitising audiovisual records](https://www.naa.gov.au/information-management/store-and-preserve-information/preserving-information/preserving-digital-information/technical-specifications-digitising-audiovisual-records), [IASA TC-04](https://www.iasa-web.org/tc04/audio-preservation), [General Records Authority 31](https://www.naa.gov.au/node/784); ADRI: [Australasian Digital Recordkeeping Initiative](https://www.caara.org.au/index.php/working-groups/adri/)

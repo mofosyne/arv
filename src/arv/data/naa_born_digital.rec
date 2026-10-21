@@ -1,0 +1,973 @@
+# The National Archives of Australia's born-digital file format standards: the formats it
+# names as low risk of becoming obsolete, mapped to PRONOM ids so they can be compared with
+# a disc's formats.csv (research/plan.md, "formats against a preservation list").
+#
+# The page names formats and extensions, not versions or PRONOM ids; each Puid below was
+# chosen by hand from PRONOM's records (Siegfried's copy of them), with PRONOM's own name
+# above it. Where the page names a format with no version, every version is listed. A
+# format PRONOM cannot name (a codec inside a container) has no Puid and says why in Note.
+#
+# The standard is for files created from its date of issue. Existing files are handed to
+# the NAA as they are, and it assesses them: a file outside this list is a fact to record,
+# not a fault.
+#
+# Extensions are the page's, less those that are media types (x-tiff, x-mpeg3).
+#
+# Not yet read by arv: reference data (issue #53), here to be checked before code uses it.
+
+%rec: List
+%mandatory: Id Title Source Read
+
+Id: naa-born-digital
+Title: National Archives of Australia: born-digital file format standards
+Source: https://www.naa.gov.au/information-management/storing-and-preserving-information/preserving-information/born-digital-file-format-standards
+Read: 2026-10-20
+Pronom: Siegfried's PRONOM data, github.com/richardlehane/siegfried commit 7fb430b (2026-09-27)
+Note: The page's own tables, by category; the order is the page's.
+
+%rec: Format
+%mandatory: Name Category
+%allowed: Name Category Extensions Puid Note
+
+Name: Microsoft Word Office Open XML
+Category: Word processing
+Extensions: docx docm dotx dotm
+# Microsoft Word for Windows, 2007 onwards
+Puid: fmt/412
+# Macro enabled Microsoft Word Document OOXML, 2007 Onwards
+Puid: fmt/523
+# Microsoft Word Template, 2007 onwards
+Puid: fmt/597
+# Microsoft Word Macro-Enabled Document Template, 2007 onwards
+Puid: fmt/599
+# Microsoft Office Open XML, 2007 onwards
+Puid: fmt/189
+Note: fmt/189 is what Siegfried names an Office Open XML file it cannot place more closely.
+
+Name: OpenDocument Format Document
+Category: Word processing
+Extensions: odt fodt
+# OpenDocument Text, 1.0
+Puid: fmt/136
+# OpenDocument Text, 1.1
+Puid: fmt/290
+# OpenDocument Text, 1.2
+Puid: fmt/291
+# OpenDocument Text, 1.3
+Puid: fmt/1756
+# OpenDocument Text, 1.4
+Puid: fmt/2044
+Note: PRONOM has no id for flat (fodt) OpenDocument files.
+
+Name: Portable Document Format/Archiving
+Category: Word processing
+Extensions: pdf
+# Acrobat PDF/A - Portable Document Format, 1a
+Puid: fmt/95
+# Acrobat PDF/A - Portable Document Format, 1b
+Puid: fmt/354
+# Acrobat PDF/A - Portable Document Format, 2a
+Puid: fmt/476
+# Acrobat PDF/A - Portable Document Format, 2b
+Puid: fmt/477
+# Acrobat PDF/A - Portable Document Format, 2u
+Puid: fmt/478
+# Acrobat PDF/A - Portable Document Format, 3a
+Puid: fmt/479
+# Acrobat PDF/A - Portable Document Format, 3b
+Puid: fmt/480
+# Acrobat PDF/A - Portable Document Format, 3u
+Puid: fmt/481
+# Acrobat PDF/A - Portable Document Format, 4
+Puid: fmt/1910
+# Acrobat PDF/A - Portable Document Format, 4e
+Puid: fmt/1911
+# Acrobat PDF/A - Portable Document Format, 4f
+Puid: fmt/1912
+
+Name: Unicode Universal Coded Character Set Transformation Format UTF-8 and UTF-16
+Category: Word processing
+Extensions: txt utf8 utf16
+# Plain Text File
+Puid: x-fmt/111
+# Unicode Text File
+Puid: x-fmt/16
+Note: Text has no signature: Siegfried names it by its extension, or by its byte order mark.
+
+Name: Comma Separated Value file
+Category: Spreadsheet
+Extensions: csv
+# Comma Separated Values
+Puid: x-fmt/18
+
+Name: Microsoft Excel Office Open XML
+Category: Spreadsheet
+Extensions: xlsx xlsm
+# Microsoft Excel for Windows, 2007 onwards
+Puid: fmt/214
+# Microsoft Excel Macro-Enabled, 2007
+Puid: fmt/445
+
+Name: OpenDocument Format Spreadsheet
+Category: Spreadsheet
+Extensions: ods fods
+# OpenDocument Spreadsheet, 1.0
+Puid: fmt/137
+# OpenDocument Spreadsheet, 1.1
+Puid: fmt/294
+# OpenDocument Spreadsheet, 1.2
+Puid: fmt/295
+# OpenDocument Spreadsheet, 1.3
+Puid: fmt/1755
+# OpenDocument Spreadsheet, 1.4
+Puid: fmt/2045
+Note: PRONOM has no id for flat (fods) OpenDocument files.
+
+Name: Portable Document Format
+Category: Spreadsheet
+Extensions: pdf
+# Acrobat PDF 1.0 - Portable Document Format, 1.0
+Puid: fmt/14
+# Acrobat PDF 1.1 - Portable Document Format, 1.1
+Puid: fmt/15
+# Acrobat PDF 1.2 - Portable Document Format, 1.2
+Puid: fmt/16
+# Acrobat PDF 1.3 - Portable Document Format, 1.3
+Puid: fmt/17
+# Acrobat PDF 1.4 - Portable Document Format, 1.4
+Puid: fmt/18
+# Acrobat PDF 1.5 - Portable Document Format, 1.5
+Puid: fmt/19
+# Acrobat PDF 1.6 - Portable Document Format, 1.6
+Puid: fmt/20
+# Acrobat PDF 1.7 - Portable Document Format, 1.7
+Puid: fmt/276
+# PDF 2.0 - Portable Document Format, 2.0
+Puid: fmt/1129
+# Acrobat PDF/A - Portable Document Format, 1a
+Puid: fmt/95
+# Acrobat PDF/A - Portable Document Format, 1b
+Puid: fmt/354
+# Acrobat PDF/A - Portable Document Format, 2a
+Puid: fmt/476
+# Acrobat PDF/A - Portable Document Format, 2b
+Puid: fmt/477
+# Acrobat PDF/A - Portable Document Format, 2u
+Puid: fmt/478
+# Acrobat PDF/A - Portable Document Format, 3a
+Puid: fmt/479
+# Acrobat PDF/A - Portable Document Format, 3b
+Puid: fmt/480
+# Acrobat PDF/A - Portable Document Format, 3u
+Puid: fmt/481
+# Acrobat PDF/A - Portable Document Format, 4
+Puid: fmt/1910
+# Acrobat PDF/A - Portable Document Format, 4e
+Puid: fmt/1911
+# Acrobat PDF/A - Portable Document Format, 4f
+Puid: fmt/1912
+# Acrobat PDF/X - Portable Document Format - Exchange 1:1999
+Puid: fmt/144
+# Acrobat PDF/X - Portable Document Format - Exchange 1:2001
+Puid: fmt/145
+# Acrobat PDF/X - Portable Document Format - Exchange 1a:2003
+Puid: fmt/146
+# Acrobat PDF/X - Portable Document Format - Exchange 2:2003
+Puid: fmt/147
+# Acrobat PDF/X - Portable Document Format - Exchange 3:2003
+Puid: fmt/148
+# Acrobat PDF/X - Portable Document Format - Exchange 1a:2001
+Puid: fmt/157
+# Acrobat PDF/X - Portable Document Format - Exchange 3:2002
+Puid: fmt/158
+# Acrobat PDF/X - Portable Document Format - Exchange PDF/X-4
+Puid: fmt/488
+# Acrobat PDF/X - Portable Document Format - Exchange PDF/X-4p
+Puid: fmt/489
+# Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5g
+Puid: fmt/490
+# Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5pg
+Puid: fmt/491
+# Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5n
+Puid: fmt/492
+# PDF/UA Portable Document Format, 1
+Puid: fmt/2050
+# PDF/UA Portable Document Format, 2
+Puid: fmt/2052
+Note: Any PDF: the page names the format without a version. PDF/X and PDF/UA are PDFs, named apart by PRONOM.
+
+Name: Microsoft PowerPoint Office Open XML
+Category: Presentation
+Extensions: pptx pptm potx potm ppam ppsx ppsm sldx sldm thmx
+# Microsoft Powerpoint for Windows, 2007 onwards
+Puid: fmt/215
+# Macro Enabled Microsoft Powerpoint, 2007 Onwards
+Puid: fmt/487
+# Microsoft PowerPoint Show, 2007
+Puid: fmt/629
+# Microsoft PowerPoint Macro-Enabled Show, 2007
+Puid: fmt/630
+# Microsoft PowerPoint Template, 2007
+Puid: fmt/631
+# Microsoft PowerPoint Macro-Enabled Template, 2007
+Puid: fmt/632
+# Microsoft PowerPoint Macro-Enabled Add-In, 2007
+Puid: fmt/633
+# Microsoft PowerPoint Macro-Enabled Slide, 2007
+Puid: fmt/636
+# Microsoft Office Theme
+Puid: fmt/524
+Note: PRONOM has no id of its own for sldx.
+
+Name: OpenDocument Format Presentation
+Category: Presentation
+Extensions: odp fodp
+# OpenDocument Presentation, 1.0
+Puid: fmt/138
+# OpenDocument Presentation, 1.1
+Puid: fmt/292
+# OpenDocument Presentation, 1.2
+Puid: fmt/293
+# OpenDocument Presentation, 1.3
+Puid: fmt/1754
+# OpenDocument Presentation, 1.4
+Puid: fmt/2046
+Note: PRONOM has no id for flat (fodp) OpenDocument files.
+
+Name: Portable Document Format
+Category: Presentation
+Extensions: pdf
+# Acrobat PDF 1.0 - Portable Document Format, 1.0
+Puid: fmt/14
+# Acrobat PDF 1.1 - Portable Document Format, 1.1
+Puid: fmt/15
+# Acrobat PDF 1.2 - Portable Document Format, 1.2
+Puid: fmt/16
+# Acrobat PDF 1.3 - Portable Document Format, 1.3
+Puid: fmt/17
+# Acrobat PDF 1.4 - Portable Document Format, 1.4
+Puid: fmt/18
+# Acrobat PDF 1.5 - Portable Document Format, 1.5
+Puid: fmt/19
+# Acrobat PDF 1.6 - Portable Document Format, 1.6
+Puid: fmt/20
+# Acrobat PDF 1.7 - Portable Document Format, 1.7
+Puid: fmt/276
+# PDF 2.0 - Portable Document Format, 2.0
+Puid: fmt/1129
+# Acrobat PDF/A - Portable Document Format, 1a
+Puid: fmt/95
+# Acrobat PDF/A - Portable Document Format, 1b
+Puid: fmt/354
+# Acrobat PDF/A - Portable Document Format, 2a
+Puid: fmt/476
+# Acrobat PDF/A - Portable Document Format, 2b
+Puid: fmt/477
+# Acrobat PDF/A - Portable Document Format, 2u
+Puid: fmt/478
+# Acrobat PDF/A - Portable Document Format, 3a
+Puid: fmt/479
+# Acrobat PDF/A - Portable Document Format, 3b
+Puid: fmt/480
+# Acrobat PDF/A - Portable Document Format, 3u
+Puid: fmt/481
+# Acrobat PDF/A - Portable Document Format, 4
+Puid: fmt/1910
+# Acrobat PDF/A - Portable Document Format, 4e
+Puid: fmt/1911
+# Acrobat PDF/A - Portable Document Format, 4f
+Puid: fmt/1912
+# Acrobat PDF/X - Portable Document Format - Exchange 1:1999
+Puid: fmt/144
+# Acrobat PDF/X - Portable Document Format - Exchange 1:2001
+Puid: fmt/145
+# Acrobat PDF/X - Portable Document Format - Exchange 1a:2003
+Puid: fmt/146
+# Acrobat PDF/X - Portable Document Format - Exchange 2:2003
+Puid: fmt/147
+# Acrobat PDF/X - Portable Document Format - Exchange 3:2003
+Puid: fmt/148
+# Acrobat PDF/X - Portable Document Format - Exchange 1a:2001
+Puid: fmt/157
+# Acrobat PDF/X - Portable Document Format - Exchange 3:2002
+Puid: fmt/158
+# Acrobat PDF/X - Portable Document Format - Exchange PDF/X-4
+Puid: fmt/488
+# Acrobat PDF/X - Portable Document Format - Exchange PDF/X-4p
+Puid: fmt/489
+# Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5g
+Puid: fmt/490
+# Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5pg
+Puid: fmt/491
+# Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5n
+Puid: fmt/492
+# PDF/UA Portable Document Format, 1
+Puid: fmt/2050
+# PDF/UA Portable Document Format, 2
+Puid: fmt/2052
+
+Name: Electronic Mail Format
+Category: Email
+Extensions: eml
+# Internet Message Format
+Puid: fmt/278
+# MIME Email, 1.0
+Puid: fmt/950
+
+Name: Microsoft Outlook Email Item
+Category: Email
+Extensions: msg
+# Microsoft Outlook Email Message, 97-2003
+Puid: x-fmt/430
+
+Name: MBOX Email Format
+Category: Email
+Extensions: mbox
+# MBOX
+Puid: fmt/720
+
+Name: Microsoft Outlook Personal Folder
+Category: Email
+Extensions: pst
+# Microsoft Outlook Personal Folders (ANSI), 1997-2002
+Puid: x-fmt/248
+# Microsoft Outlook Personal Folders (Unicode), 2003-2007
+Puid: x-fmt/249
+# Microsoft Outlook Personal Folders
+Puid: x-fmt/250
+# Microsoft Outlook Personal Folders
+Puid: x-fmt/251
+
+Name: Digital Negative
+Category: Raster image
+Extensions: dng
+# Digital Negative Format (DNG), 1.0
+Puid: fmt/436
+# Digital Negative Format (DNG), 1.1
+Puid: fmt/152
+# Digital Negative Format (DNG), 1.2
+Puid: fmt/437
+# Digital Negative Format (DNG), 1.3
+Puid: fmt/438
+# Digital Negative Format (DNG), 1.4
+Puid: fmt/730
+# Digital Negative Format (DNG), 1.5
+Puid: fmt/1841
+# Digital Negative Format (DNG), 1.6
+Puid: fmt/1842
+# Digital Negative Format (DNG), 1.7
+Puid: fmt/1943
+
+Name: Graphics Interchange Format
+Category: Raster image
+Extensions: gif
+# Graphics Interchange Format, 87a
+Puid: fmt/3
+# Graphics Interchange Format, 89a
+Puid: fmt/4
+
+Name: JPEG 2000 File Format
+Category: Raster image
+Extensions: jp2 jpeg2000
+# JP2 (JPEG 2000 part 1)
+Puid: x-fmt/392
+
+Name: JPEG File Interchange Format
+Category: Raster image
+Extensions: jpg jpeg jpe jfi jfif j jif jmh jlx
+# Raw JPEG Stream
+Puid: fmt/41
+# JPEG File Interchange Format, 1.00
+Puid: fmt/42
+# JPEG File Interchange Format, 1.01
+Puid: fmt/43
+# JPEG File Interchange Format, 1.02
+Puid: fmt/44
+# Exchangeable Image File Format (Compressed), 2.1
+Puid: x-fmt/390
+# Exchangeable Image File Format (Compressed), 2.2
+Puid: x-fmt/391
+# Exchangeable Image File Format (Compressed), 2.0
+Puid: x-fmt/398
+# Exchangeable Image File Format (Compressed), 2.21
+Puid: fmt/645
+# Exchangeable Image File Format (Compressed), 2.3.x
+Puid: fmt/1507
+Note: A camera's JPEG is named as Exif (x-fmt/390 and its kin): the same JPEG with a different header.
+
+Name: Portable Network Graphics
+Category: Raster image
+Extensions: png
+# Portable Network Graphics, 1.0
+Puid: fmt/11
+# Portable Network Graphics, 1.1
+Puid: fmt/12
+# Portable Network Graphics, 1.2
+Puid: fmt/13
+
+Name: Tagged Image File Format
+Category: Raster image
+Extensions: tif tiff
+# Tagged Image File Format, 3
+Puid: fmt/7
+# Tagged Image File Format, 4
+Puid: fmt/8
+# Tagged Image File Format, 5
+Puid: fmt/9
+# Tagged Image File Format, 6
+Puid: fmt/10
+# Tagged Image File Format
+Puid: fmt/353
+# Tagged Image File Format for Image Technology (TIFF/IT)
+Puid: fmt/153
+# Tagged Image File Format for Electronic Photography (TIFF/EP)
+Puid: fmt/154
+# Tagged Image File Format for Internet Fax (TIFF-FX)
+Puid: fmt/156
+# BigTIFF
+Puid: fmt/1917
+# Exchangeable Image File Format (Uncompressed), 2.2
+Puid: x-fmt/387
+# Exchangeable Image File Format (Uncompressed), 2.1
+Puid: x-fmt/388
+# Exchangeable Image File Format (Uncompressed), 2.0
+Puid: x-fmt/399
+Note: Exif TIFF (x-fmt/387 and its kin) is a TIFF from a camera; BigTIFF is TIFF past 4 GiB.
+
+Name: Open Document Format Graphic
+Category: Vector image
+Extensions: odg fodg
+# OpenDocument Graphics, 1.0
+Puid: fmt/139
+# OpenDocument Graphics, 1.1
+Puid: fmt/296
+# OpenDocument Graphics, 1.2
+Puid: fmt/297
+# OpenDocument Graphics, 1.3
+Puid: fmt/1753
+# OpenDocument Graphics, 1.4
+Puid: fmt/2048
+Note: PRONOM has no id for flat (fodg) OpenDocument files.
+
+Name: Scalable Vector Graphics
+Category: Vector image
+Extensions: svg
+# Scalable Vector Graphics, 1.0
+Puid: fmt/91
+# Scalable Vector Graphics, 1.1
+Puid: fmt/92
+# Scalable Vector Graphics Tiny, 1.2
+Puid: fmt/413
+
+Name: Advanced Audio Coding MPEG-4 Low Complexity Object
+Category: Digital audio
+Extensions: m4a mp4
+# MPEG-4 Media File
+Puid: fmt/199
+# M4A Audio
+Puid: fmt/2094
+Note: PRONOM names the MP4 container, not the codec inside it: an MP4 counts whatever it holds.
+
+Name: Audio Interchange File Format
+Category: Digital audio
+Extensions: aif aiff ief
+# Audio Interchange File Format
+Puid: fmt/414
+# Audio Interchange File Format, 1.3
+Puid: x-fmt/135
+
+Name: Free Lossless Audio Compression
+Category: Digital audio
+Extensions: flac
+# FLAC (Free Lossless Audio Codec), 1.2.1
+Puid: fmt/279
+
+Name: MPEG Layer III Audio Encoding
+Category: Digital audio
+Extensions: mp3 mpeg3 mpeg mpg
+# MPEG 1/2 Audio Layer 3
+Puid: fmt/134
+
+Name: WAVE / Broadcast Wave Format
+Category: Digital audio
+Extensions: wav bwav bwf
+# Waveform Audio
+Puid: fmt/6
+# Waveform Audio (PCMWAVEFORMAT)
+Puid: fmt/141
+# Waveform Audio (WAVEFORMATEX)
+Puid: fmt/142
+# Waveform Audio (WAVEFORMATEXTENSIBLE)
+Puid: fmt/143
+# Broadcast WAVE, 0 Generic
+Puid: fmt/1
+# Broadcast WAVE, 1 Generic
+Puid: fmt/2
+# Broadcast WAVE, 2 Generic
+Puid: fmt/527
+# Broadcast WAVE, 0 PCM Encoding
+Puid: fmt/703
+# Broadcast WAVE, 1 PCM Encoding
+Puid: fmt/704
+# Broadcast WAVE, 2 PCM Encoding
+Puid: fmt/705
+# Broadcast WAVE, 0 MPEG Encoding
+Puid: fmt/706
+# Broadcast WAVE, 1 MPEG Encoding
+Puid: fmt/707
+# Broadcast WAVE, 2 MPEG Encoding
+Puid: fmt/708
+# Broadcast WAVE, 0 WAVEFORMATEXTENSIBLE Encoding
+Puid: fmt/709
+# Broadcast WAVE, 1 WAVEFORMATEXTENSIBLE Encoding
+Puid: fmt/710
+# Broadcast WAVE, 2 WAVEFORMATEXTENSIBLE Encoding
+Puid: fmt/711
+# RF64 Multichannel Broadcast Wave format
+Puid: fmt/713
+
+Name: Windows Media Audio
+Category: Digital audio
+Extensions: wma
+# Windows Media Audio
+Puid: fmt/132
+
+Name: Digital Moving-Picture Exchange
+Category: Digital cinema
+Extensions: dpx
+# Digital Moving Picture Exchange Bitmap, 1.0
+Puid: fmt/193
+# Digital Moving Picture Exchange Bitmap, 2.0
+Puid: fmt/541
+
+Name: Tagged Image File Format
+Category: Digital cinema
+Extensions: tif tiff
+# Tagged Image File Format, 3
+Puid: fmt/7
+# Tagged Image File Format, 4
+Puid: fmt/8
+# Tagged Image File Format, 5
+Puid: fmt/9
+# Tagged Image File Format, 6
+Puid: fmt/10
+# Tagged Image File Format
+Puid: fmt/353
+# Tagged Image File Format for Image Technology (TIFF/IT)
+Puid: fmt/153
+# Tagged Image File Format for Electronic Photography (TIFF/EP)
+Puid: fmt/154
+# Tagged Image File Format for Internet Fax (TIFF-FX)
+Puid: fmt/156
+# BigTIFF
+Puid: fmt/1917
+# Exchangeable Image File Format (Uncompressed), 2.2
+Puid: x-fmt/387
+# Exchangeable Image File Format (Uncompressed), 2.1
+Puid: x-fmt/388
+# Exchangeable Image File Format (Uncompressed), 2.0
+Puid: x-fmt/399
+
+Name: FF Video Codec 1
+Category: Digital video
+Note: A codec, not a file: PRONOM cannot name it. It lives in Matroska or MXF, which are on the list.
+
+Name: Motion JPEG2000
+Category: Digital video
+Extensions: mjp mj2 m2v
+# MJ2 (Motion JPEG 2000)
+Puid: fmt/337
+
+Name: MPEG-2
+Category: Digital video
+Extensions: mpg mpeg mpeg2 mpv mp2t mp1s mp2p
+# MPEG-2 Program Stream
+Puid: x-fmt/386
+# MPEG-2 Transport Stream
+Puid: fmt/585
+# MPEG-2 Elementary Stream
+Puid: fmt/640
+
+Name: MPEG-4 Advanced Video Coding
+Category: Digital video
+Extensions: mp4 mpa
+# MPEG-4 Media File
+Puid: fmt/199
+Note: PRONOM names the MP4 container, not the codec inside it.
+
+Name: Windows Media Video 9 File Format
+Category: Digital video
+Extensions: wmv
+# Windows Media Video
+Puid: fmt/133
+# Windows Media Video (WVC1), 9 Advanced Profile (WVC1)
+Puid: fmt/441
+
+Name: Audio Video Interleaved
+Category: Digital video container
+Extensions: avi
+# Audio/Video Interleaved Format
+Puid: fmt/5
+
+Name: Material Exchange Format
+Category: Digital video container
+Extensions: mxf
+# Material Exchange Format, Operational Pattern 1a
+Puid: fmt/200
+# Material Exchange Format, Operational Pattern 1b
+Puid: fmt/783
+# Material Exchange Format, Operational Pattern 1c
+Puid: fmt/784
+# Material Exchange Format, Operational Pattern 2a
+Puid: fmt/785
+# Material Exchange Format, Operational Pattern 2b
+Puid: fmt/786
+# Material Exchange Format, Operational Pattern 2c
+Puid: fmt/787
+# Material Exchange Format, Operational Pattern 3a
+Puid: fmt/788
+# Material Exchange Format, Operational Pattern 3b
+Puid: fmt/789
+# Material Exchange Format, Operational Pattern 3c
+Puid: fmt/790
+# Material Exchange Format, Operational Pattern OP-ATOM
+Puid: fmt/791
+
+Name: Matroska
+Category: Digital video container
+Extensions: mkv
+# Matroska, 1-4
+Puid: fmt/569
+
+Name: QuickTime Video
+Category: Digital video container
+Extensions: mov
+# Quicktime
+Puid: x-fmt/384
+
+Name: Drawing
+Category: Computer Aided Design
+Extensions: dwg
+# AutoCAD Drawing, 1.0
+Puid: fmt/21
+# AutoCAD Drawing, 1.2
+Puid: fmt/22
+# AutoCAD Drawing, 1.3
+Puid: fmt/23
+# AutoCAD Drawing, 1.4
+Puid: fmt/24
+# AutoCAD Drawing, 2.0
+Puid: fmt/25
+# AutoCAD Drawing, 2.1
+Puid: fmt/26
+# AutoCAD Drawing, 2.2
+Puid: fmt/27
+# AutoCAD Drawing, 2.5
+Puid: fmt/28
+# AutoCAD Drawing, 2.6
+Puid: fmt/29
+# AutoCAD Drawing, R9
+Puid: fmt/30
+# AutoCAD Drawing, R10
+Puid: fmt/31
+# AutoCAD Drawing, R11/12
+Puid: fmt/32
+# AutoCAD Drawing, R13
+Puid: fmt/33
+# AutoCAD Drawing, R14
+Puid: fmt/34
+# AutoCAD Drawing, 2000-2002
+Puid: fmt/35
+# AutoCAD Drawing, 2004-2005
+Puid: fmt/36
+# AutoCAD Drawing, 2010/2011/2012
+Puid: fmt/434
+# AutoCAD Drawing, 2007-2008
+Puid: x-fmt/455
+# AutoCAD Drawing, 2013/2014
+Puid: fmt/531
+# AutoCAD Drawing, 2018/2019/2020/2021
+Puid: fmt/1395
+
+Name: Drawing Exchange Format
+Category: Computer Aided Design
+Extensions: dxf
+# Drawing Interchange File Format (ASCII), Generic
+Puid: fmt/63
+# Drawing Interchange File Format (ASCII), 1.0
+Puid: fmt/64
+# Drawing Interchange File Format (ASCII), 1.2
+Puid: fmt/65
+# Drawing Interchange File Format (ASCII), 1.3
+Puid: fmt/66
+# Drawing Interchange File Format (ASCII), 1.4
+Puid: fmt/67
+# Drawing Interchange File Format (ASCII), 2.0
+Puid: fmt/68
+# Drawing Interchange File Format (ASCII), 2.1
+Puid: fmt/69
+# Drawing Interchange File Format (ASCII), 2.2
+Puid: fmt/70
+# Drawing Interchange File Format (ASCII), 2.5
+Puid: fmt/71
+# Drawing Interchange File Format (ASCII), 2.6
+Puid: fmt/72
+# Drawing Interchange File Format (ASCII), R9
+Puid: fmt/73
+# Drawing Interchange File Format (ASCII), R10
+Puid: fmt/74
+# Drawing Interchange File Format (ASCII), R11/12
+Puid: fmt/75
+# Drawing Interchange File Format (ASCII), R13
+Puid: fmt/76
+# Drawing Interchange File Format (ASCII), R14
+Puid: fmt/77
+# Drawing Interchange File Format (ASCII), 2000-2002
+Puid: fmt/78
+# Drawing Interchange File Format (ASCII), 2004/2005/2006
+Puid: fmt/79
+# Drawing Interchange File Format (Binary), R10
+Puid: fmt/80
+# Drawing Interchange File Format (Binary), R11/12
+Puid: fmt/81
+# Drawing Interchange File Format (Binary), R13
+Puid: fmt/82
+# Drawing Interchange File Format (Binary), R14
+Puid: fmt/83
+# Drawing Interchange File Format (Binary), 2000-2002
+Puid: fmt/84
+# Drawing Interchange File Format (Binary), 2004-2006
+Puid: fmt/85
+# Drawing Interchange File Format (ASCII), 2007/2008/2009
+Puid: fmt/433
+# Drawing Interchange File Format (ASCII), 2010/2011/2012
+Puid: fmt/435
+# Drawing Interchange File Format (ASCII), 2013/2014/2015/2016/2017
+Puid: fmt/532
+# Drawing Interchange Format (ASCII), 2018/2019/2020
+Puid: fmt/1389
+# Drawing Interchange Format (Binary), 2007-2009
+Puid: fmt/1390
+# Drawing Interchange Format (Binary), 2010-2012
+Puid: fmt/1391
+# Drawing Interchange Format (Binary), 2013-2017
+Puid: fmt/1392
+# Drawing Interchange Format (Binary), 2018-2021
+Puid: fmt/1393
+# Drawing Interchange Format (Binary), Generic
+Puid: fmt/1394
+
+Name: Extensible 3D
+Category: Computer Aided Design
+Extensions: x3d
+# X3D, 3.0
+Puid: fmt/579
+# X3D, 3.1
+Puid: fmt/580
+# X3D, 3.2
+Puid: fmt/581
+# X3D, 3.3
+Puid: fmt/582
+
+Name: Portable Document Format/Engineering
+Category: Computer Aided Design
+Extensions: pdf
+# Acrobat PDF/E - Portable Document Format for Engineering PDF/E-1
+Puid: fmt/493
+
+Name: Product Representation Compact
+Category: Computer Aided Design
+Extensions: prc
+Note: Not in PRONOM (its prc is a Palm e-book). Inside a PDF it is the PDF that is named.
+
+Name: Standard for the Exchange of Product Model Data
+Category: Computer Aided Design
+Extensions: step stp p21
+# Standard for the Exchange of Product model data
+Puid: fmt/698
+
+Name: Universal 3D
+Category: Computer Aided Design
+Extensions: u3d
+# Universal 3D File Format
+Puid: fmt/702
+
+Name: Enhanced Compression Wavelet
+Category: Geospatial
+Extensions: ecw
+# Enhanced Compression Wavelet
+Puid: fmt/371
+
+Name: ESRI Shapefile Compound File
+Category: Geospatial
+Extensions: shp apr prj sbn sbx fbn fbx
+# ESRI Arc/View ShapeFile
+Puid: x-fmt/235
+# ESRI Arc/View Shapefile Index
+Puid: fmt/277
+# ESRI Spatial Index File
+Puid: fmt/319
+# ESRI Shapefile Projection (Well-Known Text) Format
+Puid: fmt/320
+# ESRI Arc/View Project, 2.x
+Puid: x-fmt/317
+# ESRI Arc/View Project, 3.x
+Puid: fmt/332
+
+Name: ESRI World File
+Category: Geospatial
+Extensions: wld blw bpw bqw gfw tfw
+# ESRI World File Format
+Puid: fmt/367
+
+Name: Geographic JavaScript Object Notation
+Category: Geospatial
+Extensions: geojson json
+# GeoJSON
+Puid: fmt/1367
+
+Name: Geographic Markup Language
+Category: Geospatial
+Extensions: gml
+# Geography Markup Language
+Puid: x-fmt/227
+# Geography Markup Language, 3.2
+Puid: fmt/1047
+
+Name: GeoPackage
+Category: Geospatial
+Extensions: gpkg
+# OGC GeoPackage, 1.0-1.31
+Puid: fmt/1700
+
+Name: Geospatial Tagged Image File Format
+Category: Geospatial
+Extensions: gtiff tif tiff
+# Geographic Tagged Image File Format (GeoTIFF)
+Puid: fmt/155
+
+Name: Keyhole Markup Language
+Category: Geospatial
+Extensions: kml kmz
+# Keyhole Markup Language (XML)
+Puid: fmt/244
+# Keyhole Markup Language (Container)
+Puid: fmt/724
+
+Name: Motion JPEG2000
+Category: Geospatial
+Extensions: mj2 mjp
+# MJ2 (Motion JPEG 2000)
+Puid: fmt/337
+
+Name: Scalable Vector Graphics
+Category: Geospatial
+Extensions: svg
+# Scalable Vector Graphics, 1.0
+Puid: fmt/91
+# Scalable Vector Graphics, 1.1
+Puid: fmt/92
+# Scalable Vector Graphics Tiny, 1.2
+Puid: fmt/413
+
+Name: TerraGo Geospatial PDF
+Category: Geospatial
+Extensions: pdf
+# Acrobat PDF 1.0 - Portable Document Format, 1.0
+Puid: fmt/14
+# Acrobat PDF 1.1 - Portable Document Format, 1.1
+Puid: fmt/15
+# Acrobat PDF 1.2 - Portable Document Format, 1.2
+Puid: fmt/16
+# Acrobat PDF 1.3 - Portable Document Format, 1.3
+Puid: fmt/17
+# Acrobat PDF 1.4 - Portable Document Format, 1.4
+Puid: fmt/18
+# Acrobat PDF 1.5 - Portable Document Format, 1.5
+Puid: fmt/19
+# Acrobat PDF 1.6 - Portable Document Format, 1.6
+Puid: fmt/20
+# Acrobat PDF 1.7 - Portable Document Format, 1.7
+Puid: fmt/276
+# PDF 2.0 - Portable Document Format, 2.0
+Puid: fmt/1129
+Note: PRONOM names it as the PDF it is.
+
+Name: Comma Separated Value file
+Category: Structured data
+Extensions: csv
+# Comma Separated Values
+Puid: x-fmt/18
+
+Name: Extended Binary Coded Decimal Interchange Code
+Category: Structured data
+Extensions: ebcdic
+# EBCDIC-US
+Puid: fmt/159
+
+Name: eXtensible Markup Language
+Category: Structured data
+Extensions: xml
+# Extensible Markup Language, 1.0
+Puid: fmt/101
+# Extensible Markup Language, 1.1
+Puid: fmt/1776
+
+Name: JavaScript Object Notation
+Category: Structured data
+Extensions: json
+# JSON Data Interchange Format
+Puid: fmt/817
+
+Name: Tab Separated Value file
+Category: Structured data
+Extensions: tsv tab
+# Tab-separated Values
+Puid: x-fmt/13
+
+Name: eXtensible Markup Language
+Category: Website
+Extensions: xml
+# Extensible Markup Language, 1.0
+Puid: fmt/101
+# Extensible Markup Language, 1.1
+Puid: fmt/1776
+
+Name: Hypertext Markup Language
+Category: Website
+Extensions: htm html xhtml
+# Hypertext Markup Language
+Puid: fmt/96
+# Hypertext Markup Language, 2.0
+Puid: fmt/97
+# Hypertext Markup Language, 3.2
+Puid: fmt/98
+# Hypertext Markup Language, 4.0
+Puid: fmt/99
+# Hypertext Markup Language, 4.01
+Puid: fmt/100
+# Hypertext Markup Language, 5
+Puid: fmt/471
+# Extensible Hypertext Markup Language, 1.0
+Puid: fmt/102
+# Extensible Hypertext Markup Language, 1.1
+Puid: fmt/103
+
+Name: Cascading Style Sheets
+Category: Website
+Extensions: css
+# Cascading Style Sheet
+Puid: x-fmt/224
+Note: The page calls this row "JavaScript Object Notation"; its extension is css.
+
+Name: XML Schema Definition
+Category: Website
+Extensions: xsd
+# XML Schema Definition
+Puid: x-fmt/280
+
+Name: XML Document Type Definition
+Category: Website
+Extensions: dtd
+# Document Type Definition
+Puid: x-fmt/315

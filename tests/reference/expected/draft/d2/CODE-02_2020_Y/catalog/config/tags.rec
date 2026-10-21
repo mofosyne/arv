@@ -235,3 +235,7 @@ Values: many
 Name: source
 Description: what made it: a camera, a phone, a scanner, an account
 Values: many
+
+Name: role
+Description: which copy of a scan or recording it is: raw (as captured), master (the copy to keep), access (made from the master for reading; can be made again)
+Values: one
