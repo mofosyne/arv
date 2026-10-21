@@ -2728,3 +2728,20 @@ and the archive decides. So a file outside the list is a fact to record, not a f
 never a refusal. Much of a personal archive is outside it (WARC, SQLite, ZIP, HEIC, source code),
 so the report counts by format and leaves the judgement to the owner.
 
+**Done (2026-10-21): the data, before the code.** Two pieces, so the code later has something
+checked to read:
+
+- **The list:** `src/arv/data/naa_born_digital.rec`, the page's 68 formats in its order, each with
+  its category, extensions and PRONOM ids (328), chosen by hand from PRONOM's records (Siegfried's
+  copy, commit 7fb430b), PRONOM's own name above each id. Where the page gives no version, every
+  version counts; Exif JPEG and TIFF count as JPEG and TIFF (a camera's files). Three have no id,
+  and say why: FFV1 (a codec, inside Matroska or MXF, which are listed), PRC (not in PRONOM),
+  and flat OpenDocument (fodt and kin). Not embedded in arv and not read yet; check.sh holds its
+  shape (every format a category, every id a PRONOM id with its name). Still to build: reading
+  it against `formats.csv`, per disc and in `arv todo` (the codecs inside MP4 and MXF stay
+  unseen: PRONOM names containers).
+- **`role:`, declared:** tagging already took any namespace (`arv plan tag album scan.tif
+  role:master`, then `arv find role:master`, tried on a made disc); the default vocabulary now
+  declares `role` (raw, master, access; one a file), so `arv tags` explains it. Still to build:
+  the master's hash on its derivatives, if a real album shows it is wanted.
+

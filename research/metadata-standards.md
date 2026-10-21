@@ -326,8 +326,8 @@ page says checksums are made when the files are created, to check them after eve
 | Keep existing files as they are | arv never converts or deletes; a conversion would be a new version, the original kept |
 | Checksums made at the start, checked at each copy | SHA-256 in every bag's manifest; `arv check`, `arv checked` |
 | Knowing each file's format | PRONOM ids through Siegfried (`formats.csv`) |
-| Format risk, and migration | **Not yet:** a disc's formats compared with a list such as this one (research/plan.md, "formats against a preservation list"). Converting stays with the tools built for it |
-| Masters and access copies | Archive the master (and a negative's raw DNG beside it); the access copy is optional, and can be remade. Which file is which, and which it came from, is not yet recorded (research/plan.md, "formats against a preservation list"). Planned thumbnails are access copies, named by their master's hash |
+| Format risk, and migration | The NAA's list, mapped to PRONOM ids: `src/arv/data/naa_born_digital.rec`. **Not yet:** a disc's formats compared with it (research/plan.md, "formats against a preservation list"). Converting stays with the tools built for it |
+| Masters and access copies | Archive the master (and a negative's raw DNG beside it); the access copy is optional, and can be remade. Which file is which: a `role:` tag (raw, master, access); which it came from is not yet recorded (research/plan.md, "formats against a preservation list"). Planned thumbnails are access copies, named by their master's hash |
 | How to scan | Not arv's work: the figures above are the advice to give (docs/workflow.md, "Scans") |
 
 ## Sources
