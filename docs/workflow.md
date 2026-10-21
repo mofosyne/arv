@@ -193,6 +193,20 @@ ocrmypdf --skip-text letter.pdf letter-ocr.pdf   # a text layer in a copy, on th
 tesseract scan-0042.jpg scan-0042       # scan-0042.txt beside the image: a clue, and searchable on the disc
 ```
 
+Before scanning, choose the settings once. The National Archives of Australia's
+[Preservation Digitisation Standards](https://www.naa.gov.au/about-us/who-we-are/accountability-and-reporting/archival-policy-and-planning/preservation-digitisation-standards)
+are a good guide: a master in uncompressed TIFF (paper at 400 ppi, 16-bit when faded or handwritten;
+prints at 600 to 2700 ppi by size, 16-bit; 35 mm negatives at 5000 ppi, keeping the raw DNG as
+well as the inverted TIFF), and a JPEG made from it for reading. Tapes and records: Broadcast WAV
+at 96 kHz, 24-bit. Archive the masters; a JPEG can be made again. Say which file is which with a
+`role:` tag (`raw`, `master` or `access`), so `arv find role:master` lists what must never be lost:
+
+```sh
+arv plan tag album /nas/scans/print-07.dng role:raw
+arv plan tag album /nas/scans/print-07.tif 'role:master, source:scan'
+arv plan tag album /nas/scans/print-07.jpg role:access
+```
+
 ### 2. Sort, and see what changed
 
 Work in the folder as you like. arv tells you what changed since the last edition, and between

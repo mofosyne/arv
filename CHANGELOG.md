@@ -21,6 +21,14 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**The National Archives of Australia's standards**
+- The default tag vocabulary declares `role:` (raw, master or access; one a file), to tell a scan's
+  raw file, master and access copy apart: `arv find role:master` lists what must never be lost.
+  Discs' `catalog/config/tags.rec` carry it.
+- `src/arv/data/naa_born_digital.rec`: the NAA's born-digital file format standards, mapped by
+  hand to PRONOM ids, for comparing a disc's formats with later (not read by arv yet).
+- Research and guidance: research/metadata-standards.md, section 8; docs/workflow.md, "Scans".
+
 **More places: regions and towns, from data the machine has**
 - Regions: ISO 3166-2's 5,046 subdivisions (states, prefectures, counties) from `iso-codes` when it
   is installed (it usually is), each in its country, keyed by name (`place:hokkaido`,

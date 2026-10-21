@@ -842,6 +842,22 @@ if command -v groff >/dev/null; then
 fi
 ok "the manual: arv help --all names every command, with exit status and the rules for scripts and agents; --man is it as a man page"
 
+# ------------------------------------------------------------------ reference data: the NAA's format list
+# not read by arv yet (research/plan.md, "formats against a preservation list"): its shape is held
+# here, so the code that reads it can trust it: every format has a name and a category, every Puid
+# is a PRONOM id with PRONOM's name above it, and one with none says why
+awk '
+    /^%rec: Format/ { fmt = 1; next }
+    !fmt { next }
+    /^$/ { if (name != "" && (cat == "" || (puids == 0 && note == 0))) bad = bad " " NR; name = cat = ""; puids = note = 0; prev = ""; next }
+    /^Name: / { name = $0 } /^Category: / { cat = $0 } /^Note: / { note = 1 }
+    /^Puid: / { puids++; if ($0 !~ /^Puid: (x-)?fmt\/[0-9]+$/ || prev !~ /^# /) bad = bad " " NR }
+    { prev = $0 }
+    END { if (name != "" && (cat == "" || (puids == 0 && note == 0))) bad = bad " end"; if (bad != "") { print "bad lines:" bad; exit 1 } }
+' "$repo/src/arv/data/naa_born_digital.rec" || no "naa_born_digital.rec: a format without a category, or a Puid that is not a PRONOM id"
+[ "$(grep -c '^Name: ' "$repo/src/arv/data/naa_born_digital.rec")" -eq 68 ] || no "naa_born_digital.rec: the page lists 68 formats"
+ok "reference data: the NAA's 68 formats, each with a category and PRONOM ids or the reason it has none"
+
 # ------------------------------------------------------------------ the helpers: arv-assist and arv-gui
 mkdir -p helpers
 printf '#!/bin/sh\necho "assist $*"\n' > helpers/assist

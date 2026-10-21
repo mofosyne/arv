@@ -2788,3 +2788,50 @@ The rest of "what may happen without asking" (the design above, "an assistant fo
 Not built: Follow, the record-changed poll, `chafa`, the MCP server, and the conversation kept in
 the home's cache (it is in the browser's localStorage).
 
+## Design (2026-10-20, not built): formats against a preservation list
+
+The owner is in Australia, so the National Archives of Australia's standards are the first
+reference: its born-digital file format standards and its preservation digitisation standards
+(read, with the links, in research/metadata-standards.md, section 8). Most of it arv already
+meets: open formats on the disc, checksums from the start, PRONOM ids for every file. Two gaps:
+
+- [ ] **Formats against a list.** The NAA keeps a list of low-risk formats, and assesses the
+      rest itself. arv records each file's PRONOM id (`formats.csv`) but says nothing about it.
+      The record's part: compare a disc's formats with a chosen list (the NAA's first; another
+      country's or the owner's own in its place) and say, per disc and in `arv todo`, which
+      files are in formats outside it, with the count. The NAA names formats and extensions, not
+      PRONOM ids, so the list arv ships maps each entry to its PRONOM ids, once, by hand, with
+      the page's date. The list is reference data (issue #53), not code. Not arv's part:
+      converting (LibreOffice, ffmpeg, ImageMagick do that); a converted file is a new version
+      of the object, the original kept, and its event says `migration`, the PREMIS term.
+- [ ] **Scans: masters, raw files and access copies.** The NAA keeps an uncompressed TIFF master
+      and makes JPEG copies from it; for a negative it keeps two masters, the raw DNG and the
+      inverted TIFF. A scanned family album has the same three files per picture. arv keeps them
+      all but cannot say which is which, or which came from which. The record's part: a tag per
+      file, `role:raw`, `role:master` or `role:access` (the tag words arv already keeps), and the
+      master's SHA-256 on its derivatives, so `arv find role:master` lists what must never be
+      lost and an access copy can be dropped from a full disc knowing it can be remade. How to
+      scan stays advice: docs/workflow.md points to the NAA's figures.
+
+The NAA itself says existing files are not to be converted: they are handed over as they are,
+and the archive decides. So a file outside the list is a fact to record, not a fault: a warning,
+never a refusal. Much of a personal archive is outside it (WARC, SQLite, ZIP, HEIC, source code),
+so the report counts by format and leaves the judgement to the owner.
+
+**Done (2026-10-21): the data, before the code.** Two pieces, so the code later has something
+checked to read:
+
+- **The list:** `src/arv/data/naa_born_digital.rec`, the page's 68 formats in its order, each with
+  its category, extensions and PRONOM ids (328), chosen by hand from PRONOM's records (Siegfried's
+  copy, commit 7fb430b), PRONOM's own name above each id. Where the page gives no version, every
+  version counts; Exif JPEG and TIFF count as JPEG and TIFF (a camera's files). Three have no id,
+  and say why: FFV1 (a codec, inside Matroska or MXF, which are listed), PRC (not in PRONOM),
+  and flat OpenDocument (fodt and kin). Not embedded in arv and not read yet; check.sh holds its
+  shape (every format a category, every id a PRONOM id with its name). Still to build: reading
+  it against `formats.csv`, per disc and in `arv todo` (the codecs inside MP4 and MXF stay
+  unseen: PRONOM names containers).
+- **`role:`, declared:** tagging already took any namespace (`arv plan tag album scan.tif
+  role:master`, then `arv find role:master`, tried on a made disc); the default vocabulary now
+  declares `role` (raw, master, access; one a file), so `arv tags` explains it. Still to build:
+  the master's hash on its derivatives, if a real album shows it is wanted.
+
