@@ -15,5 +15,5 @@ and keep its documentation honest.
 | `places.py` | writes `src/arv/data/default_places.rec` (the gazetteer: Natural Earth's countries and populated places, public domain) `src/arv/data/world.txt` (the land as one SVG path, for maps) and `src/arv-assist/data/countries.txt` (the countries' outlines, for where a photo's GPS is): `python3 dev-tools/places.py`, then `make -C src/arv data` |
 | `common-words.sh` | writes `src/arv-assist/data/common-words.txt`, the commonest English words, from public-domain books (Project Gutenberg), which `arv describe --ask` leaves out of a text's words: `sh dev-tools/common-words.sh` |
 | `bigcat.py` | makes a large synthetic home (2000 discs by default, three copies each, checks, a move, one object a disc) to time arv on: `python3 dev-tools/bigcat.py HOME [DISCS] [FILES]` (issue #37) |
-| `screenshots.sh` | retakes `docs/screenshots/` (arv gui and a disc's index.html) from the samples, with headless Chromium |
+| `screenshots.sh` | retakes `docs/screenshots/` from the samples, with headless Chromium: every view of arv gui ([docs/gui.md](../docs/gui.md)), the Assistant, and a disc's index.html |
 | `architecture-svg.py`, `shelving-svg.py` | draw `docs/img/architecture.svg` and `shelving.svg`; edit and run them to change the pictures |

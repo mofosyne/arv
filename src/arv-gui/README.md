@@ -3,7 +3,7 @@
 `arv gui`: the interface, in your web browser. Optional, in C99 and POSIX (a program of its own,
 so arv does not grow); everything it does can be done with arv in a terminal.
 
-Its three tabs follow the name.
+Its three tabs follow the name. Every view, with a picture: [docs/gui.md](../../docs/gui.md).
 
 - **Archive:** From a folder (`arv make`); Mastering, discs by hand (`arv plan`: add, move, drop, an
   item's new place and its tags, a disc's layout, make, again); What changed (`arv status`: a

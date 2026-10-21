@@ -65,7 +65,8 @@ Why it works the way it does (curated discs on top of everyday storage, plain fi
 shelf, finding and checking them over the years, and recovering from damage or loss.
 [docs/burning.md](docs/burning.md) is how to burn and check a disc (and the drill for a new drive or
 media); [docs/shelving.md](docs/shelving.md) covers arranging, labelling and storing the physical discs.
-How a disc is built, in one picture: [docs/architecture.md](docs/architecture.md).
+How a disc is built, in one picture: [docs/architecture.md](docs/architecture.md). Every view of
+`arv gui`, with a picture: [docs/gui.md](docs/gui.md).
 
 ## Try it
 
@@ -262,7 +263,9 @@ the discs, with notes, places and copies; search) and **Verify** (what is owed, 
 header; checking a copy (a drive, an image or a disc's files); restoring and rebuilding from a disc). Every action
 runs the same `arv` command as the terminal and shows its output.
 
-![arv gui, Record › Discs: the sample discs, with where each is kept and when it was last checked, under the Archive, Record and Verify tabs](docs/screenshots/gui.png)
+![arv gui, Record › Discs: the sample discs, with where each is kept and when it was last checked, under the Archive, Record and Verify tabs](docs/screenshots/gui/discs.png)
+
+Every view, with a picture: [docs/gui.md](docs/gui.md).
 
 On the disc, `index.html` browses the disc without JavaScript:
 
