@@ -21,6 +21,13 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**Every view of the GUI, pictured**
+- `docs/gui.md`: each view of `arv gui`, with a picture on the sample archive and the commands it
+  runs. `dev-tools/screenshots.sh` takes them all again; a view that shows nothing until it is used
+  is used first (a plan, a folder looked at, a search, a job). It works in a temporary home folder,
+  so nobody's own folders are in a picture.
+- Mastering: an item's buttons wrap inside a narrow disc instead of spilling out of it.
+
 **The National Archives of Australia's standards**
 - The default tag vocabulary declares `role:` (raw, master or access; one a file), to tell a scan's
   raw file, master and access copy apart: `arv find role:master` lists what must never be lost.

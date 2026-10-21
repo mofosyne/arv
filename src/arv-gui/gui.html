@@ -112,7 +112,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         border-top:1px solid var(--line); cursor:grab; }
 .item .path { overflow-wrap:anywhere; }
 .item .src { grid-column:1 / -1; font-size:11px; color:var(--muted); overflow-wrap:anywhere; font-family:ui-monospace, monospace; }
-.item .ctl { grid-column:1 / -1; justify-self:end; white-space:nowrap; }
+.item .ctl { grid-column:1 / -1; justify-self:end; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:4px; }
 .item select { width:auto; padding:2px 4px; font-size:12px; }
 .item button, .disc h3 button { font:inherit; font-size:12px; padding:2px 6px; border:1px solid var(--line); border-radius:4px;
         background:var(--panel); color:var(--fg); cursor:pointer; }
