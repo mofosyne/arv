@@ -327,7 +327,7 @@ page says checksums are made when the files are created, to check them after eve
 | Checksums made at the start, checked at each copy | SHA-256 in every bag's manifest; `arv check`, `arv checked` |
 | Knowing each file's format | PRONOM ids through Siegfried (`formats.csv`) |
 | Format risk, and migration | The NAA's list, mapped to PRONOM ids: `src/arv/data/naa_born_digital.rec`. **Not yet:** a disc's formats compared with it (research/plan.md, "formats against a preservation list"). Converting stays with the tools built for it |
-| Masters and access copies | Archive the master (and a negative's raw DNG beside it); the access copy is optional, and can be remade. Which file is which: a `role:` tag (raw, master, access); which it came from is not yet recorded (research/plan.md, "formats against a preservation list"). Planned thumbnails are not access copies: an access copy stands in for the original (the NAA's is 1290 px or 300 ppi, legible); a thumbnail (384 px, unreadable as a page) is for finding it, lives in the catalogue, not `data/`, and never carries `role:` |
+| Masters and access copies | Archive the master (and a negative's raw DNG beside it); the access copy is optional, and can be remade. Which file is which: a `role:` tag (raw, master, access); which it came from is not yet recorded (research/plan.md, "formats against a preservation list"). Thumbnails are not access copies: an access copy stands in for the original (the NAA's is 1290 px or 300 ppi, legible); a thumbnail (384 px, unreadable as a page) is for finding it, lives in the catalogue, not `data/`, and never carries `role:` |
 | How to scan | Not arv's work: the figures above are the advice to give (docs/workflow.md, "Scans") |
 
 ## Sources
