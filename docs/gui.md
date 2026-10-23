@@ -14,7 +14,7 @@ Owed), the Assistant, Settings and Jobs.
 
 ## First run: Make an archive
 
-![Make an archive: a folder (filled in with where arv gui was started) with Browse, an optional name, a box to use it from anywhere on this computer, and Make the archive](screenshots/gui/setup.png)
+![Make an archive: the suggestion of one archive for the computer, the home folder filled in with Browse and Where arv gui started beside it, the name main, the box to use it from anywhere ticked, and Make the archive](screenshots/gui/setup.png)
 
 With no archive in the folder it was started in, or above it, and no default, `arv gui` offers to
 make one (`arv init`): a folder, an optional name, and whether to use it from anywhere. The
