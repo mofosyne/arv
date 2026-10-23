@@ -21,6 +21,12 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**The GUI's first run suggests one archive for the computer**
+- Make an archive is filled in with the home folder, the name `main` and "use it from anywhere":
+  one catalogue, found wherever arv is started (from the menu, too). A narrower one, a portable
+  drive's or a NAS share's, is a folder away, with the box unticked.
+- `GET /api/setup` also gives the person's home folder (`user_home`).
+
 **Every view of the GUI, pictured**
 - `docs/gui.md`: each view of `arv gui`, with a picture on the sample archive and the commands it
   runs. `dev-tools/screenshots.sh` takes them all again; a view that shows nothing until it is used

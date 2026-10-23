@@ -20,6 +20,12 @@ With no archive in the folder it was started in, or above it, and no default, `a
 make one (`arv init`): a folder, an optional name, and whether to use it from anywhere. The
 interface then opens on it.
 
+It suggests one archive for the whole computer: `.arv` in your home folder, named `main` and used
+from anywhere (`arv init ~ --name main --default`). Then every folder you archive and every disc
+you record lands in the same catalogue, wherever arv is started, the menu entry included. A
+narrower one, for a portable drive or a NAS share, goes at that folder's root instead: Browse to it
+(or "Where arv gui started") and untick the box. Inside that folder, its own `.arv` is used.
+
 ## Archive: onto discs
 
 ### From a folder

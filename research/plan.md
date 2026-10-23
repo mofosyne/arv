@@ -2835,3 +2835,19 @@ checked to read:
   declares `role` (raw, master, access; one a file), so `arv tags` explains it. Still to build:
   the master's hash on its derivatives, if a real album shows it is wanted.
 
+## Decision (2026-10-23): the GUI's first run suggests one archive for the computer
+
+- **Before:** Make an archive was filled in with the folder `arv gui` was started in, the box
+  for "use it from anywhere" unticked. Started from the menu, that is the home folder, and an
+  archive made there without the box is found only from inside it: the next start from anywhere
+  else asks again, and a second archive is one click away.
+- **Now:** it suggests `~/.arv`, named `main`, the registered default (`arv init ~ --name main
+  --default`): one catalogue for the computer, found wherever arv is started. arv still makes
+  nothing unasked (2026-10-09); this is what the form says before the person presses the button.
+  `~/.arv` costs nothing: a `.arv` decides which catalogue, never what is tracked.
+- **A narrower archive stays one folder away:** a portable drive's or a NAS share's, at its root,
+  with the box unticked (a button puts back the folder it was started in). Bubbles: inside that
+  folder its own `.arv` wins over the default.
+- Not built: making an archive found by walking up the default afterwards (`init` refuses a
+  `.arv` that exists; `homes.rec` is edited by hand, or `arv init --name` is run first). Wait
+  for someone to want it.
