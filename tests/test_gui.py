@@ -218,7 +218,7 @@ class GuiTest(unittest.TestCase):
         try:
             self.home = None
             self.start()
-            self.assertEqual(json.loads(self.request("/api/setup")[1]), {"home": None, "cwd": where})
+            self.assertEqual(json.loads(self.request("/api/setup")[1]), {"home": None, "cwd": where, "user_home": self.tmp})
             self.assertNotEqual(self.run_arv("where", "--json", home=False)["returncode"], 0)
             made = self.run_arv("init", "~/nas", "--name", "family", "--default", home=False)   # ~ as in a shell
             self.assertEqual(made["returncode"], 0, made["out"] + made["err"])

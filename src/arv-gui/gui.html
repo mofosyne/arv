@@ -210,9 +210,14 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   <p class="muted">There is no archive here yet. arv keeps an archive's record in a <span class="mono">.arv</span>
     folder at the root of what it describes: the folder holding your photos and projects, or your NAS share. Nothing
     else in it is changed, and nothing in it is archived until you choose it.</p>
+  <p class="muted" id="s-suggest" hidden>Suggested: one archive for this computer, in your home folder and used from
+    anywhere, so every folder you archive and every disc you record lands in the same catalogue, wherever arv is started
+    (from the menu too). A narrower one, for a portable drive or a NAS share, can be made at its root instead: choose
+    that folder and untick the box.</p>
   <form id="setup-form">
     <label for="s-folder">Folder</label>
-    <div class="inline"><input type="text" id="s-folder" required><button class="plain" type="button" id="s-browse">Browse…</button></div>
+    <div class="inline"><input type="text" id="s-folder" required><button class="plain" type="button" id="s-browse">Browse…</button>
+      <button class="plain" type="button" id="s-here" hidden>Where arv gui started</button></div>
     <div class="browser" id="s-browser" hidden></div>
     <div class="row">
       <div><label for="s-name">Name (optional, e.g. family)</label><input type="text" id="s-name"></div>
@@ -2393,7 +2398,13 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     document.querySelectorAll("nav, header .link").forEach(function (n) { n.hidden = true; });
     document.querySelectorAll("main > section").forEach(function (sec) { sec.hidden = sec.id !== "tab-setup"; });
     $("home").textContent = "No archive yet";
-    $("s-folder").value = st.cwd;
+    // suggested: the computer's archive, ~/.arv, used from anywhere; a narrower one is a folder away
+    var suggest = st.user_home && st.user_home !== "/";
+    $("s-folder").value = suggest ? st.user_home : st.cwd;
+    $("s-suggest").hidden = !suggest;
+    if (suggest) { $("s-name").value = "main"; $("s-default").checked = true; }
+    $("s-here").hidden = !suggest || st.cwd === st.user_home;
+    $("s-here").onclick = function () { $("s-folder").value = st.cwd; $("s-default").checked = false; };
     $("s-browse").onclick = function () { pickFolder($("s-folder"), $("s-browser")); };
     $("setup-form").onsubmit = function (ev) {
       ev.preventDefault();

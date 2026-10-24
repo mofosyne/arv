@@ -14,11 +14,17 @@ Owed), the Assistant, Settings and Jobs.
 
 ## First run: Make an archive
 
-![Make an archive: a folder (filled in with where arv gui was started) with Browse, an optional name, a box to use it from anywhere on this computer, and Make the archive](screenshots/gui/setup.png)
+![Make an archive: the suggestion of one archive for the computer, the home folder filled in with Browse and Where arv gui started beside it, the name main, the box to use it from anywhere ticked, and Make the archive](screenshots/gui/setup.png)
 
 With no archive in the folder it was started in, or above it, and no default, `arv gui` offers to
 make one (`arv init`): a folder, an optional name, and whether to use it from anywhere. The
 interface then opens on it.
+
+It suggests one archive for the whole computer: `.arv` in your home folder, named `main` and used
+from anywhere (`arv init ~ --name main --default`). Then every folder you archive and every disc
+you record lands in the same catalogue, wherever arv is started, the menu entry included. A
+narrower one, for a portable drive or a NAS share, goes at that folder's root instead: Browse to it
+(or "Where arv gui started") and untick the box. Inside that folder, its own `.arv` is used.
 
 ## Archive: onto discs
 

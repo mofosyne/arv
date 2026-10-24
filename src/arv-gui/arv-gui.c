@@ -521,6 +521,8 @@ static void route_setup(void)
     json_text(&b, home_given);
     sb_puts(&b, ", \"cwd\": ");
     json_text(&b, start_dir);
+    sb_puts(&b, ", \"user_home\": ");          /* the first run suggests the archive for the whole computer there */
+    json_text(&b, getenv("HOME") && *getenv("HOME") ? getenv("HOME") : NULL);
     sb_puts(&b, "}");
     respond_json(200, &b);
 }

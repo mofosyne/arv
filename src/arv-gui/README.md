@@ -24,8 +24,11 @@ Jobs, the commands it ran, open from the header. File lists show a small icon fo
 file, guessed from the extension as a hint only: the disc's `formats.csv` (Siegfried) is the record.
 
 With no archive here or above and no default (a first run), it opens on **Make an archive**: a
-folder (where it was started, or browsed to), an optional name, and whether to use it from
-anywhere; that runs `arv init`, and the interface opens on the new archive.
+folder, an optional name, and whether to use it from anywhere; that runs `arv init`, and the
+interface opens on the new archive. It suggests one archive for the computer: the home folder
+(`~/.arv`), named `main` and used from anywhere, so whatever is archived, and from wherever arv
+(or its menu entry) is started, lands in one catalogue. A narrower one, a portable drive's or a
+NAS share's, is a folder away (Browse, or where it was started), with the box unticked.
 
 It serves one page on 127.0.0.1 and opens it. **The page does everything through arv**: it builds
 each command (`arv list --json`, `arv burned ID --copies 1 ...`) and shows what arv printed. The
@@ -40,7 +43,7 @@ any language against the same four routes:
 | `POST /api/run` | `{"argv": [...], "stdin": "...", "program": "arv" or "arv-assist", "job": false}`: the exit status and what it printed (`out`, `err`); with `"job": true`, a job |
 | `GET /api/job?id=N&since=K`, `GET /api/jobs` | a job's output from line K, and whether it is done; every job |
 | `GET /api/browse?path=P&files=1` | a folder's folders (and files, with sizes) |
-| `GET /api/setup` | the home it was given and where it was started; the page asks `arv where --json` for the rest |
+| `GET /api/setup` | the home it was given, where it was started and the person's home folder (`$HOME`); the page asks `arv where --json` for the rest |
 
 The page and every request carry a per-session token, and the Host header must be the loopback
 address, so other web pages and other local users cannot drive it. Commands run without a shell,
