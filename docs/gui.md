@@ -178,5 +178,7 @@ here as it comes. Here, the plan above, made without error correction.
 ![Record › Discs with the Assistant open on the right: asked whether the Kyoto trip is safe, it ran arv find place:kyoto and arv todo --json, answered where both copies are and that neither has been read back, then proposed a check of copy A, which waits for Apply](screenshots/assistant.png)
 
 From the header, beside any view (`arv-assist chat`): it reads the record on its own; a change it
-proposes waits for you to apply it, as it came or edited. Its reads in this picture are real; the
-model's replies are scripted.
+proposes waits for you to apply it, as it came or edited. Each read is a line with its command and
+output; Open shows what it read in the view on the left (a find in Search, an info on its disc), and
+a reply may name a view with `show`. Follow, off by default, opens the last read or the named view
+by itself. Its reads in this picture are real; the model's replies are scripted.

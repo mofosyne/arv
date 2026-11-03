@@ -270,7 +270,7 @@ grep -q "^Url: $url" userhome/.config/arv/models.rec && grep -q "^Model: fake-mo
 "$tool" llm-use --off > /dev/null && "$tool" llm-status | grep -q '"available": false, "error": "model help is turned off' \
     && "$tool" describe Trip --save off.json </dev/null 2>&1 | grep -q "model help is turned off" \
     && "$tool" llm-status $llm | grep -q '"available": true' \
-    && "$tool" llm-use --on > /dev/null && "$tool" llm-status | grep -q '"available": true' \
+    && "$tool" llm-use --on > /dev/null && "$tool" llm-status | grep -q '\"available\": true' \
     && "$tool" llm-use --pictures "$url" --pictures-model fake-model > /dev/null && "$tool" llm-use --forget pictures > /dev/null \
     && grep -q "^Url: $url" userhome/.config/arv/models.rec && ! grep -q "^Vision" userhome/.config/arv/models.rec \
     && ok "model help off: no model asked unless a command names one; on again; a choice forgotten alone" \
@@ -319,14 +319,32 @@ grep -q '^  \$ arv find travel   (exit 0, ' chat.err && grep -q '^One disc has t
     && grep -q 'Output of `arv find travel` (exit 0)' log \
     && ok "arv chat: reads run on its own (shown as commands), a write asked as a read becomes a proposal, proposals carry their risk, nothing applied unasked" \
     || { cat chat.out chat.err; no "arv chat"; }
+tail -1 log | grep -q 'When the archive is new' && tail -1 log | grep -q 'This archive: home\. ' \
+    && tail -1 log | grep -q 'Discs: ' && tail -1 log | grep -q 'arv gui' && tail -1 log | grep -q 'takes no other word' \
+    && tail -1 log | grep -q 'Show button' \
+    && ok "arv chat knows a new setup: the first steps, whether an archive exists, how many discs there are, that arv gui is the page, and how show moves it" \
+    || no "chat setup guidance"
 printf '%s\n' '{"read": ["todo", "--json"]}' > text.reply
 printf '{"messages": [{"role": "user", "content": "what is owed?"}], "context": "Verify / Owed"}' \
     | "$tool" --home home chat --json $llm --llm-context 4096 > gui.json || no "chat --json"
 tr -d '\n' < gui.json | grep -q '"steps": \[{"command": \["todo", "--json"\], "shown": "arv todo --json", "risk": "none", "exit": 0' \
     && grep -q 'That is enough reading: answer now' log && grep -q '(On screen: Verify / Owed)' log \
+    && grep -q 'already open in front of them' log \
     && tr -d '\n' < gui.json | grep -q '"reply": {"say": "{\\"read' \
-    && ok "arv chat --json (the GUI's): the conversation in, the steps and the reply out; at most 6 reads a turn, then an answer is asked for" \
+    && ok "arv chat --json (the GUI's): the conversation in, the steps and the reply out, the page is already open; at most 6 reads a turn, then an answer is asked for" \
     || { cat gui.json; no "chat --json"; }
+printf '%s\n' '{"say": "here it is", "show": ["find", "travel"]}' > text.reply
+printf '{"messages": [{"role": "user", "content": "show me travel"}]}' \
+    | "$tool" --home home chat --json $llm > show.json || no "chat --json show"
+tr -d '\n' < show.json | grep -q '"say": "here it is", "show": \["find", "travel"\]' \
+    && ok "arv chat --json: a say may name the view to show (a read's command and subject), not a selector" \
+    || { cat show.json; no "chat --json show"; }
+printf '%s\n' '{"say": "not a view", "show": ["retag", "trip", "travel"]}' > text.reply
+printf '{"messages": [{"role": "user", "content": "show me travel"}]}' \
+    | "$tool" --home home chat --json $llm > badshow.json || no "chat --json bad show"
+! tr -d '\n' < badshow.json | grep -q '"show"' \
+    && ok "arv chat --json: a change is not a show target" \
+    || { cat badshow.json; no "chat --json bad show"; }
 printf 'logprob: -1.2\n{"propose": ["retag", "trip", "travel"], "why": "a guess"}\n' > text.reply
 printf '{"messages": [{"role": "user", "content": "tag it"}]}' | "$tool" --home home chat --json $llm > sure.json || no "chat --json sure"
 printf 'logprob: -0.01\n{"propose": ["retag", "trip", "travel"], "why": "sure"}\n' > text.reply

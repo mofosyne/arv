@@ -69,6 +69,7 @@ th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); 
 th { color:var(--muted); font-weight:600; font-size:13px; }
 tr.pick { cursor:pointer; }
 tr.pick:hover, tr.pick.sel { background:var(--panel); }
+tr.pick.sel { outline:2px solid var(--accent); outline-offset:-2px; }
 .mono { font-family:ui-monospace, monospace; font-size:13px; overflow-wrap:anywhere; }
 #disc-table td.mono { white-space:nowrap; overflow-wrap:normal; }
 .muted { color:var(--muted); }
@@ -538,6 +539,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     <button class="plain" type="button" id="chat-close" aria-label="Close the assistant">Close</button></header>
   <div class="talk" id="chat-talk"></div>
   <label class="chat-auto" title="Off by default. On: a retag the model proposes (low risk) is applied at once, recorded as the model's suggestion, not yours, with Undo; never one it was unsure of, and nothing else"><input type="checkbox" id="chat-auto"> Apply tags without asking</label>
+  <label class="chat-auto" title="Off by default. On: the view on the left opens what the assistant last read, or the subject it named with show, and marks it (Search for a find, the disc for an info), so you can watch it work. It names a command and its subject, never a button or a selector."><input type="checkbox" id="chat-follow"> Follow the assistant</label>
   <form id="chat-form"><textarea id="chat-input" aria-label="Ask the assistant" placeholder="Ask about the archive: what is owed, where something is, how to tag a folder..."></textarea>
     <button class="primary" type="submit">Send</button></form>
 </aside>
@@ -545,7 +547,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 (function () {
   "use strict";
   var TOKEN = "__TOKEN__";
-  var discs = [], selected = null;
+  var discs = [], selected = null, scrollSel = false;
 
   function api(path, body) {
     var opts = { headers: { "X-Archive-Token": TOKEN } };
@@ -722,6 +724,11 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         body.appendChild(tr);
       });
       renderDetail();
+      if (selected && scrollSel) {
+        var row = $("disc-table").querySelector("tr.sel");
+        if (row) row.scrollIntoView({ block: "nearest" });
+        scrollSel = false;
+      }
     });
   }
   function copiesOf(d) {        // each copy is a replication event, named by a letter (Copy: A, B ...)
@@ -1670,9 +1677,28 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // The conversation is kept here, in the page, and in this browser (localStorage) across reloads
   // until New; each turn sends it with what is on screen. Its reads come back as steps, shown as
   // their commands; a change comes back as a proposal, applied here only when the person says so,
-  // as it came or as they edited it (its risk judged again). It never clicks or changes the view.
+  // as it came or as they edited it (its risk judged again). It never clicks: Open (and Follow, if
+  // the person turns it on) moves the view to what it read.
   var chatMessages = [], chatLog = [], OPEN_FOR = { find: "search", todo: "owed", status: "status", map: "map", tags: "names",
-    objects: "objects", plan: "master", collection: "collections", list: "discs", info: "discs", programs: "programs" };
+    objects: "objects", plan: "master", collection: "collections", list: "discs", info: "discs", programs: "programs",
+    names: "names", inventory: "inventory", audit: "audit" };
+  function stepTarget(cmd) {        // what a read looked at, as the view that shows it: no clicks, no selectors
+    if (!cmd || !cmd.length) return null;
+    var args = [], i;
+    for (i = 1; i < cmd.length; i++) {
+      if (cmd[i] === "-C" || cmd[i] === "--limit" || cmd[i] === "--overdue" || cmd[i] === "--copy") { i++; continue; }
+      if (cmd[i].charAt(0) !== "-") args.push(cmd[i]);
+    }
+    if (cmd[0] === "find" && args.length) return { tab: "search", q: args[args.length - 1] };
+    if (cmd[0] === "info" && args.length) return { tab: "discs", disc: args[0], scroll: true };
+    return OPEN_FOR[cmd[0]] ? { tab: OPEN_FOR[cmd[0]] } : null;
+  }
+  function showTarget(t) {          // the person chose it (Open), or Follow is on
+    if (!t) return;
+    if (t.disc !== undefined) { selected = t.disc; scrollSel = !!t.scroll; }
+    if (t.q !== undefined) { showTab("search"); $("q").value = t.q; $("search-form").requestSubmit(); }
+    else showTab(t.tab);
+  }
   function chatSave() {
     try { localStorage.setItem("arv-chat", JSON.stringify({ messages: chatMessages, log: chatLog })); } catch (e) {}
   }
@@ -1692,7 +1718,16 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   }
   function chatItem(item) {
     if (item.you) return el("div", { class: "msg you", text: item.you });
-    if (item.say) return el("div", { class: "msg", text: item.say });
+    if (item.say) {
+      var target = item.show && stepTarget(item.show), say = el("div", { class: "msg", text: item.say });
+      if (target) {
+        var b = el("button", { class: "link", type: "button", text: "Show", title: "Open what it named in the view on the left" });
+        b.onclick = function () { showTarget(target); };
+        say.appendChild(document.createTextNode(" "));
+        say.appendChild(b);
+      }
+      return say;
+    }
     if (item.error) return el("p", { class: "bad", text: "Error: " + item.error });
     if (item.step) return chatStep(item.step);
     return chatProposal(item);
@@ -1722,8 +1757,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       hostOf(llmStatus.url) + "): what it reads is sent there." : "") }));
   }
   function chatStep(step) {
-    var open = OPEN_FOR[step.command[0]], acts = [];
-    if (open) { var o = el("button", { class: "link", type: "button", text: "Open" }); o.onclick = function () { showTab(open); }; acts.push(o); }
+    var target = stepTarget(step.command), acts = [];
+    if (target) {
+      var o = el("button", { class: "link", type: "button", text: "Open", title: "Show what it read in the view on the left" });
+      o.onclick = function () { showTarget(target); };
+      acts.push(o);
+    }
     return el("details", { class: "step" }, [el("summary", { text: "$ " + step.shown + "  (exit " + step.exit + ")" }),
       el("div", { class: "acts" }, acts), el("pre", { class: "log", text: step.output })]);
   }
@@ -1752,6 +1791,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   var UNDOABLE = { retag: 1, rename: 1 },   // arv undo sets these back: their event ids are kept
     autoRun = null;                         // the proposal to apply without asking, once shown
   function chatAuto() { try { return localStorage.getItem("arv-chat-auto") === "1"; } catch (e) { return false; } }
+  function chatFollow() { try { return localStorage.getItem("arv-chat-follow") === "1"; } catch (e) { return false; } }
   function chatProposal(r) {            // r: the reply {propose, why, risk, shown, sure, doubtful, agent}, and what became of it (r.done)
     var card = el("div", { class: "card" }), out = el("pre", { class: "log" }), msg = el("span", { class: "muted" }),
       cmd = el("pre", { class: "mono", text: r.shown }), edit = el("textarea", { class: "mono", "aria-label": "The command, to edit" }),
@@ -1858,24 +1898,38 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     chatAdd({ you: text });
     talk.appendChild(wait); talk.scrollTop = talk.scrollHeight;
     var view = document.querySelector("nav.sub button[aria-selected=true]");
-    assistJson(["chat", "--json"], { messages: chatMessages, context: (view ? view.textContent : currentTab) }).then(function (res) {
+    var ctx;
+    if (view) {
+      var group = view.closest("nav.sub").dataset.group;
+      ctx = group ? group + " › " + view.textContent : view.textContent;
+    } else {
+      var group = GROUP[currentTab];
+      ctx = group ? group + " › " + currentTab : currentTab;
+    }
+    assistJson(["chat", "--json"], { messages: chatMessages, context: ctx }).then(function (res) {
       wait.remove();
       if (res.error) { chatMessages.pop(); chatAdd({ error: res.error }); return; }
       chatMessages = res.messages;
-      (res.steps || []).forEach(function (s) { chatAdd({ step: s }); });
-      var r = res.reply || {};
+      var r = res.reply || {}, last = null, named = r.show ? stepTarget(r.show) : null;
+      (res.steps || []).forEach(function (s) { chatAdd({ step: s }); if (stepTarget(s.command)) last = s; });
+      if (chatFollow()) {
+        if (named) showTarget(named);
+        else if (last) showTarget(stepTarget(last.command));
+      }
       if (r.error) chatAdd({ error: r.error });
       else if (r.propose) {
         r.agent = "llm:" + (res.model || (llmStatus && llmStatus.model) || "unknown");
         if (chatAuto() && r.propose[0] === "retag" && r.risk === "low" && !r.doubtful) autoRun = r;
         chatAdd(r);
       }
-      else if (r.say) chatAdd({ say: r.say });
+      else if (r.say) chatAdd({ say: r.say, show: r.show });
       chatSave();
     });
   }
   $("chat-auto").checked = chatAuto();
   $("chat-auto").onchange = function () { try { localStorage.setItem("arv-chat-auto", this.checked ? "1" : ""); } catch (e) {} };
+  $("chat-follow").checked = chatFollow();
+  $("chat-follow").onchange = function () { try { localStorage.setItem("arv-chat-follow", this.checked ? "1" : ""); } catch (e) {} };
   $("chat-btn").onclick = function () { chatOpen($("chat").hidden); };
   $("chat-close").onclick = function () { chatOpen(false); };
   $("chat-new").onclick = function () { chatMessages = []; chatLog = []; chatSave(); $("chat-talk").textContent = ""; chatNote(); };

@@ -2851,3 +2851,68 @@ checked to read:
 - Not built: making an archive found by walking up the default afterwards (`init` refuses a
   `.arv` that exists; `homes.rec` is edited by hand, or `arv init --name` is run first). Wait
   for someone to want it.
+
+## Done (2026-11-03): a new setup, guided by the record, not a decision tree
+
+- **The problem:** the assistant was confused in a new setup. Its instructions said nothing about
+  starting an archive, and it did not know whether one existed, so it could not tell a first step
+  from a later one. The commands were all there; only the state and the order were missing.
+- **The shape:** not a decision tree. That would put archival knowledge and branching in the
+  harness, against "the harness holds no archival knowledge in code" (2026-10-18) and the lean
+  loop, and would need a second edit whenever a command changed. The record, `arv where` and
+  `arv todo`, already says what exists; the guidance belongs in the text file.
+- **Now:** `assistant.txt` has a short "When the archive is new" section (`arv init`, a location,
+  a collection, `arv make --no-ecc`, `arv burned` or `arv stored`, then `arv todo`), and says to
+  read `where` and `todo` first. `chat.c` adds one line of state to the system text at the start
+  (`This archive: PATH. Discs: N. Owed: M.`), or says plainly that none is there yet. With no
+  model, chat names `llm-status --all` and `llm-use`, and that `describe --ask` works without one.
+- **Checked** by arv-assist's checks against the fake server: the guidance and the archive state
+  reach the model, and a home's `assistant.txt` still replaces the built-in text.
+
+## Done (2026-11-03): Open a step on its subject, and Follow
+
+- **Open now shows what the step read,** not just the view it belongs to: `find` opens Search with
+  the pattern in the box and runs it; `info DISC` opens Record › Discs on that disc, its row
+  outlined and scrolled into view. The target is taken from the command's own arguments in the
+  page (`stepTarget`), so the model names no selector and no view, and a change to the page's
+  layout does not break it.
+- **Follow** is the panel's second switch, off by default and remembered: on, the view opens the
+  last read that has a target, once a turn, after the steps are shown. This is the "watch it work"
+  switch the design promised; the assistant still clicks nothing, applies nothing, and is not
+  given the mouse.
+- Not done: a disc id, path or tag in a reply's prose as a link (the design's other half), and a
+  target for every read; only the views that can show a thing have one (find, info, and the tab
+  mapping that was already there).
+
+## Done (2026-11-03): the assistant knows the page
+
+- **The report:** "Where is the archive page?" ran `arv where todo` (exit 2) six times, then
+  answered "There is no web page - arv is a command-line system". Both wrong: the page is
+  `arv gui`. The cause was narrow: `system_text` leaves `gui` out of the command list (risk high;
+  it starts a server, so it is not the assistant's to run), and nothing else said it existed.
+  The model split the question into two commands it did know.
+- **Now:** the instructions name `arv gui` as the page, started by the person, and say that
+  `arv where` is a command of its own taking no other word. A read that fails is not repeated
+  unchanged: its usage line, or an answer, is the next step. The list still leaves `gui` out.
+  The first guidance also said "read `arv where` and `arv todo`", which a model can take as one
+  command (`where todo`): it now says two reads, one after the other.
+- **In arv gui, the page is already open:** `system_text` adds that when chat is for the page, so
+  "can you open the page?" is not answered "run `arv gui`" from inside `arv gui`. The terminal
+  still gets the command.
+- **Checked** by arv-assist's checks against the fake server: the page guidance reaches the model,
+  and the GUI's chat is told the page is open.
+
+## Done (2026-11-03): the assistant may name the view; it still does not click
+
+- **The change:** the assistant may put an optional `show` beside `say`: a read command whose
+  subject the person should see, `{"say": "...", "show": ["find", "place:kyoto"]}`. It is not run
+  (a read still gives output), and the harness drops anything that is not a read.
+- **Still not a virtual cursor:** the model names a command and its subject; the page maps that
+  through the same `stepTarget` as a read's Open, to a whitelisted view. It cannot name a view, a
+  selector, a button or HTML, so a change to the layout does not break it and there is no
+  unaudited click. This replaces the design's "It does not drive the page" for the Open half:
+  model-chosen targets are allowed; model-driven clicks are not.
+- **Losing the place:** a named view moves the page only when Follow is on; with it off the reply
+  gets a Show button. The switch stays the person's.
+- **Checked** by arv-assist's checks against the fake server: a read's `show` reaches the GUI, and
+  a write named as `show` is dropped.

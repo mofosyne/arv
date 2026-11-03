@@ -61,14 +61,20 @@ class GuiTest(unittest.TestCase):
         self.fake = None
         self.server = None
 
-    def start(self, llm_url=None, program=GUI, **env):
+    def start(self, llm_url=None, program=GUI, remove_env=None, **env):
         """arv-gui, as arv gui starts it, on any free port: its first line says where. Its models
         settings are kept in the test's own config folder, never the user's."""
         argv = [program, "--no-browser", "--port", "0"] + (["--home", self.home] if self.home else [])
         self.jobs_tmp = os.path.join(self.tmp, "gui-tmp")       # where it keeps its jobs' output
         os.makedirs(self.jobs_tmp, exist_ok=True)
+        base = dict(os.environ)
+        if remove_env:
+            for k in remove_env:
+                base.pop(k, None)
+        base.update(TMPDIR=self.jobs_tmp, XDG_CONFIG_HOME=os.path.join(self.tmp, "config"))
+        base.update(env)
         self.server = subprocess.Popen(argv + (["--llm-url", llm_url] if llm_url else []), stdout=subprocess.PIPE, text=True,
-                                       env=dict(os.environ, TMPDIR=self.jobs_tmp, XDG_CONFIG_HOME=os.path.join(self.tmp, "config"), **env))
+                                       env=base)
         self.url = self.server.stdout.readline().split(" at ")[1].split()[0]
         self.base = self.url.split("?")[0].rstrip("/")
         self.token = self.url.split("t=")[1]
@@ -449,7 +455,8 @@ class GuiTest(unittest.TestCase):
             time.sleep(0.1)
         with open(port) as f:
             url = "http://127.0.0.1:%s/v1" % f.read().strip()
-        self.start(ARV_LLM_PROBE="Fake=" + url, OPENAI_API_KEY="sk-not-shown")
+        self.start(ARV_LLM_PROBE="Fake=" + url, OPENAI_API_KEY="sk-not-shown",
+                   remove_env=["ANTHROPIC_API_KEY", "GEMINI_API_KEY", "MISTRAL_API_KEY", "OPENROUTER_API_KEY", "GROQ_API_KEY", "DEEPSEEK_API_KEY"])
         page = self.request("/?t=" + self.token, token=False)[1]
         self.assertIn('<nav class="sub" data-group="settings" hidden>\n  <button data-tab="models">', page)   # Settings: Models, Programs
         self.assertIn('id="tab-programs"', page)
@@ -466,6 +473,8 @@ class GuiTest(unittest.TestCase):
         with open(replies, "w") as f:                                          # the assistant: a read, then a proposal
             f.write('{"read": ["todo", "--json"]}\n===\n{"propose": ["tags", "add", "person:ann"], "why": "a name"}\n')
         self.assertIn('<aside class="chat" id="chat" hidden', page)
+        self.assertIn('id="chat-follow"', page)                                # Open a step's subject, or follow it
+        self.assertIn("item.show", page)                                       # a reply may name the view to show
         turn = json.loads(self.run_arv("chat", "--json", program="arv-assist",
                                        stdin=json.dumps({"messages": [{"role": "user", "content": "anything?"}], "context": "Owed"}))["out"])
         self.assertEqual([s["shown"] for s in turn["steps"]], ["arv todo --json"])
@@ -495,6 +504,7 @@ class GuiTest(unittest.TestCase):
         self.run_arv("llm-use", "--disable", "fake", program="arv-assist")        # a server here, off: never asked
         found = json.loads(self.run_arv("llm-status", "--all", "--json", program="arv-assist")["out"])
         self.assertEqual([(s["id"], s["on"], s["found"]) for s in found["servers"]], [("fake", False, False)])
+
         self.assertFalse(found["text"]["available"])                           # what it was chosen for, forgotten
         self.run_arv("llm-use", "--enable", "fake", program="arv-assist")
         r = self.run_arv("llm-use", "--url", "https://llm.example.invalid/v1", "--model", "m", "--external", program="arv-assist")

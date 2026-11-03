@@ -88,6 +88,7 @@ int llm_open(llm_client *c, const char *url, const char *model, int allow_remote
             return -1;
         }
     }
+
     c->url = xstrdup(u);
     for (size_t n = strlen(c->url); n && c->url[n - 1] == '/'; n--) c->url[n - 1] = 0;
     if (model && *model) m = model;

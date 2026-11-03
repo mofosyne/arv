@@ -27,6 +27,25 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   drive's or a NAS share's, is a folder away, with the box unticked.
 - `GET /api/setup` also gives the person's home folder (`user_home`).
 
+**The assistant helps with a new setup**
+- `arv chat` is told what is here at the start: whether an archive exists yet, its path, how many
+  discs it has and what is owed. Its instructions (`assistant.txt`) then say how to start one,
+  one step at a time: `arv init`, a place for copies, a collection, a first disc, the first copy.
+- The guidance is data, not a decision tree in the code, so it changes without a release; and
+  with no model chosen, chat now says how to choose one and that `describe --ask` works without it.
+- Asked about the page, it names `arv gui`, which the person starts; in `arv gui` it is told the
+  page is already open, so it does not tell them to start it. It is also told that `arv where`
+  takes no other word, and not to repeat a failed read unchanged (it said arv had no web page,
+  after running `arv where todo` until the read limit).
+
+**The assistant shows what it read or named**
+- A read step's Open now opens its subject, not only its view: a `find` fills Search with the
+  pattern and runs it; an `info` opens Record › Discs on that disc, its row marked and scrolled to.
+- A reply may also name a view with `show`, as a read's command and its subject (never a selector
+  or a button); it gets a Show button.
+- Follow, off by default and remembered, opens the view of the last read, or the named view, by
+  itself, so the page can be watched while the assistant works. It never clicks or applies anything.
+
 **Every view of the GUI, pictured**
 - `docs/gui.md`: each view of `arv gui`, with a picture on the sample archive and the commands it
   runs. `dev-tools/screenshots.sh` takes them all again; a view that shows nothing until it is used

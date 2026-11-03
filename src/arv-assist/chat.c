@@ -39,6 +39,7 @@ typedef struct {
     const char *home;
     char *arv, *system;
     int budget;                             /* the context, in tokens */
+    int gui;                                /* the page is open in front of the person */
 } chat;
 
 static int tokens_of(const char *s)         /* roughly: no tokeniser, a margin instead */
@@ -107,6 +108,46 @@ static char *shown(const strlist *argv)     /* arv find "a b": as a shell would 
 
 /* ------------------------------------------------------------------ what it knows */
 
+/* What is here already, in a line or two: the assistant should not have to guess whether an
+ * archive exists or whether any disc has been made. Two short reads, summarised; the whole todo
+ * list would be too much in the context, and stale by the time the answer is read. */
+static char *archive_state(const chat *ch)
+{
+    sbuf b = { 0 };
+    strlist argv = { 0 };
+    char *out = NULL;
+    strlist_add(&argv, "where");
+    strlist_add(&argv, "--json");
+    int rc = run_arv(ch, &argv, &out);
+    strlist_free(&argv);
+    jv *w = rc ? NULL : json_parse(out);
+    const char *path = jstr_of(json_get(w, "path"));
+    if (!path) {
+        sb_puts(&b, "This archive: none here yet. It must be made before anything can be recorded: "
+                    "`arv init FOLDER`, at the root of what it describes (propose it).\n");
+        jfree(w);
+        free(out);
+        return b.s;
+    }
+    sb_printf(&b, "This archive: %s. ", path);
+    jfree(w);
+    free(out);
+    out = NULL;
+    strlist_add(&argv, "todo");
+    strlist_add(&argv, "--json");
+    rc = run_arv(ch, &argv, &out);
+    strlist_free(&argv);
+    jv *t = rc ? NULL : json_parse(out);
+    const jv *discs = json_get(t, "discs"), *owed = json_get(t, "owed"), *questions = json_get(t, "questions");
+    if (discs && discs->kind == 't' && discs->str) sb_printf(&b, "Discs: %s.", discs->str);
+    if (owed && owed->kind == 'a' && owed->n) sb_printf(&b, " Owed: %zu.", owed->n);
+    if (questions && questions->kind == 'a' && questions->n) sb_printf(&b, " Questions waiting: %zu.", questions->n);
+    sb_puts(&b, "\n");
+    jfree(t);
+    free(out);
+    return b.s;
+}
+
 /* the instructions, then the commands: a line each, marked reads or propose (and its risk) */
 static char *system_text(const chat *ch)
 {
@@ -141,6 +182,15 @@ static char *system_text(const chat *ch)
         }
     }
     jfree(h);
+    char *state = archive_state(ch);
+    sb_puts(&b, "\n");
+    sb_puts(&b, state);
+    free(state);
+    if (ch->gui) {
+        sb_puts(&b, "\nThe person is using arv gui, the page, which is already open in front of them. ");
+        sb_puts(&b, "The page has sections: Archive (making discs), Record (objects, collections, discs), Verify (owed tasks, check, inventory, audit, restore), and Settings. ");
+        sb_puts(&b, "The context 'On screen: ...' tells you which tab they are viewing; do not tell them to start the page.\n");
+    }
     return b.s;
 }
 
@@ -352,6 +402,12 @@ static jv *turn(chat *ch, jv *messages, jv *steps, void (*progress)(const jv *st
         } else {                                                /* not as asked: shown as it came */
             jput(a, "say", jstr(reply));
             jput(a, "unformatted", jnum("true"));
+        }
+        const jv *sh = json_get(j, "show");                     /* a read whose subject to show: named, never run */
+        strlist view;
+        if (sh && !argv_of(sh, &view)) {
+            if (!strcmp(command_risk((int)view.n, view.v), "none")) jput(a, "show", jstrings(&view));
+            strlist_free(&view);
         }
         jfree(j);
         free(reply);
@@ -650,9 +706,12 @@ int assist_chat(int argc, char **argv)
     if (mode == 3) return rule_of_stdin(ch.home);
     char *err = NULL;
     if (llm_open(&ch.c, url, model, remote, &err) || !llm_model(&ch.c, &err)) {
+        const char *hint = "To choose a model: arv-assist llm-status --all, then arv-assist llm-use "
+                           "(or Settings in arv gui). Without one, arv describe --ask still asks you the questions.";
         if (as_json) {
             jv *d = jobj();
             jput(d, "error", jstr(err));
+            jput(d, "hint", jstr(hint));
             sbuf b = { 0 };
             json_dump(&b, d, -1);
             printf("%s\n", b.s);
@@ -660,11 +719,12 @@ int assist_chat(int argc, char **argv)
             jfree(d);
             return 0;
         }
-        fprintf(stderr, "Error: %s\n", err);
+        fprintf(stderr, "Error: %s\n%s\n", err, hint);
         return 1;
     }
     if (ch.budget < 2048) ch.budget = context_of_server(&ch.c);
     ch.c.logprobs = 1;                      /* how sure it is of a proposal, where the server says */
+    ch.gui = as_json;
     ch.arv = helper_program("ARV", "arv", "arv/build/arv");
     ch.system = system_text(&ch);
     int rc = as_json ? for_gui(&ch) : terminal(&ch);
