@@ -702,6 +702,12 @@ grep -q "two copies lettered A" merge.err && grep -q "^Not merged: CODE-02" merg
     && [ "$(grep -c '^Type: replication' two/a/.arv/catalog/archive.rec)" = 2 ] \
     && ok "two catalogues of one archive: a copy takes no change until arv where --here; rebuild merges the other by event id (notes too), and reports a copy letter and a disc id both gave out" \
     || { cat merge.out merge.err; no "merging two catalogues"; }
+"$tool" -C two/a/.arv where --json > w1.json && n1=$(grep -c '^EventId:' two/a/.arv/catalog/archive.rec) \
+    && grep -q "\"events\": $n1, \"newest\": \"$(grep '^EventId:' two/a/.arv/catalog/archive.rec | tail -1 | cut -c10-)\"}" w1.json \
+    && "$tool" -C two/a/.arv note "$t1" "watched" >/dev/null && "$tool" -C two/a/.arv where --json > w2.json \
+    && grep -q "\"events\": $((n1 + 1)), " w2.json && ! cmp -s w1.json w2.json \
+    && ok "where --json: how many events the record has and the newest's id (arv gui watches it), moved by a change" \
+    || { cat w1.json w2.json; no "where --json events"; }
 
 # one disc recorded in both: counted once, by the identifier both recorded
 mkdir -p dup/a/T && echo d > dup/a/T/f

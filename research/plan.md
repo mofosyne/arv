@@ -2989,3 +2989,33 @@ checked to read:
   files ticked and added with Add, and each kind of link opening its view.
 - **Not done:** the per-item controls of a plan (move, rename, tags, packing: prompts and menus on
   each item) are not guided; the record-changed poll.
+
+## Done (2026-11-04): the record-changed poll, and a plan's own controls pointed at
+
+- **The poll, as designed:** while the page is visible (`document.hidden` false) it reads
+  `arv where --json` every 5 seconds, which now gives `events` (how many) and `newest` (the last
+  event's id, in the file's order): one read, and the server stays without features. When either
+  has moved, the open view reloads in place: the views with a loader (Owed, Discs, Mastering,
+  Objects, Collections, Places, Map, Names) and a Search with results; the scroll and the
+  selection are kept. The header's owed count and the discs (for links) are read again too.
+- **Not under the person:** a view with a field changed from its default, a ticked file, or
+  anything the assistant marked is not reloaded; a bar says the record changed, with Reload. The
+  page's own changes (`act`, a quiet job, an applied proposal) reload their view already and are
+  only noted as seen, so they bring no bar.
+- **Why both the count and the id:** every change appends events, so the count moves; the id
+  also tells apart a record replaced by another of the same length (a rebuild from a disc).
+- **A plan's own controls act at once** (a menu runs when chosen, Rename, Tags and Layout ask in
+  a prompt, ✕ and Remove disc are buttons), so a guide cannot fill them in: it points. `FORMS`
+  entries with `item` name the control (`data-control` in each row) and keep the item's path, its
+  source or its disc (`@path`, `@source`, `@discn`). The plan is opened, the item (or disc) is
+  outlined and its control marked. A prompt opens with the guided answer as its default, once
+  (`planHint`), so pressing it and OK sends exactly the command. A menu is not set: setting it
+  from code does not choose it, and choosing the same option again would not send it; the reply
+  says which option to choose. A move or drop of several items is not guided (a row's control
+  moves one).
+- **Checked:** arv's checks (`where --json` counts and names the newest, and moves with a note),
+  the GUI's tests (every control an entry names is in the page; plan commands mapped, a move of
+  two items and a `disc drop` without a disc refused), and in Chromium against the fake model: a
+  rename's prompt opened with the guided path and renamed the item, a move's menu named and
+  chosen, a Remove disc refused where the disc was not empty; a note written in a shell shown
+  within seconds on a clean view, and held behind the bar while a note was being typed.

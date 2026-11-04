@@ -72,12 +72,16 @@ class GuideFormsTest(unittest.TestCase):
         used = [a for a in re.findall(r'"([^"]*)"', " ".join(re.findall(r'args: \[([^\]]*)\]', plain))) if not a.startswith("@")]
         used += [n for n in ("drive", "image") if 'return /^\\/dev\\//.test(v) ? "drive" : "image"' in self.forms]
         for opts in re.findall(r'opts: \{([^}]*)\}', self.forms):
-            used += [v.lstrip("!+") for v in re.findall(r':\s*"([^"]*)"', opts) if v]
+            used += [v.lstrip("!+") for v in re.findall(r':\s*"([^"]*)"', opts) if v and not v.lstrip("!").startswith("@")]
         used += re.findall(r'\brest: "([^"]+)"', self.forms)
         self.assertGreater(len(forms) + len(named) + len(used), 80)
         self.assertEqual([f for f in forms if f not in ids], [])
         self.assertEqual([g for g in named if g not in groups], [])
         self.assertEqual(sorted(set(u for u in used if u not in fields)), [])
+        controls = set(re.findall(r'"data-control": "([^"]+)"', self.page))  # a plan's controls, pointed at
+        items = [i for i in re.findall(r'\bitem: "([^"]+)"', self.forms)]
+        self.assertGreater(len(items), 6)
+        self.assertEqual([i for i in items if i not in controls and not (i == "disc" and {"disc-add", "disc-drop"} <= controls)], [])
 
     @unittest.skipUnless(shutil.which("node"), "node runs the page's own code")
     def test_commands_to_forms(self):
@@ -85,7 +89,9 @@ class GuideFormsTest(unittest.TestCase):
                  ["tags", "add", "place:kyoto", "--label", "Kyoto"], ["tags", "add", "person:ann", "--qualifier=b. 1931"],
                  ["make", "-y", "/x", "--subject", "a", "--subject", "b", "--split"], ["retag", "x", "y"], ["restore", "/a", "/b", "/c"],
                  ["burned", "D-1", "--device", "/dev/sr0", "--location", "HOME"], ["burned", "D-1", "--device", "/dev/sr0", "--copies", "2"],
-                 ["check", "--copy", "A", "/dev/sr0", "D-1"], ["plan", "add", "HOL", "/p/a", "/p/b", "--disc", "new"], ["plan", "add", "HOL"]]
+                 ["check", "--copy", "A", "/dev/sr0", "D-1"], ["plan", "add", "HOL", "/p/a", "/p/b", "--disc", "new"], ["plan", "add", "HOL"],
+                 ["plan", "rename", "HOL", "a", "b/a"], ["plan", "move", "HOL", "a", "b", "--disc", "2"],
+                 ["plan", "pack", "HOL", "--disc", "1", "tar+zstd", "--together"], ["plan", "disc", "HOL", "drop"]]
         js = self.forms + "console.log(JSON.stringify(%s.map(function (c) { return guideFill(c); })));" % json.dumps(cases)
         got = json.loads(subprocess.run(["node", "-e", js], capture_output=True, text=True, check=True).stdout)
         self.assertEqual((got[0]["form"], sorted(got[0]["values"])), ("ci-form", [["ci-code", "FAM"], ["ci-folder", "/p"], ["ci-title", "Family"]]))
@@ -98,6 +104,10 @@ class GuideFormsTest(unittest.TestCase):
         self.assertEqual((got[9]["group"], got[9]["disc"], sorted(got[9]["values"])), ("check-copy", "D-1", [["drive", "/dev/sr0"], ["letter", "A"]]))
         self.assertEqual((got[10]["plan"], got[10]["ticks"], got[10]["values"]), ("HOL", ["/p/a", "/p/b"], [["f-to", "new"]]))
         self.assertIsNone(got[11])                              # nothing to tick
+        self.assertEqual((got[12]["item"], got[12]["plan"], got[12]["at"]), ("rename", "HOL", {"path": "a", "value": "b/a"}))
+        self.assertIsNone(got[13])                              # a row's control moves one item
+        self.assertEqual((got[14]["item"], got[14]["at"]), ("dpack", {"discn": "1", "value": "tar+zstd", "together": True}))
+        self.assertIsNone(got[15])                              # which disc to take off
 
 
 class GuiTest(unittest.TestCase):
@@ -525,6 +535,8 @@ class GuiTest(unittest.TestCase):
         self.assertIn("item.show", page)                                       # a reply may name the view to show
         self.assertIn("forms: formCommands()", page)                           # the page says which forms it has
         self.assertIn("context: pageState()", page)                            # and what is selected and typed
+        self.assertIn('id="changed"', page)                                    # the record changed elsewhere: Reload
+        self.assertIn('arvRun(["where", "--json"])', page)
         turn = json.loads(self.run_arv("chat", "--json", program="arv-assist",
                                        stdin=json.dumps({"messages": [{"role": "user", "content": "anything?"}], "context": "Owed"}))["out"])
         self.assertEqual([s["shown"] for s in turn["steps"]], ["arv todo --json"])

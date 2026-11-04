@@ -71,6 +71,7 @@ tr.pick { cursor:pointer; }
 tr.pick:hover, tr.pick.sel { background:var(--panel); }
 tr.pick.sel { outline:2px solid var(--accent); outline-offset:-2px; }
 form.guided, .guided { outline:2px solid var(--accent); outline-offset:6px; border-radius:4px; }
+.guided-control { outline:3px solid var(--accent); outline-offset:2px; }
 .msg pre.mono { white-space:pre-wrap; overflow-wrap:anywhere; margin:6px 0; }
 .msg button.inline-link { font:inherit; padding:0; border:none; background:none; color:var(--accent); text-decoration:underline; cursor:pointer; overflow-wrap:anywhere; }   /* filled in by the assistant: the person presses its button */
 .mono { font-family:ui-monospace, monospace; font-size:13px; overflow-wrap:anywhere; }
@@ -208,6 +209,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   <button data-tab="restore">Restore</button>
 </nav>
 <main>
+<div id="changed" class="banner" hidden>The record changed since this view was shown (in a shell, a job, or a catalogue
+  merged). What you typed here is kept until you reload. <button class="plain" type="button" id="changed-reload">Reload</button></div>
 
 <section id="tab-setup" hidden>
   <h2>Make an archive</h2>
@@ -642,6 +645,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     $("jobs-btn").setAttribute("aria-pressed", name === "jobs");
     $("settings-btn").setAttribute("aria-pressed", group === "settings");
     document.querySelectorAll("main > section").forEach(function (s) { s.hidden = s.id !== "tab-" + name; });
+    $("changed").hidden = true;                 // shown again: as the record is now
     var loads = { owed: loadOwed, discs: loadDiscs, jobs: loadJobs, master: loadPlans, objects: loadObjects,
       collections: loadCollections, inventory: loadPlaces, places: loadPlacesView, map: loadMap, names: loadNames,
       models: loadModels, programs: loadPrograms };
@@ -1420,8 +1424,16 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       else if (data.path && String(data.from) !== String(disc)) planDo({ action: "move", paths: [data.path], from: data.from, disc: disc });
     };
   }
+  var guidedPlan = null;           // a guide to one of a plan's controls: {control, key, value}, the prompt's answer
+  function planHint(control, key, fallback) {
+    var h = guidedPlan;
+    if (!h || h.control !== control || String(h.key) !== String(key)) return fallback;
+    guidedPlan = null;              // once: the person's own next press asks as before
+    return h.value;
+  }
   function renderPlan() {
     var box = $("p-discs"); box.textContent = "";
+    guidedPlan = null;
     var to = $("f-to"); to.textContent = "";
     to.appendChild(el("option", { value: "auto", text: "the first disc with room" }));
     $("p-make").hidden = !plan || !!plan.made;
@@ -1435,21 +1447,21 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     plan.discs.forEach(function (d) {
       to.appendChild(el("option", { value: String(d.disc), text: "disc " + d.disc }));
       var pct = room ? Math.round(d.used * 100 / room) : 0;
-      var card = el("div", { class: "disc" });
+      var card = el("div", { class: "disc", "data-disc": String(d.disc) });
       var head = el("h3", {}, [el("span", { text: "Disc " + d.disc + (plan.made ? " — " + (plan.volumes[d.disc - 1] || "") : "") })]);
       if (!d.items.length && plan.discs.length > 1 && !plan.made) {
-        var dropDisc = el("button", { type: "button", text: "Remove disc" });
+        var dropDisc = el("button", { type: "button", text: "Remove disc", "data-control": "disc-drop" });
         dropDisc.onclick = function () { planDo({ action: "disc", op: "drop", disc: d.disc }); };
         head.appendChild(dropDisc);
       }
       if (!plan.made) {               // a disc's tree made from its items' tags (arv plan layout)
-        var lay = el("button", { type: "button", text: "Layout…", title: d.layout ? "laid out by " + d.layout : "files its items by their tags" });
+        var lay = el("button", { type: "button", text: "Layout…", title: d.layout ? "laid out by " + d.layout : "files its items by their tags", "data-control": "layout" });
         lay.onclick = function () {
-          var spec = prompt("Disc " + d.disc + ": folders from the items' tags, e.g. year/event, year (empty: as planned)", d.layout || "");
+          var spec = prompt("Disc " + d.disc + ": folders from the items' tags, e.g. year/event, year (empty: as planned)", planHint("layout", d.disc, d.layout || ""));
           if (spec !== null && spec.trim() && spec.trim() !== (d.layout || "")) planDo({ action: "layout", layout: spec.trim(), disc: d.disc });
         };
         head.appendChild(lay);
-        var dpack = el("select", { "aria-label": "Disc " + d.disc + " packing", title: "how its objects are kept: as files, or each (or all together) as one file" });
+        var dpack = el("select", { "aria-label": "Disc " + d.disc + " packing", title: "how its objects are kept: as files, or each (or all together) as one file", "data-control": "dpack" });
         [["none", "as files"], ["tar+zstd", "each packed: tar+zstd"], ["tar+zstd together", "all in one pack: tar+zstd"],
          ["zip", "each packed: zip"], ["tar+xz", "each packed: tar+xz"]].forEach(function (o) {
           dpack.appendChild(el("option", { value: o[0], text: o[1] }));
@@ -1487,29 +1499,30 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
           title: "kept as one file, data/" + it.pack + "; unpacked there, it is at data/" + (it.placed || it.path) }));
         if (it.changed) name.appendChild(el("span", { class: "flag changed", text: "changed since planned",
           title: "the disc gets it as it is now" }));
-        var row = el("div", { class: "item" + (it.kind === "missing" ? " missing" : ""), draggable: plan.made ? "false" : "true" }, [
+        var row = el("div", { class: "item" + (it.kind === "missing" ? " missing" : ""), draggable: plan.made ? "false" : "true",
+                              "data-item-path": it.path, "data-item-source": it.source }, [
           name,
           el("span", { class: "muted", text: it.kind === "missing" ? "missing" : human(it.bytes) + (it.kind === "folder" ? ", " + it.files + (it.files === 1 ? " file" : " files") : "") }),
           el("span", { class: "src", text: it.source })]);
         if (!plan.made) {
-          var move = el("select", { "aria-label": "Move to disc" });
+          var move = el("select", { "aria-label": "Move to disc", "data-control": "move" });
           move.appendChild(el("option", { value: "", text: "move…" }));
           plan.discs.forEach(function (o) { if (o.disc !== d.disc) move.appendChild(el("option", { value: String(o.disc), text: "to disc " + o.disc })); });
           move.appendChild(el("option", { value: "new", text: "to a new disc" }));
           move.onchange = function () { if (move.value) planDo({ action: "move", paths: [it.path], from: d.disc, disc: move.value }); };
-          var drop = el("button", { type: "button", text: "✕", title: "Take off the disc (the file stays where it is)" });
+          var drop = el("button", { type: "button", text: "✕", title: "Take off the disc (the file stays where it is)", "data-control": "drop" });
           drop.onclick = function () { planDo({ action: "drop", paths: [it.path], from: d.disc }); };
-          var ren = el("button", { type: "button", text: "Rename", title: "A new place on the disc, or a part of a planned folder split off" });
+          var ren = el("button", { type: "button", text: "Rename", title: "A new place on the disc, or a part of a planned folder split off", "data-control": "rename" });
           ren.onclick = function () {
-            var to = prompt("A new place on the disc for " + it.path, it.path);
+            var to = prompt("A new place on the disc for " + it.path, planHint("rename", it.path, it.path));
             if (to && to.trim() && to.trim() !== it.path) planDo({ action: "rename", path: it.path, to: to.trim() });
           };
-          var tag = el("button", { type: "button", text: "Tags", title: it.tags ? "tags: " + it.tags : "tag it before it is on a disc" });
+          var tag = el("button", { type: "button", text: "Tags", title: it.tags ? "tags: " + it.tags : "tag it before it is on a disc", "data-control": "tags" });
           tag.onclick = function () {
-            var tags = prompt("Tags for " + it.path + ", comma separated (event:trip, year:2019, best; empty for none)", it.tags || "");
+            var tags = prompt("Tags for " + it.path + ", comma separated (event:trip, year:2019, best; empty for none)", planHint("tags", it.source, it.tags || ""));
             if (tags !== null && tags.trim() !== (it.tags || "")) planDo({ action: "tag", source: it.source, tags: tags.trim() });
           };
-          var pk = el("select", { "aria-label": "Packing of " + it.path, title: "kept as its files, or as one file" });
+          var pk = el("select", { "aria-label": "Packing of " + it.path, title: "kept as its files, or as one file", "data-control": "pack" });
           [["default", "pack: as the disc"], ["none", "as files"], ["tar+zstd", "tar+zstd"], ["zip", "zip"], ["tar+xz", "tar+xz"]]
             .forEach(function (o) { pk.appendChild(el("option", { value: o[0], text: o[1] })); });
           pk.value = it.ownPacking || "default";
@@ -1525,7 +1538,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     });
     to.appendChild(el("option", { value: "new", text: "a new disc" }));
     if (!plan.made) {
-      var add = el("div", { class: "disc add", text: "+ New disc (or drop here)" });
+      var add = el("div", { class: "disc add", text: "+ New disc (or drop here)", "data-control": "disc-add" });
       add.onclick = function () { planDo({ action: "disc", op: "add" }); };
       dropTarget(add, "new");
       box.appendChild(add);
@@ -1757,6 +1770,19 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     { cmd: ["plan", "new"], tab: "master", form: "p-new", args: ["p-name"], opts: { "--title": "p-title", "--set": "p-set", "--medium": "p-medium" } },
     { cmd: ["plan", "make"], tab: "master", group: "plan-make", args: ["@plan"], opts: { "-y": "", "--output-dir": "p-outdir", "--no-ecc": "!p-noecc" } },
     { cmd: ["plan", "add"], tab: "master", group: "plan-add", args: ["@plan", "@ticks"], opts: { "--disc": "f-to" } },
+    // a plan's own controls act at once (a menu when chosen, a prompt's OK): pointed at, never set
+    { cmd: ["plan", "rename"], tab: "master", item: "rename", args: ["@plan", "@path", "@value"], opts: {} },
+    { cmd: ["plan", "tag"], tab: "master", item: "tags", args: ["@plan", "@source", "@value"], opts: {} },
+    { cmd: ["plan", "move"], tab: "master", item: "move", args: ["@plan", "@path"], need: 2, opts: { "--disc": "@value", "--from": "@from" },
+      fits: function (v, at) { return !!at.value; } },
+    { cmd: ["plan", "drop"], tab: "master", item: "drop", args: ["@plan", "@path"], opts: { "--from": "@from" } },
+    { cmd: ["plan", "pack"], tab: "master", item: "pack", args: ["@plan", "@path", "@value"], opts: {} },
+    { cmd: ["plan", "pack"], tab: "master", item: "dpack", args: ["@plan", "@value"], opts: { "--disc": "@discn", "--together": "!@together" },
+      fits: function (v, at) { return !!at.discn; } },
+    { cmd: ["plan", "layout"], tab: "master", item: "layout", args: ["@plan", "@value"], opts: { "--disc": "@discn" },
+      fits: function (v, at) { return !!at.discn; } },
+    { cmd: ["plan", "disc"], tab: "master", item: "disc", args: ["@plan", "@op", "@discn"], need: 2,
+      fits: function (v, at) { return at.op === "add" ? !at.discn : at.op === "drop" && !!at.discn; }, opts: {} },
     { cmd: ["tags", "add"], tab: "map", form: "map-add", args: ["map-key"], place: true,
       opts: { "--label": "map-label", "--parent": "map-in", "--at": "map-at", "--extent": "map-extent", "--reach": "map-reach" } },
     { cmd: ["tags", "add"], tab: "names", form: "names-add", args: ["names-key"], place: false, opts: { "--label": "names-label", "--qualifier": "names-qual" } },
@@ -1787,17 +1813,19 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     for (var n = 0; n < FORMS.length; n++) {
       var f = FORMS[n];
       if (f.cmd.some(function (w, i) { return cmd[i] !== w; })) continue;
-      var values = [], pos = [], ok = true, lists = {}, g = { tab: f.tab, form: f.form, group: f.group, shown: "arv " + cmd.join(" ") };
+      var values = [], pos = [], ok = true, lists = {}, g = { tab: f.tab, form: f.form, group: f.group, item: f.item, at: {}, shown: "arv " + cmd.join(" ") };
       for (var i = f.cmd.length; i < cmd.length && ok; i++) {
         var a = cmd[i], eq = a.indexOf("="), flag = a.charAt(0) === "-" && a.length > 1 ? (eq > 0 ? a.slice(0, eq) : a) : null;
         if (!flag) { pos.push(a); continue; }
         var to = f.opts[flag];
         if (to === undefined) { ok = false; break; }
         if (to === "") continue;
+        if (to === "!@" + to.slice(2) && to.charAt(1) === "@") { g.at[to.slice(2)] = true; continue; }
         if (to.charAt(0) === "!") { values.push([to.slice(1), true]); continue; }
         var v = eq > 0 ? a.slice(eq + 1) : cmd[++i];
         if (v === undefined) { ok = false; break; }
-        if (to.charAt(0) === "+") (lists[to.slice(1)] = lists[to.slice(1)] || []).push(v);
+        if (to.charAt(0) === "@") g.at[to.slice(1)] = v;
+        else if (to.charAt(0) === "+") (lists[to.slice(1)] = lists[to.slice(1)] || []).push(v);
         else values.push([to, v]);
       }
       if (!ok) continue;                 // another form of the same command may hold it
@@ -1806,18 +1834,20 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       var ticks = f.args.indexOf("@ticks");
       if (ticks >= 0) { g.ticks = pos.slice(ticks); pos = pos.slice(0, ticks); if (!g.ticks.length) continue; }
       if (pos.length > f.args.length - (ticks >= 0 ? 1 : 0)) continue;
+      if (f.item && pos.length < (f.need || f.args.length)) continue;     // a control's item is named in full
       if (f.args.indexOf("@disc") >= 0 && pos.length <= f.args.indexOf("@disc")) continue;   // the disc is needed: it chooses the details
       pos.forEach(function (v, k) {
         var to = f.args[k];
         if (to === "@disc") g.disc = v;
         else if (to === "@plan") g.plan = v;
+        else if (typeof to === "string" && to.charAt(0) === "@") g.at[to.slice(1)] = v;
         else values.push([typeof to === "function" ? to(v) : to, v]);
       });
       if (f.args.indexOf("@plan") >= 0 && !g.plan) continue;
       Object.keys(lists).forEach(function (id) { values.push([id, lists[id].join(", ")]); });
       var named = {};
       values.forEach(function (fv) { named[fv[0]] = fv[1]; });
-      if (f.fits && !f.fits(named)) continue;
+      if (f.fits && !f.fits(named, g.at)) continue;
       g.values = values;
       return g;
     }
@@ -1865,6 +1895,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       var dir = g.ticks[0].replace(/\/+$/, "").replace(/\/[^\/]*$/, "") || "/";
       return browseFiles(dir);
     }).then(function () {
+      if (g.item) return missed.some(function (m) { return /^no plan /.test(m); }) ? missed : pointAt(g, missed);
       var target = guideTarget(g);
       if (!target || missed.some(function (m) { return /^no (disc|plan) /.test(m); })) return missed;
       target.hidden = false;
@@ -1891,6 +1922,39 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       return missed;
     });
   }
+  // A plan's control, pointed at: its item (or disc) marked, the control outlined. A prompt's answer
+  // is ready for the press (planHint); a menu is not set, since choosing is what sends it: the reply
+  // says which to choose. Returned on missed.todo, said under the reply.
+  function pointAt(g, missed) {
+    var a = g.at, box = $("p-discs"), control = g.item === "disc" ? (a.op === "add" ? "disc-add" : "disc-drop") : g.item, node;
+    if (control === "disc-add") node = box.querySelector('[data-control="disc-add"]');
+    else if (control === "disc-drop" || control === "layout" || control === "dpack") node = box.querySelector('.disc[data-disc="' + a.discn + '"]');
+    else node = Array.prototype.filter.call(box.querySelectorAll(".item"), function (row) {
+      return row.getAttribute(control === "tags" ? "data-item-source" : "data-item-path") === (control === "tags" ? a.source : a.path) &&
+        (!a.from || row.closest(".disc").dataset.disc === String(a.from));
+    })[0];
+    if (!node) { missed.push(control === "disc-add" ? "a made plan takes no new disc" : a.discn && !a.path && !a.source ? "no disc " + a.discn + " in the plan" : "no " + (a.path || a.source) + " in the plan"); return missed; }
+    var ctl = control === "disc-add" ? node : node.querySelector('[data-control="' + control + '"]');
+    if (!ctl) { missed.push("its control is not there (the plan is made, or the disc not empty)"); return missed; }
+    var label = (ctl.getAttribute("aria-label") || ctl.textContent || control).trim();
+    if (control === "rename" || control === "tags" || control === "layout") {
+      guidedPlan = { control: control, key: control === "tags" ? a.source : control === "layout" ? a.discn : a.path, value: a.value };
+      missed.todo = "Press " + label + ": the answer is filled in, and OK sends it.";
+    } else if (control === "move" || control === "pack" || control === "dpack") {
+      var want = control === "move" ? String(a.value) : a.value + (a.together ? " together" : "");
+      var opt = Array.prototype.filter.call(ctl.options, function (o) { return o.value === want; })[0];
+      if (!opt) { missed.push(want + " (not a choice in its menu)"); return missed; }
+      missed.todo = "Choose \u201c" + opt.text + "\u201d in its menu (" + label + "): choosing it sends it.";
+    } else missed.todo = "Press " + (control === "drop" ? "\u2715" : label) + ": that sends it.";
+    document.querySelectorAll(".guided, .guided-control").forEach(function (x) { x.classList.remove("guided", "guided-control"); });
+    node.classList.add("guided");
+    ctl.classList.add("guided-control");
+    var unmark = function () { node.classList.remove("guided"); ctl.classList.remove("guided-control"); };
+    ctl.addEventListener(ctl.tagName === "SELECT" ? "change" : "click", unmark, { once: true });
+    node.scrollIntoView({ block: "center", behavior: "smooth" });
+    ctl.focus({ preventScroll: true });
+    return missed;
+  }
   function labelOf(e) {             // a field as the person sees it: its label, else its placeholder
     var l = e.id && document.querySelector('label[for="' + e.id + '"]');
     if (l) return l.textContent.trim();
@@ -1908,6 +1972,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (currentTab === "master" && planName()) parts.push("plan " + planName() + " open" + (folder ? ", the file browser in " + folder.path : ""));
     if (currentTab === "objects" && $("o-filter").value.trim()) parts.push("showing names containing '" + $("o-filter").value.trim() + "'");
     if (!section) return parts.join("; ");
+    var pointed = section.querySelector(".guided-control");
+    if (pointed) parts.push("you pointed at '" + (pointed.getAttribute("aria-label") || pointed.textContent).trim() + "'" +
+      (pointed.closest(".item") ? " of " + pointed.closest(".item").dataset.itemPath : "") + ", not yet used");
     section.querySelectorAll("form, [data-guide]").forEach(function (target) {
       if (target.hidden || target.closest("[hidden]")) return;
       var typed = fieldsOf(target).filter(function (e) {                         // what differs from the field's own default
@@ -1962,14 +2029,16 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       }
       var guide = item.guide && guideFill(item.guide);
       if (guide) {                     // a form to fill in: shown as its command, filled in when the person asks (or Follow did)
-        var g = el("button", { class: "link", type: "button", text: item.filled ? "Fill it in again" : "Fill in the form",
+        var g = el("button", { class: "link", type: "button", text: guide.item ? (item.filled ? "Show me again" : "Show me where") : item.filled ? "Fill it in again" : "Fill in the form",
           title: "Open the form for this command, filled in and marked; nothing is done until you press its button" });
         g.onclick = function () {
           var form = guide.disc === undefined && guide.plan === undefined ? guideTarget(guide) : null;   // another disc's or plan's: not on screen
           if (formTouched(form) && !form.classList.contains("guided") && !confirm("Replace what is in the form with this?")) return;
           guideTo(guide).then(function (missed) {
-            item.filled = true; chatSave(); g.textContent = "Fill it in again";
-            if (missed.length) say.appendChild(el("p", { class: "warn", text: "Not filled in: " + missed.join(", ") + ". Choose it there, or ask again." }));
+            item.filled = true; chatSave(); g.textContent = guide.item ? "Show me again" : "Fill it in again";
+            say.querySelectorAll(".guide-note").forEach(function (n) { n.remove(); });
+            if (missed.length) say.appendChild(el("p", { class: "warn guide-note", text: "Not filled in: " + missed.join(", ") + ". Choose it there, or ask again." }));
+            else if (missed.todo) say.appendChild(el("p", { class: "muted guide-note", text: missed.todo }));
           });
         };
         say.appendChild(el("pre", { class: "mono", text: item.guideShown || guide.shown }));
@@ -2080,6 +2149,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
           + rc + ".\n" + said.slice(0, 2000));
         if (rc) return;
         showTab(currentTab);                                // the view on the left, again
+        sawOwnChange();
         if (!auto && p.propose[0] === "retag") offerRules(p.propose);
       });
     }
@@ -2650,6 +2720,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       if (out) { out.hidden = false; out.textContent = r.output; out.className = "log" + (r.returncode ? " bad" : ""); }
       else if (r.returncode) alert(r.output);
       if (!r.returncode && reload) reload();
+      sawOwnChange();
       return r;
     }).catch(function (e) { alert("Error: " + e.message); });
   }
@@ -2663,6 +2734,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
           if (j.returncode !== 0) alert(j.lines.join("\n"));
           loadDiscs();
           loadOwed();
+          sawOwnChange();
         });
       } else { showTab("jobs"); }
     }).catch(function (e) { alert("Error: " + e.message); });
@@ -2692,6 +2764,50 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       });
     });
   }
+
+  // ---------------------------------------------------------------- the record changed elsewhere
+  // While the page is visible it asks every few seconds for the record's newest event (arv where
+  // --json: one read; the server stays without features), and when it has moved (the shell, a job,
+  // a catalogue merged, another page) reloads the open view in place, keeping the selection and the
+  // scroll. A view with something typed in it, or a form the assistant filled in, is not reloaded
+  // under the person: a bar says the record changed, with Reload. The page's own changes reload
+  // their view already, and are only noted.
+  var seenRecord, WATCH_MS = 5000,
+    RELOADS = { owed: 1, discs: 1, master: 1, objects: 1, collections: 1, places: 1, map: 1, names: 1 };
+  function recordNow() {            // "events:newest", or what was seen when it cannot be read
+    return arvRun(["where", "--json"]).then(function (r) {
+      if (r.returncode) return seenRecord;
+      var w = JSON.parse(r.out);
+      return (w.events || 0) + ":" + (w.newest || "");
+    }).catch(function () { return seenRecord; });
+  }
+  function sawOwnChange() { recordNow().then(function (now) { seenRecord = now; }); }
+  function viewTouched() {
+    var section = $("tab-" + currentTab);
+    return !!section && (!!section.querySelector(".guided") || Array.prototype.some.call(section.querySelectorAll("form, [data-guide]"), function (t) {
+      return !t.closest("[hidden]") && (t.classList.contains("guided") || formTouched(t) ||
+        (t.dataset.guide === "plan-add" && !!t.querySelector(".list input:checked")));
+    }));
+  }
+  function reloadView() {           // the open view as the record is now, where it was scrolled to
+    var y = window.scrollY;
+    $("changed").hidden = true;
+    loadOwed();                     // the header's count
+    if (currentTab !== "discs") loadDiscs();
+    if (currentTab === "search") { if ($("q").value.trim() && $("search-results").childNodes.length) $("search-form").requestSubmit(); return; }
+    if (RELOADS[currentTab]) showTab(currentTab).then(function () { window.scrollTo(0, y); });
+  }
+  function watchRecord() {
+    if (document.hidden || !HOME) return;
+    recordNow().then(function (now) {
+      var moved = seenRecord !== undefined && now !== seenRecord;
+      seenRecord = now;
+      if (!moved) return;
+      if (viewTouched()) $("changed").hidden = false;
+      else reloadView();
+    });
+  }
+  $("changed-reload").onclick = reloadView;
 
   // ---------------------------------------------------------------- the first run: no archive yet
   function showSetup(st) {
@@ -2740,6 +2856,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         // while the page is open it says so, once a minute: started from a menu (--idle), the server
         // stops some time after the page is closed
         setInterval(function () { api("/api/setup").catch(function () {}); }, 60000);
+        watchRecord(); setInterval(watchRecord, WATCH_MS);       // the record changed elsewhere: the view again
+        document.addEventListener("visibilitychange", watchRecord);
       });
   }
   // the archive: the one arv gui was given, else the one arv finds from where it was started (arv

@@ -33,6 +33,15 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - Disc ids, tags (`place:kyoto`) and folders in its replies are links: the disc's details, a
   search, What changed with the folder filled in. Open also shows `plan show`, `objects` and
   `status` reads.
+- A guide to a plan's own controls (rename, tags, move, packing, layout, a disc added or taken
+  off) points at them: the item and the control are outlined, a prompt opens with the guided
+  answer, and the reply says which menu choice sends it.
+
+**arv gui keeps up with the record**
+- While the page is visible it reads `arv where --json` every few seconds; when the record has
+  changed elsewhere (a shell, a job, a merged catalogue) the open view reloads in place. A view
+  with something typed in it is left as it is, with a bar and Reload.
+- `arv where --json` gives `events` (how many the record has) and `newest` (the last one's id).
 
 **The GUI's first run suggests one archive for the computer**
 - Make an archive is filled in with the home folder, the name `main` and "use it from anywhere":
