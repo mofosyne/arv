@@ -18,8 +18,7 @@ Where arv is going, and what is waiting. The reasons behind each step are in
 - [ ] **Thumbnails, after discs carry them:** shown in the GUI and used by describing, a contact
       sheet for a folder of pictures, and a caption for every picture (research/plan.md,
       "thumbnails on discs")
-- [ ] **The assistant, later:** Follow (the view opens what it looked at), the record-changed poll,
-      pictures at a terminal by `chafa`, an MCP server; the conversation kept in the home rather than
+- [ ] **The assistant, later:** pictures at a terminal by `chafa`, an MCP server; the conversation kept in the home rather than
       the browser (research/plan.md, "an assistant for archival work")
 - [ ] **An interface for other software**, once the commands settle: stable machine output for
       Katalog and archival tools ([#31](https://github.com/mofosyne/arv/issues/31)); Katalog importing
@@ -75,7 +74,12 @@ Each waits until someone needs it.
 - [x] Models: found and chosen in Settings, each source on or off, your own key said at each use
 - [x] The assistant (`arv chat`, and a panel in the GUI): reads on its own, proposes changes with their risk;
       Edit on a proposal, and the conversation kept across reloads; Undo, "apply tags without
-      asking", how sure it was (token probabilities), rules from what you accept
+      asking", how sure it was (token probabilities), rules from what you accept; Follow; it sees
+      the page's state and guides through its forms (filled in, the person sends), a disc's and
+      Mastering's too; disc ids, tags and folders in its replies are links;
+      a plan's own controls pointed at; the page reloads its view when the record changes elsewhere;
+      Help in the GUI (the first steps from the record, the manual and the guides, Show me), and
+      a console of the commands the page ran, with a command line
 - [x] `arv programs`: which optional programs are here, and how to install the rest
 - [x] Thumbnails on discs: a small picture of each photo, video and PDF, named by its file's hash,
       shown in `index.html`, kept at home

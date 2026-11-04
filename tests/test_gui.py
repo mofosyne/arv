@@ -52,6 +52,90 @@ class IconTest(unittest.TestCase):
                 seen[x] = family
 
 
+class GuideFormsTest(unittest.TestCase):
+    """The assistant's guide fills one of the page's forms in (FORMS in gui.html): each form and field
+    it names is in the page, and a command maps to its form only when the form can hold all of it."""
+
+    def setUp(self):
+        with open(os.path.join(REPO, "src", "arv-gui", "gui.html"), encoding="utf-8") as f:
+            self.page = f.read()
+        self.forms = self.page[self.page.index("  var FORMS = ["):self.page.index("  function guideTarget(")]
+
+    def test_every_form_and_field_is_in_the_page(self):
+        import re
+        ids = set(re.findall(r'\bid="([^"]+)"', self.page))
+        fields = ids | set(re.findall(r'"data-field": "([^"]+)"', self.page)) | set(re.findall(r'data-field="([^"]+)"', self.page))
+        groups = set(re.findall(r'"data-guide": "([^"]+)"', self.page)) | set(re.findall(r'data-guide="([^"]+)"', self.page))
+        forms = re.findall(r'\bform: "([^"]+)"', self.forms)
+        named = re.findall(r'\bgroup: "([^"]+)"', self.forms)
+        plain = re.sub(r'function \(v\) \{.*?; \}', '', self.forms)       # a field chosen by the value: its names are below
+        used = [a for a in re.findall(r'"([^"]*)"', " ".join(re.findall(r'args: \[([^\]]*)\]', plain))) if not a.startswith("@")]
+        used += [n for n in ("drive", "image") if 'return /^\\/dev\\//.test(v) ? "drive" : "image"' in self.forms]
+        for opts in re.findall(r'opts: \{([^}]*)\}', self.forms):
+            used += [v.lstrip("!+") for v in re.findall(r':\s*"([^"]*)"', opts) if v and not v.lstrip("!").startswith("@")]
+        used += re.findall(r'\brest: "([^"]+)"', self.forms)
+        self.assertGreater(len(forms) + len(named) + len(used), 80)
+        self.assertEqual([f for f in forms if f not in ids], [])
+        self.assertEqual([g for g in named if g not in groups], [])
+        self.assertEqual(sorted(set(u for u in used if u not in fields)), [])
+        controls = set(re.findall(r'"data-control": "([^"]+)"', self.page))  # a plan's controls, pointed at
+        items = [i for i in re.findall(r'\bitem: "([^"]+)"', self.forms)]
+        self.assertGreater(len(items), 6)
+        self.assertEqual([i for i in items if i not in controls and not (i == "disc" and {"disc-add", "disc-drop"} <= controls)], [])
+
+    @unittest.skipUnless(shutil.which("node"), "node runs the page's own code")
+    def test_commands_to_forms(self):
+        cases = [["collection", "init", "/p", "--code", "FAM", "--title", "Family"], ["make", "/x", "--no-ecc"],
+                 ["tags", "add", "place:kyoto", "--label", "Kyoto"], ["tags", "add", "person:ann", "--qualifier=b. 1931"],
+                 ["make", "-y", "/x", "--subject", "a", "--subject", "b", "--split"], ["retag", "x", "y"], ["restore", "/a", "/b", "/c"],
+                 ["burned", "D-1", "--device", "/dev/sr0", "--location", "HOME"], ["burned", "D-1", "--device", "/dev/sr0", "--copies", "2"],
+                 ["check", "--copy", "A", "/dev/sr0", "D-1"], ["plan", "add", "HOL", "/p/a", "/p/b", "--disc", "new"], ["plan", "add", "HOL"],
+                 ["plan", "rename", "HOL", "a", "b/a"], ["plan", "move", "HOL", "a", "b", "--disc", "2"],
+                 ["plan", "pack", "HOL", "--disc", "1", "tar+zstd", "--together"], ["plan", "disc", "HOL", "drop"]]
+        js = self.forms + "console.log(JSON.stringify(%s.map(function (c) { return guideFill(c); })));" % json.dumps(cases)
+        got = json.loads(subprocess.run(["node", "-e", js], capture_output=True, text=True, check=True).stdout)
+        self.assertEqual((got[0]["form"], sorted(got[0]["values"])), ("ci-form", [["ci-code", "FAM"], ["ci-folder", "/p"], ["ci-title", "Family"]]))
+        self.assertIsNone(got[1])                               # --no-ecc: the form has no place for it
+        self.assertEqual((got[2]["form"], got[3]["form"]), ("map-add", "names-add"))   # a place, a name
+        self.assertEqual(sorted(got[4]["values"]), [["m-source", "/x"], ["m-split", True], ["m-subject", "a, b"]])
+        self.assertEqual((got[5], got[6]), (None, None))        # no form; more arguments than it has fields
+        self.assertEqual((got[7]["group"], got[7]["disc"], sorted(got[7]["values"])), ("burned", "D-1", [["drive", "/dev/sr0"], ["place", "HOME"]]))
+        self.assertIsNone(got[8])                               # a drive reads one copy: the button would leave --copies out
+        self.assertEqual((got[9]["group"], got[9]["disc"], sorted(got[9]["values"])), ("check-copy", "D-1", [["drive", "/dev/sr0"], ["letter", "A"]]))
+        self.assertEqual((got[10]["plan"], got[10]["ticks"], got[10]["values"]), ("HOL", ["/p/a", "/p/b"], [["f-to", "new"]]))
+        self.assertIsNone(got[11])                              # nothing to tick
+        self.assertEqual((got[12]["item"], got[12]["plan"], got[12]["at"]), ("rename", "HOL", {"path": "a", "value": "b/a"}))
+        self.assertIsNone(got[13])                              # a row's control moves one item
+        self.assertEqual((got[14]["item"], got[14]["at"]), ("dpack", {"discn": "1", "value": "tar+zstd", "together": True}))
+        self.assertIsNone(got[15])                              # which disc to take off
+
+
+class ConsoleRiskTest(unittest.TestCase):
+    """The console's command line judges a command's risk in the page, from arv help --json: the same
+    answer as arv's own rules (risk.c, through arv-assist chat --risk), for reads, changes and the
+    particular cases (a sub-command, a flag)."""
+
+    ASSIST = os.path.join(REPO, "src", "arv-assist", "build", "arv-assist")
+
+    @unittest.skipUnless(shutil.which("node") and os.path.exists(ARV) and os.path.exists(ASSIST), "node, arv and arv-assist")
+    def test_page_and_arv_agree(self):
+        with open(os.path.join(REPO, "src", "arv-gui", "gui.html"), encoding="utf-8") as f:
+            page = f.read()
+        risk_of = page[page.index("  function riskOf(words) {"):page.index("  function consoleRefuse(")]
+        cases = [["list", "--json"], ["plan", "list"], ["plan", "make", "X"], ["plan", "tag", "X", "a", "b"], ["plan", "add", "X", "/a"],
+                 ["check", "/dev/sr0"], ["check", "--repair", "x.iso"], ["where"], ["where", "--here"], ["retire", "X"],
+                 ["retire", "X", "--yes"], ["tags"], ["tags", "merge", "a", "b"], ["tags", "label", "a", "A"], ["note", "D", "x"],
+                 ["access", "D", "public"], ["make", "/x"], ["programs"], ["programs", "--install"], ["appraise", "--due"],
+                 ["location", "list"], ["location", "add", "HOME"], ["burned", "D", "--copies", "1"], ["nosuch"], ["help", "--all"]]
+        help_json = subprocess.run([ARV, "help", "--json"], capture_output=True, text=True, check=True).stdout
+        js = ("var helpJson = {}; JSON.parse(%s).groups.forEach(function (g) { g.commands.forEach(function (c) { if (!helpJson[c.name]) helpJson[c.name] = c; }); });\n"
+              % json.dumps(help_json)) + risk_of + "console.log(JSON.stringify(%s.map(riskOf)));" % json.dumps(cases)
+        page_says = json.loads(subprocess.run(["node", "-e", js], capture_output=True, text=True, check=True).stdout)
+        arv_says = [json.loads(subprocess.run([self.ASSIST, "chat", "--risk"], input=json.dumps({"command": c}), capture_output=True,
+                                              text=True).stdout).get("risk", "high") for c in cases]
+        self.assertEqual(list(zip(map(" ".join, cases), page_says)), list(zip(map(" ".join, cases), arv_says)))
+
+
 class GuiTest(unittest.TestCase):
     """The server only runs arv (and arv-assist) for the page: these drive it as the page does."""
 
@@ -475,6 +559,19 @@ class GuiTest(unittest.TestCase):
         self.assertIn('<aside class="chat" id="chat" hidden', page)
         self.assertIn('id="chat-follow"', page)                                # Open a step's subject, or follow it
         self.assertIn("item.show", page)                                       # a reply may name the view to show
+        self.assertIn("forms: formCommands()", page)                           # the page says which forms it has
+        self.assertIn("context: pageState()", page)                            # and what is selected and typed
+        self.assertIn('id="changed"', page)                                    # the record changed elsewhere: Reload
+        self.assertIn('id="tab-help"', page)                                   # Help: the first steps, and the manual
+        self.assertIn('arvRun(["help", "--all"])', page)                       # from arv help --all, not a text of its own
+        self.assertIn("helpLink(step.command)", page)                          # each step's command: its entry in the manual
+        self.assertIn('arvRun(["help", "--doc", name])', page)                 # the guides, read by arv
+        self.assertIn('<details id="console"', page)                           # every command the page ran, below
+        self.assertIn("consoleAdd(program", page)
+        guides = self.run_arv("help", "--doc")                                 # found from the build's checkout
+        self.assertEqual(guides["returncode"], 0, guides["err"])
+        self.assertIn("workflow", guides["out"].split())
+        self.assertIn('arvRun(["where", "--json"])', page)
         turn = json.loads(self.run_arv("chat", "--json", program="arv-assist",
                                        stdin=json.dumps({"messages": [{"role": "user", "content": "anything?"}], "context": "Owed"}))["out"])
         self.assertEqual([s["shown"] for s in turn["steps"]], ["arv todo --json"])

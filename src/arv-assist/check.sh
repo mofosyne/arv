@@ -330,6 +330,7 @@ printf '{"messages": [{"role": "user", "content": "what is owed?"}], "context": 
 tr -d '\n' < gui.json | grep -q '"steps": \[{"command": \["todo", "--json"\], "shown": "arv todo --json", "risk": "none", "exit": 0' \
     && grep -q 'That is enough reading: answer now' log && grep -q '(On screen: Verify / Owed)' log \
     && grep -q 'already open in front of them' log \
+    && grep -q 'opens it at that command' log \
     && tr -d '\n' < gui.json | grep -q '"reply": {"say": "{\\"read' \
     && ok "arv chat --json (the GUI's): the conversation in, the steps and the reply out, the page is already open; at most 6 reads a turn, then an answer is asked for" \
     || { cat gui.json; no "chat --json"; }
@@ -345,6 +346,19 @@ printf '{"messages": [{"role": "user", "content": "show me travel"}]}' \
 ! tr -d '\n' < badshow.json | grep -q '"show"' \
     && ok "arv chat --json: a change is not a show target" \
     || { cat badshow.json; no "chat --json bad show"; }
+printf '%s\n' '{"say": "check it, then press its button", "guide": ["collection", "init", "photos", "--code", "FAM", "--title", "Family"]}' > text.reply
+printf '{"messages": [{"role": "user", "content": "make photos a collection"}], "forms": ["collection init", "location add"]}' \
+    | "$tool" --home home chat --json $llm > guide.json || no "chat --json guide"
+tr -d '\n' < guide.json | grep -q '"say": "check it, then press its button", "guide": \["collection", "init", "photos", "--code", "FAM", "--title", "Family"\], "guideRisk": "medium", "guideShown": "arv collection init photos --code FAM --title Family"' \
+    && grep -q 'The page has a form for each of these commands: `collection init`, `location add`' log \
+    && printf '{"messages": [{"role": "user", "content": "make photos a collection"}], "forms": ["location add"]}' \
+    | "$tool" --home home chat --json $llm | tr -d '\n' | grep -v -q '"guide"' \
+    && printf '%s\n' '{"guide": ["location", "add", "HOME", "Home"]}' > text.reply \
+    && printf '{"messages": [{"role": "user", "content": "add home"}], "forms": ["location add"]}' \
+    | "$tool" --home home chat --json $llm | tr -d '\n' | grep -q '"say": "", "guide": \["location", "add", "HOME", "Home"\]' \
+    && printf '{"messages": [{"role": "user", "content": "add home"}]}' | "$tool" --home home chat --json $llm | tr -d '\n' | grep -v -q '"guide"' \
+    && ok "arv chat --json: a guide names a command whose form the page has (it said which), for the person to send; not one it lacks, and never run" \
+    || { cat guide.json; no "chat --json guide"; }
 printf 'logprob: -1.2\n{"propose": ["retag", "trip", "travel"], "why": "a guess"}\n' > text.reply
 printf '{"messages": [{"role": "user", "content": "tag it"}]}' | "$tool" --home home chat --json $llm > sure.json || no "chat --json sure"
 printf 'logprob: -0.01\n{"propose": ["retag", "trip", "travel"], "why": "sure"}\n' > text.reply

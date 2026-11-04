@@ -173,6 +173,31 @@ missing ones. None is needed to make, read, check or repair a disc.
 What takes a while (making images, checking a copy, restoring) runs as a job: its output followed
 here as it comes. Here, the plan above, made without error correction.
 
+## Help
+
+From the header, beside Jobs. **Getting started** lists the first steps (a place for copies, a
+collection if you keep a folder sorted, a first disc, a copy recorded and read back, copies in two
+places), each ticked from the record as it is done; Show me opens the form where it is done,
+marked, and nothing happens until you press its button. **The manual** below is `arv help --all`,
+the same text as the man page, with a box to find words in it; a command the page has a form
+for has Show me too. The assistant's steps and proposals each have Help, which opens the manual
+at that command, and the assistant can open it there itself (`show`). **Guides** opens the docs
+(the workflow, this page, the concepts, the disc format) as `arv help --doc` gives them, from the
+source every disc carries; a link from one guide to another opens it.
+
+## Console
+
+Folded along the bottom of every view: each command the page ran, as the shell takes it, with its
+exit status, how long it took and what it printed (open one to see). Copy gives the line, Help its
+entry in the manual. The page's own check for changes (`arv where --json` every few seconds) is
+left out unless "show background reads" is ticked.
+
+Below the log, a line takes an arv command, as in a shell but one command only (no pipes, and no
+`-C`: this archive). A read runs at once and opens its entry. A change shows as a card with its
+risk, and runs only when you press Apply (high risk asks again; `retag` and `rename` can be
+undone); a long one (make, check, plan make) goes to Jobs, as the forms send it. Tab completes
+commands and their words, ↑ and ↓ bring back the last ones.
+
 ## Assistant
 
 ![Record › Discs with the Assistant open on the right: asked whether the Kyoto trip is safe, it ran arv find place:kyoto and arv todo --json, answered where both copies are and that neither has been read back, then proposed a check of copy A, which waits for Apply](screenshots/assistant.png)
@@ -180,5 +205,16 @@ here as it comes. Here, the plan above, made without error correction.
 From the header, beside any view (`arv-assist chat`): it reads the record on its own; a change it
 proposes waits for you to apply it, as it came or edited. Each read is a line with its command and
 output; Open shows what it read in the view on the left (a find in Search, an info on its disc), and
-a reply may name a view with `show`. Follow, off by default, opens the last read or the named view
-by itself. Its reads in this picture are real; the model's replies are scripted.
+a reply may name a view with `show`. To show you where a change is made, a reply may guide you to
+a form: Fill in the form opens it (a disc's details or a plan first, when the command names one),
+filled in with the command shown beside it and marked, and nothing is done until you press the
+form's own button. A plan's own controls act at once, so a guide points at them instead: the
+item and its control outlined, and a prompt opened with the answer filled in. A disc id, a tag
+or a folder in a reply is a link to it.
+
+While the page is open it watches the record: a change made elsewhere (in a shell, by a job, a
+catalogue merged) reloads the view in place. If you have typed something in the view, it is left
+as it is, and a bar offers Reload. Each message tells it what you see: the
+view, what is selected, what is typed in the forms, and the last result. Follow, off by default,
+opens the last read or the named view by itself, and fills a guided form in (never one you have
+typed in). Its reads in this picture are real; the model's replies are scripted.

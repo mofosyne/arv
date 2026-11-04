@@ -884,6 +884,11 @@ int cmd_where(int argc, char **argv)
         sb_puts(&b, ", \"drafts\": "); json_str(&b, h.drafts_dir);
         sb_puts(&b, ", \"cache\": "); json_str(&b, h.cache_dir);
         sb_puts(&b, ", \"rec\": "); json_str(&b, h.rec_path);
+        archive cat;                                    /* the newest event: a page watching the record asks this */
+        archive_load(&cat, h.rec_path);
+        const char *newest = cat.events.n ? rec_get(cat.events.v[cat.events.n - 1], "EventId") : NULL;
+        sb_printf(&b, ", \"events\": %zu, \"newest\": ", cat.events.n);
+        if (newest) json_str(&b, newest); else sb_puts(&b, "null");
         sb_puts(&b, "}\n");
         fputs(b.s, stdout);
         free(b.s);

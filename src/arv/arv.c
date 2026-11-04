@@ -155,14 +155,16 @@ static const char USAGE_REST[] =
           "The home\n"
           "  arv init [FOLDER] [--name NAME [--default]]   make an archive: FOLDER/.arv (--name: known by name,\n"
           "         for arv --archive NAME; --default: the one used when no other is found)\n"
-          "  arv where [--here]   which home arv uses, and why (--here: this copy of it may be written here too)\n"
+          "  arv where [--here] [--json]   which home arv uses, and why (--here: this copy of it may be written here\n"
+          "         too; --json: its paths, and how many events the record has and the newest's id, to watch it)\n"
           "  arv gui   the interface, in your web browser (*)\n"
           "  arv chat [--llm-context N]   the assistant: ask about the archive; it reads on its own, and a change\n"
           "         it proposes is yours to apply (*)\n"
           "  arv programs [--json] [--install [GROUP]]   which of the programs arv can use are here (none is needed\n"
           "         for a disc), what each is for, and how to install the missing ones; --install hands their packages\n"
           "         to PackageKit (pkcon), which asks for the password\n"
-          "  arv help [--all | --man | --json | COMMAND]   --all: the whole manual (markdown), for people and agents alike\n"
+          "  arv help [--all | --man | --json | --doc [NAME] | COMMAND]   --all: the whole manual (markdown), for people\n"
+          "         and agents alike; --doc: the guides (docs/NAME.md of the source every disc carries: workflow, gui ...)\n"
           "\n"
           "(*) when installed: arv-assist (the local AI helpers), arv-gui (the interface); arv programs says\n"
           "DISC: the root of a mounted arv disc or an extracted image (the folder with catalog.rec)\n"
@@ -624,7 +626,7 @@ static void manual_md(sbuf *out)
     const char *nl = strchr(p, '\n');               /* the usage: line is the synopsis */
     sb_puts(out, "## Synopsis\n\n```\n");
     sb_printf(out, "%.*s\n", (int)(nl - p - 7), p + 7);
-    sb_puts(out, "arv GROUP COMMAND ...   (archive, record, verify, home)\narv help [--all | --man | COMMAND]\n```\n\n");
+    sb_puts(out, "arv GROUP COMMAND ...   (archive, record, verify, home)\narv help [--all | --man | --doc [NAME] | COMMAND]\n```\n\n");
     p = nl + 1;
     sb_puts(out, "## Description\n\n");                 /* the lines up to the first blank one */
     while (*p && *p != '\n') {
@@ -798,8 +800,61 @@ static void help_json(void)
     free(b.s);
 }
 
+/* arv help --doc [NAME]: the guides, from the source tree arv puts in tools/ (docs/ and
+ * docs/spec/, each NAME.md): with no NAME, their names, a line each; with one, its text. A name is letters,
+ * digits and -, with spec/ before it for the format's: nothing else is read. */
+static int by_name(const void *a, const void *b) { return strcmp(*(char *const *)a, *(char *const *)b); }
+
+static int doc_names(const char *source, const char *sub, int print)
+{
+    char *dir = xprintf("%s/docs%s%s", source, *sub ? "/" : "", sub);
+    DIR *d = opendir(dir);
+    int n = 0;
+    strlist names = { 0 };
+    for (struct dirent *e; d && (e = readdir(d));) {
+        size_t len = strlen(e->d_name);
+        if (len > 3 && !strcmp(e->d_name + len - 3, ".md")) strlist_add(&names, e->d_name);
+    }
+    if (d) closedir(d);
+    if (names.n) qsort(names.v, names.n, sizeof *names.v, by_name);
+    for (size_t i = 0; i < names.n; i++, n++)
+        if (print) printf("%s%s%.*s\n", sub, *sub ? "/" : "", (int)strlen(names.v[i]) - 3, names.v[i]);
+    strlist_free(&names);
+    free(dir);
+    return n;
+}
+
+static int help_doc(const char *name)
+{
+    char *source = find_source(NULL);
+    if (!source) die("%s", "arv's source is not found ($ARV_SOURCE, or an installed share/arv): its guides are there");
+    if (!name) {
+        doc_names(source, "", 1);
+        doc_names(source, "spec", 1);
+        free(source);
+        return 0;
+    }
+    const char *base = !strncmp(name, "spec/", 5) ? name + 5 : name;
+    int ok = *base != 0;
+    for (const char *p = base; *p; p++) ok &= isalnum((unsigned char)*p) || *p == '-';
+    char *path = ok ? xprintf("%s/docs/%s.md", source, name) : NULL;
+    char *text = path ? read_text(path) : NULL;
+    if (!text) {
+        fprintf(stderr, "arv help --doc: no guide %s (arv help --doc lists them)\n", name);
+        free(path);
+        free(source);
+        return 1;
+    }
+    fputs(text, stdout);
+    free(text);
+    free(path);
+    free(source);
+    return 0;
+}
+
 static int cmd_help(int argc, char **argv)
 {
+    if (argc >= 1 && argc <= 2 && !strcmp(argv[0], "--doc")) return help_doc(argc == 2 ? argv[1] : NULL);
     if (argc == 0) {
         usage(stdout);
         return 0;
@@ -963,7 +1018,7 @@ int main(int argc, char **argv)
     }
     if (argc >= 2 && !strcmp(argv[1], "help")) {
         int rc = cmd_help(argc - 2, argv + 2);
-        if (rc == 2) fputs("usage: arv help [--all | --man | --json | COMMAND]\n", stderr);
+        if (rc == 2) fputs("usage: arv help [--all | --man | --json | --doc [NAME] | COMMAND]\n", stderr);
         return rc;
     }
     /* an unknown command: say which, and the nearest ones */

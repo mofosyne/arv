@@ -40,7 +40,25 @@ typedef struct {
     char *arv, *system;
     int budget;                             /* the context, in tokens */
     int gui;                                /* the page is open in front of the person */
+    strlist forms;                          /* the commands the page has a form for (its "forms") */
 } chat;
+
+/* ARGV starts with one of the page's forms' commands ("collection init"): the page can fill it in */
+static int has_form(const chat *ch, const strlist *argv)
+{
+    for (size_t i = 0; i < ch->forms.n; i++) {
+        const char *f = ch->forms.v[i];
+        size_t k = 0;
+        while (*f && k < argv->n) {
+            size_t n = strcspn(f, " ");
+            if (strlen(argv->v[k]) != n || strncmp(argv->v[k], f, n)) break;
+            f += n + (f[n] == ' ');
+            k++;
+        }
+        if (!*f && k) return 1;
+    }
+    return 0;
+}
 
 static int tokens_of(const char *s)         /* roughly: no tokeniser, a margin instead */
 {
@@ -189,7 +207,10 @@ static char *system_text(const chat *ch)
     if (ch->gui) {
         sb_puts(&b, "\nThe person is using arv gui, the page, which is already open in front of them. ");
         sb_puts(&b, "The page has sections: Archive (making discs), Record (objects, collections, discs), Verify (owed tasks, check, inventory, audit, restore), and Settings. ");
-        sb_puts(&b, "The context 'On screen: ...' tells you which tab they are viewing; do not tell them to start the page.\n");
+        sb_puts(&b, "The context 'On screen: ...' says what they are looking at: the view, what is selected in it, what is "
+                    "typed in its forms, and the last result shown there. Do not tell them to start the page. "
+                    "The page has Help (the manual, and the first steps ticked from the record): `show` [\"help\", \"COMMAND\"] "
+                    "opens it at that command, for a person who wants to read about it.\n");
     }
     return b.s;
 }
@@ -399,6 +420,8 @@ static jv *turn(chat *ch, jv *messages, jv *steps, void (*progress)(const jv *st
             strlist_free(&argv);
         } else if (sy && jstr_of(sy)) {
             jput(a, "say", jstr(jstr_of(sy)));
+        } else if (json_get(j, "guide")) {                      /* a guide alone: its form says it */
+            jput(a, "say", jstr(""));
         } else {                                                /* not as asked: shown as it came */
             jput(a, "say", jstr(reply));
             jput(a, "unformatted", jnum("true"));
@@ -408,6 +431,18 @@ static jv *turn(chat *ch, jv *messages, jv *steps, void (*progress)(const jv *st
         if (sh && !argv_of(sh, &view)) {
             if (!strcmp(command_risk((int)view.n, view.v), "none")) jput(a, "show", jstrings(&view));
             strlist_free(&view);
+        }
+        const jv *gd = json_get(j, "guide");                    /* a form for the person to fill in: never run */
+        strlist form;
+        if (!pr && gd && !argv_of(gd, &form)) {
+            if (has_form(ch, &form)) {
+                jput(a, "guide", jstrings(&form));
+                jput(a, "guideRisk", jstr(command_risk((int)form.n, form.v)));
+                char *g = shown(&form);
+                jput(a, "guideShown", jstr(g));
+                free(g);
+            }
+            strlist_free(&form);
         }
         jfree(j);
         free(reply);
@@ -516,6 +551,19 @@ static int for_gui(chat *ch)
     for (size_t i = 0; given && given->kind == 'a' && i < given->n; i++) {
         const char *role = jstr_of(json_get(given->vals[i], "role")), *t = jstr_of(json_get(given->vals[i], "content"));
         if (role && t && (!strcmp(role, "user") || !strcmp(role, "assistant"))) say_to(messages, role, t);
+    }
+    const jv *forms = json_get(req, "forms");                 /* the commands the page has forms for */
+    for (size_t i = 0; forms && forms->kind == 'a' && i < forms->n; i++)
+        if (jstr_of(forms->vals[i]) && *jstr_of(forms->vals[i])) strlist_add(&ch->forms, jstr_of(forms->vals[i]));
+    if (ch->forms.n) {
+        sbuf f = { 0 };
+        sb_puts(&f, ch->system);
+        sb_puts(&f, "The page has a form for each of these commands: ");
+        for (size_t i = 0; i < ch->forms.n; i++) sb_printf(&f, "%s`%s`", i ? ", " : "", ch->forms.v[i]);
+        sb_puts(&f, ". To walk the person through one, reply {\"say\": \"...\", \"guide\": [the command]}: the page fills "
+                    "its form in and marks it, and the person presses its button.\n");
+        free(ch->system);
+        ch->system = f.s;
     }
     const char *context = jstr_of(json_get(req, "context"));
     if (context && *context && messages->n) {                  /* what is on screen, with the latest words */
@@ -729,6 +777,7 @@ int assist_chat(int argc, char **argv)
     ch.system = system_text(&ch);
     int rc = as_json ? for_gui(&ch) : terminal(&ch);
     free(ch.system);
+    strlist_free(&ch.forms);
     free(ch.arv);
     return rc;
 }

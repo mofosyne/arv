@@ -2916,3 +2916,191 @@ checked to read:
   gets a Show button. The switch stays the person's.
 - **Checked** by arv-assist's checks against the fake server: a read's `show` reaches the GUI, and
   a write named as `show` is dropped.
+
+## Decision and done (2026-11-04): the assistant sees the page's state, and guides through its forms
+
+- **Why:** to guide someone through the page, the assistant has to know what they see and be able
+  to put them where a thing is done. It knew only the view's name ("verify › Owed"), and the
+  design's "it knows what is on screen: the open view and what is selected" was not built. It could
+  move the view (`show`), but not show where a change is made.
+- **The page's state, with each message** (`pageState`): the view; what is selected in it (the
+  disc open in Record › Discs, the plan in Mastering, the Objects filter); each form in the view
+  that has something typed or chosen, by its heading, as its fields' labels and values; whether
+  a form is one the assistant filled in and not yet sent; and the last result shown in the view
+  (its output, or a banner), marked when it failed. Values are cut at 160 characters, the whole at
+  a few hundred, each cut marked. It is read from the page as the person sees it (labels, not ids),
+  so the model reads the page's own words and is given no selector to use.
+- **`guide`, beside `say`:** a command whose form the page fills in and marks, for the person to
+  send with the form's own button: `{"say": "...", "guide": ["collection", "init", "/photos",
+  "--code", "FAMILY", "--title", "Family photos"]}`. The page says which commands it has forms for
+  (`forms` in the request, from `FORMS` in gui.html), and the system text lists them; arv-assist
+  drops a guide for any other command, and gives its risk (`guideRisk`) and the command as the
+  shell takes it (`guideShown`), shown beside the button.
+- **The rule, changed:** "it does not drive the page" becomes "it names commands; the page decides
+  how they show, and only the person sends". The assistant still names no view, selector or
+  button: the page maps a command to its form through one table (`FORMS`: the command's words,
+  the view, the form, a field for each argument and option), which is the reverse of each form's
+  own `onsubmit`. A command with anything the form cannot hold (`make --no-ecc`, a third argument
+  to `restore`) is not guided at all, so a filled-in form never builds a command other than the
+  one shown beside it. Filling a form is not a change: nothing is recorded until the person presses
+  the button, and the button runs the form's own path (`act` or `run`), as if they had typed it.
+- **Losing the place:** with Follow off, the reply shows the command, its risk and "Fill in the
+  form"; with it on, the form is filled in at once, unless the person has typed in it (it is then
+  left alone, and the button asks before replacing what is there). A guided form's mark goes when
+  it is sent.
+- **Why not clicks:** clicking for the person would tie the model to the page's layout, hide what
+  ran behind animation, and make an unaudited change; a filled-in form is the same teaching (where
+  it is done, with what) with the person's press as the consent, and the command line beside it.
+- **Checked:** arv-assist's checks (a guide for a listed form passes with its risk, one for a
+  form the page lacks is dropped, a guide alone is accepted), and the GUI's tests (every form and
+  field `FORMS` names is in the page, so a layout change that breaks a guide fails `make check`;
+  commands mapped to their forms through the page's own code, under node).
+- **Not done:** a guide for the views whose actions are buttons, not forms (a disc's details:
+  copies, places, retire; Mastering's items); prose links in replies; the record-changed poll.
+
+## Done (2026-11-04): guides for a disc's and Mastering's actions, links in replies
+
+- **The views whose actions are not forms:** a disc's details (who may see it, a note, a burned
+  copy, a copy on a drive or NAS, what a copy is known by, a copy's place, a check of a copy) and
+  Mastering (Add, Make the disc images) are rows of fields with a button, made for each disc or
+  plan. Each row is marked `data-guide` (its fields `data-field`), so `FORMS` names them as it
+  names forms, and the same filling and marking serve both. The page stays the one that knows its
+  layout; the model still names a command.
+- **What a command names is opened first:** `@disc` in an entry's arguments opens that disc's
+  details and waits for its copies (a copy's letter is a choice among them), `@plan` opens that
+  plan, and `@ticks` ticks the named files in Mastering's browser, opened on their folder. A disc
+  or plan that is not there, or a file that is not in the folder, is said under the reply, not
+  guessed at.
+- **Built the same as the button builds it:** an entry may say whether its button would build the
+  command from those values (`fits`): `burned --device` reads one copy back and leaves `--copies`
+  out, so a guide with both is not offered. The browser's folder (`data-keep`) is where it looks,
+  not a field, so filling a row never clears it.
+- **Links in replies,** the design's other half: a disc id (one of the record's), a tag
+  (`namespace:value`, not a URL or a `bca:` serial) and a folder (an absolute path) in a reply are
+  links: the disc's details, a search for the tag, What changed with the folder filled in (Look
+  reads every file, so it waits for the person). Made from text nodes: a reply is never HTML.
+- **More reads have a view for Open:** `plan show NAME` (the plan), `objects` (a disc's details,
+  else the Objects filter) and `status FOLDER` (filled in, as a guide).
+- **Page state:** a row's fields are reported only where they differ from their defaults (a
+  disc's own access level is not "typed"), and Mastering's ticks are listed.
+- **Checked:** the GUI's tests (every row and field `FORMS` names is in the page; a disc's,
+  a check's and a plan's commands mapped, `burned` with both a drive and a count refused), and in
+  Chromium against the fake model: a burned copy's row filled in on the disc's details, a plan's
+  files ticked and added with Add, and each kind of link opening its view.
+- **Not done:** the per-item controls of a plan (move, rename, tags, packing: prompts and menus on
+  each item) are not guided; the record-changed poll.
+
+## Done (2026-11-04): the record-changed poll, and a plan's own controls pointed at
+
+- **The poll, as designed:** while the page is visible (`document.hidden` false) it reads
+  `arv where --json` every 5 seconds, which now gives `events` (how many) and `newest` (the last
+  event's id, in the file's order): one read, and the server stays without features. When either
+  has moved, the open view reloads in place: the views with a loader (Owed, Discs, Mastering,
+  Objects, Collections, Places, Map, Names) and a Search with results; the scroll and the
+  selection are kept. The header's owed count and the discs (for links) are read again too.
+- **Not under the person:** a view with a field changed from its default, a ticked file, or
+  anything the assistant marked is not reloaded; a bar says the record changed, with Reload. The
+  page's own changes (`act`, a quiet job, an applied proposal) reload their view already and are
+  only noted as seen, so they bring no bar.
+- **Why both the count and the id:** every change appends events, so the count moves; the id
+  also tells apart a record replaced by another of the same length (a rebuild from a disc).
+- **A plan's own controls act at once** (a menu runs when chosen, Rename, Tags and Layout ask in
+  a prompt, ✕ and Remove disc are buttons), so a guide cannot fill them in: it points. `FORMS`
+  entries with `item` name the control (`data-control` in each row) and keep the item's path, its
+  source or its disc (`@path`, `@source`, `@discn`). The plan is opened, the item (or disc) is
+  outlined and its control marked. A prompt opens with the guided answer as its default, once
+  (`planHint`), so pressing it and OK sends exactly the command. A menu is not set: setting it
+  from code does not choose it, and choosing the same option again would not send it; the reply
+  says which option to choose. A move or drop of several items is not guided (a row's control
+  moves one).
+- **Checked:** arv's checks (`where --json` counts and names the newest, and moves with a note),
+  the GUI's tests (every control an entry names is in the page; plan commands mapped, a move of
+  two items and a `disc drop` without a disc refused), and in Chromium against the fake model: a
+  rename's prompt opened with the guided path and renamed the item, a move's menu named and
+  chosen, a Remove disc refused where the disc was not empty; a note written in a shell shown
+  within seconds on a clean view, and held behind the bar while a note was being typed.
+
+## Decision and done (2026-11-04): Help in the GUI, made from what is written
+
+- **Why:** the page had no help: each view's own lines, and the assistant, which needs a model.
+  Someone without one, or who wants to read rather than ask, had nowhere to go.
+- **Not a page of its own:** a guide written for the GUI would say again what `docs/gui.md`,
+  `docs/workflow.md` and the usage text say, and drift from them (the handoff's notes did). Help
+  is made from text that exists: the manual is `arv help --all`, the one text that the man page,
+  the shell's help and tab completion come from, read when Help opens; the first steps are the
+  assistant's own ("when the archive is new" in assistant.txt), each ticked from the record
+  (`location list`, `collection list`, `todo --json`, the discs).
+- **Show me:** a step, and each manual entry for a command the page has a form for (found from
+  `FORMS`, by the command's words in the entry: `location list ... | add ...` offers add and move),
+  opens that form empty and marked, as the assistant's guide does: the manual and the page lead
+  to each other without a model. A disc's form needs a disc (the one owed, or the one selected),
+  a plan's a plan: otherwise it says where to choose one.
+- **Help from the assistant:** each step, proposal and guide in the panel has Help, which opens
+  the manual at that command's entry (the user asked for "at least a link to the corresponding
+  help page"); and `show: ["help", "COMMAND"]` lets the assistant open it there itself, with
+  Follow, or as a Show button. `help` was already a read (risk none), so no new kind of reply.
+- **No tour:** pop-ups over the page would tie help to its layout, as clicks would the assistant.
+- **Checked:** `make check` (the page carries Help, reads `help --all`, links each step's
+  command; arv-assist's system text names `show ["help", ...]`), and in Chromium: the steps ticked
+  for an archive with a disc and no place, Show me opening Places' form and a disc's burned-copy
+  row, the manual's 51 entries with Show me on 21 commands, a search narrowing it, and the
+  assistant's `show` and a proposal's Help each opening the manual at the command.
+- **Not done:** serving `docs/workflow.md` and `docs/gui.md` from the page (they are named, not
+  shown); `make install` puts the disc tools in `share/arv`, and the docs could go there too.
+
+## Done (2026-11-04): the guides in Help (arv help --doc), and the GUI's console
+
+- **The guides, through arv:** `arv help --doc` lists `docs/*.md` and `docs/spec/*.md` of the
+  source tree arv already finds for a disc's `tools/` (`find_source`: `$ARV_SOURCE`, an installed
+  `share/arv`, `tools/arv` beside `arv.com` on a disc, or the checkout), and `arv help --doc NAME`
+  prints one. The server stays without a file route; the shell gets the guides too, which matters
+  most where there is no web and no checkout: a disc's `tools/`. A name is letters, digits and `-`
+  (with `spec/`), so nothing outside `docs/` is read.
+- **Shown in Help** by the manual's renderer, grown to the guides' markdown: tables, emphasis,
+  links (to another guide: opens it; else its text and address) and pictures (their description:
+  the page has no route for files, on purpose). A mermaid block shows as its text.
+- **The console, as asked** (a collapsible log of the commands and their output): a `<details>`
+  folded along the bottom, beside the assistant's panel when it is open (under it on a phone,
+  where the panel covers the page). Every `arvRun` and job is an entry, its command quoted as the
+  shell takes it, its exit status, time and output (cut at 20,000 characters), its standard input
+  when it had one; Copy and Help on each. The last 300 are kept, in the page only: it is a view of
+  what the page did, not a record (events are the record).
+- **Why:** it is the GUI's version of the assistant's "every step shows as its command": the page
+  is a front end to the command line, and the console makes that visible for every button, so
+  watching the page teaches the shell, and a failure shows exactly what ran and what it said.
+- **The page's watching is left out** unless asked for ("show background reads"): one
+  `where --json` every 5 seconds would bury the person's own commands; the count of those left
+  out is shown.
+- **Checked:** arv's checks (`help --doc` lists and prints, and refuses `../README`), the GUI's tests
+  (the page reads the guides through arv and carries the console; `help --doc` through the
+  server), and in Chromium: ten guides listed, the workflow's six tables and its links, a link to
+  another guide followed and Back to the manual; the console listing each command with its exit
+  status and output, the background reads shown when ticked, and the bar beside the open chat.
+
+## Done (2026-11-04): a command line in the GUI's console
+
+- **The question** (the user's): direct command entry in the console? Yes, on one rule: a typed
+  command goes the way the assistant's proposals go, never straight to the server, so the page's
+  safeguards hold for what is typed as for what is pressed.
+- **One arv command:** split as a shell splits it (`shellWords`, the proposal Edit's), but not a
+  shell: no pipes, redirections, `$(...)` or backquotes, and only arv (not arv-assist or another
+  program). No home of its own (`-C`, `--home`, `--archive`): the page's archive only, as the
+  assistant's rule. `gui` and `chat` are refused with where they already are. A group word first
+  (`record burned`) is taken as arv takes it.
+- **Its risk, judged in the page:** from `arv help --json` (each command's risk, and its `risks`:
+  a sub-command or a flag), in the order of arv's rules (risk.c), the first match winning, an
+  unknown command high. So the console needs no arv-assist. A GUI test holds the page and arv
+  together: 25 commands, reads and changes and the particular cases, judged by both, the same.
+- **What happens:** a read runs at once and opens its entry. A change is a card (the command, its
+  risk, Apply, Dismiss, Help), applied on Apply, high risk confirmed again; `retag` and `rename`
+  keep their event, for Undo. A long one (make, check, restore, rebuild, stored, describe, tag,
+  `plan make`, `burned --device`, `programs --install`) runs as a job, as the forms send it. The
+  view reloads after, and the change is noted as the page's own (no "record changed" bar).
+- **Whose:** typed by the person, so no `--agent` or `--authorship`: the record says what it says
+  for a form, the person's.
+- **Help in typing:** Tab completes a command, then its sub-commands (from its risks, its usage's
+  `a|b|c` and `| add ...`, and the page's forms) and its options (`--` words of its usage); ↑ and
+  ↓ bring back the last 100 lines (this browser only).
+- **Checked:** the GUI's tests (the page's risk against arv's), and in Chromium: a read run, a
+  pipe, `-C`, `gui` and an unknown command refused with their reasons, `record note` as a low-risk
+  card, applied and in the record, `check --repair` asking again, Tab and history.

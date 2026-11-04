@@ -21,6 +21,46 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**The assistant sees the page, and guides through its forms**
+- Each message to it in `arv gui` carries what is on screen: the view, what is selected (a disc,
+  a plan), what is typed in its forms, and the last result shown, as the page words them.
+- A reply may carry `guide`: a command whose form the page fills in and marks (Fill in the form,
+  or at once with Follow, unless you have typed in it). Nothing is done until you press the form's
+  own button. A command the form cannot hold all of is not guided.
+- A guide reaches a disc's details too (record a burned or stored copy, what a copy is known by,
+  its place, a check, a note, who may see it: the disc is opened first) and Mastering (a plan's
+  files ticked in the browser for Add, Make the disc images).
+- Disc ids, tags (`place:kyoto`) and folders in its replies are links: the disc's details, a
+  search, What changed with the folder filled in. Open also shows `plan show`, `objects` and
+  `status` reads.
+- A guide to a plan's own controls (rename, tags, move, packing, layout, a disc added or taken
+  off) points at them: the item and the control are outlined, a prompt opens with the guided
+  answer, and the reply says which menu choice sends it.
+
+**arv gui has Help**
+- Getting started: the first steps, each ticked from the record, with Show me (the form where it is
+  done, marked) and the command. The manual: `arv help --all`, searchable, with Show me for each
+  command the page has a form for.
+- Each command in the assistant's panel (a step, a proposal, a guide) links to its entry in the
+  manual, and the assistant can open Help at a command with `show: ["help", "COMMAND"]`.
+- The guides too: `arv help --doc` lists them and `arv help --doc NAME` prints one (`docs/NAME.md`
+  of the source every disc carries), and Help shows them, a link to another guide opening it.
+
+**arv gui has a console**
+- Folded along the bottom: every command the page ran, as the shell takes it, its exit status,
+  time and output; Copy, and Help for its entry. The page's watching reads are left out unless
+  asked for.
+- A command line in it: one arv command (no pipes, no other archive). A read runs at once; a
+  change comes as a card with its risk, judged in the page from `arv help --json` by arv's own
+  rules, and runs on Apply (high risk asks again); a long one goes to Jobs. Tab completion and
+  history.
+
+**arv gui keeps up with the record**
+- While the page is visible it reads `arv where --json` every few seconds; when the record has
+  changed elsewhere (a shell, a job, a merged catalogue) the open view reloads in place. A view
+  with something typed in it is left as it is, with a bar and Reload.
+- `arv where --json` gives `events` (how many the record has) and `newest` (the last one's id).
+
 **The GUI's first run suggests one archive for the computer**
 - Make an archive is filled in with the home folder, the name `main` and "use it from anywhere":
   one catalogue, found wherever arv is started (from the menu, too). A narrower one, a portable
