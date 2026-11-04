@@ -173,6 +173,16 @@ missing ones. None is needed to make, read, check or repair a disc.
 What takes a while (making images, checking a copy, restoring) runs as a job: its output followed
 here as it comes. Here, the plan above, made without error correction.
 
+## Help
+
+From the header, beside Jobs. **Getting started** lists the first steps (a place for copies, a
+collection if you keep a folder sorted, a first disc, a copy recorded and read back, copies in two
+places), each ticked from the record as it is done; Show me opens the form where it is done,
+marked, and nothing happens until you press its button. **The manual** below is `arv help --all`,
+the same text as the man page, with a box to find words in it; a command the page has a form
+for has Show me too. The assistant's steps and proposals each have Help, which opens the manual
+at that command, and the assistant can open it there itself (`show`).
+
 ## Assistant
 
 ![Record › Discs with the Assistant open on the right: asked whether the Kyoto trip is safe, it ran arv find place:kyoto and arv todo --json, answered where both copies are and that neither has been read back, then proposed a check of copy A, which waits for Apply](screenshots/assistant.png)

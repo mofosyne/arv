@@ -330,6 +330,7 @@ printf '{"messages": [{"role": "user", "content": "what is owed?"}], "context": 
 tr -d '\n' < gui.json | grep -q '"steps": \[{"command": \["todo", "--json"\], "shown": "arv todo --json", "risk": "none", "exit": 0' \
     && grep -q 'That is enough reading: answer now' log && grep -q '(On screen: Verify / Owed)' log \
     && grep -q 'already open in front of them' log \
+    && grep -q 'opens it at that command' log \
     && tr -d '\n' < gui.json | grep -q '"reply": {"say": "{\\"read' \
     && ok "arv chat --json (the GUI's): the conversation in, the steps and the reply out, the page is already open; at most 6 reads a turn, then an answer is asked for" \
     || { cat gui.json; no "chat --json"; }

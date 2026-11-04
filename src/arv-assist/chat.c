@@ -208,7 +208,9 @@ static char *system_text(const chat *ch)
         sb_puts(&b, "\nThe person is using arv gui, the page, which is already open in front of them. ");
         sb_puts(&b, "The page has sections: Archive (making discs), Record (objects, collections, discs), Verify (owed tasks, check, inventory, audit, restore), and Settings. ");
         sb_puts(&b, "The context 'On screen: ...' says what they are looking at: the view, what is selected in it, what is "
-                    "typed in its forms, and the last result shown there. Do not tell them to start the page.\n");
+                    "typed in its forms, and the last result shown there. Do not tell them to start the page. "
+                    "The page has Help (the manual, and the first steps ticked from the record): `show` [\"help\", \"COMMAND\"] "
+                    "opens it at that command, for a person who wants to read about it.\n");
     }
     return b.s;
 }

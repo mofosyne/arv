@@ -3019,3 +3019,31 @@ checked to read:
   rename's prompt opened with the guided path and renamed the item, a move's menu named and
   chosen, a Remove disc refused where the disc was not empty; a note written in a shell shown
   within seconds on a clean view, and held behind the bar while a note was being typed.
+
+## Decision and done (2026-11-04): Help in the GUI, made from what is written
+
+- **Why:** the page had no help: each view's own lines, and the assistant, which needs a model.
+  Someone without one, or who wants to read rather than ask, had nowhere to go.
+- **Not a page of its own:** a guide written for the GUI would say again what `docs/gui.md`,
+  `docs/workflow.md` and the usage text say, and drift from them (the handoff's notes did). Help
+  is made from text that exists: the manual is `arv help --all`, the one text that the man page,
+  the shell's help and tab completion come from, read when Help opens; the first steps are the
+  assistant's own ("when the archive is new" in assistant.txt), each ticked from the record
+  (`location list`, `collection list`, `todo --json`, the discs).
+- **Show me:** a step, and each manual entry for a command the page has a form for (found from
+  `FORMS`, by the command's words in the entry: `location list ... | add ...` offers add and move),
+  opens that form empty and marked, as the assistant's guide does: the manual and the page lead
+  to each other without a model. A disc's form needs a disc (the one owed, or the one selected),
+  a plan's a plan: otherwise it says where to choose one.
+- **Help from the assistant:** each step, proposal and guide in the panel has Help, which opens
+  the manual at that command's entry (the user asked for "at least a link to the corresponding
+  help page"); and `show: ["help", "COMMAND"]` lets the assistant open it there itself, with
+  Follow, or as a Show button. `help` was already a read (risk none), so no new kind of reply.
+- **No tour:** pop-ups over the page would tie help to its layout, as clicks would the assistant.
+- **Checked:** `make check` (the page carries Help, reads `help --all`, links each step's
+  command; arv-assist's system text names `show ["help", ...]`), and in Chromium: the steps ticked
+  for an archive with a disc and no place, Show me opening Places' form and a disc's burned-copy
+  row, the manual's 51 entries with Show me on 21 commands, a search narrowing it, and the
+  assistant's `show` and a proposal's Help each opening the manual at the command.
+- **Not done:** serving `docs/workflow.md` and `docs/gui.md` from the page (they are named, not
+  shown); `make install` puts the disc tools in `share/arv`, and the docs could go there too.

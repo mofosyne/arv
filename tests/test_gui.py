@@ -536,6 +536,9 @@ class GuiTest(unittest.TestCase):
         self.assertIn("forms: formCommands()", page)                           # the page says which forms it has
         self.assertIn("context: pageState()", page)                            # and what is selected and typed
         self.assertIn('id="changed"', page)                                    # the record changed elsewhere: Reload
+        self.assertIn('id="tab-help"', page)                                   # Help: the first steps, and the manual
+        self.assertIn('arvRun(["help", "--all"])', page)                       # from arv help --all, not a text of its own
+        self.assertIn("helpLink(step.command)", page)                          # each step's command: its entry in the manual
         self.assertIn('arvRun(["where", "--json"])', page)
         turn = json.loads(self.run_arv("chat", "--json", program="arv-assist",
                                        stdin=json.dumps({"messages": [{"role": "user", "content": "anything?"}], "context": "Owed"}))["out"])

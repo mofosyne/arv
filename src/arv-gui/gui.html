@@ -72,6 +72,11 @@ tr.pick:hover, tr.pick.sel { background:var(--panel); }
 tr.pick.sel { outline:2px solid var(--accent); outline-offset:-2px; }
 form.guided, .guided { outline:2px solid var(--accent); outline-offset:6px; border-radius:4px; }
 .guided-control { outline:3px solid var(--accent); outline-offset:2px; }
+.help-steps li { margin:6px 0; } .help-steps li.next { font-weight:500; } .help-steps li.done { color:var(--muted); }
+.help-steps .acts, .help-cmd .acts { display:inline-flex; gap:10px; margin-left:8px; }
+.help-cmd { border-bottom:1px solid var(--line); padding:4px 0; } .help-cmd pre { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; }
+.help-cmd.help-hit { outline:2px solid var(--accent); outline-offset:4px; border-radius:4px; }
+.help-manual code { font-family:ui-monospace, monospace; font-size:0.95em; }
 .msg pre.mono { white-space:pre-wrap; overflow-wrap:anywhere; margin:6px 0; }
 .msg button.inline-link { font:inherit; padding:0; border:none; background:none; color:var(--accent); text-decoration:underline; cursor:pointer; overflow-wrap:anywhere; }   /* filled in by the assistant: the person presses its button */
 .mono { font-family:ui-monospace, monospace; font-size:13px; overflow-wrap:anywhere; }
@@ -177,7 +182,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   <button class="ext" type="button" id="ai-external" hidden title="Describing asks an external inference provider: open Settings"></button>
   <button class="link" type="button" id="chat-btn" title="The assistant: it reads on its own; a change it proposes is yours to apply">Assistant</button>
   <button class="link" type="button" id="settings-btn">Settings</button>
-  <button class="link" type="button" id="jobs-btn">Jobs</button></header>
+  <button class="link" type="button" id="jobs-btn">Jobs</button>
+  <button class="link" type="button" id="help-btn">Help</button></header>
 <nav role="tablist" class="groups">
   <button role="tab" data-group="archive">Archive<span class="hint">onto discs</span></button>
   <button role="tab" data-group="record">Record<span class="hint">what, and where</span></button>
@@ -534,6 +540,19 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   </form>
 </section>
 
+<section id="tab-help" hidden>
+  <h2>Getting started</h2>
+  <p class="muted">The first steps, each ticked from the record as it is done. Show me opens where it is done here, marked;
+    nothing happens until you press its button. Each is a command too, the same in a shell.</p>
+  <ol id="help-steps" class="help-steps"></ol>
+  <p class="warn" id="help-note" hidden></p>
+  <h2>The manual</h2>
+  <p class="muted">Every command, from <span class="mono">arv help --all</span> (the man page and the shell's help are the same
+    text). The guides: <span class="mono">docs/workflow.md</span>, <span class="mono">docs/gui.md</span>.</p>
+  <div class="inline"><div><label for="help-q">Find in the manual</label><input type="text" id="help-q" placeholder="e.g. burned, cold, collection"></div></div>
+  <div id="help-manual" class="help-manual"></div>
+</section>
+
 <section id="tab-jobs" hidden>
   <div id="jobs"></div>
 </section>
@@ -643,12 +662,13 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     document.querySelectorAll("nav.sub").forEach(function (n) { n.hidden = n.dataset.group !== group; });
     document.querySelectorAll("nav.sub button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.tab === name); });
     $("jobs-btn").setAttribute("aria-pressed", name === "jobs");
+    $("help-btn").setAttribute("aria-pressed", name === "help");
     $("settings-btn").setAttribute("aria-pressed", group === "settings");
     document.querySelectorAll("main > section").forEach(function (s) { s.hidden = s.id !== "tab-" + name; });
     $("changed").hidden = true;                 // shown again: as the record is now
     var loads = { owed: loadOwed, discs: loadDiscs, jobs: loadJobs, master: loadPlans, objects: loadObjects,
       collections: loadCollections, inventory: loadPlaces, places: loadPlacesView, map: loadMap, names: loadNames,
-      models: loadModels, programs: loadPrograms };
+      models: loadModels, programs: loadPrograms, help: loadHelp };
     return Promise.resolve(loads[name] ? loads[name]() : null).catch(function () {});   // loaded: a guide can fill its selects
   }
   document.querySelectorAll("nav.sub button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
@@ -1703,6 +1723,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       if (cmd[i] === "-C" || cmd[i] === "--limit" || cmd[i] === "--overdue" || cmd[i] === "--copy") { i++; continue; }
       if (cmd[i].charAt(0) !== "-") args.push(cmd[i]);
     }
+    if (cmd[0] === "help") return { tab: "help", help: args };
     if (cmd[0] === "find" && args.length) return { tab: "search", q: args[args.length - 1] };
     if (cmd[0] === "info" && args.length) return { tab: "discs", disc: args[0], scroll: true };
     if (cmd[0] === "objects" && args.length && isDisc(args[0])) return { tab: "discs", disc: args[0], scroll: true };
@@ -1714,7 +1735,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   function showTarget(t) {          // the person chose it (Open), or Follow is on
     if (!t) return;
     if (t.disc !== undefined) { selected = t.disc; scrollSel = !!t.scroll; }
-    if (t.guide) guideTo(t.guide);
+    if (t.help) helpOpen(t.help);
+    else if (t.guide) guideTo(t.guide);
     else if (t.q !== undefined) { showTab("search"); $("q").value = t.q; $("search-form").requestSubmit(); }
     else if (t.plan !== undefined) showTab("master").then(function () { return loadPlans(t.plan); });
     else if (t.filter !== undefined) showTab("objects").then(function () { $("o-filter").value = t.filter; renderObjects(); });
@@ -2045,6 +2067,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         if (item.guideRisk) say.appendChild(el("span", { class: "chip " + (item.guideRisk === "high" ? "hot" : item.guideRisk === "medium" ? "warm" : "cold"),
           text: item.guideRisk === "none" ? "reads" : item.guideRisk + " risk", title: "What the form's button changes, when you press it" }));
         say.appendChild(g);
+        say.appendChild(document.createTextNode(" "));
+        say.appendChild(helpLink(item.guide));
       }
       return say;
     }
@@ -2083,6 +2107,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       o.onclick = function () { showTarget(target); };
       acts.push(o);
     }
+    if (step.command && step.command[0] !== "help") acts.push(helpLink(step.command));
     return el("details", { class: "step" }, [el("summary", { text: "$ " + step.shown + "  (exit " + step.exit + ")" }),
       el("div", { class: "acts" }, acts), el("pre", { class: "log", text: step.output })]);
   }
@@ -2206,7 +2231,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     card.appendChild(edit);
     if (r.why) card.appendChild(el("p", { text: r.why }));
     if (r.doubtful) card.appendChild(el("p", { class: "muted", text: "The model was unsure of this: check it, or ask again. It is never applied without asking." }));
-    card.appendChild(el("div", { class: "acts" }, [apply, change, dismiss, undo, msg]));
+    card.appendChild(el("div", { class: "acts" }, [apply, change, dismiss, undo, helpLink(r.propose || []), msg]));
     card.appendChild(out);
     card.appendChild(extra);
     if (r.done) done(r.done);
@@ -2765,6 +2790,164 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     });
   }
 
+  // ---------------------------------------------------------------- help: getting started, and the manual
+  // Made from what is already written, never a page of its own to keep in step: the first steps are
+  // the assistant's (assistant.txt, "when the archive is new"), each ticked from the record; the
+  // manual is arv help --all, the same text as the man page and the shell's help. A command with a
+  // form here has "Show me": the form opened and marked (FORMS), as the assistant's guide does.
+  var manualLoaded = false;
+  function pointForm(words, disc) { // a form for a command, empty, as a guide: null when the page has none for it
+    var all = FORMS.filter(function (x) { return x.cmd.length === words.length && x.cmd.every(function (w, i) { return words[i] === w; }); });
+    var f = (disc ? all.filter(function (x) { return x.args.indexOf("@disc") >= 0; })[0] : null) || all[0];   // a disc named: its own row
+    if (!f) return null;
+    var g = { tab: f.tab, form: f.form, group: f.group, item: f.item, at: {}, values: [], shown: "arv " + words.join(" ") };
+    if (f.args.indexOf("@disc") >= 0) g.disc = disc || (currentTab === "discs" || selected ? selected : null) || null;
+    if (f.args.indexOf("@plan") >= 0) g.plan = planName() || null;
+    return g;
+  }
+  function showMe(words, disc, note) {
+    var g = pointForm(words, disc);
+    if (!g) return;
+    var say = function (t) { if (note) { note.textContent = t; note.hidden = !t; } };
+    if (g.item) { showTab("master"); say("A plan's items each have their own controls: the item's row in Mastering."); return; }
+    if (g.disc === null) { showTab("discs"); say("Choose a disc in Record › Discs first: its details hold it."); return; }
+    if (g.plan === null) { showTab("master"); say("Make a plan first (New plan…): it is done in a plan."); return; }
+    say("");
+    guideTo(g).then(function (missed) { if (missed.length) say("Not here: " + missed.join(", ")); });
+  }
+  function formWordsIn(first, text) { // the commands with a form that a manual entry tells of ("location list ... | add ...")
+    var seen = {};
+    return FORMS.filter(function (f) {
+      if (f.cmd[0] !== first || f.item) return false;
+      var key = f.cmd.join(" ");
+      if (seen[key]) return false;
+      if (f.cmd.length > 1 && !new RegExp("(^|[\\s|(;,])" + f.cmd[1] + "\\b").test(text.replace(/^\s*arv \S+/, ""))) return false;
+      return (seen[key] = true);
+    }).map(function (f) { return f.cmd; });
+  }
+  function inlineCode(text) {       // `code` as code: text nodes only
+    return text.split("`").map(function (part, i) { return i % 2 ? el("code", { text: part }) : document.createTextNode(part); });
+  }
+  function renderManual(md) {       // arv help --all: headings, paragraphs, lists, and each command an entry
+    var box = $("help-manual"), sec = null, para = null, list = null, code = null, entry = null;
+    box.textContent = "";
+    function section(level, text) {
+      sec = el("div", { class: "help-sec" }, [el("h" + Math.min(level + 1, 4), {}, inlineCode(text))]);
+      box.appendChild(sec); para = list = null;
+    }
+    function endEntry() {
+      if (!entry) return;
+      var text = entry.pre.textContent, first = (text.match(/^\s*arv (\S+)/) || [])[1];
+      entry.div.dataset.first = first || "";
+      (first ? formWordsIn(first, text) : []).forEach(function (words) {
+        var b = el("button", { class: "link", type: "button", text: "Show me: " + words.join(" "), title: "Open its form here, marked; nothing is done until you press its button" });
+        b.onclick = function () { showMe(words, null, $("help-note")); };
+        entry.acts.appendChild(b);
+      });
+      entry = null;
+    }
+    md.split("\n").forEach(function (line) {
+      if (!sec && !/^#+ /.test(line)) section(1, "Manual");      // text before any heading
+      if (/^```/.test(line)) { if (code) { endEntry(); code = null; } else { code = el("div", { class: "help-code" }); sec.appendChild(code); para = list = null; } return; }
+      if (code) {
+        if (/^  arv /.test(line) || !entry) {
+          endEntry();
+          entry = { div: el("div", { class: "help-cmd" }), pre: el("pre", { class: "mono" }), acts: el("div", { class: "acts" }) };
+          entry.div.appendChild(entry.pre); entry.div.appendChild(entry.acts); code.appendChild(entry.div);
+        }
+        entry.pre.textContent += (entry.pre.textContent ? "\n" : "") + line;
+        return;
+      }
+      var h = line.match(/^(#+) (.*)/);
+      if (h) { section(h[1].length, h[2]); return; }
+      if (!line.trim()) { para = list = null; return; }
+      if (/^- /.test(line)) {
+        if (!list) { list = el("ul"); sec.appendChild(list); }
+        list.appendChild(el("li", {}, inlineCode(line.slice(2)))); para = null; return;
+      }
+      if (list && /^  \S/.test(line)) { var li = list.lastChild; inlineCode(" " + line.trim()).forEach(function (n) { li.appendChild(n); }); return; }
+      if (!para) { para = el("p"); sec.appendChild(para); } else para.appendChild(document.createTextNode(" "));
+      inlineCode(line).forEach(function (n) { para.appendChild(n); });
+    });
+    endEntry();
+  }
+  function filterManual() {         // the sections and command entries with the words, others hidden
+    var q = $("help-q").value.trim().toLowerCase();
+    document.querySelectorAll("#help-manual .help-sec").forEach(function (sec) {
+      var entries = sec.querySelectorAll(".help-cmd"), any = false;
+      entries.forEach(function (e) { var on = !q || e.textContent.toLowerCase().indexOf(q) >= 0; e.hidden = !on; any = any || on; });
+      var own = Array.prototype.some.call(sec.children, function (c) { return !c.classList.contains("help-code") && c.textContent.toLowerCase().indexOf(q) >= 0; });
+      sec.hidden = !!q && !any && !own;
+    });
+  }
+  function helpOpen(words) {        // Help, at a command's entry (or the words searched for)
+    words = (words || []).filter(function (w) { return w && w.charAt(0) !== "-"; });
+    return showTab("help").then(function () {
+      $("help-q").value = ""; filterManual();
+      document.querySelectorAll(".help-hit").forEach(function (x) { x.classList.remove("help-hit"); });
+      if (!words.length) return;
+      var all = Array.prototype.slice.call(document.querySelectorAll("#help-manual .help-cmd"));
+      var hits = all.filter(function (e) { return e.dataset.first === words[0]; });
+      var best = hits.filter(function (e) { return words[1] && new RegExp("(^|[\\s|(;,])" + words[1].replace(/[^\w-]/g, "") + "\\b").test(e.textContent.replace(/^\s*arv \S+/, "")); })[0] || hits[0];
+      if (!best) { $("help-q").value = words.join(" "); filterManual(); return; }
+      best.classList.add("help-hit");
+      best.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }
+  function helpLink(cmd) {          // beside a command in the chat: its entry in the manual
+    var b = el("button", { class: "link", type: "button", text: "Help", title: "Open the manual at arv " + (cmd[0] || "") });
+    b.onclick = function () { helpOpen(cmd); };
+    return b;
+  }
+  function loadHelp() {
+    var manual = manualLoaded ? Promise.resolve() : arvRun(["help", "--all"]).then(function (r) {
+      renderManual(r.out || r.err); manualLoaded = true; filterManual();
+    });
+    var steps = Promise.all([arvJson(["location", "list", "--json"]).catch(function () { return { locations: [] }; }),
+      arvJson(["collection", "list", "--json"]).catch(function () { return { collections: [] }; }),
+      arvJson(["todo", "--json"]).catch(function () { return { owed: [], discs: 0 }; }), loadDiscs()]).then(function (got) {
+      var places = got[0].locations.length, colls = got[1].collections.length, todo = got[2], owed = todo.owed || [];
+      var owes = function (kinds) { return owed.filter(function (o) { return kinds.indexOf(o.kind) >= 0; })[0]; };
+      var noCopy = owes(["no-copy"]), unread = owes(["read-back"]), safe = owes(["fewer-places", "no-cold-copy", "object-no-cold-copy", "below-appraisal"]);
+      var n = discs.length, copied = n && !noCopy;
+      renderSteps([
+        { done: true, what: "Make an archive", cmd: "arv init FOLDER", why: "the record, in FOLDER/.arv: this page is open on it" },
+        { done: places > 0, what: "Say where copies are kept", cmd: "arv location add CODE NAME", why: "a house, a box, a NAS: hot, warm or cold", show: ["location", "add"] },
+        { done: colls > 0, optional: true, what: "Make a folder you keep sorting a collection", cmd: "arv collection init FOLDER --code CODE --title TITLE",
+          why: "each time it is archived, its discs are its next edition", show: ["collection", "init"] },
+        { done: n > 0, what: "Make a first disc", cmd: "arv make FOLDER", why: "a folder's disc image, recorded (Mastering composes discs by hand)", show: ["make"] },
+        { done: copied, what: "Record a copy", cmd: "arv burned --device DRIVE DISC-ID", why: "burned (read back as it is recorded), or kept as a file: arv stored DISC-ID PATH",
+          show: ["burned"], disc: noCopy ? noCopy.disc : null },
+        { done: copied && !unread, what: "Read each copy back", cmd: "arv check DRIVE --copy X DISC-ID", why: "a copy is safe once it is read back identical",
+          show: ["check-copy"], disc: unread ? unread.disc : null },
+        { done: copied && !safe, what: "Keep copies in two places, one of them cold", cmd: "arv todo", why: safe ? "next: " + safe.heading.replace(/:$/, "") : "what Owed asks for", owed: true }
+      ]);
+    });
+    return Promise.all([manual, steps]);
+  }
+  function renderSteps(steps) {
+    var box = $("help-steps"); box.textContent = "";
+    var next = steps.filter(function (s) { return !s.done && !s.optional; })[0];
+    steps.forEach(function (s) {
+      var acts = [];
+      if (s.owed) { var o = el("button", { class: "link", type: "button", text: "Open Owed" }); o.onclick = function () { showTab("owed"); }; acts.push(o); }
+      else if (s.show && !s.done) {
+        var b = el("button", { class: "link", type: "button", text: "Show me", title: "Open its form here, marked; nothing is done until you press its button" });
+        b.onclick = s.show[0] === "check-copy" ? function () { showMe(["check"], s.disc, $("help-note")); } : function () { showMe(s.show, s.disc, $("help-note")); };
+        acts.push(b);
+      }
+      var h = el("button", { class: "link", type: "button", text: "Help" });
+      h.onclick = function () { helpOpen(s.cmd.split(" ").slice(1)); };
+      acts.push(h);
+      box.appendChild(el("li", { class: s.done ? "done" : s === next ? "next" : "" }, [
+        el("span", { class: s.done ? "ok" : "muted", text: s.done ? "✓ " : s.optional ? "○ " : "· " }),
+        el("strong", { text: s.what + (s.optional ? " (if you have one)" : "") }), document.createTextNode(": " + s.why + " "),
+        el("code", { text: s.cmd }), el("span", { class: "acts" }, acts)]));
+    });
+  }
+  $("help-q").oninput = filterManual;
+  $("help-btn").onclick = function () { showTab("help"); };
+
   // ---------------------------------------------------------------- the record changed elsewhere
   // While the page is visible it asks every few seconds for the record's newest event (arv where
   // --json: one read; the server stays without features), and when it has moved (the shell, a job,
@@ -2773,7 +2956,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // under the person: a bar says the record changed, with Reload. The page's own changes reload
   // their view already, and are only noted.
   var seenRecord, WATCH_MS = 5000,
-    RELOADS = { owed: 1, discs: 1, master: 1, objects: 1, collections: 1, places: 1, map: 1, names: 1 };
+    RELOADS = { owed: 1, discs: 1, master: 1, objects: 1, collections: 1, places: 1, map: 1, names: 1, help: 1 };
   function recordNow() {            // "events:newest", or what was seen when it cannot be read
     return arvRun(["where", "--json"]).then(function (r) {
       if (r.returncode) return seenRecord;

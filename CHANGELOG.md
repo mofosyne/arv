@@ -37,6 +37,13 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   off) points at them: the item and the control are outlined, a prompt opens with the guided
   answer, and the reply says which menu choice sends it.
 
+**arv gui has Help**
+- Getting started: the first steps, each ticked from the record, with Show me (the form where it is
+  done, marked) and the command. The manual: `arv help --all`, searchable, with Show me for each
+  command the page has a form for.
+- Each command in the assistant's panel (a step, a proposal, a guide) links to its entry in the
+  manual, and the assistant can open Help at a command with `show: ["help", "COMMAND"]`.
+
 **arv gui keeps up with the record**
 - While the page is visible it reads `arv where --json` every few seconds; when the record has
   changed elsewhere (a shell, a job, a merged catalogue) the open view reloads in place. A view
