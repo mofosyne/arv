@@ -3076,3 +3076,31 @@ checked to read:
   server), and in Chromium: ten guides listed, the workflow's six tables and its links, a link to
   another guide followed and Back to the manual; the console listing each command with its exit
   status and output, the background reads shown when ticked, and the bar beside the open chat.
+
+## Done (2026-11-04): a command line in the GUI's console
+
+- **The question** (the user's): direct command entry in the console? Yes, on one rule: a typed
+  command goes the way the assistant's proposals go, never straight to the server, so the page's
+  safeguards hold for what is typed as for what is pressed.
+- **One arv command:** split as a shell splits it (`shellWords`, the proposal Edit's), but not a
+  shell: no pipes, redirections, `$(...)` or backquotes, and only arv (not arv-assist or another
+  program). No home of its own (`-C`, `--home`, `--archive`): the page's archive only, as the
+  assistant's rule. `gui` and `chat` are refused with where they already are. A group word first
+  (`record burned`) is taken as arv takes it.
+- **Its risk, judged in the page:** from `arv help --json` (each command's risk, and its `risks`:
+  a sub-command or a flag), in the order of arv's rules (risk.c), the first match winning, an
+  unknown command high. So the console needs no arv-assist. A GUI test holds the page and arv
+  together: 25 commands, reads and changes and the particular cases, judged by both, the same.
+- **What happens:** a read runs at once and opens its entry. A change is a card (the command, its
+  risk, Apply, Dismiss, Help), applied on Apply, high risk confirmed again; `retag` and `rename`
+  keep their event, for Undo. A long one (make, check, restore, rebuild, stored, describe, tag,
+  `plan make`, `burned --device`, `programs --install`) runs as a job, as the forms send it. The
+  view reloads after, and the change is noted as the page's own (no "record changed" bar).
+- **Whose:** typed by the person, so no `--agent` or `--authorship`: the record says what it says
+  for a form, the person's.
+- **Help in typing:** Tab completes a command, then its sub-commands (from its risks, its usage's
+  `a|b|c` and `| add ...`, and the page's forms) and its options (`--` words of its usage); ↑ and
+  ↓ bring back the last 100 lines (this browser only).
+- **Checked:** the GUI's tests (the page's risk against arv's), and in Chromium: a read run, a
+  pipe, `-C`, `gui` and an unknown command refused with their reasons, `record note` as a low-risk
+  card, applied and in the record, `check --repair` asking again, Tab and history.

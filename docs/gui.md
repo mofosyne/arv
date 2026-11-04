@@ -192,6 +192,12 @@ exit status, how long it took and what it printed (open one to see). Copy gives 
 entry in the manual. The page's own check for changes (`arv where --json` every few seconds) is
 left out unless "show background reads" is ticked.
 
+Below the log, a line takes an arv command, as in a shell but one command only (no pipes, and no
+`-C`: this archive). A read runs at once and opens its entry. A change shows as a card with its
+risk, and runs only when you press Apply (high risk asks again; `retag` and `rename` can be
+undone); a long one (make, check, plan make) goes to Jobs, as the forms send it. Tab completes
+commands and their words, ↑ and ↓ bring back the last ones.
+
 ## Assistant
 
 ![Record › Discs with the Assistant open on the right: asked whether the Kyoto trip is safe, it ran arv find place:kyoto and arv todo --json, answered where both copies are and that neither has been read back, then proposed a check of copy A, which waits for Apply](screenshots/assistant.png)

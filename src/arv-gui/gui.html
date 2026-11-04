@@ -76,9 +76,12 @@ details.console { position:fixed; left:0; right:0; bottom:0; z-index:5; backgrou
                   padding:4px 16px; font-size:13px; }
 body.chatting details.console { right:384px; }
 details.console > summary { cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:4px 0; }
-.console-log { overflow-y:auto; max-height:calc(45vh - 64px); }
+.console-log { overflow-y:auto; max-height:calc(45vh - 110px); }
 details.console label { display:inline-flex; gap:4px; align-items:center; margin:0; }
 details.console input[type=checkbox] { width:auto; margin:0; }
+.console-form { display:flex; gap:6px; align-items:center; margin:6px 0 2px; } .console-form input { flex:1 1 auto; margin:0; }
+.console-form label { margin:0; white-space:nowrap; } .con-card { margin:4px 0; padding:8px 10px; }
+#console-say { margin:2px 0; font-size:12px; overflow-wrap:anywhere; }
 .con-entry { border-bottom:1px solid var(--line); padding:2px 0; } .con-entry summary { cursor:pointer; overflow-wrap:anywhere; }
 .con-entry pre.log { max-height:30vh; overflow:auto; margin:4px 0; }
 body { padding-bottom:40px; }
@@ -576,10 +579,15 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 <details id="console" class="console"><summary><strong>Console</strong> <span id="console-count"></span>
   <span class="mono muted" id="console-last"></span></summary>
   <div class="acts"><span class="muted">Every command this page ran, as the shell takes it (in the archive above: add
-    -C HOME elsewhere), and what it printed.</span>
+    -C HOME elsewhere), and what it printed. Type one below: a read runs, a change shows its risk and waits for Apply.</span>
     <label><input type="checkbox" id="console-bg"> show background reads</label>
     <button class="plain" type="button" id="console-clear">Clear</button></div>
   <div id="console-log" class="console-log"></div>
+  <form id="console-form" class="console-form"><label for="console-input" class="mono">$ arv</label>
+    <input type="text" id="console-input" class="mono" autocomplete="off" spellcheck="false"
+      placeholder="a command: a read runs, a change asks first (Tab completes, ↑ ↓ the last ones)">
+    <button class="plain" type="submit">Run</button></form>
+  <p class="warn" id="console-say" hidden></p>
 </details>
 <aside class="chat" id="chat" hidden aria-label="The assistant">
   <header><strong>Assistant</strong><span class="muted" id="chat-model"></span><span class="spacer"></span>
@@ -2868,6 +2876,139 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   $("console-bg").checked = consoleBackground();
   $("console-bg").onchange = function () { try { localStorage.setItem("arv-console-bg", this.checked ? "1" : ""); } catch (e) {} consoleSummary(); };
   $("console-clear").onclick = function () { $("console-log").textContent = ""; consoleCount = consoleHidden = 0; $("console-last").textContent = ""; consoleSummary(); };
+
+  // ---------------------------------------------------------------- the console's command line
+  // One arv command typed in: not a shell (no pipes, no $(...), no other program) and no home of
+  // its own (-C, --home, --archive: the page's archive only, as the assistant's rule). Its risk is
+  // judged here from arv help --json, by arv's own rules (risk.c): a read runs at once, a change
+  // comes as a card with its risk, applied only when the person says so (high risk asks again),
+  // and a long one goes to Jobs, as the forms send it. Recorded as the person's, like a form's.
+  var helpJson = null, JOB_CMDS = { make: 1, check: 1, restore: 1, rebuild: 1, stored: 1, describe: 1, tag: 1 },
+    NOT_HERE = { gui: "the page is open already", chat: "the assistant is the panel on the right" },
+    GROUP_WORDS = { archive: 1, record: 1, verify: 1, home: 1 };
+  function loadHelpJson() {
+    return helpJson ? Promise.resolve(helpJson) : arvRun(["help", "--json"], undefined, "arv", true).then(function (r) {
+      helpJson = {};
+      try { JSON.parse(r.out).groups.forEach(function (g) { g.commands.forEach(function (c) { if (!helpJson[c.name]) helpJson[c.name] = c; }); }); } catch (e) {}
+      return helpJson;
+    });
+  }
+  function riskOf(words) {          // arv's rules, as help --json gives them: the first that matches, else the command's
+    var c = helpJson && helpJson[words[0]];
+    if (!c) return "high";
+    for (var i = 0; i < (c.risks || []).length; i++) {
+      var when = c.risks[i].when.split(" "), sub = when[0].charAt(0) !== "-" ? when[0] : null, flag = when[when.length - 1].charAt(0) === "-" ? when[when.length - 1] : null;
+      if (sub && words[1] !== sub) continue;
+      if (flag && words.indexOf(flag) < 1) continue;
+      return c.risks[i].risk;
+    }
+    return c.risk || "high";
+  }
+  function consoleRefuse(line, words) {
+    if (words === null) return "a quote is not closed";
+    if (!words.length) return "";
+    if (/\$\(|`/.test(line) || words.some(function (w) { return /^(\||\|\||&&|;|&|>|>>|<|2>)$/.test(w); }))
+      return "not a shell: one arv command, no pipes or redirections (the Copy of an entry is for a shell)";
+    if (words.some(function (w) { return w === "-C" || w === "--home" || w === "--archive" || /^--(home|archive)=/.test(w); }))
+      return "this page works on its own archive only: run another with -C in a shell";
+    if (NOT_HERE[words[0]]) return "arv " + words[0] + ": " + NOT_HERE[words[0]];
+    if (helpJson && !helpJson[words[0]]) return "no command " + words[0] + " (arv help lists them)";
+    return "";
+  }
+  function consoleLine(line) {      // the typed line: refused, run, or a card to apply
+    var words = shellWords(line.trim()), say = $("console-say");
+    if (words && GROUP_WORDS[words[0]] && words.length > 1) words = words.slice(1);    // arv record burned is arv burned
+    return loadHelpJson().then(function () {
+      var no = consoleRefuse(line, words);
+      say.textContent = no; say.hidden = !no;
+      if (no || !words.length) return;
+      consoleRemember(line.trim());
+      $("console-input").value = "";
+      var risk = riskOf(words);
+      if (risk === "none") return arvRun(words).then(function () { openLast(); });
+      consoleCard(words, risk);
+    });
+  }
+  function openLast() { var e = $("console-log").lastChild; if (e) { e.open = true; $("console-log").scrollTop = $("console-log").scrollHeight; } }
+  function consoleCard(words, risk) {
+    var cmd = "arv " + quoted(words), msg = el("span", { class: "muted" });
+    var apply = el("button", { class: "primary", type: "button", text: "Apply" }), dismiss = el("button", { class: "plain", type: "button", text: "Dismiss" });
+    var undo = el("button", { class: "plain", type: "button", text: "Undo", hidden: "" });
+    var card = el("div", { class: "card con-card" }, [el("div", { class: "acts" }, [el("strong", { text: "To apply" }),
+      el("span", { class: "chip " + (risk === "high" ? "hot" : risk === "medium" ? "warm" : "cold"), text: risk + " risk" })]),
+      el("pre", { class: "mono", text: cmd }), el("div", { class: "acts" }, [apply, dismiss, undo, helpLink(words), msg])]);
+    function finish(text) { apply.disabled = dismiss.disabled = true; msg.textContent = text; }
+    dismiss.onclick = function () { finish("Not applied."); };
+    apply.onclick = function () {
+      if (risk === "high" && !confirm("Apply this?\n\n" + cmd + "\n\nIt is hard to undo.")) return;
+      var job = JOB_CMDS[words[0]] || (words[0] === "plan" && words[1] === "make") || (words[0] === "burned" && words.indexOf("--device") > 0) ||
+        (words[0] === "programs" && words.indexOf("--install") > 0);
+      if (job) { finish("Running as a job: Jobs shows it."); run(words, false); return; }
+      var keep = UNDOABLE[words[0]];
+      finish("Running…");
+      arvRun(keep ? words.concat(["--json"]) : words).then(function (r) {
+        var event = null;
+        if (keep && !r.returncode) try { var made = JSON.parse(r.out).events || []; event = made.length ? made[made.length - 1].EventId : null; } catch (e) {}
+        msg.textContent = r.returncode ? "It did not work (exit " + r.returncode + "): its entry below says why." : "Applied.";
+        msg.className = r.returncode ? "bad" : "ok";
+        if (event) { undo.hidden = false; undo.onclick = function () { undo.disabled = true; arvText(["undo", event]).then(function (u) {
+          msg.textContent = u.returncode ? u.output : "Undone: set back by a new change."; showTab(currentTab); sawOwnChange(); }); }; }
+        openLast();                 // its own entry, before the view's reloads add theirs
+        if (!r.returncode) { showTab(currentTab); sawOwnChange(); }
+      });
+    };
+    var log = $("console-log");
+    log.appendChild(el("div", { class: "con-entry" }, [card]));
+    log.scrollTop = log.scrollHeight;
+    apply.focus();
+  }
+  var consoleHistory = [], consoleAt = -1;
+  try { consoleHistory = JSON.parse(localStorage.getItem("arv-console-history") || "[]"); } catch (e) {}
+  function consoleRemember(line) {
+    if (consoleHistory[consoleHistory.length - 1] !== line) consoleHistory.push(line);
+    consoleHistory = consoleHistory.slice(-100); consoleAt = -1;
+    try { localStorage.setItem("arv-console-history", JSON.stringify(consoleHistory)); } catch (e) {}
+  }
+  function completions(line) {      // the commands, then a command's own words, from arv help --json
+    var words = line.replace(/^\s*arv\s+/, "").split(/\s+/), last = words[words.length - 1], pool = [];
+    if (words.length === 1) pool = Object.keys(helpJson || {});
+    else if (words.length === 2 && helpJson && helpJson[words[0]]) {
+      var c = helpJson[words[0]], subs = {};
+      (c.risks || []).forEach(function (k) { var w = k.when.split(" ")[0]; if (w.charAt(0) !== "-") subs[w] = 1; });
+      ((c.usage || "").match(/^arv \S+ ([a-z][a-z|-]*\|[a-z|-]*)/) || ["", ""])[1].split("|").forEach(function (w) { if (w) subs[w] = 1; });
+      var first = (c.usage || "").match(/^arv \S+ ([a-z][a-z-]+)\b/);                     // location list ... | add ... | move ...
+      if (first && /\|\s*[a-z]/.test(c.usage)) { subs[first[1]] = 1; (c.usage + " " + (c.summary || "")).replace(/\|\s*([a-z][a-z-]+)\b/g, function (_, w) { subs[w] = 1; }); }
+      FORMS.forEach(function (f) { if (f.cmd[0] === words[0] && f.cmd[1]) subs[f.cmd[1]] = 1; });
+      ((c.usage || "") + " " + (c.summary || "")).replace(/(^|[\s|])(--[a-z][a-z-]*)/g, function (_, a, f) { subs[f] = 1; });
+      pool = Object.keys(subs);
+    } else if (helpJson && helpJson[words[0]]) {
+      var opts = {}, u = (helpJson[words[0]].usage || "") + " " + (helpJson[words[0]].summary || "");
+      u.replace(/(^|[\s|\[(])(--[a-z][a-z-]*)/g, function (_, a, f) { opts[f] = 1; });
+      pool = Object.keys(opts);
+    }
+    return pool.filter(function (w) { return w.indexOf(last) === 0; }).sort();
+  }
+  $("console-form").onsubmit = function (ev) { ev.preventDefault(); consoleLine($("console-input").value); };
+  $("console-input").onkeydown = function (ev) {
+    var input = this;
+    if (ev.key === "Tab") {
+      ev.preventDefault();
+      loadHelpJson().then(function () {
+        var c = completions(input.value), say = $("console-say");
+        if (!c.length) return;
+        var prefix = c.reduce(function (a, b) { var i = 0; while (i < a.length && a[i] === b[i]) i++; return a.slice(0, i); });
+        input.value = input.value.replace(/\S*$/, prefix) + (c.length === 1 ? " " : "");
+        say.hidden = c.length === 1; say.textContent = c.length > 1 ? c.slice(0, 40).join("  ") + (c.length > 40 ? "  …" : "") : "";
+      });
+    } else if (ev.key === "ArrowUp" || ev.key === "ArrowDown") {
+      if (!consoleHistory.length) return;
+      ev.preventDefault();
+      consoleAt = ev.key === "ArrowUp" ? (consoleAt < 0 ? consoleHistory.length - 1 : Math.max(0, consoleAt - 1))
+                                       : (consoleAt < 0 ? -1 : consoleAt + 1);
+      if (consoleAt >= consoleHistory.length) consoleAt = -1;
+      input.value = consoleAt < 0 ? "" : consoleHistory[consoleAt];
+    }
+  };
 
   // ---------------------------------------------------------------- help: getting started, and the manual
   // Made from what is already written, never a page of its own to keep in step: the first steps are

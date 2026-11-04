@@ -110,6 +110,32 @@ class GuideFormsTest(unittest.TestCase):
         self.assertIsNone(got[15])                              # which disc to take off
 
 
+class ConsoleRiskTest(unittest.TestCase):
+    """The console's command line judges a command's risk in the page, from arv help --json: the same
+    answer as arv's own rules (risk.c, through arv-assist chat --risk), for reads, changes and the
+    particular cases (a sub-command, a flag)."""
+
+    ASSIST = os.path.join(REPO, "src", "arv-assist", "build", "arv-assist")
+
+    @unittest.skipUnless(shutil.which("node") and os.path.exists(ARV) and os.path.exists(ASSIST), "node, arv and arv-assist")
+    def test_page_and_arv_agree(self):
+        with open(os.path.join(REPO, "src", "arv-gui", "gui.html"), encoding="utf-8") as f:
+            page = f.read()
+        risk_of = page[page.index("  function riskOf(words) {"):page.index("  function consoleRefuse(")]
+        cases = [["list", "--json"], ["plan", "list"], ["plan", "make", "X"], ["plan", "tag", "X", "a", "b"], ["plan", "add", "X", "/a"],
+                 ["check", "/dev/sr0"], ["check", "--repair", "x.iso"], ["where"], ["where", "--here"], ["retire", "X"],
+                 ["retire", "X", "--yes"], ["tags"], ["tags", "merge", "a", "b"], ["tags", "label", "a", "A"], ["note", "D", "x"],
+                 ["access", "D", "public"], ["make", "/x"], ["programs"], ["programs", "--install"], ["appraise", "--due"],
+                 ["location", "list"], ["location", "add", "HOME"], ["burned", "D", "--copies", "1"], ["nosuch"], ["help", "--all"]]
+        help_json = subprocess.run([ARV, "help", "--json"], capture_output=True, text=True, check=True).stdout
+        js = ("var helpJson = {}; JSON.parse(%s).groups.forEach(function (g) { g.commands.forEach(function (c) { if (!helpJson[c.name]) helpJson[c.name] = c; }); });\n"
+              % json.dumps(help_json)) + risk_of + "console.log(JSON.stringify(%s.map(riskOf)));" % json.dumps(cases)
+        page_says = json.loads(subprocess.run(["node", "-e", js], capture_output=True, text=True, check=True).stdout)
+        arv_says = [json.loads(subprocess.run([self.ASSIST, "chat", "--risk"], input=json.dumps({"command": c}), capture_output=True,
+                                              text=True).stdout).get("risk", "high") for c in cases]
+        self.assertEqual(list(zip(map(" ".join, cases), page_says)), list(zip(map(" ".join, cases), arv_says)))
+
+
 class GuiTest(unittest.TestCase):
     """The server only runs arv (and arv-assist) for the page: these drive it as the page does."""
 

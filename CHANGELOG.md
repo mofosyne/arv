@@ -50,6 +50,10 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - Folded along the bottom: every command the page ran, as the shell takes it, its exit status,
   time and output; Copy, and Help for its entry. The page's watching reads are left out unless
   asked for.
+- A command line in it: one arv command (no pipes, no other archive). A read runs at once; a
+  change comes as a card with its risk, judged in the page from `arv help --json` by arv's own
+  rules, and runs on Apply (high risk asks again); a long one goes to Jobs. Tab completion and
+  history.
 
 **arv gui keeps up with the record**
 - While the page is visible it reads `arv where --json` every few seconds; when the record has
