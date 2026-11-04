@@ -237,7 +237,9 @@ arv home       # init, where, gui, help
 `arv COMMAND --help` says what one does. **The whole manual** is `arv help --all`: every command,
 which only read and which change the record, exit status, the outputs meant for scripts, and the
 rules for a script or an agent using arv, as one markdown document; `make install` installs it as
-a man page (`man arv`). [docs/workflow.md](docs/workflow.md) is the whole workflow, step by step.
+a man page (`man arv`). [docs/workflow.md](docs/workflow.md) is the whole workflow, step by step;
+`arv help --doc` lists the guides and `arv help --doc workflow` prints one, from the source every
+disc carries (no checkout or web needed).
 Agents working on arv's own code read `AGENTS.md`.
 
 A first disc, start to finish:

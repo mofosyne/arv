@@ -539,6 +539,12 @@ class GuiTest(unittest.TestCase):
         self.assertIn('id="tab-help"', page)                                   # Help: the first steps, and the manual
         self.assertIn('arvRun(["help", "--all"])', page)                       # from arv help --all, not a text of its own
         self.assertIn("helpLink(step.command)", page)                          # each step's command: its entry in the manual
+        self.assertIn('arvRun(["help", "--doc", name])', page)                 # the guides, read by arv
+        self.assertIn('<details id="console"', page)                           # every command the page ran, below
+        self.assertIn("consoleAdd(program", page)
+        guides = self.run_arv("help", "--doc")                                 # found from the build's checkout
+        self.assertEqual(guides["returncode"], 0, guides["err"])
+        self.assertIn("workflow", guides["out"].split())
         self.assertIn('arvRun(["where", "--json"])', page)
         turn = json.loads(self.run_arv("chat", "--json", program="arv-assist",
                                        stdin=json.dumps({"messages": [{"role": "user", "content": "anything?"}], "context": "Owed"}))["out"])

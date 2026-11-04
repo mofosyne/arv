@@ -181,7 +181,16 @@ places), each ticked from the record as it is done; Show me opens the form where
 marked, and nothing happens until you press its button. **The manual** below is `arv help --all`,
 the same text as the man page, with a box to find words in it; a command the page has a form
 for has Show me too. The assistant's steps and proposals each have Help, which opens the manual
-at that command, and the assistant can open it there itself (`show`).
+at that command, and the assistant can open it there itself (`show`). **Guides** opens the docs
+(the workflow, this page, the concepts, the disc format) as `arv help --doc` gives them, from the
+source every disc carries; a link from one guide to another opens it.
+
+## Console
+
+Folded along the bottom of every view: each command the page ran, as the shell takes it, with its
+exit status, how long it took and what it printed (open one to see). Copy gives the line, Help its
+entry in the manual. The page's own check for changes (`arv where --json` every few seconds) is
+left out unless "show background reads" is ticked.
 
 ## Assistant
 

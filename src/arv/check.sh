@@ -847,6 +847,11 @@ if command -v groff >/dev/null; then
     groff -man -Tutf8 -ww manual.1 2> groff.err > /dev/null && [ ! -s groff.err ] || { cat groff.err; no "the man page: groff warnings"; }
 fi
 ok "the manual: arv help --all names every command, with exit status and the rules for scripts and agents; --man is it as a man page"
+ARV_SOURCE="$repo" "$tool" help --doc > docs.out && grep -qx workflow docs.out && grep -qx spec/smart-archive-format docs.out \
+    && ARV_SOURCE="$repo" "$tool" help --doc gui | head -1 | grep -q '^# arv gui' \
+    && ! ARV_SOURCE="$repo" "$tool" help --doc ../README > /dev/null 2> doc.err && grep -q 'no guide ../README' doc.err \
+    && ok "arv help --doc: the guides of the source every disc carries, by name; nothing outside docs/ is read" \
+    || { cat docs.out doc.err; no "arv help --doc"; }
 
 # ------------------------------------------------------------------ reference data: the NAA's format list
 # not read by arv yet (research/plan.md, "formats against a preservation list"): its shape is held

@@ -3047,3 +3047,32 @@ checked to read:
   assistant's `show` and a proposal's Help each opening the manual at the command.
 - **Not done:** serving `docs/workflow.md` and `docs/gui.md` from the page (they are named, not
   shown); `make install` puts the disc tools in `share/arv`, and the docs could go there too.
+
+## Done (2026-11-04): the guides in Help (arv help --doc), and the GUI's console
+
+- **The guides, through arv:** `arv help --doc` lists `docs/*.md` and `docs/spec/*.md` of the
+  source tree arv already finds for a disc's `tools/` (`find_source`: `$ARV_SOURCE`, an installed
+  `share/arv`, `tools/arv` beside `arv.com` on a disc, or the checkout), and `arv help --doc NAME`
+  prints one. The server stays without a file route; the shell gets the guides too, which matters
+  most where there is no web and no checkout: a disc's `tools/`. A name is letters, digits and `-`
+  (with `spec/`), so nothing outside `docs/` is read.
+- **Shown in Help** by the manual's renderer, grown to the guides' markdown: tables, emphasis,
+  links (to another guide: opens it; else its text and address) and pictures (their description:
+  the page has no route for files, on purpose). A mermaid block shows as its text.
+- **The console, as asked** (a collapsible log of the commands and their output): a `<details>`
+  folded along the bottom, beside the assistant's panel when it is open (under it on a phone,
+  where the panel covers the page). Every `arvRun` and job is an entry, its command quoted as the
+  shell takes it, its exit status, time and output (cut at 20,000 characters), its standard input
+  when it had one; Copy and Help on each. The last 300 are kept, in the page only: it is a view of
+  what the page did, not a record (events are the record).
+- **Why:** it is the GUI's version of the assistant's "every step shows as its command": the page
+  is a front end to the command line, and the console makes that visible for every button, so
+  watching the page teaches the shell, and a failure shows exactly what ran and what it said.
+- **The page's watching is left out** unless asked for ("show background reads"): one
+  `where --json` every 5 seconds would bury the person's own commands; the count of those left
+  out is shown.
+- **Checked:** arv's checks (`help --doc` lists and prints, and refuses `../README`), the GUI's tests
+  (the page reads the guides through arv and carries the console; `help --doc` through the
+  server), and in Chromium: ten guides listed, the workflow's six tables and its links, a link to
+  another guide followed and Back to the manual; the console listing each command with its exit
+  status and output, the background reads shown when ticked, and the bar beside the open chat.

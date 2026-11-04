@@ -43,6 +43,13 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   command the page has a form for.
 - Each command in the assistant's panel (a step, a proposal, a guide) links to its entry in the
   manual, and the assistant can open Help at a command with `show: ["help", "COMMAND"]`.
+- The guides too: `arv help --doc` lists them and `arv help --doc NAME` prints one (`docs/NAME.md`
+  of the source every disc carries), and Help shows them, a link to another guide opening it.
+
+**arv gui has a console**
+- Folded along the bottom: every command the page ran, as the shell takes it, its exit status,
+  time and output; Copy, and Help for its entry. The page's watching reads are left out unless
+  asked for.
 
 **arv gui keeps up with the record**
 - While the page is visible it reads `arv where --json` every few seconds; when the record has

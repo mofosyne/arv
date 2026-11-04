@@ -78,7 +78,8 @@ Each waits until someone needs it.
       the page's state and guides through its forms (filled in, the person sends), a disc's and
       Mastering's too; disc ids, tags and folders in its replies are links;
       a plan's own controls pointed at; the page reloads its view when the record changes elsewhere;
-      Help in the GUI (the first steps from the record, the manual, Show me)
+      Help in the GUI (the first steps from the record, the manual and the guides, Show me), and
+      a console of the commands the page ran
 - [x] `arv programs`: which optional programs are here, and how to install the rest
 - [x] Thumbnails on discs: a small picture of each photo, video and PDF, named by its file's hash,
       shown in `index.html`, kept at home

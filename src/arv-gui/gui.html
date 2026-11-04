@@ -72,6 +72,17 @@ tr.pick:hover, tr.pick.sel { background:var(--panel); }
 tr.pick.sel { outline:2px solid var(--accent); outline-offset:-2px; }
 form.guided, .guided { outline:2px solid var(--accent); outline-offset:6px; border-radius:4px; }
 .guided-control { outline:3px solid var(--accent); outline-offset:2px; }
+details.console { position:fixed; left:0; right:0; bottom:0; z-index:5; background:var(--panel); border-top:1px solid var(--line);
+                  padding:4px 16px; font-size:13px; }
+body.chatting details.console { right:384px; }
+details.console > summary { cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:4px 0; }
+.console-log { overflow-y:auto; max-height:calc(45vh - 64px); }
+details.console label { display:inline-flex; gap:4px; align-items:center; margin:0; }
+details.console input[type=checkbox] { width:auto; margin:0; }
+.con-entry { border-bottom:1px solid var(--line); padding:2px 0; } .con-entry summary { cursor:pointer; overflow-wrap:anywhere; }
+.con-entry pre.log { max-height:30vh; overflow:auto; margin:4px 0; }
+body { padding-bottom:40px; }
+@media (max-width: 760px) { body.chatting details.console { display:none; } }
 .help-steps li { margin:6px 0; } .help-steps li.next { font-weight:500; } .help-steps li.done { color:var(--muted); }
 .help-steps .acts, .help-cmd .acts { display:inline-flex; gap:10px; margin-left:8px; }
 .help-cmd { border-bottom:1px solid var(--line); padding:4px 0; } .help-cmd pre { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; }
@@ -546,10 +557,14 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     nothing happens until you press its button. Each is a command too, the same in a shell.</p>
   <ol id="help-steps" class="help-steps"></ol>
   <p class="warn" id="help-note" hidden></p>
-  <h2>The manual</h2>
+  <h2>The manual, and the guides</h2>
   <p class="muted">Every command, from <span class="mono">arv help --all</span> (the man page and the shell's help are the same
-    text). The guides: <span class="mono">docs/workflow.md</span>, <span class="mono">docs/gui.md</span>.</p>
-  <div class="inline"><div><label for="help-q">Find in the manual</label><input type="text" id="help-q" placeholder="e.g. burned, cold, collection"></div></div>
+    text); the guides, from <span class="mono">arv help --doc</span> (the docs every disc carries in
+    <span class="mono">tools/</span>).</p>
+  <div class="acts help-docs"><span class="muted">Guides:</span> <span id="help-docs" class="acts"></span></div>
+  <div class="inline"><div><label for="help-q">Find in it</label><input type="text" id="help-q" placeholder="e.g. burned, cold, collection"></div>
+    <button class="plain" type="button" id="help-back" hidden>Back to the manual</button></div>
+  <h3 id="help-reading">The manual</h3>
   <div id="help-manual" class="help-manual"></div>
 </section>
 
@@ -558,6 +573,14 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 </section>
 
 </main>
+<details id="console" class="console"><summary><strong>Console</strong> <span id="console-count"></span>
+  <span class="mono muted" id="console-last"></span></summary>
+  <div class="acts"><span class="muted">Every command this page ran, as the shell takes it (in the archive above: add
+    -C HOME elsewhere), and what it printed.</span>
+    <label><input type="checkbox" id="console-bg"> show background reads</label>
+    <button class="plain" type="button" id="console-clear">Clear</button></div>
+  <div id="console-log" class="console-log"></div>
+</details>
 <aside class="chat" id="chat" hidden aria-label="The assistant">
   <header><strong>Assistant</strong><span class="muted" id="chat-model"></span><span class="spacer"></span>
     <button class="plain" type="button" id="chat-new" title="Start a new conversation">New</button>
@@ -588,8 +611,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // the archive's catalogue (arv where --json), given to every command.
   var HOME = null;
   function withHome(argv) { return HOME ? ["--home", HOME].concat(argv) : argv; }
-  function arvRun(argv, stdin, program) {     // run to its end: {returncode, out, err}
-    return api("/api/run", { argv: withHome(argv), stdin: stdin, program: program || "arv" });
+  function arvRun(argv, stdin, program, background) {     // run to its end: {returncode, out, err}; shown in the console
+    var line = consoleAdd(program || "arv", argv, stdin, background), t0 = Date.now();
+    return api("/api/run", { argv: withHome(argv), stdin: stdin, program: program || "arv" }).then(function (r) {
+      consoleDone(line, r.returncode, r.out, r.err, Date.now() - t0);
+      return r;
+    }, function (e) { consoleDone(line, -1, "", e.message, Date.now() - t0); throw e; });
   }
   function arvText(argv, stdin) {             // {returncode, output}: what it printed, as a terminal shows it
     return arvRun(argv, stdin).then(function (r) { return { returncode: r.returncode, output: (r.out + r.err).trim() }; });
@@ -2753,7 +2780,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // a command that may take a while, as a job: shown in Jobs, or (quiet) followed here and the
   // record reloaded when it is done
   function run(argv, quiet, stdin) {
+    var line = consoleAdd("arv", argv, stdin, false, true), t0 = Date.now();
     return api("/api/run", { argv: withHome(argv), stdin: stdin, job: true }).then(function (job) {
+      poll(job.id, 0, null, function (j) { consoleDone(line, j.returncode, (j.lines || []).join("\n"), "", Date.now() - t0); });
       if (quiet) {
         poll(job.id, 0, null, function (j) {
           if (j.returncode !== 0) alert(j.lines.join("\n"));
@@ -2790,12 +2819,61 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     });
   }
 
+  // ---------------------------------------------------------------- the console: every command the page ran
+  // Below the views, folded away: each command as the shell takes it, its exit status, how long it
+  // took and what it printed, newest last; Copy gives the line, Help its entry in the manual. The
+  // page's own watching (arv where --json every few seconds) is left out unless asked for. Kept in
+  // this page only, the last CONSOLE_MAX.
+  var CONSOLE_MAX = 300, consoleCount = 0, consoleHidden = 0;
+  function quoted(argv) {           // a command line as a shell takes it
+    return argv.map(function (w) { return /^[\w@%+=:,.\/-]+$/.test(w) ? w : "'" + String(w).replace(/'/g, "'\\''") + "'"; }).join(" ");
+  }
+  function consoleBackground() { try { return localStorage.getItem("arv-console-bg") === "1"; } catch (e) { return false; } }
+  function consoleAdd(program, argv, stdin, background, job) {
+    if (background && !consoleBackground()) { consoleHidden++; consoleSummary(); return null; }
+    var cmd = program + " " + quoted(argv), log = $("console-log");
+    var head = el("summary", {}, [el("span", { class: "muted", text: new Date().toTimeString().slice(0, 8) + " " }),
+      el("span", { class: "mono", text: "$ " + cmd }), el("span", { class: "muted con-rc", text: job ? "  (a job: Jobs shows it as it runs)" : "  running…" })]);
+    var copy = el("button", { class: "link", type: "button", text: "Copy" });
+    copy.onclick = function () { try { navigator.clipboard.writeText(cmd); copy.textContent = "Copied"; } catch (e) {} };
+    var acts = el("div", { class: "acts" }, [copy].concat(program === "arv" && argv[0] && argv[0] !== "help" ? [helpLink(argv)] : []));
+    var item = el("details", { class: "con-entry" + (background ? " bg" : "") }, [head, acts]);
+    if (stdin) item.appendChild(el("pre", { class: "log muted", text: "standard input:\n" + String(stdin).slice(0, 4000) }));
+    log.appendChild(item);
+    while (log.childNodes.length > CONSOLE_MAX) log.removeChild(log.firstChild);
+    consoleCount++;
+    $("console-last").textContent = cmd;
+    consoleSummary();
+    if ($("console").open) log.scrollTop = log.scrollHeight;
+    return item;
+  }
+  function consoleDone(item, rc, out, err, ms) {
+    if (!item) return;
+    var rcText = item.querySelector(".con-rc");
+    rcText.textContent = "  (exit " + rc + ", " + (ms < 1000 ? ms + " ms" : (ms / 1000).toFixed(1) + " s") + ")";
+    rcText.className = "con-rc " + (rc ? "bad" : "muted");
+    if (out) item.appendChild(el("pre", { class: "log", text: out.length > 20000 ? out.slice(0, 20000) + "\n[… " + (out.length - 20000) + " more characters]" : out }));
+    if (err) item.appendChild(el("pre", { class: "log bad", text: err }));
+    if (rc && !$("console").open) $("console-count").className = "bad";
+  }
+  function consoleSummary() {
+    $("console-count").textContent = consoleCount + (consoleCount === 1 ? " command" : " commands") +
+      (consoleHidden && !consoleBackground() ? " (and " + consoleHidden + " background reads, not shown)" : "");
+  }
+  $("console").ontoggle = function () {
+    try { localStorage.setItem("arv-console-open", this.open ? "1" : ""); } catch (e) {}
+    if (this.open) { $("console-count").className = ""; $("console-log").scrollTop = $("console-log").scrollHeight; }
+  };
+  try { if (localStorage.getItem("arv-console-open")) $("console").open = true; } catch (e) {}
+  $("console-bg").checked = consoleBackground();
+  $("console-bg").onchange = function () { try { localStorage.setItem("arv-console-bg", this.checked ? "1" : ""); } catch (e) {} consoleSummary(); };
+  $("console-clear").onclick = function () { $("console-log").textContent = ""; consoleCount = consoleHidden = 0; $("console-last").textContent = ""; consoleSummary(); };
+
   // ---------------------------------------------------------------- help: getting started, and the manual
   // Made from what is already written, never a page of its own to keep in step: the first steps are
   // the assistant's (assistant.txt, "when the archive is new"), each ticked from the record; the
   // manual is arv help --all, the same text as the man page and the shell's help. A command with a
   // form here has "Show me": the form opened and marked (FORMS), as the assistant's guide does.
-  var manualLoaded = false;
   function pointForm(words, disc) { // a form for a command, empty, as a guide: null when the page has none for it
     var all = FORMS.filter(function (x) { return x.cmd.length === words.length && x.cmd.every(function (w, i) { return words[i] === w; }); });
     var f = (disc ? all.filter(function (x) { return x.args.indexOf("@disc") >= 0; })[0] : null) || all[0];   // a disc named: its own row
@@ -2825,21 +2903,41 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       return (seen[key] = true);
     }).map(function (f) { return f.cmd; });
   }
-  function inlineCode(text) {       // `code` as code: text nodes only
-    return text.split("`").map(function (part, i) { return i % 2 ? el("code", { text: part }) : document.createTextNode(part); });
+  // markdown, as arv's texts write it, made into the page from text nodes (never HTML): headings,
+  // paragraphs, lists, tables, `code`, **bold**, links (to another guide: opens it; else the text
+  // and its address), pictures as their description. opts.commands: each command of a code block
+  // an entry, with Show me where the page has a form for it (the manual).
+  function inlineCode(text) {
+    var out = [], re = /`([^`]*)`|\*\*([^*]+)\*\*|!\[([^\]]*)\]\([^)]*\)|\[([^\]]+)\]\(([^)\s]+)\)|(?<![\w*])\*([^*\s][^*]*)\*(?![\w*])/g, last = 0, m;
+    while ((m = re.exec(text))) {
+      if (m.index > last) out.push(document.createTextNode(text.slice(last, m.index)));
+      if (m[1] !== undefined) out.push(el("code", { text: m[1] }));
+      else if (m[2] !== undefined) out.push(el("strong", { text: m[2] }));
+      else if (m[3] !== undefined) out.push(el("span", { class: "muted", text: "[picture: " + (m[3] || "untitled") + "]" }));
+      else if (m[6] !== undefined) out.push(el("em", { text: m[6] }));
+      else {
+        var doc = m[5].replace(/^(\.\/|docs\/)+/, "").match(/^((?:spec\/)?[a-z0-9-]+)\.md(#.*)?$/);
+        if (doc) { var b = el("button", { class: "link inline-link", type: "button", text: m[4], title: "Open the guide " + doc[1] });
+          b.onclick = function (name) { return function () { openDoc(name); }; }(doc[1]); out.push(b); }
+        else out.push(document.createTextNode(m[4] + (/^https?:/.test(m[5]) ? " (" + m[5] + ")" : "")));
+      }
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) out.push(document.createTextNode(text.slice(last)));
+    return out;
   }
-  function renderManual(md) {       // arv help --all: headings, paragraphs, lists, and each command an entry
-    var box = $("help-manual"), sec = null, para = null, list = null, code = null, entry = null;
+  function renderMarkdown(md, box, opts) {
+    var sec = null, para = null, list = null, code = null, entry = null, table = null;
     box.textContent = "";
     function section(level, text) {
       sec = el("div", { class: "help-sec" }, [el("h" + Math.min(level + 1, 4), {}, inlineCode(text))]);
-      box.appendChild(sec); para = list = null;
+      box.appendChild(sec); para = list = table = null;
     }
     function endEntry() {
       if (!entry) return;
       var text = entry.pre.textContent, first = (text.match(/^\s*arv (\S+)/) || [])[1];
       entry.div.dataset.first = first || "";
-      (first ? formWordsIn(first, text) : []).forEach(function (words) {
+      (first && opts.commands ? formWordsIn(first, text) : []).forEach(function (words) {
         var b = el("button", { class: "link", type: "button", text: "Show me: " + words.join(" "), title: "Open its form here, marked; nothing is done until you press its button" });
         b.onclick = function () { showMe(words, null, $("help-note")); };
         entry.acts.appendChild(b);
@@ -2847,10 +2945,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       entry = null;
     }
     md.split("\n").forEach(function (line) {
-      if (!sec && !/^#+ /.test(line)) section(1, "Manual");      // text before any heading
-      if (/^```/.test(line)) { if (code) { endEntry(); code = null; } else { code = el("div", { class: "help-code" }); sec.appendChild(code); para = list = null; } return; }
+      if (!sec && !/^#+ /.test(line)) section(1, opts.title || "");      // text before any heading
+      if (/^```/.test(line)) { if (code) { endEntry(); code = null; } else { code = el("div", { class: "help-code" }); sec.appendChild(code); para = list = table = null; } return; }
       if (code) {
-        if (/^  arv /.test(line) || !entry) {
+        if ((opts.commands && /^  arv /.test(line)) || !entry) {
           endEntry();
           entry = { div: el("div", { class: "help-cmd" }), pre: el("pre", { class: "mono" }), acts: el("div", { class: "acts" }) };
           entry.div.appendChild(entry.pre); entry.div.appendChild(entry.acts); code.appendChild(entry.div);
@@ -2860,16 +2958,38 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       }
       var h = line.match(/^(#+) (.*)/);
       if (h) { section(h[1].length, h[2]); return; }
-      if (!line.trim()) { para = list = null; return; }
-      if (/^- /.test(line)) {
-        if (!list) { list = el("ul"); sec.appendChild(list); }
-        list.appendChild(el("li", {}, inlineCode(line.slice(2)))); para = null; return;
+      if (!line.trim()) { para = list = table = null; return; }
+      if (/^\|/.test(line)) {                // a table: its rows, the |---| line left out
+        if (/^\|[\s:|-]+\|\s*$/.test(line)) return;
+        var cells = line.replace(/^\||\|\s*$/g, "").split("|");
+        if (!table) { table = el("table"); sec.appendChild(el("div", { class: "scroll" }, [table])); para = list = null; }
+        table.appendChild(el("tr", {}, cells.map(function (c) { return el(table.childNodes.length ? "td" : "th", {}, inlineCode(c.trim())); })));
+        return;
       }
-      if (list && /^  \S/.test(line)) { var li = list.lastChild; inlineCode(" " + line.trim()).forEach(function (n) { li.appendChild(n); }); return; }
+      if (/^\s*([-*]|\d+\.) /.test(line)) {
+        if (!list) { list = el("ul"); sec.appendChild(list); }
+        list.appendChild(el("li", {}, inlineCode(line.replace(/^\s*([-*]|\d+\.) /, "")))); para = null; return;
+      }
+      if (list && /^\s+\S/.test(line)) { var li = list.lastChild; inlineCode(" " + line.trim()).forEach(function (n) { li.appendChild(n); }); return; }
       if (!para) { para = el("p"); sec.appendChild(para); } else para.appendChild(document.createTextNode(" "));
       inlineCode(line).forEach(function (n) { para.appendChild(n); });
     });
     endEntry();
+  }
+  var manualText = null, docsLoaded = false;
+  function showManual() {
+    if (manualText === null) return;
+    renderMarkdown(manualText, $("help-manual"), { commands: true, title: "Manual" });
+    $("help-reading").textContent = "The manual"; $("help-back").hidden = true; filterManual();
+  }
+  function openDoc(name) {          // a guide, in place of the manual (arv help --doc NAME)
+    return showTab("help").then(function () { return arvRun(["help", "--doc", name]); }).then(function (r) {
+      if (r.returncode) { $("help-note").hidden = false; $("help-note").textContent = (r.err || r.out).trim(); return; }
+      renderMarkdown(r.out, $("help-manual"), { commands: false, title: name });
+      $("help-reading").textContent = "The guide: " + name + " (docs/" + name + ".md)"; $("help-back").hidden = false;
+      $("help-q").value = ""; filterManual();
+      $("help-reading").scrollIntoView({ block: "start", behavior: "smooth" });
+    });
   }
   function filterManual() {         // the sections and command entries with the words, others hidden
     var q = $("help-q").value.trim().toLowerCase();
@@ -2883,6 +3003,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   function helpOpen(words) {        // Help, at a command's entry (or the words searched for)
     words = (words || []).filter(function (w) { return w && w.charAt(0) !== "-"; });
     return showTab("help").then(function () {
+      if ($("help-reading").textContent !== "The manual") showManual();
       $("help-q").value = ""; filterManual();
       document.querySelectorAll(".help-hit").forEach(function (x) { x.classList.remove("help-hit"); });
       if (!words.length) return;
@@ -2900,8 +3021,17 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     return b;
   }
   function loadHelp() {
-    var manual = manualLoaded ? Promise.resolve() : arvRun(["help", "--all"]).then(function (r) {
-      renderManual(r.out || r.err); manualLoaded = true; filterManual();
+    var manual = manualText !== null ? Promise.resolve() : arvRun(["help", "--all"]).then(function (r) {
+      manualText = r.out || r.err; showManual();
+    });
+    if (!docsLoaded) arvRun(["help", "--doc"]).then(function (r) {   // the guides there are, a button each
+      if (r.returncode) return;
+      var box = $("help-docs"); box.textContent = ""; docsLoaded = true;
+      r.out.trim().split("\n").filter(Boolean).forEach(function (name) {
+        var b = el("button", { class: "link", type: "button", text: name });
+        b.onclick = function () { openDoc(name); };
+        box.appendChild(b);
+      });
     });
     var steps = Promise.all([arvJson(["location", "list", "--json"]).catch(function () { return { locations: [] }; }),
       arvJson(["collection", "list", "--json"]).catch(function () { return { collections: [] }; }),
@@ -2946,6 +3076,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     });
   }
   $("help-q").oninput = filterManual;
+  $("help-back").onclick = showManual;
   $("help-btn").onclick = function () { showTab("help"); };
 
   // ---------------------------------------------------------------- the record changed elsewhere
@@ -2958,7 +3089,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   var seenRecord, WATCH_MS = 5000,
     RELOADS = { owed: 1, discs: 1, master: 1, objects: 1, collections: 1, places: 1, map: 1, names: 1, help: 1 };
   function recordNow() {            // "events:newest", or what was seen when it cannot be read
-    return arvRun(["where", "--json"]).then(function (r) {
+    return arvRun(["where", "--json"], undefined, "arv", true).then(function (r) {
       if (r.returncode) return seenRecord;
       var w = JSON.parse(r.out);
       return (w.events || 0) + ":" + (w.newest || "");
