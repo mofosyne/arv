@@ -43,9 +43,13 @@ Reply with exactly one JSON object and nothing else, one of:
   {"propose": ["retag", "trip-2019", "travel, place:kyoto"], "why": "one short sentence"}
   {"say": "your answer, or a question for the person"}
   {"say": "your answer", "show": ["find", "place:kyoto"]}
+  {"say": "what to check, then press its button", "guide": ["collection", "init", "/photos", "--code", "FAMILY", "--title", "Family photos"]}
 `show` names a read whose subject the person should see; in arv gui it moves the view there when
 Follow is on (otherwise they get a Show button). It is not run and gives no output; use `read` if
-you need that. Name a command and its subject, never a button, a view name or a part of the page.
+you need that. `guide` (arv gui only, for a command its forms are listed for) has the page fill
+that command's form in and mark it, so the person sees where it is done and presses the button
+themselves; use it to teach the page, and `propose` when they only want it done. Neither is run.
+Name a command and its subject, never a button, a view name or a part of the page.
 The list is the arv command line without "arv": the first string is the command, each later one
 an argument. One command per read; use --json where a command has it. Read narrowly: one disc,
 one path, one namespace; a long output is cut short. If a read fails, do not run it again

@@ -180,5 +180,9 @@ here as it comes. Here, the plan above, made without error correction.
 From the header, beside any view (`arv-assist chat`): it reads the record on its own; a change it
 proposes waits for you to apply it, as it came or edited. Each read is a line with its command and
 output; Open shows what it read in the view on the left (a find in Search, an info on its disc), and
-a reply may name a view with `show`. Follow, off by default, opens the last read or the named view
-by itself. Its reads in this picture are real; the model's replies are scripted.
+a reply may name a view with `show`. To show you where a change is made, a reply may guide you to
+a form: Fill in the form opens it, filled in with the command shown beside it and marked, and
+nothing is done until you press the form's own button. Each message tells it what you see: the
+view, what is selected, what is typed in the forms, and the last result. Follow, off by default,
+opens the last read or the named view by itself, and fills a guided form in (never one you have
+typed in). Its reads in this picture are real; the model's replies are scripted.

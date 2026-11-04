@@ -70,6 +70,8 @@ th { color:var(--muted); font-weight:600; font-size:13px; }
 tr.pick { cursor:pointer; }
 tr.pick:hover, tr.pick.sel { background:var(--panel); }
 tr.pick.sel { outline:2px solid var(--accent); outline-offset:-2px; }
+form.guided { outline:2px solid var(--accent); outline-offset:6px; border-radius:4px; }
+.msg pre.mono { white-space:pre-wrap; overflow-wrap:anywhere; margin:6px 0; }   /* filled in by the assistant: the person presses its button */
 .mono { font-family:ui-monospace, monospace; font-size:13px; overflow-wrap:anywhere; }
 #disc-table td.mono { white-space:nowrap; overflow-wrap:normal; }
 .muted { color:var(--muted); }
@@ -539,7 +541,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     <button class="plain" type="button" id="chat-close" aria-label="Close the assistant">Close</button></header>
   <div class="talk" id="chat-talk"></div>
   <label class="chat-auto" title="Off by default. On: a retag the model proposes (low risk) is applied at once, recorded as the model's suggestion, not yours, with Undo; never one it was unsure of, and nothing else"><input type="checkbox" id="chat-auto"> Apply tags without asking</label>
-  <label class="chat-auto" title="Off by default. On: the view on the left opens what the assistant last read, or the subject it named with show, and marks it (Search for a find, the disc for an info), so you can watch it work. It names a command and its subject, never a button or a selector."><input type="checkbox" id="chat-follow"> Follow the assistant</label>
+  <label class="chat-auto" title="Off by default. On: the view on the left opens what the assistant last read, or the subject it named with show, and marks it (Search for a find, the disc for an info), so you can watch it work; a form it guides you to is filled in, unless you have typed in it. It names a command and its subject, never a button or a selector, and never sends a form."><input type="checkbox" id="chat-follow"> Follow the assistant</label>
   <form id="chat-form"><textarea id="chat-input" aria-label="Ask the assistant" placeholder="Ask about the archive: what is owed, where something is, how to tag a folder..."></textarea>
     <button class="primary" type="submit">Send</button></form>
 </aside>
@@ -639,18 +641,10 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     $("jobs-btn").setAttribute("aria-pressed", name === "jobs");
     $("settings-btn").setAttribute("aria-pressed", group === "settings");
     document.querySelectorAll("main > section").forEach(function (s) { s.hidden = s.id !== "tab-" + name; });
-    if (name === "owed") loadOwed();
-    if (name === "discs") loadDiscs();
-    if (name === "jobs") loadJobs();
-    if (name === "master") loadPlans();
-    if (name === "objects") loadObjects();
-    if (name === "collections") loadCollections();
-    if (name === "inventory") loadPlaces();
-    if (name === "places") loadPlacesView();
-    if (name === "map") loadMap();
-    if (name === "names") loadNames();
-    if (name === "models") loadModels();
-    if (name === "programs") loadPrograms();
+    var loads = { owed: loadOwed, discs: loadDiscs, jobs: loadJobs, master: loadPlans, objects: loadObjects,
+      collections: loadCollections, inventory: loadPlaces, places: loadPlacesView, map: loadMap, names: loadNames,
+      models: loadModels, programs: loadPrograms };
+    return Promise.resolve(loads[name] ? loads[name]() : null).catch(function () {});   // loaded: a guide can fill its selects
   }
   document.querySelectorAll("nav.sub button").forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
   document.querySelectorAll("nav.groups button").forEach(function (b) { b.onclick = function () { showTab(lastView[b.dataset.group]); }; });
@@ -1678,7 +1672,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // until New; each turn sends it with what is on screen. Its reads come back as steps, shown as
   // their commands; a change comes back as a proposal, applied here only when the person says so,
   // as it came or as they edited it (its risk judged again). It never clicks: Open (and Follow, if
-  // the person turns it on) moves the view to what it read.
+  // the person turns it on) moves the view to what it read, and a guide fills a form in and marks
+  // it (FORMS, below), for the person to send with its own button.
   var chatMessages = [], chatLog = [], OPEN_FOR = { find: "search", todo: "owed", status: "status", map: "map", tags: "names",
     objects: "objects", plan: "master", collection: "collections", list: "discs", info: "discs", programs: "programs",
     names: "names", inventory: "inventory", audit: "audit" };
@@ -1699,6 +1694,128 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (t.q !== undefined) { showTab("search"); $("q").value = t.q; $("search-form").requestSubmit(); }
     else showTab(t.tab);
   }
+  // The page's forms, by the command each one builds (its onsubmit above): a guide from the assistant
+  // names a command, and the page fills that form in and marks it; the person presses its button.
+  // args: the fields of the positional arguments, in order; opts: a flag's field, "!id" a checkbox,
+  // "+id" a list (comma separated), "" a flag the form adds itself; rest: the remaining arguments,
+  // a line each. A command with anything the form cannot hold is not guided: the form would build
+  // another command.
+  var FORMS = [
+    { cmd: ["init"], tab: "setup", form: "setup-form", args: ["s-folder"], opts: { "--name": "s-name", "--default": "!s-default" } },
+    { cmd: ["collection", "init"], tab: "collections", form: "ci-form", args: ["ci-folder"],
+      opts: { "--code": "ci-code", "--title": "ci-title", "--set": "ci-set", "--access": "ci-access" } },
+    { cmd: ["location", "add"], tab: "places", form: "pl-add", args: ["pl-code", "pl-name"],
+      opts: { "--in": "pl-in", "--temperature": "pl-temp", "--description": "pl-desc" } },
+    { cmd: ["location", "move"], tab: "places", form: "pl-move", args: ["pm-code", "pm-name"], opts: { "--in": "pm-in", "--temperature": "pm-temp" } },
+    { cmd: ["make"], tab: "make", form: "make-form", args: ["m-source"],
+      opts: { "-y": "", "--set": "m-set", "--title": "m-title", "--description": "m-description", "--creator": "m-creator",
+              "--rights": "m-rights", "--medium": "m-medium", "--min-redundancy": "m-redundancy", "--snapshot": "m-snapshot",
+              "--output-dir": "m-outdir", "--subject": "+m-subject", "--note": "m-note", "--split": "!m-split",
+              "--no-defect-management": "!m-nodm" } },
+    { cmd: ["plan", "new"], tab: "master", form: "p-new", args: ["p-name"], opts: { "--title": "p-title", "--set": "p-set", "--medium": "p-medium" } },
+    { cmd: ["tags", "add"], tab: "map", form: "map-add", args: ["map-key"], place: true,
+      opts: { "--label": "map-label", "--parent": "map-in", "--at": "map-at", "--extent": "map-extent", "--reach": "map-reach" } },
+    { cmd: ["tags", "add"], tab: "names", form: "names-add", args: ["names-key"], place: false, opts: { "--label": "names-label", "--qualifier": "names-qual" } },
+    { cmd: ["status"], tab: "status", form: "st-form", args: ["st-folder"], opts: { "--json": "" } },
+    { cmd: ["check"], tab: "tools", form: "check-form", args: ["c-source"], opts: { "--copy": "c-copy", "--repair": "!c-repair" } },
+    { cmd: ["inventory"], tab: "inventory", form: "inv-form", args: ["inv-place"], opts: { "-v": "!inv-all" } },
+    { cmd: ["audit"], tab: "audit", form: "audit-form", args: [], rest: "audit-discs", opts: {} },
+    { cmd: ["restore"], tab: "restore", form: "restore-form", args: ["rs-path", "rs-dest"], opts: {} },
+    { cmd: ["rebuild"], tab: "restore", form: "rebuild-form", args: ["r-path"], opts: {} }
+  ];
+  function formCommands() {         // what the page tells the assistant it has a form for
+    var seen = {};
+    return FORMS.map(function (f) { return f.cmd.join(" "); }).filter(function (c) { return !seen[c] && (seen[c] = 1); });
+  }
+  function guideFill(cmd) {         // the command's form and the values for its fields, or null: it does not fit one
+    if (!cmd || !cmd.length) return null;
+    if (cmd[0] === "arv") cmd = cmd.slice(1);
+    for (var n = 0; n < FORMS.length; n++) {
+      var f = FORMS[n];
+      if (f.cmd.some(function (w, i) { return cmd[i] !== w; })) continue;
+      var values = [], pos = [], ok = true, lists = {};
+      for (var i = f.cmd.length; i < cmd.length && ok; i++) {
+        var a = cmd[i], eq = a.indexOf("="), flag = a.charAt(0) === "-" && a.length > 1 ? (eq > 0 ? a.slice(0, eq) : a) : null;
+        if (!flag) { pos.push(a); continue; }
+        var to = f.opts[flag];
+        if (to === undefined) { ok = false; break; }
+        if (to === "") continue;
+        if (to.charAt(0) === "!") { values.push([to.slice(1), true]); continue; }
+        var v = eq > 0 ? a.slice(eq + 1) : cmd[++i];
+        if (v === undefined) { ok = false; break; }
+        if (to.charAt(0) === "+") (lists[to.slice(1)] = lists[to.slice(1)] || []).push(v);
+        else values.push([to, v]);
+      }
+      if (!ok) continue;                 // another form of the same command may hold it
+      if (f.place !== undefined && f.place !== /^place:/.test(pos[0] || "")) continue;
+      if (f.rest) { values.push([f.rest, pos.join("\n")]); pos = []; }
+      if (pos.length > f.args.length) continue;
+      pos.forEach(function (v, k) { values.push([f.args[k], v]); });
+      Object.keys(lists).forEach(function (id) { values.push([id, lists[id].join(", ")]); });
+      return { tab: f.tab, form: f.form, values: values, shown: "arv " + cmd.join(" ") };
+    }
+    return null;
+  }
+  function formTouched(form) {      // something typed or chosen in it that the person would lose
+    return Array.prototype.some.call(form.elements, function (e) {
+      if (e.type === "checkbox") return e.checked !== e.defaultChecked;
+      if (e.tagName === "SELECT") return e.selectedIndex > 0 && !e.options[e.selectedIndex].defaultSelected;
+      return (e.tagName === "INPUT" || e.tagName === "TEXTAREA") && e.type !== "submit" && e.type !== "button" && e.value !== e.defaultValue;
+    });
+  }
+  function guideTo(g) {             // fill the form in and mark it; never submitted: the person presses its button
+    return showTab(g.tab).then(function () {
+      var form = $(g.form), missed = [];
+      form.hidden = false;
+      form.reset();
+      g.values.forEach(function (fv) {
+        var e = $(fv[0]);
+        if (e.type === "checkbox") { e.checked = fv[1] === true; return; }
+        e.value = fv[1];
+        if (e.tagName === "SELECT" && e.value !== fv[1]) missed.push(fv[1]);   // not one of its choices
+      });
+      document.querySelectorAll("form.guided").forEach(function (x) { x.classList.remove("guided"); });
+      form.classList.add("guided");
+      form.addEventListener("submit", function () { form.classList.remove("guided"); }, { once: true });
+      form.scrollIntoView({ block: "center", behavior: "smooth" });
+      var empty = Array.prototype.filter.call(form.elements, function (e) { return e.required && !e.value; })[0];
+      (empty || form.querySelector("button[type=submit]") || form).focus({ preventScroll: true });
+      return missed;
+    });
+  }
+  function labelOf(e) {             // a field as the person sees it: its label, else its placeholder
+    var l = e.id && document.querySelector('label[for="' + e.id + '"]');
+    if (l) return l.textContent.trim();
+    if (e.closest("label")) return e.closest("label").textContent.trim();
+    return e.placeholder || e.id;
+  }
+  function clip(t, n) { return t.length > n ? t.slice(0, n) + "…" : t; }
+  function pageState() {            // what is on screen, for the assistant: the view, what is selected, what is typed, the last result
+    var view = document.querySelector("nav.sub:not([hidden]) button[aria-selected=true]"), group = GROUP[currentTab];
+    var parts = [(group ? group + " › " : "") + (view ? view.textContent : currentTab)];
+    var section = $("tab-" + currentTab);
+    if (currentTab === "discs" && selected) parts.push("disc " + selected + " selected, its details open");
+    if (currentTab === "master" && planName()) parts.push("plan " + planName() + " open");
+    if (currentTab === "objects" && $("o-filter").value.trim()) parts.push("showing names containing '" + $("o-filter").value.trim() + "'");
+    if (!section) return parts.join("; ");
+    section.querySelectorAll("form").forEach(function (form) {
+      if (form.hidden || form.id === "chat-form") return;
+      var typed = Array.prototype.filter.call(form.elements, function (e) {
+        if (e.type === "checkbox") return e.checked;
+        return (e.tagName === "INPUT" || e.tagName === "TEXTAREA" || e.tagName === "SELECT") && e.type !== "submit" && e.type !== "button" && e.value.trim();
+      }).map(function (e) {
+        return labelOf(e) + (e.type === "checkbox" ? "" : " = " + clip((e.tagName === "SELECT" ? e.options[e.selectedIndex].text : e.value).trim(), 160));
+      });
+      var card = form.closest(".card"), h = card && card.querySelector("h3"), name = h ? h.textContent.trim() : form.id;
+      if (form.classList.contains("guided")) parts.push("the form '" + name + "' is filled in as you guided, not yet sent");
+      if (typed.length) parts.push("form '" + name + "' has: " + clip(typed.join(", "), 600));
+    });
+    var shown = Array.prototype.filter.call(section.querySelectorAll("pre.log, .banner"), function (e) {
+      return !e.hidden && e.textContent.trim();
+    }).pop();
+    if (shown) parts.push("last result shown" + (/\bbad\b/.test(shown.className) ? " (failed)" : "") + ": " + (shown.textContent.trim().length > 300 ? "…" : "") + shown.textContent.trim().slice(-300));
+    return parts.join("; ");
+  }
   function chatSave() {
     try { localStorage.setItem("arv-chat", JSON.stringify({ messages: chatMessages, log: chatLog })); } catch (e) {}
   }
@@ -1718,13 +1835,30 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   }
   function chatItem(item) {
     if (item.you) return el("div", { class: "msg you", text: item.you });
-    if (item.say) {
+    if (typeof item.say === "string") {
       var target = item.show && stepTarget(item.show), say = el("div", { class: "msg", text: item.say });
       if (target) {
         var b = el("button", { class: "link", type: "button", text: "Show", title: "Open what it named in the view on the left" });
         b.onclick = function () { showTarget(target); };
         say.appendChild(document.createTextNode(" "));
         say.appendChild(b);
+      }
+      var guide = item.guide && guideFill(item.guide);
+      if (guide) {                     // a form to fill in: shown as its command, filled in when the person asks (or Follow did)
+        var g = el("button", { class: "link", type: "button", text: item.filled ? "Fill it in again" : "Fill in the form",
+          title: "Open the form for this command, filled in and marked; nothing is done until you press its button" });
+        g.onclick = function () {
+          var form = $(guide.form);
+          if (formTouched(form) && !form.classList.contains("guided") && !confirm("Replace what is in the form with this?")) return;
+          guideTo(guide).then(function (missed) {
+            item.filled = true; chatSave(); g.textContent = "Fill it in again";
+            if (missed.length) say.appendChild(el("p", { class: "warn", text: "Not a choice in the form: " + missed.join(", ") + ". Choose it there." }));
+          });
+        };
+        say.appendChild(el("pre", { class: "mono", text: item.guideShown || guide.shown }));
+        if (item.guideRisk) say.appendChild(el("span", { class: "chip " + (item.guideRisk === "high" ? "hot" : item.guideRisk === "medium" ? "warm" : "cold"),
+          text: item.guideRisk === "none" ? "reads" : item.guideRisk + " risk", title: "What the form's button changes, when you press it" }));
+        say.appendChild(g);
       }
       return say;
     }
@@ -1897,16 +2031,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     chatMessages.push({ role: "user", content: text });
     chatAdd({ you: text });
     talk.appendChild(wait); talk.scrollTop = talk.scrollHeight;
-    var view = document.querySelector("nav.sub button[aria-selected=true]");
-    var ctx;
-    if (view) {
-      var group = view.closest("nav.sub").dataset.group;
-      ctx = group ? group + " › " + view.textContent : view.textContent;
-    } else {
-      var group = GROUP[currentTab];
-      ctx = group ? group + " › " + currentTab : currentTab;
-    }
-    assistJson(["chat", "--json"], { messages: chatMessages, context: ctx }).then(function (res) {
+    assistJson(["chat", "--json"], { messages: chatMessages, context: pageState(), forms: formCommands() }).then(function (res) {
       wait.remove();
       if (res.error) { chatMessages.pop(); chatAdd({ error: res.error }); return; }
       chatMessages = res.messages;
@@ -1922,7 +2047,11 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         if (chatAuto() && r.propose[0] === "retag" && r.risk === "low" && !r.doubtful) autoRun = r;
         chatAdd(r);
       }
-      else if (r.say) chatAdd({ say: r.say, show: r.show });
+      else if (r.say || r.guide) {
+        var item = { say: r.say || "", show: r.show, guide: r.guide, guideRisk: r.guideRisk, guideShown: r.guideShown }, g = r.guide && guideFill(r.guide);
+        if (g && chatFollow() && !formTouched($(g.form))) { item.filled = true; guideTo(g); }   // Follow: filled in, never over what the person typed
+        chatAdd(item);
+      }
       chatSave();
     });
   }
@@ -2369,7 +2498,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   function loadPlaces() {
     var pick = $("inv-place");
     if (pick.options.length) return;
-    arvJson(["location", "list", "--json"]).then(function (res) {
+    return arvJson(["location", "list", "--json"]).then(function (res) {
       function under(parent, depth) {         // the places as a tree: a box in a room in a house
         res.locations.filter(function (l) { return l.parent === parent; }).forEach(function (l) {
           pick.appendChild(el("option", { value: l.code, text: "\u00a0\u00a0".repeat(depth) + l.code + " \u2014 " + l.name }));

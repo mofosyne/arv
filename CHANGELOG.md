@@ -21,6 +21,13 @@ only add fields.
 
 What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today carries.
 
+**The assistant sees the page, and guides through its forms**
+- Each message to it in `arv gui` carries what is on screen: the view, what is selected (a disc,
+  a plan), what is typed in its forms, and the last result shown, as the page words them.
+- A reply may carry `guide`: a command whose form the page fills in and marks (Fill in the form,
+  or at once with Follow, unless you have typed in it). Nothing is done until you press the form's
+  own button. A command the form cannot hold all of is not guided.
+
 **The GUI's first run suggests one archive for the computer**
 - Make an archive is filled in with the home folder, the name `main` and "use it from anywhere":
   one catalogue, found wherever arv is started (from the menu, too). A narrower one, a portable

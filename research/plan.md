@@ -2916,3 +2916,44 @@ checked to read:
   gets a Show button. The switch stays the person's.
 - **Checked** by arv-assist's checks against the fake server: a read's `show` reaches the GUI, and
   a write named as `show` is dropped.
+
+## Decision and done (2026-11-04): the assistant sees the page's state, and guides through its forms
+
+- **Why:** to guide someone through the page, the assistant has to know what they see and be able
+  to put them where a thing is done. It knew only the view's name ("verify › Owed"), and the
+  design's "it knows what is on screen: the open view and what is selected" was not built. It could
+  move the view (`show`), but not show where a change is made.
+- **The page's state, with each message** (`pageState`): the view; what is selected in it (the
+  disc open in Record › Discs, the plan in Mastering, the Objects filter); each form in the view
+  that has something typed or chosen, by its heading, as its fields' labels and values; whether
+  a form is one the assistant filled in and not yet sent; and the last result shown in the view
+  (its output, or a banner), marked when it failed. Values are cut at 160 characters, the whole at
+  a few hundred, each cut marked. It is read from the page as the person sees it (labels, not ids),
+  so the model reads the page's own words and is given no selector to use.
+- **`guide`, beside `say`:** a command whose form the page fills in and marks, for the person to
+  send with the form's own button: `{"say": "...", "guide": ["collection", "init", "/photos",
+  "--code", "FAMILY", "--title", "Family photos"]}`. The page says which commands it has forms for
+  (`forms` in the request, from `FORMS` in gui.html), and the system text lists them; arv-assist
+  drops a guide for any other command, and gives its risk (`guideRisk`) and the command as the
+  shell takes it (`guideShown`), shown beside the button.
+- **The rule, changed:** "it does not drive the page" becomes "it names commands; the page decides
+  how they show, and only the person sends". The assistant still names no view, selector or
+  button: the page maps a command to its form through one table (`FORMS`: the command's words,
+  the view, the form, a field for each argument and option), which is the reverse of each form's
+  own `onsubmit`. A command with anything the form cannot hold (`make --no-ecc`, a third argument
+  to `restore`) is not guided at all, so a filled-in form never builds a command other than the
+  one shown beside it. Filling a form is not a change: nothing is recorded until the person presses
+  the button, and the button runs the form's own path (`act` or `run`), as if they had typed it.
+- **Losing the place:** with Follow off, the reply shows the command, its risk and "Fill in the
+  form"; with it on, the form is filled in at once, unless the person has typed in it (it is then
+  left alone, and the button asks before replacing what is there). A guided form's mark goes when
+  it is sent.
+- **Why not clicks:** clicking for the person would tie the model to the page's layout, hide what
+  ran behind animation, and make an unaudited change; a filled-in form is the same teaching (where
+  it is done, with what) with the person's press as the consent, and the command line beside it.
+- **Checked:** arv-assist's checks (a guide for a listed form passes with its risk, one for a
+  form the page lacks is dropped, a guide alone is accepted), and the GUI's tests (every form and
+  field `FORMS` names is in the page, so a layout change that breaks a guide fails `make check`;
+  commands mapped to their forms through the page's own code, under node).
+- **Not done:** a guide for the views whose actions are buttons, not forms (a disc's details:
+  copies, places, retire; Mastering's items); prose links in replies; the record-changed poll.

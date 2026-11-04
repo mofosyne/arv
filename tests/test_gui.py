@@ -52,6 +52,36 @@ class IconTest(unittest.TestCase):
                 seen[x] = family
 
 
+class GuideFormsTest(unittest.TestCase):
+    """The assistant's guide fills one of the page's forms in (FORMS in gui.html): each form and field
+    it names is in the page, and a command maps to its form only when the form can hold all of it."""
+
+    def setUp(self):
+        with open(os.path.join(REPO, "src", "arv-gui", "gui.html"), encoding="utf-8") as f:
+            self.page = f.read()
+        self.forms = self.page[self.page.index("  var FORMS = ["):self.page.index("  function formTouched(")]
+
+    def test_every_form_and_field_is_in_the_page(self):
+        import re
+        ids = set(re.findall(r'id="([^"]+)"', self.page))
+        named = re.findall(r'(?:form|rest): "([^"]+)"', self.forms) + re.findall(r'"[!+]?([a-z]+-[a-z-]+)"', self.forms)
+        self.assertGreater(len(named), 40)
+        self.assertEqual([n for n in named if n not in ids], [])
+
+    @unittest.skipUnless(shutil.which("node"), "node runs the page's own code")
+    def test_commands_to_forms(self):
+        cases = [["collection", "init", "/p", "--code", "FAM", "--title", "Family"], ["make", "/x", "--no-ecc"],
+                 ["tags", "add", "place:kyoto", "--label", "Kyoto"], ["tags", "add", "person:ann", "--qualifier=b. 1931"],
+                 ["make", "-y", "/x", "--subject", "a", "--subject", "b", "--split"], ["retag", "x", "y"], ["restore", "/a", "/b", "/c"]]
+        js = self.forms + "console.log(JSON.stringify(%s.map(function (c) { return guideFill(c); })));" % json.dumps(cases)
+        got = json.loads(subprocess.run(["node", "-e", js], capture_output=True, text=True, check=True).stdout)
+        self.assertEqual((got[0]["form"], sorted(got[0]["values"])), ("ci-form", [["ci-code", "FAM"], ["ci-folder", "/p"], ["ci-title", "Family"]]))
+        self.assertIsNone(got[1])                               # --no-ecc: the form has no place for it
+        self.assertEqual((got[2]["form"], got[3]["form"]), ("map-add", "names-add"))   # a place, a name
+        self.assertEqual(sorted(got[4]["values"]), [["m-source", "/x"], ["m-split", True], ["m-subject", "a, b"]])
+        self.assertEqual((got[5], got[6]), (None, None))        # no form; more arguments than it has fields
+
+
 class GuiTest(unittest.TestCase):
     """The server only runs arv (and arv-assist) for the page: these drive it as the page does."""
 
@@ -475,6 +505,8 @@ class GuiTest(unittest.TestCase):
         self.assertIn('<aside class="chat" id="chat" hidden', page)
         self.assertIn('id="chat-follow"', page)                                # Open a step's subject, or follow it
         self.assertIn("item.show", page)                                       # a reply may name the view to show
+        self.assertIn("forms: formCommands()", page)                           # the page says which forms it has
+        self.assertIn("context: pageState()", page)                            # and what is selected and typed
         turn = json.loads(self.run_arv("chat", "--json", program="arv-assist",
                                        stdin=json.dumps({"messages": [{"role": "user", "content": "anything?"}], "context": "Owed"}))["out"])
         self.assertEqual([s["shown"] for s in turn["steps"]], ["arv todo --json"])
