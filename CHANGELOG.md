@@ -27,6 +27,12 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - A reply may carry `guide`: a command whose form the page fills in and marks (Fill in the form,
   or at once with Follow, unless you have typed in it). Nothing is done until you press the form's
   own button. A command the form cannot hold all of is not guided.
+- A guide reaches a disc's details too (record a burned or stored copy, what a copy is known by,
+  its place, a check, a note, who may see it: the disc is opened first) and Mastering (a plan's
+  files ticked in the browser for Add, Make the disc images).
+- Disc ids, tags (`place:kyoto`) and folders in its replies are links: the disc's details, a
+  search, What changed with the folder filled in. Open also shows `plan show`, `objects` and
+  `status` reads.
 
 **The GUI's first run suggests one archive for the computer**
 - Make an archive is filled in with the home folder, the name `main` and "use it from anywhere":

@@ -70,8 +70,9 @@ th { color:var(--muted); font-weight:600; font-size:13px; }
 tr.pick { cursor:pointer; }
 tr.pick:hover, tr.pick.sel { background:var(--panel); }
 tr.pick.sel { outline:2px solid var(--accent); outline-offset:-2px; }
-form.guided { outline:2px solid var(--accent); outline-offset:6px; border-radius:4px; }
-.msg pre.mono { white-space:pre-wrap; overflow-wrap:anywhere; margin:6px 0; }   /* filled in by the assistant: the person presses its button */
+form.guided, .guided { outline:2px solid var(--accent); outline-offset:6px; border-radius:4px; }
+.msg pre.mono { white-space:pre-wrap; overflow-wrap:anywhere; margin:6px 0; }
+.msg button.inline-link { font:inherit; padding:0; border:none; background:none; color:var(--accent); text-decoration:underline; cursor:pointer; overflow-wrap:anywhere; }   /* filled in by the assistant: the person presses its button */
 .mono { font-family:ui-monospace, monospace; font-size:13px; overflow-wrap:anywhere; }
 #disc-table td.mono { white-space:nowrap; overflow-wrap:normal; }
 .muted { color:var(--muted); }
@@ -456,9 +457,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   <p id="p-note" class="warn" hidden>Planned, not archived: keep the originals until the discs are burned and read back.</p>
   <div class="master">
     <div class="discs" id="p-discs"></div>
-    <div class="files">
+    <div class="files" data-guide="plan-add" data-title="Put files and folders on a disc">
       <div class="inline"><button class="plain" type="button" id="f-up">⬑ Up</button>
-        <input type="text" id="f-path" aria-label="Folder"></div>
+        <input type="text" id="f-path" aria-label="Folder" data-keep></div>
       <div class="here" id="f-here"></div>
       <div class="list" id="f-list"></div>
       <div class="inline">
@@ -468,7 +469,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 
     </div>
   </div>
-  <div class="card" id="p-make">
+  <div class="card" id="p-make" data-guide="plan-make" data-title="Make the disc images">
     <div class="row">
       <div><label for="p-outdir">Save images in</label><input type="text" id="p-outdir" placeholder="default: GUI start folder"></div>
     </div>
@@ -734,15 +735,15 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   function copiesBox(d) {
     var wrap = el("div"), list = el("div", { class: "muted", text: "Reading the copies…" });
     wrap.appendChild(list);
-    var letters = el("select", { "aria-label": "Which copy" }, [el("option", { value: "", text: "any (by its identifier)" })]);
-    var moveLetter = el("select", { "aria-label": "Copy to move" });
-    var movePlace = el("input", { type: "text", placeholder: "a location code, or text" });
-    var idLetter = el("select", { "aria-label": "Copy known by it" }), clash = el("div");
+    var letters = el("select", { "aria-label": "Which copy", "data-field": "letter" }, [el("option", { value: "", text: "any (by its identifier)" })]);
+    var moveLetter = el("select", { "aria-label": "Copy to move", "data-field": "letter" });
+    var movePlace = el("input", { type: "text", placeholder: "a location code, or text", "data-field": "place" });
+    var idLetter = el("select", { "aria-label": "Copy known by it", "data-field": "letter" }), clash = el("div");
     var move = el("button", { class: "plain", text: "Update place" });
     move.onclick = function () {
       if (moveLetter.value && movePlace.value.trim()) run(["locate", d.Id, moveLetter.value, movePlace.value.trim()], true);
     };
-    arvJson(["objects", d.Id, "--json"]).then(function (res) {
+    wrap.ready = arvJson(["objects", d.Id, "--json"]).then(function (res) {
       list.textContent = "";
       list.className = "";
       if (res.retired) { list.appendChild(el("p", { class: "muted", text: "Retired: its copies have left every place." })); return; }
@@ -767,8 +768,8 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     }).catch(function (e) { list.textContent = "Error: " + e.message; });
 
     // a burned copy: with a drive, read back against the image before it is recorded
-    var n = el("input", { type: "number", value: "1", min: "1" }), place = el("input", { type: "text", placeholder: "a location code, or text" });
-    var drive = el("input", { type: "text", placeholder: "optional: /dev/sr0" }), letter = el("input", { type: "text", size: "3", placeholder: "next" });
+    var n = el("input", { type: "number", value: "1", min: "1", "data-field": "copies" }), place = el("input", { type: "text", placeholder: "a location code, or text", "data-field": "place" });
+    var drive = el("input", { type: "text", placeholder: "optional: /dev/sr0", "data-field": "drive" }), letter = el("input", { type: "text", size: "3", placeholder: "next", "data-field": "letter" });
     var burned = el("button", { class: "plain", text: "Record burned copies" });
     burned.onclick = function () {
       var argv = ["burned", d.Id], device = drive.value.trim();
@@ -780,9 +781,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
 
     // what a copy is known by: a barcode on its case (a scanner types it here, then Enter), its BCA
     // serial; and for an image on a tape or drive, that carrier
-    var code = el("input", { type: "text", placeholder: "scan or type the barcode", autocomplete: "off" });
-    var other = el("input", { type: "text", placeholder: "bca:SERIAL or serial:SERIAL" });
-    var carrier = el("input", { type: "text", placeholder: "for an image: barcode:TAPE01L8" });
+    var code = el("input", { type: "text", placeholder: "scan or type the barcode", autocomplete: "off", "data-field": "barcode" });
+    var other = el("input", { type: "text", placeholder: "bca:SERIAL or serial:SERIAL", "data-field": "other" });
+    var carrier = el("input", { type: "text", placeholder: "for an image: barcode:TAPE01L8", "data-field": "carrier" });
     var known = el("button", { class: "plain", text: "Record" });
     known.onclick = function () {
       if (!idLetter.value || !(code.value.trim() || other.value.trim() || carrier.value.trim())) return;
@@ -793,32 +794,32 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     code.onkeydown = function (ev) { if (ev.key === "Enter") { ev.preventDefault(); known.onclick(); } };
     wrap.appendChild(el("h3", { text: "What a copy is known by" }));
     wrap.appendChild(el("p", { class: "muted", text: "A barcode on its case finds it again (Search, and a library's inventory); a drive that reads its BCA serial knows which copy is in it. A copy kept as an image on a tape or drive names that carrier." }));
-    wrap.appendChild(el("div", { class: "inline" }, [field("Copy", idLetter), field("Barcode", code), field("…or identifier", other),
+    wrap.appendChild(el("div", { class: "inline", "data-guide": "identify", "data-title": "What a copy is known by" }, [field("Copy", idLetter), field("Barcode", code), field("…or identifier", other),
       field("On a carrier", carrier), known]));
 
     wrap.appendChild(el("h3", { text: "Record a burned copy" }));
     wrap.appendChild(el("p", { class: "muted", text: "With the drive named, arv reads the copy back against its image first and records it only if identical (one copy; on Linux with its BCA serial). Without it, the copies are recorded as not read back." }));
-    wrap.appendChild(el("div", { class: "inline" }, [field("How many", n), field("Kept at", place), field("Drive", drive), field("Letter", letter), burned]));
+    wrap.appendChild(el("div", { class: "inline", "data-guide": "burned", "data-title": "Record a burned copy" }, [field("How many", n), field("Kept at", place), field("Drive", drive), field("Letter", letter), burned]));
 
     // a copy on a drive or NAS: the .iso, or the disc's files as a folder
-    var path = el("input", { type: "text", placeholder: "/mnt/nas/" + d.Id + ".iso" }), where = el("input", { type: "text", placeholder: "a location code, or text" });
+    var path = el("input", { type: "text", placeholder: "/mnt/nas/" + d.Id + ".iso", "data-field": "path" }), where = el("input", { type: "text", placeholder: "a location code, or text", "data-field": "place" });
     var stored = el("button", { class: "plain", text: "Check and record" });
     stored.onclick = function () { if (path.value.trim()) run(opt(["stored", d.Id, path.value.trim()], "--location", where.value)); };
     wrap.appendChild(el("h3", { text: "Record a copy on a drive or NAS" }));
-    wrap.appendChild(el("div", { class: "inline" }, [field("Image or folder", path), field("Kept at", where), stored]));
+    wrap.appendChild(el("div", { class: "inline", "data-guide": "stored", "data-title": "Record a copy on a drive or NAS" }, [field("Image or folder", path), field("Kept at", where), stored]));
     wrap.appendChild(el("h3", { text: "Update a known copy's place" }));
     wrap.appendChild(el("p", { class: "muted", text: "This appends a location change for that copy only." }));
-    wrap.appendChild(el("div", { class: "inline" }, [field("Copy", moveLetter), field("New place", movePlace), move]));
+    wrap.appendChild(el("div", { class: "inline", "data-guide": "locate", "data-title": "Update a known copy's place" }, [field("Copy", moveLetter), field("New place", movePlace), move]));
 
     // a check of one copy: in the drive, or an image read from it
-    var cdrive = el("input", { type: "text", placeholder: "/dev/sr0" }), cimage = el("input", { type: "text", placeholder: "or an image file" });
-    var repair = el("input", { type: "checkbox" }), check = el("button", { class: "plain", text: "Check" });
+    var cdrive = el("input", { type: "text", placeholder: "/dev/sr0", "data-field": "drive" }), cimage = el("input", { type: "text", placeholder: "or an image file", "data-field": "image" });
+    var repair = el("input", { type: "checkbox", "data-field": "repair" }), check = el("button", { class: "plain", text: "Check" });
     check.onclick = function () {
       var source = cdrive.value.trim() || cimage.value.trim();
       if (source) run(opt(["check"].concat(repair.checked ? ["--repair"] : []), "--copy", letters.value).concat([source, d.Id]));
     };
     wrap.appendChild(el("h3", { text: "Check a copy" }));
-    wrap.appendChild(el("div", { class: "inline" }, [field("Drive", cdrive), field("…or image", cimage), field("Copy", letters),
+    wrap.appendChild(el("div", { class: "inline", "data-guide": "check-copy", "data-title": "Check a copy" }, [field("Drive", cdrive), field("…or image", cimage), field("Copy", letters),
       el("label", {}, [repair, document.createTextNode(" repair the image")]), check]));
     return wrap;
   }
@@ -859,22 +860,24 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     box.appendChild(t);
     if (d.Description) box.appendChild(el("p", { text: d.Description }));
     // who may see it: what later discs' catalogues show of it (arv access)
-    var level = el("select", { "aria-label": "Who may see it" }, ["public", "private", "sealed"].map(function (v) {
-      var o = el("option", { value: v, text: v }); if ((d.Access || "private") === v) o.selected = true; return o; }));
+    var level = el("select", { "aria-label": "Who may see it", "data-field": "level" }, ["public", "private", "sealed"].map(function (v) {
+      var o = el("option", { value: v, text: v }); if ((d.Access || "private") === v) o.defaultSelected = o.selected = true; return o; }));
     var setLevel = el("button", { class: "plain", type: "button", text: "Set" });
     setLevel.onclick = function () { if (level.value !== (d.Access || "private")) act(["access", d.Id, level.value], null, loadDiscs); };
-    box.appendChild(el("div", { class: "inline" }, [field("Who may see it (later discs' catalogues show public ones in full, " +
+    box.appendChild(el("div", { class: "inline", "data-guide": "access", "data-title": "Who may see it" }, [field("Who may see it (later discs' catalogues show public ones in full, " +
       "private ones as a line, sealed ones not at all)", level), setLevel]));
     box.appendChild(el("h2", { text: "Notes" }));
     [].concat(d.Note || []).forEach(function (n) { box.appendChild(el("div", { class: "note", text: n })); });
 
-    var note = el("textarea", { "aria-label": "New note" });
+    var note = el("textarea", { "aria-label": "New note", "data-field": "text" });
     var addNote = el("button", { class: "plain", text: "Add note" });
     addNote.onclick = function () { if (note.value.trim()) run(["note", d.Id, note.value.trim()], true); };
-    box.appendChild(note); box.appendChild(addNote);
+    box.appendChild(el("div", { "data-guide": "note", "data-title": "Add a note" }, [note, addNote]));
 
     box.appendChild(el("h2", { text: "Copies" }));
-    box.appendChild(copiesBox(d));
+    var copies = copiesBox(d);
+    box.ready = copies.ready;           // its copies read: a guide can choose a copy's letter
+    box.appendChild(copies);
 
     box.appendChild(el("h2", { text: "Improve the description" }));
     var llmBox = el("div", { class: "llm" });
@@ -1535,8 +1538,11 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     (plan ? plan.discs : []).forEach(function (d) { d.items.forEach(function (it) { if (it.source === path || it.origin === path) found = d.disc; }); });
     return found;
   }
+  var browsing = 0;                // the latest listing asked for is the one shown
   function browseFiles(path) {
-    api("/api/browse?files=1&path=" + encodeURIComponent(path || "")).then(function (res) {
+    var mine = ++browsing;
+    return api("/api/browse?files=1&path=" + encodeURIComponent(path || "")).then(function (res) {
+      if (mine !== browsing) return;
       folder = res; $("f-path").value = res.path; $("f-here").textContent = res.error || "";
       var list = $("f-list"); list.textContent = "";
       function row(name, isDir, bytes) {
@@ -1686,20 +1692,56 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     }
     if (cmd[0] === "find" && args.length) return { tab: "search", q: args[args.length - 1] };
     if (cmd[0] === "info" && args.length) return { tab: "discs", disc: args[0], scroll: true };
+    if (cmd[0] === "objects" && args.length && isDisc(args[0])) return { tab: "discs", disc: args[0], scroll: true };
+    if (cmd[0] === "objects" && args.length) return { tab: "objects", filter: args[0] };
+    if (cmd[0] === "plan" && args[0] === "show" && args[1]) return { tab: "master", plan: args[1] };
+    if (cmd[0] === "status" && args.length) return { tab: "status", guide: guideFill(["status", args[0]]) };   // filled in: Look reads it again
     return OPEN_FOR[cmd[0]] ? { tab: OPEN_FOR[cmd[0]] } : null;
   }
   function showTarget(t) {          // the person chose it (Open), or Follow is on
     if (!t) return;
     if (t.disc !== undefined) { selected = t.disc; scrollSel = !!t.scroll; }
-    if (t.q !== undefined) { showTab("search"); $("q").value = t.q; $("search-form").requestSubmit(); }
+    if (t.guide) guideTo(t.guide);
+    else if (t.q !== undefined) { showTab("search"); $("q").value = t.q; $("search-form").requestSubmit(); }
+    else if (t.plan !== undefined) showTab("master").then(function () { return loadPlans(t.plan); });
+    else if (t.filter !== undefined) showTab("objects").then(function () { $("o-filter").value = t.filter; renderObjects(); });
     else showTab(t.tab);
   }
-  // The page's forms, by the command each one builds (its onsubmit above): a guide from the assistant
-  // names a command, and the page fills that form in and marks it; the person presses its button.
-  // args: the fields of the positional arguments, in order; opts: a flag's field, "!id" a checkbox,
-  // "+id" a list (comma separated), "" a flag the form adds itself; rest: the remaining arguments,
-  // a line each. A command with anything the form cannot hold is not guided: the form would build
-  // another command.
+  function isDisc(id) { return discs.some(function (d) { return d.Id === id; }); }
+  // A reply's words, with what the page can show as links (the design's "a disc id, a path or a tag in
+  // a reply is a link"): a disc id opens its details, a tag (namespace:value) searches for it, a
+  // folder opens What changed with it filled in. Made from text nodes only: a reply is never HTML.
+  var NOT_TAGS = { http: 1, https: 1, file: 1, mailto: 1, bca: 1, serial: 1, barcode: 1 };
+  function replyLinks(text) {
+    var ids = discs.map(function (d) { return d.Id; }).sort(function (a, b) { return b.length - a.length; })
+      .map(function (id) { return id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); });
+    var re = new RegExp((ids.length ? "((?<![\\w-])(?:" + ids.join("|") + ")(?![\\w-]))|" : "()") +
+      "(\\b[a-z][a-z0-9_-]*:[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?\\b)|((?:^|(?<=[\\s(]))\\/[^\\s,;)'\"`]*[^\\s,;)'\"`.:])", "g");
+    var out = [], last = 0, m;
+    while ((m = re.exec(text))) {
+      var word = m[0], go = null, title = "";
+      if (m[1]) { go = function (id) { return function () { selected = id; scrollSel = true; showTab("discs"); }; }(word); title = "Open " + word + " in Record › Discs"; }
+      else if (m[2] && !NOT_TAGS[word.split(":")[0]]) { go = function (tag) { return function () { showTarget({ tab: "search", q: tag }); }; }(word); title = "Search for " + word; }
+      else if (m[3]) { go = function (path) { return function () { guideTo(guideFill(["status", path])); }; }(word); title = "Open What changed with this folder filled in"; }
+      if (!go) continue;
+      if (m.index > last) out.push(document.createTextNode(text.slice(last, m.index)));
+      var b = el("button", { class: "link inline-link", type: "button", text: word, title: title });
+      b.onclick = go;
+      out.push(b);
+      last = m.index + word.length;
+    }
+    if (last < text.length) out.push(document.createTextNode(text.slice(last)));
+    return out;
+  }
+  // The page's forms, by the command each one builds (its onsubmit or its button's onclick above):
+  // a guide from the assistant names a command, and the page fills that form in and marks it; the
+  // person presses its button. form: a <form> by id; group: fields marked data-guide (a disc's
+  // details, Mastering), each field by data-field (else an id). args: the fields of the positional
+  // arguments, in order: "@disc" opens that disc's details first, "@plan" opens that plan, "@ticks"
+  // ticks the rest in the file browser; a function chooses a field by the value. opts: a flag's
+  // field, "!f" a checkbox, "+f" a list (comma separated), "" a flag the form adds itself; rest: the
+  // remaining arguments, a line each; fits: whether its button would build the command from these
+  // values. A command with anything the form cannot hold is not guided: the form would build another.
   var FORMS = [
     { cmd: ["init"], tab: "setup", form: "setup-form", args: ["s-folder"], opts: { "--name": "s-name", "--default": "!s-default" } },
     { cmd: ["collection", "init"], tab: "collections", form: "ci-form", args: ["ci-folder"],
@@ -1713,11 +1755,23 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
               "--output-dir": "m-outdir", "--subject": "+m-subject", "--note": "m-note", "--split": "!m-split",
               "--no-defect-management": "!m-nodm" } },
     { cmd: ["plan", "new"], tab: "master", form: "p-new", args: ["p-name"], opts: { "--title": "p-title", "--set": "p-set", "--medium": "p-medium" } },
+    { cmd: ["plan", "make"], tab: "master", group: "plan-make", args: ["@plan"], opts: { "-y": "", "--output-dir": "p-outdir", "--no-ecc": "!p-noecc" } },
+    { cmd: ["plan", "add"], tab: "master", group: "plan-add", args: ["@plan", "@ticks"], opts: { "--disc": "f-to" } },
     { cmd: ["tags", "add"], tab: "map", form: "map-add", args: ["map-key"], place: true,
       opts: { "--label": "map-label", "--parent": "map-in", "--at": "map-at", "--extent": "map-extent", "--reach": "map-reach" } },
     { cmd: ["tags", "add"], tab: "names", form: "names-add", args: ["names-key"], place: false, opts: { "--label": "names-label", "--qualifier": "names-qual" } },
     { cmd: ["status"], tab: "status", form: "st-form", args: ["st-folder"], opts: { "--json": "" } },
     { cmd: ["check"], tab: "tools", form: "check-form", args: ["c-source"], opts: { "--copy": "c-copy", "--repair": "!c-repair" } },
+    { cmd: ["check"], tab: "discs", group: "check-copy", args: [function (v) { return /^\/dev\//.test(v) ? "drive" : "image"; }, "@disc"],
+      opts: { "--copy": "letter", "--repair": "!repair" } },
+    { cmd: ["access"], tab: "discs", group: "access", args: ["@disc", "level"], opts: {} },
+    { cmd: ["note"], tab: "discs", group: "note", args: ["@disc", "text"], opts: {} },
+    { cmd: ["burned"], tab: "discs", group: "burned", args: ["@disc"],
+      opts: { "--device": "drive", "--copies": "copies", "--copy": "letter", "--location": "place" },
+      fits: function (v) { return !(v.drive && v.copies); } },   // a drive reads one copy back: its button leaves --copies out
+    { cmd: ["identify"], tab: "discs", group: "identify", args: ["@disc", "letter", "other"], opts: { "--barcode": "barcode", "--carrier": "carrier" } },
+    { cmd: ["stored"], tab: "discs", group: "stored", args: ["@disc", "path"], opts: { "--location": "place" } },
+    { cmd: ["locate"], tab: "discs", group: "locate", args: ["@disc", "letter", "place"], opts: {} },
     { cmd: ["inventory"], tab: "inventory", form: "inv-form", args: ["inv-place"], opts: { "-v": "!inv-all" } },
     { cmd: ["audit"], tab: "audit", form: "audit-form", args: [], rest: "audit-discs", opts: {} },
     { cmd: ["restore"], tab: "restore", form: "restore-form", args: ["rs-path", "rs-dest"], opts: {} },
@@ -1733,7 +1787,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     for (var n = 0; n < FORMS.length; n++) {
       var f = FORMS[n];
       if (f.cmd.some(function (w, i) { return cmd[i] !== w; })) continue;
-      var values = [], pos = [], ok = true, lists = {};
+      var values = [], pos = [], ok = true, lists = {}, g = { tab: f.tab, form: f.form, group: f.group, shown: "arv " + cmd.join(" ") };
       for (var i = f.cmd.length; i < cmd.length && ok; i++) {
         var a = cmd[i], eq = a.indexOf("="), flag = a.charAt(0) === "-" && a.length > 1 ? (eq > 0 ? a.slice(0, eq) : a) : null;
         if (!flag) { pos.push(a); continue; }
@@ -1749,37 +1803,91 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       if (!ok) continue;                 // another form of the same command may hold it
       if (f.place !== undefined && f.place !== /^place:/.test(pos[0] || "")) continue;
       if (f.rest) { values.push([f.rest, pos.join("\n")]); pos = []; }
-      if (pos.length > f.args.length) continue;
-      pos.forEach(function (v, k) { values.push([f.args[k], v]); });
+      var ticks = f.args.indexOf("@ticks");
+      if (ticks >= 0) { g.ticks = pos.slice(ticks); pos = pos.slice(0, ticks); if (!g.ticks.length) continue; }
+      if (pos.length > f.args.length - (ticks >= 0 ? 1 : 0)) continue;
+      if (f.args.indexOf("@disc") >= 0 && pos.length <= f.args.indexOf("@disc")) continue;   // the disc is needed: it chooses the details
+      pos.forEach(function (v, k) {
+        var to = f.args[k];
+        if (to === "@disc") g.disc = v;
+        else if (to === "@plan") g.plan = v;
+        else values.push([typeof to === "function" ? to(v) : to, v]);
+      });
+      if (f.args.indexOf("@plan") >= 0 && !g.plan) continue;
       Object.keys(lists).forEach(function (id) { values.push([id, lists[id].join(", ")]); });
-      return { tab: f.tab, form: f.form, values: values, shown: "arv " + cmd.join(" ") };
+      var named = {};
+      values.forEach(function (fv) { named[fv[0]] = fv[1]; });
+      if (f.fits && !f.fits(named)) continue;
+      g.values = values;
+      return g;
     }
     return null;
   }
-  function formTouched(form) {      // something typed or chosen in it that the person would lose
-    return Array.prototype.some.call(form.elements, function (e) {
-      if (e.type === "checkbox") return e.checked !== e.defaultChecked;
-      if (e.tagName === "SELECT") return e.selectedIndex > 0 && !e.options[e.selectedIndex].defaultSelected;
-      return (e.tagName === "INPUT" || e.tagName === "TEXTAREA") && e.type !== "submit" && e.type !== "button" && e.value !== e.defaultValue;
+  function guideTarget(g) { return g.form ? $(g.form) : document.querySelector('[data-guide="' + g.group + '"]'); }
+  function fieldsOf(target) {       // what can be typed or chosen in a form or a group (not where it browses: data-keep)
+    return Array.prototype.filter.call(target.querySelectorAll("input, select, textarea"), function (e) {
+      return e.type !== "submit" && e.type !== "button" && e.type !== "hidden" && !e.hasAttribute("data-keep");
     });
   }
-  function guideTo(g) {             // fill the form in and mark it; never submitted: the person presses its button
+  function fieldOf(target, name) { return target.querySelector('[data-field="' + name + '"]') || $(name); }
+  function sendOf(target) {         // the button that sends it: the form's submit, else the group's last button
+    var b = target.querySelectorAll(target.tagName === "FORM" ? "button[type=submit]" : "button");
+    return b[b.length - 1] || null;
+  }
+  function formTouched(target) {    // something typed or chosen in it that the person would lose
+    return !!target && fieldsOf(target).some(function (e) {
+      if (e.type === "checkbox") return e.checked !== e.defaultChecked && !e.closest(".files .list");
+      if (e.tagName === "SELECT") return e.selectedIndex > 0 && !e.options[e.selectedIndex].defaultSelected;
+      return e.value !== e.defaultValue;
+    });
+  }
+  function clearFields(target) {
+    if (target.tagName === "FORM") { target.reset(); return; }
+    fieldsOf(target).forEach(function (e) {
+      if (e.type === "checkbox") e.checked = e.defaultChecked;
+      else if (e.tagName === "SELECT") e.selectedIndex = Math.max(0, Array.prototype.findIndex.call(e.options, function (o) { return o.defaultSelected; }));
+      else e.value = e.defaultValue;
+    });
+  }
+  function guideTo(g) {             // fill the form in and mark it; never sent: the person presses its button
+    var missed = [];
     return showTab(g.tab).then(function () {
-      var form = $(g.form), missed = [];
-      form.hidden = false;
-      form.reset();
+      if (g.disc === undefined) return;
+      if (!discs.some(function (d) { return d.Id === g.disc; })) { missed.push("no disc " + g.disc); return; }
+      selected = g.disc;
+      return loadDiscs().then(function () { return $("disc-detail").ready; });   // its row marked, its copies read
+    }).then(function () {
+      if (g.plan === undefined) return;
+      if (!Array.prototype.some.call($("p-pick").options, function (o) { return o.value === g.plan; })) { missed.push("no plan " + g.plan); return; }
+      return loadPlans(g.plan);
+    }).then(function () {
+      if (!g.ticks) return;
+      var dir = g.ticks[0].replace(/\/+$/, "").replace(/\/[^\/]*$/, "") || "/";
+      return browseFiles(dir);
+    }).then(function () {
+      var target = guideTarget(g);
+      if (!target || missed.some(function (m) { return /^no (disc|plan) /.test(m); })) return missed;
+      target.hidden = false;
+      clearFields(target);
+      (g.ticks || []).forEach(function (path) {         // in the file browser, listed above: ticked as the command names them
+        var box = Array.prototype.filter.call($("f-list").querySelectorAll("input[type=checkbox]"), function (c) { return c.dataset.path === path.replace(/\/+$/, ""); })[0];
+        if (box) box.checked = true; else missed.push(path + " (not in " + folder.path + ")");
+      });
       g.values.forEach(function (fv) {
-        var e = $(fv[0]);
+        var e = fieldOf(target, fv[0]);
+        if (!e) { missed.push(fv[1]); return; }
         if (e.type === "checkbox") { e.checked = fv[1] === true; return; }
         e.value = fv[1];
         if (e.tagName === "SELECT" && e.value !== fv[1]) missed.push(fv[1]);   // not one of its choices
       });
-      document.querySelectorAll("form.guided").forEach(function (x) { x.classList.remove("guided"); });
-      form.classList.add("guided");
-      form.addEventListener("submit", function () { form.classList.remove("guided"); }, { once: true });
-      form.scrollIntoView({ block: "center", behavior: "smooth" });
-      var empty = Array.prototype.filter.call(form.elements, function (e) { return e.required && !e.value; })[0];
-      (empty || form.querySelector("button[type=submit]") || form).focus({ preventScroll: true });
+      document.querySelectorAll(".guided").forEach(function (x) { x.classList.remove("guided"); });
+      target.classList.add("guided");
+      var send = sendOf(target), unmark = function () { target.classList.remove("guided"); };
+      if (target.tagName === "FORM") target.addEventListener("submit", unmark, { once: true });
+      else if (send) send.addEventListener("click", unmark, { once: true });
+      target.scrollIntoView({ block: "center", behavior: "smooth" });
+      var empty = fieldsOf(target).filter(function (e) { return e.required && !e.value; })[0];
+      (empty || send || target).focus({ preventScroll: true });
       return missed;
     });
   }
@@ -1787,7 +1895,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var l = e.id && document.querySelector('label[for="' + e.id + '"]');
     if (l) return l.textContent.trim();
     if (e.closest("label")) return e.closest("label").textContent.trim();
-    return e.placeholder || e.id;
+    var own = e.parentNode && e.parentNode.querySelector(":scope > label");     // field(): a label beside it
+    if (own) return own.textContent.trim();
+    return e.getAttribute("aria-label") || e.placeholder || e.id;
   }
   function clip(t, n) { return t.length > n ? t.slice(0, n) + "…" : t; }
   function pageState() {            // what is on screen, for the assistant: the view, what is selected, what is typed, the last result
@@ -1795,23 +1905,30 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     var parts = [(group ? group + " › " : "") + (view ? view.textContent : currentTab)];
     var section = $("tab-" + currentTab);
     if (currentTab === "discs" && selected) parts.push("disc " + selected + " selected, its details open");
-    if (currentTab === "master" && planName()) parts.push("plan " + planName() + " open");
+    if (currentTab === "master" && planName()) parts.push("plan " + planName() + " open" + (folder ? ", the file browser in " + folder.path : ""));
     if (currentTab === "objects" && $("o-filter").value.trim()) parts.push("showing names containing '" + $("o-filter").value.trim() + "'");
     if (!section) return parts.join("; ");
-    section.querySelectorAll("form").forEach(function (form) {
-      if (form.hidden || form.id === "chat-form") return;
-      var typed = Array.prototype.filter.call(form.elements, function (e) {
-        if (e.type === "checkbox") return e.checked;
-        return (e.tagName === "INPUT" || e.tagName === "TEXTAREA" || e.tagName === "SELECT") && e.type !== "submit" && e.type !== "button" && e.value.trim();
+    section.querySelectorAll("form, [data-guide]").forEach(function (target) {
+      if (target.hidden || target.closest("[hidden]")) return;
+      var typed = fieldsOf(target).filter(function (e) {                         // what differs from the field's own default
+        if (e.closest(".files .list")) return false;                             // the browser's ticks: below
+        if (e.type === "checkbox") return e.checked !== e.defaultChecked;
+        if (e.tagName === "SELECT") { var o = e.options[e.selectedIndex]; return !!o && !o.defaultSelected && e.selectedIndex > 0; }
+        return e.value.trim() && e.value !== e.defaultValue;
       }).map(function (e) {
         return labelOf(e) + (e.type === "checkbox" ? "" : " = " + clip((e.tagName === "SELECT" ? e.options[e.selectedIndex].text : e.value).trim(), 160));
       });
-      var card = form.closest(".card"), h = card && card.querySelector("h3"), name = h ? h.textContent.trim() : form.id;
-      if (form.classList.contains("guided")) parts.push("the form '" + name + "' is filled in as you guided, not yet sent");
+      if (target.dataset.guide === "plan-add") {
+        var ticked = Array.prototype.map.call(target.querySelectorAll(".list input:checked"), function (c) { return c.dataset.path; });
+        if (ticked.length) typed.push("ticked: " + ticked.join(", "));
+      }
+      var card = target.closest(".card"), h = card && card.querySelector("h3");
+      var name = target.dataset.title || (h ? h.textContent.trim() : target.id);
+      if (target.classList.contains("guided")) parts.push("the form '" + name + "' is filled in as you guided, not yet sent");
       if (typed.length) parts.push("form '" + name + "' has: " + clip(typed.join(", "), 600));
     });
     var shown = Array.prototype.filter.call(section.querySelectorAll("pre.log, .banner"), function (e) {
-      return !e.hidden && e.textContent.trim();
+      return !e.hidden && !e.closest("[hidden]") && e.textContent.trim();
     }).pop();
     if (shown) parts.push("last result shown" + (/\bbad\b/.test(shown.className) ? " (failed)" : "") + ": " + (shown.textContent.trim().length > 300 ? "…" : "") + shown.textContent.trim().slice(-300));
     return parts.join("; ");
@@ -1836,7 +1953,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   function chatItem(item) {
     if (item.you) return el("div", { class: "msg you", text: item.you });
     if (typeof item.say === "string") {
-      var target = item.show && stepTarget(item.show), say = el("div", { class: "msg", text: item.say });
+      var target = item.show && stepTarget(item.show), say = el("div", { class: "msg" }, replyLinks(item.say));
       if (target) {
         var b = el("button", { class: "link", type: "button", text: "Show", title: "Open what it named in the view on the left" });
         b.onclick = function () { showTarget(target); };
@@ -1848,11 +1965,11 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         var g = el("button", { class: "link", type: "button", text: item.filled ? "Fill it in again" : "Fill in the form",
           title: "Open the form for this command, filled in and marked; nothing is done until you press its button" });
         g.onclick = function () {
-          var form = $(guide.form);
+          var form = guide.disc === undefined && guide.plan === undefined ? guideTarget(guide) : null;   // another disc's or plan's: not on screen
           if (formTouched(form) && !form.classList.contains("guided") && !confirm("Replace what is in the form with this?")) return;
           guideTo(guide).then(function (missed) {
             item.filled = true; chatSave(); g.textContent = "Fill it in again";
-            if (missed.length) say.appendChild(el("p", { class: "warn", text: "Not a choice in the form: " + missed.join(", ") + ". Choose it there." }));
+            if (missed.length) say.appendChild(el("p", { class: "warn", text: "Not filled in: " + missed.join(", ") + ". Choose it there, or ask again." }));
           });
         };
         say.appendChild(el("pre", { class: "mono", text: item.guideShown || guide.shown }));
@@ -2049,7 +2166,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       }
       else if (r.say || r.guide) {
         var item = { say: r.say || "", show: r.show, guide: r.guide, guideRisk: r.guideRisk, guideShown: r.guideShown }, g = r.guide && guideFill(r.guide);
-        if (g && chatFollow() && !formTouched($(g.form))) { item.filled = true; guideTo(g); }   // Follow: filled in, never over what the person typed
+        if (g && chatFollow() && !formTouched(guideTarget(g))) { item.filled = true; guideTo(g); }   // Follow: filled in, never over what the person typed
         chatAdd(item);
       }
       chatSave();

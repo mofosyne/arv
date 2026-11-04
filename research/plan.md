@@ -2957,3 +2957,35 @@ checked to read:
   commands mapped to their forms through the page's own code, under node).
 - **Not done:** a guide for the views whose actions are buttons, not forms (a disc's details:
   copies, places, retire; Mastering's items); prose links in replies; the record-changed poll.
+
+## Done (2026-11-04): guides for a disc's and Mastering's actions, links in replies
+
+- **The views whose actions are not forms:** a disc's details (who may see it, a note, a burned
+  copy, a copy on a drive or NAS, what a copy is known by, a copy's place, a check of a copy) and
+  Mastering (Add, Make the disc images) are rows of fields with a button, made for each disc or
+  plan. Each row is marked `data-guide` (its fields `data-field`), so `FORMS` names them as it
+  names forms, and the same filling and marking serve both. The page stays the one that knows its
+  layout; the model still names a command.
+- **What a command names is opened first:** `@disc` in an entry's arguments opens that disc's
+  details and waits for its copies (a copy's letter is a choice among them), `@plan` opens that
+  plan, and `@ticks` ticks the named files in Mastering's browser, opened on their folder. A disc
+  or plan that is not there, or a file that is not in the folder, is said under the reply, not
+  guessed at.
+- **Built the same as the button builds it:** an entry may say whether its button would build the
+  command from those values (`fits`): `burned --device` reads one copy back and leaves `--copies`
+  out, so a guide with both is not offered. The browser's folder (`data-keep`) is where it looks,
+  not a field, so filling a row never clears it.
+- **Links in replies,** the design's other half: a disc id (one of the record's), a tag
+  (`namespace:value`, not a URL or a `bca:` serial) and a folder (an absolute path) in a reply are
+  links: the disc's details, a search for the tag, What changed with the folder filled in (Look
+  reads every file, so it waits for the person). Made from text nodes: a reply is never HTML.
+- **More reads have a view for Open:** `plan show NAME` (the plan), `objects` (a disc's details,
+  else the Objects filter) and `status FOLDER` (filled in, as a guide).
+- **Page state:** a row's fields are reported only where they differ from their defaults (a
+  disc's own access level is not "typed"), and Mastering's ticks are listed.
+- **Checked:** the GUI's tests (every row and field `FORMS` names is in the page; a disc's,
+  a check's and a plan's commands mapped, `burned` with both a drive and a count refused), and in
+  Chromium against the fake model: a burned copy's row filled in on the disc's details, a plan's
+  files ticked and added with Add, and each kind of link opening its view.
+- **Not done:** the per-item controls of a plan (move, rename, tags, packing: prompts and menus on
+  each item) are not guided; the record-changed poll.

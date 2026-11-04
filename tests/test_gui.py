@@ -59,20 +59,33 @@ class GuideFormsTest(unittest.TestCase):
     def setUp(self):
         with open(os.path.join(REPO, "src", "arv-gui", "gui.html"), encoding="utf-8") as f:
             self.page = f.read()
-        self.forms = self.page[self.page.index("  var FORMS = ["):self.page.index("  function formTouched(")]
+        self.forms = self.page[self.page.index("  var FORMS = ["):self.page.index("  function guideTarget(")]
 
     def test_every_form_and_field_is_in_the_page(self):
         import re
-        ids = set(re.findall(r'id="([^"]+)"', self.page))
-        named = re.findall(r'(?:form|rest): "([^"]+)"', self.forms) + re.findall(r'"[!+]?([a-z]+-[a-z-]+)"', self.forms)
-        self.assertGreater(len(named), 40)
-        self.assertEqual([n for n in named if n not in ids], [])
+        ids = set(re.findall(r'\bid="([^"]+)"', self.page))
+        fields = ids | set(re.findall(r'"data-field": "([^"]+)"', self.page)) | set(re.findall(r'data-field="([^"]+)"', self.page))
+        groups = set(re.findall(r'"data-guide": "([^"]+)"', self.page)) | set(re.findall(r'data-guide="([^"]+)"', self.page))
+        forms = re.findall(r'\bform: "([^"]+)"', self.forms)
+        named = re.findall(r'\bgroup: "([^"]+)"', self.forms)
+        plain = re.sub(r'function \(v\) \{.*?; \}', '', self.forms)       # a field chosen by the value: its names are below
+        used = [a for a in re.findall(r'"([^"]*)"', " ".join(re.findall(r'args: \[([^\]]*)\]', plain))) if not a.startswith("@")]
+        used += [n for n in ("drive", "image") if 'return /^\\/dev\\//.test(v) ? "drive" : "image"' in self.forms]
+        for opts in re.findall(r'opts: \{([^}]*)\}', self.forms):
+            used += [v.lstrip("!+") for v in re.findall(r':\s*"([^"]*)"', opts) if v]
+        used += re.findall(r'\brest: "([^"]+)"', self.forms)
+        self.assertGreater(len(forms) + len(named) + len(used), 80)
+        self.assertEqual([f for f in forms if f not in ids], [])
+        self.assertEqual([g for g in named if g not in groups], [])
+        self.assertEqual(sorted(set(u for u in used if u not in fields)), [])
 
     @unittest.skipUnless(shutil.which("node"), "node runs the page's own code")
     def test_commands_to_forms(self):
         cases = [["collection", "init", "/p", "--code", "FAM", "--title", "Family"], ["make", "/x", "--no-ecc"],
                  ["tags", "add", "place:kyoto", "--label", "Kyoto"], ["tags", "add", "person:ann", "--qualifier=b. 1931"],
-                 ["make", "-y", "/x", "--subject", "a", "--subject", "b", "--split"], ["retag", "x", "y"], ["restore", "/a", "/b", "/c"]]
+                 ["make", "-y", "/x", "--subject", "a", "--subject", "b", "--split"], ["retag", "x", "y"], ["restore", "/a", "/b", "/c"],
+                 ["burned", "D-1", "--device", "/dev/sr0", "--location", "HOME"], ["burned", "D-1", "--device", "/dev/sr0", "--copies", "2"],
+                 ["check", "--copy", "A", "/dev/sr0", "D-1"], ["plan", "add", "HOL", "/p/a", "/p/b", "--disc", "new"], ["plan", "add", "HOL"]]
         js = self.forms + "console.log(JSON.stringify(%s.map(function (c) { return guideFill(c); })));" % json.dumps(cases)
         got = json.loads(subprocess.run(["node", "-e", js], capture_output=True, text=True, check=True).stdout)
         self.assertEqual((got[0]["form"], sorted(got[0]["values"])), ("ci-form", [["ci-code", "FAM"], ["ci-folder", "/p"], ["ci-title", "Family"]]))
@@ -80,6 +93,11 @@ class GuideFormsTest(unittest.TestCase):
         self.assertEqual((got[2]["form"], got[3]["form"]), ("map-add", "names-add"))   # a place, a name
         self.assertEqual(sorted(got[4]["values"]), [["m-source", "/x"], ["m-split", True], ["m-subject", "a, b"]])
         self.assertEqual((got[5], got[6]), (None, None))        # no form; more arguments than it has fields
+        self.assertEqual((got[7]["group"], got[7]["disc"], sorted(got[7]["values"])), ("burned", "D-1", [["drive", "/dev/sr0"], ["place", "HOME"]]))
+        self.assertIsNone(got[8])                               # a drive reads one copy: the button would leave --copies out
+        self.assertEqual((got[9]["group"], got[9]["disc"], sorted(got[9]["values"])), ("check-copy", "D-1", [["drive", "/dev/sr0"], ["letter", "A"]]))
+        self.assertEqual((got[10]["plan"], got[10]["ticks"], got[10]["values"]), ("HOL", ["/p/a", "/p/b"], [["f-to", "new"]]))
+        self.assertIsNone(got[11])                              # nothing to tick
 
 
 class GuiTest(unittest.TestCase):

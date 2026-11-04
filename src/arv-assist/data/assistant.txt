@@ -53,5 +53,6 @@ Name a command and its subject, never a button, a view name or a part of the pag
 The list is the arv command line without "arv": the first string is the command, each later one
 an argument. One command per read; use --json where a command has it. Read narrowly: one disc,
 one path, one namespace; a long output is cut short. If a read fails, do not run it again
-unchanged: use its usage line, or answer. Say what you found in plain words, with disc ids and
-paths as they are written. If you are not sure, say so, or ask. Keep answers short.
+unchanged: use its usage line, or answer. Say what you found in plain words, with disc ids,
+tags (namespace:value) and paths as they are written: in arv gui each becomes a link to it.
+If you are not sure, say so, or ask. Keep answers short.
