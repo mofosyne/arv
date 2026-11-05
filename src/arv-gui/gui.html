@@ -74,7 +74,7 @@ form.guided, .guided { outline:2px solid var(--accent); outline-offset:6px; bord
 .guided-control { outline:3px solid var(--accent); outline-offset:2px; }
 aside.chat details.step.touring summary { color:var(--accent); font-weight:600; }
 @keyframes nav-pulse { from { box-shadow:0 0 0 3px var(--accent); } to { box-shadow:0 0 0 3px transparent; } }
-.nav-pulse { animation:nav-pulse 0.7s ease-out; }
+.nav-pulse { animation:nav-pulse 1.5s ease-out; }
 @media (prefers-reduced-motion: reduce) { .nav-pulse { animation:none; outline:2px solid var(--accent); } }
 details.console { position:fixed; left:0; right:0; bottom:0; z-index:5; background:var(--panel); border-top:1px solid var(--line);
                   padding:4px 16px; font-size:13px; }
@@ -1793,7 +1793,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       document.querySelectorAll("nav.groups button[aria-selected=true], nav.sub:not([hidden]) button[aria-selected=true], " +
                                 "header button[aria-pressed=true]:not(#chat-btn)").forEach(function (b) {
         b.classList.remove("nav-pulse"); void b.offsetWidth; b.classList.add("nav-pulse");
-        setTimeout(function () { b.classList.remove("nav-pulse"); }, 700);
+        setTimeout(function () { b.classList.remove("nav-pulse"); }, 1500);
       });
     }, 60);
   }
