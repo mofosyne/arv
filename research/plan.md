@@ -3200,3 +3200,16 @@ checked to read:
   "I can't fill in forms ... `arv collection init ...`" filled Make a folder a collection, marked;
   a proposed `location add HOME Home --temperature cold` filled Add a place by Fill in the form;
   with a note half typed on a disc, a reply naming Objects left the page and the note.
+
+## Decision (2026-11-05): a jump, and where it went lit; no animation, no setting
+
+- **The question** (the user's): jump to the view, or animate the way there? A jump, kept cheap
+  and unobtrusive, as the default with no setting. An animated cursor would make every move
+  slower, act out clicks the assistant does not make, and tie it to the page's layout (the reason
+  it does not click). What a jump can lose is where the person is, and that is cheap to show.
+- **Now:** when the page moves for the person (the assistant's replay, Show, Open, a link, a
+  guided form), the section and the view it lands on (and Help or Jobs in the header) light for
+  0.7 s (`pulseNav`); their own clicks on a tab do not. With `prefers-reduced-motion`, a plain
+  outline for the same moment, no animation.
+- **Checked** in Chromium: a tab clicked lights nothing; "take me to my discs" lit Record and
+  Discs, then nothing.

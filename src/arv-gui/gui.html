@@ -73,6 +73,9 @@ tr.pick.sel { outline:2px solid var(--accent); outline-offset:-2px; }
 form.guided, .guided { outline:2px solid var(--accent); outline-offset:6px; border-radius:4px; }
 .guided-control { outline:3px solid var(--accent); outline-offset:2px; }
 aside.chat details.step.touring summary { color:var(--accent); font-weight:600; }
+@keyframes nav-pulse { from { box-shadow:0 0 0 3px var(--accent); } to { box-shadow:0 0 0 3px transparent; } }
+.nav-pulse { animation:nav-pulse 0.7s ease-out; }
+@media (prefers-reduced-motion: reduce) { .nav-pulse { animation:none; outline:2px solid var(--accent); } }
 details.console { position:fixed; left:0; right:0; bottom:0; z-index:5; background:var(--panel); border-top:1px solid var(--line);
                   padding:4px 16px; font-size:13px; }
 body.chatting details.console { right:384px; }
@@ -1783,8 +1786,20 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (cmd[0] === "status" && args.length) return { tab: "status", guide: guideFill(["status", args[0]]) };   // filled in: Look reads it again
     return OPEN_FOR[cmd[0]] ? { tab: OPEN_FOR[cmd[0]] } : null;
   }
+  // Where the page went, when it moved for the person (the assistant, Show, Open, a link): the
+  // section and the view lit for a moment, so they learn where it lives. Not on their own clicks.
+  function pulseNav() {
+    setTimeout(function () {
+      document.querySelectorAll("nav.groups button[aria-selected=true], nav.sub:not([hidden]) button[aria-selected=true], " +
+                                "header button[aria-pressed=true]:not(#chat-btn)").forEach(function (b) {
+        b.classList.remove("nav-pulse"); void b.offsetWidth; b.classList.add("nav-pulse");
+        setTimeout(function () { b.classList.remove("nav-pulse"); }, 700);
+      });
+    }, 60);
+  }
   function showTarget(t) {          // the person chose it (Open, Show), or the view follows the assistant
     if (!t) return;
+    pulseNav();
     if (t.disc !== undefined) { selected = t.disc; scrollSel = !!t.scroll; }
     if (t.help) helpOpen(t.help);
     else if (t.guide) guideTo(t.guide);
@@ -1954,6 +1969,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   }
   function guideTo(g) {             // fill the form in and mark it; never sent: the person presses its button
     var missed = [];
+    pulseNav();
     return showTab(g.tab).then(function () {
       if (g.disc === undefined) return;
       if (!discs.some(function (d) { return d.Id === g.disc; })) { missed.push("no disc " + g.disc); return; }
