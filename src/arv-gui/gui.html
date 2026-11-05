@@ -72,6 +72,7 @@ tr.pick:hover, tr.pick.sel { background:var(--panel); }
 tr.pick.sel { outline:2px solid var(--accent); outline-offset:-2px; }
 form.guided, .guided { outline:2px solid var(--accent); outline-offset:6px; border-radius:4px; }
 .guided-control { outline:3px solid var(--accent); outline-offset:2px; }
+aside.chat details.step.touring summary { color:var(--accent); font-weight:600; }
 details.console { position:fixed; left:0; right:0; bottom:0; z-index:5; background:var(--panel); border-top:1px solid var(--line);
                   padding:4px 16px; font-size:13px; }
 body.chatting details.console { right:384px; }
@@ -2298,12 +2299,20 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       wait.remove();
       if (res.error) { chatMessages.pop(); chatAdd({ error: res.error }); return; }
       chatMessages = res.messages;
-      var r = res.reply || {}, last = null, named = r.show ? stepTarget(r.show) : null;
-      (res.steps || []).forEach(function (s) { chatAdd({ step: s }); if (stepTarget(s.command)) last = s; });
-      // a view the assistant named goes there at once, as asked ("take me there"), unless it would
-      // lose what is typed in the view open now (then its Show button); Follow: its reads too
-      if (named && (chatFollow() || !viewTouched())) showTarget(named);
-      else if (!named && last && chatFollow()) showTarget(stepTarget(last.command));
+      var r = res.reply || {}, named = r.show ? stepTarget(r.show) : null, tour = [], g = r.guide && guideFill(r.guide);
+      (res.steps || []).forEach(function (s) {
+        chatAdd({ step: s });
+        var t = stepTarget(s.command);
+        if (t) tour.push({ target: t, line: $("chat-talk").lastChild });
+      });
+      // Follow: its reads replayed one by one, a pause on each, so the person sees where it looked.
+      // A view it named (or a form with nothing to fill: a view to open) is the last stop, and goes
+      // even without Follow, as asked ("take me there"), unless that would lose what is typed in
+      // the view open now (then its Show button).
+      if (!chatFollow()) tour = [];
+      var nav = named || (g && !g.values.length && !g.ticks && !g.item ? { guide: g } : null);
+      if (nav && (chatFollow() || !viewTouched())) tour.push({ target: nav });
+      playTour(tour);
       if (r.error) chatAdd({ error: r.error });
       else if (r.propose) {
         r.agent = "llm:" + (res.model || (llmStatus && llmStatus.model) || "unknown");
@@ -2311,13 +2320,47 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         chatAdd(r);
       }
       else if (r.say || r.guide) {
-        var item = { say: r.say || "", show: r.show, guide: r.guide, guideRisk: r.guideRisk, guideShown: r.guideShown }, g = r.guide && guideFill(r.guide);
-        if (g && chatFollow() && !formTouched(guideTarget(g))) { item.filled = true; guideTo(g); }   // Follow: filled in, never over what the person typed
+        var item = { say: r.say || "", show: r.show, guide: r.guide, guideRisk: r.guideRisk, guideShown: r.guideShown };
+        if (g && !nav && chatFollow() && !formTouched(guideTarget(g))) { item.filled = true; tourThen(function () { guideTo(g); }); }   // Follow: filled in, never over what the person typed
         chatAdd(item);
       }
       chatSave();
     });
   }
+  // the replay: each stop shown for TOUR_MS, its line in the chat marked; the person's own click,
+  // key or wheel ends it where it is (the page is theirs again), as does typing in the view
+  var TOUR_MS = 1500, touring = null;
+  function playTour(stops) {
+    if (touring) touring.stop();
+    if (!stops.length) { tourThen(null); return; }
+    var i = 0, timer = null, done = false, after = [];
+    function end() {
+      if (done) return;
+      done = true; clearTimeout(timer);
+      ["pointerdown", "keydown", "wheel"].forEach(function (ev) { document.removeEventListener(ev, stop, true); });
+      document.querySelectorAll(".msg.touring, .step.touring").forEach(function (x) { x.classList.remove("touring"); });
+      touring = null;
+      after.forEach(function (f) { f(); });
+    }
+    function stop(ev) {               // the person's own: a click or a key anywhere, a wheel outside the chat (reading along is fine)
+      if (!ev.isTrusted || (ev.type === "wheel" && $("chat").contains(ev.target))) return;
+      end();
+    }
+    function next() {
+      if (done) return;
+      if (i >= stops.length || (i > 0 && viewTouched())) { end(); return; }
+      var s = stops[i++];
+      document.querySelectorAll(".step.touring").forEach(function (x) { x.classList.remove("touring"); });
+      if (s.line) s.line.classList.add("touring");
+      showTarget(s.target);
+      if (i >= stops.length) timer = setTimeout(end, 300);
+      else timer = setTimeout(next, TOUR_MS);
+    }
+    touring = { stop: end, then: function (f) { after.push(f); } };
+    ["pointerdown", "keydown", "wheel"].forEach(function (ev) { document.addEventListener(ev, stop, true); });
+    next();
+  }
+  function tourThen(f) { if (!f) return; if (touring) touring.then(f); else f(); }
   $("chat-auto").checked = chatAuto();
   $("chat-auto").onchange = function () { try { localStorage.setItem("arv-chat-auto", this.checked ? "1" : ""); } catch (e) {} };
   $("chat-follow").checked = chatFollow();

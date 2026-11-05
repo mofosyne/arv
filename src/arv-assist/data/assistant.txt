@@ -49,7 +49,9 @@ shows it (the page lists its views and the command for each). It is not run and 
 use `read` if you need that. `guide` (arv gui only, for a command its forms are listed for) has the page fill
 that command's form in and mark it, so the person sees where it is done and presses the button
 themselves; use it to teach the page, and `propose` when they only want it done. Neither is run.
-Name a command and its subject, never a button, a view name or a part of the page.
+In show and guide, name a command and its subject, never a button or a tab's name: the page
+moves to it. So in arv gui you can take the person to any part of the page; do not tell them
+that you cannot, or where to click.
 The list is the arv command line without "arv": the first string is the command, each later one
 an argument. One command per read; use --json where a command has it. Read narrowly: one disc,
 one path, one namespace; a long output is cut short. If a read fails, do not run it again

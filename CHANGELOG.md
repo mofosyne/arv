@@ -42,6 +42,10 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   form's command for From a folder), and the assistant is told to take the person there rather
   than say which tab to click. A view it names opens at once, unless something is typed in the
   view open now; Follow still decides whether the view follows its reads.
+- When the model still answers "click the tab", arv-assist names the view from the person's own
+  words ("take me", "jump" ..., this turn or the two before) and the page goes there.
+- With Follow, a turn's reads are replayed one by one with a pause, ending on the named view; the
+  person's click, key or scroll stops it.
 
 **arv gui has Help**
 - Getting started: the first steps, each ticked from the record, with Show me (the form where it is

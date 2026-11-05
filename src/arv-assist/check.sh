@@ -348,6 +348,19 @@ tr -d '\n' < views.json | grep -q '"show": \["list"\]' && grep -q "The page's vi
     && grep -q 'Never say you cannot open a view' log \
     && ok "arv chat --json: the page's views reach the model, each with the command that opens it; it is told to take the person there" \
     || { cat views.json; tail -c 3000 log; no "chat --json views"; }
+printf '%s\n' '{"say": "I can'"'"'t click tabs for you - click the Archive tab at the top."}' > text.reply
+views='"views": ["archive \u203a From a folder: guide [\"make\"]", "archive \u203a Mastering: discs by hand: show [\"plan\",\"list\"]", "record \u203a Objects: show [\"objects\"]", "record \u203a Discs: show [\"list\"]"]'
+printf '{"messages": [{"role": "user", "content": "where is the archive page here? Can you take me to that tab?"}, {"role": "assistant", "content": "Click the Archive tab."}, {"role": "user", "content": "Just jump me there"}], %s}' "$views" \
+    | "$tool" --home home chat --json $llm > jump.json || no "chat --json jump"
+printf '{"messages": [{"role": "user", "content": "take me to my discs\\n\\n(On screen: verify \u203a Owed)"}], %s}' "$views" \
+    | "$tool" --home home chat --json $llm > jump2.json || no "chat --json jump 2"
+printf '{"messages": [{"role": "user", "content": "what is the archive for?"}], %s}' "$views" \
+    | "$tool" --home home chat --json $llm > nojump.json || no "chat --json no jump"
+tr -d '\n' < jump.json | grep -q '"reply": {"say": "Here is Archive \(›\|\\u203a\) From a folder.", "guide": \["make"\], "taken": true}' \
+    && tr -d '\n' < jump2.json | grep -q '"show": \["list"\], "taken": true' \
+    && ! grep -q '"taken"' nojump.json && grep -q 'For example, asked \\"take me to the discs\\"' log \
+    && ok "arv chat --json: asked to go to a view, a reply that names none (\"I can't, click the tab\") gets it from the person's words, this turn's or the ones before" \
+    || { cat jump.json jump2.json nojump.json; no "chat --json take them there"; }
 printf '%s\n' '{"say": "not a view", "show": ["retag", "trip", "travel"]}' > text.reply
 printf '{"messages": [{"role": "user", "content": "show me travel"}]}' \
     | "$tool" --home home chat --json $llm > badshow.json || no "chat --json bad show"
