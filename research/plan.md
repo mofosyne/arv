@@ -3208,8 +3208,8 @@ checked to read:
   slower, act out clicks the assistant does not make, and tie it to the page's layout (the reason
   it does not click). What a jump can lose is where the person is, and that is cheap to show.
 - **Now:** when the page moves for the person (the assistant's replay, Show, Open, a link, a
-  guided form), the section and the view it lands on (and Help or Jobs in the header) light for
-  0.7 s (`pulseNav`); their own clicks on a tab do not. With `prefers-reduced-motion`, a plain
+  guided form), the section and the view it lands on (and Help or Jobs in the header) light,
+  fading over 1.5 s (`pulseNav`; first 0.7 s, slowed on the user's word); their own clicks on a tab do not. With `prefers-reduced-motion`, a plain
   outline for the same moment, no animation.
 - **Checked** in Chromium: a tab clicked lights nothing; "take me to my discs" lit Record and
   Discs, then nothing.
