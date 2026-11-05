@@ -37,6 +37,12 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   off) points at them: the item and the control are outlined, a prompt opens with the guided
   answer, and the reply says which menu choice sends it.
 
+**The assistant takes you to a view when asked**
+- The page sends its views, each with the command that opens it (`list` for Record › Discs, a
+  form's command for From a folder), and the assistant is told to take the person there rather
+  than say which tab to click. A view it names opens at once, unless something is typed in the
+  view open now; Follow still decides whether the view follows its reads.
+
 **arv gui has Help**
 - Getting started: the first steps, each ticked from the record, with Show me (the form where it is
   done, marked) and the command. The manual: `arv help --all`, searchable, with Show me for each

@@ -210,7 +210,11 @@ static char *system_text(const chat *ch)
         sb_puts(&b, "The context 'On screen: ...' says what they are looking at: the view, what is selected in it, what is "
                     "typed in its forms, and the last result shown there. Do not tell them to start the page. "
                     "The page has Help (the manual, and the first steps ticked from the record): `show` [\"help\", \"COMMAND\"] "
-                    "opens it at that command, for a person who wants to read about it.\n");
+                    "opens it at that command, for a person who wants to read about it.\n"
+                    "You can take the person to any view: when they ask to go somewhere, or where a thing is, reply "
+                    "{\"say\": \"...\", \"show\": [the command]} and the page goes there (if they typed something in the view "
+                    "they are on, it gives them a Show button instead). Never say you cannot open a view, and do not tell "
+                    "them which tab to click: name the command, and the page does it.\n");
     }
     return b.s;
 }
@@ -562,6 +566,17 @@ static int for_gui(chat *ch)
         for (size_t i = 0; i < ch->forms.n; i++) sb_printf(&f, "%s`%s`", i ? ", " : "", ch->forms.v[i]);
         sb_puts(&f, ". To walk the person through one, reply {\"say\": \"...\", \"guide\": [the command]}: the page fills "
                     "its form in and marks it, and the person presses its button.\n");
+        free(ch->system);
+        ch->system = f.s;
+    }
+    const jv *views = json_get(req, "views");                 /* the page's views, and the command that opens each */
+    if (views && views->kind == 'a' && views->n) {
+        sbuf f = { 0 };
+        sb_puts(&f, ch->system);
+        sb_puts(&f, "The page's views, and what takes the person to each:\n");
+        for (size_t i = 0; i < views->n && i < 64; i++)
+            if (jstr_of(views->vals[i]) && strlen(jstr_of(views->vals[i])) < 200 && !strpbrk(jstr_of(views->vals[i]), "\r\n"))
+                sb_printf(&f, "- %s\n", jstr_of(views->vals[i]));
         free(ch->system);
         ch->system = f.s;
     }

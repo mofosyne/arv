@@ -1750,7 +1750,23 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // it (FORMS, below), for the person to send with its own button.
   var chatMessages = [], chatLog = [], OPEN_FOR = { find: "search", todo: "owed", status: "status", map: "map", tags: "names",
     objects: "objects", plan: "master", collection: "collections", list: "discs", info: "discs", programs: "programs",
-    names: "names", inventory: "inventory", audit: "audit" };
+    names: "names", inventory: "inventory", audit: "audit", location: "places", help: "help" };
+  // How the assistant takes the person to each view: the read that view shows (show), or, for a
+  // view that is a form, that form (guide). Sent with each message (views), so the model names a
+  // command, never a tab; the page maps it back through stepTarget and FORMS.
+  var VIEW_SHOWS = { objects: { show: ["objects"] }, collections: { show: ["collection", "list"] }, discs: { show: ["list"] },
+    places: { show: ["location", "list"] }, map: { show: ["map"] }, names: { show: ["tags", "names"] }, search: { show: ["find"], note: ", or [\"find\", \"WORDS\"] to search for them" },
+    make: { guide: ["make"] }, master: { show: ["plan", "list"] }, status: { show: ["status"] }, owed: { show: ["todo"] },
+    tools: { guide: ["check"] }, inventory: { show: ["inventory"] }, audit: { show: ["audit"] }, restore: { guide: ["restore"] },
+    programs: { show: ["programs"] }, help: { show: ["help"] } };
+  function viewsList() {            // "record › Discs: show [\"list\"]", a line a view, as the page names them now
+    return Array.prototype.map.call(document.querySelectorAll("nav.sub button[data-tab]"), function (b) {
+      var v = VIEW_SHOWS[b.dataset.tab], group = b.closest("nav.sub").dataset.group;
+      if (!v) return null;
+      var how = v.show ? "show " + JSON.stringify(v.show) : "guide " + JSON.stringify(v.guide);
+      return group + " › " + b.textContent.trim() + ": " + how + (v.note || "");
+    }).filter(Boolean).concat(["Help (the manual, and the first steps): show [\"help\"]"]);
+  }
   function stepTarget(cmd) {        // what a read looked at, as the view that shows it: no clicks, no selectors
     if (!cmd || !cmd.length) return null;
     var args = [], i;
@@ -2278,16 +2294,16 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     chatMessages.push({ role: "user", content: text });
     chatAdd({ you: text });
     talk.appendChild(wait); talk.scrollTop = talk.scrollHeight;
-    assistJson(["chat", "--json"], { messages: chatMessages, context: pageState(), forms: formCommands() }).then(function (res) {
+    assistJson(["chat", "--json"], { messages: chatMessages, context: pageState(), forms: formCommands(), views: viewsList() }).then(function (res) {
       wait.remove();
       if (res.error) { chatMessages.pop(); chatAdd({ error: res.error }); return; }
       chatMessages = res.messages;
       var r = res.reply || {}, last = null, named = r.show ? stepTarget(r.show) : null;
       (res.steps || []).forEach(function (s) { chatAdd({ step: s }); if (stepTarget(s.command)) last = s; });
-      if (chatFollow()) {
-        if (named) showTarget(named);
-        else if (last) showTarget(stepTarget(last.command));
-      }
+      // a view the assistant named goes there at once, as asked ("take me there"), unless it would
+      // lose what is typed in the view open now (then its Show button); Follow: its reads too
+      if (named && (chatFollow() || !viewTouched())) showTarget(named);
+      else if (!named && last && chatFollow()) showTarget(stepTarget(last.command));
       if (r.error) chatAdd({ error: r.error });
       else if (r.propose) {
         r.agent = "llm:" + (res.model || (llmStatus && llmStatus.model) || "unknown");

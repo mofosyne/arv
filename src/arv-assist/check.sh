@@ -321,7 +321,7 @@ grep -q '^  \$ arv find travel   (exit 0, ' chat.err && grep -q '^One disc has t
     || { cat chat.out chat.err; no "arv chat"; }
 tail -1 log | grep -q 'When the archive is new' && tail -1 log | grep -q 'This archive: home\. ' \
     && tail -1 log | grep -q 'Discs: ' && tail -1 log | grep -q 'arv gui' && tail -1 log | grep -q 'takes no other word' \
-    && tail -1 log | grep -q 'Show button' \
+    && tail -1 log | grep -q 'takes them to the view' \
     && ok "arv chat knows a new setup: the first steps, whether an archive exists, how many discs there are, that arv gui is the page, and how show moves it" \
     || no "chat setup guidance"
 printf '%s\n' '{"read": ["todo", "--json"]}' > text.reply
@@ -340,6 +340,14 @@ printf '{"messages": [{"role": "user", "content": "show me travel"}]}' \
 tr -d '\n' < show.json | grep -q '"say": "here it is", "show": \["find", "travel"\]' \
     && ok "arv chat --json: a say may name the view to show (a read's command and subject), not a selector" \
     || { cat show.json; no "chat --json show"; }
+printf '%s\n' '{"say": "Here is Record › Discs.", "show": ["list"]}' > text.reply
+printf '{"messages": [{"role": "user", "content": "take me to the record page"}], "views": ["record › Discs: show [\\"list\\"]", "bad\\nline"]}' \
+    | "$tool" --home home chat --json $llm > views.json || no "chat --json views"
+tr -d '\n' < views.json | grep -q '"show": \["list"\]' && grep -q "The page's views, and what takes the person to each:" log \
+    && grep -q -- '- record › Discs: show \[\\"list\\"\]' log && ! grep -q 'bad\\nline' log \
+    && grep -q 'Never say you cannot open a view' log \
+    && ok "arv chat --json: the page's views reach the model, each with the command that opens it; it is told to take the person there" \
+    || { cat views.json; tail -c 3000 log; no "chat --json views"; }
 printf '%s\n' '{"say": "not a view", "show": ["retag", "trip", "travel"]}' > text.reply
 printf '{"messages": [{"role": "user", "content": "show me travel"}]}' \
     | "$tool" --home home chat --json $llm > badshow.json || no "chat --json bad show"
