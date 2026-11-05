@@ -50,6 +50,8 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - When the model writes a command in backquotes that the page has a form for, instead of filling
   it, arv-assist makes it the guide and the form is filled in with it; a proposal whose command
   has a form gets Fill in the form beside Apply.
+- When the page moves for the person (the assistant, Show, Open, a link), the section and view it
+  lands on light for a moment, so they see where it went; their own clicks do not. No setting.
 
 **arv gui has Help**
 - Getting started: the first steps, each ticked from the record, with Show me (the form where it is

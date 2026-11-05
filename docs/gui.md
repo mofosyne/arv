@@ -218,5 +218,6 @@ as it is, and a bar offers Reload. Each message tells it what you see: the
 view, what is selected, what is typed in the forms, and the last result. Ask it to take you somewhere ("take me to the discs") and the view goes there, unless you have
 typed something in the view you are on (then it offers Show). The view follows it: its reads are
 replayed one by one, a pause on each and its line marked, so you see where it looked, ending on
-the view it names; a click, a key or a scroll of yours stops the replay where it is. It never
+the view it names; a click, a key or a scroll of yours stops the replay where it is. At each stop the
+section and view it went to light for a moment, so you see where things live. It never
 clicks, applies, or fills a form you typed in. Its reads in this picture are real; the model's replies are scripted.
