@@ -361,6 +361,16 @@ tr -d '\n' < jump.json | grep -q '"reply": {"say": "Here is Archive \(›\|\\u20
     && ! grep -q '"taken"' nojump.json && grep -q 'For example, asked \\"take me to the discs\\"' log \
     && ok "arv chat --json: asked to go to a view, a reply that names none (\"I can't, click the tab\") gets it from the person's words, this turn's or the ones before" \
     || { cat jump.json jump2.json nojump.json; no "chat --json take them there"; }
+printf '%s\n' '{"say": "I cannot fill forms, but run `arv collection init /photos --code PHOTOS --title '"'"'Family photos'"'"'` yourself."}' > text.reply
+printf '{"messages": [{"role": "user", "content": "make photos a collection"}], "forms": ["collection init", "location add"]}' \
+    | "$tool" --home home chat --json $llm > fromwords.json || no "chat --json guide from words"
+printf '%s\n' '{"say": "Run `arv retag trip travel`."}' > text.reply
+printf '{"messages": [{"role": "user", "content": "tag it"}], "forms": ["collection init"]}' | "$tool" --home home chat --json $llm > noform.json || no "no form"
+tr -d '\n' < fromwords.json | grep -q '"guide": \["collection", "init", "/photos", "--code", "PHOTOS", "--title", "Family photos"\], "guideRisk": "medium", "guideShown": "arv collection init /photos --code PHOTOS --title '"'"'Family photos'"'"'", "taken": true' \
+    && grep -q '"say": "Here it is in its form, filled in: check it, then press its button."' fromwords.json \
+    && ! grep -q '"guide"' noform.json && grep -q 'You can fill the page.s forms this way: do not say you cannot' log \
+    && ok "arv chat --json: a reply that gives a command in backquotes the page has a form for (and fills none) guides to it, quotes and all; one with no form is left as it is" \
+    || { cat fromwords.json noform.json; no "chat --json guide from words"; }
 printf '%s\n' '{"say": "not a view", "show": ["retag", "trip", "travel"]}' > text.reply
 printf '{"messages": [{"role": "user", "content": "show me travel"}]}' \
     | "$tool" --home home chat --json $llm > badshow.json || no "chat --json bad show"

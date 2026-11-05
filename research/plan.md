@@ -3161,3 +3161,42 @@ checked to read:
   context in the message; a question that is not "go" gets nothing), and in Chromium: the model's
   refusal taken there anyway; three reads replayed Owed → Discs → Collections → Objects; a click
   mid-replay left it where it was.
+
+## Decision (2026-11-05): no Follow switch; the view always follows the assistant
+
+- **The user's call:** remove "Follow the assistant". It was off by default to protect a person
+  working in a view from the view changing under them; that protection now holds without a
+  switch: nothing moves while something is typed or guided in the view open now (a named view then
+  has its Show button), and the replay stops at the person's own click, key or scroll. What was
+  left of the switch was one more thing to explain, and a default that hid the feature.
+- **Now:** every turn's reads are replayed (1.5 s each, the step's line marked), ending on the view
+  a reply names; a guide with values is filled in after, when the form is untouched. Open on each
+  step and Show on a reply bring a view back by hand. The stored setting (`arv-chat-follow`) is
+  removed from the browser. This replaces the 2026-11-03 "Follow, off by default" and the
+  "Follow keeps its other half" of the entry above.
+
+## Done (2026-11-05): forms filled in when the model will not use guide
+
+- **The report:** "the assistant cannot access and write to forms in the page". The same as "take
+  me there": a small model answers "I can't fill in forms" or gives the command in its words, and
+  never replies with `guide`.
+- **The words:** the forms' list in the system text says it can fill them this way and not to say
+  it cannot, with a worked example (`guide ["collection", "init", "/photos", ...]`).
+- **Not left to the model:** a reply that names no guide, show or proposal but writes a command
+  in backquotes that the page has a form for (`` `arv collection init /photos --code PHOTOS
+  --title 'Family photos'` ``) gets that command as its guide, split as a shell splits it (quotes
+  kept as one word), with its risk and quoted form; a refusal in it is replaced ("Here it is in its
+  form, filled in"). The page fills the form in as for any guide; the person still presses its
+  button. A command with no form is left in the words, as written.
+- **Proposals, too:** a proposal whose command fits a form (`guideFill`) has Fill in the form beside
+  Apply: the same change made through the page's own form, for a person who wants to see it there
+  or change a field; Apply stays the quick way.
+- **Holding the page, corrected:** a form outlined by a guide with nothing in it no longer holds
+  the page (it loses nothing): only fields changed from their defaults, or ticked files, do. And
+  the browser test of "a note half typed holds the page" now names another view, as it must: the
+  earlier one named the view it was on, so it could not have failed.
+- **Checked:** arv-assist's checks (the backquoted command becomes the guide, quotes kept, the
+  refusal replaced; `retag`, with no form, left alone), and in Chromium against the fake model:
+  "I can't fill in forms ... `arv collection init ...`" filled Make a folder a collection, marked;
+  a proposed `location add HOME Home --temperature cold` filled Add a place by Fill in the form;
+  with a note half typed on a disc, a reply naming Objects left the page and the note.

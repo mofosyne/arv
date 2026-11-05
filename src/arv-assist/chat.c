@@ -619,6 +619,69 @@ static jv *view_asked(const jv *messages, const strlist *views, const char **how
     return NULL;
 }
 
+/* a command as a shell splits it: words, '...' and "..." quoted; NULL when a quote is not closed */
+static int split_words(const char *line, strlist *out)
+{
+    memset(out, 0, sizeof *out);
+    sbuf w = { 0 };
+    int in = 0;
+    char q = 0;
+    for (const char *c = line; ; c++) {
+        if (q && *c == q) { q = 0; continue; }
+        if (q && *c) { sb_add(&w, c, 1); continue; }
+        if (q) { free(w.s); strlist_free(out); return -1; }
+        if (*c == '\'' || *c == '"') { q = *c; in = 1; continue; }
+        if (!*c || isspace((unsigned char)*c)) {
+            if (in) { strlist_add(out, w.s ? w.s : ""); free(w.s); w = (sbuf){ 0 }; in = 0; }
+            if (!*c) break;
+            continue;
+        }
+        sb_add(&w, c, 1);
+        in = 1;
+    }
+    free(w.s);
+    return 0;
+}
+
+/* A reply that tells the person a command in `backquotes` the page has a form for, and fills none
+ * (a model that will not use guide, or says it cannot fill forms): its first such command is the
+ * guide, so the page fills that form in with it. The person still presses the button. */
+static void guide_from_words(chat *ch, jv *reply)
+{
+    const char *say = jstr_of(json_get(reply, "say"));
+    if (!say || !ch->forms.n || json_get(reply, "guide") || json_get(reply, "propose") || json_get(reply, "show") || json_get(reply, "error"))
+        return;
+    for (const char *a = strchr(say, '`'); a; a = strchr(a + 1, '`')) {
+        const char *z = strchr(a + 1, '`');
+        if (!z) return;
+        char *code = xprintf("%.*s", (int)(z - a - 1), a + 1);
+        strlist words;
+        int ok = !split_words(code, &words);
+        free(code);
+        if (ok && words.n && !strcmp(words.v[0], "arv")) {
+            free(words.v[0]);
+            memmove(words.v, words.v + 1, (words.n - 1) * sizeof *words.v);
+            words.n--;
+        }
+        if (ok && words.n && has_form(ch, &words)) {
+            char *said = own_words(say);                    /* "I can't fill forms": it is filled in now */
+            if (strstr(said, "can't") || strstr(said, "cannot") || strstr(said, "can not") || strstr(said, "unable") || strstr(said, "not able"))
+                jput(reply, "say", jstr("Here it is in its form, filled in: check it, then press its button."));
+            free(said);
+            jput(reply, "guide", jstrings(&words));
+            jput(reply, "guideRisk", jstr(command_risk((int)words.n, words.v)));
+            char *g = shown(&words);
+            jput(reply, "guideShown", jstr(g));
+            free(g);
+            jput(reply, "taken", jnum("true"));
+            strlist_free(&words);
+            return;
+        }
+        if (ok) strlist_free(&words);
+        a = z;
+    }
+}
+
 /* The person asked to go to a view and the reply names none (a model that answers "click the tab",
  * or "I can't"): the view is named for it, from their own words. A reply that refused is replaced. */
 static void take_them_there(jv *reply, const jv *messages, const strlist *views)
@@ -673,7 +736,10 @@ static int for_gui(chat *ch)
         sb_puts(&f, "The page has a form for each of these commands: ");
         for (size_t i = 0; i < ch->forms.n; i++) sb_printf(&f, "%s`%s`", i ? ", " : "", ch->forms.v[i]);
         sb_puts(&f, ". To walk the person through one, reply {\"say\": \"...\", \"guide\": [the command]}: the page fills "
-                    "its form in and marks it, and the person presses its button.\n");
+                    "its form in and marks it, and the person presses its button. You can fill the page's forms this way: do not say "
+                    "you cannot. For example, asked \"make my photos folder a collection\", reply {\"say\": \"Check the code and title, "
+                    "then press Make it a collection.\", \"guide\": [\"collection\", \"init\", \"/photos\", \"--code\", \"PHOTOS\", "
+                    "\"--title\", \"Photos\"]}.\n");
         free(ch->system);
         ch->system = f.s;
     }
@@ -702,6 +768,7 @@ static int for_gui(chat *ch)
     }
     jv *a = messages->n ? turn(ch, messages, steps, NULL) : NULL;
     take_them_there(a, messages, &vlines);
+    guide_from_words(ch, a);
     strlist_free(&vlines);
     jput(d, "steps", steps);
     jput(d, "reply", a ? a : jobj());

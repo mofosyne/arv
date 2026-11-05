@@ -24,8 +24,8 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 **The assistant sees the page, and guides through its forms**
 - Each message to it in `arv gui` carries what is on screen: the view, what is selected (a disc,
   a plan), what is typed in its forms, and the last result shown, as the page words them.
-- A reply may carry `guide`: a command whose form the page fills in and marks (Fill in the form,
-  or at once with Follow, unless you have typed in it). Nothing is done until you press the form's
+- A reply may carry `guide`: a command whose form the page fills in and marks (at once, or Fill in
+  the form when you have typed in it). Nothing is done until you press the form's
   own button. A command the form cannot hold all of is not guided.
 - A guide reaches a disc's details too (record a burned or stored copy, what a copy is known by,
   its place, a check, a note, who may see it: the disc is opened first) and Mastering (a plan's
@@ -41,11 +41,15 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
 - The page sends its views, each with the command that opens it (`list` for Record › Discs, a
   form's command for From a folder), and the assistant is told to take the person there rather
   than say which tab to click. A view it names opens at once, unless something is typed in the
-  view open now; Follow still decides whether the view follows its reads.
+  view open now.
 - When the model still answers "click the tab", arv-assist names the view from the person's own
   words ("take me", "jump" ..., this turn or the two before) and the page goes there.
-- With Follow, a turn's reads are replayed one by one with a pause, ending on the named view; the
-  person's click, key or scroll stops it.
+- The view follows the assistant: a turn's reads are replayed one by one with a pause, ending on
+  the named view; the person's click, key or scroll stops it, and nothing moves over typing. The
+  Follow switch is gone.
+- When the model writes a command in backquotes that the page has a form for, instead of filling
+  it, arv-assist makes it the guide and the form is filled in with it; a proposal whose command
+  has a form gets Fill in the form beside Apply.
 
 **arv gui has Help**
 - Getting started: the first steps, each ticked from the record, with Show me (the form where it is
@@ -93,8 +97,8 @@ What 1.0 is planned to be, as of now. Format 0.5 is what every disc made today c
   pattern and runs it; an `info` opens Record › Discs on that disc, its row marked and scrolled to.
 - A reply may also name a view with `show`, as a read's command and its subject (never a selector
   or a button); it gets a Show button.
-- Follow, off by default and remembered, opens the view of the last read, or the named view, by
-  itself, so the page can be watched while the assistant works. It never clicks or applies anything.
+- The view follows the assistant's reads, so the page can be watched while it works (no switch:
+  see above). It never clicks or applies anything.
 
 **Every view of the GUI, pictured**
 - `docs/gui.md`: each view of `arv gui`, with a picture on the sample archive and the commands it
