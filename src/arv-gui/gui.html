@@ -596,7 +596,6 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     <button class="plain" type="button" id="chat-close" aria-label="Close the assistant">Close</button></header>
   <div class="talk" id="chat-talk"></div>
   <label class="chat-auto" title="Off by default. On: a retag the model proposes (low risk) is applied at once, recorded as the model's suggestion, not yours, with Undo; never one it was unsure of, and nothing else"><input type="checkbox" id="chat-auto"> Apply tags without asking</label>
-  <label class="chat-auto" title="Off by default. On: the view on the left opens what the assistant last read, or the subject it named with show, and marks it (Search for a find, the disc for an info), so you can watch it work; a form it guides you to is filled in, unless you have typed in it. It names a command and its subject, never a button or a selector, and never sends a form."><input type="checkbox" id="chat-follow"> Follow the assistant</label>
   <form id="chat-form"><textarea id="chat-input" aria-label="Ask the assistant" placeholder="Ask about the archive: what is owed, where something is, how to tag a folder..."></textarea>
     <button class="primary" type="submit">Send</button></form>
 </aside>
@@ -1746,9 +1745,9 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   // The conversation is kept here, in the page, and in this browser (localStorage) across reloads
   // until New; each turn sends it with what is on screen. Its reads come back as steps, shown as
   // their commands; a change comes back as a proposal, applied here only when the person says so,
-  // as it came or as they edited it (its risk judged again). It never clicks: Open (and Follow, if
-  // the person turns it on) moves the view to what it read, and a guide fills a form in and marks
-  // it (FORMS, below), for the person to send with its own button.
+  // as it came or as they edited it (its risk judged again). It never clicks: the view follows what
+  // it read (replayed, a pause on each), Open shows a read again, and a guide fills a form in and
+  // marks it (FORMS, below), for the person to send with its own button.
   var chatMessages = [], chatLog = [], OPEN_FOR = { find: "search", todo: "owed", status: "status", map: "map", tags: "names",
     objects: "objects", plan: "master", collection: "collections", list: "discs", info: "discs", programs: "programs",
     names: "names", inventory: "inventory", audit: "audit", location: "places", help: "help" };
@@ -1784,7 +1783,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     if (cmd[0] === "status" && args.length) return { tab: "status", guide: guideFill(["status", args[0]]) };   // filled in: Look reads it again
     return OPEN_FOR[cmd[0]] ? { tab: OPEN_FOR[cmd[0]] } : null;
   }
-  function showTarget(t) {          // the person chose it (Open), or Follow is on
+  function showTarget(t) {          // the person chose it (Open, Show), or the view follows the assistant
     if (!t) return;
     if (t.disc !== undefined) { selected = t.disc; scrollSel = !!t.scroll; }
     if (t.help) helpOpen(t.help);
@@ -2102,7 +2101,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         say.appendChild(b);
       }
       var guide = item.guide && guideFill(item.guide);
-      if (guide) {                     // a form to fill in: shown as its command, filled in when the person asks (or Follow did)
+      if (guide) {                     // a form to fill in: shown as its command, filled in at once, or when the person asks
         var g = el("button", { class: "link", type: "button", text: guide.item ? (item.filled ? "Show me again" : "Show me where") : item.filled ? "Fill it in again" : "Fill in the form",
           title: "Open the form for this command, filled in and marked; nothing is done until you press its button" });
         g.onclick = function () {
@@ -2188,7 +2187,6 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   var UNDOABLE = { retag: 1, rename: 1 },   // arv undo sets these back: their event ids are kept
     autoRun = null;                         // the proposal to apply without asking, once shown
   function chatAuto() { try { return localStorage.getItem("arv-chat-auto") === "1"; } catch (e) { return false; } }
-  function chatFollow() { try { return localStorage.getItem("arv-chat-follow") === "1"; } catch (e) { return false; } }
   function chatProposal(r) {            // r: the reply {propose, why, risk, shown, sure, doubtful, agent}, and what became of it (r.done)
     var card = el("div", { class: "card" }), out = el("pre", { class: "log" }), msg = el("span", { class: "muted" }),
       cmd = el("pre", { class: "mono", text: r.shown }), edit = el("textarea", { class: "mono", "aria-label": "The command, to edit" }),
@@ -2283,7 +2281,12 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     card.appendChild(edit);
     if (r.why) card.appendChild(el("p", { text: r.why }));
     if (r.doubtful) card.appendChild(el("p", { class: "muted", text: "The model was unsure of this: check it, or ask again. It is never applied without asking." }));
-    card.appendChild(el("div", { class: "acts" }, [apply, change, dismiss, undo, helpLink(r.propose || []), msg]));
+    var inForm = guideFill(r.propose), fill = null;      // the same change in the page's own form, if it has one
+    if (inForm) {
+      fill = el("button", { class: "link", type: "button", text: "Fill in the form", title: "Open its form here, filled in with this command; pressing the form's button applies it instead of Apply" });
+      fill.onclick = function () { guideTo(inForm); };
+    }
+    card.appendChild(el("div", { class: "acts" }, [apply, change, dismiss, undo, fill, helpLink(r.propose || []), msg]));
     card.appendChild(out);
     card.appendChild(extra);
     if (r.done) done(r.done);
@@ -2305,14 +2308,13 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
         var t = stepTarget(s.command);
         if (t) tour.push({ target: t, line: $("chat-talk").lastChild });
       });
-      // Follow: its reads replayed one by one, a pause on each, so the person sees where it looked.
-      // A view it named (or a form with nothing to fill: a view to open) is the last stop, and goes
-      // even without Follow, as asked ("take me there"), unless that would lose what is typed in
-      // the view open now (then its Show button).
-      if (!chatFollow()) tour = [];
-      var nav = named || (g && !g.values.length && !g.ticks && !g.item ? { guide: g } : null);
-      if (nav && (chatFollow() || !viewTouched())) tour.push({ target: nav });
-      playTour(tour);
+      // The view follows it: its reads replayed one by one, a pause on each, so the person sees
+      // where it looked, and a view it named (or a form with nothing to fill: a view to open) last.
+      // Not over what is typed in the view open now: then nothing moves, and a named view has its
+      // Show button. The person's own click, key or scroll ends the replay (playTour).
+      var nav = named || (g && !g.values.length && !g.ticks && !g.item ? { guide: g } : null), held = viewTouched();
+      if (nav) tour.push({ target: nav });
+      playTour(held ? [] : tour);
       if (r.error) chatAdd({ error: r.error });
       else if (r.propose) {
         r.agent = "llm:" + (res.model || (llmStatus && llmStatus.model) || "unknown");
@@ -2321,7 +2323,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
       }
       else if (r.say || r.guide) {
         var item = { say: r.say || "", show: r.show, guide: r.guide, guideRisk: r.guideRisk, guideShown: r.guideShown };
-        if (g && !nav && chatFollow() && !formTouched(guideTarget(g))) { item.filled = true; tourThen(function () { guideTo(g); }); }   // Follow: filled in, never over what the person typed
+        if (g && !nav && !held && !formTouched(guideTarget(g))) { item.filled = true; tourThen(function () { guideTo(g); }); }   // filled in, never over what the person typed
         chatAdd(item);
       }
       chatSave();
@@ -2363,8 +2365,7 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
   function tourThen(f) { if (!f) return; if (touring) touring.then(f); else f(); }
   $("chat-auto").checked = chatAuto();
   $("chat-auto").onchange = function () { try { localStorage.setItem("arv-chat-auto", this.checked ? "1" : ""); } catch (e) {} };
-  $("chat-follow").checked = chatFollow();
-  $("chat-follow").onchange = function () { try { localStorage.setItem("arv-chat-follow", this.checked ? "1" : ""); } catch (e) {} };
+  try { localStorage.removeItem("arv-chat-follow"); } catch (e) {}     // the switch it was, gone: the view always follows
   $("chat-btn").onclick = function () { chatOpen($("chat").hidden); };
   $("chat-close").onclick = function () { chatOpen(false); };
   $("chat-new").onclick = function () { chatMessages = []; chatLog = []; chatSave(); $("chat-talk").textContent = ""; chatNote(); };
@@ -3296,12 +3297,11 @@ pre.log { background:var(--panel); padding:10px 12px; border-radius:6px; max-hei
     }).catch(function () { return seenRecord; });
   }
   function sawOwnChange() { recordNow().then(function (now) { seenRecord = now; }); }
-  function viewTouched() {
+  function viewTouched() {           // something here the person would lose: typed, chosen, ticked (a guided form's values too)
     var section = $("tab-" + currentTab);
-    return !!section && (!!section.querySelector(".guided") || Array.prototype.some.call(section.querySelectorAll("form, [data-guide]"), function (t) {
-      return !t.closest("[hidden]") && (t.classList.contains("guided") || formTouched(t) ||
-        (t.dataset.guide === "plan-add" && !!t.querySelector(".list input:checked")));
-    }));
+    return !!section && Array.prototype.some.call(section.querySelectorAll("form, [data-guide]"), function (t) {
+      return !t.closest("[hidden]") && (formTouched(t) || (t.dataset.guide === "plan-add" && !!t.querySelector(".list input:checked")));
+    });
   }
   function reloadView() {           // the open view as the record is now, where it was scrolled to
     var y = window.scrollY;

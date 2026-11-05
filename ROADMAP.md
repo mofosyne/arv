@@ -74,7 +74,7 @@ Each waits until someone needs it.
 - [x] Models: found and chosen in Settings, each source on or off, your own key said at each use
 - [x] The assistant (`arv chat`, and a panel in the GUI): reads on its own, proposes changes with their risk;
       Edit on a proposal, and the conversation kept across reloads; Undo, "apply tags without
-      asking", how sure it was (token probabilities), rules from what you accept; Follow; it sees
+      asking", how sure it was (token probabilities), rules from what you accept; the view follows it; it sees
       the page's state and guides through its forms (filled in, the person sends), a disc's and
       Mastering's too; disc ids, tags and folders in its replies are links;
       a plan's own controls pointed at; the page reloads its view when the record changes elsewhere;

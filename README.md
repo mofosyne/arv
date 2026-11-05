@@ -357,10 +357,11 @@ A home's `config/assistant.txt` replaces its instructions.
 - **Apply tags without asking:** a switch in the GUI's panel, off by default. On, a retag the model
   proposes is applied at once and recorded as `suggested` (no person saw it), with Undo. Nothing
   else is, and never one the model was unsure of.
-- **Open and Follow:** a read's line has Open, which shows what it read in the view on the left
-  (Search for a find, its disc for an info), marking it. A reply may also name a view with `show`;
-  it gets a Show button. Follow, off by default, opens the last read, or the named view, by itself,
-  so you can watch it work. It names a command and its subject, never a button or a selector.
+- **The view follows it:** its reads are replayed in the view on the left, a pause on each (Search
+  for a find, its disc for an info), ending on the view a reply names with `show`, so you can watch
+  it work; your click, key or scroll stops it, and nothing moves over what you have typed (Show
+  and each read's Open bring it back). It names a command and its subject, never a button or a
+  selector, and never clicks.
 - **How sure it was:** where the server gives token probabilities (llama.cpp, Ollama), each
   proposal shows the model's least sure word in the command, measured, not what it says of itself.
   Below half, the card says it was unsure.

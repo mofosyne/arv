@@ -557,7 +557,8 @@ class GuiTest(unittest.TestCase):
         with open(replies, "w") as f:                                          # the assistant: a read, then a proposal
             f.write('{"read": ["todo", "--json"]}\n===\n{"propose": ["tags", "add", "person:ann"], "why": "a name"}\n')
         self.assertIn('<aside class="chat" id="chat" hidden', page)
-        self.assertIn('id="chat-follow"', page)                                # Open a step's subject, or follow it
+        self.assertNotIn('id="chat-follow"', page)                             # no switch: the view follows it
+        self.assertIn("playTour(held ? [] : tour)", page)                      # replayed, not over typing
         self.assertIn("item.show", page)                                       # a reply may name the view to show
         self.assertIn("forms: formCommands()", page)                           # the page says which forms it has
         self.assertIn("context: pageState()", page)                            # and what is selected and typed
