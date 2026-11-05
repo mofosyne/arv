@@ -215,6 +215,8 @@ or a folder in a reply is a link to it.
 While the page is open it watches the record: a change made elsewhere (in a shell, by a job, a
 catalogue merged) reloads the view in place. If you have typed something in the view, it is left
 as it is, and a bar offers Reload. Each message tells it what you see: the
-view, what is selected, what is typed in the forms, and the last result. Follow, off by default,
-opens the last read or the named view by itself, and fills a guided form in (never one you have
-typed in). Its reads in this picture are real; the model's replies are scripted.
+view, what is selected, what is typed in the forms, and the last result. Ask it to take you somewhere ("take me to the discs") and the view goes there, unless you have
+typed something in the view you are on (then it offers Show). Follow, off by default, is safe to
+leave on (it never clicks, applies or fills a form you typed in): with it, the assistant's reads
+are replayed one by one, a pause on each and its line marked, so you see where it looked, ending
+on the view it names; a click, a key or a scroll of yours stops the replay where it is. Its reads in this picture are real; the model's replies are scripted.

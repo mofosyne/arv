@@ -598,7 +598,7 @@ static const char *const MANUAL_NOTES[] = {      /* in parts: C99 strings may be
     "  makes small images for trying arv out, not for burning.\n"
     "- Every disc carries arv's source and these docs in `tools/`, and `README.txt` says how to read it\n"
     "  without arv.\n"
-    "\n"
+    "\n",
     "## Files\n"
     "\n"
     "- `.arv/`: the archive's home, at the root of the tree it describes; found by walking up from the\n"

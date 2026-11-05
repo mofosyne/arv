@@ -3104,3 +3104,60 @@ checked to read:
 - **Checked:** the GUI's tests (the page's risk against arv's), and in Chromium: a read run, a
   pipe, `-C`, `gui` and an unknown command refused with their reasons, `record note` as a low-risk
   card, applied and in the record, `check --repair` asking again, Tab and history.
+
+## Done (2026-11-05): "take me there" takes them there
+
+- **The report:** in `arv gui`, asked "can you take me to the record page?", the assistant said
+  twice that it could not and that the person should click Record. It could have: `show`
+  `["objects"]` opens Record › Objects. Three gaps: it was not told which command opens which
+  view (only the sections' names), its instructions spoke of `show` as naming a read's subject,
+  not as a way to go somewhere, and with Follow off (the default) a `show` only gave a Show button,
+  so even a right answer would not have moved the page.
+- **The views, from the page:** each message carries `views`, a line a view as the page names it
+  now, with the command that opens it: a read for a view that shows one (`list`, `collection
+  list`, `todo` ...), the form's command (a guide) for a view that is a form (From a folder,
+  Check, Restore). It is built from the page's own tabs and a table beside `OPEN_FOR`, so a
+  renamed tab is named as it is; the model still names a command, never a tab. arv-assist puts
+  the lines in the system text (64 at most, one line each).
+- **Told to:** in `arv gui` the instructions say it can take the person to any view, to do so
+  when asked where something is or to go somewhere, never to say it cannot, and not to say which
+  tab to click.
+- **A named view opens at once:** "take me there" is the person's own ask, so a reply's `show`
+  moves the page without Follow, unless something is typed or guided in the view open now (then
+  the Show button, as before: losing the place is still the thing to avoid). Follow keeps its
+  other half: whether the view follows the assistant's reads. This replaces "a named view moves
+  the page only when Follow is on" (2026-11-03).
+- **Checked:** arv-assist's checks (the views reach the system text, a line with a newline left
+  out, the instruction there), and in Chromium against the fake model with Follow off: "can you
+  take me there?" opened Record › Objects; with a note half typed on a disc, the page stayed, the
+  note kept, and the reply had Show.
+
+## Done (2026-11-05): taken there even when the model refuses; Follow replays a turn
+
+- **The report, again:** with the views sent, a local model still answered "I can't click tabs for
+  you". Small models hold to an early rule over a later one, and the instructions still said
+  "never a view name or a part of the page" (meant for `show`'s arguments), which reads as "you
+  cannot navigate".
+- **The words:** that line now says what it meant (in `show` and `guide`, a command, never a tab's
+  name; the page moves) and that it can take the person anywhere; and after the views, two worked
+  examples ("take me to the discs", "jump me to the archive page"): examples hold small models
+  better than rules.
+- **Not left to the model:** when the person's latest words ask to go ("take me", "bring me",
+  "jump", "go to", "go there", "navigate", "switch to", "open the" ...) and the reply names no
+  view, arv-assist finds the view in their own words (the page's "(On screen: ...)" left out), this
+  turn's first, then the two before ("Just jump me there" after "the archive page"): a view's
+  name (its longest word, a plural matching: discs, disc) before a section's (its first view).
+  The reply gets it (`taken: true`), and a refusal ("can't", "click" ...) is replaced by "Here is
+  Archive › From a folder." Deterministic and narrow: no view named, nothing added; a reply that
+  names one, or proposes, is left as it is.
+- **A guide with nothing to fill** (From a folder, Check, Restore: `guide ["make"]`) is a view to
+  open, so it opens at once as a `show` does, under the same rule (not over typing).
+- **Follow is safe to leave on,** and now shows the turn: its reads are replayed one by one,
+  1.5 seconds on each, the step's line marked, ending on the view the reply names (a guided form
+  is filled in after). The person's own click, key, or wheel outside the chat panel (reading along
+  is fine) ends the replay where it is, as does something typed in the view.
+- **Checked:** arv-assist's checks (the refusal and "Just jump me there" with the archive named a
+  turn before get Archive › From a folder; "take me to my discs" gets `list` with the page's
+  context in the message; a question that is not "go" gets nothing), and in Chromium: the model's
+  refusal taken there anyway; three reads replayed Owed → Discs → Collections → Objects; a click
+  mid-replay left it where it was.

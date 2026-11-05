@@ -210,7 +210,11 @@ static char *system_text(const chat *ch)
         sb_puts(&b, "The context 'On screen: ...' says what they are looking at: the view, what is selected in it, what is "
                     "typed in its forms, and the last result shown there. Do not tell them to start the page. "
                     "The page has Help (the manual, and the first steps ticked from the record): `show` [\"help\", \"COMMAND\"] "
-                    "opens it at that command, for a person who wants to read about it.\n");
+                    "opens it at that command, for a person who wants to read about it.\n"
+                    "You can take the person to any view: when they ask to go somewhere, or where a thing is, reply "
+                    "{\"say\": \"...\", \"show\": [the command]} and the page goes there (if they typed something in the view "
+                    "they are on, it gives them a Show button instead). Never say you cannot open a view, and do not tell "
+                    "them which tab to click: name the command, and the page does it.\n");
     }
     return b.s;
 }
@@ -539,6 +543,114 @@ static int terminal(chat *ch)
     return 0;
 }
 
+/* ------------------------------------------------------------------ "take me there", without the model */
+
+/* A person's words, lowercase, without the "(On screen: ...)" the page adds to them */
+static char *own_words(const char *content)
+{
+    const char *cut = strstr(content, "\n\n(On screen: ");
+    char *t = xprintf("%.*s", (int)(cut ? (size_t)(cut - content) : strlen(content)), content);
+    for (char *c = t; *c; c++) *c = (char)tolower((unsigned char)*c);
+    return t;
+}
+
+static int asks_to_go(const char *words)
+{
+    static const char *const GO[] = { "take me", "bring me", "jump", "go to", "go there", "get me to", "navigate",
+                                      "switch to", "move me", "open the", "open that", "show me the", "show me that", NULL };
+    for (int i = 0; GO[i]; i++)
+        if (strstr(words, GO[i])) return 1;
+    return 0;
+}
+
+/* WORD in TEXT at a word's start (a plural or a longer form after it is fine: disc, discs) */
+static int names(const char *text, const char *word)
+{
+    size_t n = strlen(word);
+    char *stem = xprintf("%.*s", (int)(n > 3 && word[n - 1] == 's' ? n - 1 : n), word);   /* discs: disc */
+    int found = 0;
+    for (const char *p = strstr(text, stem); p && !found; p = strstr(p + 1, stem))
+        found = p == text || !isalpha((unsigned char)p[-1]);
+    free(stem);
+    return found;
+}
+
+/* The view the person asked for, from the page's views ("group › Name: show [...]"): one whose name
+ * their words say (its longest word: "Mastering", "folder", "Discs"), else the first of a group they
+ * name ("the archive page": Archive's first view); the latest message first, then the two before.
+ * *how is "show" or "guide", *label the view as the page names it. NULL when none is named. */
+static jv *view_asked(const jv *messages, const strlist *views, const char **how, char **label)
+{
+    int asked = 0;
+    for (size_t m = messages->n; m-- > 0 && asked < 3;) {
+        const char *role = jstr_of(json_get(messages->vals[m], "role")), *content = jstr_of(json_get(messages->vals[m], "content"));
+        if (!role || strcmp(role, "user") || !content) continue;
+        asked++;
+        char *words = own_words(content);
+        for (int pass = 0; pass < 2; pass++)
+            for (size_t i = 0; i < views->n; i++) {
+                const char *line = views->v[i], *arrow = strstr(line, " \xe2\x80\xba "), *colon = strstr(line, ": show ");
+                if (!colon) colon = strstr(line, ": guide ");
+                if (!arrow || !colon || colon < arrow) continue;
+                char *group = xprintf("%.*s", (int)(arrow - line), line), *name = xprintf("%.*s", (int)(colon - arrow - 5), arrow + 5);
+                for (char *c = name; *c; c++) *c = (char)tolower((unsigned char)*c);
+                char *stop = strchr(name, ':');                   /* "Mastering: discs by hand": Mastering */
+                if (stop) *stop = 0;
+                char longest[64] = "";
+                for (char *w = strtok(name, " "); w; w = strtok(NULL, " "))
+                    if (strlen(w) > strlen(longest) && strlen(w) < sizeof longest) strcpy(longest, w);
+                int hit = pass == 0 ? *longest && names(words, longest) : names(words, group);
+                free(name);
+                free(group);
+                if (!hit) continue;
+                const char *open = strchr(colon, '['), *close = open ? strchr(open, ']') : NULL;
+                char *list = open && close ? xprintf("%.*s", (int)(close - open + 1), open) : NULL;
+                jv *cmd = list ? json_parse(list) : NULL;
+                free(list);
+                if (!cmd || cmd->kind != 'a') { jfree(cmd); continue; }
+                *how = strstr(line, ": guide ") == colon ? "guide" : "show";
+                *label = xprintf("%.*s", (int)(colon - line), line);
+                if (**label) **label = (char)toupper((unsigned char)**label);
+                free(words);
+                return cmd;
+            }
+        free(words);
+    }
+    return NULL;
+}
+
+/* The person asked to go to a view and the reply names none (a model that answers "click the tab",
+ * or "I can't"): the view is named for it, from their own words. A reply that refused is replaced. */
+static void take_them_there(jv *reply, const jv *messages, const strlist *views)
+{
+    if (!reply || !views->n || json_get(reply, "show") || json_get(reply, "guide") || json_get(reply, "propose") || json_get(reply, "error"))
+        return;
+    const jv *last = NULL;
+    for (size_t m = messages->n; m-- > 0;) {
+        const char *role = jstr_of(json_get(messages->vals[m], "role"));
+        if (role && !strcmp(role, "user")) { last = messages->vals[m]; break; }
+    }
+    char *words = last ? own_words(jstr_of(json_get(last, "content"))) : NULL;
+    int go = words && asks_to_go(words);
+    free(words);
+    if (!go) return;
+    const char *how = NULL;
+    char *label = NULL;
+    jv *cmd = view_asked(messages, views, &how, &label);
+    if (!cmd) return;
+    char *said = jstr_of(json_get(reply, "say")) ? own_words(jstr_of(json_get(reply, "say"))) : xstrdup("");
+    if (!*said || strstr(said, "can't") || strstr(said, "cannot") || strstr(said, "can not") || strstr(said, "unable") ||
+        strstr(said, "not able") || strstr(said, "click")) {
+        char *t = xprintf("Here is %s.", label);
+        jput(reply, "say", jstr(t));
+        free(t);
+    }
+    free(said);
+    jput(reply, how, cmd);
+    jput(reply, "taken", jnum("true"));                   /* named by arv-assist, from the person's words */
+    free(label);
+}
+
 static int for_gui(chat *ch)
 {
     sbuf in = { 0 };
@@ -565,6 +677,22 @@ static int for_gui(chat *ch)
         free(ch->system);
         ch->system = f.s;
     }
+    const jv *views = json_get(req, "views");                 /* the page's views, and the command that opens each */
+    strlist vlines = { 0 };
+    for (size_t i = 0; views && views->kind == 'a' && i < views->n && i < 64; i++)
+        if (jstr_of(views->vals[i]) && strlen(jstr_of(views->vals[i])) < 200 && !strpbrk(jstr_of(views->vals[i]), "\r\n"))
+            strlist_add(&vlines, jstr_of(views->vals[i]));
+    if (vlines.n) {
+        sbuf f = { 0 };
+        sb_puts(&f, ch->system);
+        sb_puts(&f, "The page's views, and what takes the person to each:\n");
+        for (size_t i = 0; i < vlines.n; i++) sb_printf(&f, "- %s\n", vlines.v[i]);
+        sb_puts(&f, "For example, asked \"take me to the discs\", reply {\"say\": \"Here are your discs.\", \"show\": [\"list\"]}; "
+                    "asked \"jump me to the archive page\", reply {\"say\": \"Here is Archive.\", \"guide\": [\"make\"]}. "
+                    "The page moves; you do not need to explain where to click.\n");
+        free(ch->system);
+        ch->system = f.s;
+    }
     const char *context = jstr_of(json_get(req, "context"));
     if (context && *context && messages->n) {                  /* what is on screen, with the latest words */
         jv *last = messages->vals[messages->n - 1];
@@ -573,6 +701,8 @@ static int for_gui(chat *ch)
         free(t);
     }
     jv *a = messages->n ? turn(ch, messages, steps, NULL) : NULL;
+    take_them_there(a, messages, &vlines);
+    strlist_free(&vlines);
     jput(d, "steps", steps);
     jput(d, "reply", a ? a : jobj());
     jput(d, "messages", messages);
